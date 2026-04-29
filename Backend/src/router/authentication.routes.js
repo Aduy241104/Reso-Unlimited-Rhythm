@@ -28,4 +28,11 @@ router.post(
     authenticationController.logout
 );
 
+router.post(
+    "/refresh-token",
+    validate(authenticationValidation.refreshTokenCookieSchema, "cookies"),
+    authenticationController.refreshToken
+);
+
+
 export default router;

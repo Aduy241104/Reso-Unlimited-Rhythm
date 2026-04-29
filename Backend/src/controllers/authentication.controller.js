@@ -91,11 +91,32 @@ const logout = async (req, res, next) => {
     }
 };
 
+const refreshToken = async (req, res, next) => {
+    try {
+        const authResult = await authenticationService.refreshToken(
+            req.cookies.refreshToken
+        );
+
+        setAuthenticationCookies(res, authResult);
+
+        return formatResponse.success(
+            res,
+            {
+                user: authResult.user,
+                accessToken: authResult.accessToken,
+            },
+            "Token refreshed successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
 
 export default {
     requestRegisterOtp,
     register,
     login,
-    logout
+    logout,
+    refreshToken
 };
 

@@ -226,8 +226,6 @@ const login = async ({ email, password }) => {
     };
 };
 
-
-
 const logout = async (token) => {
     const storedToken = await RefreshToken.findOne({
         token,
@@ -242,9 +240,43 @@ const logout = async (token) => {
     await storedToken.save();
 };
 
+const refreshToken = async (token) => {
+    const storedToken = await RefreshToken.findOne({
+        token,
+        isRevoked: false,
+    }).populate("userId");
+
+    if (!storedToken) {
+        throw new AppError("Refresh token is invalid.", 401);
+    }
+
+    if (storedToken.expiresAt.getTime() <= Date.now()) {
+        storedToken.isRevoked = true;
+        await storedToken.save();
+
+        throw new AppError("Refresh token has expired.", 401);
+    }
+
+    const user = storedToken.userId;
+    ensureActiveUser(user);
+
+    storedToken.token = createRefreshToken();
+    storedToken.expiresAt = getRefreshExpireDate();
+    await storedToken.save();
+
+    return {
+        accessToken: createAccessToken(user),
+        refreshToken: storedToken.token,
+        user: sanitizeUser(user),
+    };
+};
+
+
+
 export default {
     requestRegisterOtp,
     register,
     login,
     logout,
+    refreshToken
 };
