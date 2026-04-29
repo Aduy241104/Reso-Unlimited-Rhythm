@@ -1,36 +1,13 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "../contexts/AuthContext";
 import { useAuth } from "../hooks/useAuth";
+import MainLayout from "../layout/mainLayout/MainLayout";
 import LoginPage from "../pages/auth/LoginPage";
+import RegisterPage from "../pages/auth/RegisterPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import RoleRoute from "./RoleRoute";
-
-const RegisterPage = () => {
-  return (
-    <section>
-      <h1>Register</h1>
-      <p>Public route: implement register form here.</p>
-      <div className="bg-red-500 text-white p-4">
-        Test Tailwind
-      </div>
-    </section>
-  );
-};
-
-const HomePage = () => {
-  const { user, logout } = useAuth();
-
-  return (
-    <section>
-      <h1>Home</h1>
-      <p>Welcome {user?.name || user?.email || "User"}.</p>
-      <button type="button" onClick={logout}>
-        Logout
-      </button>
-    </section>
-  );
-};
+import HomePage from "../pages/home/HomePage";
 
 const ProfilePage = () => {
   const { user } = useAuth();
@@ -62,22 +39,25 @@ const AppRoutes = () => {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
+          <Route element={<MainLayout />}>
+            <Route path="/" element={<HomePage />} />
+
+            <Route element={<ProtectedRoute />}>
+              <Route path="/profile" element={<ProfilePage />} />
+
+              <Route element={<RoleRoute allowedRoles={["admin"]} />}>
+                <Route path="/admin" element={<AdminPage />} />
+              </Route>
+
+              <Route element={<RoleRoute allowedRoles={["artist"]} />}>
+                <Route path="/artist" element={<ArtistPage />} />
+              </Route>
+            </Route>
+          </Route>
+
           <Route element={<PublicRoute />}>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
-          </Route>
-
-          <Route element={<ProtectedRoute />}>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-
-            <Route element={<RoleRoute allowedRoles={["admin"]} />}>
-              <Route path="/admin" element={<AdminPage />} />
-            </Route>
-
-            <Route element={<RoleRoute allowedRoles={["artist"]} />}>
-              <Route path="/artist" element={<ArtistPage />} />
-            </Route>
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
