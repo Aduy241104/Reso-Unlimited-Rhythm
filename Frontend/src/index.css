@@ -26,8 +26,10 @@
   }
 
   html,
-  body {
+  body,
+  #root {
     font-family: "SpotifyMixUI", sans-serif;
+    height: 100%;
   }
 
   h1,
@@ -41,5 +43,9 @@
   select,
   textarea {
     font: inherit;
+  }
+
+  body {
+    margin: 0;
   }
 }
