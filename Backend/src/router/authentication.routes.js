@@ -11,5 +11,18 @@ router.post(
     authenticationController.login
 );
 
+router.post(
+    "/register",
+    validate(authenticationValidation.registerSchema),
+    authenticationController.register
+);
+
+router.post(
+    "/register/send-otp",
+    validate(authenticationValidation.requestRegisterOtpSchema),
+    authenticationController.requestRegisterOtp
+);
+
+
 
 export default router;

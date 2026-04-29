@@ -22,6 +22,37 @@ const setAuthenticationCookies = (res, tokens) => {
     );
 };
 
+const register = async (req, res, next) => {
+    try {
+        const authResult = await authenticationService.register(req.body);
+
+        setAuthenticationCookies(res, authResult);
+
+        return formatResponse.success(
+            res,
+            { user: authResult.user },
+            "Register successful"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+const requestRegisterOtp = async (req, res, next) => {
+    try {
+        const otpResult = await authenticationService.requestRegisterOtp(
+            req.body
+        );
+
+        return formatResponse.success(
+            res,
+            otpResult,
+            "OTP sent successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
 
 const login = async (req, res, next) => {
     try {
@@ -40,5 +71,8 @@ const login = async (req, res, next) => {
 };
 
 export default {
+    requestRegisterOtp,
+    register,
     login,
 };
+

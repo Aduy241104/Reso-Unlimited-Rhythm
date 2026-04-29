@@ -12,6 +12,11 @@ import {
     getRefreshExpireDate,
 } from "../../utils/tokenUtils.js";
 
+const SALT_ROUNDS = 10;
+const OTP_TTL_MINUTES = Number(process.env.OTP_TTL_MINUTES || 5);
+const OTP_RESEND_COOLDOWN_SECONDS = Number(
+    process.env.OTP_RESEND_COOLDOWN_SECONDS || 60
+);
 
 const sanitizeUser = (user) => ({
     id: user._id,
@@ -41,6 +46,153 @@ const ensureActiveUser = (user) => {
     }
 };
 
+const getOtpExpireDate = () =>
+    new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
+
+const ensureRegistrationAvailability = async (email) => {
+    const [existingEmail] = await Promise.all([
+        User.findOne({ email }),
+    ]);
+
+    if (existingEmail) {
+        throw new AppError("Email is already in use.", 409, {
+            field: "email",
+        });
+    }
+};
+
+const requestRegisterOtp = async ({ email, password, username, fullName }) => {
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedFullName = fullName?.trim() || "";
+
+    await ensureRegistrationAvailability(normalizedEmail);
+
+    const latestVerification = await VerificationToken.findOne({
+        email: normalizedEmail,
+        type: "verify_email",
+        isUsed: false,
+    }).sort({ createdAt: -1 });
+
+    const lastOtpIssuedAt = latestVerification
+        ? latestVerification.updatedAt || latestVerification.createdAt
+        : null;
+
+    if (
+        lastOtpIssuedAt &&
+        lastOtpIssuedAt.getTime() + OTP_RESEND_COOLDOWN_SECONDS * 1000 >
+        Date.now()
+    ) {
+        throw new AppError(
+            "Please wait before requesting another OTP.",
+            429,
+            { resendAfterSeconds: OTP_RESEND_COOLDOWN_SECONDS }
+        );
+    }
+
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+    const otp = generateOtp();
+
+    const verificationData = {
+        email: normalizedEmail,
+        otp,
+        token: crypto.randomBytes(32).toString("hex"),
+        type: "verify_email",
+        expiresAt: getOtpExpireDate(),
+        isUsed: false,
+        payload: {
+            password: hashedPassword,
+            fullName: normalizedFullName,
+        },
+    };
+
+    let activeVerificationToken;
+    if (latestVerification) {
+        latestVerification.otp = verificationData.otp;
+        latestVerification.token = verificationData.token;
+        latestVerification.expiresAt = verificationData.expiresAt;
+        latestVerification.payload = verificationData.payload;
+        latestVerification.isUsed = false;
+        activeVerificationToken = await latestVerification.save();
+    } else {
+        activeVerificationToken = await VerificationToken.create(
+            verificationData
+        );
+    }
+
+    await VerificationToken.deleteMany({
+        email: normalizedEmail,
+        type: "verify_email",
+        _id: { $ne: activeVerificationToken._id },
+    });
+
+    await sendOtpEmail({
+        to: normalizedEmail,
+        code: otp,
+        type: "register",
+        ttlMinutes: OTP_TTL_MINUTES,
+    });
+
+    return {
+        email: normalizedEmail,
+        expiresInMinutes: OTP_TTL_MINUTES,
+        resendAfterSeconds: OTP_RESEND_COOLDOWN_SECONDS,
+    };
+};
+
+const register = async ({ email, otp }) => {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const verificationToken = await VerificationToken.findOne({
+        email: normalizedEmail,
+        otp,
+        type: "verify_email",
+        isUsed: false,
+    }).sort({ createdAt: -1 });
+
+    if (!verificationToken) {
+        throw new AppError("OTP is invalid.", 400, {
+            field: "otp",
+        });
+    }
+
+    if (verificationToken.expiresAt.getTime() <= Date.now()) {
+        verificationToken.isUsed = true;
+        await verificationToken.save();
+
+        throw new AppError("OTP has expired.", 400, {
+            field: "otp",
+        });
+    }
+
+    const pendingRegistration = verificationToken.payload;
+    if (!pendingRegistration?.password) {
+        throw new AppError("Registration session is invalid.", 400);
+    }
+
+    await ensureRegistrationAvailability(
+        normalizedEmail
+    );
+
+    const user = await User.create({
+        email: normalizedEmail,
+        password: pendingRegistration.password,
+        profile: {
+            fullName: pendingRegistration.fullName || "",
+        },
+    });
+
+    verificationToken.userId = user._id;
+    verificationToken.isUsed = true;
+    await verificationToken.save();
+
+    await VerificationToken.deleteMany({
+        email: normalizedEmail,
+        type: "verify_email",
+        _id: { $ne: verificationToken._id },
+    });
+
+    return user;
+};
 
 const login = async ({ email, password }) => {
     const normalizedEmail = email.trim().toLowerCase();
@@ -76,5 +228,7 @@ const login = async ({ email, password }) => {
 
 
 export default {
+    requestRegisterOtp,
+    register,
     login,
 };
