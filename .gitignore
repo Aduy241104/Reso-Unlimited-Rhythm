@@ -1,0 +1,75 @@
+# =========================
+# ROOT
+# =========================
+node_modules/
+.env
+.env.*
+logs/
+*.log
+pids/
+*.pid
+*.seed
+*.pid.lock
+dist/
+coverage/
+tmp/
+temp/
+
+# =========================
+# Backend (Node.js)
+# =========================
+Backend/node_modules/
+Backend/.env
+Backend/dist/
+Backend/build/
+Backend/coverage/
+Backend/tmp/
+Backend/temp/
+Backend/logs/
+Backend/data/        # MongoDB local (nếu có)
+
+# =========================
+# Frontend (React / Vite)
+# =========================
+Frontend/node_modules/
+Frontend/build/
+Frontend/dist/
+Frontend/.cache/
+Frontend/.vite/
+Frontend/.next/
+Frontend/public/static/
+Frontend/.env
+Frontend/.env.*
+Frontend/*.local
+
+# =========================
+# Admin Frontend (React)
+# =========================
+AdminFrontend/node_modules/
+AdminFrontend/build/
+AdminFrontend/dist/
+AdminFrontend/.cache/
+AdminFrontend/.vite/
+AdminFrontend/.next/
+AdminFrontend/public/static/
+AdminFrontend/.env
+AdminFrontend/.env.*
+AdminFrontend/*.local
+
+# =========================
+# Media / Uploads
+# =========================
+uploads/
+temp/
+
+# =========================
+# IDE / OS
+# =========================
+.vscode/
+.idea/
+*.iml
+*.sublime-workspace
+*.sublime-project
+.DS_Store
+Thumbs.db
+Desktop.ini
