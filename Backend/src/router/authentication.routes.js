@@ -23,6 +23,9 @@ router.post(
     authenticationController.requestRegisterOtp
 );
 
-
+router.post(
+    "/logout",
+    authenticationController.logout
+);
 
 export default router;

@@ -227,8 +227,24 @@ const login = async ({ email, password }) => {
 };
 
 
+
+const logout = async (token) => {
+    const storedToken = await RefreshToken.findOne({
+        token,
+        isRevoked: false,
+    });
+
+    if (!storedToken) {
+        return;
+    }
+
+    storedToken.isRevoked = true;
+    await storedToken.save();
+};
+
 export default {
     requestRegisterOtp,
     register,
     login,
+    logout,
 };

@@ -22,6 +22,14 @@ const setAuthenticationCookies = (res, tokens) => {
     );
 };
 
+const clearCookieOptions = {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+    path: "/",
+};
+
+
 const register = async (req, res, next) => {
     try {
         const authResult = await authenticationService.register(req.body);
@@ -70,9 +78,24 @@ const login = async (req, res, next) => {
     }
 };
 
+const logout = async (req, res, next) => {
+    try {
+        await authenticationService.logout(req.cookies.refreshToken);
+
+        res.clearCookie("accessToken", clearCookieOptions);
+        res.clearCookie("refreshToken", clearCookieOptions);
+
+        return formatResponse.success(res, null, "Logout successful");
+    } catch (error) {
+        next(error);
+    }
+};
+
+
 export default {
     requestRegisterOtp,
     register,
     login,
+    logout
 };
 
