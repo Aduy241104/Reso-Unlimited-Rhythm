@@ -1,3 +1,7 @@
+import mongoose from "mongoose";
+
+const { Schema, model } = mongoose;
+
 const AuditLogSchema = new Schema(
     {
         actorId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },

@@ -3,6 +3,7 @@ import Artist from "./Artist.js";
 import ArtistMonthlyStat from "./ArtistMonthlyStat.js";
 import ArtistRequest from "./ArtistRequest.js";
 import ArtistStat from "./ArtistStat.js";
+import AuditLog from "./AuditLog.js";
 import Episode from "./Episode.js";
 import Genre from "./Genre.js";
 import Interaction from "./Interaction.js";
@@ -30,6 +31,7 @@ export default {
     ArtistMonthlyStat,
     ArtistRequest,
     ArtistStat,
+    AuditLog,
     Episode,
     Genre,
     Interaction,
