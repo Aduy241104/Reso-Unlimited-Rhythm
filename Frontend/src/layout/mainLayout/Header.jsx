@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
+import { testAccessTokenService } from "../../services/authService";
 
 const Header = () => {
   const { isAuthenticated, isLoading, logout, user } = useAuth();
@@ -42,76 +43,88 @@ const Header = () => {
     await logout({ redirectTo: "/login" });
   };
 
+
+  const testAccessToken = async () => {
+    try {
+      const response = await testAccessTokenService();
+      console.log("Access token is valid:", response);
+    } catch (error) {
+      console.error("Access token is invalid:", error);
+    }
+  };
+
   return (
-    <header className="flex h-full items-center justify-between border-b border-white/10 bg-zinc-900 px-6">
+    <header className="flex h-full items-center justify-between border-b border-zinc-400/20 px-6 bg-zinc-950">
       <div>
         <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">
           Browse
         </p>
-        <h2 className="mt-1 font-title text-xl font-semibold">
+        <h2 className="mt-1 font-title text-xl font-semibold text-black">
           Discover Music
         </h2>
       </div>
 
-      {isLoading ? (
+      { isAuthenticated && <button onClick={ testAccessToken }>Test</button> }
+
+      { isLoading ? (
         <div className="rounded-full border border-white/10 px-4 py-2 text-sm text-zinc-400">
           Loading...
         </div>
       ) : !isAuthenticated ? (
         <Link
           to="/login"
-          className="rounded-full bg-white px-4 py-2 text-sm font-medium text-zinc-900 transition hover:bg-zinc-200"
+          className="rounded-full bg-black px-4 py-2 text-sm font-medium text-zinc-200 transition hover:bg-zinc-700"
         >
           Login
         </Link>
       ) : (
-        <div className="relative" ref={menuRef}>
+        <div className="relative" ref={ menuRef }>
           <button
             type="button"
-            onClick={() => setIsOpen((value) => !value)}
+            onClick={ () => setIsOpen((value) => !value) }
             className="flex items-center gap-3 rounded-full border border-white/10 px-4 py-2 text-sm text-zinc-200 transition hover:bg-white/5"
           >
-            <span className="max-w-40 truncate">{displayName}</span>
+            <span className="max-w-40 truncate">{ displayName }</span>
             <span className="text-xs text-zinc-500">v</span>
           </button>
 
-          {isOpen ? (
+          { isOpen ? (
             <div className="absolute right-0 top-full z-20 mt-3 w-56 rounded-2xl border border-white/10 bg-zinc-950 p-2 shadow-2xl">
               <div className="border-b border-white/10 px-3 py-2">
                 <p className="truncate text-sm font-medium text-white">
-                  {displayName}
+                  { displayName }
                 </p>
                 <p className="mt-1 text-xs uppercase tracking-[0.2em] text-zinc-500">
-                  {userRole || "member"}
+                  { userRole || "member" }
                 </p>
               </div>
 
               <div className="py-2">
-                {menuItems.map((item) => (
+                { menuItems.map((item) => (
                   <button
-                    key={item.to}
+                    key={ item.to }
                     type="button"
-                    onClick={() => handleNavigate(item.to)}
+                    onClick={ () => handleNavigate(item.to) }
                     className="flex w-full rounded-xl px-3 py-2 text-left text-sm text-zinc-300 transition hover:bg-white/5 hover:text-white"
                   >
-                    {item.label}
+                    { item.label }
                   </button>
-                ))}
+                )) }
               </div>
 
               <div className="border-t border-white/10 pt-2">
                 <button
                   type="button"
-                  onClick={handleLogout}
+                  onClick={ handleLogout }
                   className="flex w-full rounded-xl px-3 py-2 text-left text-sm text-zinc-300 transition hover:bg-white/5 hover:text-white"
                 >
                   Logout
                 </button>
               </div>
             </div>
-          ) : null}
+          ) : null }
         </div>
-      )}
+      ) }
     </header>
   );
 };

@@ -40,3 +40,10 @@ export const refreshSessionService = async () => {
 export const logoutService = async () => {
   return axiosClient.post(`${AUTH_API_PREFIX}/logout`);
 };
+
+export const testAccessTokenService = async () => {
+  const response = await axiosClient.get(`${AUTH_API_PREFIX}/me`);
+  console.log("testAccessTokenService response:", response);
+  
+  return response?.data ?? null;
+};

@@ -9,7 +9,7 @@ const navItems = [
 
 const Sidebar = () => {
   return (
-    <aside className="flex h-full flex-col overflow-y-auto border-r border-white/10 bg-[#5D5958] px-4 py-5 pb-32">
+    <aside className="flex h-full flex-col overflow-y-auto rounded-[17px] border border-white/10 bg-[#5D5958] px-4 py-5 pb-32 shadow-sm">
       <div className="mb-8">
         <p className="text-xs uppercase tracking-[0.3em] text-white/60">
           Music App
