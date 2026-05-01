@@ -1,5 +1,6 @@
 import express from "express";
 import authenticationController from "../controllers/authentication.controller.js";
+import authenticate from "../middlewares/Authentication/authentication.middleware.js";
 import authenticationValidation from "../middlewares/Authentication/authentication.validation.js";
 import validate from "../middlewares/validate.middleware.js";
 
@@ -32,6 +33,12 @@ router.post(
     "/refresh-token",
     validate(authenticationValidation.refreshTokenCookieSchema, "cookies"),
     authenticationController.refreshToken
+);
+
+router.get(
+    "/me",
+    authenticate(),
+    authenticationController.me
 );
 
 

@@ -7,6 +7,10 @@ import { AppError } from "../../utils/AppError.js";
 import { generateOtp } from "../../utils/generateOtp.js";
 import { sendOtpEmail } from "../../utils/mailer.js";
 import {
+    ensureActiveUser,
+    sanitizeUser,
+} from "./authentication.helper.js";
+import {
     createAccessToken,
     createRefreshToken,
     getRefreshExpireDate,
@@ -17,34 +21,6 @@ const OTP_TTL_MINUTES = Number(process.env.OTP_TTL_MINUTES || 5);
 const OTP_RESEND_COOLDOWN_SECONDS = Number(
     process.env.OTP_RESEND_COOLDOWN_SECONDS || 60
 );
-
-const sanitizeUser = (user) => ({
-    id: user._id,
-    email: user.email,
-    username: user.username,
-    avatar: user.avatar,
-    role: user.role,
-    activeStatus: user.activeStatus,
-    profile: user.profile,
-    settings: user.settings,
-    subscription: user.subscription,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
-});
-
-const ensureActiveUser = (user) => {
-    if (!user) {
-        throw new AppError("User does not exist.", 404);
-    }
-
-    if (user.activeStatus === "blocked") {
-        throw new AppError("Your account has been blocked.", 403);
-    }
-
-    if (user.activeStatus === "inactive") {
-        throw new AppError("Your account is inactive.", 403);
-    }
-};
 
 const getOtpExpireDate = () =>
     new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
@@ -191,7 +167,9 @@ const register = async ({ email, otp }) => {
         _id: { $ne: verificationToken._id },
     });
 
-    return user;
+    return {
+        user: sanitizeUser(user),
+    };
 };
 
 const login = async ({ email, password }) => {
@@ -270,8 +248,6 @@ const refreshToken = async (token) => {
         user: sanitizeUser(user),
     };
 };
-
-
 
 export default {
     requestRegisterOtp,
