@@ -23,6 +23,13 @@ const PodcastSchema = new Schema(
             index: true,
         },
 
+        approvalStatus: {
+            type: String,
+            enum: ["draft", "pending", "approved", "rejected"],
+            default: "draft",
+            index: true,
+        },
+
         blockedReason: { type: String, default: "" },
     },
     { timestamps: true }

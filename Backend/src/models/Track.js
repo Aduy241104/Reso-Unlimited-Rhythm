@@ -34,6 +34,7 @@ const TrackSchema = new Schema(
             index: true,
         },
 
+        blockedReason: { type: String, default: "" },
         hiddenReason: { type: String, default: "" },
         hiddenAt: { type: Date },
     },

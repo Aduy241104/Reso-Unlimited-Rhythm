@@ -35,6 +35,8 @@ const ArtistSchema = new Schema(
             default: "active",
             index: true,
         },
+
+        blockedReason: { type: String, default: "" },
     },
     { timestamps: true }
 );

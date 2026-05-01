@@ -22,6 +22,7 @@ const AlbumSchema = new Schema(
             index: true,
         },
 
+        blockedReason: { type: String, default: "" },
         totalPlays: { type: Number, default: 0, min: 0 },
     },
     { timestamps: true }
