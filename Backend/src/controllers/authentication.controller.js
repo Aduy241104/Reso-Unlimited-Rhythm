@@ -34,8 +34,6 @@ const register = async (req, res, next) => {
     try {
         const authResult = await authenticationService.register(req.body);
 
-        setAuthenticationCookies(res, authResult);
-
         return formatResponse.success(
             res,
             { user: authResult.user },
@@ -112,11 +110,23 @@ const refreshToken = async (req, res, next) => {
     }
 };
 
+const me = async (req, res, next) => {
+    try {
+        return formatResponse.success(
+            res,
+            { user: req.user },
+            "Current user fetched successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     requestRegisterOtp,
     register,
     login,
     logout,
-    refreshToken
+    refreshToken,
+    me
 };
-
