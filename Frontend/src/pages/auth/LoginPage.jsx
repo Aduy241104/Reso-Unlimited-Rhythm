@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faDoorOpen } from "@fortawesome/free-solid-svg-icons";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import loginBg from "../../assets/images/ChatGPT Image 10_35_18 29 thg 4, 2026.png";
@@ -169,8 +171,9 @@ const LoginPage = () => {
                   <button
                     type="submit"
                     disabled={ loading }
-                    className="w-full rounded-2xl bg-gradient-to-r from-[#f5b66f] via-[#d98235] to-[#17131a] px-6 py-3.5 text-base font-semibold text-white shadow-[0_18px_45px_rgba(245,158,66,0.28)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_24px_60px_rgba(245,158,66,0.26)] disabled:cursor-not-allowed disabled:opacity-70"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#f5b66f] via-[#d98235] to-[#17131a] px-6 py-3.5 text-base font-semibold text-white shadow-[0_18px_45px_rgba(245,158,66,0.28)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_24px_60px_rgba(245,158,66,0.26)] disabled:cursor-not-allowed disabled:opacity-70"
                   >
+                    <FontAwesomeIcon icon={ faDoorOpen } className="text-sm" />
                     { loading ? "Signing in..." : "Sign In" }
                   </button>
                 </form>

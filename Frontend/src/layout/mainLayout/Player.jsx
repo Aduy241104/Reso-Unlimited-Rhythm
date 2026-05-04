@@ -2,24 +2,25 @@ const Player = () => {
   return (
     <footer
       className="
-        fixed bottom-4 left-1/2 z-30
-        w-[900px] max-w-[90%] -translate-x-1/2
-        grid grid-cols-[1fr_auto_1fr] items-center
+        fixed bottom-3 left-1/2 z-30
+        w-[calc(100%-24px)] max-w-[900px] -translate-x-1/2
+        grid grid-cols-1 items-center gap-3
         rounded-2xl
         border border-[#f5b66f]/20
         bg-[#1b161d]/92
-        px-6 py-4
+        px-4 py-4
         text-[#f7f1ea]
         shadow-[0_20px_60px_rgba(255,255,255,0.2)]
         backdrop-blur-2xl backdrop-saturate-150
+        sm:bottom-4 sm:w-[900px] sm:max-w-[90%] sm:grid-cols-[1fr_auto_1fr] sm:gap-0 sm:px-6
       "
     >
-      <div>
+      <div className="text-center sm:text-left">
         <p className="text-sm font-medium text-[#fff7ef]">Now Playing</p>
         <p className="text-xs text-[#d7c9bc]">Track name - Artist name</p>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center justify-center gap-3">
         <button className="rounded-full border border-[#f5b66f]/15 bg-[#241f28] px-3 py-2 text-sm text-[#fff7ef] transition hover:bg-[#2b252f]">
           Prev
         </button>
@@ -33,7 +34,7 @@ const Player = () => {
         </button>
       </div>
 
-      <div className="justify-self-end text-xs text-[#d7c9bc]">
+      <div className="text-center text-xs text-[#d7c9bc] sm:justify-self-end sm:text-right">
         03:24
       </div>
     </footer>
