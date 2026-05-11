@@ -28,6 +28,13 @@
   html,
   body {
     font-family: "SpotifyMixUI", sans-serif;
+    background-color: #ffffff;
+    color: #000000;
+  }
+
+  body,
+  #root {
+    min-height: 100vh;
   }
 
   h1,

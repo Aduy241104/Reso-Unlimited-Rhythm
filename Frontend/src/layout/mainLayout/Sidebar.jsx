@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import { useTheme } from "../../hooks/useTheme";
 
 const navItems = [
   { label: "Home", to: "/" },
@@ -8,6 +9,8 @@ const navItems = [
 ];
 
 const Sidebar = () => {
+  const { isDark } = useTheme();
+
   return (
     <aside className="
             mx-3 mb-0 mt-3 flex h-auto flex-col overflow-x-auto overflow-y-hidden 

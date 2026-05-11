@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "../contexts/AuthContext";
+import AdminLayout from "../layouts/AdminLayout";
 import LoginPage from "../pages/auth/LoginPage";
 import HomePage from "../pages/home/HomePage";
 import ProtectedRoute from "./ProtectedRoute";
@@ -13,7 +14,9 @@ const AppRoutes = () => {
         <Routes>
           <Route element={<ProtectedRoute />}>
             <Route element={<RoleRoute allowedRoles={["admin"]} />}>
-              <Route path="/" element={<HomePage />} />
+              <Route element={<AdminLayout />}>
+                <Route path="/" element={<HomePage />} />
+              </Route>
             </Route>
           </Route>
 
