@@ -12,7 +12,7 @@ import {
     globalErrorHandler,
     notFoundHandler,
 } from "./middlewares/error.middleware.js";
-
+import model from "./models/index.js";
 
 dotenv.config();
 const app = express();
