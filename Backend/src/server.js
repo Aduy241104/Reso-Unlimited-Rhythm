@@ -12,7 +12,7 @@ import {
     globalErrorHandler,
     notFoundHandler,
 } from "./middlewares/error.middleware.js";
-
+import model from "./models/index.js";
 
 dotenv.config();
 const app = express();
@@ -24,11 +24,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 connectMongose();
-redisClient.connect().then(() => {
-    console.log("✅ Kết nối Redis thành công");
-}).catch((err) => {
-    console.error("❌ Lỗi kết nối Redis:", err);
-});
+// redisClient.connect().then(() => {
+//     console.log("✅ Kết nối Redis thành công");
+// }).catch((err) => {
+//     console.error("❌ Lỗi kết nối Redis:", err);
+// });
 
 app.use(morgan("combined"));
 
