@@ -4,5 +4,6 @@ import albumController from "../controllers/album.controller.js";
 const router = express.Router();
 
 router.get("/", albumController.getAlbumList);
+router.get("/:id", albumController.getAlbumDetail);
 
 export default router;

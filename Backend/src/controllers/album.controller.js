@@ -16,6 +16,21 @@ const getAlbumList = async (req, res, next) => {
     }
 };
 
+const getAlbumDetail = async (req, res, next) => {
+    try {
+        const album = await albumService.getAlbumDetail(req.params.id);
+
+        return formatResponse.success(
+            res,
+            { album },
+            "Album fetched successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getAlbumList,
+    getAlbumDetail,
 };

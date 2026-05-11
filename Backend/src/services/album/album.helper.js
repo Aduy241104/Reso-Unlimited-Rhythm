@@ -36,7 +36,67 @@ const formatAlbumItem = (album) => ({
     updatedAt: album.updatedAt,
 });
 
+const formatAlbumTrack = (trackItem) => {
+    const track = trackItem.trackId;
+
+    return {
+        order: trackItem.order,
+        track: track
+            ? {
+                id: toId(track._id),
+                title: track.title,
+                duration: track.duration,
+                avatar: track.avatar,
+                coverImage: track.coverImage,
+                audioFiles: track.audioFiles,
+                lyricsStatic: track.lyricsStatic,
+                lyricsSyncUrl: track.lyricsSyncUrl,
+                stats: track.stats,
+                releaseDate: track.releaseDate,
+                activeStatus: track.activeStatus,
+                approvalStatus: track.approvalStatus,
+                artist: track.artist_artistId
+                    ? {
+                        id: toId(track.artist_artistId._id),
+                        name: track.artist_artistId.name,
+                        avatar: track.artist_artistId.avatar,
+                        coverImage: track.artist_artistId.coverImage,
+                    }
+                    : null,
+            }
+            : null,
+    };
+};
+
+const formatAlbumDetail = (album) => ({
+    id: toId(album._id),
+    title: album.title,
+    coverImage: album.coverImage,
+    releaseDate: album.releaseDate,
+    status: album.status,
+    totalPlays: album.totalPlays,
+    trackCount: Array.isArray(album.trackList) ? album.trackList.length : 0,
+    artist: album.artistId
+        ? {
+            id: toId(album.artistId._id),
+            name: album.artistId.name,
+            bio: album.artistId.bio,
+            avatar: album.artistId.avatar,
+            coverImage: album.artistId.coverImage,
+            verificationStatus: album.artistId.verificationStatus,
+            activeStatus: album.artistId.activeStatus,
+            stats: album.artistId.stats,
+        }
+        : null,
+    tracks: (album.trackList || [])
+        .sort((firstTrack, secondTrack) => firstTrack.order - secondTrack.order)
+        .map(formatAlbumTrack),
+    createdAt: album.createdAt,
+    updatedAt: album.updatedAt,
+});
+
 export {
+    formatAlbumDetail,
     formatAlbumItem,
     normalizePositiveInteger,
 };

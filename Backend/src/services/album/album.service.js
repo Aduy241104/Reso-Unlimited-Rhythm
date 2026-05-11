@@ -1,5 +1,8 @@
+import mongoose from "mongoose";
 import Album from "../../models/Album.js";
+import { AppError } from "../../utils/AppError.js";
 import {
+    formatAlbumDetail,
     formatAlbumItem,
     normalizePositiveInteger,
 } from "./album.helper.js";
@@ -42,6 +45,60 @@ const getAlbumList = async (query = {}) => {
     };
 };
 
+const getAlbumDetail = async (albumId) => {
+    if (!mongoose.Types.ObjectId.isValid(albumId)) {
+        throw new AppError("Album id is invalid.", 400, {
+            field: "id",
+        });
+    }
+
+    const album = await Album.findOne({
+        _id: albumId,
+        status: "active",
+    })
+        .populate({
+            path: "artistId",
+            select: [
+                "name",
+                "bio",
+                "avatar",
+                "coverImage",
+                "verificationStatus",
+                "activeStatus",
+                "stats",
+            ].join(" "),
+        })
+        .populate({
+            path: "trackList.trackId",
+            select: [
+                "title",
+                "duration",
+                "avatar",
+                "coverImage",
+                "audioFiles",
+                "lyricsStatic",
+                "lyricsSyncUrl",
+                "stats",
+                "releaseDate",
+                "activeStatus",
+                "approvalStatus",
+                "artist_artistId",
+            ].join(" "),
+            populate: {
+                path: "artist_artistId",
+                select: "name avatar coverImage",
+            },
+        })
+        .lean();
+
+    if (!album) {
+        throw new AppError("Album not found.", 404);
+    }
+
+    return formatAlbumDetail(album);
+};
+
 export default {
     getAlbumList,
+    getAlbumDetail,
 };
