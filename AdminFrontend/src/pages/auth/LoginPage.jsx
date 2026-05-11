@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
+import { routePaths } from "../../routes/routePaths";
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -13,7 +14,7 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
 
   const authNotice = location.state?.authNotice || "";
-  const from = location.state?.from?.pathname || "/";
+  const from = location.state?.from?.pathname || routePaths.home;
 
   const handleSubmit = async (event) => {
     event.preventDefault();

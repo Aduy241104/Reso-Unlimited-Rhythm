@@ -1,5 +1,6 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { routePaths } from "./routePaths";
 
 const PublicRoute = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -9,7 +10,7 @@ const PublicRoute = () => {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={routePaths.home} replace />;
   }
 
   return <Outlet />;

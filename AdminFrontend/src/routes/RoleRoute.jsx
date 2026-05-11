@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { routePaths } from "./routePaths";
 
 const RoleRoute = ({ allowedRoles = [] }) => {
   const { isLoading, logout, user } = useAuth();
@@ -62,7 +63,7 @@ const RoleRoute = ({ allowedRoles = [] }) => {
   if (roleStatus === "unauthenticated") {
     return (
       <Navigate
-        to="/login"
+        to={routePaths.login}
         replace
         state={{
           authNotice: "Please sign in with an admin account.",
@@ -74,7 +75,7 @@ const RoleRoute = ({ allowedRoles = [] }) => {
   if (roleStatus === "unauthorized") {
     return (
       <Navigate
-        to="/login"
+        to={routePaths.login}
         replace
         state={{
           authNotice: "This account cannot access the admin area.",
