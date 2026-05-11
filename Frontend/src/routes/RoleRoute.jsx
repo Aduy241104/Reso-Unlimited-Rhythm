@@ -1,5 +1,6 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { routePaths } from "./routePaths";
 
 const RoleRoute = ({ allowedRoles = [] }) => {
   const { user, isLoading } = useAuth();
@@ -11,7 +12,7 @@ const RoleRoute = ({ allowedRoles = [] }) => {
   const userRole = user?.role;
 
   if (!userRole || !allowedRoles.includes(userRole)) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={routePaths.home} replace />;
   }
 
   return <Outlet />;

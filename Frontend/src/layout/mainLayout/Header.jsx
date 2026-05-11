@@ -34,7 +34,6 @@ const Header = () => {
   const menuItems = [
     { label: "Home", to: "/" },
     { label: "Profile", to: "/profile" },
-    ...(userRole === "admin" ? [{ label: "Admin", to: "/admin" }] : []),
     ...(userRole === "artist" ? [{ label: "Artist", to: "/artist" }] : []),
   ];
 
