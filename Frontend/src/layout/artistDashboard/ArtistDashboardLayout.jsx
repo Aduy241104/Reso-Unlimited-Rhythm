@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Bell, Menu, Search, X } from "lucide-react";
 import {
@@ -12,10 +12,6 @@ const SIDEBAR_WIDTH = "264px";
 const ArtistDashboardLayout = () => {
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  useEffect(() => {
-    setIsSidebarOpen(false);
-  }, [location.pathname]);
 
   const pageTitle = useMemo(() => {
     const activeItem = artistNavigation.find((item) => {
@@ -52,11 +48,12 @@ const ArtistDashboardLayout = () => {
       </div>
 
       <nav className="flex-1 space-y-1 py-6">
-        {artistNavigation.map(({ label, to, icon: Icon }) => (
+        {artistNavigation.map((item) => (
           <NavLink
-            key={to}
-            to={to}
-            end={to === "/artist"}
+            key={item.to}
+            to={item.to}
+            end={item.to === "/artist"}
+            onClick={() => setIsSidebarOpen(false)}
             className={({ isActive }) =>
               [
                 "mx-3 flex items-center gap-3 px-4 py-3 text-sm font-medium transition",
@@ -66,8 +63,8 @@ const ArtistDashboardLayout = () => {
               ].join(" ")
             }
           >
-            <Icon className="h-4 w-4 shrink-0" />
-            <span>{label}</span>
+            <item.icon className="h-4 w-4 shrink-0" />
+            <span>{item.label}</span>
           </NavLink>
         ))}
       </nav>

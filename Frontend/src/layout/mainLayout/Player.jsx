@@ -1,4 +1,3 @@
-import { useTheme } from "../../hooks/useTheme";
 const Player = () => {
   return (
     <footer

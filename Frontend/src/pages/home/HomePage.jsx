@@ -1,109 +1,126 @@
-import { useTheme } from "../../hooks/useTheme";
+import { useEffect, useState } from "react";
+import ContentCardSection from "../../components/content/ContentCardSection";
+import DemoContentSection from "../../components/content/DemoContentSection";
+import { routePaths } from "../../routes/routePaths";
+import { getAlbumsService } from "../../services/albumService";
+import { getApiErrorMessage } from "../../utils/apiError";
+
+const createPlaceholderImage = (label, startColor, endColor) => {
+  const safeLabel = label || "Music";
+  const firstLetter = safeLabel.charAt(0).toUpperCase();
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+      <defs>
+        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="${startColor}" />
+          <stop offset="100%" stop-color="${endColor}" />
+        </linearGradient>
+      </defs>
+      <rect width="600" height="600" fill="url(#bg)" />
+      <circle cx="500" cy="120" r="120" fill="rgba(255,255,255,0.08)" />
+      <circle cx="120" cy="520" r="170" fill="rgba(255,255,255,0.08)" />
+      <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="220" font-family="Arial, sans-serif" font-weight="700">${firstLetter}</text>
+      <text x="50%" y="82%" text-anchor="middle" fill="rgba(255,255,255,0.78)" font-size="42" font-family="Arial, sans-serif" letter-spacing="8">${safeLabel.toUpperCase()}</text>
+    </svg>
+  `;
+
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+};
 
 const HomePage = () => {
-  const { isDark } = useTheme();
+  const [albums, setAlbums] = useState([]);
+  const [isLoadingAlbums, setIsLoadingAlbums] = useState(true);
+  const [albumsError, setAlbumsError] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadAlbums = async () => {
+      setIsLoadingAlbums(true);
+      setAlbumsError("");
+
+      try {
+        const response = await getAlbumsService({ limit: 10 });
+
+        if (!isMounted) {
+          return;
+        }
+
+        setAlbums(response.albums);
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        setAlbums([]);
+        setAlbumsError(
+          getApiErrorMessage(
+            error,
+            "Unable to load albums from the backend right now."
+          )
+        );
+      } finally {
+        if (isMounted) {
+          setIsLoadingAlbums(false);
+        }
+      }
+    };
+
+    loadAlbums();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+
+  const handleGetAlbum = () => {
+    if (albums.length === 0) {
+      return [];
+    }
+
+    const albumData = albums.map((album) => ({
+      id: album.id,
+      image:
+        album.coverImage ||
+        createPlaceholderImage(album.title || "Album", "#f59e0b", "#111827"),
+      title: album.title || "Untitled album",
+      subtitle: album.artist?.name || "Unknown artist",
+      href: album.id ? routePaths.albumDetail(album.id) : undefined,
+      raw: album,
+    }));
+    return albumData;
+  };
+
+  const handlePlay = (item) => {
+    console.log("Play content:", item);
+  };
 
   return (
-    <section className="space-y-5 sm:space-y-6">
-      <div>
-        <p
-          className={[
-            "text-sm uppercase tracking-[0.3em]",
-            isDark ? "text-[#b8b0aa]" : "text-[#6b7280]",
-          ].join(" ")}
+    <section className="space-y-8 sm:space-y-10">
+      { albumsError ? (
+        <div
+          className="
+            rounded-[18px] border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm
+            text-amber-700 dark:text-amber-300
+          "
         >
-          Featured
-        </p>
-        <h1
-          className={[
-            "mt-2 text-2xl font-semibold sm:text-3xl",
-            isDark ? "text-[#f7f1ea]" : "text-[#111111]",
-          ].join(" ")}
-        >
-          Main Content
-        </h1>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        { [1, 2, 3].map((item) => (
-          <article
-            key={ item }
-            className={[
-              "rounded-2xl border p-4 transition",
-              isDark
-                ? "border-[#f5b66f]/10 bg-[#1c1820] hover:bg-[#241f28]"
-                : "border-[#ececec] bg-white shadow-[0_12px_32px_rgba(15,23,42,0.05)] hover:bg-[#fafafa]",
-            ].join(" ")}
-          >
-            <div
-              className={[
-                "aspect-square rounded-xl bg-gradient-to-br",
-                isDark
-                  ? "from-[#2a1e19] via-[#1c1820] to-[#16141a]"
-                  : "from-[#ffffff] via-[#f5f5f5] to-[#e5e7eb]",
-              ].join(" ")}
-            />
-            <h2
-              className={[
-                "mt-4 text-base font-medium",
-                isDark ? "text-[#f7f1ea]" : "text-[#111111]",
-              ].join(" ")}
-            >
-              Playlist { item }
-            </h2>
-            <p
-              className={[
-                "mt-1 text-sm",
-                isDark ? "text-[#b8b0aa]" : "text-[#6b7280]",
-              ].join(" ")}
-            >
-              Sample content for routed pages.
-            </p>
-          </article>
-        )) }
-      </div>
-
-      <div
-        className={[
-          "rounded-2xl border p-4",
-          isDark
-            ? "border-[#f5b66f]/10 bg-[#1c1820]"
-            : "border-[#ececec] bg-white shadow-[0_12px_32px_rgba(15,23,42,0.05)]",
-        ].join(" ")}
-      >
-        <h2
-          className={[
-            "text-lg font-medium",
-            isDark ? "text-[#f7f1ea]" : "text-[#111111]",
-          ].join(" ")}
-        >
-          Recently Played
-        </h2>
-
-        <div className="mt-4 space-y-3">
-          { [1, 2, 3, 4, 5, 6].map((item) => (
-            <div
-              key={ item }
-              className={[
-                "flex items-center justify-between rounded-xl border px-4 py-3 transition",
-                isDark
-                  ? "border-[#f5b66f]/10 bg-[#1c1820] hover:bg-[#241f28]"
-                  : "border-[#f1f1f1] bg-white hover:bg-[#fafafa]",
-              ].join(" ")}
-            >
-              <span className={ isDark ? "text-[#f7f1ea]" : "text-[#111111]" }>Song { item }</span>
-              <span
-                className={[
-                  "text-sm",
-                  isDark ? "text-[#b8b0aa]" : "text-[#6b7280]",
-                ].join(" ")}
-              >
-                3:2{ item }
-              </span>
-            </div>
-          )) }
+          { albumsError }
         </div>
-      </div>
+      ) : null }
+
+      <ContentCardSection
+        label="Backend albums"
+        title="Latest album data"
+        description="Album cards are loaded from the existing backend API through a dedicated service layer."
+        items={ handleGetAlbum() }
+        isLoading={ isLoadingAlbums }
+        emptyMessage="The album endpoint returned no data yet."
+        onPlay={ (item) => handlePlay(item.raw ?? item) }
+        playButtonAriaLabel={ false }
+      />
+
+      <DemoContentSection onPlay={ handlePlay } />
     </section>
   );
 };

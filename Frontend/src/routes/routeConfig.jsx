@@ -1,6 +1,7 @@
 import { Navigate } from "react-router-dom";
 import ArtistDashboardLayout from "../layout/artistDashboard/ArtistDashboardLayout";
 import MainLayout from "../layout/mainLayout/MainLayout";
+import AlbumDetailPage from "../pages/album/AlbumDetailPage";
 import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
 import ArtistOverviewPage from "../pages/artist/ArtistOverviewPage";
@@ -26,6 +27,10 @@ export const appRoutes = [
       {
         path: routePaths.home,
         element: <HomePage />,
+      },
+      {
+        path: routePaths.albumDetail(),
+        element: <AlbumDetailPage />,
       },
       {
         element: <ProtectedRoute />,
