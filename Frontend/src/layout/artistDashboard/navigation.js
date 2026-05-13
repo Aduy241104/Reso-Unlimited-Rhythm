@@ -3,13 +3,8 @@ import {
   Disc3,
   LayoutDashboard,
   Music2,
-  Settings,
-  Users,
-  Wallet,
-  Waves,
 } from "lucide-react";
 import { routePaths } from "../../routes/routePaths";
-
 export const artistNavigation = [
   {
     label: "Overview",
@@ -38,10 +33,6 @@ export const artistPageTitles = {
   [routePaths.artistMusic]: "My Music",
   [routePaths.artistReleases]: "Releases",
   [routePaths.artistAnalytics]: "Analytics",
-};
-
-export const artistProfile = {
-  name: "Avery Stone",
-  role: "Independent Artist",
-  icon: Waves,
+  [routePaths.artistProfile]: "Artist Profile",
+  [routePaths.artistProfileEdit]: "Edit Artist Profile",
 };

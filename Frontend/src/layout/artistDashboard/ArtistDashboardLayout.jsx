@@ -1,21 +1,28 @@
 import { useMemo, useState } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { Bell, Menu, Search, X } from "lucide-react";
-import {
-  artistNavigation,
-  artistPageTitles,
-  artistProfile,
-} from "./navigation";
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import { Bell, Menu, Search, UserCircle, X } from "lucide-react";
+import { useAuth } from "../../hooks/useAuth";
+import { routePaths } from "../../routes/routePaths";
+import { artistNavigation, artistPageTitles } from "./navigation";
 
 const SIDEBAR_WIDTH = "264px";
 
 const ArtistDashboardLayout = () => {
   const location = useLocation();
+  const { user } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const pageTitle = useMemo(() => {
+    if (location.pathname === routePaths.artistProfileEdit) {
+      return artistPageTitles[routePaths.artistProfileEdit];
+    }
+
+    if (location.pathname === routePaths.artistProfile) {
+      return artistPageTitles[routePaths.artistProfile];
+    }
+
     const activeItem = artistNavigation.find((item) => {
-      if (item.to === "/artist") {
+      if (item.to === routePaths.artistRoot) {
         return location.pathname === item.to;
       }
 
@@ -25,7 +32,9 @@ const ArtistDashboardLayout = () => {
     return artistPageTitles[activeItem?.to] ?? "Artist Dashboard";
   }, [location.pathname]);
 
-  const ProfileIcon = artistProfile.icon;
+  const displayName =
+    user?.profile?.fullName?.trim() || user?.email || "Artist account";
+  const displayRole = "Artist";
 
   const renderSidebar = () => (
     <div className="flex h-full flex-col bg-[#171210] text-white">
@@ -52,7 +61,7 @@ const ArtistDashboardLayout = () => {
           <NavLink
             key={item.to}
             to={item.to}
-            end={item.to === "/artist"}
+            end={item.to === routePaths.artistRoot}
             onClick={() => setIsSidebarOpen(false)}
             className={({ isActive }) =>
               [
@@ -72,26 +81,33 @@ const ArtistDashboardLayout = () => {
       <div className="border-t border-white/10 px-4 py-5">
         <div className="rounded-md border border-white/10 bg-[#201915] p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-sm bg-[#8b5e3c] text-white">
-              <ProfileIcon className="h-5 w-5" />
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-sm bg-[#8b5e3c] text-white">
+              {user?.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <UserCircle className="h-6 w-6" />
+              )}
             </div>
 
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-white">
-                {artistProfile.name}
+                {displayName}
               </p>
-              <p className="truncate text-xs text-white/55">
-                {artistProfile.role}
-              </p>
+              <p className="truncate text-xs text-white/55">{displayRole}</p>
             </div>
           </div>
 
-          <button
-            type="button"
-            className="mt-4 w-full rounded-sm border border-[#8b5e3c]/45 px-3 py-2 text-sm font-medium text-[#d0b290] transition hover:bg-[#8b5e3c] hover:text-white"
+          <Link
+            to={routePaths.artistProfile}
+            onClick={() => setIsSidebarOpen(false)}
+            className="mt-4 flex w-full items-center justify-center rounded-sm border border-[#8b5e3c]/45 px-3 py-2 text-sm font-medium text-[#d0b290] transition hover:bg-[#8b5e3c] hover:text-white"
           >
             View Profile
-          </button>
+          </Link>
         </div>
       </div>
     </div>
