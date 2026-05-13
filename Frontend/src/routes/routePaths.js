@@ -5,6 +5,7 @@ export const routePaths = {
   profile: "/profile",
   artistRoot: "/artist",
   artistMusic: "/artist/music",
+  artistCreateTrack: "/artist/music/create",
   artistReleases: "/artist/releases",
   artistAnalytics: "/artist/analytics",
   artistFans: "/artist/fans",

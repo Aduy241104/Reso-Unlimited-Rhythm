@@ -1,11 +1,26 @@
+import { useNavigate } from "react-router-dom";
 import ArtistSectionPage from "./ArtistSectionPage";
+import { routePaths } from "../../routes/routePaths";
 
-export const MyMusicPage = () => (
-  <ArtistSectionPage
-    title="My Music"
-    description="Organize tracks, update metadata, and keep your music library prepared for release and promotion."
-  />
-);
+export const MyMusicPage = () => {
+  const navigate = useNavigate();
+
+  return (
+    <div className="space-y-6">
+      <ArtistSectionPage
+        title="My Music"
+        description="Organize tracks, update metadata, and keep your music library prepared for release and promotion."
+      />
+      
+      <button
+        onClick={() => navigate(routePaths.artistCreateTrack)}
+        className="rounded-md bg-[#8b5e3c] px-6 py-2 font-medium text-white hover:bg-[#6d4a2f] transition-colors"
+      >
+        + Create Track
+      </button>
+    </div>
+  );
+};
 
 export const ReleasesPage = () => (
   <ArtistSectionPage
