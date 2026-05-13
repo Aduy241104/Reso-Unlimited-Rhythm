@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import Album from "../../models/Album.js";
+import Artist from "../../models/Artist.js";
 import { AppError } from "../../utils/AppError.js";
 import {
     formatAlbumDetail,
@@ -98,7 +99,27 @@ const getAlbumDetail = async (albumId) => {
     return formatAlbumDetail(album);
 };
 
+const getArtistAlbums = async (userId) => {
+    // Find artist by userId
+    const artist = await Artist.findOne({ userId });
+
+    if (!artist) {
+        throw new AppError("Artist profile not found.", 404);
+    }
+
+    // Get all albums for this artist
+    const albums = await Album.find({
+        artistId: artist._id,
+    })
+        .select("_id title coverImage status releaseDate")
+        .sort({ releaseDate: -1, createdAt: -1 })
+        .lean();
+
+    return albums;
+};
+
 export default {
     getAlbumList,
     getAlbumDetail,
+    getArtistAlbums,
 };
