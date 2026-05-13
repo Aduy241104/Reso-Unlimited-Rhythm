@@ -147,7 +147,7 @@ const Header = () => {
             { isOpen ? (
               <div
                 className={[
-                  "absolute right-0 top-full z-20 mt-3 w-48 rounded-2xl border p-2 backdrop-blur-xl sm:w-56",
+                  "absolute right-0 top-full z-[100] mt-3 w-48 rounded-2xl border p-2 backdrop-blur-xl sm:w-56",
                   isDark
                     ? "border-[#f5b66f]/10 bg-[#151218]/95 shadow-[0_20px_60px_rgba(245,158,66,0.15)]"
                     : "border-[#e5e7eb] bg-white shadow-[0_20px_60px_rgba(15,23,42,0.12)]",

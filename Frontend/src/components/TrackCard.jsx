@@ -26,7 +26,7 @@ const TrackCard = ({
   return (
     <article
       className="
-        group grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-3 rounded-[14px]
+        group grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-3 rounded-[8px]
         px-3 py-2.5 transition hover:bg-black/[0.05]
         dark:hover:bg-white/[0.06] sm:grid-cols-[2.5rem_minmax(0,1fr)_2.75rem_3.25rem]
       "

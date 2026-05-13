@@ -104,30 +104,29 @@ const AlbumDetailPage = () => {
     <section className="space-y-6">
       <div
         className="
-          overflow-hidden rounded-[28px] border border-black/5 bg-white/80
+          overflow-hidden rounded-[14px] border border-black/5 bg-white/80
           shadow-[0_24px_60px_rgba(15,23,42,0.08)]
           dark:border-white/10 dark:bg-[#121212] dark:shadow-[0_24px_60px_rgba(0,0,0,0.36)]
         "
       >
         <div
           className="
-            relative bg-gradient-to-b from-[#d97706] via-[#7c3f00] to-transparent
-            px-5 pb-6 pt-8 dark:from-[#f59e0b] dark:via-[#8f4b13] dark:to-[#121212]
+            bg-gradient-to-b from-[#d97706] via-[#7c3f00] to-transparent
+            px-6 pb-6 pt-8 dark:from-[#f59e0b] dark:via-[#8f4b13] dark:to-[#121212]
             sm:px-8 sm:pb-8 sm:pt-10
           "
         >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.18),transparent_32%)]" />
-
+          
           { isLoading ? (
-            <div className="relative flex min-h-[20rem] items-end">
+            <div className="flex min-h-[20rem] items-end">
               <p className="text-sm text-white/82">Loading album detail...</p>
             </div>
           ) : errorMessage ? (
-            <div className="relative flex min-h-[20rem] items-end">
+            <div className="flex min-h-[20rem] items-end">
               <p className="max-w-xl text-sm text-white/88">{ errorMessage }</p>
             </div>
           ) : (
-            <div className="relative flex flex-col gap-6 md:flex-row md:items-end">
+            <div className="flex flex-col gap-6 md:flex-row md:items-end">
               <img
                 src={ albumCoverImage }
                 alt={ album?.title || "Album cover" }
@@ -158,7 +157,7 @@ const AlbumDetailPage = () => {
           ) }
         </div>
 
-        <div className="space-y-6 px-5 pb-6 pt-5 sm:px-8 sm:pb-8">
+        <div className="space-y-6 px-6 pb-6 pt-5 sm:px-8 sm:pb-8">
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
