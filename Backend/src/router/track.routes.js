@@ -3,7 +3,7 @@ import trackController from "../controllers/track.controller.js";
 import uploadController from "../controllers/upload.controller.js";
 import authenticate from "../middlewares/Authentication/authentication.middleware.js";
 import validate from "../middlewares/validate.middleware.js";
-import createTrackSchema from "../middlewares/Authentication/track.validation.js";
+import createTrackSchema from "../middlewares/TrackMiddlewareValidation/track.validation.js";
 import upload from "../middlewares/upload.middleware.js";
 
 const router = express.Router();
