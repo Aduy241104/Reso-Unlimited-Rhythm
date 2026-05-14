@@ -5,4 +5,6 @@ export const routePaths = {
   systemPlaylistNew: "/system-playlists/new",
   systemPlaylistDetail: (playlistId = ":playlistId") =>
     `/system-playlists/${playlistId}`,
+  systemPlaylistEdit: (playlistId = ":playlistId") =>
+    `/system-playlists/${playlistId}/edit`,
 };

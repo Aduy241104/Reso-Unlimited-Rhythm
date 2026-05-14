@@ -4,6 +4,7 @@ import SystemPlaylistsLayout from "../layouts/SystemPlaylistsLayout";
 import LoginPage from "../pages/auth/LoginPage";
 import CreateSystemPlaylistPage from "../pages/systemPlaylists/CreateSystemPlaylistPage";
 import SystemPlaylistDetailPage from "../pages/systemPlaylists/SystemPlaylistDetailPage";
+import SystemPlaylistEditPage from "../pages/systemPlaylists/SystemPlaylistEditPage";
 import SystemPlaylistsListPage from "../pages/systemPlaylists/SystemPlaylistsListPage";
 import HomePage from "../pages/home/HomePage";
 import ProtectedRoute from "./ProtectedRoute";
@@ -37,6 +38,10 @@ export const appRoutes = [
                   {
                     path: "new",
                     element: <CreateSystemPlaylistPage />,
+                  },
+                  {
+                    path: ":playlistId/edit",
+                    element: <SystemPlaylistEditPage />,
                   },
                   {
                     path: ":playlistId",

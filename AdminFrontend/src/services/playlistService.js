@@ -19,6 +19,28 @@ export const getPlaylistDetailService = async (playlistId) => {
   return response?.data?.data?.playlist ?? null;
 };
 
+export const getAdminSystemPlaylistDetailService = async (playlistId) => {
+  const response = await axiosClient.get(
+    `${PLAYLIST_API_PREFIX}/admin/system/${playlistId}`
+  );
+  return response?.data?.data?.playlist ?? null;
+};
+
+export const updateAdminSystemPlaylistService = async (playlistId, payload) => {
+  const response = await axiosClient.patch(
+    `${PLAYLIST_API_PREFIX}/admin/system/${playlistId}`,
+    payload
+  );
+  return response?.data?.data?.playlist ?? null;
+};
+
+export const deleteAdminSystemPlaylistService = async (playlistId) => {
+  const response = await axiosClient.delete(
+    `${PLAYLIST_API_PREFIX}/admin/system/${playlistId}`
+  );
+  return response?.data?.data ?? null;
+};
+
 export const createSystemPlaylistService = async (payload) => {
   const response = await axiosClient.post(
     `${PLAYLIST_API_PREFIX}/system`,

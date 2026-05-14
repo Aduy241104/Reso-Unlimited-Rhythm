@@ -202,7 +202,7 @@ const SystemPlaylistDetailPage = () => {
         )}
       </div>
 
-      <div className="rounded-[2rem] border border-black bg-white p-6">
+      {/* <div className="rounded-[2rem] border border-black bg-white p-6">
         <h2 className="text-lg font-semibold text-black">Playlist details</h2>
         <dl className="mt-2 divide-y divide-black/10">
           <MetaRow label="ID">{playlist.id}</MetaRow>
@@ -229,7 +229,7 @@ const SystemPlaylistDetailPage = () => {
           </MetaRow>
           <MetaRow label="AI generated at">{formatDateTime(playlist.aiGeneratedAt)}</MetaRow>
         </dl>
-      </div>
+      </div> */}
 
       <div className="rounded-[2rem] border border-black bg-white p-6">
         <h2 className="text-lg font-semibold text-black">Tracks</h2>
