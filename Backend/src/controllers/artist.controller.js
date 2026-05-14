@@ -15,6 +15,42 @@ const getMyProfile = async (req, res, next) => {
     }
 };
 
+const updateMyProfile = async (req, res, next) => {
+    try {
+        const artist = await artistService.updateMyProfileByUserId(req.user.id, req.body);
+
+        return formatResponse.success(
+            res,
+            { artist },
+            "Artist profile updated successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+const updateMyProfileMedia = async (req, res, next) => {
+    try {
+        const avatarFile = req.files?.avatar?.[0];
+        const coverFile = req.files?.coverImage?.[0];
+
+        const artist = await artistService.updateMyProfileMediaByUserId(req.user.id, {
+            avatarFile,
+            coverFile,
+        });
+
+        return formatResponse.success(
+            res,
+            { artist },
+            "Artist profile media updated successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getMyProfile,
+    updateMyProfile,
+    updateMyProfileMedia,
 };
