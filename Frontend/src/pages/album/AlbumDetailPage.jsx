@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useParams } from "react-router-dom";
 import TrackCard from "../../components/TrackCard";
+import { usePlayer } from "../../hooks/usePlayer";
 import { getAlbumDetailService } from "../../services/albumService";
 import {
   createPlaceholderImage,
@@ -28,6 +29,7 @@ const AlbumDetailPage = () => {
   const [album, setAlbum] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const { playAlbum, playTrack } = usePlayer();
 
   useEffect(() => {
     let isMounted = true;
@@ -88,12 +90,24 @@ const AlbumDetailPage = () => {
   const totalTracks = album?.trackCount ?? trackItems.length;
   const totalDuration = formatAlbumDuration(trackItems);
 
-  const handlePlayAlbum = () => {
-    console.log("Play album:", album?.title);
+  const collectionMeta = {
+    id: album?.id,
+    type: "album",
+    title: album?.title || "Album",
+    image: albumCoverImage,
+    artistName: albumArtistName,
   };
 
-  const handlePlayTrack = (track) => {
-    console.log("Play track:", track?.title);
+  const handlePlayAlbum = async () => {
+    await playAlbum(album, trackItems);
+  };
+
+  const handlePlayTrack = async (track, index) => {
+    await playTrack(track, {
+      queue: trackItems,
+      startIndex: index,
+      collection: collectionMeta,
+    });
   };
 
   const handleLikeTrack = (track) => {
@@ -228,7 +242,7 @@ const AlbumDetailPage = () => {
                         duration={ formatTrackDuration(track?.duration) }
                         explicit={ false }
                         liked={ false }
-                        onPlay={ () => handlePlayTrack(track) }
+                        onPlay={ () => handlePlayTrack(track, index) }
                         onLike={ () => handleLikeTrack(track) }
                       />
                     );

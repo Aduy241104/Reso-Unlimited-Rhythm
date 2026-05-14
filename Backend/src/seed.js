@@ -405,7 +405,16 @@ const seedMusicCatalog = async () => {
             album_albumId: ids.albumMain,
             genreIds: [ids.genreLofi, ids.genrePop],
             audioFiles: [
-                "https://example.com/audio/sunrise-cache.mp3",
+                {
+                    url: "https://example.com/audio/sunrise-cache.mp4",
+                    format: "mp4",
+                    bitrate: 128,
+                },
+                {
+                    url: "https://example.com/audio/sunrise-cache.mp3",
+                    format: "mp3",
+                    bitrate: 320,
+                },
             ],
             duration: 228,
             avatar: "https://images.unsplash.com/photo-1511379938547-c1f69419868d",
@@ -429,7 +438,16 @@ const seedMusicCatalog = async () => {
             album_albumId: ids.albumMain,
             genreIds: [ids.genrePop],
             audioFiles: [
-                "https://example.com/audio/city-lights-commit.mp3",
+                {
+                    url: "https://example.com/audio/city-lights-commit.mp4",
+                    format: "mp4",
+                    bitrate: 128,
+                },
+                {
+                    url: "https://example.com/audio/city-lights-commit.flac",
+                    format: "flac",
+                    bitrate: 1411,
+                },
             ],
             duration: 245,
             avatar: "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3",

@@ -1,8 +1,12 @@
 import { useEffect, useState } from "react";
 import ContentCardSection from "../../components/content/ContentCardSection";
 import DemoContentSection from "../../components/content/DemoContentSection";
+import { usePlayer } from "../../hooks/usePlayer";
 import { routePaths } from "../../routes/routePaths";
-import { getAlbumsService } from "../../services/albumService";
+import {
+  getAlbumDetailService,
+  getAlbumsService,
+} from "../../services/albumService";
 import { getApiErrorMessage } from "../../utils/apiError";
 
 const createPlaceholderImage = (label, startColor, endColor) => {
@@ -31,6 +35,8 @@ const HomePage = () => {
   const [albums, setAlbums] = useState([]);
   const [isLoadingAlbums, setIsLoadingAlbums] = useState(true);
   const [albumsError, setAlbumsError] = useState("");
+  const [playbackError, setPlaybackError] = useState("");
+  const { playAlbum } = usePlayer();
 
   useEffect(() => {
     let isMounted = true;
@@ -81,6 +87,7 @@ const HomePage = () => {
 
     const albumData = albums.map((album) => ({
       id: album.id,
+      type: "album",
       image:
         album.coverImage ||
         createPlaceholderImage(album.title || "Album", "#f59e0b", "#111827"),
@@ -92,8 +99,25 @@ const HomePage = () => {
     return albumData;
   };
 
-  const handlePlay = (item) => {
-    console.log("Play content:", item);
+  const handlePlay = async (item) => {
+    const albumSummary = item?.raw ?? item;
+
+    if (!albumSummary?.id) {
+      return;
+    }
+
+    try {
+      setPlaybackError("");
+      const albumDetail = await getAlbumDetailService(albumSummary.id);
+      await playAlbum(albumDetail, albumDetail?.tracks ?? []);
+    } catch (error) {
+      setPlaybackError(
+        getApiErrorMessage(
+          error,
+          "Unable to load the album tracks for playback right now."
+        )
+      );
+    }
   };
 
   return (
@@ -109,6 +133,17 @@ const HomePage = () => {
         </div>
       ) : null }
 
+      { playbackError ? (
+        <div
+          className="
+            rounded-[18px] border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm
+            text-rose-700 dark:text-rose-300
+          "
+        >
+          { playbackError }
+        </div>
+      ) : null }
+
       <ContentCardSection
         label="Backend albums"
         title="Latest album data"
@@ -117,7 +152,6 @@ const HomePage = () => {
         isLoading={ isLoadingAlbums }
         emptyMessage="The album endpoint returned no data yet."
         onPlay={ (item) => handlePlay(item.raw ?? item) }
-        playButtonAriaLabel={ false }
       />
 
       <DemoContentSection onPlay={ handlePlay } />

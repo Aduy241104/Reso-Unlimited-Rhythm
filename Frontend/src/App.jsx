@@ -1,10 +1,13 @@
 import AppRoutes from "./routes/AppRoutes";
+import { PlayerProvider } from "./contexts/PlayerContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 
 function App() {
   return (
     <ThemeProvider>
-      <AppRoutes />
+      <PlayerProvider>
+        <AppRoutes />
+      </PlayerProvider>
     </ThemeProvider>
   );
 }
