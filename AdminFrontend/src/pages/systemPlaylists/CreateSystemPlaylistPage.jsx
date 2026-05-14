@@ -1,5 +1,8 @@
 import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { createSystemPlaylistService } from "../../services/playlistService";
+import { routePaths } from "../../routes/routePaths";
 
 const initialForm = {
   title: "",
@@ -8,9 +11,9 @@ const initialForm = {
 };
 
 const CreateSystemPlaylistPage = () => {
+  const navigate = useNavigate();
   const [form, setForm] = useState(initialForm);
   const [feedback, setFeedback] = useState({ type: "", text: "" });
-  const [createdSummary, setCreatedSummary] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (field) => (event) => {
@@ -20,21 +23,15 @@ const CreateSystemPlaylistPage = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setFeedback({ type: "", text: "" });
-    setCreatedSummary(null);
     setIsSubmitting(true);
 
     try {
-      const playlist = await createSystemPlaylistService({
+      await createSystemPlaylistService({
         title: form.title.trim(),
         description: form.description.trim(),
         coverImage: form.coverImage.trim(),
       });
-      setCreatedSummary(playlist);
-      setForm(initialForm);
-      setFeedback({
-        type: "success",
-        text: "System playlist created successfully.",
-      });
+      navigate(routePaths.systemPlaylists, { replace: true });
     } catch (error) {
       setFeedback({
         type: "error",
@@ -50,6 +47,16 @@ const CreateSystemPlaylistPage = () => {
 
   return (
     <section className="space-y-8">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link
+          to={routePaths.systemPlaylists}
+          className="inline-flex items-center gap-2 text-sm font-semibold text-black underline-offset-4 hover:underline"
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden />
+          Back to system playlists
+        </Link>
+      </div>
+
       <div className="rounded-[2rem] border border-black bg-white p-8">
         <p className="text-xs font-semibold uppercase tracking-[0.32em] text-black/50">
           System playlist management
@@ -58,9 +65,10 @@ const CreateSystemPlaylistPage = () => {
           Create system playlist
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-black/70">
-          System playlists are curated collections visible to listeners. They are
-          stored with type <span className="font-mono text-black">system</span>,
-          public, and owned by your admin account for audit purposes.
+          After you create a playlist, you will return to the system playlists list.
+          System playlists use type{" "}
+          <span className="font-mono text-black">system</span> and are visible to
+          listeners when published.
         </p>
       </div>
 
@@ -129,23 +137,13 @@ const CreateSystemPlaylistPage = () => {
           <div
             className={[
               "rounded-2xl border px-4 py-3 text-sm",
-              feedback.type === "success"
-                ? "border-black bg-white text-black"
-                : "border-red-600 bg-red-50 text-red-900",
+              feedback.type === "error"
+                ? "border-red-600 bg-red-50 text-red-900"
+                : "border-black bg-white text-black",
             ].join(" ")}
             role="status"
           >
             {feedback.text}
-          </div>
-        ) : null}
-
-        {createdSummary?.id ? (
-          <div className="rounded-2xl border border-black bg-white px-4 py-3 text-sm text-black/80">
-            <p className="font-semibold text-black">Created playlist</p>
-            <p className="mt-1 font-mono text-xs">id: {createdSummary.id}</p>
-            <p className="mt-1">
-              <span className="text-black/50">title:</span> {createdSummary.title}
-            </p>
           </div>
         ) : null}
 

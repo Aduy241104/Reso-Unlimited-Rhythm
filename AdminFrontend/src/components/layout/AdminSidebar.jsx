@@ -11,10 +11,10 @@ const AdminSidebar = ({ navigationItems, onLogout, user }) => {
         <nav className="mt-3 -mx-6 space-y-1">
           {navigationItems.map((item) => (
             <NavLink
-              key={ item.to }
-              to={ item.to }
-              end
-              className={ ({ isActive }) =>
+              key={item.to}
+              to={item.to}
+              end={item.end !== false}
+              className={({ isActive }) =>
                 `mx-3 block rounded-r-xl border-l transition-all duration-200 ${isActive
                   ? "border-white bg-white text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)]"
                   : "border-transparent text-white/45 hover:border-white/20 hover:bg-white/[0.04] hover:text-white"
