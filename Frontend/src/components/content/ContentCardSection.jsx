@@ -49,6 +49,7 @@ const ContentCardSection = ({
                 image={ item.image }
                 title={ item.title }
                 subtitle={ item.subtitle }
+                type={ item.type }
                 href={ item.href }
                 onPlay={ () => onPlay?.(item) }
                 playButtonAriaLabel={ playButtonAriaLabel }

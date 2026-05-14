@@ -54,11 +54,17 @@ const TrackCard = ({
         />
 
         <div className="min-w-0">
-          <Link Link to={ href } className="min-w-0">
-            <p className="truncate text-sm font-medium text-[#111111] dark:text-white sm:text-[15px] hover:underline">
+          { href ? (
+            <Link to={ href } className="min-w-0">
+              <p className="truncate text-sm font-medium text-[#111111] dark:text-white sm:text-[15px] hover:underline">
+                { title }
+              </p>
+            </Link>
+          ) : (
+            <p className="truncate text-sm font-medium text-[#111111] dark:text-white sm:text-[15px]">
               { title }
             </p>
-          </Link>
+          ) }
           <div className="mt-1 flex min-w-0 items-center gap-2 text-xs text-[#71717a] dark:text-[#a1a1aa] sm:text-sm">
             { explicit ? (
               <span
