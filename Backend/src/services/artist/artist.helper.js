@@ -6,6 +6,16 @@ const toId = (value) => {
     return value.toString();
 };
 
+const normalizePositiveInteger = (value, fallback) => {
+    const parsedValue = Number.parseInt(value, 10);
+
+    if (Number.isNaN(parsedValue) || parsedValue < 1) {
+        return fallback;
+    }
+
+    return parsedValue;
+};
+
 const formatArtistAlbum = (album) => ({
     id: toId(album._id),
     title: album.title,
@@ -57,5 +67,7 @@ const formatArtistProfile = ({ artist, artistStat, albums, tracks }) => ({
 });
 
 export {
+    formatArtistTrack,
     formatArtistProfile,
+    normalizePositiveInteger,
 };

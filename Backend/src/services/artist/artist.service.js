@@ -4,9 +4,17 @@ import Artist from "../../models/Artist.js";
 import ArtistStat from "../../models/ArtistStat.js";
 import Track from "../../models/Track.js";
 import { AppError } from "../../utils/AppError.js";
-import { formatArtistProfile } from "./artist.helper.js";
+import {
+    formatArtistProfile,
+    formatArtistTrack,
+    normalizePositiveInteger,
+} from "./artist.helper.js";
 
-const getArtistProfile = async (artistId) => {
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 10;
+const MAX_LIMIT = 50;
+
+const validateAndGetArtist = async (artistId) => {
     if (!mongoose.Types.ObjectId.isValid(artistId)) {
         throw new AppError("Artist id is invalid.", 400, {
             field: "id",
@@ -21,6 +29,12 @@ const getArtistProfile = async (artistId) => {
     if (!artist) {
         throw new AppError("Artist not found.", 404);
     }
+
+    return artist;
+};
+
+const getArtistProfile = async (artistId) => {
+    const artist = await validateAndGetArtist(artistId);
 
     const [artistStat, albums, tracks] = await Promise.all([
         ArtistStat.findOne({
@@ -54,6 +68,46 @@ const getArtistProfile = async (artistId) => {
     });
 };
 
+const getArtistTracks = async (artistId, query = {}) => {
+    await validateAndGetArtist(artistId);
+
+    const page = normalizePositiveInteger(query.page, DEFAULT_PAGE);
+    const requestedLimit = normalizePositiveInteger(query.limit, DEFAULT_LIMIT);
+    const limit = Math.min(requestedLimit, MAX_LIMIT);
+    const skip = (page - 1) * limit;
+
+    const filter = {
+        artist_artistId: artistId,
+        activeStatus: "active",
+        approvalStatus: "approved",
+    };
+
+    const [tracks, total] = await Promise.all([
+        Track.find(filter)
+            .sort({ releaseDate: -1, "stats.totalPlay": -1, createdAt: -1, _id: -1 })
+            .skip(skip)
+            .limit(limit)
+            .populate({
+                path: "album_albumId",
+                select: "title coverImage releaseDate",
+                match: { status: "active" },
+            })
+            .lean(),
+        Track.countDocuments(filter),
+    ]);
+
+    return {
+        tracks: tracks.map(formatArtistTrack),
+        pagination: {
+            page,
+            limit,
+            total,
+            totalPages: total === 0 ? 0 : Math.ceil(total / limit),
+        },
+    };
+};
+
 export default {
     getArtistProfile,
+    getArtistTracks,
 };
