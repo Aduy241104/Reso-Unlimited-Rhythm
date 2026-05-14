@@ -5,6 +5,7 @@ import AlbumDetailPage from "../pages/album/AlbumDetailPage";
 import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
 import ArtistOverviewPage from "../pages/artist/ArtistOverviewPage";
+import ArtistProfilePage from "../pages/artist/ArtistProfilePage";
 import {
   AnalyticsPage,
   FansPage,
@@ -80,6 +81,10 @@ export const appRoutes = [
               {
                 path: routePaths.artistSettings,
                 element: <SettingsPage />,
+              },
+              {
+                path: routePaths.artistProfile,
+                element: <ArtistProfilePage />,
               },
             ],
           },
