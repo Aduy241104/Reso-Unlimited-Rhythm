@@ -11,4 +11,6 @@ export const routePaths = {
   artistFans: "/artist/fans",
   artistRoyalties: "/artist/royalties",
   artistSettings: "/artist/settings",
+  artistProfile: "/artist/profile",
+  artistProfileEdit: "/artist/profile/edit",
 };
