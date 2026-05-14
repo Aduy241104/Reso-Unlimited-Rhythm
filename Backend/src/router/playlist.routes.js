@@ -16,6 +16,25 @@ router.post(
     adminPlaylistController.createSystemPlaylist
 );
 
+router.get(
+    "/admin/system/:playlistId",
+    requireAdmin,
+    adminPlaylistController.getSystemPlaylistDetail
+);
+
+router.patch(
+    "/admin/system/:playlistId",
+    requireAdmin,
+    validate(adminPlaylistValidation.updateSystemPlaylistSchema),
+    adminPlaylistController.updateSystemPlaylist
+);
+
+router.delete(
+    "/admin/system/:playlistId",
+    requireAdmin,
+    adminPlaylistController.deleteSystemPlaylist
+);
+
 router.get("/detail/:id", playlistController.getPlaylistDetail);
 
 export default router;

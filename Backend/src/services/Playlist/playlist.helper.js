@@ -63,6 +63,7 @@ const formatPlaylistDetail = (playlist) => ({
     type: playlist.type,
     coverImage: playlist.coverImage,
     isPublic: playlist.isPublic,
+    isHidden: playlist.isHidden,
     trackCount: playlist.trackCount,
     totalDuration: playlist.totalDuration,
     aiPrompt: playlist.aiPrompt,
@@ -70,6 +71,7 @@ const formatPlaylistDetail = (playlist) => ({
     owner: playlist.userId
         ? {
             id: toId(playlist.userId._id),
+            email: playlist.userId.email || "",
             fullName: playlist.userId.profile?.fullName || "",
             avatar: playlist.userId.avatar || "",
             role: playlist.userId.role,
