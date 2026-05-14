@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import trackService from "../../services/trackService";
+import AudioQualityDisplay from "./AudioQualityDisplay";
+import AudioQualityPreview from "./AudioQualityPreview";
 
 const CreateTrackForm = () => {
   const [formData, setFormData] = useState({
@@ -20,7 +22,8 @@ const CreateTrackForm = () => {
   const [coverImages, setCoverImages] = useState([]);
   const [avatarFile, setAvatarFile] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState({});
+  const [uploadingQualities, setUploadingQualities] = useState(false);
+  const [uploadedQualities, setUploadedQualities] = useState([]);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [albums, setAlbums] = useState([]);
@@ -109,7 +112,8 @@ const CreateTrackForm = () => {
     setLoading(true);
     setErrorMessage("");
     setSuccessMessage("");
-    setUploadProgress({});
+    setUploadedQualities([]);
+    setUploadingQualities(false);
 
     try {
       // Validate required fields
@@ -122,6 +126,9 @@ const CreateTrackForm = () => {
       if (audioFiles.length === 0) {
         throw new Error("At least one audio file is required");
       }
+
+      // Show uploading status
+      setUploadingQualities(true);
 
       // Upload files to backend
       const uploadResponse = await trackService.uploadFiles(
@@ -136,6 +143,16 @@ const CreateTrackForm = () => {
 
       const { audioFiles: uploadedAudioUrls, avatar: avatarUrl, coverImages: uploadedCoverUrls } =
         uploadResponse.data;
+
+      // Store and display uploaded qualities
+      setUploadedQualities(uploadedAudioUrls || []);
+      setUploadingQualities(false);
+
+      // Show success message with quality info
+      const qualityCount = uploadedAudioUrls?.length || 0;
+      setSuccessMessage(
+        `✓ Files processed successfully! ${qualityCount} quality versions created.`
+      );
 
       // Create track with uploaded URLs
       const trackDataToSubmit = {
@@ -166,10 +183,13 @@ const CreateTrackForm = () => {
         setAudioFiles([]);
         setCoverImages([]);
         setAvatarFile(null);
-        setUploadProgress({});
+        setUploadedQualities([]);
 
         // Clear messages after 3 seconds
-        setTimeout(() => setSuccessMessage(""), 3000);
+        setTimeout(() => {
+          setSuccessMessage("");
+          setUploadedQualities([]);
+        }, 3000);
       }
     } catch (error) {
       const errorMsg =
@@ -177,6 +197,7 @@ const CreateTrackForm = () => {
         error.message ||
         "Failed to create track";
       setErrorMessage(errorMsg);
+      setUploadingQualities(false);
     } finally {
       setLoading(false);
     }
@@ -199,6 +220,19 @@ const CreateTrackForm = () => {
         <div className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-700">
           ✗ {errorMessage}
         </div>
+      )}
+
+      {/* Audio Quality Display */}
+      {(uploadedQualities.length > 0 || uploadingQualities) && (
+        <AudioQualityDisplay
+          qualities={uploadedQualities}
+          isLoading={uploadingQualities}
+        />
+      )}
+
+      {/* Audio Quality Preview */}
+      {uploadedQualities.length > 0 && !uploadingQualities && (
+        <AudioQualityPreview qualities={uploadedQualities} />
       )}
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-6">
@@ -241,6 +275,9 @@ const CreateTrackForm = () => {
           <label className="block text-sm font-medium text-[#241b15]">
             Audio Files * (Upload MP3, WAV, etc.)
           </label>
+          <p className="mt-1 text-xs text-neutral-500">
+            💡 We'll automatically create 4 quality versions: High (320k), Medium (192k), Low (128k), Lowest (96k)
+          </p>
           <input
             type="file"
             multiple

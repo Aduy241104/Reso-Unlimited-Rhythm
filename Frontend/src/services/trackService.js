@@ -1,6 +1,6 @@
 import axiosClient from "../axios/axiosClient";
 
-const TRACKS_API_PREFIX = "/api/tracks";
+const TRACKS_API_PREFIX = "/api/artist/track";
 const ALBUMS_API_PREFIX = "/api/albums";
 
 export const trackService = {
