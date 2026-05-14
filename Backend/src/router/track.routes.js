@@ -7,6 +7,12 @@ import validate from "../middlewares/validate.middleware.js";
 const router = express.Router();
 
 router.get(
+    "/:id",
+    validate(trackValidation.trackIdParamSchema, "params"),
+    trackController.getTrackDetail
+);
+
+router.get(
     "/:id/playback",
     optionalAuthenticate(),
     validate(trackValidation.trackIdParamSchema, "params"),
