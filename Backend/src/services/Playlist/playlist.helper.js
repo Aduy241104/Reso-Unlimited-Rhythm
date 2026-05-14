@@ -82,7 +82,22 @@ const formatPlaylistDetail = (playlist) => ({
     updatedAt: playlist.updatedAt,
 });
 
+const formatSystemPlaylistSummary = (playlist) => ({
+    id: toId(playlist._id),
+    title: playlist.title,
+    description: playlist.description ?? "",
+    type: playlist.type,
+    coverImage: playlist.coverImage ?? "",
+    isPublic: playlist.isPublic,
+    isHidden: playlist.isHidden,
+    trackCount: playlist.trackCount ?? 0,
+    totalDuration: playlist.totalDuration ?? 0,
+    createdAt: playlist.createdAt,
+    updatedAt: playlist.updatedAt,
+});
+
 export {
     formatPlaylistDetail,
+    formatSystemPlaylistSummary,
     normalizePositiveInteger,
 };
