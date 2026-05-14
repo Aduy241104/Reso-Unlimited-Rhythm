@@ -39,6 +39,7 @@ export const artistPageTitles = {
   [routePaths.artistReleases]: "Releases",
   [routePaths.artistAnalytics]: "Analytics",
   [routePaths.artistProfile]: "Artist Profile",
+  [routePaths.artistProfileEdit]: "Edit Artist Profile",
 };
 
 export const artistProfile = {

@@ -1,43 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { ExternalLink, Loader2 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ExternalLink, Loader2, Pencil } from "lucide-react";
 import { getMyArtistProfileService } from "../../services/artistService";
-import { createPlaceholderImage } from "../../utils/albumDetail";
+import { routePaths } from "../../routes/routePaths";
 import { getApiErrorMessage } from "../../utils/apiError";
-
-const verificationBadgeClass = {
-  verified: "bg-[#f3ebe3] text-[#5c3d24]",
-  pending: "bg-neutral-100 text-neutral-600",
-  rejected: "bg-red-50 text-red-800",
-};
-
-const activeStatusBadgeClass = {
-  active: "bg-[#f3ebe3] text-[#6f4a2c]",
-  inactive: "bg-neutral-100 text-neutral-600",
-  blocked: "bg-red-50 text-red-800",
-};
-
-const formatCount = (value) => {
-  const n = Number(value);
-  if (!Number.isFinite(n)) {
-    return "—";
-  }
-  return n.toLocaleString();
-};
-
-const formatDate = (value) => {
-  if (!value) {
-    return "—";
-  }
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) {
-    return "—";
-  }
-  return d.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-};
+import {
+  activeStatusBadgeClass,
+  formatCount,
+  formatDate,
+  getAvatarSrc,
+  getCoverSrc,
+  verificationBadgeClass,
+} from "./artistProfileUtils";
 
 const InfoCard = ({ label, children }) => (
   <div className="rounded-sm border border-neutral-200 bg-[#fcfaf7] p-4">
@@ -52,6 +26,8 @@ const ArtistProfilePage = () => {
   const [artist, setArtist] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+
+  const isBlocked = artist?.activeStatus === "blocked";
 
   useEffect(() => {
     let isMounted = true;
@@ -91,19 +67,8 @@ const ArtistProfilePage = () => {
     };
   }, []);
 
-  const coverSrc = useMemo(() => {
-    if (!artist?.name) {
-      return createPlaceholderImage("Artist", "#8b5e3c", "#2a2019");
-    }
-    return artist.coverImage || createPlaceholderImage(artist.name, "#8b5e3c", "#2a2019");
-  }, [artist]);
-
-  const avatarSrc = useMemo(() => {
-    if (!artist?.name) {
-      return createPlaceholderImage("A", "#c49a6c", "#2a2019");
-    }
-    return artist.avatar || createPlaceholderImage(artist.name, "#c49a6c", "#2a2019");
-  }, [artist]);
+  const coverSrc = useMemo(() => getCoverSrc(artist), [artist]);
+  const avatarSrc = useMemo(() => getAvatarSrc(artist), [artist]);
 
   const socialEntries = useMemo(() => {
     const links = artist?.socialLinks ?? {};
@@ -145,7 +110,7 @@ const ArtistProfilePage = () => {
         </div>
 
         <div className="relative px-5 pb-6 pt-0 sm:px-8">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
               <div className="-mt-12 h-28 w-28 shrink-0 overflow-hidden rounded-md border-4 border-white bg-white shadow-md sm:h-32 sm:w-32">
                 <img
@@ -183,12 +148,40 @@ const ArtistProfilePage = () => {
                 </div>
               </div>
             </div>
+
+            <div className="shrink-0 sm:pt-2">
+              {isBlocked ? (
+                <span
+                  className="inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-sm border border-neutral-200 bg-neutral-100 px-4 py-2.5 text-sm font-medium text-neutral-500"
+                  title="Your profile is blocked and cannot be edited."
+                >
+                  <Pencil className="h-4 w-4" aria-hidden />
+                  Edit profile
+                </span>
+              ) : (
+                <Link
+                  to={routePaths.artistProfileEdit}
+                  className="inline-flex items-center justify-center gap-2 rounded-sm border border-[#8b5e3c] bg-[#8b5e3c] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#744a30]"
+                >
+                  <Pencil className="h-4 w-4" aria-hidden />
+                  Edit profile
+                </Link>
+              )}
+            </div>
           </div>
 
-          {artist.activeStatus === "blocked" && artist.blockedReason ? (
+          {isBlocked ? (
             <div className="mt-5 rounded-sm border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
-              <p className="font-medium">Account notice</p>
-              <p className="mt-1 text-red-800/90">{artist.blockedReason}</p>
+              <p className="font-medium">Profile is blocked</p>
+              <p className="mt-1 text-red-800/90">
+                You can view your profile, but edits are disabled until your account
+                is active again.
+              </p>
+              {artist.blockedReason ? (
+                <p className="mt-3 border-t border-red-200/80 pt-3 text-red-800/90">
+                  {artist.blockedReason}
+                </p>
+              ) : null}
             </div>
           ) : null}
 

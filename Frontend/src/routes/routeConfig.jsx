@@ -5,6 +5,7 @@ import AlbumDetailPage from "../pages/album/AlbumDetailPage";
 import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
 import ArtistOverviewPage from "../pages/artist/ArtistOverviewPage";
+import ArtistProfileEditPage from "../pages/artist/ArtistProfileEditPage";
 import ArtistProfilePage from "../pages/artist/ArtistProfilePage";
 import {
   AnalyticsPage,
@@ -81,6 +82,10 @@ export const appRoutes = [
               {
                 path: routePaths.artistSettings,
                 element: <SettingsPage />,
+              },
+              {
+                path: routePaths.artistProfileEdit,
+                element: <ArtistProfileEditPage />,
               },
               {
                 path: routePaths.artistProfile,
