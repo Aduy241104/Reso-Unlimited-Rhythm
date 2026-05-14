@@ -1,6 +1,7 @@
 import { Navigate } from "react-router-dom";
 import AdminLayout from "../layouts/AdminLayout";
 import LoginPage from "../pages/auth/LoginPage";
+import CreateSystemPlaylistPage from "../pages/systemPlaylists/CreateSystemPlaylistPage";
 import HomePage from "../pages/home/HomePage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
@@ -21,6 +22,10 @@ export const appRoutes = [
               {
                 index: true,
                 element: <HomePage />,
+              },
+              {
+                path: "system-playlists",
+                element: <CreateSystemPlaylistPage />,
               },
             ],
           },
