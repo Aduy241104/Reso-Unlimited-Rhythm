@@ -9,6 +9,13 @@ const router = express.Router();
 
 router.get("/me", requireArtist, artistController.getMyProfile);
 
+router.post(
+    "/me/verification-request",
+    requireArtist,
+    validate(artistValidation.requestVerificationSchema),
+    artistController.requestVerification
+);
+
 router.patch(
     "/me/media",
     requireArtist,

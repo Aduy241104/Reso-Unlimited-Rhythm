@@ -38,6 +38,11 @@ const updateMyProfileSchema = Joi.object({
         "object.missing": "At least one field must be provided to update your profile.",
     });
 
+const requestVerificationSchema = Joi.object({
+    note: Joi.string().trim().max(2000).allow(""),
+});
+
 export default {
     updateMyProfileSchema,
+    requestVerificationSchema,
 };

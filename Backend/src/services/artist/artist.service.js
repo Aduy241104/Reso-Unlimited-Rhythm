@@ -1,5 +1,6 @@
 import { StatusCodes } from "http-status-codes";
 import Artist from "../../models/Artist.js";
+import ArtistVerificationRequest from "../../models/ArtistVerificationRequest.js";
 import { AppError } from "../../utils/AppError.js";
 import { uploadImageBuffer } from "../cloudinaryService.js";
 import { formatArtistProfile } from "./artist.helper.js";
@@ -26,6 +27,19 @@ const findOwnedArtistDocumentOrThrow = async (userId) => {
     return artist;
 };
 
+const enrichArtistProfilePayload = async (artistLean) => {
+    const formatted = formatArtistProfile(artistLean);
+    const pending = await ArtistVerificationRequest.exists({
+        artistId: artistLean._id,
+        status: "open",
+    });
+
+    return {
+        ...formatted,
+        hasPendingVerificationRequest: Boolean(pending),
+    };
+};
+
 const getMyProfileByUserId = async (userId) => {
     const artist = await Artist.findOne({ userId })
         .populate({
@@ -41,7 +55,7 @@ const getMyProfileByUserId = async (userId) => {
         );
     }
 
-    return formatArtistProfile(artist);
+    return enrichArtistProfilePayload(artist);
 };
 
 const updateMyProfileByUserId = async (userId, payload) => {
@@ -131,8 +145,40 @@ const updateMyProfileMediaByUserId = async (userId, { avatarFile, coverFile }) =
     return getMyProfileByUserId(userId);
 };
 
+const requestVerificationByUserId = async (userId, payload = {}) => {
+    const artist = await findOwnedArtistDocumentOrThrow(userId);
+
+    if (artist.verificationStatus === "verified") {
+        throw new AppError(
+            "Your artist profile is already verified.",
+            StatusCodes.BAD_REQUEST
+        );
+    }
+
+    const existing = await ArtistVerificationRequest.findOne({
+        artistId: artist._id,
+        status: "open",
+    });
+
+    if (existing) {
+        throw new AppError(
+            "A verification request is already being reviewed. Please wait for the team to respond.",
+            StatusCodes.CONFLICT
+        );
+    }
+
+    await ArtistVerificationRequest.create({
+        artistId: artist._id,
+        userId: artist.userId,
+        note: typeof payload.note === "string" ? payload.note : "",
+    });
+
+    return getMyProfileByUserId(userId);
+};
+
 export default {
     getMyProfileByUserId,
     updateMyProfileByUserId,
     updateMyProfileMediaByUserId,
+    requestVerificationByUserId,
 };

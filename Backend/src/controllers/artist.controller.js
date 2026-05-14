@@ -49,8 +49,23 @@ const updateMyProfileMedia = async (req, res, next) => {
     }
 };
 
+const requestVerification = async (req, res, next) => {
+    try {
+        const artist = await artistService.requestVerificationByUserId(req.user.id, req.body);
+
+        return formatResponse.success(
+            res,
+            { artist },
+            "Verification request submitted successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getMyProfile,
     updateMyProfile,
     updateMyProfileMedia,
+    requestVerification,
 };
