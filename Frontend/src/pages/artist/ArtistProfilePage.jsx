@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ExternalLink, Loader2, Pencil } from "lucide-react";
-import { getMyArtistProfileService } from "../../services/artistService";
+import { BadgeCheck, ExternalLink, Loader2, Pencil } from "lucide-react";
+import {
+  getMyArtistProfileService,
+  postArtistVerificationRequestService,
+} from "../../services/artistService";
 import { routePaths } from "../../routes/routePaths";
 import { getApiErrorMessage } from "../../utils/apiError";
 import {
@@ -26,8 +29,15 @@ const ArtistProfilePage = () => {
   const [artist, setArtist] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [verificationFeedback, setVerificationFeedback] = useState({
+    type: "",
+    text: "",
+  });
+  const [isRequestingVerification, setIsRequestingVerification] = useState(false);
 
   const isBlocked = artist?.activeStatus === "blocked";
+  const isVerified = artist?.verificationStatus === "verified";
+  const hasPendingRequest = Boolean(artist?.hasPendingVerificationRequest);
 
   useEffect(() => {
     let isMounted = true;
@@ -66,6 +76,31 @@ const ArtistProfilePage = () => {
       isMounted = false;
     };
   }, []);
+
+  const handleRequestVerification = async () => {
+    if (isBlocked || isVerified || hasPendingRequest) {
+      return;
+    }
+
+    setVerificationFeedback({ type: "", text: "" });
+    setIsRequestingVerification(true);
+
+    try {
+      const updated = await postArtistVerificationRequestService({});
+      setArtist(updated);
+      setVerificationFeedback({
+        type: "success",
+        text: "Your verification request has been sent. Our team will review it soon.",
+      });
+    } catch (error) {
+      setVerificationFeedback({
+        type: "error",
+        text: getApiErrorMessage(error, "Could not submit your verification request."),
+      });
+    } finally {
+      setIsRequestingVerification(false);
+    }
+  };
 
   const coverSrc = useMemo(() => getCoverSrc(artist), [artist]);
   const avatarSrc = useMemo(() => getAvatarSrc(artist), [artist]);
@@ -216,6 +251,59 @@ const ArtistProfilePage = () => {
           {formatDate(artist.updatedAt)}
         </InfoCard>
       </div>
+
+      {!isBlocked && !isVerified ? (
+        <div className="rounded-md border border-neutral-200 bg-white p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-[#241b15]">
+                Artist verification
+              </h2>
+              <p className="mt-1 max-w-2xl text-sm text-neutral-500">
+                Request a verified badge for your artist profile. Our team will review
+                your public profile and linked information.
+              </p>
+              {hasPendingRequest ? (
+                <p className="mt-3 text-sm font-medium text-[#8b5e3c]">
+                  A verification request is already in review. You will be notified
+                  when the status changes.
+                </p>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              onClick={handleRequestVerification}
+              disabled={hasPendingRequest || isRequestingVerification}
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-sm border border-[#8b5e3c] bg-[#8b5e3c] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#744a30] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isRequestingVerification ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                  Sending…
+                </>
+              ) : (
+                <>
+                  <BadgeCheck className="h-4 w-4" aria-hidden />
+                  Request verification
+                </>
+              )}
+            </button>
+          </div>
+          {verificationFeedback.text ? (
+            <div
+              className={[
+                "mt-4 rounded-sm border px-4 py-3 text-sm",
+                verificationFeedback.type === "success"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                  : "border-red-200 bg-red-50 text-red-900",
+              ].join(" ")}
+              role="status"
+            >
+              {verificationFeedback.text}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="rounded-md border border-neutral-200 bg-white p-6">
         <h2 className="text-lg font-semibold text-[#241b15]">Account</h2>

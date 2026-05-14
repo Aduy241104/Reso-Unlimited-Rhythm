@@ -7,6 +7,14 @@ export const getMyArtistProfileService = async () => {
   return response?.data?.data?.artist ?? null;
 };
 
+export const postArtistVerificationRequestService = async (payload = {}) => {
+  const response = await axiosClient.post(
+    `${ARTIST_API_PREFIX}/me/verification-request`,
+    payload
+  );
+  return response?.data?.data?.artist ?? null;
+};
+
 export const patchMyArtistProfileService = async (payload) => {
   const response = await axiosClient.patch(`${ARTIST_API_PREFIX}/me`, payload);
   return response?.data?.data?.artist ?? null;

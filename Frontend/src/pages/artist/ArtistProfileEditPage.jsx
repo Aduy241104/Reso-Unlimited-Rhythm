@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import {
@@ -31,6 +31,7 @@ const FieldLabel = ({ children, htmlFor }) => (
 );
 
 const ArtistProfileEditPage = () => {
+  const navigate = useNavigate();
   const [artist, setArtist] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
@@ -166,16 +167,7 @@ const ArtistProfileEditPage = () => {
 
       const updated = await patchMyArtistProfileService(body);
       setArtist(updated);
-      setRemoveAvatar(false);
-      setRemoveCover(false);
-      setAvatarFile(null);
-      setCoverFile(null);
-      setAvatarInputKey((key) => key + 1);
-      setCoverInputKey((key) => key + 1);
-      setSaveFeedback({
-        type: "success",
-        text: "Your profile, social links, and images have been saved.",
-      });
+      navigate(routePaths.artistProfile, { replace: true });
     } catch (error) {
       setSaveFeedback({
         type: "error",
