@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import ThemeToggle from "../../components/common/ThemeToggle";
 import { useAuth } from "../../hooks/useAuth";
 import { useTheme } from "../../hooks/useTheme";
+import { routePaths } from "../../routes/routePaths";
 import { testAccessTokenService } from "../../services/authService";
 
 const Header = () => {
@@ -32,9 +33,9 @@ const Header = () => {
   }, []);
 
   const menuItems = [
-    { label: "Home", to: "/" },
-    { label: "Profile", to: "/profile" },
-    ...(userRole === "artist" ? [{ label: "Artist", to: "/artist" }] : []),
+    { label: "Home", to: routePaths.home },
+    { label: "Artist Profile", to: routePaths.artistProfile("featured") },
+    ...(userRole === "artist" ? [{ label: "Artist", to: routePaths.artistRoot }] : []),
   ];
 
   const handleNavigate = (to) => {

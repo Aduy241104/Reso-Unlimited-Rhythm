@@ -14,7 +14,7 @@ import {
   SettingsPage,
 } from "../pages/artist/ArtistSectionPages";
 import HomePage from "../pages/home/HomePage";
-import ProfilePage from "../pages/profile/ProfilePage";
+import ArtistProfilePage from "../pages/profile/ArtistProfilePage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import RoleRoute from "./RoleRoute";
@@ -33,13 +33,16 @@ export const appRoutes = [
         element: <AlbumDetailPage />,
       },
       {
-        element: <ProtectedRoute />,
-        children: [
-          {
-            path: routePaths.profile,
-            element: <ProfilePage />,
-          },
-        ],
+        path: routePaths.artistProfile(),
+        element: <ArtistProfilePage />,
+      },
+      {
+        path: routePaths.legacyArtistProfile,
+        element: <Navigate to={routePaths.artistProfile("featured")} replace />,
+      },
+      {
+        path: "/profile",
+        element: <Navigate to={routePaths.artistProfile("featured")} replace />,
       },
     ],
   },

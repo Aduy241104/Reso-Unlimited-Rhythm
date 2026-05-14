@@ -23,6 +23,7 @@
 @layer base {
   html {
     font-family: "SpotifyMixUI", sans-serif;
+    scroll-behavior: smooth;
   }
 
   html,
