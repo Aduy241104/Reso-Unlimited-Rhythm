@@ -28,6 +28,22 @@ const getFirstAudioFile = (track) =>
   track?.audioFiles?.find((audioFile) => audioFile?.url) ||
   null;
 
+export const resolveTrackLyricsSyncUrl = (track) => {
+  const lyricsSyncUrl =
+    track?.playback?.lyricsSyncUrl ||
+    track?.lyricsSyncUrl ||
+    track?.lyrics?.syncUrl ||
+    track?.raw?.playback?.lyricsSyncUrl ||
+    track?.raw?.lyricsSyncUrl ||
+    track?.raw?.lyrics?.syncUrl;
+
+  if (!lyricsSyncUrl) {
+    return "";
+  }
+
+  return buildAbsoluteMediaUrl(lyricsSyncUrl);
+};
+
 export const resolveTrackMediaUrl = (track) => {
   const playbackDefaultAudio = track?.playback?.defaultAudio;
   const mediaUrl =
@@ -69,4 +85,32 @@ export const getTrackPlaybackSource = async (trackId) => {
     revokeOnChange: false,
     track: playbackTrack,
   };
+};
+
+export const getTrackLyricsSyncTextService = async (trackOrLyricsUrl) => {
+  const lyricsSyncUrl =
+    typeof trackOrLyricsUrl === "string"
+      ? buildAbsoluteMediaUrl(trackOrLyricsUrl)
+      : resolveTrackLyricsSyncUrl(trackOrLyricsUrl);
+
+  if (!lyricsSyncUrl) {
+    throw new Error("Track playback does not include a synced lyrics URL.");
+  }
+
+  const response = await axiosClient.get(lyricsSyncUrl, {
+    responseType: "text",
+  });
+
+  const lyricsText =
+    typeof response?.data === "string"
+      ? response.data
+      : typeof response?.data?.data === "string"
+        ? response.data.data
+        : "";
+
+  if (!lyricsText.trim()) {
+    throw new Error("The synced lyrics response is empty.");
+  }
+
+  return lyricsText;
 };

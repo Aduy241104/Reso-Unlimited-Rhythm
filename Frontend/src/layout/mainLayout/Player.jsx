@@ -9,16 +9,19 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { usePlayer } from "../../hooks/usePlayer";
+import { routePaths } from "../../routes/routePaths";
 import { formatTrackDuration } from "../../utils/albumDetail";
 
 const controlButtonClassName =
   "inline-flex h-10 w-10 items-center justify-center rounded-full text-[#fff7ef] transition hover:bg-[#2b252f] disabled:cursor-not-allowed disabled:opacity-40";
 
 const utilityButtonClassName =
-  "inline-flex h-10 w-10 items-center justify-center rounded-lg text-[#fff7ef] transition hover:bg-[#2b252f]";
+  "inline-flex h-10 w-10 items-center justify-center rounded-lg text-[#fff7ef] transition hover:bg-[#2b252f] disabled:cursor-not-allowed disabled:opacity-40";
 
 const Player = () => {
+  const navigate = useNavigate();
   const {
     queue,
     currentIndex,
@@ -57,7 +60,8 @@ const Player = () => {
         bg-zinc-700/90 px-2 py-2 text-white shadow-[0_20px_60px_rgba(0,0,0,0.25)]
         backdrop-blur-2xl backdrop-saturate-150
         dark:border-[#f5b66f]/20 dark:bg-[#1b161d]/92 dark:text-[#f7f1ea]
-        sm:bottom-4 sm:w-[960px] sm:max-w-[92%] sm:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)_minmax(0,0.95fr)] sm:items-center sm:px-6
+        ms-[85px]
+        sm:bottom-4 sm:w-[1150px] sm:max-w-[92%] sm:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)_minmax(0,0.95fr)] sm:items-center sm:px-6
       "
     >
       <div className="flex min-w-0 items-center gap-3">
@@ -100,22 +104,22 @@ const Player = () => {
             className={ controlButtonClassName }
             aria-label="Previous track"
           >
-            <SkipBack className="h-[18px] w-[18px]" />
+            <SkipBack className="h-[16px] w-[16px] fill-current text-white" />
           </button>
 
           <button
             type="button"
             onClick={ togglePlayPause }
             disabled={ queue.length === 0 }
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-black transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-black transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
             aria-label={ isPlaying ? "Pause playback" : "Play playback" }
           >
             { isBuffering ? (
               <LoaderCircle className="h-5 w-5 animate-spin" />
             ) : isPlaying ? (
-              <Pause className="h-5 w-5 fill-current" />
+              <Pause className="h-4 w-4 fill-current" />
             ) : (
-              <Play className="h-5 w-5 fill-current" />
+              <Play className="h-4 w-4 fill-current" />
             ) }
           </button>
 
@@ -126,7 +130,7 @@ const Player = () => {
             className={ controlButtonClassName }
             aria-label="Next track"
           >
-            <SkipForward className="h-[18px] w-[18px]" />
+            <SkipForward className="h-[16px] w-[16px] fill-current text-white" />
           </button>
         </div>
 
@@ -143,10 +147,20 @@ const Player = () => {
             value={ progressValue }
             disabled={ progressMax === 0 }
             onChange={ (event) => seekTo(event.target.value) }
-            className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-white/15 accent-[#f5b66f] disabled:cursor-not-allowed"
-            aria-label="Seek playback"
+            style={ {
+              "--progress": `${(progressValue / progressMax) * 100}%`,
+              "--range-color": "#f5b66f",
+            } }
+            className="
+                    custom-range
+                    h-1.5
+                    flex-1
+                    cursor-pointer
+                    appearance-none
+                    rounded-full
+                    disabled:cursor-not-allowed
+                  "
           />
-
           <span className="w-10">
             { formatTrackDuration(Math.floor(duration || 0)) }
           </span>
@@ -166,22 +180,23 @@ const Player = () => {
 
           <button
             type="button"
+            onClick={ () => navigate(routePaths.lyrics) }
+            disabled={ queue.length === 0 }
             className={ utilityButtonClassName }
-            aria-label="Open lyrics"
-            title="Lyrics coming soon"
+            aria-label="Open lyrics page"
+            title="Open lyrics page"
           >
             <Mic2 className="h-[18px] w-[18px]" />
           </button>
         </div>
 
-        <div className="flex items-center gap-3 text-xs text-[#d7c9bc]">
+        <div className="flex items-center gap-3 text-xs text-[#d7c9bc] ms-14">
           <span className="inline-flex shrink-0 items-center gap-2 text-[#fff7ef]">
             { volumePercent === 0 ? (
               <VolumeX className="h-4 w-4 text-[#f5b66f]" />
             ) : (
               <Volume2 className="h-4 w-4 text-[#f5b66f]" />
             ) }
-            <span className="hidden sm:inline">Volume</span>
           </span>
 
           <input
@@ -191,10 +206,19 @@ const Player = () => {
             step="0.01"
             value={ volume }
             onChange={ (event) => setVolumeLevel(event.target.value) }
-            className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-white/15 accent-[#f5b66f]"
-            aria-label="Adjust volume"
+            style={ {
+              "--progress": `${volume * 100}%`,
+              "--range-color": "#f5b66f",
+            } }
+            className="
+                        custom-range
+                        h-1.5
+                        w-full
+                        cursor-pointer
+                        appearance-none
+                        rounded-full
+                      "
           />
-
           <span className="w-9 shrink-0 text-right">{ volumePercent }%</span>
         </div>
       </div>
