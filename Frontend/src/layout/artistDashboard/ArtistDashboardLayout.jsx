@@ -1,6 +1,8 @@
-import { useMemo, useState } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { Bell, Menu, Search, X } from "lucide-react";
+import { getMyArtistProfileService } from "../../services/artistService";
+import { routePaths } from "../../routes/routePaths";
 import {
   artistNavigation,
   artistPageTitles,
@@ -12,8 +14,49 @@ const SIDEBAR_WIDTH = "264px";
 const ArtistDashboardLayout = () => {
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [sidebarArtistName, setSidebarArtistName] = useState("");
+  const [sidebarArtistSubtitle, setSidebarArtistSubtitle] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadSidebarArtist = async () => {
+      try {
+        const profile = await getMyArtistProfileService();
+        if (!isMounted || !profile) {
+          return;
+        }
+
+        setSidebarArtistName(profile.name || artistProfile.name);
+        const statusLabel =
+          profile.verificationStatus === "verified"
+            ? "Verified artist"
+            : `Verification: ${profile.verificationStatus}`;
+        setSidebarArtistSubtitle(statusLabel);
+      } catch {
+        if (isMounted) {
+          setSidebarArtistName(artistProfile.name);
+          setSidebarArtistSubtitle(artistProfile.role);
+        }
+      }
+    };
+
+    loadSidebarArtist();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const pageTitle = useMemo(() => {
+    if (location.pathname === routePaths.artistProfileEdit) {
+      return artistPageTitles[routePaths.artistProfileEdit] ?? "Artist Dashboard";
+    }
+
+    if (location.pathname === routePaths.artistProfile) {
+      return artistPageTitles[routePaths.artistProfile] ?? "Artist Dashboard";
+    }
+
     const activeItem = artistNavigation.find((item) => {
       if (item.to === "/artist") {
         return location.pathname === item.to;
@@ -78,20 +121,21 @@ const ArtistDashboardLayout = () => {
 
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-white">
-                {artistProfile.name}
+                {sidebarArtistName || artistProfile.name}
               </p>
               <p className="truncate text-xs text-white/55">
-                {artistProfile.role}
+                {sidebarArtistSubtitle || artistProfile.role}
               </p>
             </div>
           </div>
 
-          <button
-            type="button"
-            className="mt-4 w-full rounded-sm border border-[#8b5e3c]/45 px-3 py-2 text-sm font-medium text-[#d0b290] transition hover:bg-[#8b5e3c] hover:text-white"
+          <Link
+            to={routePaths.artistProfile}
+            onClick={() => setIsSidebarOpen(false)}
+            className="mt-4 block w-full rounded-sm border border-[#8b5e3c]/45 px-3 py-2 text-center text-sm font-medium text-[#d0b290] transition hover:bg-[#8b5e3c] hover:text-white"
           >
             View Profile
-          </button>
+          </Link>
         </div>
       </div>
     </div>

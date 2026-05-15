@@ -61,14 +61,14 @@ const Header = () => {
   return (
     <header
       className={[
-        "flex h-full items-center justify-between gap-3 border-b px-4 backdrop-blur-xl sm:px-6",
+        "flex h-full items-center justify-between gap-3 border-b px-4 backdrop-blur-xl sm:px-9",
         isDark
           ? "border-[#f5b66f]/10 bg-black text-[#f7f1ea]"
           : "border-[#eeeeee] bg-white text-[#111111]",
       ].join(" ")}
     >
-      <div className="flex items-center gap-3">
-        <img src="src/assets/images/ChatGPT Image 13_16_10 4 thg 5, 2026.png" alt="" className="h-16 w-16" />
+      <div className="flex items-center gap-1">
+        <img src="src/assets/images/ChatGPT Image 13_16_10 4 thg 5, 2026.png" alt="" className="h-14 w-14" />
         <div className="min-w-0">
           <p
             className={[

@@ -76,9 +76,46 @@ const authenticate = (allowedRoles = []) => {
     };
 };
 
+const optionalAuthenticate = () => {
+    return async (req, res, next) => {
+        try {
+            const accessToken = extractAccessToken(req);
+
+            if (!accessToken) {
+                return next();
+            }
+
+            let decodedToken;
+            try {
+                decodedToken = jwt.verify(accessToken, process.env.JWT_SECRET);
+            } catch (error) {
+                if (error.name === "TokenExpiredError") {
+                    throw new AppError("Access token has expired.", StatusCodes.UNAUTHORIZED);
+                }
+
+                throw new AppError("Access token is invalid.", StatusCodes.UNAUTHORIZED);
+            }
+
+            const user = await User.findById(decodedToken.id);
+            ensureActiveUser(user);
+
+            req.user = sanitizeUser(user);
+            req.auth = {
+                accessToken,
+                tokenPayload: decodedToken,
+            };
+
+            next();
+        } catch (error) {
+            next(error);
+        }
+    };
+};
+
 export const authorizeRoles = (...roles) => authenticate(roles);
 export const requireAdmin = authenticate("admin");
 export const requireArtist = authenticate("artist");
 export const requireUser = authenticate("user");
+export { optionalAuthenticate };
 
 export default authenticate;

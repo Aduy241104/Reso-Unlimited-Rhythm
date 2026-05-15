@@ -5,6 +5,8 @@ import AlbumDetailPage from "../pages/album/AlbumDetailPage";
 import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
 import ArtistOverviewPage from "../pages/artist/ArtistOverviewPage";
+import ArtistProfileEditPage from "../pages/artist/ArtistProfileEditPage";
+import ArtistProfilePage from "../pages/artist/ArtistProfilePage";
 import {
   AnalyticsPage,
   FansPage,
@@ -14,11 +16,15 @@ import {
   SettingsPage,
 } from "../pages/artist/ArtistSectionPages";
 import HomePage from "../pages/home/HomePage";
-import ArtistProfilePage from "../pages/profile/ArtistProfilePage";
+import ArtistProfilePageView from "../pages/profile/ArtistProfilePage";
+import TrackDetailPage from "../pages/track/TrackDetailPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import RoleRoute from "./RoleRoute";
 import { routePaths } from "./routePaths";
+
+const publicArtistProfilePath = routePaths.artistBrowseProfile();
+const featuredArtistProfilePath = routePaths.artistBrowseProfile("featured");
 
 export const appRoutes = [
   {
@@ -33,16 +39,20 @@ export const appRoutes = [
         element: <AlbumDetailPage />,
       },
       {
-        path: routePaths.artistProfile(),
-        element: <ArtistProfilePage />,
+        path: routePaths.trackDetail(),
+        element: <TrackDetailPage />,
+      },
+      {
+        path: publicArtistProfilePath,
+        element: <ArtistProfilePageView />,
       },
       {
         path: routePaths.legacyArtistProfile,
-        element: <Navigate to={routePaths.artistProfile("featured")} replace />,
+        element: <Navigate to={featuredArtistProfilePath} replace />,
       },
       {
         path: "/profile",
-        element: <Navigate to={routePaths.artistProfile("featured")} replace />,
+        element: <Navigate to={featuredArtistProfilePath} replace />,
       },
     ],
   },
@@ -83,6 +93,14 @@ export const appRoutes = [
               {
                 path: routePaths.artistSettings,
                 element: <SettingsPage />,
+              },
+              {
+                path: routePaths.artistProfileEdit,
+                element: <ArtistProfileEditPage />,
+              },
+              {
+                path: routePaths.artistProfile,
+                element: <ArtistProfilePage />,
               },
             ],
           },
