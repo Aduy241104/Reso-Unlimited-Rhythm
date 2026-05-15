@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Album from "../../models/Album.js";
 import Artist from "../../models/Artist.js";
+import Track from "../../models/Track.js";
 import { AppError } from "../../utils/AppError.js";
 import {
     formatAlbumDetail,
@@ -94,6 +95,58 @@ const getAlbumDetail = async (albumId) => {
 
     if (!album) {
         throw new AppError("Album not found.", 404);
+    }
+
+    const trackSelect = [
+        "title",
+        "duration",
+        "avatar",
+        "coverImage",
+        "audioFiles",
+        "lyricsStatic",
+        "lyricsSyncUrl",
+        "stats",
+        "releaseDate",
+        "activeStatus",
+        "approvalStatus",
+        "artist_artistId",
+    ].join(" ");
+
+    const listedTrackIds = (album.trackList || [])
+        .map((entry) => {
+            const ref = entry.trackId;
+            if (!ref) {
+                return null;
+            }
+
+            return ref._id ? ref._id : ref;
+        })
+        .filter(Boolean);
+
+    const maxOrder = (album.trackList || []).reduce(
+        (max, entry) =>
+            typeof entry.order === "number" && entry.order > max ? entry.order : max,
+        0
+    );
+
+    const orphanTracks = await Track.find({
+        album_albumId: album._id,
+        _id: { $nin: listedTrackIds },
+    })
+        .select(trackSelect)
+        .populate({
+            path: "artist_artistId",
+            select: "name avatar coverImage",
+        })
+        .lean();
+
+    if (orphanTracks.length > 0) {
+        const supplemental = orphanTracks.map((track, index) => ({
+            order: maxOrder + index + 1,
+            trackId: track,
+        }));
+
+        album.trackList = [...(album.trackList || []), ...supplemental];
     }
 
     return formatAlbumDetail(album);

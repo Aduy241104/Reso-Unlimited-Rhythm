@@ -14,9 +14,10 @@ router.post(
     "/upload",
     authenticate("artist"),
     upload.fields([
-        { name: "audioFiles", maxCount: 10 },
+        { name: "audioFiles", maxCount: 1 },
         { name: "avatar", maxCount: 1 },
         { name: "coverImages", maxCount: 5 },
+        { name: "lyricsSync", maxCount: 1 },
     ]),
     uploadController
 );

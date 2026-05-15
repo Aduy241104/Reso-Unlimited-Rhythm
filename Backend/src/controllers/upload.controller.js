@@ -9,6 +9,7 @@ const uploadFiles = async (req, res, next) => {
       audioFiles: [],
       avatar: "",
       coverImages: [],
+      lyricsSyncUrl: "",
     };
 
     // Upload audio files with quality transcoding
@@ -87,6 +88,17 @@ const uploadFiles = async (req, res, next) => {
       uploadedUrls.coverImages = coverResults.map(
         (result) => result.secure_url
       );
+    }
+
+    // Upload timed lyrics (.lrc) as raw file
+    if (req.files?.lyricsSync && req.files.lyricsSync.length > 0) {
+      const lyricsFile = req.files.lyricsSync[0];
+      const lyricsResult = await uploadToCloudinary(
+        lyricsFile.buffer,
+        "tracks/lyrics/sync",
+        "raw"
+      );
+      uploadedUrls.lyricsSyncUrl = lyricsResult.secure_url;
     }
 
     return res.status(StatusCodes.OK).json({

@@ -17,6 +17,21 @@ const fileFilter = (req, file, cb) => {
   if (file.fieldname === "audioFiles" && (file.mimetype.startsWith("audio/") || ALLOWED_AUDIO_FORMATS.includes(file.mimetype))) {
     cb(null, true);
   }
+  // Sync lyrics: .lrc (timed text)
+  else if (file.fieldname === "lyricsSync") {
+    const name = (file.originalname || "").toLowerCase();
+    const extOk = name.endsWith(".lrc");
+    const mimeOk =
+      file.mimetype.startsWith("text/") ||
+      file.mimetype === "application/octet-stream" ||
+      file.mimetype === "application/x-subrip";
+
+    if (extOk || mimeOk) {
+      cb(null, true);
+    } else {
+      cb(new Error("Sync lyrics must be a .lrc file (or plain text)."), false);
+    }
+  }
   // Accept image files (for avatar and coverImages)
   else if (
     (file.fieldname === "avatar" || file.fieldname === "coverImages") &&

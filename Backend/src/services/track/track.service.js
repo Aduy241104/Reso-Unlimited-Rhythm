@@ -3,6 +3,7 @@ import { StatusCodes } from "http-status-codes";
 import Artist from "../../models/Artist.js";
 import Track from "../../models/Track.js";
 import User from "../../models/User.js";
+import Album from "../../models/Album.js";
 import { AppError } from "../../utils/AppError.js";
 import {
     formatTrackDetail,
@@ -42,6 +43,18 @@ const createTrack = async (userId, trackData) => {
         );
     }
 
+    const rawAlbumId = trackData.album_albumId;
+    const resolvedAlbumId =
+        rawAlbumId && String(rawAlbumId).trim() !== ""
+            ? String(rawAlbumId).trim()
+            : null;
+
+    if (resolvedAlbumId && !mongoose.Types.ObjectId.isValid(resolvedAlbumId)) {
+        throw new AppError("Album id is invalid.", StatusCodes.BAD_REQUEST, {
+            field: "album_albumId",
+        });
+    }
+
     const processedAudioFiles = (trackData.audioFiles || []).map((file) => {
         if (typeof file === "string") {
             return {
@@ -67,7 +80,7 @@ const createTrack = async (userId, trackData) => {
     const newTrack = new Track({
         title: trackData.title,
         artist_artistId: artist._id,
-        album_albumId: trackData.album_albumId || null,
+        album_albumId: resolvedAlbumId,
         genreIds: trackData.genreIds || [],
         audioFiles: processedAudioFiles,
         duration: trackData.duration,
@@ -85,6 +98,33 @@ const createTrack = async (userId, trackData) => {
     });
 
     const savedTrack = await newTrack.save();
+
+    if (resolvedAlbumId) {
+        const album = await Album.findById(resolvedAlbumId);
+
+        if (!album) {
+            throw new AppError("Album not found.", StatusCodes.NOT_FOUND);
+        }
+
+        if (!album.artistId.equals(artist._id)) {
+            throw new AppError(
+                "This album does not belong to your artist profile.",
+                StatusCodes.FORBIDDEN
+            );
+        }
+
+        const nextOrder =
+            (Array.isArray(album.trackList) ? album.trackList.length : 0) + 1;
+
+        await Album.findByIdAndUpdate(resolvedAlbumId, {
+            $push: {
+                trackList: {
+                    trackId: savedTrack._id,
+                    order: nextOrder,
+                },
+            },
+        });
+    }
 
     const populatedTrack = await Track.findById(savedTrack._id)
         .populate({
