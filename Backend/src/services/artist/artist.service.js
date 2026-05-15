@@ -5,6 +5,7 @@ import ArtistStat from "../../models/ArtistStat.js";
 import Track from "../../models/Track.js";
 import { AppError } from "../../utils/AppError.js";
 import {
+    formatArtistAlbum,
     formatArtistProfile,
     formatArtistTrack,
     normalizePositiveInteger,
@@ -107,7 +108,41 @@ const getArtistTracks = async (artistId, query = {}) => {
     };
 };
 
+const getArtistAlbums = async (artistId, query = {}) => {
+    await validateAndGetArtist(artistId);
+
+    const page = normalizePositiveInteger(query.page, DEFAULT_PAGE);
+    const requestedLimit = normalizePositiveInteger(query.limit, DEFAULT_LIMIT);
+    const limit = Math.min(requestedLimit, MAX_LIMIT);
+    const skip = (page - 1) * limit;
+
+    const filter = {
+        artistId,
+        status: "active",
+    };
+
+    const [albums, total] = await Promise.all([
+        Album.find(filter)
+            .sort({ releaseDate: -1, totalPlays: -1, createdAt: -1, _id: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean(),
+        Album.countDocuments(filter),
+    ]);
+
+    return {
+        albums: albums.map(formatArtistAlbum),
+        pagination: {
+            page,
+            limit,
+            total,
+            totalPages: total === 0 ? 0 : Math.ceil(total / limit),
+        },
+    };
+};
+
 export default {
     getArtistProfile,
+    getArtistAlbums,
     getArtistTracks,
 };

@@ -67,6 +67,7 @@ const formatArtistProfile = ({ artist, artistStat, albums, tracks }) => ({
 });
 
 export {
+    formatArtistAlbum,
     formatArtistTrack,
     formatArtistProfile,
     normalizePositiveInteger,

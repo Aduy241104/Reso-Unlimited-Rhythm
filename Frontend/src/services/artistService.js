@@ -4,6 +4,7 @@ import {
   createPlaceholderImage,
   createProfileFallbacks,
   defaultArtistMetrics,
+  formatCompactNumber,
   formatDuration,
   getMetricValue,
 } from "../utils/artistProfile";
@@ -140,6 +141,39 @@ const buildDiscography = (albums, artistProfile) => {
   }));
 };
 
+const buildPopularTracksFromApi = (tracks = [], artistProfile) =>
+  tracks
+    .map((track, index) => {
+      const totalPlays =
+        track?.stats?.totalPlay ||
+        track?.playCount ||
+        track?.plays ||
+        track?.streamCount ||
+        0;
+
+      return {
+        id: track?.id || `track-${index}`,
+        title: track?.title || "Untitled track",
+        image:
+          track?.coverImage ||
+          track?.album?.coverImage ||
+          track?.avatar ||
+          artistProfile.avatar,
+        plays: formatCompactNumber(totalPlays),
+        duration: formatDuration(track?.duration),
+        totalPlays,
+      };
+    })
+    .sort((trackA, trackB) => trackB.totalPlays - trackA.totalPlays)
+    .slice(0, 5)
+    .map((track) => ({
+      id: track.id,
+      title: track.title,
+      image: track.image,
+      plays: track.plays,
+      duration: track.duration,
+    }));
+
 const buildPopularTracks = (albumDetails, artistProfile) => {
   const tracks = albumDetails
     .flatMap((album) => album?.tracks ?? [])
@@ -195,6 +229,7 @@ const normalizeArtistCandidateFromAlbum = (album) => {
 const getPublicArtistProfileService = async (artistId) => {
   const encodedArtistId = encodeURIComponent(artistId);
   const endpoints = [
+    `/api/artists/${encodedArtistId}/profile`,
     `/api/artists/${encodedArtistId}`,
     `/api/artist/${encodedArtistId}`,
     `/api/artists/profile/${encodedArtistId}`,
@@ -223,17 +258,32 @@ const getPublicArtistProfileService = async (artistId) => {
   return null;
 };
 
+const getArtistTracksService = async (artistId, params = {}) => {
+  const encodedArtistId = encodeURIComponent(artistId);
+  const response = await axiosClient.get(`/api/artists/${encodedArtistId}/tracks`, {
+    params,
+  });
+
+  return {
+    tracks: response?.data?.data?.tracks ?? response?.data?.tracks ?? [],
+    pagination: response?.data?.pagination ?? null,
+  };
+};
+
 export const getArtistExperienceService = async ({ artistId } = {}) => {
   const normalizedArtistId = artistId || "featured";
-  const [profileResult, albumsResult] = await Promise.allSettled([
+  const [profileResult, albumsResult, tracksResult] = await Promise.allSettled([
     getPublicArtistProfileService(normalizedArtistId),
     getAlbumsService({ limit: 24 }),
+    getArtistTracksService(normalizedArtistId, { limit: 50 }),
   ]);
 
   const profilePayload =
     profileResult.status === "fulfilled" ? profileResult.value : null;
   const albumsPayload =
     albumsResult.status === "fulfilled" ? albumsResult.value?.albums ?? [] : [];
+  const artistTracksPayload =
+    tracksResult.status === "fulfilled" ? tracksResult.value?.tracks ?? [] : [];
 
   const albumArtistMatch = albumsPayload.find((album) =>
     matchesArtistIdentifier(
@@ -259,12 +309,15 @@ export const getArtistExperienceService = async ({ artistId } = {}) => {
     .map((item) => getAlbumDetailService(item.raw.id));
 
   const detailResults = await Promise.allSettled(detailRequests);
-  const popularTracks = buildPopularTracks(
-    detailResults
-      .filter((result) => result.status === "fulfilled")
-      .map((result) => result.value),
-    artistProfile
-  );
+  const popularTracks =
+    artistTracksPayload.length > 0
+      ? buildPopularTracksFromApi(artistTracksPayload, artistProfile)
+      : buildPopularTracks(
+          detailResults
+            .filter((result) => result.status === "fulfilled")
+            .map((result) => result.value),
+          artistProfile
+        );
 
   return {
     profile: artistProfile,
