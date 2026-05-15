@@ -3,9 +3,18 @@ import multer from "multer";
 // Store files in memory before uploading to Cloudinary
 const storage = multer.memoryStorage();
 
+const ALLOWED_AUDIO_FORMATS = [
+  "audio/mpeg",      // MP3
+  "audio/mp4",       // M4A, MP4 audio
+  "audio/wav",       // WAV
+  "audio/webm",      // WebM
+  "audio/ogg",       // OGG
+  "video/mp4",       // MP4 video container (for audio)
+];
+
 const fileFilter = (req, file, cb) => {
   // Accept audio files (for audioFiles)
-  if (file.fieldname === "audioFiles" && file.mimetype.startsWith("audio/")) {
+  if (file.fieldname === "audioFiles" && (file.mimetype.startsWith("audio/") || ALLOWED_AUDIO_FORMATS.includes(file.mimetype))) {
     cb(null, true);
   }
   // Accept image files (for avatar and coverImages)
@@ -15,7 +24,7 @@ const fileFilter = (req, file, cb) => {
   ) {
     cb(null, true);
   } else {
-    cb(new Error(`Invalid file type for ${file.fieldname}`), false);
+    cb(new Error(`Invalid file type for ${file.fieldname}. Allowed audio formats: ${ALLOWED_AUDIO_FORMATS.join(", ")}`), false);
   }
 };
 

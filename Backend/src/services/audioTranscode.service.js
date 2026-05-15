@@ -1,7 +1,11 @@
 import ffmpeg from "fluent-ffmpeg";
+import ffmpegStatic from "ffmpeg-static";
 import { Readable, PassThrough } from "stream";
 import { AppError } from "../utils/AppError.js";
 import { StatusCodes } from "http-status-codes";
+
+// Set ffmpeg path to use static binary
+ffmpeg.setFfmpegPath(ffmpegStatic);
 
 // Quality presets for different bitrates
 const QUALITY_PRESETS = [
