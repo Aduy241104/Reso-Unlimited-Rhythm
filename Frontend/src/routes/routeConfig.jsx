@@ -5,6 +5,8 @@ import AlbumDetailPage from "../pages/album/AlbumDetailPage";
 import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
 import ArtistOverviewPage from "../pages/artist/ArtistOverviewPage";
+import ArtistProfileEditPage from "../pages/artist/ArtistProfileEditPage";
+import ArtistProfilePage from "../pages/artist/ArtistProfilePage";
 import {
   AnalyticsPage,
   FansPage,
@@ -16,6 +18,7 @@ import {
 import HomePage from "../pages/home/HomePage";
 import LyricsPage from "../pages/lyrics/LyricsPage";
 import ProfilePage from "../pages/profile/ProfilePage";
+import TrackDetailPage from "../pages/track/TrackDetailPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import RoleRoute from "./RoleRoute";
@@ -36,6 +39,10 @@ export const appRoutes = [
       {
         path: routePaths.lyrics,
         element: <LyricsPage />,
+      },
+      {
+        path: routePaths.trackDetail(),
+        element: <TrackDetailPage />,
       },
       {
         element: <ProtectedRoute />,
@@ -85,6 +92,14 @@ export const appRoutes = [
               {
                 path: routePaths.artistSettings,
                 element: <SettingsPage />,
+              },
+              {
+                path: routePaths.artistProfileEdit,
+                element: <ArtistProfileEditPage />,
+              },
+              {
+                path: routePaths.artistProfile,
+                element: <ArtistProfilePage />,
               },
             ],
           },

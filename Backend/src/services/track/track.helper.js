@@ -99,6 +99,49 @@ const getPremiumAccessState = async (user) => {
     };
 };
 
+const formatTrackArtist = (artist) =>
+    artist
+        ? {
+            id: toId(artist._id),
+            name: artist.name,
+            avatar: artist.avatar,
+            coverImage: artist.coverImage,
+        }
+        : null;
+
+const formatTrackAlbum = (album) =>
+    album
+        ? {
+            id: toId(album._id),
+            title: album.title,
+            coverImage: album.coverImage,
+        }
+        : null;
+
+const formatTrackGenres = (genres = []) =>
+    genres.map((genre) => ({
+        id: toId(genre._id),
+        name: genre.name,
+        image: genre.image,
+    }));
+
+const formatTrackDetail = (track) => ({
+    id: toId(track._id),
+    title: track.title,
+    duration: track.duration,
+    avatar: track.avatar,
+    coverImage: track.coverImage,
+    releaseDate: track.releaseDate,
+    stats: track.stats,
+    artist: formatTrackArtist(track.artist_artistId),
+    album: formatTrackAlbum(track.album_albumId),
+    genres: formatTrackGenres(track.genreIds),
+    lyrics: {
+        static: track.lyricsStatic,
+        syncUrl: track.lyricsSyncUrl,
+    },
+});
+
 const formatTrackPlayback = (track, audioFiles, accessState) => {
     const isPremium = accessState.isPremium;
     const basicAudio = pickBasicAudio(audioFiles);
@@ -131,21 +174,8 @@ const formatTrackPlayback = (track, audioFiles, accessState) => {
         coverImage: track.coverImage,
         releaseDate: track.releaseDate,
         stats: track.stats,
-        artist: track.artist_artistId
-            ? {
-                id: toId(track.artist_artistId._id),
-                name: track.artist_artistId.name,
-                avatar: track.artist_artistId.avatar,
-                coverImage: track.artist_artistId.coverImage,
-            }
-            : null,
-        album: track.album_albumId
-            ? {
-                id: toId(track.album_albumId._id),
-                title: track.album_albumId.title,
-                coverImage: track.album_albumId.coverImage,
-            }
-            : null,
+        artist: formatTrackArtist(track.artist_artistId),
+        album: formatTrackAlbum(track.album_albumId),
         lyrics: {
             static: track.lyricsStatic,
             syncUrl: track.lyricsSyncUrl,
@@ -156,12 +186,11 @@ const formatTrackPlayback = (track, audioFiles, accessState) => {
             defaultAudio,
             audioFiles: exposedAudioFiles,
         },
-        createdAt: track.createdAt,
-        updatedAt: track.updatedAt,
     };
 };
 
 export {
+    formatTrackDetail,
     formatTrackPlayback,
     getPremiumAccessState,
     getValidAudioFiles,

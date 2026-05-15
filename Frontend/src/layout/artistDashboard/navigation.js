@@ -38,10 +38,12 @@ export const artistPageTitles = {
   [routePaths.artistMusic]: "My Music",
   [routePaths.artistReleases]: "Releases",
   [routePaths.artistAnalytics]: "Analytics",
+  [routePaths.artistProfile]: "Artist Profile",
+  [routePaths.artistProfileEdit]: "Edit Artist Profile",
 };
 
 export const artistProfile = {
-  name: "Avery Stone",
-  role: "Independent Artist",
+  name: "Artist",
+  role: "Artist account",
   icon: Waves,
 };

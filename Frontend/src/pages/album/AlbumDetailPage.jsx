@@ -9,6 +9,7 @@ import {
 import { useParams } from "react-router-dom";
 import TrackCard from "../../components/TrackCard";
 import { usePlayer } from "../../hooks/usePlayer";
+import { routePaths } from "../../routes/routePaths";
 import { getAlbumDetailService } from "../../services/albumService";
 import {
   createPlaceholderImage,
@@ -242,6 +243,7 @@ const AlbumDetailPage = () => {
                         duration={ formatTrackDuration(track?.duration) }
                         explicit={ false }
                         liked={ false }
+                        href={ track?.id ? routePaths.trackDetail(track.id) : undefined }
                         onPlay={ () => handlePlayTrack(track, index) }
                         onLike={ () => handleLikeTrack(track) }
                       />
