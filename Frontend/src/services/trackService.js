@@ -4,15 +4,12 @@ const TRACKS_API_PREFIX = "/api/artist/track";
 const ALBUMS_API_PREFIX = "/api/albums";
 
 export const trackService = {
-  uploadFiles: async (audioFiles, avatar, coverImages) => {
+  uploadFiles: async (audioFile, avatar, coverImages, lyricsSyncFile) => {
     try {
       const formData = new FormData();
 
-      // Append audio files
-      if (audioFiles && audioFiles.length > 0) {
-        audioFiles.forEach((file) => {
-          formData.append("audioFiles", file);
-        });
+      if (audioFile) {
+        formData.append("audioFiles", audioFile);
       }
 
       // Append avatar
@@ -25,6 +22,10 @@ export const trackService = {
         coverImages.forEach((file) => {
           formData.append("coverImages", file);
         });
+      }
+
+      if (lyricsSyncFile) {
+        formData.append("lyricsSync", lyricsSyncFile);
       }
 
       const response = await axiosClient.post(

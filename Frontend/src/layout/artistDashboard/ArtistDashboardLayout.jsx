@@ -142,7 +142,10 @@ const ArtistDashboardLayout = () => {
   );
 
   return (
-    <div className="h-screen overflow-hidden bg-[#f6f0e8] text-[#221a14]">
+    <div
+      data-artist-dashboard
+      className="scheme-light h-screen overflow-hidden bg-[#f6f0e8] text-[#221a14] [color-scheme:light]"
+    >
       <div className="flex h-full overflow-hidden">
         <aside
           className="fixed inset-y-0 left-0 z-30 hidden border-r border-[#2f2721] lg:block"

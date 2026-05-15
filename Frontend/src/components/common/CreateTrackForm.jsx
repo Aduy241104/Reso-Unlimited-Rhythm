@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import trackService from "../../services/trackService";
+import genreService from "../../services/genreService";
 import AudioQualityDisplay from "./AudioQualityDisplay";
 import AudioQualityPreview from "./AudioQualityPreview";
 
@@ -7,20 +8,19 @@ const CreateTrackForm = () => {
   const [formData, setFormData] = useState({
     title: "",
     duration: "",
-    audioFiles: [],
     avatar: "",
     coverImage: [],
     lyricsStatic: "",
-    lyricsSyncUrl: "",
     album_albumId: "",
     genreIds: [],
     activeStatus: "draft",
     releaseDate: "",
   });
 
-  const [audioFiles, setAudioFiles] = useState([]);
+  const [audioFile, setAudioFile] = useState(null);
   const [coverImages, setCoverImages] = useState([]);
   const [avatarFile, setAvatarFile] = useState(null);
+  const [lyricsSyncFile, setLyricsSyncFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [uploadingQualities, setUploadingQualities] = useState(false);
   const [uploadedQualities, setUploadedQualities] = useState([]);
@@ -28,13 +28,8 @@ const CreateTrackForm = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [albums, setAlbums] = useState([]);
   const [albumsLoading, setAlbumsLoading] = useState(true);
-
-  // Mock data for dropdowns
-  const genreOptions = [
-    { id: "681300000000000000000201", name: "Seed Lofi" },
-    { id: "681300000000000000000202", name: "Seed Pop" },
-    { id: "681300000000000000000203", name: "Seed Talk" },
-  ];
+  const [genres, setGenres] = useState([]);
+  const [genresLoading, setGenresLoading] = useState(true);
 
   const statusOptions = [
     { value: "draft", label: "Draft" },
@@ -43,7 +38,6 @@ const CreateTrackForm = () => {
     { value: "blocked", label: "Blocked" },
   ];
 
-  // Fetch artist albums on mount
   useEffect(() => {
     const fetchAlbums = async () => {
       try {
@@ -61,6 +55,22 @@ const CreateTrackForm = () => {
     fetchAlbums();
   }, []);
 
+  useEffect(() => {
+    const fetchGenres = async () => {
+      try {
+        const list = await genreService.getGenresService();
+        setGenres(Array.isArray(list) ? list : []);
+      } catch (error) {
+        console.error("Failed to fetch genres:", error);
+        setGenres([]);
+      } finally {
+        setGenresLoading(false);
+      }
+    };
+
+    fetchGenres();
+  }, []);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -69,9 +79,9 @@ const CreateTrackForm = () => {
     }));
   };
 
-  const handleAudioFilesChange = (e) => {
-    const files = Array.from(e.target.files);
-    setAudioFiles((prev) => [...prev, ...files]);
+  const handleAudioFileChange = (e) => {
+    const file = e.target.files?.[0] ?? null;
+    setAudioFile(file);
   };
 
   const handleCoverImagesChange = (e) => {
@@ -86,8 +96,9 @@ const CreateTrackForm = () => {
     }
   };
 
-  const handleRemoveAudioFile = (index) => {
-    setAudioFiles((prev) => prev.filter((_, i) => i !== index));
+  const handleLyricsSyncChange = (e) => {
+    const file = e.target.files?.[0] ?? null;
+    setLyricsSyncFile(file);
   };
 
   const handleRemoveCoverImage = (index) => {
@@ -99,11 +110,12 @@ const CreateTrackForm = () => {
   };
 
   const handleGenreToggle = (genreId) => {
+    const id = String(genreId);
     setFormData((prev) => ({
       ...prev,
-      genreIds: prev.genreIds.includes(genreId)
-        ? prev.genreIds.filter((id) => id !== genreId)
-        : [...prev.genreIds, genreId],
+      genreIds: prev.genreIds.includes(id)
+        ? prev.genreIds.filter((g) => g !== id)
+        : [...prev.genreIds, id],
     }));
   };
 
@@ -116,47 +128,47 @@ const CreateTrackForm = () => {
     setUploadingQualities(false);
 
     try {
-      // Validate required fields
       if (!formData.title.trim()) {
         throw new Error("Title is required");
       }
       if (!formData.duration || formData.duration <= 0) {
         throw new Error("Duration must be a positive number");
       }
-      if (audioFiles.length === 0) {
-        throw new Error("At least one audio file is required");
+      if (!audioFile) {
+        throw new Error("Please upload exactly one audio file for this track");
       }
 
-      // Show uploading status
       setUploadingQualities(true);
 
-      // Upload files to backend
       const uploadResponse = await trackService.uploadFiles(
-        audioFiles,
+        audioFile,
         avatarFile,
-        coverImages
+        coverImages,
+        lyricsSyncFile
       );
 
       if (!uploadResponse.success) {
         throw new Error("File upload failed");
       }
 
-      const { audioFiles: uploadedAudioUrls, avatar: avatarUrl, coverImages: uploadedCoverUrls } =
-        uploadResponse.data;
+      const {
+        audioFiles: uploadedAudioUrls,
+        avatar: avatarUrl,
+        coverImages: uploadedCoverUrls,
+        lyricsSyncUrl: uploadedLyricsSyncUrl,
+      } = uploadResponse.data;
 
-      // Store and display uploaded qualities
       setUploadedQualities(uploadedAudioUrls || []);
       setUploadingQualities(false);
 
-      // Show success message with quality info
       const qualityCount = uploadedAudioUrls?.length || 0;
       setSuccessMessage(
-        `✓ Files processed successfully! ${qualityCount} quality versions created.`
+        `✓ Files processed successfully! ${qualityCount} quality version(s) created.`
       );
 
-      // Create track with uploaded URLs
       const trackDataToSubmit = {
         ...formData,
+        lyricsSyncUrl: uploadedLyricsSyncUrl || "",
         audioFiles: uploadedAudioUrls,
         coverImage: uploadedCoverUrls,
         avatar: avatarUrl || formData.avatar,
@@ -166,26 +178,23 @@ const CreateTrackForm = () => {
 
       if (response.success) {
         setSuccessMessage(response.message || "Track created successfully!");
-        // Reset form
         setFormData({
           title: "",
           duration: "",
-          audioFiles: [],
           avatar: "",
           coverImage: [],
           lyricsStatic: "",
-          lyricsSyncUrl: "",
           album_albumId: "",
           genreIds: [],
           activeStatus: "draft",
           releaseDate: "",
         });
-        setAudioFiles([]);
+        setAudioFile(null);
+        setLyricsSyncFile(null);
         setCoverImages([]);
         setAvatarFile(null);
         setUploadedQualities([]);
 
-        // Clear messages after 3 seconds
         setTimeout(() => {
           setSuccessMessage("");
           setUploadedQualities([]);
@@ -222,7 +231,6 @@ const CreateTrackForm = () => {
         </div>
       )}
 
-      {/* Audio Quality Display */}
       {(uploadedQualities.length > 0 || uploadingQualities) && (
         <AudioQualityDisplay
           qualities={uploadedQualities}
@@ -230,13 +238,11 @@ const CreateTrackForm = () => {
         />
       )}
 
-      {/* Audio Quality Preview */}
       {uploadedQualities.length > 0 && !uploadingQualities && (
         <AudioQualityPreview qualities={uploadedQualities} />
       )}
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-6">
-        {/* Title */}
         <div>
           <label className="block text-sm font-medium text-[#241b15]">
             Track Title *
@@ -252,7 +258,6 @@ const CreateTrackForm = () => {
           />
         </div>
 
-        {/* Duration */}
         <div>
           <label className="block text-sm font-medium text-[#241b15]">
             Duration (seconds) *
@@ -270,50 +275,35 @@ const CreateTrackForm = () => {
           />
         </div>
 
-        {/* Audio Files Upload */}
         <div>
           <label className="block text-sm font-medium text-[#241b15]">
-            Audio Files * (Upload MP3, WAV, MP4, etc.)
+            Audio file * (one file per track)
           </label>
           <p className="mt-1 text-xs text-neutral-500">
-            💡 We'll automatically create 4 quality versions: High (320k), Medium (192k), Low (128k), Lowest (96k)
+            One upload is transcoded into multiple qualities (e.g. 320k, 192k, 128k, 96k).
           </p>
           <input
             type="file"
-            multiple
             accept="audio/*,video/mp4"
-            onChange={handleAudioFilesChange}
+            onChange={handleAudioFileChange}
             disabled={loading}
             className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm disabled:bg-neutral-100"
           />
-          {audioFiles.length > 0 && (
-            <p className="mt-2 text-sm text-neutral-600">
-              {audioFiles.length} file(s) selected
-            </p>
-          )}
-          <div className="mt-2 space-y-2">
-            {audioFiles.map((file, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between rounded-md bg-neutral-50 p-2"
+          {audioFile && (
+            <div className="mt-2 flex items-center justify-between rounded-md bg-neutral-50 p-2">
+              <p className="truncate text-sm text-neutral-700">{audioFile.name}</p>
+              <button
+                type="button"
+                onClick={() => setAudioFile(null)}
+                disabled={loading}
+                className="ml-2 text-red-500 hover:text-red-700 disabled:opacity-50"
               >
-                <p className="truncate text-sm text-neutral-700">
-                  {file.name}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => handleRemoveAudioFile(index)}
-                  disabled={loading}
-                  className="ml-2 text-red-500 hover:text-red-700 disabled:opacity-50"
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
-          </div>
+                ✕
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Avatar Upload */}
         <div>
           <label className="block text-sm font-medium text-[#241b15]">
             Track Avatar (Image)
@@ -342,7 +332,6 @@ const CreateTrackForm = () => {
           )}
         </div>
 
-        {/* Cover Images Upload */}
         <div>
           <label className="block text-sm font-medium text-[#241b15]">
             Cover Images (Upload images)
@@ -382,7 +371,6 @@ const CreateTrackForm = () => {
           </div>
         </div>
 
-        {/* Lyrics Static */}
         <div>
           <label className="block text-sm font-medium text-[#241b15]">
             Static Lyrics
@@ -397,45 +385,79 @@ const CreateTrackForm = () => {
           />
         </div>
 
-        {/* Lyrics Sync URL */}
         <div>
           <label className="block text-sm font-medium text-[#241b15]">
-            Sync Lyrics URL (LRC file)
+            Sync lyrics (.lrc)
           </label>
+          <p className="mt-1 text-xs text-neutral-500">
+            Optional timed lyrics file. Upload a .lrc file (plain text with timestamps).
+          </p>
           <input
-            type="text"
-            name="lyricsSyncUrl"
-            value={formData.lyricsSyncUrl}
-            onChange={handleInputChange}
-            placeholder="https://example.com/lyrics.lrc"
-            className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm focus:border-[#8b5e3c] focus:outline-none"
+            type="file"
+            accept=".lrc,text/plain"
+            onChange={handleLyricsSyncChange}
+            disabled={loading}
+            className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm disabled:bg-neutral-100"
           />
+          {lyricsSyncFile && (
+            <div className="mt-2 flex items-center justify-between rounded-md bg-neutral-50 p-2">
+              <p className="truncate text-sm text-neutral-700">
+                {lyricsSyncFile.name}
+              </p>
+              <button
+                type="button"
+                onClick={() => setLyricsSyncFile(null)}
+                disabled={loading}
+                className="ml-2 text-red-500 hover:text-red-700 disabled:opacity-50"
+              >
+                ✕
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Genres */}
         <div>
           <label className="block text-sm font-medium text-[#241b15]">
             Genres
           </label>
-          <div className="mt-2 space-y-2">
-            {genreOptions.map((genre) => (
-              <label
-                key={genre.id}
-                className="flex items-center gap-2 text-sm text-neutral-700"
-              >
-                <input
-                  type="checkbox"
-                  checked={formData.genreIds.includes(genre.id)}
-                  onChange={() => handleGenreToggle(genre.id)}
-                  className="rounded border-neutral-300"
-                />
-                {genre.name}
-              </label>
-            ))}
-          </div>
+          <p className="mt-1 text-xs text-neutral-500">
+            Chọn một hoặc nhiều thể loại bằng cách tick vào ô tương ứng.
+          </p>
+          {genresLoading ? (
+            <p className="mt-2 text-sm text-neutral-600">Loading genres...</p>
+          ) : genres.length === 0 ? (
+            <p className="mt-2 text-sm text-neutral-600">
+              No genres available. Seed the database or add genres in admin.
+            </p>
+          ) : (
+            <div className="mt-2 space-y-2">
+              {genres.map((genre) => {
+                const id = String(genre._id);
+                return (
+                  <label
+                    key={id}
+                    className="flex cursor-pointer items-center gap-2 text-sm text-neutral-700"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.genreIds.includes(id)}
+                      onChange={() => handleGenreToggle(id)}
+                      disabled={loading}
+                      className="h-4 w-4 rounded border-neutral-300 text-[#8b5e3c] focus:ring-[#8b5e3c]"
+                    />
+                    <span>{genre.name}</span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+          {formData.genreIds.length > 0 && (
+            <p className="mt-2 text-sm text-neutral-600">
+              Đã chọn {formData.genreIds.length} thể loại
+            </p>
+          )}
         </div>
 
-        {/* Album */}
         <div>
           <label className="block text-sm font-medium text-[#241b15]">
             Album (Optional)
@@ -463,7 +485,6 @@ const CreateTrackForm = () => {
           )}
         </div>
 
-        {/* Active Status */}
         <div>
           <label className="block text-sm font-medium text-[#241b15]">
             Active Status
@@ -482,7 +503,6 @@ const CreateTrackForm = () => {
           </select>
         </div>
 
-        {/* Release Date */}
         <div>
           <label className="block text-sm font-medium text-[#241b15]">
             Release Date
@@ -496,7 +516,6 @@ const CreateTrackForm = () => {
           />
         </div>
 
-        {/* Submit Button */}
         <div className="flex gap-2 pt-4">
           <button
             type="submit"
