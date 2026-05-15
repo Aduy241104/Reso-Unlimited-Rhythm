@@ -1,9 +1,12 @@
 import { Navigate } from "react-router-dom";
 import ArtistDashboardLayout from "../layout/artistDashboard/ArtistDashboardLayout";
 import MainLayout from "../layout/mainLayout/MainLayout";
+import AlbumDetailPage from "../pages/album/AlbumDetailPage";
 import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
 import ArtistOverviewPage from "../pages/artist/ArtistOverviewPage";
+import ArtistProfileEditPage from "../pages/artist/ArtistProfileEditPage";
+import ArtistProfilePage from "../pages/artist/ArtistProfilePage";
 import {
   AnalyticsPage,
   FansPage,
@@ -15,6 +18,7 @@ import {
 import CreateTrackPage from "../pages/artist/CreateTrackPage";
 import HomePage from "../pages/home/HomePage";
 import ProfilePage from "../pages/profile/ProfilePage";
+import TrackDetailPage from "../pages/track/TrackDetailPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import RoleRoute from "./RoleRoute";
@@ -27,6 +31,14 @@ export const appRoutes = [
       {
         path: routePaths.home,
         element: <HomePage />,
+      },
+      {
+        path: routePaths.albumDetail(),
+        element: <AlbumDetailPage />,
+      },
+      {
+        path: routePaths.trackDetail(),
+        element: <TrackDetailPage />,
       },
       {
         element: <ProtectedRoute />,
@@ -80,6 +92,14 @@ export const appRoutes = [
               {
                 path: routePaths.artistSettings,
                 element: <SettingsPage />,
+              },
+              {
+                path: routePaths.artistProfileEdit,
+                element: <ArtistProfileEditPage />,
+              },
+              {
+                path: routePaths.artistProfile,
+                element: <ArtistProfilePage />,
               },
             ],
           },

@@ -1,13 +1,18 @@
 import mongoose from "mongoose";
-import Track from "../../models/Track.js";
+import { StatusCodes } from "http-status-codes";
 import Artist from "../../models/Artist.js";
+import Track from "../../models/Track.js";
 import User from "../../models/User.js";
 import { AppError } from "../../utils/AppError.js";
-import { formatTrackDetail } from "./track.helper.js";
-import { StatusCodes } from "http-status-codes";
+import {
+    formatTrackDetail,
+    formatTrackManagementDetail,
+    formatTrackPlayback,
+    getPremiumAccessState,
+    getValidAudioFiles,
+} from "./track.helper.js";
 
 const createTrack = async (userId, trackData) => {
-    // Verify user exists and is an artist
     const user = await User.findById(userId);
 
     if (!user) {
@@ -21,7 +26,6 @@ const createTrack = async (userId, trackData) => {
         );
     }
 
-    // Get artist profile linked to user
     const artist = await Artist.findOne({ userId });
 
     if (!artist) {
@@ -38,11 +42,8 @@ const createTrack = async (userId, trackData) => {
         );
     }
 
-    // Create track
-    // Process audioFiles - ensure they have url, format, bitrate, label, priority
     const processedAudioFiles = (trackData.audioFiles || []).map((file) => {
         if (typeof file === "string") {
-            // If audioFiles is still array of strings (legacy), convert to object
             return {
                 url: file,
                 format: "unknown",
@@ -51,7 +52,7 @@ const createTrack = async (userId, trackData) => {
                 priority: 0,
             };
         }
-        // If already object, keep it with all properties
+
         return {
             url: file.url,
             format: file.format || "unknown",
@@ -61,7 +62,6 @@ const createTrack = async (userId, trackData) => {
         };
     });
 
-    // Sort audioFiles by priority (highest first) for better user experience
     processedAudioFiles.sort((a, b) => b.priority - a.priority);
 
     const newTrack = new Track({
@@ -86,7 +86,6 @@ const createTrack = async (userId, trackData) => {
 
     const savedTrack = await newTrack.save();
 
-    // Populate and return formatted track
     const populatedTrack = await Track.findById(savedTrack._id)
         .populate({
             path: "artist_artistId",
@@ -101,9 +100,82 @@ const createTrack = async (userId, trackData) => {
             select: "name",
         });
 
-    return formatTrackDetail(populatedTrack);
+    return formatTrackManagementDetail(populatedTrack);
+};
+
+const getTrackDetail = async (trackId) => {
+    if (!mongoose.Types.ObjectId.isValid(trackId)) {
+        throw new AppError("Track id is invalid.", 400, {
+            field: "id",
+        });
+    }
+
+    const track = await Track.findOne({
+        _id: trackId,
+        activeStatus: "active",
+        approvalStatus: "approved",
+    })
+        .populate({
+            path: "artist_artistId",
+            select: "name avatar coverImage",
+        })
+        .populate({
+            path: "album_albumId",
+            select: "title coverImage",
+        })
+        .populate({
+            path: "genreIds",
+            select: "name image",
+        })
+        .lean()
+        .select("-__v -createdAt -updatedAt -blockedReason -hiddenReason -hiddenAt");
+
+    if (!track) {
+        throw new AppError("Track not found.", 404);
+    }
+
+    return formatTrackDetail(track);
+};
+
+const getTrackPlayback = async (trackId, user) => {
+    if (!mongoose.Types.ObjectId.isValid(trackId)) {
+        throw new AppError("Track id is invalid.", 400, {
+            field: "id",
+        });
+    }
+
+    const track = await Track.findOne({
+        _id: trackId,
+        activeStatus: "active",
+        approvalStatus: "approved",
+    })
+        .populate({
+            path: "artist_artistId",
+            select: "name avatar coverImage",
+        })
+        .populate({
+            path: "album_albumId",
+            select: "title coverImage",
+        })
+        .lean()
+        .select("-__v -createdAt -updatedAt");
+
+    if (!track) {
+        throw new AppError("Track not found.", 404);
+    }
+
+    const validAudioFiles = getValidAudioFiles(track.audioFiles);
+    if (!validAudioFiles.length) {
+        throw new AppError("Track does not have any audio file.", 404);
+    }
+
+    const accessState = await getPremiumAccessState(user);
+
+    return formatTrackPlayback(track, validAudioFiles, accessState);
 };
 
 export default {
     createTrack,
+    getTrackDetail,
+    getTrackPlayback,
 };

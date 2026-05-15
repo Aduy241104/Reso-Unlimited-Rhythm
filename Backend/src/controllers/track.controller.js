@@ -18,6 +18,36 @@ const createTrack = async (req, res, next) => {
     }
 };
 
+const getTrackDetail = async (req, res, next) => {
+    try {
+        const track = await trackService.getTrackDetail(req.params.id);
+
+        return formatResponse.success(
+            res,
+            { track },
+            "Track fetched successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+const getTrackPlayback = async (req, res, next) => {
+    try {
+        const track = await trackService.getTrackPlayback(req.params.id, req.user);
+
+        return formatResponse.success(
+            res,
+            { track },
+            "Track playback fetched successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     createTrack,
+    getTrackDetail,
+    getTrackPlayback,
 };

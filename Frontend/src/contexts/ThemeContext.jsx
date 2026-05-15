@@ -19,6 +19,13 @@ export const ThemeProvider = ({ children }) => {
     window.localStorage.setItem(STORAGE_KEY, theme);
   }, [theme]);
 
+  useEffect(() => {
+    const rootElement = window.document.documentElement;
+
+    rootElement.classList.toggle("dark", theme === "dark");
+    rootElement.style.colorScheme = theme;
+  }, [theme]);
+
   const value = useMemo(
     () => ({
       theme,

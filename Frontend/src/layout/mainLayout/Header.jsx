@@ -60,14 +60,14 @@ const Header = () => {
   return (
     <header
       className={[
-        "flex h-full items-center justify-between gap-3 border-b px-4 backdrop-blur-xl sm:px-6",
+        "flex h-full items-center justify-between gap-3 border-b px-4 backdrop-blur-xl sm:px-9",
         isDark
           ? "border-[#f5b66f]/10 bg-black text-[#f7f1ea]"
           : "border-[#eeeeee] bg-white text-[#111111]",
       ].join(" ")}
     >
-      <div className="flex items-center gap-3">
-        <img src="src/assets/images/ChatGPT Image 13_16_10 4 thg 5, 2026.png" alt="" className="h-16 w-16" />
+      <div className="flex items-center gap-1">
+        <img src="src/assets/images/ChatGPT Image 13_16_10 4 thg 5, 2026.png" alt="" className="h-14 w-14" />
         <div className="min-w-0">
           <p
             className={[
@@ -147,7 +147,7 @@ const Header = () => {
             { isOpen ? (
               <div
                 className={[
-                  "absolute right-0 top-full z-20 mt-3 w-48 rounded-2xl border p-2 backdrop-blur-xl sm:w-56",
+                  "absolute right-0 top-full z-[100] mt-3 w-48 rounded-2xl border p-2 backdrop-blur-xl sm:w-56",
                   isDark
                     ? "border-[#f5b66f]/10 bg-[#151218]/95 shadow-[0_20px_60px_rgba(245,158,66,0.15)]"
                     : "border-[#e5e7eb] bg-white shadow-[0_20px_60px_rgba(15,23,42,0.12)]",
