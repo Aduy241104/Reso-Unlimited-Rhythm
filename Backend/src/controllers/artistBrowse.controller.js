@@ -1,4 +1,4 @@
-import artistService from "../services/artist/artist.service.js";
+import artistService from "../services/artistBrowse/artistBrowse.service.js";
 import formatResponse from "../utils/formatResponse.js";
 
 const getArtistProfile = async (req, res, next) => {

@@ -4,7 +4,7 @@ import AboutArtistSection from "../../components/artist/AboutArtistSection";
 import ArtistHeroSection from "../../components/artist/ArtistHeroSection";
 import DiscographySection from "../../components/artist/DiscographySection";
 import PopularTracksSection from "../../components/artist/PopularTracksSection";
-import { getArtistExperienceService } from "../../services/artistService";
+import { getArtistExperienceService } from "../../services/artistBrowseService";
 import { getApiErrorMessage } from "../../utils/apiError";
 
 const ArtistProfileView = () => {
@@ -61,10 +61,6 @@ const ArtistProfileView = () => {
 
   const profile = artistData.profile;
 
-  if (!profile && !isLoading && !errorMessage) {
-    return null;
-  }
-
   return (
     <section className="space-y-8 pb-10 text-white lg:space-y-12">
       { errorMessage ? (
@@ -99,7 +95,7 @@ const ArtistProfileView = () => {
             />
           </div>
         </>
-      ) : (
+      ) : isLoading ? (
         <div className="mx-auto max-w-6xl space-y-6">
           <div className="h-[30rem] animate-pulse bg-white/[0.04]" />
           <div className="grid gap-4 sm:grid-cols-2">
@@ -108,6 +104,20 @@ const ArtistProfileView = () => {
             )) }
           </div>
           <div className="h-[18rem] animate-pulse bg-white/[0.04]" />
+        </div>
+      ) : (
+        <div className="mx-auto max-w-6xl space-y-8 px-1 lg:space-y-10">
+          <PopularTracksSection
+            tracks={ artistData.popularTracks }
+            isLoading={ false }
+          />
+
+          <DiscographySection
+            items={ artistData.discography }
+            activeFilter={ activeFilter }
+            onFilterChange={ setActiveFilter }
+            isLoading={ false }
+          />
         </div>
       ) }
     </section>

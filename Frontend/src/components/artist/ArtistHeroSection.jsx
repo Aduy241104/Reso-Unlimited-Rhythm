@@ -10,11 +10,15 @@ const ArtistHeroSection = ({
   return (
     <section className="relative overflow-hidden bg-[#121212]">
       <div className="relative h-[22rem] w-full overflow-hidden sm:h-[28rem] lg:h-[34rem]">
-        <img
-          src={ profile.banner }
-          alt={ profile.name }
-          className="h-full w-full object-cover opacity-[0.88]"
-        />
+        { profile.banner ? (
+          <img
+            src={ profile.banner }
+            alt={ profile.name }
+            className="h-full w-full object-cover opacity-[0.88]"
+          />
+        ) : (
+          <div className="h-full w-full bg-[radial-gradient(circle_at_top,#303030_0%,#1a1a1a_42%,#121212_100%)]" />
+        ) }
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.08)_0%,rgba(0,0,0,0.18)_24%,rgba(18,18,18,0.58)_58%,#121212_100%)]" />
         <div className="absolute inset-x-0 bottom-0 mx-auto max-w-6xl px-5 pb-8 sm:px-8 lg:px-10">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:gap-8">

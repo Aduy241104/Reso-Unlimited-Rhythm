@@ -9,7 +9,7 @@ import {
     formatArtistProfile,
     formatArtistTrack,
     normalizePositiveInteger,
-} from "./artist.helper.js";
+} from "./artistBrowse.helper.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
