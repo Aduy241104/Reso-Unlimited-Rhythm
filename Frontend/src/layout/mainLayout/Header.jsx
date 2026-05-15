@@ -34,7 +34,7 @@ const Header = () => {
 
   const menuItems = [
     { label: "Home", to: routePaths.home },
-    { label: "Artist Profile", to: routePaths.artistProfile("featured") },
+    { label: "Artist Profile", to: routePaths.artistBrowseProfile("featured") },
     ...(userRole === "artist" ? [{ label: "Artist", to: routePaths.artistRoot }] : []),
   ];
 

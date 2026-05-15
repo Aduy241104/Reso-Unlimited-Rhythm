@@ -4,7 +4,7 @@ export const routePaths = {
   trackDetail: (trackId = ":id") => `/tracks/${trackId}`,
   login: "/login",
   register: "/register",
-  artistProfile: (artistId = ":id") => `/artists/${artistId}`,
+  artistBrowseProfile: (artistId = ":id") => `/artists/${artistId}`,
   legacyArtistProfile: "/artist-profile",
   artistRoot: "/artist",
   artistMusic: "/artist/music",

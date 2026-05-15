@@ -3,7 +3,7 @@ import { routePaths } from "../../routes/routePaths";
 
 const navItems = [
   { label: "Home", to: routePaths.home },
-  { label: "Artist Profile", to: routePaths.artistProfile("featured") },
+  { label: "Artist Profile", to: routePaths.artistBrowseProfile("featured") },
   { label: "Artist", to: routePaths.artistRoot },
 ];
 
