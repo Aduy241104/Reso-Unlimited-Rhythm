@@ -273,7 +273,7 @@ const CreateTrackForm = () => {
         {/* Audio Files Upload */}
         <div>
           <label className="block text-sm font-medium text-[#241b15]">
-            Audio Files * (Upload MP3, WAV, etc.)
+            Audio Files * (Upload MP3, WAV, MP4, etc.)
           </label>
           <p className="mt-1 text-xs text-neutral-500">
             💡 We'll automatically create 4 quality versions: High (320k), Medium (192k), Low (128k), Lowest (96k)
@@ -281,7 +281,7 @@ const CreateTrackForm = () => {
           <input
             type="file"
             multiple
-            accept="audio/*"
+            accept="audio/*,video/mp4"
             onChange={handleAudioFilesChange}
             disabled={loading}
             className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm disabled:bg-neutral-100"
