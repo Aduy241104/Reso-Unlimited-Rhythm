@@ -1,6 +1,8 @@
 export const routePaths = {
   home: "/",
   albumDetail: (albumId = ":id") => `/albums/${albumId}`,
+  lyrics: "/lyrics",
+  trackDetail: (trackId = ":id") => `/tracks/${trackId}`,
   login: "/login",
   register: "/register",
   profile: "/profile",
