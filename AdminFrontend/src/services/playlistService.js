@@ -41,6 +41,35 @@ export const deleteAdminSystemPlaylistService = async (playlistId) => {
   return response?.data?.data ?? null;
 };
 
+export const addTrackToSystemPlaylistService = async (playlistId, payload) => {
+  const response = await axiosClient.post(
+    `${PLAYLIST_API_PREFIX}/admin/system/${playlistId}/tracks`,
+    payload
+  );
+  return response?.data?.data?.playlist ?? null;
+};
+
+export const addTracksBatchToSystemPlaylistService = async (playlistId, payload) => {
+  const response = await axiosClient.post(
+    `${PLAYLIST_API_PREFIX}/admin/system/${playlistId}/tracks/batch`,
+    payload
+  );
+  return {
+    playlist: response?.data?.data?.playlist ?? null,
+    addedCount: response?.data?.data?.addedCount ?? 0,
+  };
+};
+
+export const removeTrackFromSystemPlaylistService = async (
+  playlistId,
+  trackId
+) => {
+  const response = await axiosClient.delete(
+    `${PLAYLIST_API_PREFIX}/admin/system/${playlistId}/tracks/${trackId}`
+  );
+  return response?.data?.data?.playlist ?? null;
+};
+
 export const createSystemPlaylistService = async (payload) => {
   const response = await axiosClient.post(
     `${PLAYLIST_API_PREFIX}/system`,
