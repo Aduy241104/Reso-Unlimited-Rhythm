@@ -3,7 +3,10 @@ import AdminSidebar from "../components/layout/AdminSidebar";
 import { useAuth } from "../hooks/useAuth";
 import { routePaths } from "../routes/routePaths";
 
-const navigationItems = [{ to: routePaths.home, label: "Dashboard" }];
+const navigationItems = [
+  { to: routePaths.home, label: "Dashboard", end: true },
+  { to: routePaths.systemPlaylists, label: "System playlists", end: false },
+];
 
 const AdminLayout = () => {
   const { logout, user } = useAuth();
