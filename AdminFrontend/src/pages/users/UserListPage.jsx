@@ -46,8 +46,8 @@ const UserListPage = () => {
   };
 
   useEffect(() => {
-    void loadUsers();
-  }, []);
+  void loadUsers();
+}, [filters]);
 
   const handleChange = (field) => (event) => {
     setFilters((prev) => ({
