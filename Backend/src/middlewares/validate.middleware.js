@@ -19,7 +19,11 @@ const validate = (schema, target = "body") => (req, res, next) => {
         );
     }
 
-    req[target] = value;
+    if (target === "query" && req[target] && typeof req[target] === "object") {
+        Object.assign(req[target], value);
+    } else {
+        req[target] = value;
+    }
     next();
 };
 
