@@ -2,6 +2,8 @@ import { Navigate } from "react-router-dom";
 import AdminLayout from "../layouts/AdminLayout";
 import LoginPage from "../pages/auth/LoginPage";
 import HomePage from "../pages/home/HomePage";
+import UserListPage from "../pages/users/UserListPage";
+import UserDetailPage from "../pages/users/UserDetailPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import RoleRoute from "./RoleRoute";
@@ -21,6 +23,14 @@ export const appRoutes = [
               {
                 index: true,
                 element: <HomePage />,
+              },
+              {
+                path: routePaths.users,
+                element: <UserListPage />,
+              },
+              {
+                path: routePaths.userDetail,
+                element: <UserDetailPage />,
               },
             ],
           },
