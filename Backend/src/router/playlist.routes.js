@@ -29,6 +29,26 @@ router.patch(
     adminPlaylistController.updateSystemPlaylist
 );
 
+router.post(
+    "/admin/system/:playlistId/tracks/batch",
+    requireAdmin,
+    validate(adminPlaylistValidation.addTracksBatchSchema),
+    adminPlaylistController.addTracksToSystemPlaylistBatch
+);
+
+router.post(
+    "/admin/system/:playlistId/tracks",
+    requireAdmin,
+    validate(adminPlaylistValidation.addTrackToSystemPlaylistSchema),
+    adminPlaylistController.addTrackToSystemPlaylist
+);
+
+router.delete(
+    "/admin/system/:playlistId/tracks/:trackId",
+    requireAdmin,
+    adminPlaylistController.removeTrackFromSystemPlaylist
+);
+
 router.delete(
     "/admin/system/:playlistId",
     requireAdmin,

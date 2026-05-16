@@ -62,9 +62,65 @@ const deleteSystemPlaylist = async (req, res, next) => {
     }
 };
 
+const addTrackToSystemPlaylist = async (req, res, next) => {
+    try {
+        const playlist = await adminPlaylistService.addTrackToSystemPlaylist(
+            req.params.playlistId,
+            req.body.trackId
+        );
+
+        return formatResponse.success(
+            res,
+            { playlist },
+            "Track added to system playlist"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+const addTracksToSystemPlaylistBatch = async (req, res, next) => {
+    try {
+        const { playlist, addedCount } = await adminPlaylistService.addTracksToSystemPlaylistBatch(
+            req.params.playlistId,
+            req.body.trackIds
+        );
+
+        return formatResponse.success(
+            res,
+            { playlist, addedCount },
+            addedCount === 1
+                ? "1 track added to system playlist"
+                : `${addedCount} tracks added to system playlist`
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+const removeTrackFromSystemPlaylist = async (req, res, next) => {
+    try {
+        const playlist = await adminPlaylistService.removeTrackFromSystemPlaylist(
+            req.params.playlistId,
+            req.params.trackId
+        );
+
+        return formatResponse.success(
+            res,
+            { playlist },
+            "Track removed from system playlist"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     createSystemPlaylist,
     getSystemPlaylistDetail,
     updateSystemPlaylist,
     deleteSystemPlaylist,
+    addTrackToSystemPlaylist,
+    addTracksToSystemPlaylistBatch,
+    removeTrackFromSystemPlaylist,
 };

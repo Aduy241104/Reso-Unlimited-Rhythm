@@ -17,38 +17,46 @@ const normalizePositiveInteger = (value, fallback) => {
 };
 
 const formatPlaylistTrack = (playlistTrack) => {
-    const track = playlistTrack.trackId;
+    const rawRef = playlistTrack.trackId;
+    const isPopulatedTrack =
+        rawRef &&
+        typeof rawRef === "object" &&
+        rawRef._id &&
+        ("title" in rawRef || "duration" in rawRef);
+    const trackDoc = isPopulatedTrack ? rawRef : null;
+    const refId = trackDoc ? trackDoc._id : rawRef;
 
     return {
         order: playlistTrack.order,
         addedAt: playlistTrack.addedAt,
-        track: track
+        trackId: refId ? toId(refId) : null,
+        track: trackDoc
             ? {
-                id: toId(track._id),
-                title: track.title,
-                duration: track.duration,
-                avatar: track.avatar,
-                coverImage: track.coverImage,
-                audioFiles: track.audioFiles,
-                lyricsStatic: track.lyricsStatic,
-                lyricsSyncUrl: track.lyricsSyncUrl,
-                stats: track.stats,
-                releaseDate: track.releaseDate,
-                activeStatus: track.activeStatus,
-                approvalStatus: track.approvalStatus,
-                artist: track.artist_artistId
+                id: toId(trackDoc._id),
+                title: trackDoc.title,
+                duration: trackDoc.duration,
+                avatar: trackDoc.avatar,
+                coverImage: trackDoc.coverImage,
+                audioFiles: trackDoc.audioFiles,
+                lyricsStatic: trackDoc.lyricsStatic,
+                lyricsSyncUrl: trackDoc.lyricsSyncUrl,
+                stats: trackDoc.stats,
+                releaseDate: trackDoc.releaseDate,
+                activeStatus: trackDoc.activeStatus,
+                approvalStatus: trackDoc.approvalStatus,
+                artist: trackDoc.artist_artistId
                     ? {
-                        id: toId(track.artist_artistId._id),
-                        name: track.artist_artistId.name,
-                        avatar: track.artist_artistId.avatar,
-                        coverImage: track.artist_artistId.coverImage,
+                        id: toId(trackDoc.artist_artistId._id),
+                        name: trackDoc.artist_artistId.name,
+                        avatar: trackDoc.artist_artistId.avatar,
+                        coverImage: trackDoc.artist_artistId.coverImage,
                     }
                     : null,
-                album: track.album_albumId
+                album: trackDoc.album_albumId
                     ? {
-                        id: toId(track.album_albumId._id),
-                        title: track.album_albumId.title,
-                        coverImage: track.album_albumId.coverImage,
+                        id: toId(trackDoc.album_albumId._id),
+                        title: trackDoc.album_albumId.title,
+                        coverImage: trackDoc.album_albumId.coverImage,
                     }
                     : null,
             }

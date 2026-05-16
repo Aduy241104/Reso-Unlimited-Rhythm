@@ -36,7 +36,26 @@ const updateSystemPlaylistSchema = Joi.object({
     isHidden: Joi.boolean(),
 }).min(1);
 
+const objectId24 = Joi.string()
+    .trim()
+    .length(24)
+    .pattern(/^[0-9a-fA-F]{24}$/)
+    .messages({
+        "string.length": "must be a 24-character id",
+        "string.pattern.base": "must be a valid ObjectId string",
+    });
+
+const addTrackToSystemPlaylistSchema = Joi.object({
+    trackId: objectId24.required(),
+});
+
+const addTracksBatchSchema = Joi.object({
+    trackIds: Joi.array().items(objectId24).min(1).max(50).required(),
+});
+
 export default {
     createSystemPlaylistSchema,
     updateSystemPlaylistSchema,
+    addTrackToSystemPlaylistSchema,
+    addTracksBatchSchema,
 };
