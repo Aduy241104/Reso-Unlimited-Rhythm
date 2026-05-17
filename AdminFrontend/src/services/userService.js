@@ -12,6 +12,11 @@ export const getUsersService = async (filters = {}) => {
 	return res.data?.data?.users ?? [];
 };
 
+export const getUserService = async (id) => {
+	const res = await axiosClient.get(`/api/admin/users/${id}`);
+	return res.data?.data?.user ?? null;
+};
+
 // updateUserService is intentionally disabled because UI only supports listing now.
 // To re-enable, uncomment and export the function.
 // export const updateUserService = async (id, data) => {
@@ -19,4 +24,4 @@ export const getUsersService = async (filters = {}) => {
 // 	return res.data?.data?.user ?? res.data;
 // };
 
-export default { getUsersService };
+export default { getUsersService, getUserService };

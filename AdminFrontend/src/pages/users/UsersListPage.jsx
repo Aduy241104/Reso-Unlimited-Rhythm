@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { getUsersService } from "../../services/userService";
+import { routePaths } from "../../routes/routePaths";
 
 const roles = ["", "guest", "user", "artist", "admin"];
 const statuses = ["", "active", "inactive", "blocked"];
@@ -69,7 +71,7 @@ const UserListPage = () => {
           Danh sách người dùng
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-black/70">
-          Xem danh sách, tìm kiếm, lọc và chặn/mở khóa tài khoản người dùng.
+          Xem danh sách, tìm kiếm, lọc và truy cập chi tiết tài khoản người dùng.
         </p>
       </div>
 
@@ -181,7 +183,14 @@ const UserListPage = () => {
                       </span>
                     </td>
                     <td className="border-b border-black/10 px-6 py-4">{formatDate(user.createdAt)}</td>
-                    <td className="border-b border-black/10 px-6 py-4">—</td>
+                    <td className="border-b border-black/10 px-6 py-4">
+                      <Link
+                        to={routePaths.userDetail(user._id)}
+                        className="inline-flex rounded-2xl border border-black/10 bg-slate-100 px-3 py-2 text-xs font-semibold text-black transition hover:bg-slate-200"
+                      >
+                        Chi tiết
+                      </Link>
+                    </td>
                   </tr>
                 ))
               )}
