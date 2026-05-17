@@ -312,7 +312,7 @@ const SystemTracksListPage = () => {
                 </p>
             </div>
 
-            {/* <form
+            <form
                 onSubmit={handleSearchSubmit}
                 className="grid gap-4 rounded-[2rem] border border-black bg-white p-6 md:grid-cols-[1.8fr_0.8fr]"
             >
@@ -335,7 +335,7 @@ const SystemTracksListPage = () => {
                         Search
                     </button>
                 </div>
-            </form> */}
+            </form>
 
             {message && (
                 <div className="rounded-3xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
