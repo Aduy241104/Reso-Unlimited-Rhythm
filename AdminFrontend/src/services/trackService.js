@@ -11,3 +11,11 @@ export const searchAdminTracksService = async (params = {}) => {
     pagination: response?.data?.meta ?? null,
   };
 };
+
+export const updateAdminTrackApprovalStatusService = async (trackId, payload = {}) => {
+  const response = await axiosClient.patch(
+    `${TRACK_API_PREFIX}/admin/${trackId}/approval`,
+    payload
+  );
+  return response?.data?.data?.track ?? null;
+};
