@@ -21,7 +21,7 @@ const formatDate = (value) => {
 };
 
 const UserDetailPage = () => {
-  const { id } = useParams();
+  const { userId } = useParams();
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [transactions, setTransactions] = useState([]);
@@ -34,8 +34,8 @@ const UserDetailPage = () => {
 
     try {
       const [userData, transactionData] = await Promise.all([
-        getUserService(id),
-        getUserTransactionsService(id),
+        getUserService(userId),
+        getUserTransactionsService(userId),
       ]);
 
       setUser(userData);
@@ -50,9 +50,9 @@ const UserDetailPage = () => {
   };
 
   useEffect(() => {
-    if (!id) return;
+    if (!userId) return;
     void loadUser();
-  }, [id]);
+  }, [userId]);
 
   const handleRoleChange = async (event) => {
     if (!user) return;

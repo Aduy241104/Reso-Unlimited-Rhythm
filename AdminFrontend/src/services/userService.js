@@ -17,11 +17,14 @@ export const getUserService = async (id) => {
 	return res.data?.data?.user ?? null;
 };
 
-// updateUserService is intentionally disabled because UI only supports listing now.
-// To re-enable, uncomment and export the function.
-// export const updateUserService = async (id, data) => {
-// 	const res = await axiosClient.patch(`/api/admin/users/${id}`, data);
-// 	return res.data?.data?.user ?? res.data;
-// };
+export const updateUserService = async (id, data) => {
+	const res = await axiosClient.patch(`/api/admin/users/${id}`, data);
+	return res.data?.data?.user ?? res.data;
+};
 
-export default { getUsersService, getUserService };
+export const getUserTransactionsService = async (id) => {
+	// Transaction history is not yet implemented on backend.
+	return [];
+};
+
+export default { getUsersService, getUserService, updateUserService, getUserTransactionsService };

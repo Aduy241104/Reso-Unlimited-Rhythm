@@ -147,7 +147,7 @@ const UserListPage = () => {
                 <th className="border-b border-black/10 px-6 py-4">Vai trò</th>
                 <th className="border-b border-black/10 px-6 py-4">Trạng thái</th>
                 <th className="border-b border-black/10 px-6 py-4">Ngày tạo</th>
-                {/* Hành động column removed - listing only */}
+                <th className="border-b border-black/10 px-6 py-4">Hành động</th>
               </tr>
             </thead>
             <tbody>
