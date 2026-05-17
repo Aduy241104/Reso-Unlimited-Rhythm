@@ -33,8 +33,7 @@ const getUsers = async (req, res, next) => {
     }
 };
 
-// The following handlers are intentionally disabled so only the users-list feature is available.
-/*
+// The following handlers are intentionally disabled so only the users-list and detail features are available.
 const getUserDetail = async (req, res, next) => {
     try {
         const user = await User.findById(req.params.id).select("-password");
@@ -44,6 +43,7 @@ const getUserDetail = async (req, res, next) => {
     }
 };
 
+/*
 const updateUser = async (req, res, next) => {
     try {
         const updates = {};
@@ -71,4 +71,5 @@ const deleteUser = async (req, res, next) => {
 
 export default {
     getUsers,
+    getUserDetail,
 };
