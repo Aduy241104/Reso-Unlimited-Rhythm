@@ -43,15 +43,14 @@ const getUserDetail = async (req, res, next) => {
     }
 };
 
-/*
 const updateUser = async (req, res, next) => {
     try {
         const updates = {};
-            if (req.body.role) updates.role = req.body.role;
-            if (typeof req.body.activeStatus !== "undefined") updates.activeStatus = req.body.activeStatus;
-            if (req.body.fullName) updates["profile.fullName"] = req.body.fullName;
+        if (req.body.role) updates.role = req.body.role;
+        if (typeof req.body.activeStatus !== "undefined") updates.activeStatus = req.body.activeStatus;
+        if (req.body.fullName) updates["profile.fullName"] = req.body.fullName;
 
-        const user = await User.findByIdAndUpdate(req.params.id, updates, { new: true }).select("-password -refreshTokens");
+        const user = await User.findByIdAndUpdate(req.params.id, updates, { new: true }).select("-password");
 
         return formatResponse.success(res, { user }, "User updated successfully");
     } catch (error) {
@@ -59,6 +58,7 @@ const updateUser = async (req, res, next) => {
     }
 };
 
+/*
 const deleteUser = async (req, res, next) => {
     try {
         await User.findByIdAndDelete(req.params.id);
@@ -72,4 +72,5 @@ const deleteUser = async (req, res, next) => {
 export default {
     getUsers,
     getUserDetail,
+    updateUser,
 };
