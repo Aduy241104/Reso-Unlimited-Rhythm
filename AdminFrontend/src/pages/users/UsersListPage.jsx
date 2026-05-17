@@ -36,7 +36,7 @@ const UserListPage = () => {
       setUsers(result ?? []);
     } catch (error) {
       setMessage(
-        error?.response?.data?.message || error?.message || "Unable to load user list."
+        error?.response?.data?.message || error?.message || "Không thể tải danh sách người dùng."
       );
     } finally {
       setIsLoading(false);
@@ -90,6 +90,7 @@ const UserListPage = () => {
         </div>
 
         <div className="space-y-2">
+           {/* Role filter is available but role change action is disabled, so it serves only for filtering purposes. */}
           <label className="text-sm font-semibold text-black/70">Role</label>
           <select
             value={filters.role}
