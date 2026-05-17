@@ -2,6 +2,7 @@ export const routePaths = {
   home: "/",
   login: "/login",
   systemPlaylists: "/system-playlists",
+  users: "/users",
   systemPlaylistNew: "/system-playlists/new",
   systemPlaylistDetail: (playlistId = ":playlistId") =>
     `/system-playlists/${playlistId}`,

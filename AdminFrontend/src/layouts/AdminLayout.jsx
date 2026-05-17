@@ -6,6 +6,7 @@ import { routePaths } from "../routes/routePaths";
 const navigationItems = [
   { to: routePaths.home, label: "Dashboard", end: true },
   { to: routePaths.systemPlaylists, label: "System playlists", end: false },
+  { to: routePaths.users, label: "Users", end: false },
 ];
 
 const AdminLayout = () => {
