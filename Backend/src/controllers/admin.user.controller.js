@@ -13,6 +13,14 @@ const getUsers = async (req, res, next) => {
             filter.$or = [{ email: regex }, { "profile.fullName": regex }];
         }
 
+        if (req.query.role) {
+            filter.role = req.query.role;
+        }
+
+        if (req.query.activeStatus) {
+            filter.activeStatus = req.query.activeStatus;
+        }
+
         const total = await User.countDocuments(filter);
         const users = await User.find(filter)
             .select("-password")
