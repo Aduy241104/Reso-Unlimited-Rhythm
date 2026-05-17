@@ -8,7 +8,7 @@ const statuses = ["", "active", "inactive", "blocked"];
 
 const formatDate = (value) => {
   if (!value) return "-";
-  return new Date(value).toLocaleString("vi-VN", {
+  return new Date(value).toLocaleString("en-US", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -36,7 +36,7 @@ const UserListPage = () => {
       setUsers(result ?? []);
     } catch (error) {
       setMessage(
-        error?.response?.data?.message || error?.message || "Không thể tải danh sách người dùng."
+        error?.response?.data?.message || error?.message || "Unable to load user list."
       );
     } finally {
       setIsLoading(false);
@@ -65,13 +65,13 @@ const UserListPage = () => {
     <section className="space-y-6">
       <div className="rounded-[2rem] border border-black bg-white p-8">
         <p className="text-xs font-semibold uppercase tracking-[0.32em] text-black/50">
-          Quản lý người dùng
+          User Management
         </p>
         <h1 className="mt-3 text-4xl font-semibold text-black">
-          Danh sách người dùng
+          User List
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-black/70">
-          Xem danh sách, tìm kiếm, lọc và truy cập chi tiết tài khoản người dùng.
+          Browse users, search, filter, and access account details.
         </p>
       </div>
 
@@ -80,23 +80,23 @@ const UserListPage = () => {
         className="grid gap-4 rounded-[2rem] border border-black bg-white p-6 md:grid-cols-[1.5fr_1fr_1fr_0.8fr]"
       >
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-black/70">Tìm kiếm</label>
+          <label className="text-sm font-semibold text-black/70">Search</label>
           <input
             value={filters.search}
             onChange={handleChange("search")}
-            placeholder="Email hoặc họ tên"
+            placeholder="Email or full name"
             className="w-full rounded-3xl border border-black/10 bg-slate-50 px-4 py-3 text-sm text-black outline-none focus:border-black"
           />
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-black/70">Vai trò</label>
+          <label className="text-sm font-semibold text-black/70">Role</label>
           <select
             value={filters.role}
             onChange={handleChange("role")}
             className="w-full rounded-3xl border border-black/10 bg-slate-50 px-4 py-3 text-sm text-black outline-none focus:border-black"
           >
-            <option value="">Tất cả vai trò</option>
+            <option value="">All roles</option>
             {roles.slice(1).map((role) => (
               <option key={role} value={role}>
                 {role}
@@ -106,13 +106,13 @@ const UserListPage = () => {
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-black/70">Trạng thái</label>
+          <label className="text-sm font-semibold text-black/70">Status</label>
           <select
             value={filters.status}
             onChange={handleChange("status")}
             className="w-full rounded-3xl border border-black/10 bg-slate-50 px-4 py-3 text-sm text-black outline-none focus:border-black"
           >
-            <option value="">Tất cả trạng thái</option>
+            <option value="">All statuses</option>
             {statuses.slice(1).map((status) => (
               <option key={status} value={status}>
                 {status}
@@ -126,7 +126,7 @@ const UserListPage = () => {
             type="submit"
             className="w-full rounded-3xl bg-black px-5 py-3 text-sm font-semibold text-white transition hover:bg-black/90"
           >
-            Tìm kiếm
+            Search
           </button>
         </div>
       </form>
@@ -143,24 +143,24 @@ const UserListPage = () => {
             <thead className="bg-slate-100 text-xs uppercase tracking-[0.16em] text-slate-700">
               <tr>
                 <th className="border-b border-black/10 px-6 py-4">Email</th>
-                <th className="border-b border-black/10 px-6 py-4">Họ tên</th>
-                <th className="border-b border-black/10 px-6 py-4">Vai trò</th>
-                <th className="border-b border-black/10 px-6 py-4">Trạng thái</th>
-                <th className="border-b border-black/10 px-6 py-4">Ngày tạo</th>
-                <th className="border-b border-black/10 px-6 py-4">Hành động</th>
+                <th className="border-b border-black/10 px-6 py-4">Full Name</th>
+                <th className="border-b border-black/10 px-6 py-4">Role</th>
+                <th className="border-b border-black/10 px-6 py-4">Status</th>
+                <th className="border-b border-black/10 px-6 py-4">Created At</th>
+                <th className="border-b border-black/10 px-6 py-4">Action</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
                   <td colSpan="6" className="px-6 py-10 text-center text-sm text-slate-500">
-                    Đang tải dữ liệu...
+                    Loading users...
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
                   <td colSpan="6" className="px-6 py-10 text-center text-sm text-slate-500">
-                    Không có người dùng phù hợp.
+                    No matching users found.
                   </td>
                 </tr>
               ) : (
@@ -188,7 +188,7 @@ const UserListPage = () => {
                         to={routePaths.userDetail(user._id)}
                         className="inline-flex rounded-2xl border border-black/10 bg-slate-100 px-3 py-2 text-xs font-semibold text-black transition hover:bg-slate-200"
                       >
-                        Chi tiết
+                        Details
                       </Link>
                     </td>
                   </tr>
