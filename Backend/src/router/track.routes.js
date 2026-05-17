@@ -1,7 +1,7 @@
 import express from "express";
 import trackController from "../controllers/track.controller.js";
 import adminTrackController from "../controllers/admin.track.controller.js";
-
+import adminTrackValidation from "../middlewares/Admin/admin.track.validation.js";
 import {
     optionalAuthenticate,
     requireAdmin,
@@ -17,6 +17,14 @@ router.get(
     "/admin",
     requireAdmin,
     adminTrackController.listTracksForAdmin
+);
+
+router.patch(
+    "/admin/:id/approval",
+    requireAdmin,
+    validate(trackValidation.trackIdParamSchema, "params"),
+    validate(adminTrackValidation.updateTrackApprovalSchema, "body"),
+    adminTrackController.updateTrackApprovalStatus
 );
 
 // User routes
