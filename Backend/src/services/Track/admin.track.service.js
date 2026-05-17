@@ -32,6 +32,8 @@ const formatAdminTrackListItem = (track) => {
         approvalStatus: track.approvalStatus,
         activeStatus: track.activeStatus,
         rejectReason: track.rejectReason || "",
+        hiddenReason: track.hiddenReason || "",
+        hiddenAt: track.hiddenAt || null,
         artist: isPopulatedArtist
             ? {
                 id: toId(artistRef._id),
@@ -73,7 +75,9 @@ const listTracksForAdmin = async (query = {}) => {
             .sort({ title: 1, _id: 1 })
             .skip(skip)
             .limit(limit)
-            .select("title duration approvalStatus activeStatus rejectReason artist_artistId")
+            .select(
+                "title duration approvalStatus activeStatus rejectReason hiddenReason hiddenAt artist_artistId"
+            )
             .populate({ path: "artist_artistId", select: "name" })
             .lean(),
         Track.countDocuments(filter),
@@ -131,8 +135,41 @@ const updateTrackApprovalStatus = async (trackId, payload = {}) => {
 
     return formatAdminTrackListItem(track.toObject());
 };
+const updateTrackVisibility = async (trackId, payload = {}) => {
+    assertObjectId(trackId);
+
+    const track = await Track.findById(trackId);
+    if (!track) {
+        throw new AppError("Track not found.", 404, {
+            field: "id",
+        });
+    }
+
+    if (payload.action === "hide") {
+        track.activeStatus = "hidden";
+        track.hiddenReason = payload.hiddenReason?.trim() || "";
+        track.hiddenAt = new Date();
+    } else if (payload.action === "unhide") {
+        track.activeStatus = "active";
+        track.hiddenReason = "";
+        track.hiddenAt = null;
+    } else {
+        throw new AppError("Invalid action.", 400, {
+            field: "action",
+        });
+    }
+
+    await track.save();
+    await track.populate({
+        path: "artist_artistId",
+        select: "name",
+    });
+
+    return formatAdminTrackListItem(track.toObject());
+};
 
 export default {
     listTracksForAdmin,
     updateTrackApprovalStatus,
+    updateTrackVisibility,
 };

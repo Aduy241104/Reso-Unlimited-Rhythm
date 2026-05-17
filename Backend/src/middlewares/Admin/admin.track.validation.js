@@ -11,7 +11,20 @@ const updateTrackApprovalSchema = Joi.object({
     rejectReason: Joi.string().trim().max(500).allow("").default(""),
 });
 
+const updateTrackVisibilitySchema = Joi.object({
+  action: Joi.string()
+    .valid("hide", "unhide")
+    .required(),
+
+  hiddenReason: Joi.string()
+    .trim()
+    .max(500)
+    .allow("")
+    .default(""),
+});
+
 export default {
     listTracksQuerySchema,
     updateTrackApprovalSchema,
+    updateTrackVisibilitySchema,
 };

@@ -24,7 +24,16 @@ router.patch(
     requireAdmin,
     validate(trackValidation.trackIdParamSchema, "params"),
     validate(adminTrackValidation.updateTrackApprovalSchema, "body"),
+    
     adminTrackController.updateTrackApprovalStatus
+);
+
+router.patch(
+    "/admin/:id/visibility",
+    requireAdmin,
+    validate(trackValidation.trackIdParamSchema, "params"),
+    validate(adminTrackValidation.updateTrackVisibilitySchema, "body"),
+    adminTrackController.updateTrackVisibilityController
 );
 
 // User routes
