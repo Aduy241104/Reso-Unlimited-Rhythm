@@ -44,6 +44,39 @@ const formatArtistTrack = (track) => ({
         : null,
 });
 
+const formatArtistComingRelease = ({ schedule, target }) => {
+    const isTrackRelease = schedule.type === "track";
+
+    return {
+        id: toId(schedule._id),
+        type: isTrackRelease ? "single" : "album",
+        sourceType: schedule.type,
+        scheduledAt: schedule.scheduledAt,
+        releasedAt: schedule.releasedAt || null,
+        status: schedule.status,
+        item: isTrackRelease
+            ? {
+                id: toId(target?._id),
+                title: target?.title || "",
+                duration: target?.duration || 0,
+                avatar: target?.avatar || "",
+                coverImage: Array.isArray(target?.coverImage)
+                    ? target.coverImage
+                    : [],
+                releaseDate: target?.releaseDate || null,
+            }
+            : {
+                id: toId(target?._id),
+                title: target?.title || "",
+                coverImage: target?.coverImage || "",
+                releaseDate: target?.releaseDate || null,
+                trackCount: Array.isArray(target?.trackList)
+                    ? target.trackList.length
+                    : 0,
+            },
+    };
+};
+
 const formatArtistProfile = ({ artist, artistStat, albums, tracks }) => ({
     artist: {
         id: toId(artist._id),
@@ -68,6 +101,7 @@ const formatArtistProfile = ({ artist, artistStat, albums, tracks }) => ({
 
 export {
     formatArtistAlbum,
+    formatArtistComingRelease,
     formatArtistTrack,
     formatArtistProfile,
     normalizePositiveInteger,

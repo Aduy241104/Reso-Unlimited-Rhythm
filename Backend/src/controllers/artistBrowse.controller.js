@@ -45,8 +45,27 @@ const getArtistAlbums = async (req, res, next) => {
     }
 };
 
+const getArtistComingReleases = async (req, res, next) => {
+    try {
+        const result = await artistService.getArtistComingReleases(
+            req.params.id,
+            req.query
+        );
+
+        return formatResponse.success(
+            res,
+            { comingReleases: result.comingReleases },
+            "Artist coming releases fetched successfully",
+            result.pagination
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getArtistProfile,
     getArtistAlbums,
+    getArtistComingReleases,
     getArtistTracks,
 };
