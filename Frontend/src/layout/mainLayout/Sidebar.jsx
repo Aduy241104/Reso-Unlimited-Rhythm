@@ -1,9 +1,10 @@
 import { NavLink } from "react-router-dom";
+import { routePaths } from "../../routes/routePaths";
 
 const navItems = [
-  { label: "Home", to: "/" },
-  { label: "Profile", to: "/profile" },
-  { label: "Artist", to: "/artist" },
+  { label: "Home", to: routePaths.home },
+  { label: "Artist Profile", to: routePaths.artistBrowseProfile("featured") },
+  { label: "Artist", to: routePaths.artistRoot },
 ];
 
 const Sidebar = () => {
