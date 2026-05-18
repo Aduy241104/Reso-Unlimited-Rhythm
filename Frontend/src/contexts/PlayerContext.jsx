@@ -1,8 +1,12 @@
 import { useEffect, useRef, useState } from "react";
+import Liricle from "liricle";
 import PlayerContext from "./player-context";
 import { getApiErrorMessage } from "../utils/apiError";
+import { getRandomLyricsThemeIndex } from "../utils/lyricsTheme";
 import {
+  getTrackLyricsSyncTextService,
   getTrackPlaybackSource,
+  resolveTrackLyricsSyncUrl,
   resolveTrackMediaUrl,
 } from "../services/playerService";
 
@@ -28,7 +32,10 @@ const normalizeQueueTrack = (item, options = {}) => {
       track?.artist?.avatar ||
       options.image ||
       "",
+    playbackTrackId: track?.id || null,
     streamUrl: resolveTrackMediaUrl(track),
+    lyricsSyncUrl: resolveTrackLyricsSyncUrl(track),
+    playback: track?.playback || null,
     raw: track,
   };
 };
@@ -57,16 +64,78 @@ export const PlayerProvider = ({ children }) => {
   const [volume, setVolume] = useState(DEFAULT_VOLUME);
   const [errorMessage, setErrorMessage] = useState("");
   const [activeCollection, setActiveCollection] = useState(null);
+  const [lyricsLines, setLyricsLines] = useState([]);
+  const [activeLyricLineIndex, setActiveLyricLineIndex] = useState(-1);
+  const [activeLyricWordIndex, setActiveLyricWordIndex] = useState(-1);
+  const [isLyricsLoading, setIsLyricsLoading] = useState(false);
+  const [lyricsErrorMessage, setLyricsErrorMessage] = useState("");
   const audioRef = useRef(null);
   const queueRef = useRef([]);
   const currentIndexRef = useRef(-1);
   const objectUrlRef = useRef("");
   const playbackRequestIdRef = useRef(0);
+  const lyricsRequestIdRef = useRef(0);
   const playTrackByIndexRef = useRef(null);
+  const liricleRef = useRef(null);
+  const syncLyricsRef = useRef(null);
+  const lyricsReadyRef = useRef(false);
+  const currentLyricsThemeIndexRef = useRef(-1);
 
   const syncQueueState = (nextQueue) => {
     queueRef.current = nextQueue;
     setQueue(nextQueue);
+  };
+
+  const resetLyricsState = () => {
+    lyricsRequestIdRef.current += 1;
+    lyricsReadyRef.current = false;
+    setLyricsLines([]);
+    setActiveLyricLineIndex(-1);
+    setActiveLyricWordIndex(-1);
+    setIsLyricsLoading(false);
+    setLyricsErrorMessage("");
+  };
+
+  const loadLyricsForTrack = async (track) => {
+    lyricsRequestIdRef.current += 1;
+    const requestId = lyricsRequestIdRef.current;
+    const lyricsSyncUrl = resolveTrackLyricsSyncUrl(track);
+    lyricsReadyRef.current = false;
+
+    setLyricsLines([]);
+    setActiveLyricLineIndex(-1);
+    setActiveLyricWordIndex(-1);
+    setLyricsErrorMessage("");
+
+    if (!lyricsSyncUrl) {
+      setIsLyricsLoading(false);
+      return;
+    }
+
+    setIsLyricsLoading(true);
+
+    try {
+      const lyricsText = await getTrackLyricsSyncTextService(lyricsSyncUrl);
+
+      if (requestId !== lyricsRequestIdRef.current) {
+        return;
+      }
+
+      liricleRef.current?.load({ text: lyricsText });
+      lyricsReadyRef.current = true;
+      setIsLyricsLoading(false);
+      syncLyricsRef.current?.(audioRef.current?.currentTime || 0, true);
+    } catch (error) {
+      if (requestId !== lyricsRequestIdRef.current) {
+        return;
+      }
+
+      lyricsReadyRef.current = false;
+      setIsLyricsLoading(false);
+      setLyricsErrorMessage(
+        getApiErrorMessage(error, "Unable to load synced lyrics for this track.")
+      );
+    }
   };
 
   const releaseCurrentObjectUrl = () => {
@@ -78,18 +147,67 @@ export const PlayerProvider = ({ children }) => {
     objectUrlRef.current = "";
   };
 
+  syncLyricsRef.current = (nextTime, continuous = false) => {
+    const liricle = liricleRef.current;
+    const normalizedTime = Math.max(Number(nextTime) || 0, 0);
+    const firstLineTime = liricle?.data?.lines?.[0]?.time;
+
+    if (!liricle?.data) {
+      return;
+    }
+
+    if (!lyricsReadyRef.current) {
+      return;
+    }
+
+    if (typeof firstLineTime === "number" && normalizedTime < firstLineTime) {
+      setActiveLyricLineIndex(-1);
+      setActiveLyricWordIndex(-1);
+      return;
+    }
+
+    liricle.sync(normalizedTime, continuous);
+  };
+
   useEffect(() => {
     const audio = new Audio();
+    const liricle = new Liricle();
     audio.preload = "metadata";
     audio.volume = DEFAULT_VOLUME;
     audioRef.current = audio;
+    liricleRef.current = liricle;
+
+    liricle.on("load", (data) => {
+      setLyricsLines(data?.lines || []);
+      setActiveLyricLineIndex(-1);
+      setActiveLyricWordIndex(-1);
+      setLyricsErrorMessage("");
+    });
+
+    liricle.on("loaderror", (error) => {
+      lyricsReadyRef.current = false;
+      setLyricsLines([]);
+      setActiveLyricLineIndex(-1);
+      setActiveLyricWordIndex(-1);
+      setIsLyricsLoading(false);
+      setLyricsErrorMessage(
+        getApiErrorMessage(error, "Unable to load synced lyrics for this track.")
+      );
+    });
+
+    liricle.on("sync", (line, word) => {
+      setActiveLyricLineIndex(Number.isInteger(line?.index) ? line.index : -1);
+      setActiveLyricWordIndex(Number.isInteger(word?.index) ? word.index : -1);
+    });
 
     const handleTimeUpdate = () => {
       setCurrentTime(audio.currentTime || 0);
+      syncLyricsRef.current?.(audio.currentTime || 0);
     };
 
     const handleLoadedMetadata = () => {
       setDuration(Number.isFinite(audio.duration) ? audio.duration : 0);
+      syncLyricsRef.current?.(audio.currentTime || 0, true);
     };
 
     const handlePlay = () => {
@@ -120,6 +238,7 @@ export const PlayerProvider = ({ children }) => {
 
       setIsPlaying(false);
       setCurrentTime(0);
+      syncLyricsRef.current?.(0, true);
     };
 
     const handleError = () => {
@@ -151,6 +270,7 @@ export const PlayerProvider = ({ children }) => {
       audio.removeEventListener("error", handleError);
       releaseCurrentObjectUrl();
       audioRef.current = null;
+      liricleRef.current = null;
     };
   }, []);
 
@@ -173,25 +293,37 @@ export const PlayerProvider = ({ children }) => {
 
     playbackRequestIdRef.current += 1;
     const requestId = playbackRequestIdRef.current;
+    const lyricsThemeIndex = getRandomLyricsThemeIndex(
+      currentLyricsThemeIndexRef.current
+    );
 
     currentIndexRef.current = nextIndex;
+    currentLyricsThemeIndexRef.current = lyricsThemeIndex;
     setCurrentIndex(nextIndex);
-    setCurrentTrack(nextTrack);
+    setCurrentTrack({
+      ...nextTrack,
+      lyricsThemeIndex,
+    });
     setCurrentTime(0);
     setDuration(nextTrack.duration || 0);
     setErrorMessage("");
     setIsBuffering(true);
+    resetLyricsState();
 
     try {
       let source = null;
+      const shouldHydratePlayback =
+        Boolean(nextTrack.playbackTrackId) &&
+        (!nextTrack.streamUrl || !nextTrack.lyricsSyncUrl || !nextTrack.playback);
 
-      if (nextTrack.streamUrl) {
+      if (!shouldHydratePlayback && nextTrack.streamUrl) {
         source = {
           url: nextTrack.streamUrl,
           revokeOnChange: false,
+          track: nextTrack.raw,
         };
       } else {
-        source = await getTrackPlaybackSource(nextTrack.id);
+        source = await getTrackPlaybackSource(nextTrack.playbackTrackId || nextTrack.id);
       }
 
       if (!source?.url) {
@@ -208,6 +340,7 @@ export const PlayerProvider = ({ children }) => {
 
       const hydratedTrack = {
         ...nextTrack,
+        lyricsThemeIndex,
         title: source.track?.title || nextTrack.title,
         artist: source.track?.artist || nextTrack.artist,
         artistName: source.track?.artist?.name || nextTrack.artistName,
@@ -216,7 +349,10 @@ export const PlayerProvider = ({ children }) => {
           source.track?.coverImage ||
           source.track?.album?.coverImage ||
           nextTrack.image,
+        playbackTrackId: source.track?.id || nextTrack.playbackTrackId,
         playback: source.track?.playback || nextTrack.playback,
+        lyricsSyncUrl:
+          resolveTrackLyricsSyncUrl(source.track) || nextTrack.lyricsSyncUrl,
         raw: source.track || nextTrack.raw,
         streamUrl: source.url,
       };
@@ -231,6 +367,7 @@ export const PlayerProvider = ({ children }) => {
       objectUrlRef.current = source.revokeOnChange ? source.url : "";
       audio.src = source.url;
       audio.load();
+      await loadLyricsForTrack(hydratedTrack);
       await audio.play();
     } catch (error) {
       if (requestId !== playbackRequestIdRef.current) {
@@ -372,6 +509,7 @@ export const PlayerProvider = ({ children }) => {
     if (audio.currentTime > 5) {
       audio.currentTime = 0;
       setCurrentTime(0);
+      syncLyricsRef.current?.(0, true);
       return;
     }
 
@@ -380,6 +518,7 @@ export const PlayerProvider = ({ children }) => {
     if (previousIndex < 0) {
       audio.currentTime = 0;
       setCurrentTime(0);
+      syncLyricsRef.current?.(0, true);
       return;
     }
 
@@ -400,6 +539,7 @@ export const PlayerProvider = ({ children }) => {
 
     audio.currentTime = boundedTime;
     setCurrentTime(boundedTime);
+    syncLyricsRef.current?.(boundedTime, true);
   };
 
   const setVolumeLevel = (nextVolume) => {
@@ -423,6 +563,11 @@ export const PlayerProvider = ({ children }) => {
     volume,
     errorMessage,
     activeCollection,
+    lyricsLines,
+    activeLyricLineIndex,
+    activeLyricWordIndex,
+    isLyricsLoading,
+    lyricsErrorMessage,
     playTrack,
     playAlbum,
     playPlaylist,

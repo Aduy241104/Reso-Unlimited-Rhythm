@@ -23,6 +23,8 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.use("/static", express.static("public"));
+
 connectMongose();
 // redisClient.connect().then(() => {
 //     console.log("✅ Kết nối Redis thành công");

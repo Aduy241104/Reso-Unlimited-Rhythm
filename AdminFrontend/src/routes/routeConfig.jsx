@@ -1,6 +1,11 @@
 import { Navigate } from "react-router-dom";
 import AdminLayout from "../layouts/AdminLayout";
+import SystemPlaylistsLayout from "../layouts/SystemPlaylistsLayout";
 import LoginPage from "../pages/auth/LoginPage";
+import CreateSystemPlaylistPage from "../pages/systemPlaylists/CreateSystemPlaylistPage";
+import SystemPlaylistDetailPage from "../pages/systemPlaylists/SystemPlaylistDetailPage";
+import SystemPlaylistEditPage from "../pages/systemPlaylists/SystemPlaylistEditPage";
+import SystemPlaylistsListPage from "../pages/systemPlaylists/SystemPlaylistsListPage";
 import HomePage from "../pages/home/HomePage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
@@ -21,6 +26,28 @@ export const appRoutes = [
               {
                 index: true,
                 element: <HomePage />,
+              },
+              {
+                path: "system-playlists",
+                element: <SystemPlaylistsLayout />,
+                children: [
+                  {
+                    index: true,
+                    element: <SystemPlaylistsListPage />,
+                  },
+                  {
+                    path: "new",
+                    element: <CreateSystemPlaylistPage />,
+                  },
+                  {
+                    path: ":playlistId/edit",
+                    element: <SystemPlaylistEditPage />,
+                  },
+                  {
+                    path: ":playlistId",
+                    element: <SystemPlaylistDetailPage />,
+                  },
+                ],
               },
             ],
           },
