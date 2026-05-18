@@ -94,7 +94,7 @@ const createTrackSchema = Joi.object({
     activeStatus: Joi.string()
         .optional()
         .valid("draft", "active", "hidden", "blocked")
-        .default("draft")
+        .default("active")
         .messages({
             "any.only": "Active status must be one of: draft, active, hidden, blocked",
         }),

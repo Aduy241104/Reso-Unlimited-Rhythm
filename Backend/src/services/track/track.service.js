@@ -13,6 +13,19 @@ import {
     getValidAudioFiles,
 } from "./track.helper.js";
 
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 50;
+
+const normalizePositiveInteger = (value, fallback) => {
+    const parsedValue = Number.parseInt(value, 10);
+
+    if (Number.isInteger(parsedValue) && parsedValue > 0) {
+        return parsedValue;
+    }
+
+    return fallback;
+};
+
 const createTrack = async (userId, trackData) => {
     const user = await User.findById(userId);
 
@@ -89,7 +102,7 @@ const createTrack = async (userId, trackData) => {
         lyricsStatic: trackData.lyricsStatic || "",
         lyricsSyncUrl: trackData.lyricsSyncUrl || "",
         releaseDate: trackData.releaseDate || null,
-        activeStatus: trackData.activeStatus || "draft",
+        activeStatus: trackData.activeStatus || "active",
         approvalStatus: "pending",
         stats: {
             totalLike: 0,
@@ -141,6 +154,63 @@ const createTrack = async (userId, trackData) => {
         });
 
     return formatTrackManagementDetail(populatedTrack);
+};
+
+const getArtistTracks = async (userId, query = {}) => {
+    const artist = await Artist.findOne({ userId });
+
+    if (!artist) {
+        throw new AppError("Artist profile not found.", StatusCodes.NOT_FOUND);
+    }
+
+    const page = normalizePositiveInteger(query.page, DEFAULT_PAGE);
+    const requestedLimit = normalizePositiveInteger(query.limit, DEFAULT_LIMIT);
+    const limit = Math.min(requestedLimit, 100);
+    const skip = (page - 1) * limit;
+
+    const filter = {
+        artist_artistId: artist._id,
+    };
+
+    const rawSearch = typeof query.q === "string" ? query.q.trim() : "";
+    if (rawSearch) {
+        const escapedSearch = rawSearch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        filter.title = {
+            $regex: escapedSearch,
+            $options: "i",
+        };
+    }
+
+    const [tracks, total] = await Promise.all([
+        Track.find(filter)
+            .sort({ createdAt: -1, _id: -1 })
+            .skip(skip)
+            .limit(limit)
+            .populate({
+                path: "artist_artistId",
+                select: "name avatar coverImage",
+            })
+            .populate({
+                path: "album_albumId",
+                select: "title avatar",
+            })
+            .populate({
+                path: "genreIds",
+                select: "name",
+            })
+            .lean(),
+        Track.countDocuments(filter),
+    ]);
+
+    return {
+        tracks: tracks.map(formatTrackManagementDetail),
+        pagination: {
+            page,
+            limit,
+            total,
+            totalPages: total === 0 ? 0 : Math.ceil(total / limit),
+        },
+    };
 };
 
 const getTrackDetail = async (trackId) => {
@@ -216,6 +286,7 @@ const getTrackPlayback = async (trackId, user) => {
 
 export default {
     createTrack,
+    getArtistTracks,
     getTrackDetail,
     getTrackPlayback,
 };

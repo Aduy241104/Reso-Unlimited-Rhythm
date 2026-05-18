@@ -2,8 +2,14 @@ import express from "express";
 import trackController from "../controllers/track.controller.js";
 import uploadController from "../controllers/upload.controller.js";
 import authenticate from "../middlewares/Authentication/authentication.middleware.js";
-import { optionalAuthenticate } from "../middlewares/Authentication/authentication.middleware.js";
 import createTrackSchema from "../middlewares/TrackMiddlewareValidation/track.validation.js";
+import adminTrackController from "../controllers/admin.track.controller.js";
+
+import {
+    optionalAuthenticate,
+    requireAdmin,
+} from "../middlewares/Authentication/authentication.middleware.js";
+
 import trackValidation from "../middlewares/track.validation.js";
 import validate from "../middlewares/validate.middleware.js";
 import upload from "../middlewares/upload.middleware.js";
@@ -29,6 +35,20 @@ router.post(
     trackController.createTrack
 );
 
+router.get(
+    "/artist/me",
+    authenticate("artist"),
+    trackController.getArtistTracks
+);
+
+// Admin: must be registered before `/:id` so `/admin` is not captured as an id
+router.get(
+    "/admin",
+    requireAdmin,
+    adminTrackController.listTracksForAdmin
+);
+
+// User routes
 router.get(
     "/:id",
     validate(trackValidation.trackIdParamSchema, "params"),

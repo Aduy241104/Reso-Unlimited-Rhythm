@@ -42,24 +42,39 @@ const getSystemPlaylists = async (query = {}) => {
     };
 };
 
-const getPlaylistDetail = async (playlistId) => {
-    if (!mongoose.Types.ObjectId.isValid(playlistId)) {
-        throw new AppError("Playlist id is invalid.", 400, {
-            field: "id",
-        });
+const buildPlaylistDetailFilter = (playlistId, mode) => {
+    if (mode === "adminSystem") {
+        return {
+            _id: playlistId,
+            type: "system",
+        };
     }
 
-    const playlist = await Playlist.findOne({
+    return {
         _id: playlistId,
         isHidden: false,
         $or: [
             { type: "system" },
             { isPublic: true },
         ],
-    })
+    };
+};
+
+const getPlaylistDetail = async (playlistId, options = {}) => {
+    const mode = options.mode ?? "public";
+
+    if (!mongoose.Types.ObjectId.isValid(playlistId)) {
+        throw new AppError("Playlist id is invalid.", 400, {
+            field: "id",
+        });
+    }
+
+    const filter = buildPlaylistDetailFilter(playlistId, mode);
+
+    const playlist = await Playlist.findOne(filter)
         .populate({
             path: "userId",
-            select: "avatar role profile.fullName",
+            select: "email avatar role profile.fullName",
         })
         .populate({
             path: "tracks.trackId",

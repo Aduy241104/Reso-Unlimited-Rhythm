@@ -107,10 +107,22 @@ const pickPremiumDefaultAudio = (audioFiles) => {
     })[0];
 };
 
-const pickBasicAudio = (audioFiles) =>
-    audioFiles.find(
+const pickBasicAudio = (audioFiles) => {
+    const preferredAudio = audioFiles.find(
         (audioFile) => audioFile.format === "mp4" && audioFile.bitrate === 128
-    ) || null;
+    );
+
+    if (preferredAudio) {
+        return preferredAudio;
+    }
+
+    const fallback128Audio = audioFiles.find((audioFile) => audioFile.bitrate === 128);
+    if (fallback128Audio) {
+        return fallback128Audio;
+    }
+
+    return audioFiles[0] || null;
+};
 
 const getPremiumAccessState = async (user) => {
     if (!user?.id) {
