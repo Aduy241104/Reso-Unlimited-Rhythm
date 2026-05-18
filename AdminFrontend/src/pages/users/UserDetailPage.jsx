@@ -3,11 +3,11 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
   getUserService,
-  getUserTransactionsService,
   updateUserService,
 } from "../../services/userService";
+import { getTransactionsByUserIdService } from "../../services/transactionsService";
 
-const roles = ["guest", "user", "artist", "admin"];
+const roles = ["user", "artist", "admin"];
 const statuses = ["active", "inactive", "blocked"];
 
 const formatDate = (value) => {
@@ -36,7 +36,7 @@ const UserDetailPage = () => {
     try {
       const [userData, transactionData] = await Promise.all([
         getUserService(userId),
-        getUserTransactionsService(userId),
+        getTransactionsByUserIdService(userId),
       ]);
 
       setUser(userData);
@@ -98,7 +98,7 @@ const UserDetailPage = () => {
 
   return (
     <section className="space-y-6">
-      <div className="flex flex-col gap-4 rounded-[2rem] border border-black bg-white p-8 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-4 rounded border border-black bg-white p-8 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.32em] text-black/50">
             User Details
@@ -113,7 +113,7 @@ const UserDetailPage = () => {
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="rounded-3xl border border-black/10 bg-slate-50 px-5 py-3 text-sm font-semibold text-black transition hover:bg-slate-100"
+            className="rounded border border-black/10 bg-slate-50 px-5 py-3 text-sm font-semibold text-black transition hover:bg-slate-100"
           >
             Back to list
           </button>
@@ -121,11 +121,10 @@ const UserDetailPage = () => {
             type="button"
             onClick={handleToggleStatus}
             disabled={!user}
-            className={`rounded-3xl px-5 py-3 text-sm font-semibold text-white transition ${
-              user?.activeStatus === "blocked"
-                ? "bg-emerald-600 hover:bg-emerald-700"
-                : "bg-rose-600 hover:bg-rose-700"
-            } ${!user ? "opacity-60" : ""}`}
+            className={`rounded px-5 py-3 text-sm font-semibold text-white transition ${user?.activeStatus === "blocked"
+              ? "bg-emerald-600 hover:bg-emerald-700"
+              : "bg-rose-600 hover:bg-rose-700"
+              } ${!user ? "opacity-60" : ""}`}
           >
             {user?.activeStatus === "blocked" ? "Unblock" : "Block"}
           </button>
@@ -133,13 +132,13 @@ const UserDetailPage = () => {
       </div>
 
       {message && (
-        <div className="rounded-3xl border border-black/10 bg-slate-50 px-5 py-4 text-sm text-black">
+        <div className="rounded border border-black/10 bg-slate-50 px-5 py-4 text-sm text-black">
           {message}
         </div>
       )}
 
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <section className="rounded-[2rem] border border-black bg-white p-6">
+        <section className="rounded border border-black bg-white p-6">
           <h2 className="text-xl font-semibold text-black">Basic Information</h2>
           <div className="mt-6 space-y-4 text-sm text-black/90">
             <div className="grid gap-4 md:grid-cols-2">
@@ -160,7 +159,7 @@ const UserDetailPage = () => {
                   value={user?.role || "user"}
                   onChange={handleRoleChange}
                   disabled={!user}
-                  className="mt-2 w-full rounded-3xl border border-black/10 bg-slate-50 px-4 py-3 text-sm text-black outline-none focus:border-black"
+                  className="mt-2 w-full rounded border border-black/10 bg-slate-50 px-4 py-3 text-sm text-black outline-none focus:border-black"
                 >
                   {roles.map((role) => (
                     <option key={role} value={role}>
@@ -172,7 +171,7 @@ const UserDetailPage = () => {
 
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-black/45">Status</p>
-                <p className="mt-2 inline-flex rounded-full bg-slate-100 px-4 py-3 text-sm font-semibold text-black">
+                <p className="mt-2 inline-flex rounded bg-slate-100 px-4 py-3 text-sm font-semibold text-black">
                   {user?.activeStatus || "-"}
                 </p>
               </div>
@@ -191,12 +190,16 @@ const UserDetailPage = () => {
           </div>
         </section>
 
-        <section className="rounded-[2rem] border border-black bg-white p-6">
+        <section className="rounded border border-black bg-white p-6">
           <h2 className="text-xl font-semibold text-black">Profile Information</h2>
           <div className="mt-6 space-y-4 text-sm text-black/90">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-black/45">Date of Birth</p>
-              <p className="mt-2 text-base text-black">{user?.profile?.dateOfBirth ? formatDate(user.profile.dateOfBirth) : "-"}</p>
+              <p className="mt-2 text-base text-black">
+                {user?.profile?.dateOfBirth
+                  ? new Date(user.profile.dateOfBirth).toLocaleDateString("vi-VN")
+                  : "-"}
+              </p>
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-black/45">Gender</p>
@@ -210,7 +213,7 @@ const UserDetailPage = () => {
         </section>
       </div>
 
-      <section className="rounded-[2rem] border border-black bg-white p-6">
+      <section className="rounded border border-black bg-white p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-black/45">Transaction History</p>
@@ -218,7 +221,7 @@ const UserDetailPage = () => {
           </div>
           <Link
             to="/users"
-            className="rounded-3xl border border-black/10 bg-slate-50 px-4 py-3 text-sm font-semibold text-black transition hover:bg-slate-100"
+            className="rounded border-black/10 bg-slate-50 px-4 py-3 text-sm font-semibold text-black transition hover:bg-slate-100"
           >
             Back to list
           </Link>

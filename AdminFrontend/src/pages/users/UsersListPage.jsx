@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { getUsersService } from "../../services/userService";
 import { routePaths } from "../../routes/routePaths";
 
-const roles = ["", "guest", "user", "artist", "admin"];
+const roles = ["", "user", "artist", "admin"];
 const statuses = ["", "active", "inactive", "blocked"];
 
 const formatDate = (value) => {
@@ -63,7 +63,7 @@ const UserListPage = () => {
 
   return (
     <section className="space-y-6">
-      <div className="rounded-[2rem] border border-black bg-white p-8">
+      <div className="rounded border border-black bg-white p-8">
         <p className="text-xs font-semibold uppercase tracking-[0.32em] text-black/50">
           User Management
         </p>
@@ -77,7 +77,7 @@ const UserListPage = () => {
 
       <form
         onSubmit={handleSearch}
-        className="grid gap-4 rounded-[2rem] border border-black bg-white p-6 md:grid-cols-[1.5fr_1fr_1fr_0.8fr]"
+        className="grid gap-4 rounded border border-black bg-white p-6 md:grid-cols-[1.5fr_1fr_1fr_0.8fr]"
       >
         <div className="space-y-2">
           <label className="text-sm font-semibold text-black/70">Search</label>
@@ -85,7 +85,7 @@ const UserListPage = () => {
             value={filters.search}
             onChange={handleChange("search")}
             placeholder="Email or full name"
-            className="w-full rounded-3xl border border-black/10 bg-slate-50 px-4 py-3 text-sm text-black outline-none focus:border-black"
+            className="w-full rounded border border-black/10 bg-slate-50 px-4 py-3 text-sm text-black outline-none focus:border-black"
           />
         </div>
 
@@ -95,7 +95,7 @@ const UserListPage = () => {
           <select
             value={filters.role}
             onChange={handleChange("role")}
-            className="w-full rounded-3xl border border-black/10 bg-slate-50 px-4 py-3 text-sm text-black outline-none focus:border-black"
+            className="w-full rounded border border-black/10 bg-slate-50 px-4 py-3 text-sm text-black outline-none focus:border-black"
           >
             <option value="">All roles</option>
             {roles.slice(1).map((role) => (
@@ -111,7 +111,7 @@ const UserListPage = () => {
           <select
             value={filters.status}
             onChange={handleChange("status")}
-            className="w-full rounded-3xl border border-black/10 bg-slate-50 px-4 py-3 text-sm text-black outline-none focus:border-black"
+            className="w-full rounded border border-black/10 bg-slate-50 px-4 py-3 text-sm text-black outline-none focus:border-black"
           >
             <option value="">All statuses</option>
             {statuses.slice(1).map((status) => (
@@ -125,7 +125,7 @@ const UserListPage = () => {
         <div className="flex items-end">
           <button
             type="submit"
-            className="w-full rounded-3xl bg-black px-5 py-3 text-sm font-semibold text-white transition hover:bg-black/90"
+            className="w-full rounded bg-black px-5 py-3 text-sm font-semibold text-white transition hover:bg-black/90"
           >
             Search
           </button>
@@ -133,12 +133,12 @@ const UserListPage = () => {
       </form>
 
       {message && (
-        <div className="rounded-3xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+        <div className="rounded border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
           {message}
         </div>
       )}
 
-      <div className="overflow-hidden rounded-[2rem] border border-black bg-white">
+      <div className="overflow-hidden rounded border border-black bg-white">
         <div className="overflow-x-auto">
           <table className="min-w-full border-separate border-spacing-0 text-left text-sm text-black">
             <thead className="bg-slate-100 text-xs uppercase tracking-[0.16em] text-slate-700">
@@ -173,7 +173,7 @@ const UserListPage = () => {
                     </td>
                     <td className="border-b border-black/10 px-6 py-4">{user.role}</td>
                     <td className="border-b border-black/10 px-6 py-4">
-                      <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                      <span className={`inline-flex rounded px-3 py-1 text-xs font-semibold ${
                         user.activeStatus === "active"
                           ? "bg-emerald-100 text-emerald-700"
                           : user.activeStatus === "inactive"
@@ -187,7 +187,7 @@ const UserListPage = () => {
                     <td className="border-b border-black/10 px-6 py-4">
                       <Link
                         to={routePaths.userDetail(user._id)}
-                        className="inline-flex rounded-2xl border border-black/10 bg-slate-100 px-3 py-2 text-xs font-semibold text-black transition hover:bg-slate-200"
+                        className="inline-flex rounded border border-black/10 bg-slate-100 px-3 py-2 text-xs font-semibold text-black transition hover:bg-slate-200"
                       >
                         Details
                       </Link>

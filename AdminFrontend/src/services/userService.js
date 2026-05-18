@@ -22,9 +22,4 @@ export const updateUserService = async (id, data) => {
 	return res.data?.data?.user ?? res.data;
 };
 
-export const getUserTransactionsService = async (id) => {
-	// Transaction history is not yet implemented on backend.
-	return [];
-};
-
-export default { getUsersService, getUserService, updateUserService, getUserTransactionsService };
+export default { getUsersService, getUserService, updateUserService };
