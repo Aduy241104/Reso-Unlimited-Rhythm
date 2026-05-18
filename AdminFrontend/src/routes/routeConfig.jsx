@@ -6,6 +6,7 @@ import CreateSystemPlaylistPage from "../pages/systemPlaylists/CreateSystemPlayl
 import SystemPlaylistDetailPage from "../pages/systemPlaylists/SystemPlaylistDetailPage";
 import SystemPlaylistEditPage from "../pages/systemPlaylists/SystemPlaylistEditPage";
 import SystemPlaylistsListPage from "../pages/systemPlaylists/SystemPlaylistsListPage";
+import SystemTracksListPage from "../pages/systemTracks/SystemTracksListPage";
 import HomePage from "../pages/home/HomePage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
@@ -48,6 +49,10 @@ export const appRoutes = [
                     element: <SystemPlaylistDetailPage />,
                   },
                 ],
+              },
+              {
+                path: "system-tracks",
+                element: <SystemTracksListPage />,
               },
             ],
           },
