@@ -17,6 +17,7 @@ import {
 } from "../pages/artist/ArtistSectionPages";
 import CreateTrackPage from "../pages/artist/CreateTrackPage";
 import HomePage from "../pages/home/HomePage";
+import LyricsPage from "../pages/lyrics/LyricsPage";
 import ProfilePage from "../pages/profile/ProfilePage";
 import TrackDetailPage from "../pages/track/TrackDetailPage";
 import ProtectedRoute from "./ProtectedRoute";
@@ -35,6 +36,10 @@ export const appRoutes = [
       {
         path: routePaths.albumDetail(),
         element: <AlbumDetailPage />,
+      },
+      {
+        path: routePaths.lyrics,
+        element: <LyricsPage />,
       },
       {
         path: routePaths.trackDetail(),

@@ -13,7 +13,6 @@ const CreateTrackForm = () => {
     lyricsStatic: "",
     album_albumId: "",
     genreIds: [],
-    activeStatus: "draft",
     releaseDate: "",
   });
 
@@ -187,7 +186,6 @@ const CreateTrackForm = () => {
           lyricsStatic: "",
           album_albumId: "",
           genreIds: [],
-          activeStatus: "draft",
           releaseDate: "",
         });
         setAudioFile(null);
@@ -517,24 +515,6 @@ const CreateTrackForm = () => {
               )}
             </select>
           )}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-[#241b15]">
-            Active Status
-          </label>
-          <select
-            name="activeStatus"
-            value={formData.activeStatus}
-            onChange={handleInputChange}
-            className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm focus:border-[#8b5e3c] focus:outline-none"
-          >
-            {statusOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
         </div>
 
         <div>

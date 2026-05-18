@@ -52,6 +52,18 @@ export const trackService = {
     }
   },
 
+  getArtistTracks: async (params = {}) => {
+    try {
+      const response = await axiosClient.get(`${TRACKS_API_PREFIX}/artist/me`, {
+        params,
+      });
+
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
   getArtistAlbums: async () => {
     try {
       const response = await axiosClient.get(`${ALBUMS_API_PREFIX}/artist/me`);
