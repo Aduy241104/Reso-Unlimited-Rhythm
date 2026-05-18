@@ -30,6 +30,7 @@ const CreateTrackForm = () => {
   const [albumsLoading, setAlbumsLoading] = useState(true);
   const [genres, setGenres] = useState([]);
   const [genresLoading, setGenresLoading] = useState(true);
+  const [genresOpen, setGenresOpen] = useState(false);
 
   const statusOptions = [
     { value: "draft", label: "Draft" },
@@ -416,45 +417,78 @@ const CreateTrackForm = () => {
           )}
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-[#241b15]">
-            Genres
-          </label>
-          <p className="mt-1 text-xs text-neutral-500">
-            Chọn một hoặc nhiều thể loại bằng cách tick vào ô tương ứng.
-          </p>
+        <div className="relative">
+          <label className="block text-sm font-medium text-[#241b15]">Genres</label>
+          <p className="mt-1 text-xs text-neutral-500">Chọn một hoặc nhiều thể loại.</p>
+
           {genresLoading ? (
             <p className="mt-2 text-sm text-neutral-600">Loading genres...</p>
           ) : genres.length === 0 ? (
-            <p className="mt-2 text-sm text-neutral-600">
-              No genres available. Seed the database or add genres in admin.
-            </p>
+            <p className="mt-2 text-sm text-neutral-600">No genres available. Seed the database or add genres in admin.</p>
           ) : (
-            <div className="mt-2 space-y-2">
-              {genres.map((genre) => {
-                const id = String(genre._id);
-                return (
-                  <label
-                    key={id}
-                    className="flex cursor-pointer items-center gap-2 text-sm text-neutral-700"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={formData.genreIds.includes(id)}
-                      onChange={() => handleGenreToggle(id)}
-                      disabled={loading}
-                      className="h-4 w-4 rounded border-neutral-300 text-[#8b5e3c] focus:ring-[#8b5e3c]"
-                    />
-                    <span>{genre.name}</span>
-                  </label>
-                );
-              })}
+            <div className="mt-2">
+              <button
+                type="button"
+                onClick={() => setGenresOpen((s) => !s)}
+                disabled={loading}
+                className="w-full text-left rounded-md border border-neutral-200 px-3 py-2 text-sm flex items-center justify-between"
+              >
+                <div className="truncate">
+                  {formData.genreIds.length === 0
+                    ? "Select genres..."
+                    : genres
+                        .filter((g) => formData.genreIds.includes(String(g._id)))
+                        .map((g) => g.name)
+                        .join(", ")}
+                </div>
+                <div className="ml-2 text-neutral-500">▾</div>
+              </button>
+
+              {genresOpen && (
+                <div className="absolute z-20 mt-2 w-full max-h-56 overflow-auto rounded-md border border-neutral-200 bg-white p-2 shadow">
+                  {genres.map((genre) => {
+                    const id = String(genre._id);
+                    return (
+                      <label
+                        key={id}
+                        className="flex items-center gap-2 px-2 py-1 text-sm text-neutral-700 hover:bg-neutral-50"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.genreIds.includes(id)}
+                          onChange={() => handleGenreToggle(id)}
+                          disabled={loading}
+                          className="h-4 w-4 rounded border-neutral-300 text-[#8b5e3c] focus:ring-[#8b5e3c]"
+                        />
+                        <span className="truncate">{genre.name}</span>
+                      </label>
+                    );
+                  })}
+                  <div className="mt-2 flex items-center justify-between px-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData((prev) => ({ ...prev, genreIds: [] }));
+                      }}
+                      className="text-sm text-red-500"
+                    >
+                      Clear
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setGenresOpen(false)}
+                      className="text-sm text-neutral-700"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
+
           {formData.genreIds.length > 0 && (
-            <p className="mt-2 text-sm text-neutral-600">
-              Đã chọn {formData.genreIds.length} thể loại
-            </p>
+            <p className="mt-2 text-sm text-neutral-600">Đã chọn {formData.genreIds.length} thể loại</p>
           )}
         </div>
 
