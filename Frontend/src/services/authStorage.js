@@ -17,6 +17,14 @@ const parseStoredUser = (rawUser) => {
   }
 };
 
+export const getStoredAccessToken = () => {
+  if (!isBrowser) {
+    return null;
+  }
+
+  return window.localStorage.getItem(AUTH_ACCESS_TOKEN_STORAGE_KEY) || null;
+};
+
 export const getStoredAuthSession = () => {
   if (!isBrowser) {
     return {
@@ -28,8 +36,7 @@ export const getStoredAuthSession = () => {
   const user = parseStoredUser(
     window.localStorage.getItem(AUTH_USER_STORAGE_KEY)
   );
-  const accessToken =
-    window.localStorage.getItem(AUTH_ACCESS_TOKEN_STORAGE_KEY) || null;
+  const accessToken = getStoredAccessToken();
 
   if (!user || !accessToken) {
     return {
