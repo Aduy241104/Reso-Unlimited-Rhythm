@@ -6,6 +6,7 @@ import CreateSystemPlaylistPage from "../pages/systemPlaylists/CreateSystemPlayl
 import SystemPlaylistDetailPage from "../pages/systemPlaylists/SystemPlaylistDetailPage";
 import SystemPlaylistEditPage from "../pages/systemPlaylists/SystemPlaylistEditPage";
 import SystemPlaylistsListPage from "../pages/systemPlaylists/SystemPlaylistsListPage";
+import SystemTracksListPage from "../pages/systemTracks/SystemTracksListPage";
 import HomePage from "../pages/home/HomePage";
 import UsersListPage from "../pages/users/UsersListPage";
 import UserDetailPage from "../pages/users/UserDetailPage";
@@ -58,6 +59,8 @@ export const appRoutes = [
               {
                 path: "users/:userId",
                 element: <UserDetailPage />,
+                path: "system-tracks",
+                element: <SystemTracksListPage />,
               },
             ],
           },
