@@ -34,6 +34,41 @@ const listTracksForAdmin = async (req, res, next) => {
     }
 };
 
+const updateTrackApprovalStatus = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { status, rejectReason } = req.body;
+
+        const updatedTrack = await adminTrackService.updateTrackApprovalStatus(id, {
+            status,
+            rejectReason,
+        });
+
+        return formatResponse.success(
+            res,
+            { track: updatedTrack },
+            "Track approval status updated successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+const updateTrackVisibilityController = async (req, res, next) => {
+    try {
+        const track = await adminTrackService.updateTrackVisibility(
+            req.params.id,
+            req.body
+        );
+
+        res.json(track);
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     listTracksForAdmin,
+    updateTrackApprovalStatus,
+    updateTrackVisibilityController,
 };

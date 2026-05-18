@@ -16,13 +16,16 @@ import {
   SettingsPage,
 } from "../pages/artist/ArtistSectionPages";
 import HomePage from "../pages/home/HomePage";
+import ArtistProfilePageView from "../pages/profile/ArtistProfilePage";
 import LyricsPage from "../pages/lyrics/LyricsPage";
-import ProfilePage from "../pages/profile/ProfilePage";
 import TrackDetailPage from "../pages/track/TrackDetailPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import RoleRoute from "./RoleRoute";
 import { routePaths } from "./routePaths";
+
+const publicArtistProfilePath = routePaths.artistBrowseProfile();
+const featuredArtistProfilePath = routePaths.artistBrowseProfile("featured");
 
 export const appRoutes = [
   {
@@ -45,13 +48,16 @@ export const appRoutes = [
         element: <TrackDetailPage />,
       },
       {
-        element: <ProtectedRoute />,
-        children: [
-          {
-            path: routePaths.profile,
-            element: <ProfilePage />,
-          },
-        ],
+        path: publicArtistProfilePath,
+        element: <ArtistProfilePageView />,
+      },
+      {
+        path: routePaths.legacyArtistProfile,
+        element: <Navigate to={featuredArtistProfilePath} replace />,
+      },
+      {
+        path: "/profile",
+        element: <Navigate to={featuredArtistProfilePath} replace />,
       },
     ],
   },
