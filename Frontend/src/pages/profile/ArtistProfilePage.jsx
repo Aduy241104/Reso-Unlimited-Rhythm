@@ -1,11 +1,47 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import AboutArtistSection from "../../components/artist/AboutArtistSection";
+import ComingSoonCountdownOverlay from "../../components/artist/ComingSoonCountdownOverlay";
 import ArtistHeroSection from "../../components/artist/ArtistHeroSection";
 import DiscographySection from "../../components/artist/DiscographySection";
 import PopularTracksSection from "../../components/artist/PopularTracksSection";
 import { getArtistExperienceService } from "../../services/artistBrowseService";
 import { getApiErrorMessage } from "../../utils/apiError";
+
+const getScrollContainer = (element) => {
+  if (!element || typeof window === "undefined") {
+    return null;
+  }
+
+  let currentElement = element.parentElement;
+
+  while (currentElement) {
+    const { overflowY } = window.getComputedStyle(currentElement);
+
+    if (overflowY === "auto" || overflowY === "scroll") {
+      return currentElement;
+    }
+
+    currentElement = currentElement.parentElement;
+  }
+
+  return null;
+};
+
+const getOverlayBounds = (container) => {
+  if (!container) {
+    return null;
+  }
+
+  const { top, left, width, height } = container.getBoundingClientRect();
+
+  return {
+    top: `${top}px`,
+    left: `${left}px`,
+    width: `${width}px`,
+    height: `${height}px`,
+  };
+};
 
 const ArtistProfileView = () => {
   const { id } = useParams();
@@ -13,10 +49,18 @@ const ArtistProfileView = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [activeFilter, setActiveFilter] = useState("popular");
   const [isFollowing, setIsFollowing] = useState(false);
+  const [isCountdownMounted, setIsCountdownMounted] = useState(false);
+  const [isCountdownVisible, setIsCountdownVisible] = useState(false);
+  const pageRootRef = useRef(null);
+  const scrollContainerRef = useRef(null);
+  const savedScrollPositionRef = useRef(0);
+  const savedOverflowRef = useRef("");
+  const [overlayBounds, setOverlayBounds] = useState(null);
   const [artistData, setArtistData] = useState({
     profile: null,
     popularTracks: [],
     discography: [],
+    comingReleases: [],
   });
 
   useEffect(() => {
@@ -59,67 +103,174 @@ const ArtistProfileView = () => {
     };
   }, [id]);
 
+  useEffect(() => {
+    if (!isCountdownMounted) {
+      return undefined;
+    }
+
+    const scrollContainer =
+      scrollContainerRef.current || getScrollContainer(pageRootRef.current);
+    const scrollTarget = scrollContainer || document.body;
+
+    savedOverflowRef.current = scrollTarget.style.overflow;
+    scrollTarget.style.overflow = "hidden";
+
+    return () => {
+      scrollTarget.style.overflow = savedOverflowRef.current;
+    };
+  }, [isCountdownMounted]);
+
+  useEffect(() => {
+    if (!isCountdownMounted || isCountdownVisible) {
+      return undefined;
+    }
+
+    const closeTimeout = window.setTimeout(() => {
+      setIsCountdownMounted(false);
+      setOverlayBounds(null);
+
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTo({
+          top: savedScrollPositionRef.current,
+          behavior: "auto",
+        });
+        return;
+      }
+
+      window.scrollTo(0, savedScrollPositionRef.current);
+    }, 700);
+
+    return () => {
+      window.clearTimeout(closeTimeout);
+    };
+  }, [isCountdownMounted, isCountdownVisible]);
+
+  useEffect(() => {
+    setIsCountdownMounted(false);
+    setIsCountdownVisible(false);
+  }, [id]);
+
+  useEffect(() => {
+    if (!isCountdownMounted) {
+      return undefined;
+    }
+
+    const updateOverlayBounds = () => {
+      const scrollContainer =
+        scrollContainerRef.current || getScrollContainer(pageRootRef.current);
+      setOverlayBounds(getOverlayBounds(scrollContainer));
+    };
+
+    updateOverlayBounds();
+    window.addEventListener("resize", updateOverlayBounds);
+
+    return () => {
+      window.removeEventListener("resize", updateOverlayBounds);
+    };
+  }, [isCountdownMounted]);
+
+  const openComingSoonExperience = () => {
+    const scrollContainer = getScrollContainer(pageRootRef.current);
+    scrollContainerRef.current = scrollContainer;
+    savedScrollPositionRef.current = scrollContainer
+      ? scrollContainer.scrollTop
+      : window.scrollY || window.pageYOffset || 0;
+    setOverlayBounds(getOverlayBounds(scrollContainer));
+    setIsCountdownMounted(true);
+
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        setIsCountdownVisible(true);
+      });
+    });
+  };
+
+  const closeComingSoonExperience = () => {
+    setIsCountdownVisible(false);
+  };
+
   const profile = artistData.profile;
+  const nextComingRelease = artistData.comingReleases[0] || null;
 
   return (
-    <section className="space-y-8 pb-10 text-white lg:space-y-12">
-      { errorMessage ? (
-        <div className="mx-auto max-w-6xl border border-amber-400/14 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
-          { errorMessage }
-        </div>
-      ) : null }
-
-      { profile ? (
-        <>
-          <div className="-mx-6">
-            <ArtistHeroSection
-              profile={ profile }
-              isFollowing={ isFollowing }
-              onToggleFollow={ () => setIsFollowing((currentValue) => !currentValue) }
-            />
+    <section ref={ pageRootRef } className="space-y-8 pb-10 text-white lg:space-y-12">
+      <div
+        aria-hidden={ isCountdownMounted }
+        className={ `
+          transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]
+          ${isCountdownMounted ? "pointer-events-none scale-[0.985] blur-md opacity-0" : "scale-100 blur-0 opacity-100"}
+        ` }
+      >
+        { errorMessage ? (
+          <div className="mx-auto max-w-6xl border border-amber-400/14 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
+            { errorMessage }
           </div>
+        ) : null }
 
+        { profile ? (
+          <>
+            <div className="-mx-6">
+              <ArtistHeroSection
+                profile={ profile }
+                isFollowing={ isFollowing }
+                onToggleFollow={ () => setIsFollowing((currentValue) => !currentValue) }
+              />
+            </div>
+
+            <div className="mx-auto max-w-6xl space-y-8 px-1 lg:space-y-10">
+              <PopularTracksSection
+                tracks={ artistData.popularTracks }
+                isLoading={ isLoading }
+                onComingSoonClick={ openComingSoonExperience }
+              />
+
+              <AboutArtistSection profile={ profile } isLoading={ isLoading } />
+
+              <DiscographySection
+                items={ artistData.discography }
+                activeFilter={ activeFilter }
+                onFilterChange={ setActiveFilter }
+                isLoading={ isLoading }
+              />
+            </div>
+          </>
+        ) : isLoading ? (
+          <div className="mx-auto max-w-6xl space-y-6">
+            <div className="h-[30rem] animate-pulse bg-white/[0.04]" />
+            <div className="grid gap-4 sm:grid-cols-2">
+              { Array.from({ length: 2 }).map((_, index) => (
+                <div key={ index } className="h-40 animate-pulse bg-white/[0.04]" />
+              )) }
+            </div>
+            <div className="h-[18rem] animate-pulse bg-white/[0.04]" />
+          </div>
+        ) : (
           <div className="mx-auto max-w-6xl space-y-8 px-1 lg:space-y-10">
             <PopularTracksSection
               tracks={ artistData.popularTracks }
-              isLoading={ isLoading }
+              isLoading={ false }
+              onComingSoonClick={ openComingSoonExperience }
             />
-
-            <AboutArtistSection profile={ profile } isLoading={ isLoading } />
 
             <DiscographySection
               items={ artistData.discography }
               activeFilter={ activeFilter }
               onFilterChange={ setActiveFilter }
-              isLoading={ isLoading }
+              isLoading={ false }
             />
           </div>
-        </>
-      ) : isLoading ? (
-        <div className="mx-auto max-w-6xl space-y-6">
-          <div className="h-[30rem] animate-pulse bg-white/[0.04]" />
-          <div className="grid gap-4 sm:grid-cols-2">
-            { Array.from({ length: 2 }).map((_, index) => (
-              <div key={ index } className="h-40 animate-pulse bg-white/[0.04]" />
-            )) }
-          </div>
-          <div className="h-[18rem] animate-pulse bg-white/[0.04]" />
-        </div>
-      ) : (
-        <div className="mx-auto max-w-6xl space-y-8 px-1 lg:space-y-10">
-          <PopularTracksSection
-            tracks={ artistData.popularTracks }
-            isLoading={ false }
-          />
+        ) }
+      </div>
 
-          <DiscographySection
-            items={ artistData.discography }
-            activeFilter={ activeFilter }
-            onFilterChange={ setActiveFilter }
-            isLoading={ false }
-          />
-        </div>
-      ) }
+      { isCountdownMounted ? (
+        <ComingSoonCountdownOverlay
+          isVisible={ isCountdownVisible }
+          comingRelease={ nextComingRelease }
+          artistName={ profile?.name }
+          overlayBounds={ overlayBounds }
+          onBack={ closeComingSoonExperience }
+        />
+      ) : null }
     </section>
   );
 };

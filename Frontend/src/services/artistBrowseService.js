@@ -1,5 +1,4 @@
 import axiosClient from "../axios/axiosClient";
-import { getAlbumsService } from "./albumService";
 import {
   formatCompactNumber,
   formatDuration,
@@ -31,6 +30,20 @@ const normalizeReleaseYear = (item) => {
 
   const releaseDate = new Date(item.releaseDate);
   return Number.isNaN(releaseDate.getTime()) ? "" : String(releaseDate.getFullYear());
+};
+
+const resolveComingReleaseImage = (releaseItem) => {
+  const coverImage = releaseItem?.coverImage;
+
+  if (typeof coverImage === "string") {
+    return coverImage;
+  }
+
+  if (Array.isArray(coverImage)) {
+    return coverImage.find(Boolean) || "";
+  }
+
+  return releaseItem?.avatar || "";
 };
 
 const normalizeProfile = (profile) => {
@@ -92,42 +105,8 @@ const normalizeProfile = (profile) => {
   };
 };
 
-const matchesArtistIdentifier = (candidate, artistId) => {
-  const normalizedTarget = String(artistId || "").trim().toLowerCase();
-
-  if (!normalizedTarget) {
-    return false;
-  }
-
-  const candidateValues = [
-    candidate?.id,
-    candidate?.artistId,
-    candidate?.slug,
-    candidate?.artistSlug,
-    candidate?.stageName,
-    candidate?.artistName,
-    candidate?.displayName,
-    candidate?.fullName,
-    candidate?.name,
-  ]
-    .filter(Boolean)
-    .map((value) => String(value).trim().toLowerCase());
-
-  return candidateValues.includes(normalizedTarget);
-};
-
-const buildDiscography = (albums = [], artistId) =>
+const buildDiscography = (albums = []) =>
   albums
-    .filter((album) =>
-      matchesArtistIdentifier(
-        {
-          ...album?.artist,
-          artistId: album?.artistId,
-          artistName: album?.artist?.name || album?.artistName,
-        },
-        artistId
-      )
-    )
     .slice(0, 10)
     .map((album, index) => ({
       id: album?.id || `release-${index}`,
@@ -170,6 +149,25 @@ const buildPopularTracksFromApi = (tracks = []) =>
       duration: track.duration,
     }));
 
+const buildComingReleasesFromApi = (comingReleases = []) =>
+  comingReleases
+    .map((release, index) => ({
+      id: release?.id || `coming-release-${index}`,
+      type: release?.type === "single" ? "Single" : "Album",
+      sourceType: release?.sourceType || release?.type || "release",
+      scheduledAt: release?.scheduledAt || null,
+      status: release?.status || "scheduled",
+      title: release?.item?.title || "Untitled release",
+      image: resolveComingReleaseImage(release?.item),
+      trackCount: release?.item?.trackCount || 0,
+      duration: release?.item?.duration || 0,
+    }))
+    .filter((release) => release.scheduledAt)
+    .sort(
+      (releaseA, releaseB) =>
+        new Date(releaseA.scheduledAt).getTime() - new Date(releaseB.scheduledAt).getTime()
+    );
+
 const getPublicArtistProfileService = async (artistId) => {
   const encodedArtistId = encodeURIComponent(artistId);
   const endpoints = [`/api/browse/artists/${encodedArtistId}/profile`];
@@ -196,6 +194,18 @@ const getPublicArtistProfileService = async (artistId) => {
   return null;
 };
 
+const getArtistAlbumsService = async (artistId, params = {}) => {
+  const encodedArtistId = encodeURIComponent(artistId);
+  const response = await axiosClient.get(`/api/browse/artists/${encodedArtistId}/albums`, {
+    params,
+  });
+
+  return {
+    albums: response?.data?.data?.albums ?? response?.data?.albums ?? [],
+    pagination: response?.data?.pagination ?? null,
+  };
+};
+
 const getArtistTracksService = async (artistId, params = {}) => {
   const encodedArtistId = encodeURIComponent(artistId);
   const response = await axiosClient.get(`/api/browse/artists/${encodedArtistId}/tracks`, {
@@ -208,13 +218,31 @@ const getArtistTracksService = async (artistId, params = {}) => {
   };
 };
 
+const getArtistComingReleasesService = async (artistId, params = {}) => {
+  const encodedArtistId = encodeURIComponent(artistId);
+  const response = await axiosClient.get(
+    `/api/browse/artists/${encodedArtistId}/coming-releases`,
+    {
+      params,
+    }
+  );
+
+  return {
+    comingReleases:
+      response?.data?.data?.comingReleases ?? response?.data?.comingReleases ?? [],
+    pagination: response?.data?.pagination ?? null,
+  };
+};
+
 export const getArtistExperienceService = async ({ artistId } = {}) => {
   const normalizedArtistId = artistId || "featured";
-  const [profileResult, albumsResult, tracksResult] = await Promise.allSettled([
-    getPublicArtistProfileService(normalizedArtistId),
-    getAlbumsService({ limit: 24 }),
-    getArtistTracksService(normalizedArtistId, { limit: 50 }),
-  ]);
+  const [profileResult, albumsResult, tracksResult, comingReleasesResult] =
+    await Promise.allSettled([
+      getPublicArtistProfileService(normalizedArtistId),
+      getArtistAlbumsService(normalizedArtistId, { limit: 24 }),
+      getArtistTracksService(normalizedArtistId, { limit: 50 }),
+      getArtistComingReleasesService(normalizedArtistId, { limit: 12 }),
+    ]);
 
   const profilePayload =
     profileResult.status === "fulfilled" ? profileResult.value : null;
@@ -222,10 +250,15 @@ export const getArtistExperienceService = async ({ artistId } = {}) => {
     albumsResult.status === "fulfilled" ? albumsResult.value?.albums ?? [] : [];
   const artistTracksPayload =
     tracksResult.status === "fulfilled" ? tracksResult.value?.tracks ?? [] : [];
+  const comingReleasesPayload =
+    comingReleasesResult.status === "fulfilled"
+      ? comingReleasesResult.value?.comingReleases ?? []
+      : [];
 
   return {
     profile: normalizeProfile(profilePayload),
     popularTracks: buildPopularTracksFromApi(artistTracksPayload),
-    discography: buildDiscography(albumsPayload, normalizedArtistId),
+    discography: buildDiscography(albumsPayload),
+    comingReleases: buildComingReleasesFromApi(comingReleasesPayload),
   };
 };

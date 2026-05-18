@@ -1,13 +1,32 @@
 import SectionHeader from "./SectionHeader";
 import TrackRow from "./TrackRow";
 
-const PopularTracksSection = ({ tracks = [], isLoading = false }) => {
+const PopularTracksSection = ({
+  tracks = [],
+  isLoading = false,
+  onComingSoonClick,
+}) => {
   return (
     <section className="space-y-5">
       <SectionHeader
         eyebrow="Most played"
         title="Popular"
         description="A focused view of the tracks pulling the strongest audience response right now."
+        action={
+          <button
+            type="button"
+            onClick={ onComingSoonClick }
+            className="
+              inline-flex items-center justify-center rounded-full border border-[#1DB954]/80
+              bg-black/40 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.28em]
+              text-white shadow-[0_0_0_rgba(29,185,84,0)] backdrop-blur-xl transition-all duration-300
+              hover:scale-[1.04] hover:border-[#1DB954] hover:bg-black/60
+              hover:shadow-[0_0_24px_rgba(29,185,84,0.3)]
+            "
+          >
+            Coming Soon
+          </button>
+        }
       />
 
       <div className="bg-transparent">
