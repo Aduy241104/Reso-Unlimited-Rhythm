@@ -6,6 +6,7 @@ const TrackCard = ({
   image,
   title,
   artist,
+  artistId,
   duration,
   explicit = false,
   liked = false,
@@ -47,11 +48,23 @@ const TrackCard = ({
       </div>
 
       <div className="flex min-w-0 items-center gap-3">
-        <img
-          src={ image }
-          alt={ title }
-          className="h-11 w-11 rounded-[10px] object-cover shadow-[0_8px_24px_rgba(15,23,42,0.14)]"
-        />
+        { image ? (
+          <img
+            src={ image }
+            alt={ title }
+            className="h-11 w-11 rounded-[10px] object-cover shadow-[0_8px_24px_rgba(15,23,42,0.14)]"
+          />
+        ) : (
+          <div
+            className="
+              flex h-11 w-11 items-center justify-center rounded-[10px] bg-[#ececec] text-[11px]
+              font-semibold uppercase tracking-[0.08em] text-[#52525b]
+              dark:bg-[#282828] dark:text-[#a1a1aa]
+            "
+          >
+            N/A
+          </div>
+        ) }
 
         <div className="min-w-0">
           { href ? (
@@ -77,7 +90,9 @@ const TrackCard = ({
                 E
               </span>
             ) : null }
-            <span className="truncate">{ artist }</span>
+           <Link to={ `/artists/${artistId}` } className="truncate hover:underline">
+              { artist }
+            </Link> 
           </div>
         </div>
       </div>
