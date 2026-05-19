@@ -192,7 +192,7 @@ export const MyMusicPage = () => {
                   <tr key={track._id} className="text-[#2f261f]">
                     <td className="px-5 py-4">
                       <button
-                        onClick={() => navigate(routePaths.trackDetail(track._id))}
+                        onClick={() => navigate(routePaths.artistTrackDetail(track._id))}
                         className="text-left font-medium text-[#241b15] transition-colors hover:text-[#8b5e3c]"
                       >
                         {track.title}

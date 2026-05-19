@@ -3,6 +3,7 @@ export const routePaths = {
   albumDetail: (albumId = ":id") => `/albums/${albumId}`,
   lyrics: "/lyrics",
   trackDetail: (trackId = ":id") => `/tracks/${trackId}`,
+  artistTrackDetail: (trackId = ":id") => `/artist/music/${trackId}`,
   login: "/login",
   register: "/register",
   profile: "/profile",

@@ -36,6 +36,7 @@ export const artistNavigation = [
 export const artistPageTitles = {
   [routePaths.artistRoot]: "Artist Overview",
   [routePaths.artistMusic]: "My Music",
+  [routePaths.artistTrackDetail()]: "Track Detail",
   [routePaths.artistReleases]: "Releases",
   [routePaths.artistAnalytics]: "Analytics",
   [routePaths.artistProfile]: "Artist Profile",

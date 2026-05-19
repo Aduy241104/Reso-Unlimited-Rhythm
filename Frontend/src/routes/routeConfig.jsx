@@ -16,6 +16,7 @@ import {
   SettingsPage,
 } from "../pages/artist/ArtistSectionPages";
 import CreateTrackPage from "../pages/artist/CreateTrackPage";
+import ArtistTrackDetailPage from "../pages/artist/ArtistTrackDetailPage";
 import HomePage from "../pages/home/HomePage";
 import LyricsPage from "../pages/lyrics/LyricsPage";
 import ProfilePage from "../pages/profile/ProfilePage";
@@ -77,6 +78,10 @@ export const appRoutes = [
               {
                 path: routePaths.artistCreateTrack,
                 element: <CreateTrackPage />,
+              },
+              {
+                path: routePaths.artistTrackDetail(),
+                element: <ArtistTrackDetailPage />,
               },
               {
                 path: routePaths.artistReleases,

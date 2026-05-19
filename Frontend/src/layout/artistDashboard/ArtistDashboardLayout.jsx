@@ -49,6 +49,10 @@ const ArtistDashboardLayout = () => {
   }, []);
 
   const pageTitle = useMemo(() => {
+    if (location.pathname.startsWith("/artist/music/") && location.pathname !== routePaths.artistMusic) {
+      return artistPageTitles[routePaths.artistTrackDetail()] ?? "Track Detail";
+    }
+
     if (location.pathname === routePaths.artistProfileEdit) {
       return artistPageTitles[routePaths.artistProfileEdit] ?? "Artist Dashboard";
     }
