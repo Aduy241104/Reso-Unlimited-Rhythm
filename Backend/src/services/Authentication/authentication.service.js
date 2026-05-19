@@ -4,8 +4,12 @@ import RefreshToken from "../../models/RefreshToken.js";
 import User from "../../models/User.js";
 import VerificationToken from "../../models/VerificationToken.js";
 import { AppError } from "../../utils/AppError.js";
+import { buildResetLink } from "../../utils/buildForgotPasswordLink.js";
 import { generateOtp } from "../../utils/generateOtp.js";
-import { sendOtpEmail } from "../../utils/mailer.js";
+import {
+    sendOtpEmail,
+    sendResetPasswordLinkEmail,
+} from "../../utils/mailer.js";
 import {
     ensureActiveUser,
     sanitizeUser,
@@ -21,9 +25,15 @@ const OTP_TTL_MINUTES = Number(process.env.OTP_TTL_MINUTES || 5);
 const OTP_RESEND_COOLDOWN_SECONDS = Number(
     process.env.OTP_RESEND_COOLDOWN_SECONDS || 60
 );
+const RESET_PASSWORD_TTL_MINUTES = Number(
+    process.env.RESET_PASSWORD_TTL_MINUTES || 15
+);
 
 const getOtpExpireDate = () =>
     new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
+
+const getResetPasswordExpireDate = () =>
+    new Date(Date.now() + RESET_PASSWORD_TTL_MINUTES * 60 * 1000);
 
 const ensureRegistrationAvailability = async (email) => {
     const [existingEmail] = await Promise.all([
@@ -204,6 +214,145 @@ const login = async ({ email, password }) => {
     };
 };
 
+const requestForgotPassword = async ({ email }) => {
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail });
+
+    if (!user || user.activeStatus !== "active") {
+        return {
+            expiresInMinutes: RESET_PASSWORD_TTL_MINUTES,
+            resendAfterSeconds: OTP_RESEND_COOLDOWN_SECONDS,
+        };
+    }
+
+    const latestVerification = await VerificationToken.findOne({
+        email: normalizedEmail,
+        type: "reset_password",
+        isUsed: false,
+    }).sort({ createdAt: -1 });
+
+    const lastRequestAt = latestVerification
+        ? latestVerification.updatedAt || latestVerification.createdAt
+        : null;
+
+    if (
+        lastRequestAt &&
+        lastRequestAt.getTime() + OTP_RESEND_COOLDOWN_SECONDS * 1000 >
+        Date.now()
+    ) {
+        throw new AppError(
+            "Please wait before requesting another reset link.",
+            429,
+            { resendAfterSeconds: OTP_RESEND_COOLDOWN_SECONDS }
+        );
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const verificationData = {
+        userId: user._id,
+        email: normalizedEmail,
+        token: resetToken,
+        otp: undefined,
+        type: "reset_password",
+        expiresAt: getResetPasswordExpireDate(),
+        isUsed: false,
+        payload: {
+            password: "",
+            fullName: "",
+        },
+    };
+
+    let activeVerificationToken;
+    if (latestVerification) {
+        latestVerification.userId = verificationData.userId;
+        latestVerification.token = verificationData.token;
+        latestVerification.otp = undefined;
+        latestVerification.expiresAt = verificationData.expiresAt;
+        latestVerification.isUsed = false;
+        latestVerification.payload = verificationData.payload;
+        activeVerificationToken = await latestVerification.save();
+    } else {
+        activeVerificationToken = await VerificationToken.create(
+            verificationData
+        );
+    }
+
+    await VerificationToken.deleteMany({
+        email: normalizedEmail,
+        type: "reset_password",
+        _id: { $ne: activeVerificationToken._id },
+    });
+
+    await sendResetPasswordLinkEmail({
+        to: normalizedEmail,
+        resetLink: buildResetLink({ token: resetToken }),
+        ttlMinutes: RESET_PASSWORD_TTL_MINUTES,
+    });
+
+    return {
+        expiresInMinutes: RESET_PASSWORD_TTL_MINUTES,
+        resendAfterSeconds: OTP_RESEND_COOLDOWN_SECONDS,
+    };
+};
+
+const resetPassword = async ({ token, password }) => {
+    const verificationToken = await VerificationToken.findOne({
+        token,
+        type: "reset_password",
+        isUsed: false,
+    });
+
+    if (!verificationToken) {
+        throw new AppError("Reset password link is invalid.", 400, {
+            field: "token",
+        });
+    }
+
+    if (verificationToken.expiresAt.getTime() <= Date.now()) {
+        verificationToken.isUsed = true;
+        await verificationToken.save();
+
+        throw new AppError("Reset password link has expired.", 400, {
+            field: "token",
+        });
+    }
+
+    const user =
+        (verificationToken.userId &&
+            (await User.findById(verificationToken.userId))) ||
+        (await User.findOne({ email: verificationToken.email }));
+
+    ensureActiveUser(user);
+
+    const isSamePassword = await bcrypt.compare(password, user.password);
+    if (isSamePassword) {
+        throw new AppError(
+            "New password must be different from the current password.",
+            400,
+            { field: "password" }
+        );
+    }
+
+    user.password = await bcrypt.hash(password, SALT_ROUNDS);
+    await user.save();
+
+    verificationToken.isUsed = true;
+    verificationToken.userId = user._id;
+    await verificationToken.save();
+
+    await Promise.all([
+        VerificationToken.deleteMany({
+            email: user.email,
+            type: "reset_password",
+            _id: { $ne: verificationToken._id },
+        }),
+        RefreshToken.updateMany(
+            { userId: user._id, isRevoked: false },
+            { $set: { isRevoked: true } }
+        ),
+    ]);
+};
+
 const logout = async (token) => {
     const storedToken = await RefreshToken.findOne({
         token,
@@ -253,6 +402,8 @@ export default {
     requestRegisterOtp,
     register,
     login,
+    requestForgotPassword,
+    resetPassword,
     logout,
     refreshToken
 };
