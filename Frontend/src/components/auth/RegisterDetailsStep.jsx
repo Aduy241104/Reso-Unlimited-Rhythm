@@ -11,26 +11,28 @@ const RegisterDetailsStep = ({ form, onSubmit, apiError }) => {
 
   return (
     <AuthCard
-      title="Tạo tài khoản mới"
-      subtitle="Nhập thông tin cơ bản để hệ thống gửi OTP xác minh email. Mật khẩu sẽ được lưu tạm an toàn ở BE cho đến khi bạn xác thực thành công."
+      theme="dark"
+      title="Create your account"
+      subtitle="Enter your basic information to request a verification OTP. Your password stays in the backend registration flow until email verification is completed."
       footer={
         <span>
-          Đã có tài khoản?{" "}
-          <Link className="font-semibold text-cyan-700" to="/login">
-            Đăng nhập
+          Already have an account?{" "}
+          <Link className="font-semibold text-[#f5b66f]" to="/login">
+            Sign in
           </Link>
         </span>
       }
     >
       <form className="space-y-4" noValidate onSubmit={handleSubmit(onSubmit)}>
         {apiError ? (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <div className="rounded-2xl border border-rose-300/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
             {apiError}
           </div>
         ) : null}
 
         <AuthField
-          label="Họ và tên"
+          theme="dark"
+          label="Full name"
           placeholder="Nguyen Van A"
           autoComplete="name"
           error={errors.fullName?.message}
@@ -38,6 +40,7 @@ const RegisterDetailsStep = ({ form, onSubmit, apiError }) => {
         />
 
         <AuthField
+          theme="dark"
           label="Email"
           type="email"
           placeholder="you@example.com"
@@ -47,30 +50,32 @@ const RegisterDetailsStep = ({ form, onSubmit, apiError }) => {
         />
 
         <AuthField
-          label="Mật khẩu"
+          theme="dark"
+          label="Password"
           type="password"
-          placeholder="Nhap mat khau"
+          placeholder="Enter your password"
           autoComplete="new-password"
-          helperText="Tối thiểu 6 ký tự theo đúng rule hiện tại của BE."
+          helperText="Backend currently requires at least 6 characters."
           error={errors.password?.message}
           {...register("password")}
         />
 
         <AuthField
-          label="Nhập lại mật khẩu"
+          theme="dark"
+          label="Confirm password"
           type="password"
-          placeholder="Nhap lai mat khau"
+          placeholder="Re-enter your password"
           autoComplete="new-password"
           error={errors.confirmPassword?.message}
           {...register("confirmPassword")}
         />
 
         <button
-          className="inline-flex w-full items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
+          className="inline-flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-[#f5b66f] via-[#d98235] to-[#17131a] px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_45px_rgba(245,158,66,0.24)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_60px_rgba(245,158,66,0.22)] disabled:cursor-not-allowed disabled:opacity-70"
           disabled={isSubmitting}
           type="submit"
         >
-          {isSubmitting ? "Đang gửi OTP..." : "Gửi OTP"}
+          {isSubmitting ? "Sending OTP..." : "Send OTP"}
         </button>
       </form>
     </AuthCard>

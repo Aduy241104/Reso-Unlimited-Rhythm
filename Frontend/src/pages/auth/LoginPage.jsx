@@ -4,6 +4,7 @@ import { faDoorOpen } from "@fortawesome/free-solid-svg-icons";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import loginBg from "../../assets/images/ChatGPT Image 10_35_18 29 thg 4, 2026.png";
+import { routePaths } from "../../routes/routePaths";
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -156,9 +157,18 @@ const LoginPage = () => {
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-semibold text-[#efe7dc]">
-                      Password
-                    </label>
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <label className="block text-sm font-semibold text-[#efe7dc]">
+                        Password
+                      </label>
+                      <button
+                        type="button"
+                        onClick={ () => navigate(routePaths.forgotPassword) }
+                        className="text-xs font-semibold text-[#f5b66f] transition hover:text-[#ffd3a0]"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
                     <input
                       type="password"
                       placeholder="Password"
@@ -182,7 +192,7 @@ const LoginPage = () => {
                   Don&apos;t have an account?{ " " }
                   <button
                     type="button"
-                    onClick={ () => navigate("/register") }
+                    onClick={ () => navigate(routePaths.register) }
                     className="font-semibold text-[#f5b66f] transition hover:text-[#ffd3a0]"
                   >
                     Create one

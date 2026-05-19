@@ -5,6 +5,8 @@ export const routePaths = {
   trackDetail: (trackId = ":id") => `/tracks/${trackId}`,
   login: "/login",
   register: "/register",
+  forgotPassword: "/forgot-password",
+  resetPassword: "/reset-password",
   artistBrowseProfile: (artistId = ":id") => `/artists/${artistId}`,
   legacyArtistProfile: "/artist-profile",
   artistRoot: "/artist",

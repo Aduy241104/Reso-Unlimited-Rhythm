@@ -74,6 +74,8 @@ export const setupAxiosInterceptors = ({
       const isNonRefreshableAuthRequest =
         url.includes(`${AUTH_API_PREFIX}/login`) ||
         url.includes(`${AUTH_API_PREFIX}/register`) ||
+        url.includes(`${AUTH_API_PREFIX}/forgot-password`) ||
+        url.includes(`${AUTH_API_PREFIX}/reset-password`) ||
         url.includes(`${AUTH_API_PREFIX}/logout`);
 
       if (isNonRefreshableAuthRequest) {

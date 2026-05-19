@@ -2,8 +2,10 @@ import { Navigate } from "react-router-dom";
 import ArtistDashboardLayout from "../layout/artistDashboard/ArtistDashboardLayout";
 import MainLayout from "../layout/mainLayout/MainLayout";
 import AlbumDetailPage from "../pages/album/AlbumDetailPage";
+import ForgotPasswordPage from "../pages/auth/ForgotPasswordPage";
 import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
+import ResetPasswordPage from "../pages/auth/ResetPasswordPage";
 import ArtistOverviewPage from "../pages/artist/ArtistOverviewPage";
 import ArtistProfileEditPage from "../pages/artist/ArtistProfileEditPage";
 import ArtistProfilePage from "../pages/artist/ArtistProfilePage";
@@ -112,6 +114,14 @@ export const appRoutes = [
         ],
       },
     ],
+  },
+  {
+    path: routePaths.forgotPassword,
+    element: <ForgotPasswordPage />,
+  },
+  {
+    path: routePaths.resetPassword,
+    element: <ResetPasswordPage />,
   },
   {
     element: <PublicRoute />,

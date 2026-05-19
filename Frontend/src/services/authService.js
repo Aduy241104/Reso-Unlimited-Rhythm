@@ -2,6 +2,7 @@ import axiosClient from "../axios/axiosClient";
 import { AUTH_API_PREFIX } from "../constants/auth";
 
 const getAuthPayload = (response) => response?.data?.data ?? null;
+const getApiEnvelope = (response) => response?.data ?? null;
 let refreshSessionPromise = null;
 
 const normalizeAuthSession = (response) => {
@@ -31,6 +32,24 @@ export const requestRegisterOtpService = async (payload) => {
 export const registerService = async (payload) => {
   const response = await axiosClient.post(`${AUTH_API_PREFIX}/register`, payload);
   return getAuthPayload(response);
+};
+
+export const forgotPasswordService = async (payload) => {
+  const response = await axiosClient.post(
+    `${AUTH_API_PREFIX}/forgot-password`,
+    payload
+  );
+
+  return getApiEnvelope(response);
+};
+
+export const resetPasswordService = async (payload) => {
+  const response = await axiosClient.post(
+    `${AUTH_API_PREFIX}/reset-password`,
+    payload
+  );
+
+  return getApiEnvelope(response);
 };
 
 export const refreshSessionService = async () => {
