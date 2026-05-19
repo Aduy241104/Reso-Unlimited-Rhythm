@@ -440,6 +440,24 @@ const getArtistTracks = async (userId, query = {}) => {
         };
     }
 
+    // Filter by activeStatus if provided and valid
+    if (typeof query.activeStatus === "string" && query.activeStatus.trim() !== "") {
+        const allowed = new Set(["draft", "active", "hidden", "blocked"]);
+        const val = query.activeStatus.trim();
+        if (allowed.has(val)) {
+            filter.activeStatus = val;
+        }
+    }
+
+    // Filter by approvalStatus if provided and valid
+    if (typeof query.approvalStatus === "string" && query.approvalStatus.trim() !== "") {
+        const allowedApproval = new Set(["draft", "pending", "approved", "rejected"]);
+        const val = query.approvalStatus.trim();
+        if (allowedApproval.has(val)) {
+            filter.approvalStatus = val;
+        }
+    }
+
     const [tracks, total] = await Promise.all([
         Track.find(filter)
             .sort({ createdAt: -1, _id: -1 })
