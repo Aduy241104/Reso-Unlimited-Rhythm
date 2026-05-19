@@ -243,7 +243,7 @@ const createTrack = async (userId, trackData) => {
         lyricsSyncUrl: trackData.lyricsSyncUrl || "",
         releaseDate: trackData.releaseDate || null,
         activeStatus: trackData.activeStatus || "active",
-        approvalStatus: "pending",
+        approvalStatus: "draft",
         stats: {
             totalLike: 0,
             totalPlay: 0,
