@@ -33,24 +33,27 @@ export const MyMusicPage = () => {
   const [tracks, setTracks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [activeFilter, setActiveFilter] = useState("");
+  const [approvalFilter, setApprovalFilter] = useState("");
   const [actionMessage, setActionMessage] = useState("");
   const [actionError, setActionError] = useState("");
   const [isActionLoading, setIsActionLoading] = useState(false);
 
+  // fetch handled by effect below which depends on filters
+  // refetch when filters change
   useEffect(() => {
     let isMounted = true;
 
-    const fetchTracks = async () => {
+    const refetch = async () => {
       setLoading(true);
       setErrorMessage("");
-
       try {
-        const response = await trackService.getArtistTracks();
+        const params = {};
+        if (activeFilter) params.activeStatus = activeFilter;
+        if (approvalFilter) params.approvalStatus = approvalFilter;
 
-        if (!isMounted) {
-          return;
-        }
-
+        const response = await trackService.getArtistTracks(params);
+        if (!isMounted) return;
         if (response?.success) {
           setTracks(response.data?.tracks || []);
         } else {
@@ -58,29 +61,22 @@ export const MyMusicPage = () => {
           setErrorMessage(response?.message || "Failed to load your tracks.");
         }
       } catch (error) {
-        if (!isMounted) {
-          return;
-        }
-
+        if (!isMounted) return;
         setTracks([]);
         setErrorMessage(
-          error?.message ||
-            error?.response?.data?.message ||
-            "Failed to load your tracks."
+          error?.message || error?.response?.data?.message || "Failed to load your tracks."
         );
       } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+        if (isMounted) setLoading(false);
       }
     };
 
-    fetchTracks();
+    refetch();
 
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [activeFilter, approvalFilter]);
 
   const handleViewTrack = (trackId) => {
     navigate(routePaths.artistTrackDetail(trackId));
@@ -192,12 +188,44 @@ export const MyMusicPage = () => {
             </p>
           </div>
 
-          <button
-            onClick={() => navigate(routePaths.artistCreateTrack)}
-            className="rounded-md bg-[#8b5e3c] px-6 py-2 font-medium text-white transition-colors hover:bg-[#6d4a2f]"
-          >
-            + Create Track
-          </button>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-neutral-600">Status</label>
+              <select
+                value={activeFilter}
+                onChange={(e) => setActiveFilter(e.target.value)}
+                className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-sm"
+              >
+                <option value="">All</option>
+                <option value="draft">Draft</option>
+                <option value="active">Active</option>
+                <option value="hidden">Hidden</option>
+                <option value="blocked">Blocked</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-neutral-600">Approval</label>
+              <select
+                value={approvalFilter}
+                onChange={(e) => setApprovalFilter(e.target.value)}
+                className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-sm"
+              >
+                <option value="">All</option>
+                <option value="draft">Draft</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
+
+            <button
+              onClick={() => navigate(routePaths.artistCreateTrack)}
+              className="rounded-md bg-[#8b5e3c] px-6 py-2 font-medium text-white transition-colors hover:bg-[#6d4a2f]"
+            >
+              + Create Track
+            </button>
+          </div>
         </div>
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
