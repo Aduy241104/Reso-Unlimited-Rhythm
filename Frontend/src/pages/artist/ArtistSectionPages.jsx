@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Trash2 } from "lucide-react";
+import { Eye, EyeOff, Pencil, Trash2 } from "lucide-react";
 import trackService from "../../services/trackService";
 import { routePaths } from "../../routes/routePaths";
 
@@ -84,6 +84,10 @@ export const MyMusicPage = () => {
 
   const handleViewTrack = (trackId) => {
     navigate(routePaths.artistTrackDetail(trackId));
+  };
+
+  const handleEditTrack = (trackId) => {
+    navigate(routePaths.artistTrackEdit(trackId));
   };
 
   const handleHideTrack = async (track) => {
@@ -328,6 +332,15 @@ export const MyMusicPage = () => {
                         >
                           <Eye className="h-4 w-4" />
                           View
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleEditTrack(track._id)}
+                          className="inline-flex items-center gap-2 rounded-sm border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-medium text-sky-900 transition hover:bg-sky-100"
+                        >
+                          <Pencil className="h-4 w-4" />
+                          Edit
                         </button>
 
                         <button

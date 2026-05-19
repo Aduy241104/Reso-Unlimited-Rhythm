@@ -77,6 +77,20 @@ export const trackService = {
     }
   },
 
+  updateArtistTrack: async (trackId, trackData) => {
+    try {
+      const response = await axiosClient.patch(
+        `${TRACKS_API_PREFIX}/artist/me/${trackId}`,
+        trackData
+      );
+
+      const payload = response?.data?.data;
+      return payload?.track || response?.data?.track || payload || null;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
   hideArtistTrack: async (trackId, reason = "") => {
     try {
       const response = await axiosClient.patch(

@@ -12,6 +12,7 @@ import {
   ShieldAlert,
   Sparkles,
   BadgeCheck,
+  Pencil,
 } from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
 import { routePaths } from "../../routes/routePaths";
@@ -219,6 +220,14 @@ const ArtistTrackDetailPage = () => {
     );
   };
 
+  const handleEditTrack = () => {
+    if (!track) {
+      return;
+    }
+
+    navigate(routePaths.artistTrackEdit(track._id));
+  };
+
   const handleHideTrack = async () => {
     if (!track || isActionLoading) {
       return;
@@ -351,6 +360,16 @@ const ArtistTrackDetailPage = () => {
           ) : null}
 
           <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={handleEditTrack}
+              disabled={!track}
+              className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-medium text-sky-900 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Pencil className="h-4 w-4" />
+              Edit track
+            </button>
+
             <button
               type="button"
               onClick={handleHideTrack}
