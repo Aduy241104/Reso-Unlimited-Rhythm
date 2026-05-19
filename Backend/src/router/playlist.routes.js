@@ -7,8 +7,12 @@ import validate from "../middlewares/validate.middleware.js";
 
 const router = express.Router();
 
+// User routes
 router.get("/system", playlistController.getSystemPlaylists);
 
+router.get("/system/detail/:id", playlistController.getPlaylistDetail);
+
+// Admin routes
 router.post(
     "/system",
     requireAdmin,
@@ -54,7 +58,5 @@ router.delete(
     requireAdmin,
     adminPlaylistController.deleteSystemPlaylist
 );
-
-router.get("/detail/:id", playlistController.getPlaylistDetail);
 
 export default router;
