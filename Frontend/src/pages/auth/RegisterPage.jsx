@@ -21,6 +21,21 @@ const createOtpPayload = (values) => ({
   fullName: values.fullName.trim(),
 });
 
+const registerHighlights = [
+  {
+    title: "Step 1",
+    description: "Enter your name, email, and password to request a verification OTP.",
+  },
+  {
+    title: "Step 2",
+    description: "Use the 6-digit OTP that the backend sends to your email address.",
+  },
+  {
+    title: "Step 3",
+    description: "Finish registration and return to login as soon as verification succeeds.",
+  },
+];
+
 const RegisterPage = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState("details");
@@ -117,7 +132,7 @@ const RegisterPage = () => {
 
       if (!hasFieldErrors) {
         setDetailsApiError(
-          getApiErrorMessage(error, "Không thể gửi OTP. Vui lòng thử lại.")
+          getApiErrorMessage(error, "Unable to send OTP. Please try again.")
         );
       }
 
@@ -145,7 +160,7 @@ const RegisterPage = () => {
       navigate("/login", {
         replace: true,
         state: {
-          authNotice: `Tài khoản ${pendingRegistration.email} đã được tạo thành công. Bạn có thể đăng nhập ngay bây giờ.`,
+          authNotice: `Account ${pendingRegistration.email} was created successfully. You can sign in now.`,
         },
       });
     } catch (error) {
@@ -158,7 +173,7 @@ const RegisterPage = () => {
         setOtpApiError(
           getApiErrorMessage(
             error,
-            "Không thể hoàn tất đăng ký. Vui lòng thử lại."
+            "Unable to complete registration. Please try again."
           )
         );
       }
@@ -212,7 +227,7 @@ const RegisterPage = () => {
         setDetailsApiError(
           getApiErrorMessage(
             error,
-            "Thông tin đăng ký không còn hợp lệ. Vui lòng kiểm tra lại."
+            "Registration details are no longer valid. Please review them."
           )
         );
         setStep("details");
@@ -220,7 +235,7 @@ const RegisterPage = () => {
       }
 
       setOtpApiError(
-        getApiErrorMessage(error, "Không thể gửi lại OTP. Vui lòng thử lại.")
+        getApiErrorMessage(error, "Unable to resend OTP. Please try again.")
       );
     } finally {
       setIsResendingOtp(false);
@@ -228,45 +243,32 @@ const RegisterPage = () => {
   };
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(45,212,191,0.28),_transparent_32%),radial-gradient(circle_at_bottom_right,_rgba(14,165,233,0.2),_transparent_28%),linear-gradient(135deg,_#f8fafc_0%,_#ecfeff_45%,_#f8fafc_100%)] px-4 py-10 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-[#0f0f14] bg-[radial-gradient(circle_at_top_left,_rgba(245,182,111,0.22),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(79,124,255,0.14),_transparent_24%),linear-gradient(135deg,_#0f0f14_0%,_#15131b_45%,_#0d1018_100%)] px-4 py-10 text-white sm:px-6 lg:px-8">
       <div className="mx-auto grid min-h-[calc(100vh-5rem)] w-full max-w-6xl items-center gap-8 lg:grid-cols-[1.05fr_0.95fr]">
         <section className="order-2 lg:order-1">
           <div className="max-w-xl">
-            <p className="mb-4 text-sm font-semibold uppercase tracking-[0.35em] text-cyan-800">
+            <p className="mb-4 text-sm font-semibold uppercase tracking-[0.35em] text-[#f5b66f]">
               Register Flow
             </p>
-            <h2 className="text-4xl font-semibold leading-tight text-slate-950 sm:text-5xl">
-              Đăng ký tài khoản theo luồng OTP đúng với contract BE.
+            <h2 className="text-4xl font-semibold leading-tight text-white sm:text-5xl">
+              Register with the OTP flow that already exists in the backend.
             </h2>
-            <p className="mt-5 max-w-lg text-base leading-7 text-slate-600">
-              FE tách rõ bước nhập thông tin và bước xác minh OTP, đồng thời
-              map lỗi trả về từ server về đúng field để người dùng sửa nhanh
-              hơn.
+            <p className="mt-5 max-w-lg text-base leading-7 text-[#d9d5cf]">
+              The frontend keeps the registration flow split into a details step
+              and an OTP verification step, while still mapping backend field
+              errors directly to the correct form inputs.
             </p>
 
             <div className="mt-8 grid gap-4 sm:grid-cols-3">
-              {[
-                {
-                  title: "Bước 1",
-                  description: "Nhập họ tên, email và mật khẩu để nhận OTP.",
-                },
-                {
-                  title: "Bước 2",
-                  description: "Nhập mã OTP 6 số hệ thống vừa gửi qua email.",
-                },
-                {
-                  title: "Bước 3",
-                  description: "Chuyển về đăng nhập sau khi đăng ký thành công.",
-                },
-              ].map((item) => (
+              {registerHighlights.map((item) => (
                 <div
                   key={item.title}
-                  className="rounded-3xl border border-white/60 bg-white/70 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur"
+                  className="rounded-3xl border border-white/8 bg-white/[0.04] p-4 shadow-[0_18px_45px_rgba(15,23,42,0.24)] backdrop-blur"
                 >
-                  <p className="text-sm font-semibold text-slate-900">
+                  <p className="text-sm font-semibold text-[#f5b66f]">
                     {item.title}
                   </p>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                  <p className="mt-2 text-sm leading-6 text-[#d9d5cf]">
                     {item.description}
                   </p>
                 </div>
