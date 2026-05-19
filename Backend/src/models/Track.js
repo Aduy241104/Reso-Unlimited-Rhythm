@@ -12,7 +12,10 @@ const TrackSchema = new Schema(
             url: { type: String, required: true },
             format: { type: String, required: true },
             bitrate: { type: Number, required: true },
-        }],
+            label: { type: String, enum: ["original", "high", "medium", "low", "lowest"], default: "original" },
+            priority: { type: Number, default: 0 },
+         }],
+
         duration: { type: Number, required: true, min: 0 },
         avatar: { type: String, default: "" },
         coverImage: [{ type: String }],
