@@ -3,7 +3,9 @@ import trackController from "../controllers/track.controller.js";
 import artistTrackController from "../controllers/artist.track.controller.js";
 import uploadController from "../controllers/upload.controller.js";
 import authenticate from "../middlewares/Authentication/authentication.middleware.js";
-import createTrackSchema from "../middlewares/TrackMiddlewareValidation/track.validation.js";
+import createTrackSchema, {
+    updateTrackSchema,
+} from "../middlewares/TrackMiddlewareValidation/track.validation.js";
 import adminTrackController from "../controllers/admin.track.controller.js";
 
 import {
@@ -48,6 +50,14 @@ router.get(
     requireArtist,
     validate(trackValidation.trackIdParamSchema, "params"),
     artistTrackController.getMyTrackDetail
+);
+
+router.patch(
+    "/artist/me/:id",
+    requireArtist,
+    validate(trackValidation.trackIdParamSchema, "params"),
+    validate(updateTrackSchema, "body"),
+    artistTrackController.updateMyTrack
 );
 
 router.patch(

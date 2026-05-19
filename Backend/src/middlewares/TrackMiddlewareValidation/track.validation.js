@@ -100,4 +100,90 @@ const createTrackSchema = Joi.object({
         }),
 });
 
+const updateTrackSchema = Joi.object({
+    title: Joi.string()
+        .trim()
+        .min(1)
+        .max(255)
+        .messages({
+            "string.empty": "Title cannot be empty",
+            "string.min": "Title must be at least 1 character",
+            "string.max": "Title cannot exceed 255 characters",
+        }),
+
+    duration: Joi.number()
+        .positive()
+        .messages({
+            "number.base": "Duration must be a number",
+            "number.positive": "Duration must be a positive number",
+        }),
+
+    album_albumId: Joi.string()
+        .allow("")
+        .messages({
+            "string.base": "Album ID must be a string",
+        }),
+
+    genreIds: Joi.array()
+        .items(Joi.string())
+        .messages({
+            "array.base": "Genre IDs must be an array",
+        }),
+
+    audioFiles: Joi.array()
+        .items(
+            Joi.object().keys({
+                url: Joi.string().required(),
+                format: Joi.string().required(),
+                bitrate: Joi.number().required(),
+                label: Joi.string()
+                    .optional()
+                    .valid("original", "high", "medium", "low", "lowest")
+                    .default("original"),
+                priority: Joi.number()
+                    .optional()
+                    .default(0),
+            })
+        )
+        .messages({
+            "array.base": "Audio files must be an array",
+        }),
+
+    avatar: Joi.string()
+        .allow("")
+        .messages({
+            "string.base": "Avatar must be a string",
+        }),
+
+    coverImage: Joi.array()
+        .items(Joi.string())
+        .messages({
+            "array.base": "Cover image must be an array",
+        }),
+
+    lyricsStatic: Joi.string()
+        .allow("")
+        .messages({
+            "string.base": "Static lyrics must be a string",
+        }),
+
+    lyricsSyncUrl: Joi.string()
+        .allow("")
+        .messages({
+            "string.base": "Sync lyrics URL must be a string",
+        }),
+
+    releaseDate: Joi.date()
+        .allow(null)
+        .messages({
+            "date.base": "Release date must be a valid date",
+        }),
+})
+    .min(1)
+    .messages({
+        "object.min": "At least one field must be provided to update the track",
+    });
+
 export default createTrackSchema;
+
+export { updateTrackSchema };
