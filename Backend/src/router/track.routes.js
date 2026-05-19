@@ -67,6 +67,13 @@ router.patch(
     artistTrackController.hideMyTrack
 );
 
+router.patch(
+    "/artist/me/:id/submit",
+    requireArtist,
+    validate(trackValidation.trackIdParamSchema, "params"),
+    artistTrackController.submitMyTrack
+);
+
 router.delete(
     "/artist/me/:id",
     requireArtist,

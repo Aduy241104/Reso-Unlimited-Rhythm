@@ -642,6 +642,57 @@ const deleteArtistTrack = async (userId, trackId) => {
     };
 };
 
+// export default moved to end to include submitArtistTrack
+
+const submitArtistTrack = async (userId, trackId) => {
+    const user = await User.findById(userId);
+
+    if (!user) {
+        throw new AppError("User not found.", StatusCodes.NOT_FOUND);
+    }
+
+    if (user.role !== "artist") {
+        throw new AppError("Only artists can submit tracks.", StatusCodes.FORBIDDEN);
+    }
+
+    const artist = await Artist.findOne({ userId });
+
+    if (!artist) {
+        throw new AppError("Artist profile not found.", StatusCodes.NOT_FOUND);
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(trackId)) {
+        throw new AppError("Track id is invalid.", StatusCodes.BAD_REQUEST, { field: "id" });
+    }
+
+    const track = await Track.findOne({ _id: trackId, artist_artistId: artist._id });
+
+    if (!track) {
+        throw new AppError("Track not found or you do not have permission.", StatusCodes.NOT_FOUND);
+    }
+
+    // Only allow submitting if not already pending/approved
+    if (track.approvalStatus === "pending" || track.approvalStatus === "approved") {
+        throw new AppError("Track is already submitted or approved.", StatusCodes.BAD_REQUEST);
+    }
+
+    // Basic validation: require at least one audio file and a title
+    if (!track.title || !Array.isArray(track.audioFiles) || track.audioFiles.length === 0) {
+        throw new AppError("Track must have a title and at least one audio file before submitting.", StatusCodes.BAD_REQUEST);
+    }
+
+    track.approvalStatus = "pending";
+    await track.save();
+
+    const populatedTrack = await Track.findById(track._id)
+        .populate({ path: "artist_artistId", select: "name avatar coverImage" })
+        .populate({ path: "album_albumId", select: "title avatar" })
+        .populate({ path: "genreIds", select: "name" })
+        .lean();
+
+    return formatTrackManagementDetail(populatedTrack);
+};
+
 export default {
     createTrack,
     updateArtistTrack,
@@ -649,4 +700,5 @@ export default {
     getArtistTrackDetail,
     hideArtistTrack,
     deleteArtistTrack,
+    submitArtistTrack,
 };

@@ -100,6 +100,20 @@ const deleteMyTrack = async (req, res, next) => {
     }
 };
 
+const submitMyTrack = async (req, res, next) => {
+    try {
+        const track = await artistTrackService.submitArtistTrack(req.user.id, req.params.id);
+
+        return formatResponse.success(
+            res,
+            { track },
+            "Artist track submitted for approval"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     createTrack,
     updateMyTrack,
@@ -107,4 +121,5 @@ export default {
     getMyTrackDetail,
     hideMyTrack,
     deleteMyTrack,
+    submitMyTrack,
 };
