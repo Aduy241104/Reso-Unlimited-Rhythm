@@ -154,6 +154,27 @@ export const MyMusicPage = () => {
     }
   };
 
+  const handleSubmitForApproval = async (track) => {
+    if (!track || isActionLoading) return;
+
+    const confirmed = window.confirm("Submit this track for review? This will set its approval status to pending.");
+    if (!confirmed) return;
+
+    setActionMessage("");
+    setActionError("");
+    setIsActionLoading(true);
+
+    try {
+      const updatedTrack = await trackService.submitForApproval(track._id);
+      setTracks((current) => current.map((t) => (t._id === updatedTrack?._id ? updatedTrack : t)));
+      setActionMessage("Track submitted for approval.");
+    } catch (error) {
+      setActionError(error?.message || error?.response?.data?.message || "Failed to submit track.");
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
   const trackStats = useMemo(() => {
     const totalTracks = tracks.length;
     const activeTracks = tracks.filter((track) => track.activeStatus === "active").length;
@@ -351,12 +372,12 @@ export const MyMusicPage = () => {
                         {track.approvalStatus || "draft"}
                       </span>
                     </td>
-                    <td className="px-5 py-4">
-                      <div className="flex flex-wrap justify-end gap-2">
+                    <td className="px-5 py-4 align-middle">
+                      <div className="flex items-center justify-end gap-2 flex-wrap">
                         <button
                           type="button"
                           onClick={() => handleViewTrack(track._id)}
-                          className="inline-flex items-center gap-2 rounded-sm border border-neutral-200 bg-white px-3 py-2 text-xs font-medium text-[#241b15] transition hover:border-[#8b5e3c] hover:text-[#8b5e3c]"
+                          className="inline-flex items-center gap-2 rounded-sm border border-neutral-200 bg-white px-3 py-2 text-xs font-medium text-[#241b15] transition hover:border-[#8b5e3c] hover:text-[#8b5e3c] whitespace-nowrap flex-shrink-0"
                         >
                           <Eye className="h-4 w-4" />
                           View
@@ -365,7 +386,7 @@ export const MyMusicPage = () => {
                         <button
                           type="button"
                           onClick={() => handleEditTrack(track._id)}
-                          className="inline-flex items-center gap-2 rounded-sm border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-medium text-sky-900 transition hover:bg-sky-100"
+                          className="inline-flex items-center gap-2 rounded-sm border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-medium text-sky-900 transition hover:bg-sky-100 whitespace-nowrap flex-shrink-0"
                         >
                           <Pencil className="h-4 w-4" />
                           Edit
@@ -375,17 +396,28 @@ export const MyMusicPage = () => {
                           type="button"
                           onClick={() => handleHideTrack(track)}
                           disabled={isActionLoading || track.activeStatus === "hidden"}
-                          className="inline-flex items-center gap-2 rounded-sm border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="inline-flex items-center gap-2 rounded-sm border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60 whitespace-nowrap flex-shrink-0"
                         >
                           <EyeOff className="h-4 w-4" />
                           {track.activeStatus === "hidden" ? "Hidden" : "Hide"}
                         </button>
 
+                        {track.approvalStatus !== "pending" && track.approvalStatus !== "approved" ? (
+                          <button
+                            type="button"
+                            onClick={() => handleSubmitForApproval(track)}
+                            disabled={isActionLoading}
+                            className="inline-flex items-center gap-2 rounded-sm border border-sky-200 bg-sky-50 px-2 py-1 text-xs font-medium text-sky-900 transition hover:bg-sky-100 whitespace-nowrap flex-shrink-0"
+                          >
+                            Submit
+                          </button>
+                        ) : null}
+
                         <button
                           type="button"
                           onClick={() => handleDeleteTrack(track)}
                           disabled={isActionLoading}
-                          className="inline-flex items-center gap-2 rounded-sm border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-900 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="inline-flex items-center gap-2 rounded-sm border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-900 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60 whitespace-nowrap flex-shrink-0"
                         >
                           <Trash2 className="h-4 w-4" />
                           Delete
