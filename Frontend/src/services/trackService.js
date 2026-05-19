@@ -77,6 +77,32 @@ export const trackService = {
     }
   },
 
+  hideArtistTrack: async (trackId, reason = "") => {
+    try {
+      const response = await axiosClient.patch(
+        `${TRACKS_API_PREFIX}/artist/me/${trackId}/hide`,
+        { reason }
+      );
+
+      const payload = response?.data?.data;
+      return payload?.track || response?.data?.track || payload || null;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  deleteArtistTrack: async (trackId) => {
+    try {
+      const response = await axiosClient.delete(
+        `${TRACKS_API_PREFIX}/artist/me/${trackId}`
+      );
+
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
   getArtistAlbums: async () => {
     try {
       const response = await axiosClient.get(`${ALBUMS_API_PREFIX}/artist/me`);

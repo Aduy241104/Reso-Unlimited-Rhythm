@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
+  AlertTriangle,
   CalendarDays,
   Disc3,
   FileText,
@@ -107,6 +108,9 @@ const ArtistTrackDetailPage = () => {
   const [track, setTrack] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [actionMessage, setActionMessage] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [isActionLoading, setIsActionLoading] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -215,6 +219,68 @@ const ArtistTrackDetailPage = () => {
     );
   };
 
+  const handleHideTrack = async () => {
+    if (!track || isActionLoading) {
+      return;
+    }
+
+    const reason = window.prompt(
+      "Enter a hide reason (optional):",
+      track.hiddenReason || "Hidden by artist."
+    );
+
+    if (reason === null) {
+      return;
+    }
+
+    setActionError("");
+    setActionMessage("");
+    setIsActionLoading(true);
+
+    try {
+      const updatedTrack = await trackService.hideArtistTrack(track._id, reason);
+      setTrack(updatedTrack);
+      setActionMessage("Track has been hidden successfully.");
+    } catch (error) {
+      setActionError(
+        getApiErrorMessage(error, "Unable to hide this track right now.")
+      );
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleDeleteTrack = async () => {
+    if (!track || isActionLoading) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Delete this track permanently? This cannot be undone."
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setActionError("");
+    setActionMessage("");
+    setIsActionLoading(true);
+
+    try {
+      await trackService.deleteArtistTrack(track._id);
+      navigate(routePaths.artistMusic, {
+        state: { message: "Track deleted successfully." },
+      });
+    } catch (error) {
+      setActionError(
+        getApiErrorMessage(error, "Unable to delete this track right now.")
+      );
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <section className="rounded-md border border-neutral-200 bg-white p-8 text-sm text-neutral-600 shadow-sm">
@@ -272,6 +338,40 @@ const ArtistTrackDetailPage = () => {
         </div>
 
         <div className="space-y-6 p-5 sm:p-8">
+          {actionMessage ? (
+            <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+              {actionMessage}
+            </div>
+          ) : null}
+
+          {actionError ? (
+            <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+              {actionError}
+            </div>
+          ) : null}
+
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={handleHideTrack}
+              disabled={isActionLoading || track?.activeStatus === "hidden"}
+              className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <AlertTriangle className="h-4 w-4" />
+              {track?.activeStatus === "hidden" ? "Already hidden" : "Hide track"}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDeleteTrack}
+              disabled={isActionLoading}
+              className="inline-flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-medium text-rose-900 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <ShieldAlert className="h-4 w-4" />
+              Delete track
+            </button>
+          </div>
+
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <InfoCard icon={<Music2 className="h-5 w-5" />} label="Duration" value={duration} helper="Track length" />
             <InfoCard icon={<CalendarDays className="h-5 w-5" />} label="Release year" value={releaseYear} helper={formatDateTime(track?.releaseDate)} />

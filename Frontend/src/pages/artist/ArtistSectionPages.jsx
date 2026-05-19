@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Eye, EyeOff, Trash2 } from "lucide-react";
 import trackService from "../../services/trackService";
 import { routePaths } from "../../routes/routePaths";
 
@@ -32,6 +33,9 @@ export const MyMusicPage = () => {
   const [tracks, setTracks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [actionMessage, setActionMessage] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [isActionLoading, setIsActionLoading] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -77,6 +81,78 @@ export const MyMusicPage = () => {
       isMounted = false;
     };
   }, []);
+
+  const handleViewTrack = (trackId) => {
+    navigate(routePaths.artistTrackDetail(trackId));
+  };
+
+  const handleHideTrack = async (track) => {
+    if (!track || isActionLoading) {
+      return;
+    }
+
+    const reason = window.prompt(
+      "Enter a hide reason (optional):",
+      track.hiddenReason || "Hidden by artist."
+    );
+
+    if (reason === null) {
+      return;
+    }
+
+    setActionMessage("");
+    setActionError("");
+    setIsActionLoading(true);
+
+    try {
+      const updatedTrack = await trackService.hideArtistTrack(track._id, reason);
+
+      setTracks((currentTracks) =>
+        currentTracks.map((item) => (item._id === updatedTrack?._id ? updatedTrack : item))
+      );
+      setActionMessage("Track hidden successfully.");
+    } catch (error) {
+      setActionError(
+        error?.message ||
+          error?.response?.data?.message ||
+          "Failed to hide this track."
+      );
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleDeleteTrack = async (track) => {
+    if (!track || isActionLoading) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Delete this track permanently? This cannot be undone."
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setActionMessage("");
+    setActionError("");
+    setIsActionLoading(true);
+
+    try {
+      await trackService.deleteArtistTrack(track._id);
+      setTracks((currentTracks) => currentTracks.filter((item) => item._id !== track._id));
+      setActionMessage("Track deleted successfully.");
+    } catch (error) {
+      setActionError(
+        error?.message ||
+          error?.response?.data?.message ||
+          "Failed to delete this track."
+      );
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
 
   const trackStats = useMemo(() => {
     const totalTracks = tracks.length;
@@ -146,6 +222,18 @@ export const MyMusicPage = () => {
         </div>
       )}
 
+      {actionMessage && (
+        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          {actionMessage}
+        </div>
+      )}
+
+      {actionError && (
+        <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {actionError}
+        </div>
+      )}
+
       <div className="rounded-md border border-neutral-200 bg-white">
         <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
           <div>
@@ -184,6 +272,7 @@ export const MyMusicPage = () => {
                   <th className="px-5 py-3 font-medium">Plays</th>
                   <th className="px-5 py-3 font-medium">Status</th>
                   <th className="px-5 py-3 font-medium">Approval</th>
+                  <th className="px-5 py-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
 
@@ -229,6 +318,38 @@ export const MyMusicPage = () => {
                       >
                         {track.approvalStatus || "draft"}
                       </span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleViewTrack(track._id)}
+                          className="inline-flex items-center gap-2 rounded-sm border border-neutral-200 bg-white px-3 py-2 text-xs font-medium text-[#241b15] transition hover:border-[#8b5e3c] hover:text-[#8b5e3c]"
+                        >
+                          <Eye className="h-4 w-4" />
+                          View
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleHideTrack(track)}
+                          disabled={isActionLoading || track.activeStatus === "hidden"}
+                          className="inline-flex items-center gap-2 rounded-sm border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          <EyeOff className="h-4 w-4" />
+                          {track.activeStatus === "hidden" ? "Hidden" : "Hide"}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTrack(track)}
+                          disabled={isActionLoading}
+                          className="inline-flex items-center gap-2 rounded-sm border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-900 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
