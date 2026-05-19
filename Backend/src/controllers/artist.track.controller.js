@@ -47,8 +47,45 @@ const getMyTrackDetail = async (req, res, next) => {
     }
 };
 
+const hideMyTrack = async (req, res, next) => {
+    try {
+        const track = await artistTrackService.hideArtistTrack(
+            req.user.id,
+            req.params.id,
+            req.body?.reason
+        );
+
+        return formatResponse.success(
+            res,
+            { track },
+            "Artist track hidden successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+const deleteMyTrack = async (req, res, next) => {
+    try {
+        const result = await artistTrackService.deleteArtistTrack(
+            req.user.id,
+            req.params.id
+        );
+
+        return formatResponse.success(
+            res,
+            result,
+            "Artist track deleted successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     createTrack,
     getMyTracks,
     getMyTrackDetail,
+    hideMyTrack,
+    deleteMyTrack,
 };

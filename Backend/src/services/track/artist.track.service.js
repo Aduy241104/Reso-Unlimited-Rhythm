@@ -248,8 +248,107 @@ const getArtistTrackDetail = async (userId, trackId) => {
     return formatTrackManagementDetail(track);
 };
 
+const hideArtistTrack = async (userId, trackId, reason = "") => {
+    const artist = await Artist.findOne({ userId });
+
+    if (!artist) {
+        throw new AppError("Artist profile not found.", StatusCodes.NOT_FOUND);
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(trackId)) {
+        throw new AppError("Track id is invalid.", StatusCodes.BAD_REQUEST, {
+            field: "id",
+        });
+    }
+
+    const track = await Track.findOne({
+        _id: trackId,
+        artist_artistId: artist._id,
+    });
+
+    if (!track) {
+        throw new AppError(
+            "Track not found or you do not have permission to update it.",
+            StatusCodes.NOT_FOUND
+        );
+    }
+
+    track.activeStatus = "hidden";
+    track.hiddenReason = String(reason || "Hidden by artist.").trim() || "Hidden by artist.";
+    track.hiddenAt = new Date();
+
+    await track.save();
+
+    const populatedTrack = await Track.findById(track._id)
+        .populate({
+            path: "artist_artistId",
+            select: "name avatar coverImage",
+        })
+        .populate({
+            path: "album_albumId",
+            select: "title avatar",
+        })
+        .populate({
+            path: "genreIds",
+            select: "name",
+        })
+        .lean();
+
+    return formatTrackManagementDetail(populatedTrack);
+};
+
+const deleteArtistTrack = async (userId, trackId) => {
+    const artist = await Artist.findOne({ userId });
+
+    if (!artist) {
+        throw new AppError("Artist profile not found.", StatusCodes.NOT_FOUND);
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(trackId)) {
+        throw new AppError("Track id is invalid.", StatusCodes.BAD_REQUEST, {
+            field: "id",
+        });
+    }
+
+    const track = await Track.findOne({
+        _id: trackId,
+        artist_artistId: artist._id,
+    });
+
+    if (!track) {
+        throw new AppError(
+            "Track not found or you do not have permission to delete it.",
+            StatusCodes.NOT_FOUND
+        );
+    }
+
+    const albumId = track.album_albumId;
+    if (albumId) {
+        const album = await Album.findById(albumId);
+
+        if (album) {
+            album.trackList = (album.trackList || [])
+                .filter((item) => !item.trackId?.equals(track._id))
+                .map((item, index) => ({
+                    trackId: item.trackId,
+                    order: index + 1,
+                }));
+
+            await album.save();
+        }
+    }
+
+    await Track.deleteOne({ _id: track._id, artist_artistId: artist._id });
+
+    return {
+        deletedId: trackId,
+    };
+};
+
 export default {
     createTrack,
     getArtistTracks,
     getArtistTrackDetail,
+    hideArtistTrack,
+    deleteArtistTrack,
 };

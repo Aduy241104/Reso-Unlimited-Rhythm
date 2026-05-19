@@ -50,6 +50,20 @@ router.get(
     artistTrackController.getMyTrackDetail
 );
 
+router.patch(
+    "/artist/me/:id/hide",
+    requireArtist,
+    validate(trackValidation.trackIdParamSchema, "params"),
+    artistTrackController.hideMyTrack
+);
+
+router.delete(
+    "/artist/me/:id",
+    requireArtist,
+    validate(trackValidation.trackIdParamSchema, "params"),
+    artistTrackController.deleteMyTrack
+);
+
 // Admin: must be registered before `/:id` so `/admin` is not captured as an id
 router.get(
     "/admin",
