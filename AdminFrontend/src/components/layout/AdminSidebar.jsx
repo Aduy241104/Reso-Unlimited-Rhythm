@@ -1,6 +1,15 @@
+import { useState } from "react";
+import { Settings, LogOut, ChevronUp } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 const AdminSidebar = ({ navigationItems, onLogout, user }) => {
+  const [isAccountOpen, setIsAccountOpen] = useState(false);
+
+  const handleLogout = () => {
+    setIsAccountOpen(false);
+    onLogout();
+  };
+
   return (
     <aside className="flex h-full w-72 shrink-0 flex-col bg-black text-white">
       <div className="px-6 py-4">
@@ -29,24 +38,58 @@ const AdminSidebar = ({ navigationItems, onLogout, user }) => {
         </nav>
       </div>
 
-      <div className="mt-auto border-t border-white/10 px-6 py-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/40">
-          Account
-        </p>
-        <div className="mt-4">
-          <p className="text-sm font-semibold">
-            {user?.username || user?.email || "Admin"}
-          </p>
-          <p className="mt-1 break-all text-sm text-white/60">
-            {user?.email || "-"}
-          </p>
-        </div>
+      <div className="relative mt-auto border-t border-white/10 px-6 py-5">
+        {isAccountOpen ? (
+          <div className="absolute inset-x-6 bottom-[calc(100%-0.75rem)] rounded-2xl border border-white/10 bg-[#111111] p-4 shadow-[0_18px_42px_rgba(0,0,0,0.38)]">
+            <div className="flex items-end justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/40">
+                  Account
+                </p>
+                <p className="mt-3 truncate text-sm font-semibold">
+                  {user?.username || user?.email || "Admin"}
+                </p>
+                <p className="mt-1 break-all text-sm text-white/60">
+                  {user?.email || "-"}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsAccountOpen(false)}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition hover:bg-white/10 hover:text-white"
+                aria-label="Close account menu"
+              >
+                <ChevronUp size={16} />
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/15"
+            >
+              <LogOut size={16} />
+              <span>Sign out</span>
+            </button>
+          </div>
+        ) : null}
+
         <button
           type="button"
-          onClick={onLogout}
-          className="mt-5 w-full rounded-md border border-white/15 bg-white/10 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/15"
+          onClick={() => setIsAccountOpen((current) => !current)}
+          aria-expanded={isAccountOpen}
+          aria-label="Open account menu"
+          className={`flex h-12 w-12 items-center justify-center rounded-full border text-white transition ${
+            isAccountOpen
+              ? "border-white/20 bg-white/12"
+              : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10"
+          }`}
         >
-          Sign out
+          <Settings
+            size={18}
+            className={isAccountOpen ? "rotate-90 transition-transform duration-200" : "transition-transform duration-200"}
+          />
         </button>
       </div>
     </aside>

@@ -59,6 +59,8 @@ export const appRoutes = [
               {
                 path: "users/:userId",
                 element: <UserDetailPage />,
+              },
+              {
                 path: "system-tracks",
                 element: <SystemTracksListPage />,
               },
