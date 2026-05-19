@@ -43,6 +43,13 @@ router.get(
     artistTrackController.getMyTracks
 );
 
+router.get(
+    "/artist/me/:id",
+    requireArtist,
+    validate(trackValidation.trackIdParamSchema, "params"),
+    artistTrackController.getMyTrackDetail
+);
+
 // Admin: must be registered before `/:id` so `/admin` is not captured as an id
 router.get(
     "/admin",

@@ -30,7 +30,25 @@ const getMyTracks = async (req, res, next) => {
     }
 };
 
+const getMyTrackDetail = async (req, res, next) => {
+    try {
+        const track = await artistTrackService.getArtistTrackDetail(
+            req.user.id,
+            req.params.id
+        );
+
+        return formatResponse.success(
+            res,
+            { track },
+            "Artist track detail fetched successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     createTrack,
     getMyTracks,
+    getMyTrackDetail,
 };

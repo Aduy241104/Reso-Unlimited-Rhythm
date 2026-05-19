@@ -207,7 +207,49 @@ const getArtistTracks = async (userId, query = {}) => {
     };
 };
 
+const getArtistTrackDetail = async (userId, trackId) => {
+    const artist = await Artist.findOne({ userId });
+
+    if (!artist) {
+        throw new AppError("Artist profile not found.", StatusCodes.NOT_FOUND);
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(trackId)) {
+        throw new AppError("Track id is invalid.", StatusCodes.BAD_REQUEST, {
+            field: "id",
+        });
+    }
+
+    const track = await Track.findOne({
+        _id: trackId,
+        artist_artistId: artist._id,
+    })
+        .populate({
+            path: "artist_artistId",
+            select: "name avatar coverImage",
+        })
+        .populate({
+            path: "album_albumId",
+            select: "title avatar",
+        })
+        .populate({
+            path: "genreIds",
+            select: "name",
+        })
+        .lean();
+
+    if (!track) {
+        throw new AppError(
+            "Track not found or you do not have permission to view it.",
+            StatusCodes.NOT_FOUND
+        );
+    }
+
+    return formatTrackManagementDetail(track);
+};
+
 export default {
     createTrack,
     getArtistTracks,
+    getArtistTrackDetail,
 };
