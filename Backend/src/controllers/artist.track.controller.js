@@ -1,0 +1,36 @@
+import artistTrackService from "../services/Track/artist.track.service.js";
+import formatResponse from "../utils/formatResponse.js";
+
+const createTrack = async (req, res, next) => {
+    try {
+        const track = await artistTrackService.createTrack(req.user.id, req.body);
+
+        return formatResponse.success(
+            res,
+            { track },
+            "Artist track created successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+const getMyTracks = async (req, res, next) => {
+    try {
+        const result = await artistTrackService.getArtistTracks(req.user.id, req.query);
+
+        return formatResponse.success(
+            res,
+            { tracks: result.tracks },
+            "Artist tracks fetched successfully",
+            result.pagination
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+export default {
+    createTrack,
+    getMyTracks,
+};
