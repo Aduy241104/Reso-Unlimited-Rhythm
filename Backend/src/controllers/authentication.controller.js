@@ -76,6 +76,36 @@ const login = async (req, res, next) => {
     }
 };
 
+const forgotPassword = async (req, res, next) => {
+    try {
+        const resetResult = await authenticationService.requestForgotPassword(
+            req.body
+        );
+
+        return formatResponse.success(
+            res,
+            resetResult,
+            "If the email exists, a reset password link has been sent."
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+const resetPassword = async (req, res, next) => {
+    try {
+        await authenticationService.resetPassword(req.body);
+
+        return formatResponse.success(
+            res,
+            null,
+            "Password reset successful"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 const logout = async (req, res, next) => {
     try {
         await authenticationService.logout(req.cookies.refreshToken);
@@ -126,6 +156,8 @@ export default {
     requestRegisterOtp,
     register,
     login,
+    forgotPassword,
+    resetPassword,
     logout,
     refreshToken,
     me

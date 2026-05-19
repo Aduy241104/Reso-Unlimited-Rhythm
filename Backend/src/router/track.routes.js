@@ -7,13 +7,12 @@ import createTrackSchema, {
     updateTrackSchema,
 } from "../middlewares/TrackMiddlewareValidation/track.validation.js";
 import adminTrackController from "../controllers/admin.track.controller.js";
-
+import adminTrackValidation from "../middlewares/Admin/admin.track.validation.js";
 import {
     optionalAuthenticate,
-    requireArtist,
     requireAdmin,
 } from "../middlewares/Authentication/authentication.middleware.js";
-
+import { requireArtist } from "../middlewares/Authentication/authentication.middleware.js";
 import trackValidation from "../middlewares/track.validation.js";
 import validate from "../middlewares/validate.middleware.js";
 import upload from "../middlewares/upload.middleware.js";
@@ -86,6 +85,23 @@ router.get(
     "/admin",
     requireAdmin,
     adminTrackController.listTracksForAdmin
+);
+
+router.patch(
+    "/admin/:id/approval",
+    requireAdmin,
+    validate(trackValidation.trackIdParamSchema, "params"),
+    validate(adminTrackValidation.updateTrackApprovalSchema, "body"),
+    
+    adminTrackController.updateTrackApprovalStatus
+);
+
+router.patch(
+    "/admin/:id/visibility",
+    requireAdmin,
+    validate(trackValidation.trackIdParamSchema, "params"),
+    validate(adminTrackValidation.updateTrackVisibilitySchema, "body"),
+    adminTrackController.updateTrackVisibilityController
 );
 
 // User routes

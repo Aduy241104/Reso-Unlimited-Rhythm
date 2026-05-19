@@ -25,6 +25,18 @@ router.post(
 );
 
 router.post(
+    "/forgot-password",
+    validate(authenticationValidation.forgotPasswordSchema),
+    authenticationController.forgotPassword
+);
+
+router.post(
+    "/reset-password",
+    validate(authenticationValidation.resetPasswordSchema),
+    authenticationController.resetPassword
+);
+
+router.post(
     "/logout",
     authenticationController.logout
 );

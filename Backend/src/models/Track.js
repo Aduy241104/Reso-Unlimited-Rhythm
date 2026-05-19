@@ -8,13 +8,14 @@ const TrackSchema = new Schema(
         artist_artistId: { type: Schema.Types.ObjectId, ref: "Artist", required: true, index: true },
         album_albumId: { type: Schema.Types.ObjectId, ref: "Album", index: true },
         genreIds: [{ type: Schema.Types.ObjectId, ref: "Genre" }],
-        audioFiles: [{ 
+        audioFiles: [{
             url: { type: String, required: true },
             format: { type: String, required: true },
             bitrate: { type: Number, required: true },
             label: { type: String, enum: ["original", "high", "medium", "low", "lowest"], default: "original" },
             priority: { type: Number, default: 0 },
          }],
+
         duration: { type: Number, required: true, min: 0 },
         avatar: { type: String, default: "" },
         coverImage: [{ type: String }],
@@ -38,6 +39,10 @@ const TrackSchema = new Schema(
             enum: ["draft", "pending", "approved", "rejected"],
             default: "draft",
             index: true,
+        },
+        rejectReason: {
+            type: String,
+            default: "",
         },
 
         blockedReason: { type: String, default: "" },

@@ -7,8 +7,12 @@ import validate from "../middlewares/validate.middleware.js";
 
 const router = express.Router();
 
+// User routes
 router.get("/system", playlistController.getSystemPlaylists);
 
+router.get("/system/detail/:id", playlistController.getPlaylistDetail);
+
+// Admin routes
 router.post(
     "/system",
     requireAdmin,
