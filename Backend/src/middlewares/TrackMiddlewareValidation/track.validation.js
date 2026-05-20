@@ -186,4 +186,14 @@ const updateTrackSchema = Joi.object({
 
 export default createTrackSchema;
 
-export { updateTrackSchema };
+    const addLyricsStaticSchema = Joi.object({
+        lyricsStatic: Joi.string()
+            .allow("")
+            .required()
+            .messages({
+                "string.base": "Static lyrics must be a string",
+                "any.required": "Static lyrics is required",
+            }),
+    });
+
+    export { updateTrackSchema, addLyricsStaticSchema };

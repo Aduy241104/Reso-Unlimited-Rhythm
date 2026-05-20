@@ -326,6 +326,7 @@ const updateArtistTrack = async (userId, trackId, trackData) => {
         ? trackData.genreIds.filter(Boolean)
         : undefined;
 
+
     if (trackData.title !== undefined) {
         track.title = trackData.title;
     }

@@ -59,6 +59,8 @@ router.patch(
     artistTrackController.updateMyTrack
 );
 
+// lyrics management moved to separate lyrics routes
+
 router.patch(
     "/artist/me/:id/hide",
     requireArtist,
