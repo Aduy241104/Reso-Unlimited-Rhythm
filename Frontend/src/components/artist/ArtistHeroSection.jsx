@@ -5,8 +5,18 @@ import { formatFullNumber } from "../../utils/artistProfile";
 const ArtistHeroSection = ({
   profile,
   isFollowing,
+  isFollowLoading = false,
+  followErrorMessage = "",
   onToggleFollow,
 }) => {
+  const followButtonLabel = isFollowLoading
+    ? isFollowing
+      ? "Following..."
+      : "Follow..."
+    : isFollowing
+      ? "Following"
+      : "Follow";
+
   return (
     <section className="relative overflow-hidden bg-[#121212]">
       <div className="relative h-[22rem] w-full overflow-hidden sm:h-[28rem] lg:h-[34rem]">
@@ -45,7 +55,7 @@ const ArtistHeroSection = ({
 
               <div className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-white/82 sm:text-base">
                 <span>{ formatFullNumber(profile.monthlyListeners) } monthly listeners</span>
-                <span className="text-white/35">•</span>
+                <span className="text-white/35">&middot;</span>
                 <span>{ formatFullNumber(profile.followers) } followers</span>
               </div>
 
@@ -53,12 +63,14 @@ const ArtistHeroSection = ({
                 <button
                   type="button"
                   onClick={ onToggleFollow }
+                  disabled={ isFollowLoading }
                   className="
                     rounded-full border border-white/25 px-6 py-3 text-sm font-semibold uppercase tracking-[0.14em]
                     text-white transition duration-300 hover:scale-[1.02] hover:border-white/40 hover:bg-white/[0.08]
+                    disabled:cursor-not-allowed disabled:opacity-70
                   "
                 >
-                  { isFollowing ? "Following" : "Follow" }
+                  { followButtonLabel }
                 </button>
 
                 <button
@@ -69,6 +81,10 @@ const ArtistHeroSection = ({
                   <MoreHorizontal className="h-5 w-5" />
                 </button>
               </div>
+
+              { followErrorMessage ? (
+                <p className="mt-3 text-sm text-rose-200/90">{ followErrorMessage }</p>
+              ) : null }
             </div>
           </div>
         </div>
