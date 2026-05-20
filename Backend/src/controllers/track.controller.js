@@ -1,4 +1,4 @@
-import trackService from "../services/track/track.service.js";
+import trackService from "../services/Track/track.service.js";
 import formatResponse from "../utils/formatResponse.js";
 
 const getTrackDetail = async (req, res, next) => {

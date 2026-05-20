@@ -59,4 +59,6 @@ router.delete(
     adminPlaylistController.deleteSystemPlaylist
 );
 
+router.get("/detail/:id", playlistController.getPlaylistDetail);
+
 export default router;
