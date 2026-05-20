@@ -20,6 +20,7 @@ import {
 import CreateTrackPage from "../pages/artist/CreateTrackPage";
 import ArtistTrackDetailPage from "../pages/artist/ArtistTrackDetailPage";
 import ArtistTrackEditPage from "../pages/artist/ArtistTrackEditPage";
+import ArtistLyricsPage from "../pages/artist/ArtistLyricsPage";
 import HomePage from "../pages/home/HomePage";
 import LyricsPage from "../pages/lyrics/LyricsPage";
 import ArtistProfilePageView from "../pages/profile/ArtistProfilePage";
@@ -100,6 +101,10 @@ export const appRoutes = [
               {
                 path: routePaths.artistTrackEdit(),
                 element: <ArtistTrackEditPage />,
+              },
+              {
+                path: routePaths.artistLyrics,
+                element: <ArtistLyricsPage />,
               },
               {
                 path: routePaths.artistReleases,

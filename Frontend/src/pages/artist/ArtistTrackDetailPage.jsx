@@ -186,9 +186,20 @@ const ArtistTrackDetailPage = () => {
   const duration = formatTrackDuration(track?.duration);
   const genres = Array.isArray(track?.genres) ? track.genres : [];
   const audioFiles = Array.isArray(track?.audioFiles) ? track.audioFiles : [];
+  const canPlayTrack =
+    track?.activeStatus === "active" &&
+    track?.approvalStatus === "approved" &&
+    audioFiles.length > 0;
 
   const handlePlay = async () => {
     if (!track) {
+      return;
+    }
+
+    if (!canPlayTrack) {
+      setActionError(
+        "This track cannot be played until it is active, approved, and has audio files."
+      );
       return;
     }
 
@@ -226,6 +237,14 @@ const ArtistTrackDetailPage = () => {
     }
 
     navigate(routePaths.artistTrackEdit(track._id));
+  };
+
+  const handleEditLyrics = () => {
+    if (!track) {
+      return;
+    }
+
+    navigate(`${routePaths.artistLyrics}?trackId=${track._id}`);
   };
 
   const handleHideTrack = async () => {
@@ -338,10 +357,11 @@ const ArtistTrackDetailPage = () => {
             <button
               type="button"
               onClick={handlePlay}
-              className="inline-flex h-12 items-center gap-2 rounded-full bg-[#1ed760] px-5 text-sm font-semibold text-black transition hover:scale-[1.02] hover:brightness-105"
+              disabled={!canPlayTrack}
+              className="inline-flex h-12 items-center gap-2 rounded-full bg-[#1ed760] px-5 text-sm font-semibold text-black transition hover:scale-[1.02] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 disabled:hover:brightness-100"
             >
               <Play className="h-5 w-5 fill-current" />
-              Play
+              {canPlayTrack ? "Play" : "Play unavailable"}
             </button>
           </div>
         </div>
@@ -368,6 +388,16 @@ const ArtistTrackDetailPage = () => {
             >
               <Pencil className="h-4 w-4" />
               Edit track
+            </button>
+
+            <button
+              type="button"
+              onClick={handleEditLyrics}
+              disabled={!track}
+              className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-4 py-2 text-sm font-medium text-violet-900 transition hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <FileText className="h-4 w-4" />
+              Edit lyrics
             </button>
 
             <button

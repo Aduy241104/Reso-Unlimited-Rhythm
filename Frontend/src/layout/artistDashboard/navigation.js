@@ -1,6 +1,7 @@
 import {
   BarChart3,
   Disc3,
+  FileText,
   LayoutDashboard,
   Music2,
   Settings,
@@ -22,6 +23,11 @@ export const artistNavigation = [
     icon: Music2,
   },
   {
+    label: "Lyrics",
+    to: routePaths.artistLyrics,
+    icon: FileText,
+  },
+  {
     label: "Releases",
     to: routePaths.artistReleases,
     icon: Disc3,
@@ -38,6 +44,7 @@ export const artistPageTitles = {
   [routePaths.artistMusic]: "My Music",
   [routePaths.artistTrackDetail()]: "Track Detail",
   [routePaths.artistTrackEdit()]: "Edit Track",
+  [routePaths.artistLyrics]: "Lyrics Management",
   [routePaths.artistReleases]: "Releases",
   [routePaths.artistAnalytics]: "Analytics",
   [routePaths.artistProfile]: "Artist Profile",

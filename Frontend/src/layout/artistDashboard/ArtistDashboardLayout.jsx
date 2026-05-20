@@ -68,6 +68,10 @@ const ArtistDashboardLayout = () => {
       return artistPageTitles[routePaths.artistProfile] ?? "Artist Dashboard";
     }
 
+    if (location.pathname === routePaths.artistLyrics) {
+      return artistPageTitles[routePaths.artistLyrics] ?? "Artist Dashboard";
+    }
+
     const activeItem = artistNavigation.find((item) => {
       if (item.to === "/artist") {
         return location.pathname === item.to;
