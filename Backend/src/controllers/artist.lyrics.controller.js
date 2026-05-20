@@ -19,6 +19,25 @@ const addStaticLyrics = async (req, res, next) => {
     }
 };
 
+const updateSyncLyrics = async (req, res, next) => {
+    try {
+        const track = await lyricsService.updateSyncLyrics(
+            req.user.id,
+            req.params.id,
+            req.file
+        );
+
+        return formatResponse.success(
+            res,
+            { track },
+            "Synced lyrics updated successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     addStaticLyrics,
+    updateSyncLyrics,
 };
