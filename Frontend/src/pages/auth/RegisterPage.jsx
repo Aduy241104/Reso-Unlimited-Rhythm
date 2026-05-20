@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import RegisterDetailsStep from "../../components/auth/RegisterDetailsStep";
 import RegisterOtpStep from "../../components/auth/RegisterOtpStep";
+import { fetchCountryOptions } from "../../services/countryService";
 import {
   registerService,
   requestRegisterOtpService,
@@ -19,22 +20,33 @@ const createOtpPayload = (values) => ({
   email: values.email.trim().toLowerCase(),
   password: values.password,
   fullName: values.fullName.trim(),
+  gender: values.gender,
+  dateOfBirth: values.dateOfBirth,
+  country: values.country.trim(),
 });
 
-const registerHighlights = [
-  {
-    title: "Step 1",
-    description: "Enter your name, email, and password to request a verification OTP.",
-  },
-  {
-    title: "Step 2",
-    description: "Use the 6-digit OTP that the backend sends to your email address.",
-  },
-  {
-    title: "Step 3",
-    description: "Finish registration and return to login as soon as verification succeeds.",
-  },
-];
+const loadCountryOptionsState = async ({
+  setCountryOptions,
+  setCountriesError,
+  setIsCountriesLoading,
+}) => {
+  setIsCountriesLoading(true);
+  setCountriesError("");
+
+  try {
+    const nextCountryOptions = await fetchCountryOptions();
+    setCountryOptions(nextCountryOptions);
+  } catch (error) {
+    setCountriesError(
+      getApiErrorMessage(
+        error,
+        "Unable to load the country list right now."
+      )
+    );
+  } finally {
+    setIsCountriesLoading(false);
+  }
+};
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -45,14 +57,20 @@ const RegisterPage = () => {
   const [remainingSeconds, setRemainingSeconds] = useState(0);
   const [cooldownUntil, setCooldownUntil] = useState(null);
   const [pendingRegistration, setPendingRegistration] = useState(null);
+  const [countryOptions, setCountryOptions] = useState([]);
+  const [isCountriesLoading, setIsCountriesLoading] = useState(true);
+  const [countriesError, setCountriesError] = useState("");
 
   const detailsForm = useForm({
     resolver: zodResolver(registerDetailsSchema),
-    mode: "onBlur",
-    reValidateMode: "onChange",
+    mode: "onSubmit",
+    reValidateMode: "onSubmit",
     defaultValues: {
       fullName: "",
       email: "",
+      gender: "prefer_not_to_say",
+      dateOfBirth: "",
+      country: "",
       password: "",
       confirmPassword: "",
     },
@@ -60,8 +78,8 @@ const RegisterPage = () => {
 
   const otpForm = useForm({
     resolver: zodResolver(registerOtpSchema),
-    mode: "onBlur",
-    reValidateMode: "onChange",
+    mode: "onSubmit",
+    reValidateMode: "onSubmit",
     defaultValues: {
       otp: "",
     },
@@ -93,6 +111,14 @@ const RegisterPage = () => {
     return () => window.clearInterval(intervalId);
   }, [cooldownUntil]);
 
+  useEffect(() => {
+    loadCountryOptionsState({
+      setCountryOptions,
+      setCountriesError,
+      setIsCountriesLoading,
+    });
+  }, []);
+
   const startOtpCooldown = (seconds) => {
     if (!seconds) {
       setCooldownUntil(null);
@@ -109,7 +135,9 @@ const RegisterPage = () => {
 
     try {
       const payload = createOtpPayload(values);
-      const result = await requestRegisterOtpService(payload);
+      const result = await requestRegisterOtpService({
+        email: payload.email,
+      });
       const normalizedEmail = result?.email || payload.email;
 
       detailsForm.setValue("email", normalizedEmail, {
@@ -127,7 +155,11 @@ const RegisterPage = () => {
     } catch (error) {
       const hasFieldErrors = applyApiFieldErrors({
         error,
+        fieldMap: {
+          email: "email",
+        },
         setError: detailsForm.setError,
+        strictFieldMap: true,
       });
 
       if (!hasFieldErrors) {
@@ -155,6 +187,11 @@ const RegisterPage = () => {
       await registerService({
         email: pendingRegistration.email,
         otp: otp.trim(),
+        password: pendingRegistration.password,
+        fullName: pendingRegistration.fullName,
+        gender: pendingRegistration.gender,
+        dateOfBirth: pendingRegistration.dateOfBirth,
+        country: pendingRegistration.country,
       });
 
       navigate("/login", {
@@ -164,12 +201,41 @@ const RegisterPage = () => {
         },
       });
     } catch (error) {
-      const hasFieldErrors = applyApiFieldErrors({
+      const hasOtpFieldErrors = applyApiFieldErrors({
         error,
+        fieldMap: {
+          otp: "otp",
+        },
         setError: otpForm.setError,
+        strictFieldMap: true,
       });
 
-      if (!hasFieldErrors) {
+      const hasDetailsFieldErrors = applyApiFieldErrors({
+        error,
+        fieldMap: {
+          email: "email",
+          password: "password",
+          fullName: "fullName",
+          gender: "gender",
+          dateOfBirth: "dateOfBirth",
+          country: "country",
+        },
+        setError: detailsForm.setError,
+        strictFieldMap: true,
+      });
+
+      if (hasDetailsFieldErrors) {
+        setDetailsApiError(
+          getApiErrorMessage(
+            error,
+            "Registration details are no longer valid. Please review them."
+          )
+        );
+        setStep("details");
+        return;
+      }
+
+      if (!hasOtpFieldErrors) {
         setOtpApiError(
           getApiErrorMessage(
             error,
@@ -191,8 +257,6 @@ const RegisterPage = () => {
     try {
       const result = await requestRegisterOtpService({
         email: pendingRegistration.email,
-        password: pendingRegistration.password,
-        fullName: pendingRegistration.fullName,
       });
 
       const normalizedEmail = result?.email || pendingRegistration.email;
@@ -215,7 +279,11 @@ const RegisterPage = () => {
     } catch (error) {
       const hasFieldErrors = applyApiFieldErrors({
         error,
+        fieldMap: {
+          email: "email",
+        },
         setError: detailsForm.setError,
+        strictFieldMap: true,
       });
 
       const resendAfterSeconds = getResendAfterSecondsFromError(error);
@@ -242,62 +310,51 @@ const RegisterPage = () => {
     }
   };
 
+  const handleRetryCountries = async () => {
+    await loadCountryOptionsState({
+      setCountryOptions,
+      setCountriesError,
+      setIsCountriesLoading,
+    });
+  };
+
   return (
-    <main className="min-h-screen bg-[#0f0f14] bg-[radial-gradient(circle_at_top_left,_rgba(245,182,111,0.22),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(79,124,255,0.14),_transparent_24%),linear-gradient(135deg,_#0f0f14_0%,_#15131b_45%,_#0d1018_100%)] px-4 py-10 text-white sm:px-6 lg:px-8">
-      <div className="mx-auto grid min-h-[calc(100vh-5rem)] w-full max-w-6xl items-center gap-8 lg:grid-cols-[1.05fr_0.95fr]">
-        <section className="order-2 lg:order-1">
-          <div className="max-w-xl">
-            <p className="mb-4 text-sm font-semibold uppercase tracking-[0.35em] text-[#f5b66f]">
-              Register Flow
-            </p>
-            <h2 className="text-4xl font-semibold leading-tight text-white sm:text-5xl">
-              Register with the OTP flow that already exists in the backend.
-            </h2>
-            <p className="mt-5 max-w-lg text-base leading-7 text-[#d9d5cf]">
-              The frontend keeps the registration flow split into a details step
-              and an OTP verification step, while still mapping backend field
-              errors directly to the correct form inputs.
-            </p>
+    <main className="min-h-screen bg-[#0f0f14] bg-[radial-gradient(circle_at_top_left,_rgba(245,182,111,0.22),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(79,124,255,0.14),_transparent_24%),linear-gradient(135deg,_#0f0f14_0%,_#15131b_45%,_#0d1018_100%)] px-4 py-4 text-white sm:px-6 sm:py-6 lg:px-8 lg:py-8">
 
-            <div className="mt-8 grid gap-4 sm:grid-cols-3">
-              {registerHighlights.map((item) => (
-                <div
-                  key={item.title}
-                  className="rounded-3xl border border-white/8 bg-white/[0.04] p-4 shadow-[0_18px_45px_rgba(15,23,42,0.24)] backdrop-blur"
-                >
-                  <p className="text-sm font-semibold text-[#f5b66f]">
-                    {item.title}
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-[#d9d5cf]">
-                    {item.description}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+      <div
+        className={`mx-auto flex w-full items-center justify-center ${
+          step === "details"
+            ? "min-h-[calc(100vh-2rem)] max-w-5xl"
+            : "min-h-[calc(100vh-5rem)] max-w-md"
+        }`}
+      >
 
-        <div className="order-1 lg:order-2">
-          {step === "details" ? (
+        <div className="w-full">
+          { step === "details" ? (
             <RegisterDetailsStep
-              apiError={detailsApiError}
-              form={detailsForm}
-              onSubmit={handleSendOtp}
+              apiError={ detailsApiError }
+              countriesError={ countriesError }
+              countryOptions={ countryOptions }
+              form={ detailsForm }
+              isCountriesLoading={ isCountriesLoading }
+              onRetryCountries={ handleRetryCountries }
+              onSubmit={ handleSendOtp }
             />
           ) : (
             <RegisterOtpStep
-              apiError={otpApiError}
-              email={pendingRegistration?.email || ""}
-              expiresInMinutes={pendingRegistration?.expiresInMinutes}
-              form={otpForm}
-              isResending={isResendingOtp}
-              onEditDetails={() => setStep("details")}
-              onResendOtp={handleResendOtp}
-              onSubmit={handleRegister}
-              remainingSeconds={remainingSeconds}
+              apiError={ otpApiError }
+              email={ pendingRegistration?.email || "" }
+              expiresInMinutes={ pendingRegistration?.expiresInMinutes }
+              form={ otpForm }
+              isResending={ isResendingOtp }
+              onEditDetails={ () => setStep("details") }
+              onResendOtp={ handleResendOtp }
+              onSubmit={ handleRegister }
+              remainingSeconds={ remainingSeconds }
             />
-          )}
+          ) }
         </div>
+
       </div>
     </main>
   );

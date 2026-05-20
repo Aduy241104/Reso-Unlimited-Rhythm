@@ -35,6 +35,28 @@ const getOtpExpireDate = () =>
 const getResetPasswordExpireDate = () =>
     new Date(Date.now() + RESET_PASSWORD_TTL_MINUTES * 60 * 1000);
 
+const normalizeOptionalDate = (value) => {
+    if (!value) {
+        return undefined;
+    }
+
+    const parsedDate = value instanceof Date ? value : new Date(value);
+
+    return Number.isNaN(parsedDate.getTime()) ? undefined : parsedDate;
+};
+
+const buildRegistrationProfilePayload = ({
+    fullName,
+    gender,
+    dateOfBirth,
+    country,
+}) => ({
+    fullName: fullName?.trim() || "",
+    gender: gender || "prefer_not_to_say",
+    dateOfBirth: normalizeOptionalDate(dateOfBirth),
+    country: country?.trim() || "",
+});
+
 const ensureRegistrationAvailability = async (email) => {
     const [existingEmail] = await Promise.all([
         User.findOne({ email }),
@@ -47,9 +69,8 @@ const ensureRegistrationAvailability = async (email) => {
     }
 };
 
-const requestRegisterOtp = async ({ email, password, username, fullName }) => {
+const requestRegisterOtp = async ({ email }) => {
     const normalizedEmail = email.trim().toLowerCase();
-    const normalizedFullName = fullName?.trim() || "";
 
     await ensureRegistrationAvailability(normalizedEmail);
 
@@ -75,7 +96,6 @@ const requestRegisterOtp = async ({ email, password, username, fullName }) => {
         );
     }
 
-    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
     const otp = generateOtp();
 
     const verificationData = {
@@ -85,10 +105,6 @@ const requestRegisterOtp = async ({ email, password, username, fullName }) => {
         type: "verify_email",
         expiresAt: getOtpExpireDate(),
         isUsed: false,
-        payload: {
-            password: hashedPassword,
-            fullName: normalizedFullName,
-        },
     };
 
     let activeVerificationToken;
@@ -96,7 +112,6 @@ const requestRegisterOtp = async ({ email, password, username, fullName }) => {
         latestVerification.otp = verificationData.otp;
         latestVerification.token = verificationData.token;
         latestVerification.expiresAt = verificationData.expiresAt;
-        latestVerification.payload = verificationData.payload;
         latestVerification.isUsed = false;
         activeVerificationToken = await latestVerification.save();
     } else {
@@ -125,8 +140,22 @@ const requestRegisterOtp = async ({ email, password, username, fullName }) => {
     };
 };
 
-const register = async ({ email, otp }) => {
+const register = async ({
+    email,
+    otp,
+    password,
+    fullName,
+    gender,
+    dateOfBirth,
+    country,
+}) => {
     const normalizedEmail = email.trim().toLowerCase();
+    const registrationProfile = buildRegistrationProfilePayload({
+        fullName,
+        gender,
+        dateOfBirth,
+        country,
+    });
 
     const verificationToken = await VerificationToken.findOne({
         email: normalizedEmail,
@@ -150,21 +179,16 @@ const register = async ({ email, otp }) => {
         });
     }
 
-    const pendingRegistration = verificationToken.payload;
-    if (!pendingRegistration?.password) {
-        throw new AppError("Registration session is invalid.", 400);
-    }
-
     await ensureRegistrationAvailability(
         normalizedEmail
     );
 
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+
     const user = await User.create({
         email: normalizedEmail,
-        password: pendingRegistration.password,
-        profile: {
-            fullName: pendingRegistration.fullName || "",
-        },
+        password: hashedPassword,
+        profile: registrationProfile,
     });
 
     verificationToken.userId = user._id;
@@ -256,10 +280,6 @@ const requestForgotPassword = async ({ email }) => {
         type: "reset_password",
         expiresAt: getResetPasswordExpireDate(),
         isUsed: false,
-        payload: {
-            password: "",
-            fullName: "",
-        },
     };
 
     let activeVerificationToken;
@@ -269,7 +289,6 @@ const requestForgotPassword = async ({ email }) => {
         latestVerification.otp = undefined;
         latestVerification.expiresAt = verificationData.expiresAt;
         latestVerification.isUsed = false;
-        latestVerification.payload = verificationData.payload;
         activeVerificationToken = await latestVerification.save();
     } else {
         activeVerificationToken = await VerificationToken.create(
