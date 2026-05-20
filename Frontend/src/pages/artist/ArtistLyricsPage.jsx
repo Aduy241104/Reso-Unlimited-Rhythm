@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Disc3, Loader2, Music2, Save, Search } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import { Loader2, Music2, Save, Search } from "lucide-react";
 import trackService from "../../services/trackService";
 import lyricsService from "../../services/lyricsService";
-import { routePaths } from "../../routes/routePaths";
 import { getApiErrorMessage } from "../../utils/apiError";
 
 const ArtistLyricsPage = () => {
@@ -19,6 +18,8 @@ const ArtistLyricsPage = () => {
   const [initialLyrics, setInitialLyrics] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [lyricsFile, setLyricsFile] = useState(null);
+  const [uploadingSync, setUploadingSync] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -145,6 +146,21 @@ const ArtistLyricsPage = () => {
     };
   }, [selectedTrack]);
 
+  const syncedLyricsInfo = useMemo(() => {
+    const syncUrl = selectedTrack?.lyricsSyncUrl || "";
+
+    if (!syncUrl) {
+      return null;
+    }
+
+    const fileName = syncUrl.split("/").filter(Boolean).pop() || "synced-lyrics.lrc";
+
+    return {
+      url: syncUrl,
+      fileName,
+    };
+  }, [selectedTrack]);
+
   const lyricStats = useMemo(() => {
     const totalTracks = tracks.length;
     const tracksWithLyrics = tracks.filter((track) => String(track?.lyricsStatic || "").trim().length > 0).length;
@@ -188,6 +204,30 @@ const ArtistLyricsPage = () => {
       setErrorMessage(getApiErrorMessage(error, "Failed to save lyrics."));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleUploadSync = async (event) => {
+    event.preventDefault();
+    if (!selectedTrackId || !lyricsFile) return;
+
+    setUploadingSync(true);
+    setSuccessMessage("");
+    setErrorMessage("");
+
+    try {
+      const updatedTrack = await lyricsService.updateSyncLyrics(selectedTrackId, lyricsFile);
+
+      setSelectedTrack(updatedTrack);
+      setTracks((current) =>
+        current.map((track) => (String(track._id) === String(updatedTrack?._id) ? updatedTrack : track))
+      );
+      setSuccessMessage("Synced lyrics updated successfully.");
+      setLyricsFile(null);
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error, "Failed to upload synced lyrics."));
+    } finally {
+      setUploadingSync(false);
     }
   };
 
@@ -324,14 +364,6 @@ const ArtistLyricsPage = () => {
               <>
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
-                    <Link
-                      to={routePaths.artistMusic}
-                      className="inline-flex items-center gap-2 text-sm font-medium text-[#8b5e3c] transition hover:text-[#6d4a2f]"
-                    >
-                      <ArrowLeft className="h-4 w-4" />
-                      Back to music
-                    </Link>
-
                     <p className="text-xs uppercase tracking-[0.24em] text-neutral-500">Editing</p>
                     <h3 className="mt-2 text-2xl font-semibold text-[#241b15]">
                       {selectedTrack.title}
@@ -340,24 +372,24 @@ const ArtistLyricsPage = () => {
                       Album: {selectedTrackSummary?.albumTitle || "No album"}
                     </p>
                   </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    <Link
-                      to={routePaths.artistTrackDetail(selectedTrack._id)}
-                      className="inline-flex items-center gap-2 rounded-md border border-neutral-200 px-4 py-2 text-sm font-medium text-[#241b15] transition hover:bg-neutral-50"
-                    >
-                      <Disc3 className="h-4 w-4" />
-                      Track detail
-                    </Link>
-
-                    <Link
-                      to={routePaths.artistTrackEdit(selectedTrack._id)}
-                      className="inline-flex items-center gap-2 rounded-md border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-medium text-sky-900 transition hover:bg-sky-100"
-                    >
-                      Edit track
-                    </Link>
-                  </div>
                 </div>
+
+                {syncedLyricsInfo ? (
+                  <div className="mt-6 rounded-md border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+                    <p className="text-[11px] uppercase tracking-[0.24em] text-sky-700">Synced lyrics file</p>
+                    <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <span className="font-medium">{syncedLyricsInfo.fileName}</span>
+                      <a
+                        href={syncedLyricsInfo.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 rounded-md border border-sky-200 bg-white px-3 py-1.5 text-xs font-medium text-sky-900 transition hover:bg-sky-100"
+                      >
+                        Open file
+                      </a>
+                    </div>
+                  </div>
+                ) : null}
 
                 <div className="mt-6 grid gap-3 sm:grid-cols-3">
                   {[
@@ -405,7 +437,23 @@ const ArtistLyricsPage = () => {
                     >
                       Reset changes
                     </button>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="file"
+                        accept=".lrc,text/*"
+                        onChange={(e) => setLyricsFile(e.target.files?.[0] || null)}
+                        className="text-sm"
+                      />
 
+                      <button
+                        type="button"
+                        onClick={handleUploadSync}
+                        disabled={!lyricsFile || uploadingSync}
+                        className="inline-flex items-center gap-2 rounded-md border border-neutral-200 px-4 py-2 text-sm font-medium text-[#241b15] transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {uploadingSync ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update .lrc"}
+                      </button>
+                    </div>
                   </div>
                 </form>
               </>
@@ -419,7 +467,7 @@ const ArtistLyricsPage = () => {
           <div className="rounded-md border border-neutral-200 bg-[#fcfaf7] p-5 text-sm text-neutral-600 shadow-sm">
             <p className="font-medium text-[#241b15]">Note</p>
             <p className="mt-2 leading-6">
-              This page only manages static lyrics. If you want to upload or replace synced lyrics files, use the track editor.
+              This page manages static lyrics and synced .lrc updates for your tracks.
             </p>
           </div>
         </div>
