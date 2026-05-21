@@ -62,7 +62,8 @@ const getTrackPlayback = async (trackId, user) => {
             path: "album_albumId",
             select: "title coverImage",
         })
-        .lean().select("-__v -createdAt -updatedAt");
+        .lean()
+        .select("-__v -createdAt -updatedAt");
 
     if (!track) {
         throw new AppError("Track not found.", 404);

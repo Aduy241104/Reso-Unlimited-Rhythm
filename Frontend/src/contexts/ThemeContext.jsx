@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import ThemeContext from "./theme-context";
 
 const STORAGE_KEY = "capstone-main-theme";
@@ -12,7 +13,10 @@ const getInitialTheme = () => {
   return storedTheme === "light" ? "light" : "dark";
 };
 
+const ARTIST_DASHBOARD_PREFIX = "/artist";
+
 export const ThemeProvider = ({ children }) => {
+  const location = useLocation();
   const [theme, setTheme] = useState(getInitialTheme);
 
   useEffect(() => {
@@ -21,10 +25,19 @@ export const ThemeProvider = ({ children }) => {
 
   useEffect(() => {
     const rootElement = window.document.documentElement;
+    const isArtistDashboard = location.pathname.startsWith(
+      ARTIST_DASHBOARD_PREFIX
+    );
+
+    if (isArtistDashboard) {
+      rootElement.classList.remove("dark");
+      rootElement.style.colorScheme = "light";
+      return;
+    }
 
     rootElement.classList.toggle("dark", theme === "dark");
     rootElement.style.colorScheme = theme;
-  }, [theme]);
+  }, [theme, location.pathname]);
 
   const value = useMemo(
     () => ({
