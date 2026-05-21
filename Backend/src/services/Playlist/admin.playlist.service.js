@@ -4,6 +4,10 @@ import Track from "../../models/Track.js";
 import { AppError } from "../../utils/AppError.js";
 import { formatSystemPlaylistSummary } from "./playlist.helper.js";
 import playlistService from "./playlist.service.js";
+import { uploadImageBuffer, deleteImageByPublicId } from "../cloudinaryService.js";
+import { extractPublicIdFromUrl } from "../../utils/uploadCloud.js";
+
+const CLOUDINARY_PLAYLIST_FOLDER = "reso/playlists";
 
 const assertObjectId = (playlistId) => {
     if (!mongoose.Types.ObjectId.isValid(playlistId)) {
@@ -29,8 +33,8 @@ const createSystemPlaylist = async (adminUserId, payload) => {
         description: typeof payload.description === "string" ? payload.description.trim() : "",
         type: "system",
         coverImage: typeof payload.coverImage === "string" ? payload.coverImage.trim() : "",
-        isPublic: true,
-        isHidden: false,
+        isPublic: payload.isPublic !== undefined ? Boolean(payload.isPublic) : true,
+        isHidden: payload.isHidden !== undefined ? Boolean(payload.isHidden) : false,
         tracks: [],
         trackCount: 0,
         totalDuration: 0,
@@ -71,6 +75,58 @@ const updateSystemPlaylist = async (playlistId, payload) => {
 const deleteSystemPlaylist = async (playlistId) => {
     await findSystemPlaylist(playlistId);
     await Playlist.deleteOne({ _id: playlistId, type: "system" });
+};
+
+const uploadSystemPlaylistCover = async (playlistId, coverFile) => {
+    const playlist = await findSystemPlaylist(playlistId);
+
+    // Delete old cover image if exists
+    if (playlist.coverImage) {
+        const oldPublicId = extractPublicIdFromUrl(playlist.coverImage);
+        if (oldPublicId) {
+            try {
+                await deleteImageByPublicId(oldPublicId, true);
+            } catch (err) {
+                console.error("[ERROR] Delete old playlist cover failed:", err);
+            }
+        }
+    }
+
+    // Upload new cover image
+    const uploaded = await uploadImageBuffer({
+        buffer: coverFile.buffer,
+        folder: CLOUDINARY_PLAYLIST_FOLDER,
+        publicId: `system_playlist_${playlistId}_cover_${Date.now()}`,
+    });
+
+    playlist.coverImage = uploaded.secure_url;
+    await playlist.save();
+
+    return getSystemPlaylistDetailForAdmin(playlistId);
+};
+
+const deleteSystemPlaylistCover = async (playlistId) => {
+    const playlist = await findSystemPlaylist(playlistId);
+
+    if (!playlist.coverImage) {
+        throw new AppError("Playlist has no cover image to delete.", 400);
+    }
+
+    const publicId = extractPublicIdFromUrl(playlist.coverImage);
+    console.log("[DEBUG] Deleting cover, URL:", playlist.coverImage);
+    console.log("[DEBUG] Extracted publicId:", publicId);
+    if (publicId) {
+        try {
+            await deleteImageByPublicId(publicId, true);
+        } catch (err) {
+            console.error("[ERROR] Delete playlist cover failed:", err);
+        }
+    }
+
+    playlist.coverImage = "";
+    await playlist.save();
+
+    return getSystemPlaylistDetailForAdmin(playlistId);
 };
 
 const syncPlaylistTrackAggregates = async (playlist) => {
@@ -230,7 +286,16 @@ const addTracksToSystemPlaylistBatch = async (playlistId, trackIds) => {
     return { playlist: playlistDetail, addedCount };
 };
 
+const getSystemPlaylistsForAdmin = async () => {
+    const playlists = await Playlist.find({ type: "system" })
+        .sort({ createdAt: -1 })
+        .lean();
+
+    return playlists.map((doc) => formatSystemPlaylistSummary(doc));
+};
+
 export default {
+    getSystemPlaylistsForAdmin,
     createSystemPlaylist,
     getSystemPlaylistDetailForAdmin,
     updateSystemPlaylist,
@@ -238,4 +303,6 @@ export default {
     addTrackToSystemPlaylist,
     removeTrackFromSystemPlaylist,
     addTracksToSystemPlaylistBatch,
+    uploadSystemPlaylistCover,
+    deleteSystemPlaylistCover,
 };
