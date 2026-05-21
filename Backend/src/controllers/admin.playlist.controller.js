@@ -1,6 +1,20 @@
 import adminPlaylistService from "../services/Playlist/admin.playlist.service.js";
 import formatResponse from "../utils/formatResponse.js";
 
+const getSystemPlaylists = async (req, res, next) => {
+    try {
+        const playlists = await adminPlaylistService.getSystemPlaylistsForAdmin();
+
+        return formatResponse.success(
+            res,
+            { playlists },
+            "System playlists fetched successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 const createSystemPlaylist = async (req, res, next) => {
     try {
         const playlist = await adminPlaylistService.createSystemPlaylist(req.user.id, req.body);
@@ -9,6 +23,48 @@ const createSystemPlaylist = async (req, res, next) => {
             res,
             { playlist },
             "System playlist created successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+const uploadSystemPlaylistCover = async (req, res, next) => {
+    try {
+        const { playlistId } = req.params;
+        const coverFile = req.file;
+
+        if (!coverFile) {
+            return res.status(400).json({
+                success: false,
+                message: "No cover image file provided.",
+            });
+        }
+
+        const playlist = await adminPlaylistService.uploadSystemPlaylistCover(
+            playlistId,
+            coverFile
+        );
+
+        return formatResponse.success(
+            res,
+            { playlist },
+            "Cover image uploaded successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+const deleteSystemPlaylistCover = async (req, res, next) => {
+    try {
+        const { playlistId } = req.params;
+        const playlist = await adminPlaylistService.deleteSystemPlaylistCover(playlistId);
+
+        return formatResponse.success(
+            res,
+            { playlist },
+            "Cover image deleted successfully"
         );
     } catch (error) {
         next(error);
@@ -116,6 +172,7 @@ const removeTrackFromSystemPlaylist = async (req, res, next) => {
 };
 
 export default {
+    getSystemPlaylists,
     createSystemPlaylist,
     getSystemPlaylistDetail,
     updateSystemPlaylist,
@@ -123,4 +180,6 @@ export default {
     addTrackToSystemPlaylist,
     addTracksToSystemPlaylistBatch,
     removeTrackFromSystemPlaylist,
+    uploadSystemPlaylistCover,
+    deleteSystemPlaylistCover,
 };
