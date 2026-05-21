@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import Liricle from "liricle";
-import PlayerContext from "./player-context";
+import PlayerContext from "./player-context.js";
 import { getApiErrorMessage } from "../utils/apiError";
 import { getRandomLyricsThemeIndex } from "../utils/lyricsTheme";
 import {

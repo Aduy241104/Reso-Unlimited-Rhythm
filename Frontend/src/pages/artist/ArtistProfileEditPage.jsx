@@ -39,6 +39,8 @@ const ArtistProfileEditPage = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [avatarFile, setAvatarFile] = useState(null);
   const [coverFile, setCoverFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const [coverPreview, setCoverPreview] = useState(null);
   const [removeAvatar, setRemoveAvatar] = useState(false);
   const [removeCover, setRemoveCover] = useState(false);
   const [avatarInputKey, setAvatarInputKey] = useState(0);
@@ -120,6 +122,8 @@ const ArtistProfileEditPage = () => {
     setRemoveCover(false);
     setAvatarFile(null);
     setCoverFile(null);
+    setAvatarPreview(null);
+    setCoverPreview(null);
     setAvatarInputKey((key) => key + 1);
     setCoverInputKey((key) => key + 1);
   }, [artist, reset]);
@@ -158,11 +162,11 @@ const ArtistProfileEditPage = () => {
       };
 
       if (removeAvatar && !avatarFile) {
-        body.avatar = "";
+        body.removeAvatar = true;
       }
 
       if (removeCover && !coverFile) {
-        body.coverImage = "";
+        body.removeCover = true;
       }
 
       const updated = await patchMyArtistProfileService(body);
@@ -235,20 +239,27 @@ const ArtistProfileEditPage = () => {
               />
             </div>
             <div className="pb-1">
-              <p className="text-xs uppercase tracking-[0.3em] text-[#8b5e3c]">
+              {/* <p className="text-xs uppercase tracking-[0.3em] text-[#8b5e3c]">
                 Editing profile
+              </p> */}
+              <p className="mt-1 flex items-center gap-2 text-lg font-semibold text-[#241b15]">
+                {artist.name}
+                {artist.verificationStatus === "verified" && (
+                  <span
+                    title="Verified Artist"
+                    className="relative flex items-center justify-center"
+                    style={{ width: 20, height: 20 }}
+                  >
+                    <span className="absolute inset-0 rounded-full opacity-40 blur-[3px]" style={{ background: "#3d91f4" }} />
+                    <span className="relative flex h-5 w-5 items-center justify-center rounded-full" style={{ background: "#3d91f4" }}>
+                      <svg className="h-3 w-3 text-white" viewBox="0 0 12 12" fill="currentColor" aria-hidden>
+                        <path fillRule="evenodd" d="M9.92 2.83a.6.6 0 0 1 .08.8L5.28 8.35a.6.6 0 0 1-.87 0l-2-2.3a.6.6 0 1 1 .83-.87l1.5 1.73 4.35-5.02a.6.6 0 0 1 .83-.06Z" clipRule="evenodd" />
+                      </svg>
+                    </span>
+                  </span>
+                )}
               </p>
-              <p className="mt-1 text-lg font-semibold text-[#241b15]">{artist.name}</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <span
-                  className={[
-                    "inline-flex rounded-sm px-2 py-0.5 text-xs font-medium capitalize",
-                    verificationBadgeClass[artist.verificationStatus] ??
-                      "bg-neutral-100 text-neutral-600",
-                  ].join(" ")}
-                >
-                  {artist.verificationStatus}
-                </span>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
                 <span
                   className={[
                     "inline-flex rounded-sm px-2 py-0.5 text-xs font-medium capitalize",
@@ -258,6 +269,17 @@ const ArtistProfileEditPage = () => {
                 >
                   {artist.activeStatus}
                 </span>
+                {artist.verificationStatus !== "verified" && artist.verificationStatus ? (
+                  <span
+                    className={[
+                      "inline-flex rounded-sm px-2 py-0.5 text-xs font-medium capitalize",
+                      verificationBadgeClass[artist.verificationStatus] ??
+                        "bg-neutral-100 text-neutral-600",
+                    ].join(" ")}
+                  >
+                    {artist.verificationStatus}
+                  </span>
+                ) : null}
               </div>
             </div>
           </div>
@@ -385,6 +407,7 @@ const ArtistProfileEditPage = () => {
           </p>
 
           <div className="mt-6 space-y-5">
+            {/* Avatar */}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
               <div className="min-w-0 flex-1">
                 <FieldLabel htmlFor="edit-artist-avatar-file">Avatar</FieldLabel>
@@ -400,6 +423,11 @@ const ArtistProfileEditPage = () => {
                     setAvatarFile(file);
                     if (file) {
                       setRemoveAvatar(false);
+                      const reader = new FileReader();
+                      reader.onloadend = () => setAvatarPreview(reader.result);
+                      reader.readAsDataURL(file);
+                    } else {
+                      setAvatarPreview(null);
                     }
                   }}
                 />
@@ -416,6 +444,7 @@ const ArtistProfileEditPage = () => {
                     return;
                   }
                   setAvatarFile(null);
+                  setAvatarPreview(null);
                   setRemoveAvatar(true);
                   setAvatarInputKey((key) => key + 1);
                 }}
@@ -429,12 +458,27 @@ const ArtistProfileEditPage = () => {
                 Remove image
               </button>
             </div>
+            {(avatarPreview || (hasStoredAvatar && !removeAvatar)) ? (
+              <div className="flex items-center gap-3">
+                <img
+                  src={avatarPreview || avatarSrc}
+                  alt="Avatar preview"
+                  className="h-16 w-16 rounded-md object-cover border border-neutral-200"
+                />
+                <span className="text-xs text-neutral-500">
+                  {avatarPreview
+                    ? `${avatarFile?.name} (${(avatarFile?.size / 1024 / 1024).toFixed(2)} MB) — new`
+                    : "Current avatar"}
+                </span>
+              </div>
+            ) : null}
             {removeAvatar && !avatarFile ? (
               <p className="text-xs text-neutral-500">
                 Avatar will be cleared from your profile when you save.
               </p>
             ) : null}
 
+            {/* Cover */}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
               <div className="min-w-0 flex-1">
                 <FieldLabel htmlFor="edit-artist-cover-file">Cover</FieldLabel>
@@ -450,6 +494,11 @@ const ArtistProfileEditPage = () => {
                     setCoverFile(file);
                     if (file) {
                       setRemoveCover(false);
+                      const reader = new FileReader();
+                      reader.onloadend = () => setCoverPreview(reader.result);
+                      reader.readAsDataURL(file);
+                    } else {
+                      setCoverPreview(null);
                     }
                   }}
                 />
@@ -466,6 +515,7 @@ const ArtistProfileEditPage = () => {
                     return;
                   }
                   setCoverFile(null);
+                  setCoverPreview(null);
                   setRemoveCover(true);
                   setCoverInputKey((key) => key + 1);
                 }}
@@ -479,6 +529,20 @@ const ArtistProfileEditPage = () => {
                 Remove image
               </button>
             </div>
+            {(coverPreview || (hasStoredCover && !removeCover)) ? (
+              <div className="flex items-center gap-3">
+                <img
+                  src={coverPreview || coverSrc}
+                  alt="Cover preview"
+                  className="h-20 w-40 rounded-md object-cover border border-neutral-200"
+                />
+                <span className="text-xs text-neutral-500">
+                  {coverPreview
+                    ? `${coverFile?.name} (${(coverFile?.size / 1024 / 1024).toFixed(2)} MB) — new`
+                    : "Current cover"}
+                </span>
+              </div>
+            ) : null}
             {removeCover && !coverFile ? (
               <p className="text-xs text-neutral-500">
                 Cover will be cleared from your profile when you save.
