@@ -66,7 +66,6 @@ router.delete(
     adminPlaylistController.deleteSystemPlaylist
 );
 
-<<<<<<< HEAD
 router.post(
     "/admin/system/:playlistId/cover",
     requireAdmin,
@@ -79,8 +78,8 @@ router.delete(
     requireAdmin,
     adminPlaylistController.deleteSystemPlaylistCover
 );
-=======
+
 router.get("/detail/:id", playlistController.getPlaylistDetail);
->>>>>>> 9bf4655dcbb9936ec086be60d52b1a3223d805b3
+
 
 export default router;

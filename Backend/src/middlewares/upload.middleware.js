@@ -34,7 +34,7 @@ const fileFilter = (req, file, cb) => {
   }
   // Accept image files (for avatar and coverImages)
   else if (
-    (file.fieldname === "avatar" || file.fieldname === "coverImages") &&
+    (file.fieldname === "avatar" || file.fieldname === "coverImages" || file.fieldname === "coverImage") &&
     file.mimetype.startsWith("image/")
   ) {
     cb(null, true);
