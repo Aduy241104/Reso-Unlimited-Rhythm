@@ -112,7 +112,7 @@ const LoginPage = () => {
           </div>
 
           <div className="flex justify-center lg:justify-end">
-            <div className="relative w-full max-w-md overflow-hidden rounded-[28px] border border-[#f5b66f]/20 bg-[#121118]/80 p-6 shadow-[0_30px_100px_rgba(245,158,66,0.18)] backdrop-blur-xl sm:p-8">
+            <div className="relative w-full max-w-md overflow-hidden rounded-[12px] border border-[#f5b66f]/20 bg-white p-6 shadow-[0_30px_100px_rgba(245,158,66,0.18)] backdrop-blur-xl sm:p-8">
               <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(160deg,_rgba(255,255,255,0.06)_0%,_rgba(255,255,255,0.015)_26%,_rgba(255,255,255,0.03)_100%)]" />
               <div className="pointer-events-none absolute left-[-3rem] top-[-3rem] h-28 w-28 rounded-full bg-[#ff9f43]/12 blur-3xl" />
               <div className="pointer-events-none absolute bottom-[-4rem] right-[-3rem] h-24 w-24 rounded-full bg-[#9b6cff]/10 blur-3xl" />
@@ -123,9 +123,9 @@ const LoginPage = () => {
                     Reso Music
                   </p>
 
-                  <h1 className="font-title text-4xl font-black text-white">Login</h1>
+                  <h1 className="font-title text-4xl font-black text-black">Login</h1>
 
-                  <p className="mt-3 text-sm leading-6 text-[#d9d5cf]">
+                  <p className="mt-3 text-sm leading-6 text-black">
                     Login to continue your music journey.
                   </p>
                 </div>
@@ -144,7 +144,7 @@ const LoginPage = () => {
 
                 <form onSubmit={ handleSubmit } className="space-y-5">
                   <div>
-                    <label className="mb-2 block text-sm font-semibold text-[#efe7dc]">
+                    <label className="mb-2 block text-sm font-semibold text-black">
                       Email
                     </label>
                     <input
@@ -152,29 +152,22 @@ const LoginPage = () => {
                       placeholder="Email"
                       value={ email }
                       onChange={ (event) => setEmail(event.target.value) }
-                      className="w-full rounded-2xl border border-[#f0dcc8]/80 bg-[#f7f4f1] px-4 py-3.5 text-[#1a1820] outline-none transition placeholder:text-[#9a8fa8] focus:border-[#f5b66f] focus:ring-4 focus:ring-[#f5b66f]/20"
+                      className="w-full rounded-full border border-black bg-[#f5f5f5] px-4 py-3 text-[#1a1820] outline-none transition placeholder:text-[#9a8fa8] focus:border-[#f5b66f] focus:ring-4 focus:ring-[#f5b66f]/20"
                     />
                   </div>
 
                   <div>
                     <div className="mb-2 flex items-center justify-between gap-3">
-                      <label className="block text-sm font-semibold text-[#efe7dc]">
+                      <label className="block text-sm font-semibold text-black">
                         Password
                       </label>
-                      <button
-                        type="button"
-                        onClick={ () => navigate(routePaths.forgotPassword) }
-                        className="text-xs font-semibold text-[#f5b66f] transition hover:text-[#ffd3a0]"
-                      >
-                        Forgot password?
-                      </button>
                     </div>
                     <input
                       type="password"
                       placeholder="Password"
                       value={ password }
                       onChange={ (event) => setPassword(event.target.value) }
-                      className="w-full rounded-2xl border border-[#f0dcc8]/80 bg-[#f7f4f1] px-4 py-3.5 text-[#1a1820] outline-none transition placeholder:text-[#9a8fa8] focus:border-[#f5b66f] focus:ring-4 focus:ring-[#f5b66f]/20"
+                      className="w-full rounded-full border border-black bg-[#f5f5f5] px-4 py-3 text-[#1a1820] outline-none transition placeholder:text-[#9a8fa8] focus:border-[#f5b66f] focus:ring-4 focus:ring-[#f5b66f]/20"
                     />
                   </div>
 
@@ -183,7 +176,6 @@ const LoginPage = () => {
                     disabled={ loading }
                     className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#f5b66f] via-[#d98235] to-[#17131a] px-6 py-3.5 text-base font-semibold text-white shadow-[0_18px_45px_rgba(245,158,66,0.28)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_24px_60px_rgba(245,158,66,0.26)] disabled:cursor-not-allowed disabled:opacity-70"
                   >
-                    <FontAwesomeIcon icon={ faDoorOpen } className="text-sm" />
                     { loading ? "Signing in..." : "Sign In" }
                   </button>
                 </form>
@@ -193,9 +185,17 @@ const LoginPage = () => {
                   <button
                     type="button"
                     onClick={ () => navigate(routePaths.register) }
-                    className="font-semibold text-[#f5b66f] transition hover:text-[#ffd3a0]"
+                    className="font-semibold text-black transition hover:text-[#ffd3a0]"
                   >
                     Create one
+                  </button>
+                  <br />
+                  <button
+                    type="button"
+                    onClick={ () => navigate(routePaths.forgotPassword) }
+                    className="text-xs font-semibold text-black transition hover:text-[#ffd3a0]"
+                  >
+                    Forgot password?
                   </button>
                 </p>
               </div>

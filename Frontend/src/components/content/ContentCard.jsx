@@ -53,7 +53,7 @@ const ContentCard = ({
             aria-label={ `Play ${type} ${title}` }
             className="
             absolute bottom-3 right-3 inline-flex h-11 w-11 items-center justify-center rounded-full
-            bg-[#1ed760] text-black opacity-0 shadow-[0_14px_28px_rgba(30,215,96,0.38)]
+            bg-gradient-to-br from-[#E0FFE0] via-[#D3FFCE] to-[#FFD700] text-black opacity-0 shadow-[0_14px_28px_rgba(30,215,96,0.38)]
             transition duration-300 group-hover:translate-y-0 group-hover:opacity-100
             group-hover:shadow-[0_18px_34px_rgba(30,215,96,0.45)] focus-visible:translate-y-0
             focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2

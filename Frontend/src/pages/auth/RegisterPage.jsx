@@ -4,7 +4,6 @@ import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import RegisterDetailsStep from "../../components/auth/RegisterDetailsStep";
 import RegisterOtpStep from "../../components/auth/RegisterOtpStep";
-import { fetchCountryOptions } from "../../services/countryService";
 import {
   registerService,
   requestRegisterOtpService,
@@ -22,55 +21,28 @@ const createOtpPayload = (values) => ({
   fullName: values.fullName.trim(),
   gender: values.gender,
   dateOfBirth: values.dateOfBirth,
-  country: values.country.trim(),
 });
-
-const loadCountryOptionsState = async ({
-  setCountryOptions,
-  setCountriesError,
-  setIsCountriesLoading,
-}) => {
-  setIsCountriesLoading(true);
-  setCountriesError("");
-
-  try {
-    const nextCountryOptions = await fetchCountryOptions();
-    setCountryOptions(nextCountryOptions);
-  } catch (error) {
-    setCountriesError(
-      getApiErrorMessage(
-        error,
-        "Unable to load the country list right now."
-      )
-    );
-  } finally {
-    setIsCountriesLoading(false);
-  }
-};
 
 const RegisterPage = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState("details");
   const [detailsApiError, setDetailsApiError] = useState("");
+  const [detailsValidationError, setDetailsValidationError] = useState("");
   const [otpApiError, setOtpApiError] = useState("");
   const [isResendingOtp, setIsResendingOtp] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(0);
   const [cooldownUntil, setCooldownUntil] = useState(null);
   const [pendingRegistration, setPendingRegistration] = useState(null);
-  const [countryOptions, setCountryOptions] = useState([]);
-  const [isCountriesLoading, setIsCountriesLoading] = useState(true);
-  const [countriesError, setCountriesError] = useState("");
 
   const detailsForm = useForm({
     resolver: zodResolver(registerDetailsSchema),
-    mode: "onSubmit",
-    reValidateMode: "onSubmit",
+    mode: "onBlur",
+    reValidateMode: "onChange",
     defaultValues: {
       fullName: "",
       email: "",
       gender: "prefer_not_to_say",
       dateOfBirth: "",
-      country: "",
       password: "",
       confirmPassword: "",
     },
@@ -78,8 +50,8 @@ const RegisterPage = () => {
 
   const otpForm = useForm({
     resolver: zodResolver(registerOtpSchema),
-    mode: "onSubmit",
-    reValidateMode: "onSubmit",
+    mode: "onBlur",
+    reValidateMode: "onChange",
     defaultValues: {
       otp: "",
     },
@@ -111,14 +83,6 @@ const RegisterPage = () => {
     return () => window.clearInterval(intervalId);
   }, [cooldownUntil]);
 
-  useEffect(() => {
-    loadCountryOptionsState({
-      setCountryOptions,
-      setCountriesError,
-      setIsCountriesLoading,
-    });
-  }, []);
-
   const startOtpCooldown = (seconds) => {
     if (!seconds) {
       setCooldownUntil(null);
@@ -131,6 +95,7 @@ const RegisterPage = () => {
 
   const handleSendOtp = async (values) => {
     setDetailsApiError("");
+    setDetailsValidationError("");
     setOtpApiError("");
 
     try {
@@ -191,7 +156,6 @@ const RegisterPage = () => {
         fullName: pendingRegistration.fullName,
         gender: pendingRegistration.gender,
         dateOfBirth: pendingRegistration.dateOfBirth,
-        country: pendingRegistration.country,
       });
 
       navigate("/login", {
@@ -218,7 +182,6 @@ const RegisterPage = () => {
           fullName: "fullName",
           gender: "gender",
           dateOfBirth: "dateOfBirth",
-          country: "country",
         },
         setError: detailsForm.setError,
         strictFieldMap: true,
@@ -310,34 +273,56 @@ const RegisterPage = () => {
     }
   };
 
-  const handleRetryCountries = async () => {
-    await loadCountryOptionsState({
-      setCountryOptions,
-      setCountriesError,
-      setIsCountriesLoading,
-    });
+  const handleInvalidDetailsSubmit = (formErrors) => {
+    const firstFieldName = Object.keys(formErrors)[0];
+
+    setDetailsApiError("");
+    setDetailsValidationError("Please complete the required fields before continuing.");
+
+    if (firstFieldName) {
+      detailsForm.setFocus(firstFieldName);
+    }
   };
 
+  const isDetailsStep = step === "details";
+
   return (
-    <main className="min-h-screen bg-[#0f0f14] bg-[radial-gradient(circle_at_top_left,_rgba(245,182,111,0.22),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(79,124,255,0.14),_transparent_24%),linear-gradient(135deg,_#0f0f14_0%,_#15131b_45%,_#0d1018_100%)] px-4 py-4 text-white sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+    <main className="relative min-h-screen overflow-hidden bg-[#0c1016] text-white">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(245,182,111,0.14),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(79,124,255,0.08),_transparent_26%),linear-gradient(180deg,_rgba(255,255,255,0.02)_0%,_rgba(12,16,22,0)_22%,_rgba(12,16,22,0.2)_100%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/10" />
+      <div className="pointer-events-none absolute left-[-8rem] top-[-8rem] h-56 w-56 rounded-full bg-[#f5b66f]/10 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-[-10rem] right-[-8rem] h-72 w-72 rounded-full bg-[#4f7cff]/8 blur-3xl" />
 
-      <div
-        className={`mx-auto flex w-full items-center justify-center ${
-          step === "details"
-            ? "min-h-[calc(100vh-2rem)] max-w-5xl"
-            : "min-h-[calc(100vh-5rem)] max-w-md"
-        }`}
-      >
+      <section className="relative mx-auto flex min-h-screen w-full max-w-6xl items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
+        <div className={`w-full ${isDetailsStep ? "max-w-3xl" : "max-w-lg"}`}>
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[#f5b66f]">
+                Reso Music
+              </p>
+              <div>
+                <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+                  {isDetailsStep ? "Create your account" : "Confirm your email"}
+                </h1>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-[#c9c4bd]">
+                  {isDetailsStep
+                    ? "A focused, two-step registration flow with just the details needed to get you started."
+                    : "Enter the verification code we sent to finish creating your account."}
+                </p>
+              </div>
+            </div>
 
-        <div className="w-full">
-          { step === "details" ? (
+            <div className="inline-flex w-fit items-center rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-xs font-medium text-[#e7e1d8] backdrop-blur">
+              {isDetailsStep ? "Step 1 of 2" : "Step 2 of 2"}
+            </div>
+          </div>
+
+          { isDetailsStep ? (
             <RegisterDetailsStep
               apiError={ detailsApiError }
-              countriesError={ countriesError }
-              countryOptions={ countryOptions }
+              validationError={ detailsValidationError }
               form={ detailsForm }
-              isCountriesLoading={ isCountriesLoading }
-              onRetryCountries={ handleRetryCountries }
+              onInvalidSubmit={ handleInvalidDetailsSubmit }
               onSubmit={ handleSendOtp }
             />
           ) : (
@@ -354,8 +339,7 @@ const RegisterPage = () => {
             />
           ) }
         </div>
-
-      </div>
+      </section>
     </main>
   );
 };

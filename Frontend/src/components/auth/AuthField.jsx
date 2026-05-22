@@ -1,4 +1,6 @@
-const AuthField = ({
+import { forwardRef } from "react";
+
+const AuthField = forwardRef(({
   as = "input",
   children,
   label,
@@ -8,12 +10,12 @@ const AuthField = ({
   inputClassName = "",
   theme = "light",
   ...props
-}) => {
+}, ref) => {
   const isDark = theme === "dark";
   const fieldClassName = `w-full rounded-xl border px-3.5 py-3 text-sm outline-none transition ${
     error
       ? isDark
-        ? "border-rose-300/70 bg-[#18141d] text-white ring-4 ring-rose-500/10"
+        ? "border-rose-300/70 bg-[#f7f4ef] text-[#17131a] placeholder:text-[#8c8092] ring-4 ring-rose-500/10"
         : "border-rose-300 bg-slate-50 text-slate-950 ring-4 ring-rose-100"
       : isDark
         ? "border-white/10 bg-[#f4efe8] text-[#17131a] placeholder:text-[#8c8092] focus:border-[#f5b66f] focus:bg-[#fcfaf8] focus:ring-4 focus:ring-[#f5b66f]/14"
@@ -36,6 +38,7 @@ const AuthField = ({
           {...props}
           aria-invalid={Boolean(error)}
           className={fieldClassName}
+          ref={ref}
         >
           {children}
         </select>
@@ -44,6 +47,7 @@ const AuthField = ({
           {...props}
           aria-invalid={Boolean(error)}
           className={fieldClassName}
+          ref={ref}
         />
       )}
       {error ? (
@@ -61,6 +65,8 @@ const AuthField = ({
       ) : null}
     </label>
   );
-};
+});
+
+AuthField.displayName = "AuthField";
 
 export default AuthField;

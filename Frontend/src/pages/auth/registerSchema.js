@@ -44,11 +44,6 @@ export const registerDetailsSchema = z
     confirmPassword: z.string().min(1, "Please confirm your password."),
     gender: z.enum(genderOptions).default("prefer_not_to_say"),
     dateOfBirth: dateOfBirthSchema,
-    country: z
-      .string()
-      .trim()
-      .min(1, "Please choose a country.")
-      .max(100, "Country must be 100 characters or fewer."),
   })
   .superRefine(({ password, confirmPassword }, context) => {
     if (password !== confirmPassword) {

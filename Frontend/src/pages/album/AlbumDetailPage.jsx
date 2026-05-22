@@ -3,9 +3,9 @@ import {
   CirclePlus,
   Download,
   MoreHorizontal,
-  Play,
   Shuffle,
 } from "lucide-react";
+import PlayButton from "../../components/common/PlayButton";
 import { useParams } from "react-router-dom";
 import TrackCard from "../../components/TrackCard";
 import { usePlayer } from "../../hooks/usePlayer";
@@ -174,17 +174,7 @@ const AlbumDetailPage = () => {
 
         <div className="space-y-6 px-6 pb-6 pt-5 sm:px-8 sm:pb-8">
           <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={ handlePlayAlbum }
-              className="
-                inline-flex h-14 items-center gap-2 rounded-full bg-[#1ed760] px-7 text-sm
-                font-semibold text-black transition hover:scale-[1.02] hover:brightness-105
-              "
-            >
-              <Play className="h-5 w-5 fill-current" />
-              Play
-            </button>
+            <PlayButton onClick={ handlePlayAlbum } />
 
             <button type="button" className={ actionButtonClassName } aria-label="Shuffle album">
               <Shuffle className="h-5 w-5" />
