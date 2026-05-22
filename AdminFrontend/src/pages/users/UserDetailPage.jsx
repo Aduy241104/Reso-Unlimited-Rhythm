@@ -28,6 +28,7 @@ const UserDetailPage = () => {
   const [transactions, setTransactions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const loadUser = async () => {
     setIsLoading(true);
@@ -119,7 +120,7 @@ const UserDetailPage = () => {
           </button>
           <button
             type="button"
-            onClick={handleToggleStatus}
+            onClick={() => setShowConfirmModal(true)}
             disabled={!user}
             className={`rounded px-5 py-3 text-sm font-semibold text-white transition ${user?.activeStatus === "blocked"
               ? "bg-emerald-600 hover:bg-emerald-700"
@@ -266,6 +267,44 @@ const UserDetailPage = () => {
           </table>
         </div>
       </section>
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+            <h2 className="text-xl font-semibold text-black">
+              Confirm Action
+            </h2>
+
+            <p className="mt-3 text-sm text-black/70">
+              Are you sure you want to{" "}
+              {user?.activeStatus === "blocked" ? "unblock" : "block"} this account?
+            </p>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowConfirmModal(false)}
+                className="rounded border border-black/10 px-4 py-2 text-sm font-medium hover:bg-slate-100"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  await handleToggleStatus();
+                  setShowConfirmModal(false);
+                }}
+                className={`rounded px-4 py-2 text-sm font-medium text-white ${user?.activeStatus === "blocked"
+                    ? "bg-emerald-600 hover:bg-emerald-700"
+                    : "bg-rose-600 hover:bg-rose-700"
+                  }`}
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 };
