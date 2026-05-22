@@ -2,8 +2,10 @@ import { Navigate } from "react-router-dom";
 import ArtistDashboardLayout from "../layout/artistDashboard/ArtistDashboardLayout";
 import MainLayout from "../layout/mainLayout/MainLayout";
 import AlbumDetailPage from "../pages/album/AlbumDetailPage";
+import ForgotPasswordPage from "../pages/auth/ForgotPasswordPage";
 import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
+import ResetPasswordPage from "../pages/auth/ResetPasswordPage";
 import ArtistOverviewPage from "../pages/artist/ArtistOverviewPage";
 import ArtistProfileEditPage from "../pages/artist/ArtistProfileEditPage";
 import ArtistProfilePage from "../pages/artist/ArtistProfilePage";
@@ -15,9 +17,13 @@ import {
   RoyaltiesPage,
   SettingsPage,
 } from "../pages/artist/ArtistSectionPages";
+import CreateTrackPage from "../pages/artist/CreateTrackPage";
+import ArtistTrackDetailPage from "../pages/artist/ArtistTrackDetailPage";
+import ArtistTrackEditPage from "../pages/artist/ArtistTrackEditPage";
 import HomePage from "../pages/home/HomePage";
-import ArtistProfilePageView from "../pages/profile/ArtistProfilePage";
 import LyricsPage from "../pages/lyrics/LyricsPage";
+import ArtistProfilePageView from "../pages/profile/ArtistProfilePage";
+import PlaylistDetailPage from "../pages/playlist/PlaylistDetailPage";
 import TrackDetailPage from "../pages/track/TrackDetailPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
@@ -38,6 +44,10 @@ export const appRoutes = [
       {
         path: routePaths.albumDetail(),
         element: <AlbumDetailPage />,
+      },
+      {
+        path: routePaths.playlistDetail(),
+        element: <PlaylistDetailPage />,
       },
       {
         path: routePaths.lyrics,
@@ -80,6 +90,18 @@ export const appRoutes = [
                 element: <MyMusicPage />,
               },
               {
+                path: routePaths.artistCreateTrack,
+                element: <CreateTrackPage />,
+              },
+              {
+                path: routePaths.artistTrackDetail(),
+                element: <ArtistTrackDetailPage />,
+              },
+              {
+                path: routePaths.artistTrackEdit(),
+                element: <ArtistTrackEditPage />,
+              },
+              {
                 path: routePaths.artistReleases,
                 element: <ReleasesPage />,
               },
@@ -112,6 +134,14 @@ export const appRoutes = [
         ],
       },
     ],
+  },
+  {
+    path: routePaths.forgotPassword,
+    element: <ForgotPasswordPage />,
+  },
+  {
+    path: routePaths.resetPassword,
+    element: <ResetPasswordPage />,
   },
   {
     element: <PublicRoute />,

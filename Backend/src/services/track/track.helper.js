@@ -14,6 +14,75 @@ const toId = (value) => {
     return value.toString();
 };
 
+const formatTrackManagementDetail = (track) => {
+    if (!track) return null;
+
+    return {
+        _id: track._id,
+        title: track.title,
+        artist: track.artist_artistId
+            ? {
+                  _id: track.artist_artistId._id,
+                  name: track.artist_artistId.name,
+                  avatar: track.artist_artistId.avatar,
+                  coverImage: track.artist_artistId.coverImage,
+              }
+            : null,
+        album: track.album_albumId
+            ? {
+                  _id: track.album_albumId._id,
+                  title: track.album_albumId.title,
+                  avatar: track.album_albumId.avatar,
+              }
+            : null,
+        genres: track.genreIds
+            ? track.genreIds.map((genre) => ({
+                  _id: genre._id,
+                  name: genre.name,
+              }))
+            : [],
+        audioFiles: track.audioFiles || [],
+        duration: track.duration,
+        avatar: track.avatar,
+        coverImage: track.coverImage || [],
+        lyricsStatic: track.lyricsStatic,
+        lyricsSyncUrl: track.lyricsSyncUrl,
+        stats: track.stats || {
+            totalLike: 0,
+            totalPlay: 0,
+        },
+        releaseDate: track.releaseDate,
+        activeStatus: track.activeStatus,
+        approvalStatus: track.approvalStatus,
+        blockedReason: track.blockedReason,
+        hiddenReason: track.hiddenReason,
+        hiddenAt: track.hiddenAt,
+        createdAt: track.createdAt,
+        updatedAt: track.updatedAt,
+    };
+};
+
+const formatTrackItem = (track) => {
+    if (!track) return null;
+
+    return {
+        _id: track._id,
+        title: track.title,
+        artist: track.artist_artistId
+            ? {
+                  _id: track.artist_artistId._id,
+                  name: track.artist_artistId.name,
+                  avatar: track.artist_artistId.avatar,
+              }
+            : null,
+        duration: track.duration,
+        avatar: track.avatar,
+        stats: track.stats,
+        activeStatus: track.activeStatus,
+        approvalStatus: track.approvalStatus,
+    };
+};
+
 const getValidAudioFiles = (audioFiles = []) =>
     audioFiles
         .filter((audioFile) => audioFile?.url)
@@ -38,10 +107,22 @@ const pickPremiumDefaultAudio = (audioFiles) => {
     })[0];
 };
 
-const pickBasicAudio = (audioFiles) =>
-    audioFiles.find(
+const pickBasicAudio = (audioFiles) => {
+    const preferredAudio = audioFiles.find(
         (audioFile) => audioFile.format === "mp4" && audioFile.bitrate === 128
-    ) || null;
+    );
+
+    if (preferredAudio) {
+        return preferredAudio;
+    }
+
+    const fallback128Audio = audioFiles.find((audioFile) => audioFile.bitrate === 128);
+    if (fallback128Audio) {
+        return fallback128Audio;
+    }
+
+    return audioFiles[0] || null;
+};
 
 const getPremiumAccessState = async (user) => {
     if (!user?.id) {
@@ -190,6 +271,8 @@ const formatTrackPlayback = (track, audioFiles, accessState) => {
 };
 
 export {
+    formatTrackManagementDetail,
+    formatTrackItem,
     formatTrackDetail,
     formatTrackPlayback,
     getPremiumAccessState,

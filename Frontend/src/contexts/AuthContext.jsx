@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { setupAxiosInterceptors } from "../axios/setupAuthInterceptors";
 import {
@@ -13,20 +13,77 @@ import {
 } from "../services/authStorage";
 import AuthContext from "./auth-context";
 
+const TOKEN_REFRESH_BUFFER_IN_SECONDS = 30;
+
+const decodeJwtPayload = (token) => {
+  if (!token || typeof token !== "string") {
+    return null;
+  }
+
+  const [, payload] = token.split(".");
+
+  if (!payload) {
+    return null;
+  }
+
+  try {
+    const normalizedPayload = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const paddedPayload = normalizedPayload.padEnd(
+      normalizedPayload.length + ((4 - (normalizedPayload.length % 4)) % 4),
+      "="
+    );
+    const decodedPayload = window.atob(paddedPayload);
+
+    return JSON.parse(decodedPayload);
+  } catch {
+    return null;
+  }
+};
+
+const isAccessTokenStillValid = (token) => {
+  if (!token) {
+    return false;
+  }
+
+  const payload = decodeJwtPayload(token);
+  const expiresAtInSeconds = Number(payload?.exp);
+
+  if (!Number.isFinite(expiresAtInSeconds)) {
+    return true;
+  }
+
+  const currentTimeInSeconds = Math.floor(Date.now() / 1000);
+
+  return (
+    expiresAtInSeconds - currentTimeInSeconds >
+    TOKEN_REFRESH_BUFFER_IN_SECONDS
+  );
+};
+
 export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
   const [initialSession] = useState(() => getStoredAuthSession());
   const hasStoredSession = Boolean(
     initialSession.user && initialSession.accessToken
   );
+  const hasUsableStoredToken = isAccessTokenStillValid(
+    initialSession.accessToken
+  );
 
   const [user, setUser] = useState(initialSession.user);
   const [accessToken, setAccessToken] = useState(initialSession.accessToken);
-  const [isLoading, setIsLoading] = useState(!hasStoredSession);
+  const userRef = useRef(initialSession.user);
+  const accessTokenRef = useRef(initialSession.accessToken);
+  const [isInterceptorReady, setIsInterceptorReady] = useState(false);
+  const [isLoading, setIsLoading] = useState(
+    !hasStoredSession || !hasUsableStoredToken
+  );
 
   // Hàm này sẽ được sử dụng để xóa session khỏi state 
   // và localStorage khi logout hoặc khi refresh session thất bại
   const clearAuthState = useCallback(() => {
+    userRef.current = null;
+    accessTokenRef.current = null;
     setUser(null);
     setAccessToken(null);
     clearStoredAuthSession();
@@ -35,18 +92,34 @@ export const AuthProvider = ({ children }) => {
   // Hàm này sẽ được sử dụng để áp dụng session mới nhận được từ API vào state của context
   const applyAuthSession = useCallback(
     (session) => {
-      const sessionUser = session?.user ?? null;
-      const sessionToken = session?.accessToken ?? null;
+      const storedSession = getStoredAuthSession();
+      const sessionUser =
+        session?.user ?? userRef.current ?? storedSession.user ?? null;
+      const sessionToken =
+        session?.accessToken ??
+        accessTokenRef.current ??
+        storedSession.accessToken ??
+        null;
 
       if (!sessionUser || !sessionToken) {
         clearAuthState();
         return null;
       }
 
+      userRef.current = sessionUser;
+      accessTokenRef.current = sessionToken;
       setUser(sessionUser);
       setAccessToken(sessionToken);
+      persistAuthSession({
+        user: sessionUser,
+        accessToken: sessionToken,
+      });
 
-      return session;
+      return {
+        ...session,
+        user: sessionUser,
+        accessToken: sessionToken,
+      };
     },
     [clearAuthState]
   );
@@ -97,6 +170,9 @@ export const AuthProvider = ({ children }) => {
 
   // Đồng bộ session vào localStorage mỗi khi có sự thay đổi về user hoặc accessToken
   useEffect(() => {
+    userRef.current = user;
+    accessTokenRef.current = accessToken;
+
     if (user && accessToken) {
       persistAuthSession({ user, accessToken });
       return;
@@ -109,23 +185,30 @@ export const AuthProvider = ({ children }) => {
   // Cấu hình interceptor sẽ được cập nhật mỗi khi accessToken, applyAuthSession hoặc logout thay đổi
   useEffect(() => {
     setupAxiosInterceptors({
-      getAccessToken: () => accessToken,
       onRefreshSuccess: applyAuthSession,
       onAuthFailed: logout,
     });
-  }, [accessToken, applyAuthSession, logout]);
 
-  // Khi component AuthProvider được mount, sẽ kiểm tra nếu có session 
-  // đã lưu trữ thì sẽ cố gắng refresh session đó để đảm bảo tính hợp lệ
+    setIsInterceptorReady(true);
+  }, [applyAuthSession, logout]);
+
+  // Khi AuthProvider mount:
+  // - Nếu đang có access token local còn hạn thì dùng luôn để tránh refresh không cần thiết.
+  // - Chỉ refresh khi chưa có token local hoặc token đã hết hạn/gần hết hạn.
   useEffect(() => {
     const initializeAuth = async () => {
       if (hasStoredSession) {
-        setIsLoading(false);
+        if (hasUsableStoredToken) {
+          setIsLoading(false);
+          return;
+        }
 
         try {
-          await refreshSession({ preserveSessionOnError: true });
+          await refreshSession();
         } catch {
           return;
+        } finally {
+          setIsLoading(false);
         }
 
         return;
@@ -141,7 +224,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     initializeAuth();
-  }, [hasStoredSession, refreshSession]);
+  }, [hasStoredSession, hasUsableStoredToken, refreshSession]);
 
   const value = useMemo(
     () => ({
@@ -158,5 +241,9 @@ export const AuthProvider = ({ children }) => {
     [user, accessToken, isLoading, login, logout, refreshSession]
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={ value }>
+      { isInterceptorReady ? children : null }
+    </AuthContext.Provider>
+  );
 };

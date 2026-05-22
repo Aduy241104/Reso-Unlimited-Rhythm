@@ -8,6 +8,8 @@ import SystemPlaylistEditPage from "../pages/systemPlaylists/SystemPlaylistEditP
 import SystemPlaylistsListPage from "../pages/systemPlaylists/SystemPlaylistsListPage";
 import SystemTracksListPage from "../pages/systemTracks/SystemTracksListPage";
 import HomePage from "../pages/home/HomePage";
+import UsersListPage from "../pages/users/UsersListPage";
+import UserDetailPage from "../pages/users/UserDetailPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import RoleRoute from "./RoleRoute";
@@ -49,6 +51,14 @@ export const appRoutes = [
                     element: <SystemPlaylistDetailPage />,
                   },
                 ],
+              },
+              {
+                path: "users",
+                element: <UsersListPage />,
+              },
+              {
+                path: "users/:userId",
+                element: <UserDetailPage />,
               },
               {
                 path: "system-tracks",

@@ -1,6 +1,7 @@
 import axiosClient from "./axiosClient";
 import { AUTH_API_PREFIX } from "../constants/auth";
 import { refreshSessionService } from "../services/authService";
+import { getStoredAccessToken } from "../services/authStorage";
 
 let isRefreshing = false;
 let failedQueue = [];
@@ -48,7 +49,7 @@ export const setupAxiosInterceptors = ({
 
   requestInterceptorId = axiosClient.interceptors.request.use(
     (config) => {
-      const token = getAccessToken?.();
+      const token = getStoredAccessToken() ?? getAccessToken?.();
 
       config.headers = config.headers || {};
       applyAuthorizationHeader(config.headers, token);

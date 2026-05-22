@@ -158,19 +158,24 @@ const ArtistProfilePage = () => {
                 <p className="text-xs uppercase tracking-[0.3em] text-[#8b5e3c]">
                   Artist profile
                 </p>
-                <h1 className="mt-2 text-2xl font-semibold tracking-tight text-[#241b15] sm:text-3xl">
+                <h1 className="mt-2 flex items-center gap-2 text-2xl font-semibold tracking-tight text-[#241b15] sm:text-3xl">
                   {artist.name}
+                  {artist.verificationStatus === "verified" && (
+                    <span
+                      title="Verified Artist"
+                      className="relative flex items-center justify-center"
+                      style={{ width: 20, height: 20 }}
+                    >
+                      <span className="absolute inset-0 rounded-full opacity-40 blur-[3px]" style={{ background: "#3d91f4" }} />
+                      <span className="relative flex h-5 w-5 items-center justify-center rounded-full" style={{ background: "#3d91f4" }}>
+                        <svg className="h-3 w-3 text-white" viewBox="0 0 12 12" fill="currentColor" aria-hidden>
+                          <path fillRule="evenodd" d="M9.92 2.83a.6.6 0 0 1 .08.8L5.28 8.35a.6.6 0 0 1-.87 0l-2-2.3a.6.6 0 1 1 .83-.87l1.5 1.73 4.35-5.02a.6.6 0 0 1 .83-.06Z" clipRule="evenodd" />
+                        </svg>
+                      </span>
+                    </span>
+                  )}
                 </h1>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <span
-                    className={[
-                      "inline-flex rounded-sm px-2.5 py-1 text-xs font-medium capitalize",
-                      verificationBadgeClass[artist.verificationStatus] ??
-                        "bg-neutral-100 text-neutral-600",
-                    ].join(" ")}
-                  >
-                    {artist.verificationStatus}
-                  </span>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
                   <span
                     className={[
                       "inline-flex rounded-sm px-2.5 py-1 text-xs font-medium capitalize",
@@ -180,6 +185,17 @@ const ArtistProfilePage = () => {
                   >
                     {artist.activeStatus}
                   </span>
+                  {artist.verificationStatus !== "verified" && artist.verificationStatus ? (
+                    <span
+                      className={[
+                        "inline-flex rounded-sm px-2.5 py-1 text-xs font-medium capitalize",
+                        verificationBadgeClass[artist.verificationStatus] ??
+                          "bg-neutral-100 text-neutral-600",
+                      ].join(" ")}
+                    >
+                      {artist.verificationStatus}
+                    </span>
+                  ) : null}
                 </div>
               </div>
             </div>

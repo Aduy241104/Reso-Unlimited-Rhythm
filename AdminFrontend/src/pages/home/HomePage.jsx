@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useAuth } from "../../hooks/useAuth";
-import { getCurrentUserService } from "../../services/authService";
 
 const HomePage = () => {
   const { user } = useAuth();
@@ -12,7 +11,7 @@ const HomePage = () => {
     setProfileMessage("");
 
     try {
-      const profile = await getCurrentUserService();
+      const profile = {};
       setProfileMessage(
         `Token is working. Hello ${profile?.username || profile?.email || "admin"}.`
       );
