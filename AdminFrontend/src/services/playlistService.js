@@ -2,6 +2,16 @@ import axiosClient from "../axios/axiosClient";
 
 const PLAYLIST_API_PREFIX = "/api/playlists";
 
+export const getAdminSystemPlaylistsService = async (params = {}) => {
+  const response = await axiosClient.get(`${PLAYLIST_API_PREFIX}/admin/system`, {
+    params,
+  });
+  return {
+    playlists: response?.data?.data?.playlists ?? [],
+    pagination: response?.data?.meta ?? null,
+  };
+};
+
 export const getSystemPlaylistsService = async (params = {}) => {
   const response = await axiosClient.get(`${PLAYLIST_API_PREFIX}/system`, {
     params,
@@ -22,6 +32,29 @@ export const getPlaylistDetailService = async (playlistId) => {
 export const getAdminSystemPlaylistDetailService = async (playlistId) => {
   const response = await axiosClient.get(
     `${PLAYLIST_API_PREFIX}/admin/system/${playlistId}`
+  );
+  return response?.data?.data?.playlist ?? null;
+};
+
+export const uploadSystemPlaylistCoverService = async (playlistId, file) => {
+  const formData = new FormData();
+  formData.append("coverImage", file);
+
+  const response = await axiosClient.post(
+    `${PLAYLIST_API_PREFIX}/admin/system/${playlistId}/cover`,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
+  );
+  return response?.data?.data?.playlist ?? null;
+};
+
+export const deleteSystemPlaylistCoverService = async (playlistId) => {
+  const response = await axiosClient.delete(
+    `${PLAYLIST_API_PREFIX}/admin/system/${playlistId}/cover`
   );
   return response?.data?.data?.playlist ?? null;
 };

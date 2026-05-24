@@ -32,8 +32,10 @@ const updateMyProfileSchema = Joi.object({
     }).optional(),
     avatar: optionalHttpUrl.optional(),
     coverImage: optionalHttpUrl.optional(),
+    removeAvatar: Joi.boolean().optional(),
+    removeCover: Joi.boolean().optional(),
 })
-    .or("name", "bio", "socialLinks", "avatar", "coverImage")
+    .or("name", "bio", "socialLinks", "avatar", "coverImage", "removeAvatar", "removeCover")
     .messages({
         "object.missing": "At least one field must be provided to update your profile.",
     });

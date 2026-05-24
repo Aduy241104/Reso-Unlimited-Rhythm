@@ -2,7 +2,8 @@ import { StatusCodes } from "http-status-codes";
 import Artist from "../../models/Artist.js";
 import ArtistVerificationRequest from "../../models/ArtistVerificationRequest.js";
 import { AppError } from "../../utils/AppError.js";
-import { uploadImageBuffer } from "../cloudinaryService.js";
+import { uploadImageBuffer, deleteImageByPublicId } from "../cloudinaryService.js";
+import { extractPublicIdFromUrl } from "../../utils/uploadCloud.js";
 import { formatArtistProfile } from "./artist.helper.js";
 
 const CLOUDINARY_ARTIST_FOLDER = "reso/artists";
@@ -69,12 +70,36 @@ const updateMyProfileByUserId = async (userId, payload) => {
         artist.bio = payload.bio;
     }
 
-    if (payload.avatar !== undefined) {
-        artist.avatar = payload.avatar;
+    if (payload.removeAvatar === true) {
+        const currentAvatarUrl = artist.avatar;
+        if (currentAvatarUrl) {
+            const publicId = extractPublicIdFromUrl(currentAvatarUrl);
+            if (publicId) {
+                try {
+                    const result = await deleteImageByPublicId(publicId, true);
+                    console.log("[DEBUG] Delete avatar result:", result);
+                } catch (err) {
+                    console.error("[ERROR] Delete avatar failed:", err);
+                }
+            }
+        }
+        artist.avatar = "";
     }
 
-    if (payload.coverImage !== undefined) {
-        artist.coverImage = payload.coverImage;
+    if (payload.removeCover === true) {
+        const currentCoverUrl = artist.coverImage;
+        if (currentCoverUrl) {
+            const publicId = extractPublicIdFromUrl(currentCoverUrl);
+            if (publicId) {
+                try {
+                    const result = await deleteImageByPublicId(publicId, true);
+                    console.log("[DEBUG] Delete cover result:", result);
+                } catch (err) {
+                    console.error("[ERROR] Delete cover failed:", err);
+                }
+            }
+        }
+        artist.coverImage = "";
     }
 
     if (payload.socialLinks) {
