@@ -12,6 +12,7 @@ export const routePaths = {
   resetPassword: "/reset-password",
   artistBrowseProfile: (artistId = ":id") => `/artists/${artistId}`,
   legacyArtistProfile: "/artist-profile",
+  userProfile: "/profile",
   artistRoot: "/artist",
   artistMusic: "/artist/music",
   artistCreateTrack: "/artist/music/create",

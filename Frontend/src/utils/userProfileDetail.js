@@ -1,0 +1,38 @@
+const FALLBACK_TEXT = "Not provided";
+
+const normalizeText = (value) => {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.trim();
+};
+
+const formatGenderLabel = (value) => {
+  const normalizedValue = normalizeText(value).toLowerCase();
+
+  if (!normalizedValue) {
+    return FALLBACK_TEXT;
+  }
+
+  return normalizedValue
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+};
+
+export const getUserProfileDetail = (user) => {
+  const email = normalizeText(user?.email);
+  const avatar = normalizeText(user?.avatar);
+  const fullName = normalizeText(user?.profile?.fullName);
+  const country = normalizeText(user?.profile?.country);
+
+  return {
+    email: email || FALLBACK_TEXT,
+    avatar,
+    fullName: fullName || FALLBACK_TEXT,
+    gender: formatGenderLabel(user?.profile?.gender),
+    country: country || FALLBACK_TEXT,
+  };
+};
