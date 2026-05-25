@@ -26,6 +26,8 @@ const createSystemPlaylistSchema = Joi.object({
     title: Joi.string().trim().min(1).max(200).required(),
     description: Joi.string().trim().max(5000).allow("").default(""),
     coverImage: optionalCoverUrl.optional().default(""),
+    isPublic: Joi.boolean().default(true),
+    isHidden: Joi.boolean().default(false),
 });
 
 const updateSystemPlaylistSchema = Joi.object({

@@ -24,7 +24,16 @@ export const uploadImageBuffer = ({ buffer, folder = "unitrade", publicId }) => 
     });
 };
 
-export const deleteImageByPublicId = async (publicId) => {
+export const deleteImageByPublicId = async (publicId, invalidate = false) => {
     // returns { result: 'ok' | 'not found' | ... }
-    return cloudinary.uploader.destroy(publicId, { resource_type: "image" });
+    const options = { resource_type: "image" };
+
+    if (invalidate) {
+        options.invalidate = true;
+    }
+
+    console.log("[DEBUG] Cloudinary destroy called with publicId:", publicId, "options:", options);
+    const result = await cloudinary.uploader.destroy(publicId, options);
+    console.log("[DEBUG] Cloudinary destroy result:", result);
+    return result;
 };
