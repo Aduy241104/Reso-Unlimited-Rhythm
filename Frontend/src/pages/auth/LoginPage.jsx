@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faDoorOpen } from "@fortawesome/free-solid-svg-icons";
 import { useLocation, useNavigate } from "react-router-dom";
+import GoogleLoginButton from "../../components/auth/GoogleLoginButton";
 import { useAuth } from "../../hooks/useAuth";
 import loginBg from "../../assets/images/ChatGPT Image 10_35_18 29 thg 4, 2026.png";
 import { routePaths } from "../../routes/routePaths";
@@ -9,7 +8,7 @@ import { routePaths } from "../../routes/routePaths";
 const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const { login, googleLogin } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -50,6 +49,22 @@ const LoginPage = () => {
       navigate(from, { replace: true });
     } catch (err) {
       setError(err?.response?.data?.message || err?.message || "Login failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async (token) => {
+    setError("");
+    setLoading(true);
+
+    try {
+      await googleLogin(token);
+      navigate(from, { replace: true });
+    } catch (err) {
+      setError(
+        err?.response?.data?.message || err?.message || "Google login failed."
+      );
     } finally {
       setLoading(false);
     }
@@ -152,6 +167,7 @@ const LoginPage = () => {
                       placeholder="Email"
                       value={ email }
                       onChange={ (event) => setEmail(event.target.value) }
+                      disabled={ loading }
                       className="w-full rounded-full border border-black bg-[#f5f5f5] px-4 py-3 text-[#1a1820] outline-none transition placeholder:text-[#9a8fa8] focus:border-[#f5b66f] focus:ring-4 focus:ring-[#f5b66f]/20"
                     />
                   </div>
@@ -167,6 +183,7 @@ const LoginPage = () => {
                       placeholder="Password"
                       value={ password }
                       onChange={ (event) => setPassword(event.target.value) }
+                      disabled={ loading }
                       className="w-full rounded-full border border-black bg-[#f5f5f5] px-4 py-3 text-[#1a1820] outline-none transition placeholder:text-[#9a8fa8] focus:border-[#f5b66f] focus:ring-4 focus:ring-[#f5b66f]/20"
                     />
                   </div>
@@ -179,6 +196,17 @@ const LoginPage = () => {
                     { loading ? "Signing in..." : "Sign In" }
                   </button>
                 </form>
+
+                <div className="my-6 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.28em] text-[#6b6573]">
+                  <div className="h-px flex-1 bg-black/10" />
+                  <span>Or continue with</span>
+                  <div className="h-px flex-1 bg-black/10" />
+                </div>
+
+                <GoogleLoginButton
+                  disabled={ loading }
+                  onCredential={ handleGoogleLogin }
+                />
 
                 <p className="mt-7 text-center text-sm text-[#d9d5cf]">
                   Don&apos;t have an account?{ " " }

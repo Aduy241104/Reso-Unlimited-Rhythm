@@ -23,6 +23,10 @@ const loginSchema = Joi.object({
     password: Joi.string().min(6).max(128).required(),
 });
 
+const googleLoginSchema = Joi.object({
+    token: Joi.string().trim().required(),
+});
+
 const forgotPasswordSchema = Joi.object({
     email: Joi.string().trim().email().required(),
 });
@@ -46,6 +50,7 @@ export default {
     requestRegisterOtpSchema,
     registerSchema,
     loginSchema,
+    googleLoginSchema,
     forgotPasswordSchema,
     resetPasswordSchema,
     refreshTokenCookieSchema,

@@ -11,8 +11,13 @@ import {
     sendResetPasswordLinkEmail,
 } from "../../utils/mailer.js";
 import {
+    buildRegistrationProfilePayload,
+    createAuthSession,
     ensureActiveUser,
+    ensureRegistrationAvailability,
+    findOrCreateGoogleUser,
     sanitizeUser,
+    verifyGoogleIdToken,
 } from "./authentication.helper.js";
 import {
     createAccessToken,
@@ -34,40 +39,6 @@ const getOtpExpireDate = () =>
 
 const getResetPasswordExpireDate = () =>
     new Date(Date.now() + RESET_PASSWORD_TTL_MINUTES * 60 * 1000);
-
-const normalizeOptionalDate = (value) => {
-    if (!value) {
-        return undefined;
-    }
-
-    const parsedDate = value instanceof Date ? value : new Date(value);
-
-    return Number.isNaN(parsedDate.getTime()) ? undefined : parsedDate;
-};
-
-const buildRegistrationProfilePayload = ({
-    fullName,
-    gender,
-    dateOfBirth,
-    country,
-}) => ({
-    fullName: fullName?.trim() || "",
-    gender: gender || "prefer_not_to_say",
-    dateOfBirth: normalizeOptionalDate(dateOfBirth),
-    country: country?.trim() || "",
-});
-
-const ensureRegistrationAvailability = async (email) => {
-    const [existingEmail] = await Promise.all([
-        User.findOne({ email }),
-    ]);
-
-    if (existingEmail) {
-        throw new AppError("Email is already in use.", 409, {
-            field: "email",
-        });
-    }
-};
 
 const requestRegisterOtp = async ({ email }) => {
     const normalizedEmail = email.trim().toLowerCase();
@@ -221,21 +192,14 @@ const login = async ({ email, password }) => {
         throw new AppError("Email or password is incorrect.", 401);
     }
 
-    const accessToken = createAccessToken(user);
-    const refreshToken = createRefreshToken();
+    return createAuthSession(user);
+};
 
-    await RefreshToken.create({
-        userId: user._id,
-        token: refreshToken,
-        expiresAt: getRefreshExpireDate(),
-        isRevoked: false,
-    });
+const googleLogin = async ({ token }) => {
+    const googleProfile = await verifyGoogleIdToken(token);
+    const user = await findOrCreateGoogleUser(googleProfile);
 
-    return {
-        accessToken,
-        refreshToken,
-        user: sanitizeUser(user),
-    };
+    return createAuthSession(user);
 };
 
 const requestForgotPassword = async ({ email }) => {
@@ -421,6 +385,7 @@ export default {
     requestRegisterOtp,
     register,
     login,
+    googleLogin,
     requestForgotPassword,
     resetPassword,
     logout,

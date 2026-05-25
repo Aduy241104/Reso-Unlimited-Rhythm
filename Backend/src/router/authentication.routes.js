@@ -13,6 +13,12 @@ router.post(
 );
 
 router.post(
+    "/google",
+    validate(authenticationValidation.googleLoginSchema),
+    authenticationController.googleLogin
+);
+
+router.post(
     "/register",
     validate(authenticationValidation.registerSchema),
     authenticationController.register
