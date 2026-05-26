@@ -30,7 +30,22 @@ const getMyAlbumDetail = async (req, res, next) => {
     }
 };
 
+const createAlbum = async (req, res, next) => {
+    try {
+        const album = await artistAlbumService.createAlbum(req.user.id, req.body, req.file);
+
+        return formatResponse.success(
+            res,
+            { album },
+            "Album created successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getMyAlbums,
     getMyAlbumDetail,
+    createAlbum,
 };

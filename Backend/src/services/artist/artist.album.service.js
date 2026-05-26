@@ -5,6 +5,7 @@ import Artist from "../../models/Artist.js";
 import Track from "../../models/Track.js";
 import { AppError } from "../../utils/AppError.js";
 import { formatAlbumItem, formatAlbumDetail } from "../album/album.helper.js";
+import { uploadToCloudinary } from "../../utils/uploadCloud.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
@@ -175,7 +176,63 @@ const getMyAlbumDetail = async (userId, albumId) => {
     return formatAlbumDetail(album);
 };
 
+const createAlbum = async (userId, payload, file) => {
+    const artist = await Artist.findOne({ userId });
+
+    if (!artist) {
+        throw new AppError(
+            "Artist profile not found for this account.",
+            StatusCodes.NOT_FOUND
+        );
+    }
+
+    if (!payload.title || !payload.title.trim()) {
+        throw new AppError("Album title is required.", StatusCodes.BAD_REQUEST, {
+            field: "title",
+        });
+    }
+
+    let coverImageUrl = "";
+
+    // Upload cover image to Cloudinary if file is provided
+    if (file) {
+        try {
+            const result = await uploadToCloudinary(
+                file.buffer,
+                "albums/cover",
+                "image"
+            );
+            coverImageUrl = result.secure_url;
+        } catch (uploadError) {
+            console.error("Failed to upload cover image:", uploadError.message);
+            throw new AppError(
+                "Failed to upload cover image. Please try again.",
+                StatusCodes.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    const album = new Album({
+        title: payload.title.trim(),
+        artistId: artist._id,
+        coverImage: coverImageUrl,
+        releaseDate: payload.releaseDate || null,
+        status: payload.status || "active",
+        trackList: [],
+    });
+
+    await album.save();
+
+    const populated = await album.populate({
+        path: "artistId",
+        select: "name avatar coverImage",
+    });
+
+    return formatAlbumItem(populated.toObject());
+};
+
 export default {
     getMyAlbums,
     getMyAlbumDetail,
+    createAlbum,
 };

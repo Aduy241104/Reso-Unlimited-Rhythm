@@ -5,11 +5,13 @@ import { requireArtist } from "../middlewares/Authentication/authentication.midd
 import { runArtistProfileMediaUpload } from "../middlewares/artist/artist.mediaUpload.middleware.js";
 import artistValidation from "../middlewares/artist/artist.validation.js";
 import validate from "../middlewares/validate.middleware.js";
+import upload from "../middlewares/upload.middleware.js";
 
 const router = express.Router();
 
 router.get("/me", requireArtist, artistController.getMyProfile);
 router.get("/albums", requireArtist, artistAlbumController.getMyAlbums);
+router.post("/albums", requireArtist, upload.single("coverImage"), artistAlbumController.createAlbum);
 router.get("/albums/:id", requireArtist, artistAlbumController.getMyAlbumDetail);
 
 router.post(
