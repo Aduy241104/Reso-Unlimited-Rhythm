@@ -58,9 +58,39 @@ const updateAlbum = async (req, res, next) => {
     }
 };
 
+const hideAlbum = async (req, res, next) => {
+    try {
+        const album = await artistAlbumService.hideAlbum(req.user.id, req.params.id);
+
+        return formatResponse.success(
+            res,
+            { album },
+            "Album hidden successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+const unhideAlbum = async (req, res, next) => {
+    try {
+        const album = await artistAlbumService.unhideAlbum(req.user.id, req.params.id);
+
+        return formatResponse.success(
+            res,
+            { album },
+            "Album unhidden successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getMyAlbums,
     getMyAlbumDetail,
     createAlbum,
     updateAlbum,
+    hideAlbum,
+    unhideAlbum,
 };

@@ -315,9 +315,85 @@ const updateAlbum = async (userId, albumId, payload, file) => {
     return formatAlbumItem(populated.toObject());
 };
 
+const hideAlbum = async (userId, albumId) => {
+    if (!mongoose.Types.ObjectId.isValid(albumId)) {
+        throw new AppError("Album id is invalid.", StatusCodes.BAD_REQUEST, {
+            field: "id",
+        });
+    }
+
+    const artist = await Artist.findOne({ userId });
+
+    if (!artist) {
+        throw new AppError(
+            "Artist profile not found for this account.",
+            StatusCodes.NOT_FOUND
+        );
+    }
+
+    const album = await Album.findOne({
+        _id: albumId,
+        artistId: artist._id,
+    });
+
+    if (!album) {
+        throw new AppError("Album not found.", StatusCodes.NOT_FOUND);
+    }
+
+    // Set album status to hidden
+    album.status = "hidden";
+    await album.save();
+
+    const populated = await album.populate({
+        path: "artistId",
+        select: "name avatar coverImage",
+    });
+
+    return formatAlbumItem(populated.toObject());
+};
+
+const unhideAlbum = async (userId, albumId) => {
+    if (!mongoose.Types.ObjectId.isValid(albumId)) {
+        throw new AppError("Album id is invalid.", StatusCodes.BAD_REQUEST, {
+            field: "id",
+        });
+    }
+
+    const artist = await Artist.findOne({ userId });
+
+    if (!artist) {
+        throw new AppError(
+            "Artist profile not found for this account.",
+            StatusCodes.NOT_FOUND
+        );
+    }
+
+    const album = await Album.findOne({
+        _id: albumId,
+        artistId: artist._id,
+    });
+
+    if (!album) {
+        throw new AppError("Album not found.", StatusCodes.NOT_FOUND);
+    }
+
+    // Set album status back to active
+    album.status = "active";
+    await album.save();
+
+    const populated = await album.populate({
+        path: "artistId",
+        select: "name avatar coverImage",
+    });
+
+    return formatAlbumItem(populated.toObject());
+};
+
 export default {
     getMyAlbums,
     getMyAlbumDetail,
     createAlbum,
     updateAlbum,
+    hideAlbum,
+    unhideAlbum,
 };

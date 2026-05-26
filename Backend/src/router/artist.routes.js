@@ -12,8 +12,10 @@ const router = express.Router();
 router.get("/me", requireArtist, artistController.getMyProfile);
 router.get("/albums", requireArtist, artistAlbumController.getMyAlbums);
 router.post("/albums", requireArtist, upload.single("coverImage"), artistAlbumController.createAlbum);
-router.get("/albums/:id", requireArtist, artistAlbumController.getMyAlbumDetail);
 router.patch("/albums/:id", requireArtist, upload.single("coverImage"), artistAlbumController.updateAlbum);
+router.patch("/albums/:id/hide", requireArtist, artistAlbumController.hideAlbum);
+router.patch("/albums/:id/unhide", requireArtist, artistAlbumController.unhideAlbum);
+router.get("/albums/:id", requireArtist, artistAlbumController.getMyAlbumDetail);
 
 router.post(
     "/me/verification-request",
