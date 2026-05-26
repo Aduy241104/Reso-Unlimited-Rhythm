@@ -9,6 +9,7 @@ import ResetPasswordPage from "../pages/auth/ResetPasswordPage";
 import ArtistOverviewPage from "../pages/artist/ArtistOverviewPage";
 import ArtistProfileEditPage from "../pages/artist/ArtistProfileEditPage";
 import ArtistProfilePage from "../pages/artist/ArtistProfilePage";
+import ArtistAlbumPage from "../pages/artist/ArtistAlbumPage";
 import {
   AnalyticsPage,
   FansPage,
@@ -105,6 +106,10 @@ export const appRoutes = [
               {
                 path: routePaths.artistLyrics,
                 element: <ArtistLyricsPage />,
+              },
+              {
+                path: routePaths.artistAlbums,
+                element: <ArtistAlbumPage />,
               },
               {
                 path: routePaths.artistReleases,

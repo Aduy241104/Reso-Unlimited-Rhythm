@@ -8,6 +8,7 @@ import {
   Users,
   Wallet,
   Waves,
+  Album,
 } from "lucide-react";
 import { routePaths } from "../../routes/routePaths";
 
@@ -28,6 +29,11 @@ export const artistNavigation = [
     icon: FileText,
   },
   {
+    label: "Albums",
+    to: routePaths.artistAlbums,
+    icon: Album,
+  },
+  {
     label: "Releases",
     to: routePaths.artistReleases,
     icon: Disc3,
@@ -45,6 +51,7 @@ export const artistPageTitles = {
   [routePaths.artistTrackDetail()]: "Track Detail",
   [routePaths.artistTrackEdit()]: "Edit Track",
   [routePaths.artistLyrics]: "Lyrics Management",
+  [routePaths.artistAlbums]: "My Albums",
   [routePaths.artistReleases]: "Releases",
   [routePaths.artistAnalytics]: "Analytics",
   [routePaths.artistProfile]: "Artist Profile",
