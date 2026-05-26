@@ -13,7 +13,6 @@ const getGenres = async (query) => {
     }
 
     if (typeof query.isActive !== "undefined") {
-        // allow query.isActive to be 'true'/'false' or boolean
         if (query.isActive === "true" || query.isActive === true) {
             filter.isActive = true;
         } else if (query.isActive === "false" || query.isActive === false) {
@@ -40,6 +39,18 @@ const getGenres = async (query) => {
     return { genres, meta };
 };
 
+const createGenre = async (genreData) => {
+    const genre = new Genre({
+        name: genreData.name?.trim(),
+        description: genreData.description?.trim() || "",
+        image: genreData.image?.trim() || "",
+        isActive: typeof genreData.isActive !== "undefined" ? genreData.isActive : true,
+    });
+
+    return genre.save();
+};
+
 export default {
     getGenres,
+    createGenre,
 };

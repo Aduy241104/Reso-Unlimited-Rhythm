@@ -16,6 +16,21 @@ const getGenres = async (req, res, next) => {
     }
 };
 
+const createGenre = async (req, res, next) => {
+    try {
+        const genre = await adminGenreService.createGenre(req.body);
+
+        return formatResponse.success(
+            res,
+            { genre },
+            "Genre created successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getGenres,
+    createGenre,
 };

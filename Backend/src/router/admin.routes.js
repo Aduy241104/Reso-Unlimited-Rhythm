@@ -10,6 +10,7 @@ router.use(requireAdmin);
 router.get("/users", adminUserController.getUsers);
 router.get("/users/:id", adminUserController.getUserDetail);
 router.get("/genres", adminGenreController.getGenres);
+router.post("/genres", adminGenreController.createGenre);
 // The following admin user routes are intentionally disabled to keep only the "list users" and "detail" features.
 // Uncomment if you need delete endpoints in the future.
 router.patch("/users/:id", adminUserController.updateUser);
