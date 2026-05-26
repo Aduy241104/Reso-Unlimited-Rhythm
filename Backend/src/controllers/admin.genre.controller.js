@@ -30,7 +30,61 @@ const createGenre = async (req, res, next) => {
     }
 };
 
+const getGenre = async (req, res, next) => {
+    try {
+        const genre = await adminGenreService.getGenreById(req.params.id);
+
+        return formatResponse.success(
+            res,
+            { genre },
+            "Genre fetched successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+const updateGenre = async (req, res, next) => {
+    try {
+        const genre = await adminGenreService.updateGenre(req.params.id, req.body);
+
+        return formatResponse.success(
+            res,
+            { genre },
+            "Genre updated successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+const uploadGenreImage = async (req, res, next) => {
+    try {
+        const file = req.file;
+
+        if (!file) {
+            return res.status(400).json({
+                success: false,
+                message: "No genre image file provided.",
+            });
+        }
+
+        const imageUrl = await adminGenreService.uploadGenreImage(file.buffer);
+
+        return formatResponse.success(
+            res,
+            { url: imageUrl },
+            "Genre image uploaded successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getGenres,
     createGenre,
+    getGenre,
+    updateGenre,
+    uploadGenreImage,
 };

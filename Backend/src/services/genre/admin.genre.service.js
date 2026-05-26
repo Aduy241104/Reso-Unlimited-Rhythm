@@ -1,4 +1,5 @@
 import Genre from "../../models/Genre.js";
+import { uploadImageBuffer } from "../cloudinaryService.js";
 
 const getGenres = async (query) => {
     const page = Math.max(1, parseInt(query.page) || 1);
@@ -50,7 +51,50 @@ const createGenre = async (genreData) => {
     return genre.save();
 };
 
+const getGenreById = async (id) =>
+    Genre.findById(id)
+        .select("_id name description image isActive createdAt")
+        .lean();
+
+const updateGenre = async (id, genreData) => {
+    const updates = {};
+
+    if (typeof genreData.name !== "undefined") {
+        updates.name = genreData.name?.trim();
+    }
+
+    if (typeof genreData.description !== "undefined") {
+        updates.description = genreData.description?.trim() || "";
+    }
+
+    if (typeof genreData.image !== "undefined") {
+        updates.image = genreData.image?.trim() || "";
+    }
+
+    if (typeof genreData.isActive !== "undefined") {
+        updates.isActive = genreData.isActive;
+    }
+
+    const genre = await Genre.findByIdAndUpdate(id, updates, {
+        new: true,
+    }).select("_id name description image isActive createdAt");
+
+    return genre;
+};
+
+const uploadGenreImage = async (fileBuffer) => {
+    const uploadResult = await uploadImageBuffer({
+        buffer: fileBuffer,
+        folder: "reso/genres",
+    });
+
+    return uploadResult.secure_url;
+};
+
 export default {
     getGenres,
     createGenre,
+    getGenreById,
+    updateGenre,
+    uploadGenreImage,
 };
