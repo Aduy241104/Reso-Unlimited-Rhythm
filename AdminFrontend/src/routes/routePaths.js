@@ -4,6 +4,7 @@ export const routePaths = {
   systemTracks: "/system-tracks",
   systemPlaylists: "/system-playlists",
   genres: "/genres",
+  genreNew: "/genres/new",
   users: "/users",
   userDetail: (userId = ":userId") => `/users/${userId}`,
   systemPlaylistNew: "/system-playlists/new",

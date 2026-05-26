@@ -3,7 +3,7 @@ import axiosClient from "../axios/axiosClient";
 export const getAdminGenresService = async (filters = {}) => {
   const params = {};
   if (filters.search) params.q = filters.search;
- if (typeof filters.isActive !== "undefined") params.isActive = filters.isActive;
+  if (typeof filters.isActive !== "undefined") params.isActive = filters.isActive;
   if (filters.page) params.page = filters.page;
   if (filters.limit) params.limit = filters.limit;
 
@@ -12,4 +12,9 @@ export const getAdminGenresService = async (filters = {}) => {
   return { genres: data.genres ?? [], meta: res.data?.meta ?? null };
 };
 
-export default { getAdminGenresService };
+export const createAdminGenreService = async (payload) => {
+  const res = await axiosClient.post("/api/admin/genres", payload);
+  return res.data?.data?.genre ?? null;
+};
+
+export default { getAdminGenresService, createAdminGenreService };
