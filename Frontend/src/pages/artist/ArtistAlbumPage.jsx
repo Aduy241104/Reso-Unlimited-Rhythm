@@ -106,6 +106,12 @@ const ArtistAlbumPage = () => {
               A full list of albums tied to your artist profile.
             </p>
           </div>
+          <button
+            onClick={() => navigate(routePaths.artistCreateAlbum)}
+            className="rounded-md bg-[#8b5e3c] px-6 py-2 font-medium text-white transition-colors hover:bg-[#6d4a2f]"
+          >
+            + Create Album
+          </button>
         </div>
 
         {isLoading ? (
@@ -119,7 +125,7 @@ const ArtistAlbumPage = () => {
               Create your first album to start organizing your music.
             </p>
             <button
-              onClick={() => navigate(routePaths.artistCreateTrack)}
+              onClick={() => navigate(routePaths.artistCreateAlbum)}
               className="mt-5 rounded-md bg-[#8b5e3c] px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-[#6d4a2f]"
             >
               Create Album

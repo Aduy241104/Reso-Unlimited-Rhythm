@@ -11,6 +11,7 @@ import ArtistProfileEditPage from "../pages/artist/ArtistProfileEditPage";
 import ArtistProfilePage from "../pages/artist/ArtistProfilePage";
 import ArtistAlbumPage from "../pages/artist/ArtistAlbumPage";
 import ArtistAlbumDetailPage from "../pages/artist/ArtistAlbumDetailPage";
+import ArtistCreateAlbumPage from "../pages/artist/ArtistCreateAlbumPage";
 import {
   AnalyticsPage,
   FansPage,
@@ -111,6 +112,10 @@ export const appRoutes = [
               {
                 path: routePaths.artistAlbums,
                 element: <ArtistAlbumPage />,
+              },
+              {
+                path: routePaths.artistCreateAlbum,
+                element: <ArtistCreateAlbumPage />,
               },
               {
                 path: routePaths.artistAlbumDetail(),

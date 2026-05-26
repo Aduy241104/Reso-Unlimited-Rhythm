@@ -16,3 +16,12 @@ export const getArtistAlbumDetailService = async (albumId) => {
   const response = await axiosClient.get(`${ARTIST_ALBUM_API_PREFIX}/${albumId}`);
   return response?.data?.data?.album ?? null;
 };
+
+export const createAlbumService = async (payload) => {
+  const response = await axiosClient.post(ARTIST_ALBUM_API_PREFIX, payload, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return response?.data?.data?.album ?? null;
+};
