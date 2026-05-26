@@ -81,7 +81,7 @@ const ArtistAlbumPage = () => {
   }, [albums, pagination]);
 
   const handleViewAlbum = (albumId) => {
-    navigate(routePaths.albumDetail(albumId));
+    navigate(routePaths.artistAlbumDetail(albumId));
   };
 
   const handlePreviousPage = () => {

@@ -11,3 +11,8 @@ export const getArtistAlbumsService = async (params = {}) => {
     pagination: response?.data?.pagination ?? null,
   };
 };
+
+export const getArtistAlbumDetailService = async (albumId) => {
+  const response = await axiosClient.get(`${ARTIST_ALBUM_API_PREFIX}/${albumId}`);
+  return response?.data?.data?.album ?? null;
+};
