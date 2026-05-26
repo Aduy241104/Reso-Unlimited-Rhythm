@@ -10,6 +10,7 @@ const router = express.Router();
 
 router.get("/me", requireArtist, artistController.getMyProfile);
 router.get("/albums", requireArtist, artistAlbumController.getMyAlbums);
+router.get("/albums/:id", requireArtist, artistAlbumController.getMyAlbumDetail);
 
 router.post(
     "/me/verification-request",

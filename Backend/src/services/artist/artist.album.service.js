@@ -2,8 +2,9 @@ import mongoose from "mongoose";
 import { StatusCodes } from "http-status-codes";
 import Album from "../../models/Album.js";
 import Artist from "../../models/Artist.js";
+import Track from "../../models/Track.js";
 import { AppError } from "../../utils/AppError.js";
-import { formatAlbumItem } from "../album/album.helper.js";
+import { formatAlbumItem, formatAlbumDetail } from "../album/album.helper.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
@@ -60,6 +61,121 @@ const getMyAlbums = async (userId, query = {}) => {
     };
 };
 
+const getMyAlbumDetail = async (userId, albumId) => {
+    if (!mongoose.Types.ObjectId.isValid(albumId)) {
+        throw new AppError("Album id is invalid.", StatusCodes.BAD_REQUEST, {
+            field: "id",
+        });
+    }
+
+    const artist = await Artist.findOne({ userId });
+
+    if (!artist) {
+        throw new AppError(
+            "Artist profile not found for this account.",
+            StatusCodes.NOT_FOUND
+        );
+    }
+
+    const album = await Album.findOne({
+        _id: albumId,
+        artistId: artist._id,
+    })
+        .populate({
+            path: "artistId",
+            select: [
+                "name",
+                "bio",
+                "avatar",
+                "coverImage",
+                "verificationStatus",
+                "activeStatus",
+                "stats",
+            ].join(" "),
+        })
+        .populate({
+            path: "trackList.trackId",
+            select: [
+                "title",
+                "duration",
+                "avatar",
+                "coverImage",
+                "audioFiles",
+                "lyricsStatic",
+                "lyricsSyncUrl",
+                "stats",
+                "releaseDate",
+                "activeStatus",
+                "approvalStatus",
+                "artist_artistId",
+            ].join(" "),
+            populate: {
+                path: "artist_artistId",
+                select: "name avatar coverImage",
+            },
+        })
+        .lean();
+
+    if (!album) {
+        throw new AppError("Album not found.", StatusCodes.NOT_FOUND);
+    }
+
+    const trackSelect = [
+        "title",
+        "duration",
+        "avatar",
+        "coverImage",
+        "audioFiles",
+        "lyricsStatic",
+        "lyricsSyncUrl",
+        "stats",
+        "releaseDate",
+        "activeStatus",
+        "approvalStatus",
+        "artist_artistId",
+    ].join(" ");
+
+    const listedTrackIds = (album.trackList || [])
+        .map((entry) => {
+            const ref = entry.trackId;
+            if (!ref) {
+                return null;
+            }
+
+            return ref._id ? ref._id : ref;
+        })
+        .filter(Boolean);
+
+    const maxOrder = (album.trackList || []).reduce(
+        (max, entry) =>
+            typeof entry.order === "number" && entry.order > max ? entry.order : max,
+        0
+    );
+
+    const orphanTracks = await Track.find({
+        album_albumId: album._id,
+        _id: { $nin: listedTrackIds },
+    })
+        .select(trackSelect)
+        .populate({
+            path: "artist_artistId",
+            select: "name avatar coverImage",
+        })
+        .lean();
+
+    if (orphanTracks.length > 0) {
+        const supplemental = orphanTracks.map((track, index) => ({
+            order: maxOrder + index + 1,
+            trackId: track,
+        }));
+
+        album.trackList = [...(album.trackList || []), ...supplemental];
+    }
+
+    return formatAlbumDetail(album);
+};
+
 export default {
     getMyAlbums,
+    getMyAlbumDetail,
 };
