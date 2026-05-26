@@ -44,8 +44,23 @@ const createAlbum = async (req, res, next) => {
     }
 };
 
+const updateAlbum = async (req, res, next) => {
+    try {
+        const album = await artistAlbumService.updateAlbum(req.user.id, req.params.id, req.body, req.file);
+
+        return formatResponse.success(
+            res,
+            { album },
+            "Album updated successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getMyAlbums,
     getMyAlbumDetail,
     createAlbum,
+    updateAlbum,
 };

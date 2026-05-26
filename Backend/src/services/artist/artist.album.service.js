@@ -5,7 +5,7 @@ import Artist from "../../models/Artist.js";
 import Track from "../../models/Track.js";
 import { AppError } from "../../utils/AppError.js";
 import { formatAlbumItem, formatAlbumDetail } from "../album/album.helper.js";
-import { uploadToCloudinary } from "../../utils/uploadCloud.js";
+import { uploadToCloudinary, deleteCloudinaryAssetByUrl } from "../../utils/uploadCloud.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
@@ -231,8 +231,93 @@ const createAlbum = async (userId, payload, file) => {
     return formatAlbumItem(populated.toObject());
 };
 
+const updateAlbum = async (userId, albumId, payload, file) => {
+    if (!mongoose.Types.ObjectId.isValid(albumId)) {
+        throw new AppError("Album id is invalid.", StatusCodes.BAD_REQUEST, {
+            field: "id",
+        });
+    }
+
+    const artist = await Artist.findOne({ userId });
+
+    if (!artist) {
+        throw new AppError(
+            "Artist profile not found for this account.",
+            StatusCodes.NOT_FOUND
+        );
+    }
+
+    const album = await Album.findOne({
+        _id: albumId,
+        artistId: artist._id,
+    });
+
+    if (!album) {
+        throw new AppError("Album not found.", StatusCodes.NOT_FOUND);
+    }
+
+    // Validate title if provided
+    if (payload.title !== undefined) {
+        if (!payload.title.trim()) {
+            throw new AppError("Album title is required.", StatusCodes.BAD_REQUEST, {
+                field: "title",
+            });
+        }
+        album.title = payload.title.trim();
+    }
+
+    // Update releaseDate if provided
+    if (payload.releaseDate !== undefined) {
+        album.releaseDate = payload.releaseDate ? new Date(payload.releaseDate) : null;
+    }
+
+    // Update status if provided
+    if (payload.status !== undefined) {
+        album.status = payload.status;
+    }
+
+    // Handle cover image upload if file is provided
+    if (file) {
+        try {
+            // Delete old cover image if it exists
+            if (album.coverImage) {
+                try {
+                    await deleteCloudinaryAssetByUrl(album.coverImage);
+                    console.log("Old cover image deleted from Cloudinary");
+                } catch (deleteError) {
+                    console.warn("Failed to delete old cover image:", deleteError.message);
+                    // Don't throw - continue with upload even if delete fails
+                }
+            }
+
+            const result = await uploadToCloudinary(
+                file.buffer,
+                "albums/cover",
+                "image"
+            );
+            album.coverImage = result.secure_url;
+        } catch (uploadError) {
+            console.error("Failed to upload cover image:", uploadError.message);
+            throw new AppError(
+                "Failed to upload cover image. Please try again.",
+                StatusCodes.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    await album.save();
+
+    const populated = await album.populate({
+        path: "artistId",
+        select: "name avatar coverImage",
+    });
+
+    return formatAlbumItem(populated.toObject());
+};
+
 export default {
     getMyAlbums,
     getMyAlbumDetail,
     createAlbum,
+    updateAlbum,
 };
