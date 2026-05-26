@@ -1,17 +1,56 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { ArrowLeft, Loader2, Plus, Upload, X } from "lucide-react";
-import { createAdminGenreService, uploadAdminGenreImageService } from "../../services/adminGenreService";
+import {
+  getAdminGenreService,
+  updateAdminGenreService,
+  uploadAdminGenreImageService,
+} from "../../services/adminGenreService";
 import { routePaths } from "../../routes/routePaths";
 
-const CreateGenrePage = () => {
+const EditGenrePage = () => {
+  const { genreId } = useParams();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: "", description: "", isActive: true });
+  const [form, setForm] = useState({ name: "", description: "", isActive: true, image: "" });
   const [coverFile, setCoverFile] = useState(null);
-  const [coverPreview, setCoverPreview] = useState(null);
+  const [coverPreview, setCoverPreview] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    const loadGenre = async () => {
+      setIsLoading(true);
+      try {
+        const genre = await getAdminGenreService(genreId);
+        if (!active) return;
+        if (!genre) {
+          setMessage("Genre not found.");
+          return;
+        }
+        setForm({
+          name: genre.name || "",
+          description: genre.description || "",
+          isActive: typeof genre.isActive !== "undefined" ? genre.isActive : true,
+          image: genre.image || "",
+        });
+        setCoverPreview(genre.image || "");
+      } catch (error) {
+        setMessage(error?.response?.data?.message || error?.message || "Could not load genre.");
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    };
+
+    void loadGenre();
+
+    return () => {
+      active = false;
+    };
+  }, [genreId]);
 
   const handleChange = (field) => (event) => {
     const value = field === "isActive" ? event.target.checked : event.target.value;
@@ -29,7 +68,8 @@ const CreateGenrePage = () => {
 
   const clearCover = () => {
     setCoverFile(null);
-    setCoverPreview(null);
+    setCoverPreview("");
+    setForm((prev) => ({ ...prev, image: "" }));
   };
 
   const handleSubmit = async (event) => {
@@ -38,34 +78,43 @@ const CreateGenrePage = () => {
     setIsSubmitting(true);
 
     try {
-      let imageUrl = "";
+      let imageUrl = form.image || "";
       if (coverFile) {
         imageUrl = await uploadAdminGenreImageService(coverFile);
       }
 
-      await createAdminGenreService({
+      await updateAdminGenreService(genreId, {
         name: form.name.trim(),
         description: form.description.trim(),
         isActive: form.isActive,
         image: imageUrl,
       });
 
-      toast.success("Genre created successfully.");
+      toast.success("Genre updated successfully.");
       navigate(routePaths.genres, { replace: true });
     } catch (error) {
-      setMessage(error?.response?.data?.message || error?.message || "Could not create genre.");
+      setMessage(error?.response?.data?.message || error?.message || "Could not update genre.");
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="rounded border border-black bg-white p-8 text-center text-black/50">
+        <Loader2 className="mx-auto mb-4 h-6 w-6 animate-spin" />
+        Loading genre details...
+      </div>
+    );
+  }
 
   return (
     <section className="space-y-6">
       <div className="flex flex-col gap-3 rounded border border-black bg-white p-8 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.32em] text-black/50">Genre Management</p>
-          <h1 className="mt-3 text-4xl font-semibold text-black">Create Genre</h1>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-black/70">Add a new music genre for the admin catalog.</p>
+          <h1 className="mt-3 text-4xl font-semibold text-black">Edit Genre</h1>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-black/70">Update genre name, description, image, and active status.</p>
         </div>
         <Link
           to={routePaths.genres}
@@ -129,7 +178,7 @@ const CreateGenrePage = () => {
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <img src={coverPreview} alt="Preview" className="h-28 w-28 rounded object-cover border border-black/10" />
                 <div className="flex flex-1 items-center justify-between gap-3">
-                  <p className="text-sm text-black/70">Selected image will be uploaded to the server.</p>
+                  <p className="text-sm text-black/70">Upload a new image or keep the current one.</p>
                   <button type="button" onClick={clearCover} disabled={isSubmitting} className="inline-flex items-center gap-2 rounded border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-black/[0.03]">
                     <X className="h-4 w-4" /> Remove
                   </button>
@@ -152,7 +201,7 @@ const CreateGenrePage = () => {
             disabled={isSubmitting || !form.name.trim()}
             className="inline-flex items-center gap-2 rounded bg-black px-5 py-3 text-sm font-semibold text-white transition hover:bg-black/90 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isSubmitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</> : <><Plus className="h-4 w-4" /> Create Genre</>}
+            {isSubmitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</> : <><Plus className="h-4 w-4" /> Update Genre</>}
           </button>
           <Link
             to={routePaths.genres}
@@ -166,4 +215,4 @@ const CreateGenrePage = () => {
   );
 };
 
-export default CreateGenrePage;
+export default EditGenrePage;

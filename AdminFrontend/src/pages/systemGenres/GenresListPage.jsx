@@ -84,11 +84,11 @@ const GenresListPage = () => {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan="5" className="px-6 py-10 text-center text-sm text-slate-500">Loading genres...</td>
+                  <td colSpan="6" className="px-6 py-10 text-center text-sm text-slate-500">Loading genres...</td>
                 </tr>
               ) : genres.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="px-6 py-10 text-center text-sm text-slate-500">No genres found.</td>
+                  <td colSpan="6" className="px-6 py-10 text-center text-sm text-slate-500">No genres found.</td>
                 </tr>
               ) : (
                 genres.map((g) => (
@@ -108,6 +108,14 @@ const GenresListPage = () => {
                       </span>
                     </td>
                     <td className="border-b border-black/10 px-6 py-4">{formatDate(g.createdAt)}</td>
+                    <td className="border-b border-black/10 px-6 py-4">
+                      <Link
+                        to={routePaths.genreEdit(g._id)}
+                        className="inline-flex rounded bg-black px-3 py-2 text-xs font-semibold text-white transition hover:bg-black/90"
+                      >
+                        Edit
+                      </Link>
+                    </td>
                   </tr>
                 ))
               )}

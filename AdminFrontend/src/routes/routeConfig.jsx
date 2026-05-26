@@ -9,6 +9,7 @@ import SystemPlaylistsListPage from "../pages/systemPlaylists/SystemPlaylistsLis
 import SystemTracksListPage from "../pages/systemTracks/SystemTracksListPage";
 import GenresListPage from "../pages/systemGenres/GenresListPage";
 import CreateGenrePage from "../pages/systemGenres/CreateGenrePage";
+import EditGenrePage from "../pages/systemGenres/EditGenrePage";
 import HomePage from "../pages/home/HomePage";
 import UsersListPage from "../pages/users/UsersListPage";
 import UserDetailPage from "../pages/users/UserDetailPage";
@@ -73,6 +74,10 @@ export const appRoutes = [
               {
                 path: "genres/new",
                 element: <CreateGenrePage />,
+              },
+              {
+                path: "genres/:genreId/edit",
+                element: <EditGenrePage />,
               },
             ],
           },

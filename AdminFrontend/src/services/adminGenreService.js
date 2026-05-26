@@ -17,4 +17,27 @@ export const createAdminGenreService = async (payload) => {
   return res.data?.data?.genre ?? null;
 };
 
-export default { getAdminGenresService, createAdminGenreService };
+export const getAdminGenreService = async (id) => {
+  const res = await axiosClient.get(`/api/admin/genres/${id}`);
+  return res.data?.data?.genre ?? null;
+};
+
+export const updateAdminGenreService = async (id, payload) => {
+  const res = await axiosClient.patch(`/api/admin/genres/${id}`, payload);
+  return res.data?.data?.genre ?? null;
+};
+
+export const uploadAdminGenreImageService = async (file) => {
+  const formData = new FormData();
+  formData.append("coverImage", file);
+
+  const res = await axiosClient.post("/api/admin/genres/upload", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  return res.data?.data?.url ?? null;
+};
+
+export default { getAdminGenresService, createAdminGenreService, getAdminGenreService, updateAdminGenreService, uploadAdminGenreImageService };
