@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, Pencil, Trash2 } from "lucide-react";
-import { getArtistAlbumsService } from "../../services/artist/artistAlbumService";
+import { Eye, Pencil, Trash2, Eye as EyeOff } from "lucide-react";
+import { getArtistAlbumsService, hideAlbumService, unhideAlbumService } from "../../services/artist/artistAlbumService";
 import { routePaths } from "../../routes/routePaths";
 import { getApiErrorMessage } from "../../utils/apiError";
 import {
@@ -24,6 +24,8 @@ const ArtistAlbumPage = () => {
   const [activeFilter, setActiveFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState(null);
+  const [hideConfirm, setHideConfirm] = useState(null);
+  const [isHiding, setIsHiding] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -86,6 +88,54 @@ const ArtistAlbumPage = () => {
 
   const handleEditAlbum = (albumId) => {
     navigate(routePaths.artistEditAlbum(albumId));
+  };
+
+  const handleHideAlbum = async () => {
+    if (!hideConfirm) return;
+
+    setIsHiding(true);
+    try {
+      const updatedAlbum = await hideAlbumService(hideConfirm.id);
+      // Update album status to hidden instead of removing it
+      setAlbums((prevAlbums) =>
+        prevAlbums.map((album) =>
+          album.id === hideConfirm.id
+            ? { ...album, status: updatedAlbum.status }
+            : album
+        )
+      );
+      setHideConfirm(null);
+    } catch (error) {
+      setErrorMessage(
+        getApiErrorMessage(error, "Failed to hide album. Please try again.")
+      );
+    } finally {
+      setIsHiding(false);
+    }
+  };
+
+  const handleUnhideAlbum = async () => {
+    if (!hideConfirm) return;
+
+    setIsHiding(true);
+    try {
+      const updatedAlbum = await unhideAlbumService(hideConfirm.id);
+      // Update album status to active instead of removing it
+      setAlbums((prevAlbums) =>
+        prevAlbums.map((album) =>
+          album.id === hideConfirm.id
+            ? { ...album, status: updatedAlbum.status }
+            : album
+        )
+      );
+      setHideConfirm(null);
+    } catch (error) {
+      setErrorMessage(
+        getApiErrorMessage(error, "Failed to unhide album. Please try again.")
+      );
+    } finally {
+      setIsHiding(false);
+    }
   };
 
   const handlePreviousPage = () => {
@@ -212,13 +262,25 @@ const ArtistAlbumPage = () => {
                             Edit
                           </button>
 
-                          <button
-                            type="button"
-                            className="inline-flex items-center gap-2 rounded-sm border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-900 transition hover:bg-rose-100 whitespace-nowrap flex-shrink-0"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            Delete
-                          </button>
+                          {album.status === "hidden" ? (
+                            <button
+                              type="button"
+                              onClick={() => setHideConfirm({ id: album.id, title: album.title, isHidden: true })}
+                              className="inline-flex items-center gap-2 rounded-sm border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-900 transition hover:bg-emerald-100 whitespace-nowrap flex-shrink-0"
+                            >
+                              <Eye className="h-4 w-4" />
+                              Unhide
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setHideConfirm({ id: album.id, title: album.title, isHidden: false })}
+                              className="inline-flex items-center gap-2 rounded-sm border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-900 transition hover:bg-rose-100 whitespace-nowrap flex-shrink-0"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              Hide
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -255,6 +317,55 @@ const ArtistAlbumPage = () => {
           </>
         )}
       </div>
+
+      {/* Hide/Unhide Album Confirmation Modal */}
+      {hideConfirm && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50 p-4">
+          <div className="rounded-md border border-neutral-200 bg-white max-w-sm w-full">
+            <div className="border-b border-neutral-200 px-6 py-4">
+              <h3 className="text-lg font-semibold text-[#241b15]">
+                {hideConfirm.isHidden ? "Unhide Album" : "Hide Album"}
+              </h3>
+              <p className="mt-1 text-sm text-neutral-600">
+                {hideConfirm.isHidden
+                  ? `Are you sure you want to unhide "${hideConfirm.title}"?`
+                  : `Are you sure you want to hide "${hideConfirm.title}"?`}
+              </p>
+            </div>
+
+            <div className="px-6 py-3 text-sm text-neutral-600 bg-neutral-50">
+              <p>
+                {hideConfirm.isHidden
+                  ? "This album will become visible to the public again."
+                  : "Hidden albums will not be visible to the public. You can unhide them later by clicking the Unhide button."}
+              </p>
+            </div>
+
+            <div className="flex gap-3 border-t border-neutral-200 px-6 py-4">
+              <button
+                type="button"
+                onClick={() => setHideConfirm(null)}
+                disabled={isHiding}
+                className="flex-1 rounded-md border border-neutral-200 px-4 py-2 font-medium text-[#241b15] transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={hideConfirm.isHidden ? handleUnhideAlbum : handleHideAlbum}
+                disabled={isHiding}
+                className={`flex-1 rounded-md px-4 py-2 font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                  hideConfirm.isHidden
+                    ? "bg-emerald-600 hover:bg-emerald-700"
+                    : "bg-rose-600 hover:bg-rose-700"
+                }`}
+              >
+                {isHiding ? (hideConfirm.isHidden ? "Unhiding..." : "Hiding...") : (hideConfirm.isHidden ? "Unhide Album" : "Hide Album")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 };

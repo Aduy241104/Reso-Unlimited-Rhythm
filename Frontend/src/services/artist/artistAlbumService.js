@@ -34,3 +34,13 @@ export const editAlbumService = async (albumId, payload) => {
   });
   return response?.data?.data?.album ?? null;
 };
+
+export const hideAlbumService = async (albumId) => {
+  const response = await axiosClient.patch(`${ARTIST_ALBUM_API_PREFIX}/${albumId}/hide`);
+  return response?.data?.data?.album ?? null;
+};
+
+export const unhideAlbumService = async (albumId) => {
+  const response = await axiosClient.patch(`${ARTIST_ALBUM_API_PREFIX}/${albumId}/unhide`);
+  return response?.data?.data?.album ?? null;
+};
