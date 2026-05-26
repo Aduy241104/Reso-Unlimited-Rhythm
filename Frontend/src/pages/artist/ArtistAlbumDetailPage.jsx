@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Play, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, Play, MoreHorizontal, Pencil } from "lucide-react";
 import { getArtistAlbumDetailService } from "../../services/artist/artistAlbumService";
 import { routePaths } from "../../routes/routePaths";
 import { getApiErrorMessage } from "../../utils/apiError";
@@ -102,13 +102,22 @@ const ArtistAlbumDetailPage = () => {
 
   return (
     <section className="space-y-6">
-      <button
-        onClick={() => navigate(routePaths.artistAlbums)}
-        className="flex items-center gap-2 text-sm font-medium text-[#8b5e3c] hover:text-[#6d4a2f] transition"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to Albums
-      </button>
+      <div className="flex items-center justify-between gap-3">
+        <button
+          onClick={() => navigate(routePaths.artistAlbums)}
+          className="flex items-center gap-2 text-sm font-medium text-[#8b5e3c] hover:text-[#6d4a2f] transition"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Albums
+        </button>
+        <button
+          onClick={() => navigate(routePaths.artistEditAlbum(id))}
+          className="flex items-center gap-2 rounded-md bg-sky-50 px-3 py-2 text-xs font-medium text-sky-900 border border-sky-200 transition hover:bg-sky-100"
+        >
+          <Pencil className="h-4 w-4" />
+          Edit Album
+        </button>
+      </div>
 
       {/* Album Header */}
       <div className="rounded-md border border-neutral-200 bg-white p-6">

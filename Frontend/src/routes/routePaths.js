@@ -10,6 +10,7 @@ export const routePaths = {
   artistAlbums: "/artist/albums",
   artistAlbumDetail: (albumId = ":id") => `/artist/albums/${albumId}`,
   artistCreateAlbum: "/artist/albums/create",
+  artistEditAlbum: (albumId = ":id") => `/artist/albums/${albumId}/edit`,
   login: "/login",
   register: "/register",
   forgotPassword: "/forgot-password",

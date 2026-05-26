@@ -84,6 +84,10 @@ const ArtistAlbumPage = () => {
     navigate(routePaths.artistAlbumDetail(albumId));
   };
 
+  const handleEditAlbum = (albumId) => {
+    navigate(routePaths.artistEditAlbum(albumId));
+  };
+
   const handlePreviousPage = () => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
@@ -201,6 +205,7 @@ const ArtistAlbumPage = () => {
 
                           <button
                             type="button"
+                            onClick={() => handleEditAlbum(album.id)}
                             className="inline-flex items-center gap-2 rounded-sm border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-medium text-sky-900 transition hover:bg-sky-100 whitespace-nowrap flex-shrink-0"
                           >
                             <Pencil className="h-4 w-4" />
