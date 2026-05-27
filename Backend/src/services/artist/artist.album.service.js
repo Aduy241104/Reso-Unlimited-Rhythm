@@ -466,6 +466,72 @@ const addTrackToAlbum = async (userId, albumId, trackId) => {
     return formatAlbumItem(populated.toObject());
 };
 
+const removeTrackFromAlbum = async (userId, albumId, trackId) => {
+    // Validate IDs
+    if (!mongoose.Types.ObjectId.isValid(albumId)) {
+        throw new AppError("Album id is invalid.", StatusCodes.BAD_REQUEST, {
+            field: "albumId",
+        });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(trackId)) {
+        throw new AppError("Track id is invalid.", StatusCodes.BAD_REQUEST, {
+            field: "trackId",
+        });
+    }
+
+    // Get artist
+    const artist = await Artist.findOne({ userId });
+
+    if (!artist) {
+        throw new AppError(
+            "Artist profile not found for this account.",
+            StatusCodes.NOT_FOUND
+        );
+    }
+
+    // Check if album exists and belongs to artist
+    const album = await Album.findOne({
+        _id: albumId,
+        artistId: artist._id,
+    });
+
+    if (!album) {
+        throw new AppError("Album not found.", StatusCodes.NOT_FOUND);
+    }
+
+    // Check if track exists in album
+    const trackIndex = album.trackList.findIndex(
+        (item) => item.trackId.toString() === trackId.toString()
+    );
+
+    if (trackIndex === -1) {
+        throw new AppError(
+            "Track is not in this album.",
+            StatusCodes.NOT_FOUND,
+            { field: "trackId" }
+        );
+    }
+
+    // Remove track from trackList
+    album.trackList.splice(trackIndex, 1);
+
+    // Reorder remaining tracks
+    album.trackList.forEach((item, index) => {
+        item.order = index + 1;
+    });
+
+    await album.save();
+
+    // Populate and return
+    const populated = await album.populate({
+        path: "artistId",
+        select: "name avatar coverImage",
+    });
+
+    return formatAlbumItem(populated.toObject());
+};
+
 export default {
     getMyAlbums,
     getMyAlbumDetail,
@@ -474,4 +540,5 @@ export default {
     hideAlbum,
     unhideAlbum,
     addTrackToAlbum,
+    removeTrackFromAlbum,
 };
