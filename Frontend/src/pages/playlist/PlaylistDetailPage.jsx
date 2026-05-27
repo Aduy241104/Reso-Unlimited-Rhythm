@@ -8,6 +8,7 @@ import {
 import PlayButton from "../../components/common/PlayButton";
 import { useParams } from "react-router-dom";
 import TrackCard from "../../components/TrackCard";
+import TrackListSection from "../../components/trackList/TrackListSection";
 import { usePlayer } from "../../hooks/usePlayer";
 import { routePaths } from "../../routes/routePaths";
 import { getPlaylistDetailService } from "../../services/playlistService";
@@ -35,7 +36,13 @@ const PlaylistDetailPage = () => {
   const [playlist, setPlaylist] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
-  const { playPlaylist, playTrack } = usePlayer();
+  const {
+    currentTrack,
+    isPlaying,
+    playPlaylist,
+    playTrack,
+    togglePlayPause,
+  } = usePlayer();
 
   useEffect(() => {
     let isMounted = true;
@@ -115,6 +122,11 @@ const PlaylistDetailPage = () => {
 
   const handlePlayTrack = async (track, index) => {
     if (!track) {
+      return;
+    }
+
+    if (currentTrack?.id && currentTrack.id === track.id) {
+      await togglePlayPause();
       return;
     }
 
@@ -234,67 +246,43 @@ const PlaylistDetailPage = () => {
             </button>
           </div>
 
-          { isLoading ? (
-            <div className="rounded-[20px] border border-black/5 bg-black/[0.02] px-4 py-6 text-sm text-[#52525b] dark:border-white/10 dark:bg-white/[0.03] dark:text-[#a1a1aa]">
-              Loading tracks...
-            </div>
-          ) : errorMessage ? null : (
-            <div className="rounded-[18px] border border-black/5 bg-black/[0.02] p-0 dark:border-white/10 dark:bg-white/[0.02] sm:rounded-[3px] sm:border-0 sm:bg-transparent sm:p-4">
-              <div className="mb-3 px-0 sm:hidden">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#71717a] dark:text-[#a1a1aa]">
-                  Track list
-                </p>
-              </div>
+          <TrackListSection
+            isLoading={ isLoading }
+            errorMessage={ errorMessage }
+            loadingMessage="Loading tracks..."
+            mobileLabel="Track list"
+            emptyMessage="No tracks available for this playlist yet."
+            hasItems={ trackItems.length > 0 }
+          >
+            { trackItems.map((trackItem, index) => {
+              const track = trackItem?.track;
+              const trackImage =
+                track?.coverImage ||
+                track?.album?.coverImage ||
+                track?.artist?.avatar ||
+                playlistCoverImage ||
+                "";
 
-              <div
-                className="
-                  mb-2 hidden grid-cols-[2.5rem_minmax(0,1fr)_2.75rem_3.25rem] items-center gap-3
-                  border-b border-black/6 px-3 pb-3 text-xs font-medium uppercase tracking-[0.24em]
-                  text-[#71717a] dark:border-white/10 dark:text-[#a1a1aa] md:grid
-                "
-              >
-                <span>#</span>
-                <span>Title</span>
-                <span className="text-center">Saved</span>
-                <span className="text-right">Time</span>
-              </div>
-
-              <div className="space-y-0">
-                { trackItems.length > 0 ? (
-                  trackItems.map((trackItem, index) => {
-                    const track = trackItem?.track;
-                    const trackImage =
-                      track?.coverImage ||
-                      track?.album?.coverImage ||
-                      track?.artist?.avatar ||
-                      playlistCoverImage ||
-                      "";
-
-                    return (
-                      <TrackCard
-                        key={ track?.id || `${trackItem?.trackId}-${index}` }
-                        index={ trackItem?.order || index + 1 }
-                        image={ trackImage }
-                        title={ track?.title || "" }
-                        artist={ track?.artist?.name || playlistOwnerLabel || "" }
-                        artistId={ track?.artist?.id || "" }
-                        duration={ formatTrackDuration(track?.duration) }
-                        explicit={ false }
-                        liked={ false }
-                        href={ track?.id ? routePaths.trackDetail(track.id) : undefined }
-                        onPlay={ () => handlePlayTrack(track, index) }
-                        onLike={ () => handleLikeTrack(track) }
-                      />
-                    );
-                  })
-                ) : (
-                  <div className="px-3 py-4 text-sm text-[#52525b] dark:text-[#a1a1aa]">
-                    No tracks available for this playlist yet.
-                  </div>
-                ) }
-              </div>
-            </div>
-          ) }
+              return (
+                <TrackCard
+                  key={ track?.id || `${trackItem?.trackId}-${index}` }
+                  index={ trackItem?.order || index + 1 }
+                  image={ trackImage }
+                  title={ track?.title || "" }
+                  artist={ track?.artist?.name || playlistOwnerLabel || "" }
+                  artistId={ track?.artist?.id || "" }
+                  duration={ formatTrackDuration(track?.duration) }
+                  explicit={ false }
+                  liked={ false }
+                  href={ track?.id ? routePaths.trackDetail(track.id) : undefined }
+                  isPlaybackActive={ currentTrack?.id === track?.id }
+                  isPlaying={ isPlaying }
+                  onPlaybackAction={ () => handlePlayTrack(track, index) }
+                  onLike={ () => handleLikeTrack(track) }
+                />
+              );
+            }) }
+          </TrackListSection>
         </div>
       </div>
     </section>
