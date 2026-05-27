@@ -5,6 +5,11 @@ import Artist from "../../models/Artist.js";
 import Track from "../../models/Track.js";
 import { AppError } from "../../utils/AppError.js";
 import { formatAlbumItem, formatAlbumDetail } from "../album/album.helper.js";
+import {
+    enrichAlbumWithTotalDuration,
+    enrichAlbumsWithTotalDuration,
+    syncAlbumTotalDuration,
+} from "../album/album.sync.js";
 import { uploadToCloudinary, deleteCloudinaryAssetByUrl } from "../../utils/uploadCloud.js";
 
 const DEFAULT_PAGE = 1;
@@ -50,6 +55,8 @@ const getMyAlbums = async (userId, query = {}) => {
             .lean(),
         Album.countDocuments(filter),
     ]);
+
+    await enrichAlbumsWithTotalDuration(albums);
 
     return {
         albums: albums.map(formatAlbumItem),
@@ -172,6 +179,8 @@ const getMyAlbumDetail = async (userId, albumId) => {
 
         album.trackList = [...(album.trackList || []), ...supplemental];
     }
+
+    await enrichAlbumWithTotalDuration(album);
 
     return formatAlbumDetail(album);
 };
@@ -455,6 +464,7 @@ const addTrackToAlbum = async (userId, albumId, trackId) => {
         order: maxOrder + 1,
     });
 
+    await syncAlbumTotalDuration(album);
     await album.save();
 
     // Populate and return
@@ -521,6 +531,7 @@ const removeTrackFromAlbum = async (userId, albumId, trackId) => {
         item.order = index + 1;
     });
 
+    await syncAlbumTotalDuration(album);
     await album.save();
 
     // Populate and return

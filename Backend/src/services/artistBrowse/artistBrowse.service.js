@@ -12,6 +12,7 @@ import {
     formatArtistTrack,
     normalizePositiveInteger,
 } from "./artistBrowse.helper.js";
+import { enrichAlbumsWithTotalDuration } from "../album/album.sync.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
@@ -47,7 +48,7 @@ const getArtistProfile = async (artistId) => {
             artistId,
             status: "active",
         })
-            .sort({ releaseDate: -1, totalPlays: -1, createdAt: -1, _id: -1 })
+            .sort({ releaseDate: -1, totalDuration: -1, createdAt: -1, _id: -1 })
             .lean(),
         Track.find({
             artist_artistId: artistId,
@@ -62,6 +63,8 @@ const getArtistProfile = async (artistId) => {
             })
             .lean(),
     ]);
+
+    await enrichAlbumsWithTotalDuration(albums);
 
     return formatArtistProfile({
         artist,
@@ -125,12 +128,14 @@ const getArtistAlbums = async (artistId, query = {}) => {
 
     const [albums, total] = await Promise.all([
         Album.find(filter)
-            .sort({ releaseDate: -1, totalPlays: -1, createdAt: -1, _id: -1 })
+            .sort({ releaseDate: -1, totalDuration: -1, createdAt: -1, _id: -1 })
             .skip(skip)
             .limit(limit)
             .lean(),
         Album.countDocuments(filter),
     ]);
+
+    await enrichAlbumsWithTotalDuration(albums);
 
     return {
         albums: albums.map(formatArtistAlbum),
