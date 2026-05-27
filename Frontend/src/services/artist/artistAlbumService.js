@@ -52,3 +52,10 @@ export const addTrackToAlbumService = async (albumId, trackId) => {
   );
   return response?.data?.data?.album ?? null;
 };
+
+export const removeTrackFromAlbumService = async (albumId, trackId) => {
+  const response = await axiosClient.delete(
+    `${ARTIST_ALBUM_API_PREFIX}/${albumId}/tracks/${trackId}`
+  );
+  return response?.data?.data?.album ?? null;
+};

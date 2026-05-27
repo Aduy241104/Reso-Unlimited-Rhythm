@@ -1,7 +1,18 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Play, MoreHorizontal, Pencil, Plus } from "lucide-react";
-import { getArtistAlbumDetailService, addTrackToAlbumService } from "../../services/artist/artistAlbumService";
+import {
+  ArrowLeft,
+  Play,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Trash2,
+} from "lucide-react";
+import {
+  getArtistAlbumDetailService,
+  addTrackToAlbumService,
+  removeTrackFromAlbumService,
+} from "../../services/artist/artistAlbumService";
 import { getArtistTracksService } from "../../services/artist/artistTrackService";
 import { routePaths } from "../../routes/routePaths";
 import { getApiErrorMessage } from "../../utils/apiError";
@@ -22,6 +33,8 @@ const ArtistAlbumDetailPage = () => {
   const [tracksLoading, setTracksLoading] = useState(false);
   const [selectedTracks, setSelectedTracks] = useState([]);
   const [isAddingTracks, setIsAddingTracks] = useState(false);
+  const [removeConfirm, setRemoveConfirm] = useState(null);
+  const [isRemovingTrack, setIsRemovingTrack] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -45,7 +58,10 @@ const ArtistAlbumDetailPage = () => {
 
         setAlbum(null);
         setErrorMessage(
-          getApiErrorMessage(error, "Unable to load album detail from the backend right now.")
+          getApiErrorMessage(
+            error,
+            "Unable to load album detail from the backend right now.",
+          ),
         );
       } finally {
         if (isMounted) {
@@ -76,13 +92,11 @@ const ArtistAlbumDetailPage = () => {
       const currentTrackIds = album?.tracks?.map((t) => t.track?.id) || [];
       // Filter out tracks already in album - compare strings
       const filteredTracks = result.tracks.filter(
-        (track) => !currentTrackIds.includes(String(track._id))
+        (track) => !currentTrackIds.includes(String(track._id)),
       );
       setAvailableTracks(filteredTracks);
     } catch (error) {
-      setErrorMessage(
-        getApiErrorMessage(error, "Failed to load tracks")
-      );
+      setErrorMessage(getApiErrorMessage(error, "Failed to load tracks"));
     } finally {
       setTracksLoading(false);
     }
@@ -101,7 +115,7 @@ const ArtistAlbumDetailPage = () => {
       for (const trackId of selectedTracks) {
         await addTrackToAlbumService(album.id, trackId);
       }
-      
+
       // Reload album detail
       const updatedAlbum = await getArtistAlbumDetailService(id);
       setAlbum(updatedAlbum);
@@ -109,10 +123,30 @@ const ArtistAlbumDetailPage = () => {
       setShowAddTracksModal(false);
     } catch (error) {
       setErrorMessage(
-        getApiErrorMessage(error, "Failed to add tracks to album")
+        getApiErrorMessage(error, "Failed to add tracks to album"),
       );
     } finally {
       setIsAddingTracks(false);
+    }
+  };
+
+  const handleRemoveTrack = async (trackId) => {
+    setIsRemovingTrack(true);
+
+    try {
+      await removeTrackFromAlbumService(album.id, trackId);
+
+      // load lại detail
+      const updatedAlbum = await getArtistAlbumDetailService(id);
+
+      setAlbum(updatedAlbum);
+      setRemoveConfirm(null);
+    } catch (error) {
+      setErrorMessage(
+        getApiErrorMessage(error, "Failed to remove track from album"),
+      );
+    } finally {
+      setIsRemovingTrack(false);
     }
   };
 
@@ -150,7 +184,8 @@ const ArtistAlbumDetailPage = () => {
     );
   }
 
-  const albumCoverImage = album?.coverImage || createPlaceholderImage(album?.title);
+  const albumCoverImage =
+    album?.coverImage || createPlaceholderImage(album?.title);
   const trackItems = album?.tracks ?? [];
   const releaseYear = formatReleaseYear(album?.releaseDate);
 
@@ -185,20 +220,31 @@ const ArtistAlbumDetailPage = () => {
           </div>
 
           <div className="flex-1">
-            <p className="text-xs uppercase tracking-[0.3em] text-[#8b5e3c]">Album</p>
-            <h1 className="mt-2 text-3xl font-bold text-[#241b15]">{album?.title}</h1>
+            <p className="text-xs uppercase tracking-[0.3em] text-[#8b5e3c]">
+              Album
+            </p>
+            <h1 className="mt-2 text-3xl font-bold text-[#241b15]">
+              {album?.title}
+            </h1>
             <p className="mt-2 text-neutral-600">
-              by <span className="font-medium text-[#241b15]">{album?.artist?.name || "Unknown"}</span>
+              by{" "}
+              <span className="font-medium text-[#241b15]">
+                {album?.artist?.name || "Unknown"}
+              </span>
             </p>
 
             <div className="mt-4 flex flex-wrap gap-4">
               <div>
                 <p className="text-xs text-neutral-500">Release Date</p>
-                <p className="mt-1 font-medium text-[#241b15]">{releaseYear || "—"}</p>
+                <p className="mt-1 font-medium text-[#241b15]">
+                  {releaseYear || "—"}
+                </p>
               </div>
               <div>
                 <p className="text-xs text-neutral-500">Total Tracks</p>
-                <p className="mt-1 font-medium text-[#241b15]">{trackItems.length}</p>
+                <p className="mt-1 font-medium text-[#241b15]">
+                  {trackItems.length}
+                </p>
               </div>
               <div>
                 <p className="text-xs text-neutral-500">Total Plays</p>
@@ -225,7 +271,8 @@ const ArtistAlbumDetailPage = () => {
           <div>
             <h2 className="text-lg font-semibold text-[#241b15]">Tracks</h2>
             <p className="mt-1 text-sm text-neutral-500">
-              {trackItems.length} {trackItems.length === 1 ? "track" : "tracks"} in this album
+              {trackItems.length} {trackItems.length === 1 ? "track" : "tracks"}{" "}
+              in this album
             </p>
           </div>
           <button
@@ -239,7 +286,9 @@ const ArtistAlbumDetailPage = () => {
 
         {trackItems.length === 0 ? (
           <div className="px-6 py-12 text-center">
-            <p className="text-base font-medium text-[#241b15]">No tracks yet</p>
+            <p className="text-base font-medium text-[#241b15]">
+              No tracks yet
+            </p>
             <p className="mt-2 text-sm text-neutral-500">
               Add tracks to this album to get started.
             </p>
@@ -264,8 +313,13 @@ const ArtistAlbumDetailPage = () => {
                   if (!track) return null;
 
                   return (
-                    <tr key={track.id} className="text-[#2f261f] hover:bg-[#fcfaf7]">
-                      <td className="px-6 py-4 font-medium text-neutral-500">{index + 1}</td>
+                    <tr
+                      key={track.id}
+                      className="text-[#2f261f] hover:bg-[#fcfaf7]"
+                    >
+                      <td className="px-6 py-4 font-medium text-neutral-500">
+                        {index + 1}
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <img
@@ -278,7 +332,9 @@ const ArtistAlbumDetailPage = () => {
                             className="h-8 w-8 rounded object-cover"
                           />
                           <div>
-                            <p className="font-medium text-[#241b15]">{track.title}</p>
+                            <p className="font-medium text-[#241b15]">
+                              {track.title}
+                            </p>
                             <p className="mt-0.5 text-xs text-neutral-500">
                               {track.artist?.name || "Unknown artist"}
                             </p>
@@ -299,10 +355,11 @@ const ArtistAlbumDetailPage = () => {
                       <td className="px-6 py-4 text-right">
                         <button
                           type="button"
-                          className="inline-flex items-center justify-center h-8 w-8 rounded hover:bg-neutral-100 transition"
-                          aria-label="More options"
+                          onClick={() => setRemoveConfirm(track.id)}
+                          className="inline-flex items-center justify-center h-8 w-8 rounded hover:bg-rose-100 transition text-rose-600 hover:text-rose-700"
+                          aria-label="Remove track"
                         >
-                          <MoreHorizontal className="h-4 w-4 text-neutral-600" />
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       </td>
                     </tr>
@@ -319,7 +376,9 @@ const ArtistAlbumDetailPage = () => {
         <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50 p-4">
           <div className="rounded-md border border-neutral-200 bg-white max-w-2xl w-full max-h-[80vh] flex flex-col">
             <div className="border-b border-neutral-200 px-6 py-4">
-              <h3 className="text-lg font-semibold text-[#241b15]">Add Tracks to Album</h3>
+              <h3 className="text-lg font-semibold text-[#241b15]">
+                Add Tracks to Album
+              </h3>
               <p className="mt-1 text-sm text-neutral-600">
                 Select tracks from your library to add to this album
               </p>
@@ -332,7 +391,8 @@ const ArtistAlbumDetailPage = () => {
                 </div>
               ) : availableTracks.length === 0 ? (
                 <div className="px-6 py-8 text-center text-neutral-500">
-                  No available tracks. All your tracks are already in this album.
+                  No available tracks. All your tracks are already in this
+                  album.
                 </div>
               ) : (
                 <div className="px-6 py-4">
@@ -349,13 +409,17 @@ const ArtistAlbumDetailPage = () => {
                             if (e.target.checked) {
                               setSelectedTracks([...selectedTracks, track._id]);
                             } else {
-                              setSelectedTracks(selectedTracks.filter((id) => id !== track._id));
+                              setSelectedTracks(
+                                selectedTracks.filter((id) => id !== track._id),
+                              );
                             }
                           }}
                           className="h-4 w-4 rounded"
                         />
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-[#241b15] truncate">{track.title}</p>
+                          <p className="font-medium text-[#241b15] truncate">
+                            {track.title}
+                          </p>
                           <p className="text-xs text-neutral-500">
                             {track.artist?.name || "Unknown artist"}
                           </p>
@@ -385,7 +449,38 @@ const ArtistAlbumDetailPage = () => {
                 disabled={isAddingTracks || selectedTracks.length === 0}
                 className="flex-1 rounded-md bg-emerald-600 px-4 py-2 font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {isAddingTracks ? "Adding..." : `Add ${selectedTracks.length} Track${selectedTracks.length !== 1 ? "s" : ""}`}
+                {isAddingTracks
+                  ? "Adding..."
+                  : `Add ${selectedTracks.length} Track${selectedTracks.length !== 1 ? "s" : ""}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {removeConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-md p-6 w-[400px]">
+            <h3 className="text-lg font-semibold">Remove Track</h3>
+
+            <p className="mt-2 text-neutral-600">
+              Remove this track from album?
+            </p>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setRemoveConfirm(null)}
+                className="px-4 py-2 border rounded"
+                disabled={isRemovingTrack}
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={() => handleRemoveTrack(removeConfirm)}
+                className="px-4 py-2 bg-rose-600 text-white rounded"
+                disabled={isRemovingTrack}
+              >
+                {isRemovingTrack ? "Removing..." : "Remove"}
               </button>
             </div>
           </div>
