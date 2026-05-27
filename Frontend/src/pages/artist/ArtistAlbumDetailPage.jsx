@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Play, MoreHorizontal, Pencil } from "lucide-react";
-import { getArtistAlbumDetailService } from "../../services/artist/artistAlbumService";
+import { ArrowLeft, Play, MoreHorizontal, Pencil, Plus } from "lucide-react";
+import { getArtistAlbumDetailService, addTrackToAlbumService } from "../../services/artist/artistAlbumService";
+import { getArtistTracksService } from "../../services/artist/artistTrackService";
 import { routePaths } from "../../routes/routePaths";
 import { getApiErrorMessage } from "../../utils/apiError";
 import {
@@ -16,6 +17,11 @@ const ArtistAlbumDetailPage = () => {
   const [album, setAlbum] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [showAddTracksModal, setShowAddTracksModal] = useState(false);
+  const [availableTracks, setAvailableTracks] = useState([]);
+  const [tracksLoading, setTracksLoading] = useState(false);
+  const [selectedTracks, setSelectedTracks] = useState([]);
+  const [isAddingTracks, setIsAddingTracks] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -61,6 +67,54 @@ const ArtistAlbumDetailPage = () => {
       isMounted = false;
     };
   }, [id]);
+
+  const loadAvailableTracks = async () => {
+    setTracksLoading(true);
+    try {
+      const result = await getArtistTracksService();
+      // Get current track IDs from album (they're formatted as strings via .id)
+      const currentTrackIds = album?.tracks?.map((t) => t.track?.id) || [];
+      // Filter out tracks already in album - compare strings
+      const filteredTracks = result.tracks.filter(
+        (track) => !currentTrackIds.includes(String(track._id))
+      );
+      setAvailableTracks(filteredTracks);
+    } catch (error) {
+      setErrorMessage(
+        getApiErrorMessage(error, "Failed to load tracks")
+      );
+    } finally {
+      setTracksLoading(false);
+    }
+  };
+
+  const handleAddTracksClick = async () => {
+    setShowAddTracksModal(true);
+    await loadAvailableTracks();
+  };
+
+  const handleAddTracks = async () => {
+    if (selectedTracks.length === 0) return;
+
+    setIsAddingTracks(true);
+    try {
+      for (const trackId of selectedTracks) {
+        await addTrackToAlbumService(album.id, trackId);
+      }
+      
+      // Reload album detail
+      const updatedAlbum = await getArtistAlbumDetailService(id);
+      setAlbum(updatedAlbum);
+      setSelectedTracks([]);
+      setShowAddTracksModal(false);
+    } catch (error) {
+      setErrorMessage(
+        getApiErrorMessage(error, "Failed to add tracks to album")
+      );
+    } finally {
+      setIsAddingTracks(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -174,6 +228,13 @@ const ArtistAlbumDetailPage = () => {
               {trackItems.length} {trackItems.length === 1 ? "track" : "tracks"} in this album
             </p>
           </div>
+          <button
+            onClick={handleAddTracksClick}
+            className="flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 font-medium text-white transition hover:bg-emerald-700"
+          >
+            <Plus className="h-4 w-4" />
+            Add Tracks
+          </button>
         </div>
 
         {trackItems.length === 0 ? (
@@ -252,6 +313,84 @@ const ArtistAlbumDetailPage = () => {
           </div>
         )}
       </div>
+
+      {/* Add Tracks Modal */}
+      {showAddTracksModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50 p-4">
+          <div className="rounded-md border border-neutral-200 bg-white max-w-2xl w-full max-h-[80vh] flex flex-col">
+            <div className="border-b border-neutral-200 px-6 py-4">
+              <h3 className="text-lg font-semibold text-[#241b15]">Add Tracks to Album</h3>
+              <p className="mt-1 text-sm text-neutral-600">
+                Select tracks from your library to add to this album
+              </p>
+            </div>
+
+            <div className="flex-1 overflow-y-auto">
+              {tracksLoading ? (
+                <div className="px-6 py-8 text-center text-neutral-500">
+                  Loading tracks...
+                </div>
+              ) : availableTracks.length === 0 ? (
+                <div className="px-6 py-8 text-center text-neutral-500">
+                  No available tracks. All your tracks are already in this album.
+                </div>
+              ) : (
+                <div className="px-6 py-4">
+                  <div className="space-y-2">
+                    {availableTracks.map((track) => (
+                      <label
+                        key={track._id}
+                        className="flex items-center gap-3 rounded-md border border-neutral-200 p-3 cursor-pointer hover:bg-neutral-50"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedTracks.includes(track._id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedTracks([...selectedTracks, track._id]);
+                            } else {
+                              setSelectedTracks(selectedTracks.filter((id) => id !== track._id));
+                            }
+                          }}
+                          className="h-4 w-4 rounded"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-[#241b15] truncate">{track.title}</p>
+                          <p className="text-xs text-neutral-500">
+                            {track.artist?.name || "Unknown artist"}
+                          </p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-neutral-200 px-6 py-4 flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddTracksModal(false);
+                  setSelectedTracks([]);
+                }}
+                disabled={isAddingTracks}
+                className="flex-1 rounded-md border border-neutral-200 px-4 py-2 font-medium text-[#241b15] transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleAddTracks}
+                disabled={isAddingTracks || selectedTracks.length === 0}
+                className="flex-1 rounded-md bg-emerald-600 px-4 py-2 font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isAddingTracks ? "Adding..." : `Add ${selectedTracks.length} Track${selectedTracks.length !== 1 ? "s" : ""}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 };

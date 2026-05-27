@@ -44,3 +44,11 @@ export const unhideAlbumService = async (albumId) => {
   const response = await axiosClient.patch(`${ARTIST_ALBUM_API_PREFIX}/${albumId}/unhide`);
   return response?.data?.data?.album ?? null;
 };
+
+export const addTrackToAlbumService = async (albumId, trackId) => {
+  const response = await axiosClient.post(
+    `${ARTIST_ALBUM_API_PREFIX}/${albumId}/tracks`,
+    { trackId }
+  );
+  return response?.data?.data?.album ?? null;
+};
