@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faDoorClosed } from "@fortawesome/free-solid-svg-icons";
+import { Menu } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import brandArtwork from "../../assets/images/ChatGPT Image 13_16_10 4 thg 5, 2026.png";
 import ThemeToggle from "../../components/common/ThemeToggle";
 import { useAuth } from "../../hooks/useAuth";
 import { useTheme } from "../../hooks/useTheme";
 import { routePaths } from "../../routes/routePaths";
 import { testAccessTokenService } from "../../services/authService";
 
-const Header = () => {
+const Header = ({ onToggleSidebar, isDesktopSidebarVisible = true }) => {
   const { isAuthenticated, isLoading, logout, user } = useAuth();
   const { isDark } = useTheme();
   const navigate = useNavigate();
@@ -61,14 +63,29 @@ const Header = () => {
   return (
     <header
       className={[
-        "flex h-full items-center justify-between gap-3 border-b px-4 backdrop-blur-xl sm:px-9",
+        "flex h-full items-center justify-between gap-3 border-b px-3 backdrop-blur-xl sm:px-4 lg:px-6",
         isDark
           ? "border-[#f5b66f]/10 bg-black text-[#f7f1ea]"
           : "border-[#eeeeee] bg-white text-[#111111]",
       ].join(" ")}
     >
-      <div className="flex items-center gap-1">
-        <img src="src/assets/images/ChatGPT Image 13_16_10 4 thg 5, 2026.png" alt="" className="h-14 w-14" />
+      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+        <button
+          type="button"
+          onClick={ onToggleSidebar }
+          className={[
+            "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition",
+            isDark
+              ? "border-[#f5b66f]/10 bg-[#1c1820] text-[#f7f1ea] hover:bg-[#241f28]"
+              : "border-[#e5e7eb] bg-white text-[#111111] hover:bg-[#f9fafb]",
+          ].join(" ")}
+          aria-label={ isDesktopSidebarVisible ? "Close sidebar" : "Open sidebar" }
+          aria-pressed={ isDesktopSidebarVisible }
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+
+        <img src={ brandArtwork } alt="" className="h-11 w-11 shrink-0 sm:h-14 sm:w-14" />
         <div className="min-w-0">
           <p
             className={[
@@ -80,7 +97,7 @@ const Header = () => {
           </p>
           <h2
             className={[
-              "mt-1 truncate font-title text-lg font-semibold sm:text-xl",
+              "mt-1 truncate font-title text-base font-semibold sm:text-xl",
               isDark ? "text-[#f7f1ea]" : "text-[#111111]",
             ].join(" ")}
           >
@@ -94,7 +111,7 @@ const Header = () => {
           <button
             onClick={ testAccessToken }
             className={[
-              "shrink-0 rounded-full border px-3 py-2 text-sm font-medium transition sm:px-4",
+              "hidden shrink-0 rounded-full border px-3 py-2 text-sm font-medium transition md:inline-flex md:px-4",
               isDark
                 ? "border-[#f5b66f]/10 bg-[#1c1820] text-[#f7f1ea] hover:bg-[#241f28]"
                 : "border-[#e5e7eb] bg-white text-[#111111] hover:bg-[#f9fafb]",
@@ -135,7 +152,7 @@ const Header = () => {
               type="button"
               onClick={ () => setIsOpen((value) => !value) }
               className={[
-                "flex max-w-[10.5rem] items-center gap-2 rounded-full border px-3 py-2 text-sm transition sm:max-w-none sm:gap-3 sm:px-4",
+                "flex max-w-[9.5rem] items-center gap-2 rounded-full border px-3 py-2 text-sm transition sm:max-w-none sm:gap-3 sm:px-4",
                 isDark
                   ? "border-[#f5b66f]/10 bg-white text-black hover:bg-[#f5b66f]/20"
                   : "border-[#e5e7eb] bg-white text-[#111111] hover:bg-[#f9fafb]",

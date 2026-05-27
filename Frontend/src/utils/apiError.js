@@ -25,6 +25,7 @@ export const applyApiFieldErrors = ({
   setError,
   fieldMap = {},
   errorType = "server",
+  strictFieldMap = false,
 }) => {
   const details = getApiErrorPayload(error)?.errors;
   const normalizedErrors = Array.isArray(details)
@@ -36,7 +37,9 @@ export const applyApiFieldErrors = ({
   let hasMappedError = false;
 
   normalizedErrors.forEach((detail) => {
-    const fieldName = fieldMap[detail.field] || detail.field;
+    const fieldName = strictFieldMap
+      ? fieldMap[detail.field]
+      : fieldMap[detail.field] || detail.field;
 
     if (!fieldName) {
       return;

@@ -8,12 +8,12 @@ import {
   FileText,
   Flag,
   Music2,
-  Play,
   ShieldAlert,
   Sparkles,
   BadgeCheck,
   Pencil,
 } from "lucide-react";
+import PlayButton from "../../components/common/PlayButton";
 import { usePlayer } from "../../hooks/usePlayer";
 import { routePaths } from "../../routes/routePaths";
 import { trackService } from "../../services/trackService";
@@ -335,14 +335,7 @@ const ArtistTrackDetailPage = () => {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handlePlay}
-              className="inline-flex h-12 items-center gap-2 rounded-full bg-[#1ed760] px-5 text-sm font-semibold text-black transition hover:scale-[1.02] hover:brightness-105"
-            >
-              <Play className="h-5 w-5 fill-current" />
-              Play
-            </button>
+            <PlayButton onClick={ handlePlay } size="compact" />
           </div>
         </div>
 

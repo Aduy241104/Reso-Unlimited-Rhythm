@@ -186,7 +186,7 @@ const TrackDetailPage = () => {
 
   if (isLoading) {
     return (
-      <section className="rounded-[10px] sm:p-6">
+      <section className="rounded-[10px]">
         <div className="rounded-[24px] bg-[#121212] px-6 py-20 text-sm text-white/82">
           Loading track detail...
         </div>
@@ -196,7 +196,7 @@ const TrackDetailPage = () => {
 
   if (errorMessage) {
     return (
-      <section className="rounded-[10px] sm:p-6">
+      <section className="rounded-[10px]">
         <div className="rounded-[24px] bg-[#121212] px-6 py-20 text-sm text-white/88">
           { errorMessage }
         </div>
@@ -205,8 +205,8 @@ const TrackDetailPage = () => {
   }
 
   return (
-    <section className="rounded-[10px] sm:p-1">
-      <div className="space-y-6">
+    <section className="rounded-[10px]">
+      <div className="space-y-5 sm:space-y-6">
         <TrackDetailHero
           image={ trackImage }
           title={ track?.title || "Untitled track" }

@@ -33,7 +33,7 @@ const ContentCardSection = ({
       { isLoading ? (
         <div className="flex gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           { Array.from({ length: 5 }).map((_, index) => (
-            <div key={ index } className="w-[11rem] min-w-[11rem] sm:w-[12rem] sm:min-w-[12rem]">
+            <div key={ index } className="w-[9.75rem] min-w-[9.75rem] sm:w-[12rem] sm:min-w-[12rem]">
               <ContentCardSkeleton />
             </div>
           )) }
@@ -43,7 +43,7 @@ const ContentCardSection = ({
           { items.map((item) => (
             <div
               key={ item.id }
-              className="w-[11rem] min-w-[11rem] sm:w-[12rem] sm:min-w-[12rem] lg:w-[12.5rem] lg:min-w-[12.5rem]"
+              className="w-[9.75rem] min-w-[9.75rem] sm:w-[12rem] sm:min-w-[12rem] lg:w-[12.5rem] lg:min-w-[12.5rem]"
             >
               <ContentCard
                 image={ item.image }

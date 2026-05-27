@@ -40,14 +40,14 @@ const LyricsPage = () => {
   const lyricTheme = getLyricsThemeByIndex(currentTrack?.lyricsThemeIndex);
 
   return (
-    <section className="flex w-full max-w-6xl flex-col gap-4">
+    <section className="flex w-full max-w-6xl flex-col gap-4 sm:gap-5">
       <div className="flex items-center justify-between gap-1">
         <Link
           to={ routePaths.home }
           className="inline-flex items-center 
           gap-2 rounded-full bg-gradient-to-br 
           from-[#ff8a3d] via-[#ff4fd8] to-[#7b61ff] px-3 
-          py-2 text-sm font-medium text-inherit"
+          py-2 text-xs font-medium text-inherit sm:text-sm"
         >
           <ArrowLeft className="h-4 w-4" />
           <span>Back</span>
@@ -56,7 +56,7 @@ const LyricsPage = () => {
 
       <div className="grid gap-3 lg:grid-cols-[minmax(0,2.0fr)_minmax(260px,0.9fr)]">
         <div
-          className="rounded-[13px] border sm:p-7"
+          className="rounded-[13px] border p-4 sm:p-7"
           style={{
             backgroundColor: lyricTheme.background,
             borderColor: lyricTheme.border,
@@ -106,8 +106,8 @@ const LyricsPage = () => {
                       ref={ isActive ? activeLyricLineRef : null }
                       className={
                         isActive
-                          ? "text-3xl font-semibold leading-10 sm:text-3xl sm:leading-[3rem]"
-                          : "text-2xl font-medium leading-9"
+                          ? "text-2xl font-semibold leading-8 sm:text-3xl sm:leading-[3rem]"
+                          : "text-xl font-medium leading-8 sm:text-2xl sm:leading-9"
                       }
                       style={{
                         color: isActive ? lyricTheme.primaryText : lyricTheme.secondaryText,
@@ -136,7 +136,7 @@ const LyricsPage = () => {
           </div>
         </div>
 
-        <aside className="h-fit rounded-[13px] border border-white/10 bg-white/[0.03] p-5 lg:sticky lg:top-6">
+        <aside className="h-fit rounded-[13px] border border-white/10 bg-white/[0.03] p-4 sm:p-5 lg:sticky lg:top-6">
           <div className="mt-3 space-y-3">
             { currentTrack?.image ? (
               <img
