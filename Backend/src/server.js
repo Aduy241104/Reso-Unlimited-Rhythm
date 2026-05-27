@@ -13,6 +13,7 @@ import {
     notFoundHandler,
 } from "./middlewares/error.middleware.js";
 import model from "./models/index.js";
+import { initCronJobs } from "./services/Dashboard/cron.job.js";
 
 dotenv.config();
 const app = express();
@@ -45,4 +46,5 @@ app.use(globalErrorHandler);
 const PORT = process.env.PORT || 8080;
 server.listen(PORT, () => {
     console.log(`🚁 Server + Socket.IO đang chạy tại http://localhost:${PORT}`);
+    initCronJobs();
 });
