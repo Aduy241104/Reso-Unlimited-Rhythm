@@ -389,6 +389,83 @@ const unhideAlbum = async (userId, albumId) => {
     return formatAlbumItem(populated.toObject());
 };
 
+const addTrackToAlbum = async (userId, albumId, trackId) => {
+    // Validate IDs
+    if (!mongoose.Types.ObjectId.isValid(albumId)) {
+        throw new AppError("Album id is invalid.", StatusCodes.BAD_REQUEST, {
+            field: "albumId",
+        });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(trackId)) {
+        throw new AppError("Track id is invalid.", StatusCodes.BAD_REQUEST, {
+            field: "trackId",
+        });
+    }
+
+    // Get artist
+    const artist = await Artist.findOne({ userId });
+
+    if (!artist) {
+        throw new AppError(
+            "Artist profile not found for this account.",
+            StatusCodes.NOT_FOUND
+        );
+    }
+
+    // Check if album exists and belongs to artist
+    const album = await Album.findOne({
+        _id: albumId,
+        artistId: artist._id,
+    });
+
+    if (!album) {
+        throw new AppError("Album not found.", StatusCodes.NOT_FOUND);
+    }
+
+    // Check if track exists and belongs to artist
+    const track = await Track.findOne({
+        _id: trackId,
+        artist_artistId: artist._id,
+    });
+
+    if (!track) {
+        throw new AppError("Track not found or does not belong to you.", StatusCodes.NOT_FOUND);
+    }
+
+    // Check if track is already in album
+    const trackExists = album.trackList.some((item) => item.trackId.toString() === trackId.toString());
+    
+    if (trackExists) {
+        throw new AppError(
+            "This track is already in the album.",
+            StatusCodes.BAD_REQUEST,
+            { field: "trackId" }
+        );
+    }
+
+    // Calculate the next order number
+    const maxOrder = album.trackList.length > 0
+        ? Math.max(...album.trackList.map((item) => item.order || 0))
+        : 0;
+
+    // Add track to trackList
+    album.trackList.push({
+        trackId: new mongoose.Types.ObjectId(trackId),
+        order: maxOrder + 1,
+    });
+
+    await album.save();
+
+    // Populate and return
+    const populated = await album.populate({
+        path: "artistId",
+        select: "name avatar coverImage",
+    });
+
+    return formatAlbumItem(populated.toObject());
+};
+
 export default {
     getMyAlbums,
     getMyAlbumDetail,
@@ -396,4 +473,5 @@ export default {
     updateAlbum,
     hideAlbum,
     unhideAlbum,
+    addTrackToAlbum,
 };

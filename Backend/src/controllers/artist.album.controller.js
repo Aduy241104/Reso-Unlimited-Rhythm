@@ -86,6 +86,24 @@ const unhideAlbum = async (req, res, next) => {
     }
 };
 
+const addTrackToAlbum = async (req, res, next) => {
+    try {
+        const album = await artistAlbumService.addTrackToAlbum(
+            req.user.id,
+            req.params.id,
+            req.body.trackId
+        );
+
+        return formatResponse.success(
+            res,
+            { album },
+            "Track added to album successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getMyAlbums,
     getMyAlbumDetail,
@@ -93,4 +111,5 @@ export default {
     updateAlbum,
     hideAlbum,
     unhideAlbum,
+    addTrackToAlbum,
 };

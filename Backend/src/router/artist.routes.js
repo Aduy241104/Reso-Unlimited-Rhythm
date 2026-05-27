@@ -15,6 +15,7 @@ router.post("/albums", requireArtist, upload.single("coverImage"), artistAlbumCo
 router.patch("/albums/:id", requireArtist, upload.single("coverImage"), artistAlbumController.updateAlbum);
 router.patch("/albums/:id/hide", requireArtist, artistAlbumController.hideAlbum);
 router.patch("/albums/:id/unhide", requireArtist, artistAlbumController.unhideAlbum);
+router.post("/albums/:id/tracks", requireArtist, artistAlbumController.addTrackToAlbum);
 router.get("/albums/:id", requireArtist, artistAlbumController.getMyAlbumDetail);
 
 router.post(
