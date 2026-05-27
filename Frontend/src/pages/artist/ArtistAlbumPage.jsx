@@ -7,6 +7,8 @@ import { getApiErrorMessage } from "../../utils/apiError";
 import {
   createPlaceholderImage,
   formatReleaseYear,
+  formatTrackDuration,
+  resolveAlbumTotalDurationSeconds,
 } from "../../utils/albumDetail";
 
 const statusStyles = {
@@ -73,12 +75,15 @@ const ArtistAlbumPage = () => {
   const albumStats = useMemo(() => {
     const totalAlbums = pagination?.total || 0;
     const activeAlbums = albums.filter((album) => album.status === "active").length;
-    const totalPlays = albums.reduce((sum, album) => sum + (album.totalPlays || 0), 0);
+    const totalDuration = albums.reduce(
+      (sum, album) => sum + (album.totalDuration || 0),
+      0
+    );
 
     return {
       totalAlbums,
       activeAlbums,
-      totalPlays,
+      totalDuration,
     };
   }, [albums, pagination]);
 
@@ -194,7 +199,7 @@ const ArtistAlbumPage = () => {
                     <th className="px-5 py-3 font-medium">Album</th>
                     <th className="px-5 py-3 font-medium">Release Date</th>
                     <th className="px-5 py-3 font-medium">Tracks</th>
-                    <th className="px-5 py-3 font-medium">Plays</th>
+                    <th className="px-5 py-3 font-medium">Duration</th>
                     <th className="px-5 py-3 font-medium">Status</th>
                     <th className="px-5 py-3 font-medium text-right">Actions</th>
                   </tr>
@@ -230,7 +235,9 @@ const ArtistAlbumPage = () => {
                         {album.trackCount || 0}
                       </td>
                       <td className="px-5 py-4 text-neutral-600">
-                        {(album.totalPlays || 0).toLocaleString()}
+                        {formatTrackDuration(
+                          resolveAlbumTotalDurationSeconds(album)
+                        )}
                       </td>
                       <td className="px-5 py-4">
                         <span

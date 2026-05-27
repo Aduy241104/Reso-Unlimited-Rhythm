@@ -20,6 +20,7 @@ import {
   createPlaceholderImage,
   formatReleaseYear,
   formatTrackDuration,
+  resolveAlbumTotalDurationSeconds,
 } from "../../utils/albumDetail";
 
 const ArtistAlbumDetailPage = () => {
@@ -187,6 +188,10 @@ const ArtistAlbumDetailPage = () => {
   const albumCoverImage =
     album?.coverImage || createPlaceholderImage(album?.title);
   const trackItems = album?.tracks ?? [];
+  const albumTotalDurationSeconds = resolveAlbumTotalDurationSeconds(
+    album,
+    trackItems
+  );
   const releaseYear = formatReleaseYear(album?.releaseDate);
 
   return (
@@ -247,9 +252,9 @@ const ArtistAlbumDetailPage = () => {
                 </p>
               </div>
               <div>
-                <p className="text-xs text-neutral-500">Total Plays</p>
+                <p className="text-xs text-neutral-500">Total Duration</p>
                 <p className="mt-1 font-medium text-[#241b15]">
-                  {(album?.totalPlays || 0).toLocaleString()}
+                  {formatTrackDuration(albumTotalDurationSeconds)}
                 </p>
               </div>
               <div>
