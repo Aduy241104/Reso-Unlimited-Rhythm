@@ -162,49 +162,57 @@ export const syncTrackStatsForDay = async (targetDateInput) => {
         : dayjs().tz(analyticsTimezone).subtract(1, "day").startOf("day");
 
     const nextDay = targetDay.add(1, "day");
-    const monthStart = targetDay.startOf("month");
-    const nextMonth = monthStart.add(1, "month");
-
     const date = targetDay.toDate();
+    const dailyStats = await ListenEvent.aggregate(
+        buildDailyAggregationPipeline({
+            startDate: targetDay.toDate(),
+            endDate: nextDay.toDate(),
+            dayDate: date,
+        })
+    );
 
-    const [dailyStats, monthlyStats] = await Promise.all([
-        ListenEvent.aggregate(
-            buildDailyAggregationPipeline({
-                startDate: targetDay.toDate(),
-                endDate: nextDay.toDate(),
-                dayDate: date,
-            })
-        ),
-        ListenEvent.aggregate(
-            buildMonthlyAggregationPipeline({
-                startDate: monthStart.toDate(),
-                endDate: nextMonth.toDate(),
-            })
-        ),
-    ]);
-
-    const [dailyResult, monthlyResult] = await Promise.all([
-        syncDailyTrackStats({
-            date,
-            nextDate: nextDay.toDate(),
-            dailyStats,
-        }),
-        syncMonthlyTrackStats({
-            year: targetDay.year(),
-            month: targetDay.month() + 1,
-            monthlyStats,
-        }),
-    ]);
+    const dailyResult = await syncDailyTrackStats({
+        date,
+        nextDate: nextDay.toDate(),
+        dailyStats,
+    });
 
     return {
         timezone: analyticsTimezone,
         targetDate: targetDay.format("YYYY-MM-DD"),
         daily: dailyResult,
+    };
+};
+
+export const syncTrackStatsForMonth = async (targetMonthInput) => {
+    const analyticsTimezone = getAnalyticsTimezone();
+    const targetMonth = targetMonthInput
+        ? dayjs(targetMonthInput).tz(analyticsTimezone).startOf("month")
+        : dayjs().tz(analyticsTimezone).subtract(1, "month").startOf("month");
+
+    const nextMonth = targetMonth.add(1, "month");
+    const monthlyStats = await ListenEvent.aggregate(
+        buildMonthlyAggregationPipeline({
+            startDate: targetMonth.toDate(),
+            endDate: nextMonth.toDate(),
+        })
+    );
+
+    const monthlyResult = await syncMonthlyTrackStats({
+        year: targetMonth.year(),
+        month: targetMonth.month() + 1,
+        monthlyStats,
+    });
+
+    return {
+        timezone: analyticsTimezone,
+        targetMonth: targetMonth.format("YYYY-MM"),
         monthly: monthlyResult,
     };
 };
 
 export default {
     syncTrackStatsForDay,
+    syncTrackStatsForMonth,
     getAnalyticsTimezone,
 };

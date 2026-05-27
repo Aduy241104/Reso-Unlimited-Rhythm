@@ -2,6 +2,42 @@ import axiosClient from "../axios/axiosClient";
 
 const TRACKS_API_PREFIX = "/api/artist/track";
 const ALBUMS_API_PREFIX = "/api/albums";
+const PUBLIC_TRACK_API_PREFIX = "/api/tracks";
+
+const normalizeTrackArtist = (artist) => {
+  if (!artist) {
+    return null;
+  }
+
+  return {
+    id: artist?.id || artist?._id || "",
+    name: artist?.name || "Unknown artist",
+    avatar: artist?.avatar || "",
+    coverImage: artist?.coverImage || "",
+  };
+};
+
+const normalizeDailyTopTrackItem = (item, index) => {
+  const rawTrack = item?.track || {};
+  const normalizedTrack = {
+    id: rawTrack?.id || rawTrack?._id || "",
+    title: rawTrack?.title || "Untitled track",
+    duration: Number(rawTrack?.duration) || 0,
+    avatar: rawTrack?.avatar || "",
+    coverImage: rawTrack?.coverImage || rawTrack?.avatar || "",
+    artist: normalizeTrackArtist(rawTrack?.artist),
+    stats: rawTrack?.stats || {},
+  };
+
+  return {
+    rank: index + 1,
+    date: item?.date || "",
+    playCount: Number(item?.playCount) || 0,
+    uniqueListeners: Number(item?.uniqueListeners) || 0,
+    skipCount: Number(item?.skipCount) || 0,
+    track: normalizedTrack,
+  };
+};
 
 export const trackService = {
   uploadFiles: async (audioFile, avatar, coverImages, lyricsSyncFile) => {
@@ -141,11 +177,29 @@ export const trackService = {
 };
 
 export default trackService;
-const TRACK_API_PREFIX = "/api/tracks";
 
 export const getTrackDetailService = async (trackId) => {
-  const response = await axiosClient.get(`${TRACK_API_PREFIX}/${trackId}`);
+  const response = await axiosClient.get(`${PUBLIC_TRACK_API_PREFIX}/${trackId}`);
   const payload = response?.data?.data;
 
   return payload?.track || response?.data?.track || payload || null;
+};
+
+export const getDailyTopTracksService = async ({ date, limit = 30 }) => {
+  const response = await axiosClient.get(`${PUBLIC_TRACK_API_PREFIX}/top/daily`, {
+    params: {
+      date,
+      limit,
+    },
+  });
+
+  const payload = response?.data?.data;
+  const topTracks = Array.isArray(payload?.topTracks)
+    ? payload.topTracks.map(normalizeDailyTopTrackItem)
+    : [];
+
+  return {
+    topTracks,
+    meta: response?.data?.meta || {},
+  };
 };

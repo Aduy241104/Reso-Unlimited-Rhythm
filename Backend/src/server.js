@@ -9,12 +9,12 @@ import cookieParser from "cookie-parser";
 import http from "http";
 import { connectRedis } from "./config/redisConfig.js";
 import { startDailyTopTrackCron } from "./jobs/dailyTopTrack.cron.js";
+import { startMonthlyTrackStatCron } from "./jobs/monthlyTrackStat.cron.js";
 import {
     globalErrorHandler,
     notFoundHandler,
 } from "./middlewares/error.middleware.js";
 import model from "./models/index.js";
-import redisClient from "./config/redisConfig.js";
 
 dotenv.config();
 const app = express();
@@ -26,12 +26,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/static", express.static("public"));
-
-redisClient.connect().then(() => {
-    console.log("🤖 Redis connected successfully");
-}).catch((err) => {
-    console.error("Error connecting to Redis:", err);
-});
 
 app.use(morgan("combined"));
 
@@ -49,12 +43,13 @@ const startServer = async () => {
         await connectMongose();
         await connectRedis();
         startDailyTopTrackCron();
+        startMonthlyTrackStatCron();
 
         server.listen(PORT, () => {
-            console.log(`🚁 Server + Socket.IO đang chạy tại http://localhost:${PORT}`);
+            console.log(`🚀 Server + Socket.IO đang chạy tại http://localhost:${PORT}`);
         });
     } catch (error) {
-        console.error("🚨 Failed to start server:", error);
+        console.error("ðŸš¨ Failed to start server:", error);
         process.exit(1);
     }
 };
