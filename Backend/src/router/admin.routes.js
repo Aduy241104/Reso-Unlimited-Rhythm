@@ -30,5 +30,6 @@ router.patch("/users/:id", adminUserController.updateUser);
 router.get("/dashboard/overview", adminDashboardController.getOverviewStats);
 router.get("/dashboard/monthly", adminDashboardController.getMonthlyOverview);
 router.get("/dashboard/daily", adminDashboardController.getDailyStats);
+router.get("/dashboard/new-users", adminDashboardController.getNewUsersByMonth);
 
 export default router;

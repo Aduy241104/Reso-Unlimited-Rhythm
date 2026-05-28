@@ -268,9 +268,54 @@ export const syncPlatformMonthlyStats = async (year, month) => {
     return monthlyStat;
 };
 
+export const getNewUsersByMonth = async (year) => {
+    const analyticsTimezone = getAnalyticsTimezone();
+    const targetYear = year || dayjs().tz(analyticsTimezone).year();
+
+    const yearStart = dayjs().tz(analyticsTimezone).year(targetYear).startOf("year");
+    const yearEnd = yearStart.add(1, "year");
+
+    const stats = await User.aggregate([
+        {
+            $match: {
+                createdAt: { $gte: yearStart.toDate(), $lt: yearEnd.toDate() },
+            },
+        },
+        {
+            $group: {
+                _id: { $month: "$createdAt" },
+                newUsers: { $sum: 1 },
+            },
+        },
+        { $sort: { _id: 1 } },
+    ]);
+
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const data = monthNames.map((name, index) => {
+        const monthNum = index + 1;
+        const found = stats.find((s) => s._id === monthNum);
+        return {
+            month: name,
+            monthNum,
+            newUsers: found?.newUsers ?? 0,
+        };
+    });
+
+    const totalNewUsers = data.reduce((sum, d) => sum + d.newUsers, 0);
+    const maxNewUsers = Math.max(...data.map((d) => d.newUsers), 1);
+
+    return {
+        year: targetYear,
+        months: data,
+        totalNewUsers,
+        maxNewUsers,
+    };
+};
+
 export default {
     getOverviewStats,
     getMonthlyOverview,
     getDailyStats,
     syncPlatformMonthlyStats,
+    getNewUsersByMonth,
 };

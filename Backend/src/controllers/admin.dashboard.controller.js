@@ -33,8 +33,19 @@ const getDailyStats = async (req, res, next) => {
     }
 };
 
+const getNewUsersByMonth = async (req, res, next) => {
+    try {
+        const { year } = req.query;
+        const stats = await platformStreamingStatsService.getNewUsersByMonth(year ? Number(year) : undefined);
+        return formatResponse.success(res, { stats }, "New users by month fetched successfully");
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getOverviewStats,
     getMonthlyOverview,
     getDailyStats,
+    getNewUsersByMonth,
 };
