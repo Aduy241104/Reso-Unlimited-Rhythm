@@ -5,6 +5,7 @@ import timezone from "dayjs/plugin/timezone.js";
 import Album from "../../models/Album.js";
 import Artist from "../../models/Artist.js";
 import ArtistDailyRanking from "../../models/ArtistDailyRanking.js";
+import ArtistMonthlyRanking from "../../models/ArtistMonthlyRanking.js";
 import ReleaseSchedule from "../../models/ReleaseSchedule.js";
 import ArtistStat from "../../models/ArtistStat.js";
 import Track from "../../models/Track.js";
@@ -72,23 +73,48 @@ const parseDailyTopArtistsDate = (dateInput) => {
     };
 };
 
+const parseMonthlyTopArtistsMonth = (monthInput) => {
+    const match = /^(\d{4})-(\d{2})$/.exec(monthInput);
+    if (!match) {
+        throw new AppError("Month is invalid.", 400, {
+            field: "month",
+        });
+    }
+
+    const [, yearStr, monthStr] = match;
+    const analyticsTimezone = getAnalyticsTimezone();
+    const normalizedMonthKey = `${yearStr}-${monthStr}`;
+    const startMonth = dayjs
+        .tz(`${normalizedMonthKey}-01T00:00:00`, analyticsTimezone)
+        .startOf("month");
+
+    if (!startMonth.isValid() || startMonth.format("YYYY-MM") !== normalizedMonthKey) {
+        throw new AppError("Month is invalid.", 400, {
+            field: "month",
+        });
+    }
+
+    return {
+        year: startMonth.year(),
+        month: startMonth.month() + 1,
+        monthKey: startMonth.format("YYYY-MM"),
+    };
+};
+
 const formatDailyTopArtistStat = ({ stat, date }) => ({
     artist: stat.artistId
         ? {
             id: stat.artistId._id.toString(),
             name: stat.artistId.name,
             avatar: stat.artistId.avatar,
-            coverImage: stat.artistId.coverImage,
-            stats: stat.artistId.stats,
         }
         : null,
     rank: stat.rank,
     date,
-    playCount: stat.playCount,
-    uniqueListeners: stat.uniqueListeners,
-    completedPlayCount: stat.completedPlayCount,
-    totalTracksPlayed: stat.totalTracksPlayed,
     score: stat.score,
+    uniqueListeners: stat.uniqueListeners,
+    playCount: stat.playCount,
+    completedPlayCount: stat.completedPlayCount,
 });
 
 const getArtistProfile = async (artistId) => {
@@ -284,7 +310,7 @@ const getDailyTopArtists = async (query = {}) => {
     })
         .populate({
             path: "rankings.artistId",
-            select: "_id name avatar coverImage stats activeStatus",
+            select: "_id name avatar activeStatus",
             match: { activeStatus: "active" },
         })
         .lean();
@@ -312,8 +338,52 @@ const getDailyTopArtists = async (query = {}) => {
     };
 };
 
+const getMonthlyTopArtists = async (query = {}) => {
+    const { year, month, monthKey } = parseMonthlyTopArtistsMonth(query.month);
+    const requestedLimit = normalizePositiveInteger(query.limit, DEFAULT_LIMIT);
+    const limit = Math.min(requestedLimit, 20);
+
+    const rankingDocument = await ArtistMonthlyRanking.findOne({ year, month })
+        .populate({
+            path: "rankings.artistId",
+            select: "_id name avatar activeStatus",
+            match: { activeStatus: "active" },
+        })
+        .lean();
+
+    const rankings = Array.isArray(rankingDocument?.rankings)
+        ? rankingDocument.rankings
+        : [];
+
+    const topArtists = rankings
+        .filter((stat) => Boolean(stat.artistId))
+        .slice(0, limit)
+        .map((stat) => ({
+            artist: {
+                id: stat.artistId._id.toString(),
+                name: stat.artistId.name,
+                avatar: stat.artistId.avatar,
+            },
+            rank: stat.rank,
+            month: monthKey,
+            score: stat.score,
+            uniqueListeners: stat.uniqueListeners,
+            playCount: stat.playCount,
+            completedPlayCount: stat.completedPlayCount,
+        }));
+
+    return {
+        topArtists,
+        meta: {
+            month: monthKey,
+            limit,
+        },
+    };
+};
+
 export default {
     getDailyTopArtists,
+    getMonthlyTopArtists,
     getArtistProfile,
     getArtistAlbums,
     getArtistComingReleases,

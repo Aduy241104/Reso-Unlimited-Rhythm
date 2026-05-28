@@ -9,6 +9,7 @@ import cookieParser from "cookie-parser";
 import http from "http";
 import { connectRedis } from "./config/redisConfig.js";
 import { startDailyTopArtistCron } from "./jobs/dailyTopArtist.cron.js";
+import { startMonthlyTopArtistCron } from "./jobs/monthlyTopArtist.cron.js";
 import { startDailyTopTrackCron } from "./jobs/dailyTopTrack.cron.js";
 import { startMonthlyTrackStatCron } from "./jobs/monthlyTrackStat.cron.js";
 import {
@@ -44,6 +45,7 @@ const startServer = async () => {
         await connectMongose();
         await connectRedis();
         startDailyTopArtistCron();
+        startMonthlyTopArtistCron();
         startDailyTopTrackCron();
         startMonthlyTrackStatCron();
 
