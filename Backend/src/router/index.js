@@ -20,7 +20,7 @@ function route(app) {
     app.use("/api/tracks", trackRoutes);
     app.use("/api/admin", adminRoutes);
     app.use("/api/transactions", transactionRoutes);
-     app.use("/api/users", userRoutes);
+    app.use("/api/users", userRoutes);
 }
 
 export default route;

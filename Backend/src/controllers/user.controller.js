@@ -15,6 +15,25 @@ const getMyProfile = async (req, res, next) => {
     }
 };
 
+const updateMyProfile = async (req, res, next) => {
+    try {
+        const user = await userService.updateMyProfileByUserId(
+            req.user.id,
+            req.body,
+            req.file
+        );
+
+        return formatResponse.success(
+            res,
+            { user },
+            "Profile updated successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getMyProfile,
+    updateMyProfile,
 };
