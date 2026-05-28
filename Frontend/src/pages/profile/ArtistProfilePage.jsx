@@ -343,7 +343,7 @@ const ArtistProfileView = () => {
   const nextComingRelease = artistData.comingReleases[0] || null;
 
   return (
-    <section ref={ pageRootRef } className="space-y-8 pb-10 text-white lg:space-y-12">
+    <section ref={ pageRootRef } className="space-y-8 overflow-x-hidden pb-10 text-white lg:space-y-12">
       <div
         aria-hidden={ isCountdownMounted }
         className={ `
@@ -359,7 +359,7 @@ const ArtistProfileView = () => {
 
         { profile ? (
           <>
-            <div className="-mx-6">
+            <div className="-mx-3 sm:-mx-4 lg:-mx-6">
               <ArtistHeroSection
                 profile={ profile }
                 isFollowing={ isFollowing }
@@ -429,7 +429,7 @@ const ArtistProfileView = () => {
 
 const ArtistProfilePage = () => {
   return (
-    <div className="-mx-6 -my-6 min-h-full bg-[linear-gradient(180deg,#121212_0%,#121212_18%,#181818_45%,#121212_100%)] px-6 py-0">
+    <div className="-mx-3 -my-4 min-h-full overflow-x-hidden bg-[linear-gradient(180deg,#121212_0%,#121212_18%,#181818_45%,#121212_100%)] px-3 py-0 sm:-mx-4 sm:px-4 lg:-mx-6 lg:px-6">
       <ArtistProfileView />
     </div>
   );

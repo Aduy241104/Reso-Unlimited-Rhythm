@@ -7,12 +7,14 @@ import cors from "cors";
 import corsOptions from "./config/corsConfig.js";
 import cookieParser from "cookie-parser";
 import http from "http";
-import redisClient from "./config/redisConfig.js";
+import { connectRedis } from "./config/redisConfig.js";
+import { startDailyTopTrackCron } from "./jobs/dailyTopTrack.cron.js";
 import {
     globalErrorHandler,
     notFoundHandler,
 } from "./middlewares/error.middleware.js";
 import model from "./models/index.js";
+import redisClient from "./config/redisConfig.js";
 
 dotenv.config();
 const app = express();
@@ -25,12 +27,11 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/static", express.static("public"));
 
-connectMongose();
-// redisClient.connect().then(() => {
-//     console.log("✅ Kết nối Redis thành công");
-// }).catch((err) => {
-//     console.error("❌ Lỗi kết nối Redis:", err);
-// });
+redisClient.connect().then(() => {
+    console.log("🤖 Redis connected successfully");
+}).catch((err) => {
+    console.error("Error connecting to Redis:", err);
+});
 
 app.use(morgan("combined"));
 
@@ -41,8 +42,21 @@ app.get("/test", async (req, res) => { res.json("hello") });
 app.use(notFoundHandler);
 app.use(globalErrorHandler);
 
-
 const PORT = process.env.PORT || 8080;
-server.listen(PORT, () => {
-    console.log(`🚁 Server + Socket.IO đang chạy tại http://localhost:${PORT}`);
-});
+
+const startServer = async () => {
+    try {
+        await connectMongose();
+        await connectRedis();
+        startDailyTopTrackCron();
+
+        server.listen(PORT, () => {
+            console.log(`🚁 Server + Socket.IO đang chạy tại http://localhost:${PORT}`);
+        });
+    } catch (error) {
+        console.error("🚨 Failed to start server:", error);
+        process.exit(1);
+    }
+};
+
+void startServer();

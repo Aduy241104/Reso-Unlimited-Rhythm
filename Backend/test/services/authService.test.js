@@ -15,6 +15,10 @@ const mockCrypto = {
     randomBytes: jest.fn(),
 };
 
+const mockGoogleAuthClient = {
+    verifyIdToken: jest.fn(),
+};
+
 const mockUserModel = {
     findOne: jest.fn(),
     findById: jest.fn(),
@@ -43,6 +47,7 @@ const mockGenerateOtp = jest.fn();
 
 const mockAuthenticationService = {
     login: jest.fn(),
+    googleLogin: jest.fn(),
 };
 
 const createUser = (overrides = {}) => ({
@@ -83,6 +88,10 @@ const createRandomBytesBuffer = (token = "refresh-token") => ({
     toString: jest.fn().mockReturnValue(token),
 });
 
+const createGoogleTicket = (payload = {}) => ({
+    getPayload: jest.fn().mockReturnValue(payload),
+});
+
 const loadValidationModule = async () => {
     jest.resetModules();
 
@@ -100,6 +109,9 @@ const loadAuthenticationService = async () => {
     }));
     jest.unstable_mockModule("crypto", () => ({
         default: mockCrypto,
+    }));
+    jest.unstable_mockModule("google-auth-library", () => ({
+        OAuth2Client: jest.fn(() => mockGoogleAuthClient),
     }));
     jest.unstable_mockModule("../../src/models/User.js", () => ({
         default: mockUserModel,
@@ -179,6 +191,18 @@ describe("authentication login validation", () => {
         expect(error).toBeDefined();
         expect(error.details.map((detail) => detail.path.join("."))).toContain(
             "email"
+        );
+    });
+
+    test("requires a Google ID token for Google login", () => {
+        const { error } = authenticationValidation.googleLoginSchema.validate(
+            {},
+            { abortEarly: false }
+        );
+
+        expect(error).toBeDefined();
+        expect(error.details.map((detail) => detail.path.join("."))).toContain(
+            "token"
         );
     });
 });
@@ -318,6 +342,158 @@ describe("authenticationService.login", () => {
     });
 });
 
+describe("authenticationService.googleLogin", () => {
+    let authenticationService;
+    let AppError;
+
+    beforeEach(async () => {
+        jest.clearAllMocks();
+        process.env.GOOGLE_CLIENT_ID = "google-client-id";
+        mockJwt.sign.mockReturnValue("access-token");
+        mockCrypto.randomBytes.mockReturnValue(
+            createRandomBytesBuffer("refresh-token")
+        );
+
+        ({ authenticationService, AppError } = await loadAuthenticationService());
+    });
+
+    test("creates a new Google user and returns a session", async () => {
+        mockGoogleAuthClient.verifyIdToken.mockResolvedValue(
+            createGoogleTicket({
+                sub: "google-user-1",
+                email: "newuser@example.com",
+                name: "New User",
+                picture: "https://example.com/avatar.png",
+                email_verified: true,
+                iss: "https://accounts.google.com",
+                exp: Math.floor(Date.now() / 1000) + 3600,
+            })
+        );
+        mockUserModel.findOne.mockResolvedValue(null);
+        mockUserModel.create.mockResolvedValue(
+            createUser({
+                _id: "google-user-db-id",
+                email: "newuser@example.com",
+                role: "user",
+                avatar: "https://example.com/avatar.png",
+                profile: {
+                    fullName: "New User",
+                },
+                authProvider: "google",
+                emailVerified: true,
+            })
+        );
+
+        const result = await authenticationService.googleLogin({
+            token: "google-id-token",
+        });
+
+        expect(mockGoogleAuthClient.verifyIdToken).toHaveBeenCalledWith({
+            idToken: "google-id-token",
+            audience: "google-client-id",
+        });
+        expect(mockUserModel.findOne).toHaveBeenCalledWith({
+            email: "newuser@example.com",
+        });
+        expect(mockUserModel.create).toHaveBeenCalledWith({
+            email: "newuser@example.com",
+            authProvider: "google",
+            googleId: "google-user-1",
+            avatar: "https://example.com/avatar.png",
+            role: "user",
+            emailVerified: true,
+            activeStatus: "active",
+            profile: {
+                fullName: "New User",
+            },
+        });
+        expect(mockRefreshTokenModel.create).toHaveBeenCalledWith({
+            userId: "google-user-db-id",
+            token: "refresh-token",
+            expiresAt: expect.any(Date),
+            isRevoked: false,
+        });
+        expect(result).toEqual({
+            accessToken: "access-token",
+            refreshToken: "refresh-token",
+            user: {
+                id: "google-user-db-id",
+                email: "newuser@example.com",
+                username: "member",
+                avatar: "https://example.com/avatar.png",
+                role: "user",
+                activeStatus: "active",
+                profile: {
+                    fullName: "New User",
+                },
+                settings: {
+                    language: "en",
+                },
+                subscription: null,
+                createdAt: new Date("2026-05-01T00:00:00.000Z"),
+                updatedAt: new Date("2026-05-10T00:00:00.000Z"),
+            },
+        });
+    });
+
+    test("throws 403 when the Google email is not verified", async () => {
+        mockGoogleAuthClient.verifyIdToken.mockResolvedValue(
+            createGoogleTicket({
+                sub: "google-user-1",
+                email: "member@example.com",
+                email_verified: false,
+                iss: "https://accounts.google.com",
+                exp: Math.floor(Date.now() / 1000) + 3600,
+            })
+        );
+
+        await expect(
+            authenticationService.googleLogin({
+                token: "google-id-token",
+            })
+        ).rejects.toBeInstanceOf(AppError);
+
+        await expect(
+            authenticationService.googleLogin({
+                token: "google-id-token",
+            })
+        ).rejects.toMatchObject({
+            message: "Google account email is not verified.",
+            statusCode: 403,
+        });
+
+        expect(mockUserModel.findOne).not.toHaveBeenCalled();
+    });
+
+    test("throws 403 when the existing account is blocked", async () => {
+        mockGoogleAuthClient.verifyIdToken.mockResolvedValue(
+            createGoogleTicket({
+                sub: "google-user-1",
+                email: "member@example.com",
+                email_verified: true,
+                iss: "https://accounts.google.com",
+                exp: Math.floor(Date.now() / 1000) + 3600,
+            })
+        );
+        mockUserModel.findOne.mockResolvedValue(
+            createUser({
+                activeStatus: "blocked",
+            })
+        );
+
+        await expect(
+            authenticationService.googleLogin({
+                token: "google-id-token",
+            })
+        ).rejects.toMatchObject({
+            message: "Your account has been blocked.",
+            statusCode: 403,
+        });
+
+        expect(mockRefreshTokenModel.create).not.toHaveBeenCalled();
+    });
+});
+
 describe("authenticationController.login", () => {
     let authenticationController;
     let REFRESH_TOKEN_COOKIE_MAX_AGE_MS;
@@ -350,6 +526,64 @@ describe("authenticationController.login", () => {
         await authenticationController.login(req, res, next);
 
         expect(mockAuthenticationService.login).toHaveBeenCalledWith(req.body);
+        expect(res.cookie).toHaveBeenCalledWith("refreshToken", "refresh-token", {
+            httpOnly: true,
+            secure: false,
+            sameSite: "lax",
+            path: "/",
+            maxAge: REFRESH_TOKEN_COOKIE_MAX_AGE_MS,
+        });
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(res.json).toHaveBeenCalledWith(
+            expect.objectContaining({
+                success: true,
+                message: "Login successful",
+                data: {
+                    user,
+                    accessToken: "access-token",
+                },
+                meta: null,
+                errors: null,
+                timestamp: expect.any(String),
+            })
+        );
+        expect(next).not.toHaveBeenCalled();
+    });
+});
+
+describe("authenticationController.googleLogin", () => {
+    let authenticationController;
+    let REFRESH_TOKEN_COOKIE_MAX_AGE_MS;
+
+    beforeEach(async () => {
+        jest.clearAllMocks();
+        ({
+            authenticationController,
+            REFRESH_TOKEN_COOKIE_MAX_AGE_MS,
+        } = await loadAuthenticationController());
+    });
+
+    test("sets the refresh token cookie and returns the Google login response", async () => {
+        const user = createUser({
+            email: "googleuser@example.com",
+        });
+        const req = {
+            body: {
+                token: "google-id-token",
+            },
+        };
+        const res = createResponse();
+        const next = jest.fn();
+
+        mockAuthenticationService.googleLogin.mockResolvedValue({
+            user,
+            accessToken: "access-token",
+            refreshToken: "refresh-token",
+        });
+
+        await authenticationController.googleLogin(req, res, next);
+
+        expect(mockAuthenticationService.googleLogin).toHaveBeenCalledWith(req.body);
         expect(res.cookie).toHaveBeenCalledWith("refreshToken", "refresh-token", {
             httpOnly: true,
             secure: false,

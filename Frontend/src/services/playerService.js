@@ -3,23 +3,61 @@ import { API_BASE_URL } from "../constants/auth";
 
 const TRACK_API_PREFIX = "/api/tracks";
 
+const looksLikeResolvableMediaReference = (value) => {
+  if (!value || typeof value !== "string") {
+    return false;
+  }
+
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue) {
+    return false;
+  }
+
+  if (/^https?:\/\//i.test(trimmedValue)) {
+    return true;
+  }
+
+  if (
+    trimmedValue.startsWith("/") ||
+    trimmedValue.startsWith("./") ||
+    trimmedValue.startsWith("../")
+  ) {
+    return true;
+  }
+
+  if (trimmedValue.includes("/")) {
+    return true;
+  }
+
+  // Allow bare filenames such as "track.lrc" or "audio.mp3", but reject
+  // placeholder values like "dfgh" that would become invalid GET requests.
+  return /^[^\\/\s]+\.[a-z0-9]+(?:[?#].*)?$/i.test(trimmedValue);
+};
+
 const buildAbsoluteMediaUrl = (value) => {
   if (!value || typeof value !== "string") {
     return "";
   }
 
+  const trimmedValue = value.trim();
+
+  if (!looksLikeResolvableMediaReference(trimmedValue)) {
+    return "";
+  }
+
   try {
-    return new URL(value).toString();
+    return new URL(trimmedValue).toString();
   } catch {
     const base =
       API_BASE_URL ||
       (typeof window !== "undefined" ? window.location.origin : "");
 
     if (!base) {
-      return value;
+      return trimmedValue;
     }
 
-    return new URL(value, base).toString();
+    return new URL(trimmedValue, base).toString();
   }
 };
 

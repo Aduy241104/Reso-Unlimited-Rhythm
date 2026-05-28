@@ -12,6 +12,7 @@ import ListenEvent from "./ListenEvent.js";
 import Notification from "./Notification.js";
 import Plan from "./Plan.js";
 import Playlist from "./Playlist.js";
+import PlatformMonthlyStat from "./PlatformMonthlyStat.js";
 import Podcast from "./Podcast.js";
 import RefreshToken from "./RefreshToken.js";
 import ReleaseSchedule from "./ReleaseSchedule.js";
@@ -41,6 +42,7 @@ export default {
     Notification,
     Plan,
     Playlist,
+    PlatformMonthlyStat,
     Podcast,
     RefreshToken,
     ReleaseSchedule,
