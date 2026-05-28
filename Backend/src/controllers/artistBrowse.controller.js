@@ -63,7 +63,23 @@ const getArtistComingReleases = async (req, res, next) => {
     }
 };
 
+const getDailyTopArtists = async (req, res, next) => {
+    try {
+        const { topArtists, meta } = await artistService.getDailyTopArtists(req.query);
+
+        return formatResponse.success(
+            res,
+            { topArtists },
+            "Daily top artists fetched successfully",
+            meta
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
+    getDailyTopArtists,
     getArtistProfile,
     getArtistAlbums,
     getArtistComingReleases,

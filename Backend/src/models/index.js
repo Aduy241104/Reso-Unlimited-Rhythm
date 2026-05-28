@@ -1,5 +1,6 @@
 import Album from "./Album.js";
 import Artist from "./Artist.js";
+import ArtistDailyRanking from "./ArtistDailyRanking.js";
 import ArtistMonthlyStat from "./ArtistMonthlyStat.js";
 import ArtistRequest from "./ArtistRequest.js";
 import ArtistStat from "./ArtistStat.js";
@@ -30,6 +31,7 @@ import VerificationToken from "./VerificationToken.js";
 export default {
     Album,
     Artist,
+    ArtistDailyRanking,
     ArtistMonthlyStat,
     ArtistRequest,
     ArtistStat,

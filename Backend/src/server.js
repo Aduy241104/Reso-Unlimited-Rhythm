@@ -8,6 +8,7 @@ import corsOptions from "./config/corsConfig.js";
 import cookieParser from "cookie-parser";
 import http from "http";
 import { connectRedis } from "./config/redisConfig.js";
+import { startDailyTopArtistCron } from "./jobs/dailyTopArtist.cron.js";
 import { startDailyTopTrackCron } from "./jobs/dailyTopTrack.cron.js";
 import { startMonthlyTrackStatCron } from "./jobs/monthlyTrackStat.cron.js";
 import {
@@ -42,6 +43,7 @@ const startServer = async () => {
     try {
         await connectMongose();
         await connectRedis();
+        startDailyTopArtistCron();
         startDailyTopTrackCron();
         startMonthlyTrackStatCron();
 
