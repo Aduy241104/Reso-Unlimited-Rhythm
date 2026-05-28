@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   ChevronRight,
+  KeyRound,
   Loader2,
   Mail,
   MapPin,
@@ -10,6 +11,7 @@ import {
 } from "lucide-react";
 import { getCurrentUserProfile } from "../../services/userProfileService";
 import { getApiErrorMessage } from "../../utils/apiError";
+import ChangePasswordForm from "./ChangePasswordForm";
 import EditUserProfileForm from "./EditUserProfileForm";
 import {
   createUserProfileSnapshot,
@@ -86,9 +88,10 @@ const ProfileField = ({ icon, label, value }) => {
 const UserProfileInfo = ({ fullName, email, gender, country }) => {
   const { profile, setProfile } = useUserProfileCard();
   const [isEditing, setIsEditing] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isPreparingForm, setIsPreparingForm] = useState(false);
   const [formError, setFormError] = useState("");
-  const [saveNotice, setSaveNotice] = useState("");
+  const [successNotice, setSuccessNotice] = useState("");
 
   useEffect(() => {
     setProfile((current) =>
@@ -128,18 +131,18 @@ const UserProfileInfo = ({ fullName, email, gender, country }) => {
   }, [setProfile]);
 
   useEffect(() => {
-    if (!saveNotice) {
+    if (!successNotice) {
       return undefined;
     }
 
     const timeoutId = window.setTimeout(() => {
-      setSaveNotice("");
+      setSuccessNotice("");
     }, 3200);
 
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [saveNotice]);
+  }, [successNotice]);
 
   const baseProfile = createUserProfileSnapshot({
     fullName,
@@ -174,6 +177,7 @@ const UserProfileInfo = ({ fullName, email, gender, country }) => {
   const handleOpenEditor = async () => {
     setFormError("");
     setIsPreparingForm(true);
+    setIsChangingPassword(false);
 
     try {
       const currentUser = await getCurrentUserProfile();
@@ -198,8 +202,21 @@ const UserProfileInfo = ({ fullName, email, gender, country }) => {
   const handleSaved = (updatedUser) => {
     setProfile(createUserProfileSnapshot(updatedUser));
     setIsEditing(false);
+    setIsChangingPassword(false);
     setFormError("");
-    setSaveNotice("Profile updated successfully.");
+    setSuccessNotice("Profile updated successfully.");
+  };
+
+  const handleOpenPasswordForm = () => {
+    setFormError("");
+    setIsEditing(false);
+    setIsChangingPassword(true);
+  };
+
+  const handlePasswordSaved = (message) => {
+    setIsChangingPassword(false);
+    setFormError("");
+    setSuccessNotice(message || "Password changed successfully.");
   };
 
   const fields = [...displayFields];
@@ -227,9 +244,9 @@ const UserProfileInfo = ({ fullName, email, gender, country }) => {
         ))}
       </div>
 
-      {saveNotice ? (
+      {successNotice ? (
         <div className="mt-6 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
-          {saveNotice}
+          {successNotice}
         </div>
       ) : null}
 
@@ -239,7 +256,17 @@ const UserProfileInfo = ({ fullName, email, gender, country }) => {
         </div>
       ) : null}
 
-      <div className="mt-8 flex justify-end">
+      <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-end">
+        <button
+          type="button"
+          onClick={handleOpenPasswordForm}
+          disabled={isPreparingForm}
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#ffb15c_0%,#ff8a2a_45%,#a64a00_100%)] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_38px_rgba(255,138,42,0.25)] transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_24px_55px_rgba(255,138,42,0.36)] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <KeyRound className="h-4 w-4" aria-hidden />
+          Change Password
+        </button>
+
         <button
           type="button"
           onClick={handleOpenEditor}
@@ -268,6 +295,15 @@ const UserProfileInfo = ({ fullName, email, gender, country }) => {
             setIsEditing(false);
           }}
           onSaved={handleSaved}
+        />
+      ) : null}
+
+      {isChangingPassword ? (
+        <ChangePasswordForm
+          onCancel={() => {
+            setIsChangingPassword(false);
+          }}
+          onSaved={handlePasswordSaved}
         />
       ) : null}
     </div>

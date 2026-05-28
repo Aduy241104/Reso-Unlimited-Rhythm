@@ -544,13 +544,17 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
             >
               <span className="flex min-w-0 items-center gap-3">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-lg">
-                  {selectedCountry?.flag || <MapPin className="h-4 w-4 text-[#ffb46a]" aria-hidden />}
+                  {selectedCountry?.flag || (
+                    <MapPin className="h-4 w-4 text-[#ffb46a]" aria-hidden />
+                  )}
                 </span>
+
                 <span className="truncate text-sm text-white">
                   {getCountryLabel(selectedCountry, formValues.country) ||
                     (isLoading ? "Loading countries..." : "Select your country")}
                 </span>
               </span>
+
               <ChevronDown
                 className={[
                   "h-4 w-4 shrink-0 text-[#ffb46a] transition-transform duration-300",
@@ -562,22 +566,28 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
 
             <div
               className={[
-                "absolute left-0 right-0 top-[calc(100%+0.75rem)] z-30 origin-top rounded-2xl border border-white/10 bg-[#101013]/95 p-2 shadow-[0_22px_60px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-all duration-200",
+                "absolute bottom-[calc(100%+0.75rem)] left-0 right-0 z-30 origin-bottom rounded-2xl border border-white/10 bg-[#101013]/95 p-2 shadow-[0_22px_60px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-all duration-200",
                 isCountryOpen
                   ? "visible translate-y-0 opacity-100"
-                  : "pointer-events-none invisible -translate-y-2 opacity-0",
+                  : "pointer-events-none invisible translate-y-2 opacity-0",
               ].join(" ")}
             >
               {isLoading ? (
                 <div className="flex items-center gap-3 px-3 py-4 text-sm text-gray-300">
-                  <Loader2 className="h-4 w-4 animate-spin text-[#ff9f43]" aria-hidden />
+                  <Loader2
+                    className="h-4 w-4 animate-spin text-[#ff9f43]"
+                    aria-hidden
+                  />
                   Loading countries...
                 </div>
               ) : null}
 
               {hasError ? (
                 <div className="space-y-3 px-3 py-3">
-                  <p className="text-sm leading-6 text-red-200/90">{errorMessage}</p>
+                  <p className="text-sm leading-6 text-red-200/90">
+                    {errorMessage}
+                  </p>
+
                   <button
                     type="button"
                     onClick={reload}
@@ -602,17 +612,23 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
                       className={[
                         "flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm transition-all duration-200",
                         normalizeText(formValues.country).toLowerCase() ===
-                        normalizeText(country.name).toLowerCase()
+                          normalizeText(country.name).toLowerCase()
                           ? "bg-[#ff9f43]/15 text-white"
                           : "text-gray-300 hover:bg-white/[0.06] hover:text-white",
                       ].join(" ")}
                     >
                       <span className="flex h-6 w-6 items-center justify-center text-lg">
                         {country.flag || (
-                          <MapPin className="h-4 w-4 text-[#ffb46a]" aria-hidden />
+                          <MapPin
+                            className="h-4 w-4 text-[#ffb46a]"
+                            aria-hidden
+                          />
                         )}
                       </span>
-                      <span className="min-w-0 truncate">{country.name}</span>
+
+                      <span className="min-w-0 truncate">
+                        {country.name}
+                      </span>
                     </button>
                   ))}
                 </div>

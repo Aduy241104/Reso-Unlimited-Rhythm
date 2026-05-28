@@ -39,6 +39,19 @@ export const updateCurrentUserProfile = async (payload = {}) => {
   return response?.data?.data?.user ?? null;
 };
 
+export const changeCurrentUserPassword = async (payload = {}) => {
+  const response = await axiosClient.patch(
+    `${USER_API_PREFIX}/me/change-password`,
+    {
+      currentPassword: payload.currentPassword ?? "",
+      newPassword: payload.newPassword ?? "",
+      confirmPassword: payload.confirmPassword ?? "",
+    }
+  );
+
+  return response?.data ?? null;
+};
+
 export const getCountryOptions = async (signal) => {
   const response = await fetch(COUNTRIES_API_URL, { signal });
 
