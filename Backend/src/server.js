@@ -7,6 +7,7 @@ import cors from "cors";
 import corsOptions from "./config/corsConfig.js";
 import cookieParser from "cookie-parser";
 import http from "http";
+import { connectRedis } from "./config/redisConfig.js";
 import redisClient from "./config/redisConfig.js";
 import {
     globalErrorHandler,
@@ -27,12 +28,11 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/static", express.static("public"));
 
-connectMongose();
-// redisClient.connect().then(() => {
-//     console.log("✅ Kết nối Redis thành công");
-// }).catch((err) => {
-//     console.error("❌ Lỗi kết nối Redis:", err);
-// });
+redisClient.connect().then(() => {
+    console.log("🤖 Redis connected successfully");
+}).catch((err) => {
+    console.error("Error connecting to Redis:", err);
+});
 
 app.use(morgan("combined"));
 
@@ -42,13 +42,16 @@ app.get("/test", async (req, res) => { res.json("hello") });
 app.get("/run-cron", async (req, res) => {
     try {
         const { runTodayAggregation } = await import('./jobs/dailyTopTrack.cron.js');
-        const result = await runTodayAggregation();
+        const { syncTrackStatsForDay } = await import('./services/analytics/trackStatAggregation.service.js');
+        const { date } = req.query;
+        const result = date
+            ? await syncTrackStatsForDay(date)
+            : await runTodayAggregation();
         res.json({ success: true, result });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
 });
-
 app.get("/run-platform-cron", async (req, res) => {
     try {
         const { runPlatformStreamingStatsAggregation } = await import('./jobs/platformStreamingStats.cron.js');
@@ -59,13 +62,26 @@ app.get("/run-platform-cron", async (req, res) => {
         res.status(500).json({ error: e.message });
     }
 });
+
 app.use(notFoundHandler);
 app.use(globalErrorHandler);
 
-
 const PORT = process.env.PORT || 8080;
-server.listen(PORT, () => {
-    console.log(`🚁 Server + Socket.IO đang chạy tại http://localhost:${PORT}`);
-    startDailyTopTrackCron();
-    startPlatformStreamingStatsCron();
-});
+
+const startServer = async () => {
+    try {
+        await connectMongose();
+        await connectRedis();
+        startDailyTopTrackCron();
+        startPlatformStreamingStatsCron();
+
+        server.listen(PORT, () => {
+            console.log(`🚁 Server + Socket.IO đang chạy tại http://localhost:${PORT}`);
+        });
+    } catch (error) {
+        console.error("🚨 Failed to start server:", error);
+        process.exit(1);
+    }
+};
+
+void startServer();

@@ -6,7 +6,6 @@ import authenticationRoutes from "./authentication.routes.js";
 import playlistRoutes from "./playlist.routes.js";
 import trackRoutes from "./track.routes.js";
 import adminRoutes from "./admin.routes.js";
-import dashboardRoutes from "./dashboard.routes.js";
 import transactionRoutes from "./transaction.routes.js";
 
 function route(app) {
@@ -19,7 +18,6 @@ function route(app) {
     app.use("/api/artist/track", trackRoutes);
     app.use("/api/tracks", trackRoutes);
     app.use("/api/admin", adminRoutes);
-    app.use("/api/admin/dashboard", dashboardRoutes);
     app.use("/api/transactions", transactionRoutes);
 }
 

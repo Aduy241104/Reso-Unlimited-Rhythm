@@ -157,9 +157,12 @@ const syncMonthlyTrackStats = async ({ year, month, monthlyStats }) => {
 
 export const syncTrackStatsForDay = async (targetDateInput) => {
     const analyticsTimezone = getAnalyticsTimezone();
-    const targetDay = targetDateInput
-        ? dayjs(targetDateInput).tz(analyticsTimezone).startOf("day")
-        : dayjs().tz(analyticsTimezone).subtract(1, "day").startOf("day");
+    const isYesterday = targetDateInput === "__yesterday__";
+    const targetDay = isYesterday
+        ? dayjs().tz(analyticsTimezone).subtract(1, "day").startOf("day")
+        : targetDateInput
+            ? dayjs(targetDateInput).tz(analyticsTimezone).startOf("day")
+            : dayjs().tz(analyticsTimezone).startOf("day");
 
     const nextDay = targetDay.add(1, "day");
     const monthStart = targetDay.startOf("month");
