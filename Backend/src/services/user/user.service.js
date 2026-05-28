@@ -1,7 +1,10 @@
+import bcrypt from "bcrypt";
 import User from "../../models/User.js";
 import { StatusCodes } from "http-status-codes";
 import { AppError } from "../../utils/AppError.js";
 import userServiceHelper from "./user.service.helper.js";
+
+const SALT_ROUNDS = 10;
 
 const getMyProfileByUserId = async (userId) => {
     const user = await User.findById(userId)
@@ -61,7 +64,36 @@ const updateMyProfileByUserId = async (userId, payload, avatarFile) => {
     return userServiceHelper.formatCurrentUserProfile(user.toObject());
 };
 
+const changeMyPasswordByUserId = async (userId, payload) => {
+    const user = await User.findById(userId);
+
+    if (!user) {
+        throw new AppError("User does not exist.", 404);
+    }
+
+    const { currentPassword, newPassword } =
+        userServiceHelper.buildChangePasswordPayload(payload);
+
+    const isCurrentPasswordMatched = await bcrypt.compare(
+        currentPassword,
+        user.password
+    );
+    if (!isCurrentPasswordMatched) {
+        throw new AppError(
+            "Current password is incorrect.",
+            StatusCodes.BAD_REQUEST,
+            {
+                field: "currentPassword",
+            }
+        );
+    }
+
+    user.password = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    await user.save();
+};
+
 export default {
     getMyProfileByUserId,
     updateMyProfileByUserId,
+    changeMyPasswordByUserId,
 };

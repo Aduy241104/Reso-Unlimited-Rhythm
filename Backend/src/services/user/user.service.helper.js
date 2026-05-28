@@ -6,7 +6,7 @@ import { extractPublicIdFromUrl } from "../../utils/uploadCloud.js";
 const ALLOWED_GENDERS = new Set([
     "male",
     "female",
-    "prefer_not_to_say",
+    "other",
 ]);
 const CLOUDINARY_USER_FOLDER = "reso/users";
 
@@ -38,9 +38,12 @@ export const formatCurrentUserProfile = (user = {}) => ({
     profile: normalizeProfile(user.profile),
 });
 
-const assertObjectPayload = (payload = {}) => {
+const assertObjectPayload = (
+    payload = {},
+    message = "Invalid profile update payload."
+) => {
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-        throw new AppError("Invalid profile update payload.", StatusCodes.BAD_REQUEST);
+        throw new AppError(message, StatusCodes.BAD_REQUEST);
     }
 };
 
@@ -73,6 +76,50 @@ const sanitizeString = (value, fieldName) => {
     return value.trim();
 };
 
+const sanitizePassword = (value, fieldName) => {
+    if (typeof value !== "string" || value.trim().length === 0) {
+        throw new AppError(`${fieldName} is required.`, StatusCodes.BAD_REQUEST, {
+            field: fieldName,
+        });
+    }
+
+    return value;
+};
+
+const validateNewPasswordStrength = (password) => {
+    if (password.length < 8) {
+        throw new AppError(
+            "New password must be at least 8 characters long.",
+            StatusCodes.BAD_REQUEST,
+            { field: "newPassword" }
+        );
+    }
+
+    if (!/[A-Z]/.test(password)) {
+        throw new AppError(
+            "New password must contain at least 1 uppercase letter.",
+            StatusCodes.BAD_REQUEST,
+            { field: "newPassword" }
+        );
+    }
+
+    if (!/\d/.test(password)) {
+        throw new AppError(
+            "New password must contain at least 1 digit.",
+            StatusCodes.BAD_REQUEST,
+            { field: "newPassword" }
+        );
+    }
+
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+        throw new AppError(
+            "New password must contain at least 1 special character.",
+            StatusCodes.BAD_REQUEST,
+            { field: "newPassword" }
+        );
+    }
+};
+
 const sanitizeFullName = (value) => {
     const trimmed = sanitizeString(value, "fullName");
 
@@ -89,7 +136,7 @@ const sanitizeFullName = (value) => {
 const sanitizeGender = (value) => {
     if (typeof value !== "string" || !ALLOWED_GENDERS.has(value)) {
         throw new AppError(
-            "gender must be one of: male, female, prefer_not_to_say.",
+            "gender must be one of: male, female, other.",
             StatusCodes.BAD_REQUEST
         );
     }
@@ -118,6 +165,44 @@ export const buildMyProfileUpdates = (payload = {}) => {
     }
 
     return updates;
+};
+
+export const buildChangePasswordPayload = (payload = {}) => {
+    assertObjectPayload(payload, "Invalid change password payload.");
+
+    const currentPassword = sanitizePassword(
+        payload.currentPassword,
+        "currentPassword"
+    );
+    const newPassword = sanitizePassword(payload.newPassword, "newPassword");
+    const confirmPassword = sanitizePassword(
+        payload.confirmPassword,
+        "confirmPassword"
+    );
+
+    if (newPassword !== confirmPassword) {
+        throw new AppError(
+            "Confirm password does not match.",
+            StatusCodes.BAD_REQUEST,
+            { field: "confirmPassword" }
+        );
+    }
+
+    if (newPassword === currentPassword) {
+        throw new AppError(
+            "New password must be different from the current password.",
+            StatusCodes.BAD_REQUEST,
+            { field: "newPassword" }
+        );
+    }
+
+    validateNewPasswordStrength(newPassword);
+
+    return {
+        currentPassword,
+        newPassword,
+        confirmPassword,
+    };
 };
 
 export const uploadUserAvatar = async (userId, avatarFile) => {
@@ -159,6 +244,7 @@ export const deleteUserAvatarByUrl = async (avatarUrl) => {
 export default {
     formatCurrentUserProfile,
     buildMyProfileUpdates,
+    buildChangePasswordPayload,
     uploadUserAvatar,
     deleteUserAvatarByUrl,
 };

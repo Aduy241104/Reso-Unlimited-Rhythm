@@ -33,7 +33,25 @@ const updateMyProfile = async (req, res, next) => {
     }
 };
 
+const changeMyPassword = async (req, res, next) => {
+    try {
+        await userService.changeMyPasswordByUserId(
+            req.user?.id || req.user?._id,
+            req.body
+        );
+
+        return formatResponse.success(
+            res,
+            null,
+            "Password changed successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getMyProfile,
     updateMyProfile,
+    changeMyPassword,
 };
