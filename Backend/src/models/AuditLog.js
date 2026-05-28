@@ -16,7 +16,7 @@ const AuditLogSchema = new Schema(
         targetType: {
             type: String,
             required: true,
-            enum: ["User", "Artist", "Track", "Album", "Podcast", "Playlist", "Report"],
+            enum: ["User", "Artist", "Track", "Album", "Playlist", "Report"],
             index: true,
         },
 

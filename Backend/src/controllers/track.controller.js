@@ -44,8 +44,24 @@ const getDailyTopTracks = async (req, res, next) => {
     }
 };
 
+const getMonthlyTopTracks = async (req, res, next) => {
+    try {
+        const { topTracks, meta } = await trackService.getMonthlyTopTracks(req.query);
+
+        return formatResponse.success(
+            res,
+            { topTracks },
+            "Monthly top tracks fetched successfully",
+            meta
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getTrackDetail,
     getTrackPlayback,
     getDailyTopTracks,
+    getMonthlyTopTracks,
 };

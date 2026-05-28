@@ -2,11 +2,15 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 import ListenEvent from "../../models/ListenEvent.js";
+import TrackDailyRanking from "../../models/TrackDailyRanking.js";
 import TrackDailyStat from "../../models/TrackDailyStat.js";
+import TrackMonthlyRanking from "../../models/TrackMonthlyRanking.js";
 import TrackMonthlyStat from "../../models/TrackMonthlyStat.js";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
+
+const TRACK_RANKING_LIMIT = 100;
 
 export const getAnalyticsTimezone = () =>
     process.env.ANALYTICS_TIMEZONE ||
@@ -117,6 +121,60 @@ const syncDailyTrackStats = async ({ date, nextDate, dailyStats }) => {
     };
 };
 
+const buildDailyTrackRankings = (dailyStats) =>
+    [...dailyStats]
+        .sort((left, right) => {
+            if (right.playCount !== left.playCount) {
+                return right.playCount - left.playCount;
+            }
+
+            if (right.uniqueListeners !== left.uniqueListeners) {
+                return right.uniqueListeners - left.uniqueListeners;
+            }
+
+            return String(left.trackId).localeCompare(String(right.trackId));
+        })
+        .slice(0, TRACK_RANKING_LIMIT)
+        .map((stat, index) => ({
+            trackId: stat.trackId,
+            playCount: stat.playCount,
+            uniqueListeners: stat.uniqueListeners,
+            averageListenDuration: stat.averageListenDuration,
+            skipCount: stat.skipCount,
+            rank: index + 1,
+        }));
+
+const syncDailyTrackRankings = async ({ date, nextDate, dailyStats }) => {
+    const rankings = buildDailyTrackRankings(dailyStats);
+
+    if (rankings.length === 0) {
+        const deleteResult = await TrackDailyRanking.deleteMany({
+            date: { $gte: date, $lt: nextDate },
+        });
+
+        return {
+            storedTracks: 0,
+            deletedCount: deleteResult.deletedCount || 0,
+            upsertedCount: 0,
+        };
+    }
+
+    const deleteResult = await TrackDailyRanking.deleteMany({
+        date: { $gte: date, $lt: nextDate },
+    });
+
+    await TrackDailyRanking.create({
+        date,
+        rankings,
+    });
+
+    return {
+        storedTracks: rankings.length,
+        deletedCount: deleteResult.deletedCount || 0,
+        upsertedCount: 1,
+    };
+};
+
 const syncMonthlyTrackStats = async ({ year, month, monthlyStats }) => {
     const trackedIds = monthlyStats.map((stat) => stat.trackId);
 
@@ -158,6 +216,55 @@ const syncMonthlyTrackStats = async ({ year, month, monthlyStats }) => {
     };
 };
 
+const buildMonthlyTrackRankings = (monthlyStats) =>
+    [...monthlyStats]
+        .sort((left, right) => {
+            if (right.playCount !== left.playCount) {
+                return right.playCount - left.playCount;
+            }
+
+            if (right.uniqueListeners !== left.uniqueListeners) {
+                return right.uniqueListeners - left.uniqueListeners;
+            }
+
+            return String(left.trackId).localeCompare(String(right.trackId));
+        })
+        .slice(0, TRACK_RANKING_LIMIT)
+        .map((stat, index) => ({
+            trackId: stat.trackId,
+            playCount: stat.playCount,
+            uniqueListeners: stat.uniqueListeners,
+            rank: index + 1,
+        }));
+
+const syncMonthlyTrackRankings = async ({ year, month, monthlyStats }) => {
+    const rankings = buildMonthlyTrackRankings(monthlyStats);
+
+    if (rankings.length === 0) {
+        const deleteResult = await TrackMonthlyRanking.deleteMany({ year, month });
+
+        return {
+            storedTracks: 0,
+            deletedCount: deleteResult.deletedCount || 0,
+            upsertedCount: 0,
+        };
+    }
+
+    const deleteResult = await TrackMonthlyRanking.deleteMany({ year, month });
+
+    await TrackMonthlyRanking.create({
+        year,
+        month,
+        rankings,
+    });
+
+    return {
+        storedTracks: rankings.length,
+        deletedCount: deleteResult.deletedCount || 0,
+        upsertedCount: 1,
+    };
+};
+
 export const syncTrackStatsForDay = async (targetDateInput) => {
     const analyticsTimezone = getAnalyticsTimezone();
     const targetDay = targetDateInput
@@ -180,10 +287,17 @@ export const syncTrackStatsForDay = async (targetDateInput) => {
         dailyStats,
     });
 
+    const rankingResult = await syncDailyTrackRankings({
+        date,
+        nextDate: nextDay.toDate(),
+        dailyStats,
+    });
+
     return {
         timezone: analyticsTimezone,
         targetDate: targetDay.format("YYYY-MM-DD"),
         daily: dailyResult,
+        ranking: rankingResult,
     };
 };
 
@@ -207,10 +321,17 @@ export const syncTrackStatsForMonth = async (targetMonthInput) => {
         monthlyStats,
     });
 
+    const rankingResult = await syncMonthlyTrackRankings({
+        year: targetMonth.year(),
+        month: targetMonth.month() + 1,
+        monthlyStats,
+    });
+
     return {
         timezone: analyticsTimezone,
         targetMonth: targetMonth.format("YYYY-MM"),
         monthly: monthlyResult,
+        ranking: rankingResult,
     };
 };
 

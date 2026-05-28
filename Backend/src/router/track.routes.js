@@ -112,6 +112,12 @@ router.get(
 );
 
 router.get(
+    "/top/monthly",
+    validate(trackValidation.monthlyTopTracksQuerySchema, "query"),
+    trackController.getMonthlyTopTracks
+);
+
+router.get(
     "/:id",
     validate(trackValidation.trackIdParamSchema, "params"),
     trackController.getTrackDetail

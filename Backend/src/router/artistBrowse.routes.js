@@ -11,6 +11,12 @@ router.get(
     artistController.getDailyTopArtists
 );
 
+router.get(
+    "/top/monthly",
+    validate(artistBrowseValidation.monthlyTopArtistsQuerySchema, "query"),
+    artistController.getMonthlyTopArtists
+);
+
 router.get("/:id/profile", artistController.getArtistProfile);
 router.get("/:id/albums", artistController.getArtistAlbums);
 router.get("/:id/coming-releases", artistController.getArtistComingReleases);
