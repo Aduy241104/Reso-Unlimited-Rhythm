@@ -2,8 +2,8 @@ import { Play } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const cardClassName = `
-  group relative mt-2 flex h-full cursor-pointer flex-col gap-3 rounded-[16px]
-  p-3 text-left transition duration-300
+  group relative mt-2 flex h-full cursor-pointer flex-col gap-2 rounded-[16px]
+  p-2.5 text-left transition duration-300 sm:gap-3 sm:p-3
   hover:-translate-y-1 hover:bg-[#f4f4f4] hover:shadow-[0_18px_40px_rgba(15,23,42,0.12)]
   dark:border-white/10 dark:hover:bg-[#242424]
 `;
@@ -52,14 +52,13 @@ const ContentCard = ({
             onClick={ handlePlayClick }
             aria-label={ `Play ${type} ${title}` }
             className="
-            absolute bottom-3 right-3 inline-flex h-11 w-11 items-center justify-center rounded-full
-            bg-[#1ed760] text-black opacity-0 shadow-[0_14px_28px_rgba(30,215,96,0.38)]
-            transition duration-300 group-hover:translate-y-0 group-hover:opacity-100
+            absolute bottom-2.5 right-2.5 inline-flex h-10 w-10 items-center justify-center rounded-full
+            bg-gradient-to-br from-[#E0FFE0] via-[#D3FFCE] to-[#FFD700] text-black opacity-100 shadow-[0_14px_28px_rgba(30,215,96,0.38)]
+            transition duration-300 md:translate-y-3 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100
             group-hover:shadow-[0_18px_34px_rgba(30,215,96,0.45)] focus-visible:translate-y-0
             focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2
             focus-visible:ring-[#1ed760] focus-visible:ring-offset-2 focus-visible:ring-offset-white
-            hover:scale-[1.03] dark:ring-offset-[#181818]
-            translate-y-3
+            hover:scale-[1.03] dark:ring-offset-[#181818] sm:h-11 sm:w-11
           "
           >
             <Play className="h-5 w-5 fill-current" />
@@ -68,7 +67,7 @@ const ContentCard = ({
       </div>
 
       <div className="flex min-h-[3.75rem] flex-col justify-center">
-        <h3 className="truncate text-base font-semibold text-[#18181b] dark:text-white">
+        <h3 className="truncate text-sm font-semibold text-[#18181b] dark:text-white sm:text-base">
           { title }
         </h3>
         <p className="mt-1 truncate text-sm text-[#52525b] dark:text-[#a1a1aa]">

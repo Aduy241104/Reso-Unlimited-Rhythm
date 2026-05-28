@@ -573,11 +573,6 @@ const seedAuthArtifacts = async (passwords) => {
         type: "verify_email",
         expiresAt: daysFromNow(2),
         isUsed: false,
-        payload: {
-            username: "",
-            password: passwords.pendingUser,
-            fullName: "Pending Seed User",
-        },
     });
 };
 

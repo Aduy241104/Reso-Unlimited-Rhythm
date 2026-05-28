@@ -107,9 +107,8 @@ const HomePage = () => {
       ) : null }
 
       <ContentCardSection
-        label="System playlists"
         title="System Playlist"
-        description="This section is rendered directly from the system playlist API."
+        description="Discover playlists curated to help you enjoy the right music at the right moment."
         items={ mapSystemPlaylistsToContentCards(systemPlaylists) }
         isLoading={ isLoadingSystemPlaylists }
         emptyMessage="The system playlist endpoint returned no data yet."
@@ -117,9 +116,9 @@ const HomePage = () => {
       />
 
       <ContentCardSection
-        label="Backend albums"
+        label="Albums"
         title="Latest album data"
-        description="Album cards are loaded from the existing backend API through a dedicated service layer."
+        description="Browse featured albums and discover music collections tailored for every mood."
         items={ mapAlbumsToContentCards(albums) }
         isLoading={ isLoadingAlbums }
         emptyMessage="The album endpoint returned no data yet."

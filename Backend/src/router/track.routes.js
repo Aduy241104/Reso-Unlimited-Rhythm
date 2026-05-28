@@ -106,6 +106,12 @@ router.patch(
 
 // User routes
 router.get(
+    "/top/daily",
+    validate(trackValidation.dailyTopTracksQuerySchema, "query"),
+    trackController.getDailyTopTracks
+);
+
+router.get(
     "/:id",
     validate(trackValidation.trackIdParamSchema, "params"),
     trackController.getTrackDetail

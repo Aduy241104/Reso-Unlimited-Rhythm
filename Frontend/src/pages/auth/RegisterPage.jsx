@@ -19,27 +19,15 @@ const createOtpPayload = (values) => ({
   email: values.email.trim().toLowerCase(),
   password: values.password,
   fullName: values.fullName.trim(),
+  gender: values.gender,
+  dateOfBirth: values.dateOfBirth,
 });
-
-const registerHighlights = [
-  {
-    title: "Step 1",
-    description: "Enter your name, email, and password to request a verification OTP.",
-  },
-  {
-    title: "Step 2",
-    description: "Use the 6-digit OTP that the backend sends to your email address.",
-  },
-  {
-    title: "Step 3",
-    description: "Finish registration and return to login as soon as verification succeeds.",
-  },
-];
 
 const RegisterPage = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState("details");
   const [detailsApiError, setDetailsApiError] = useState("");
+  const [detailsValidationError, setDetailsValidationError] = useState("");
   const [otpApiError, setOtpApiError] = useState("");
   const [isResendingOtp, setIsResendingOtp] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(0);
@@ -53,6 +41,8 @@ const RegisterPage = () => {
     defaultValues: {
       fullName: "",
       email: "",
+      gender: "prefer_not_to_say",
+      dateOfBirth: "",
       password: "",
       confirmPassword: "",
     },
@@ -105,11 +95,14 @@ const RegisterPage = () => {
 
   const handleSendOtp = async (values) => {
     setDetailsApiError("");
+    setDetailsValidationError("");
     setOtpApiError("");
 
     try {
       const payload = createOtpPayload(values);
-      const result = await requestRegisterOtpService(payload);
+      const result = await requestRegisterOtpService({
+        email: payload.email,
+      });
       const normalizedEmail = result?.email || payload.email;
 
       detailsForm.setValue("email", normalizedEmail, {
@@ -127,7 +120,11 @@ const RegisterPage = () => {
     } catch (error) {
       const hasFieldErrors = applyApiFieldErrors({
         error,
+        fieldMap: {
+          email: "email",
+        },
         setError: detailsForm.setError,
+        strictFieldMap: true,
       });
 
       if (!hasFieldErrors) {
@@ -155,6 +152,10 @@ const RegisterPage = () => {
       await registerService({
         email: pendingRegistration.email,
         otp: otp.trim(),
+        password: pendingRegistration.password,
+        fullName: pendingRegistration.fullName,
+        gender: pendingRegistration.gender,
+        dateOfBirth: pendingRegistration.dateOfBirth,
       });
 
       navigate("/login", {
@@ -164,12 +165,40 @@ const RegisterPage = () => {
         },
       });
     } catch (error) {
-      const hasFieldErrors = applyApiFieldErrors({
+      const hasOtpFieldErrors = applyApiFieldErrors({
         error,
+        fieldMap: {
+          otp: "otp",
+        },
         setError: otpForm.setError,
+        strictFieldMap: true,
       });
 
-      if (!hasFieldErrors) {
+      const hasDetailsFieldErrors = applyApiFieldErrors({
+        error,
+        fieldMap: {
+          email: "email",
+          password: "password",
+          fullName: "fullName",
+          gender: "gender",
+          dateOfBirth: "dateOfBirth",
+        },
+        setError: detailsForm.setError,
+        strictFieldMap: true,
+      });
+
+      if (hasDetailsFieldErrors) {
+        setDetailsApiError(
+          getApiErrorMessage(
+            error,
+            "Registration details are no longer valid. Please review them."
+          )
+        );
+        setStep("details");
+        return;
+      }
+
+      if (!hasOtpFieldErrors) {
         setOtpApiError(
           getApiErrorMessage(
             error,
@@ -191,8 +220,6 @@ const RegisterPage = () => {
     try {
       const result = await requestRegisterOtpService({
         email: pendingRegistration.email,
-        password: pendingRegistration.password,
-        fullName: pendingRegistration.fullName,
       });
 
       const normalizedEmail = result?.email || pendingRegistration.email;
@@ -215,7 +242,11 @@ const RegisterPage = () => {
     } catch (error) {
       const hasFieldErrors = applyApiFieldErrors({
         error,
+        fieldMap: {
+          email: "email",
+        },
         setError: detailsForm.setError,
+        strictFieldMap: true,
       });
 
       const resendAfterSeconds = getResendAfterSecondsFromError(error);
@@ -242,63 +273,73 @@ const RegisterPage = () => {
     }
   };
 
-  return (
-    <main className="min-h-screen bg-[#0f0f14] bg-[radial-gradient(circle_at_top_left,_rgba(245,182,111,0.22),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(79,124,255,0.14),_transparent_24%),linear-gradient(135deg,_#0f0f14_0%,_#15131b_45%,_#0d1018_100%)] px-4 py-10 text-white sm:px-6 lg:px-8">
-      <div className="mx-auto grid min-h-[calc(100vh-5rem)] w-full max-w-6xl items-center gap-8 lg:grid-cols-[1.05fr_0.95fr]">
-        <section className="order-2 lg:order-1">
-          <div className="max-w-xl">
-            <p className="mb-4 text-sm font-semibold uppercase tracking-[0.35em] text-[#f5b66f]">
-              Register Flow
-            </p>
-            <h2 className="text-4xl font-semibold leading-tight text-white sm:text-5xl">
-              Register with the OTP flow that already exists in the backend.
-            </h2>
-            <p className="mt-5 max-w-lg text-base leading-7 text-[#d9d5cf]">
-              The frontend keeps the registration flow split into a details step
-              and an OTP verification step, while still mapping backend field
-              errors directly to the correct form inputs.
-            </p>
+  const handleInvalidDetailsSubmit = (formErrors) => {
+    const firstFieldName = Object.keys(formErrors)[0];
 
-            <div className="mt-8 grid gap-4 sm:grid-cols-3">
-              {registerHighlights.map((item) => (
-                <div
-                  key={item.title}
-                  className="rounded-3xl border border-white/8 bg-white/[0.04] p-4 shadow-[0_18px_45px_rgba(15,23,42,0.24)] backdrop-blur"
-                >
-                  <p className="text-sm font-semibold text-[#f5b66f]">
-                    {item.title}
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-[#d9d5cf]">
-                    {item.description}
-                  </p>
-                </div>
-              ))}
+    setDetailsApiError("");
+    setDetailsValidationError("Please complete the required fields before continuing.");
+
+    if (firstFieldName) {
+      detailsForm.setFocus(firstFieldName);
+    }
+  };
+
+  const isDetailsStep = step === "details";
+
+  return (
+    <main className="relative min-h-screen overflow-hidden bg-[#0c1016] text-white">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(245,182,111,0.14),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(79,124,255,0.08),_transparent_26%),linear-gradient(180deg,_rgba(255,255,255,0.02)_0%,_rgba(12,16,22,0)_22%,_rgba(12,16,22,0.2)_100%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/10" />
+      <div className="pointer-events-none absolute left-[-8rem] top-[-8rem] h-56 w-56 rounded-full bg-[#f5b66f]/10 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-[-10rem] right-[-8rem] h-72 w-72 rounded-full bg-[#4f7cff]/8 blur-3xl" />
+
+      <section className="relative mx-auto flex min-h-screen w-full max-w-6xl items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
+        <div className={`w-full ${isDetailsStep ? "max-w-3xl" : "max-w-lg"}`}>
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[#f5b66f]">
+                Reso Music
+              </p>
+              <div>
+                <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+                  {isDetailsStep ? "Create your account" : "Confirm your email"}
+                </h1>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-[#c9c4bd]">
+                  {isDetailsStep
+                    ? "A focused, two-step registration flow with just the details needed to get you started."
+                    : "Enter the verification code we sent to finish creating your account."}
+                </p>
+              </div>
+            </div>
+
+            <div className="inline-flex w-fit items-center rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-xs font-medium text-[#e7e1d8] backdrop-blur">
+              {isDetailsStep ? "Step 1 of 2" : "Step 2 of 2"}
             </div>
           </div>
-        </section>
 
-        <div className="order-1 lg:order-2">
-          {step === "details" ? (
+          { isDetailsStep ? (
             <RegisterDetailsStep
-              apiError={detailsApiError}
-              form={detailsForm}
-              onSubmit={handleSendOtp}
+              apiError={ detailsApiError }
+              validationError={ detailsValidationError }
+              form={ detailsForm }
+              onInvalidSubmit={ handleInvalidDetailsSubmit }
+              onSubmit={ handleSendOtp }
             />
           ) : (
             <RegisterOtpStep
-              apiError={otpApiError}
-              email={pendingRegistration?.email || ""}
-              expiresInMinutes={pendingRegistration?.expiresInMinutes}
-              form={otpForm}
-              isResending={isResendingOtp}
-              onEditDetails={() => setStep("details")}
-              onResendOtp={handleResendOtp}
-              onSubmit={handleRegister}
-              remainingSeconds={remainingSeconds}
+              apiError={ otpApiError }
+              email={ pendingRegistration?.email || "" }
+              expiresInMinutes={ pendingRegistration?.expiresInMinutes }
+              form={ otpForm }
+              isResending={ isResendingOtp }
+              onEditDetails={ () => setStep("details") }
+              onResendOtp={ handleResendOtp }
+              onSubmit={ handleRegister }
+              remainingSeconds={ remainingSeconds }
             />
-          )}
+          ) }
         </div>
-      </div>
+      </section>
     </main>
   );
 };

@@ -7,6 +7,7 @@ const navigationItems = [
   { to: routePaths.home, label: "Dashboard", end: true },
   { to: routePaths.systemTracks, label: "Track moderation", end: false },
   { to: routePaths.systemPlaylists, label: "System playlists", end: false },
+  { to: routePaths.genres, label: "Genres", end: false },
   { to: routePaths.users, label: "Users", end: false },
 ];
 

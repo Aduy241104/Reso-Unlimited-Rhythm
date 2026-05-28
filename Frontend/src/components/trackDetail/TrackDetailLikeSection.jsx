@@ -32,7 +32,7 @@ const TrackDetailLikeSection = ({
       <div className="flex flex-wrap items-center gap-3">
         <div
           className="
-            min-w-[11rem] rounded-[18px] border border-black/6 bg-black/[0.03] px-4 py-3
+            w-full rounded-[18px] border border-black/6 bg-black/[0.03] px-4 py-3 sm:min-w-[11rem] sm:w-auto
             dark:border-white/10 dark:bg-white/[0.04]
           "
         >

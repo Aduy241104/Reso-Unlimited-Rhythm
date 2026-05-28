@@ -4,14 +4,41 @@ const { Schema, model } = mongoose;
 
 const UserSchema = new Schema(
     {
-        email: { type: String, required: true, trim: true, unique: true, index: true },
-        password: { type: String, required: true },
-        // username: { type: String, required: true, trim: true, unique: true, index: true },
+        email: {
+            type: String,
+            required: true,
+            trim: true,
+            lowercase: true,
+            unique: true,
+            index: true,
+        },
+
+        password: {
+            type: String,
+            required: function () {
+                return this.authProvider === "local";
+            },
+        },
+
+        authProvider: {
+            type: String,
+            enum: ["local", "google"],
+            default: "local",
+            index: true,
+        },
+
+        googleId: {
+            type: String,
+            trim: true,
+            sparse: true,
+            index: true,
+        },
+
         avatar: { type: String, default: "" },
 
         role: {
             type: String,
-            enum: ["guest", "user", "artist", "admin"],
+            enum: ["user", "artist", "admin"],
             default: "user",
             index: true,
         },
@@ -20,6 +47,12 @@ const UserSchema = new Schema(
             type: String,
             enum: ["active", "inactive", "blocked"],
             default: "active",
+            index: true,
+        },
+
+        emailVerified: {
+            type: Boolean,
+            default: false,
             index: true,
         },
 
@@ -55,4 +88,4 @@ const UserSchema = new Schema(
 );
 
 const User = model("User", UserSchema);
-export default User;    
+export default User;

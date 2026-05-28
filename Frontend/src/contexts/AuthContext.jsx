@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { setupAxiosInterceptors } from "../axios/setupAuthInterceptors";
 import {
+  googleLoginService,
   loginService,
   logoutService,
   refreshSessionService,
@@ -168,6 +169,16 @@ export const AuthProvider = ({ children }) => {
     return authSession;
   }, [applyAuthSession]);
 
+  const googleLogin = useCallback(async (token) => {
+    const authSession = await googleLoginService(token);
+
+    if (!applyAuthSession(authSession)) {
+      throw new Error("Google login success response missing session data.");
+    }
+
+    return authSession;
+  }, [applyAuthSession]);
+
   // Đồng bộ session vào localStorage mỗi khi có sự thay đổi về user hoặc accessToken
   useEffect(() => {
     userRef.current = user;
@@ -233,12 +244,13 @@ export const AuthProvider = ({ children }) => {
       isLoading,
       isAuthenticated: Boolean(user),
       login,
+      googleLogin,
       logout,
       refreshSession,
       setUser,
       setAccessToken,
     }),
-    [user, accessToken, isLoading, login, logout, refreshSession]
+    [user, accessToken, isLoading, login, googleLogin, logout, refreshSession]
   );
 
   return (

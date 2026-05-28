@@ -20,6 +20,11 @@ export const loginService = async (payload) => {
   return normalizeAuthSession(response);
 };
 
+export const googleLoginService = async (token) => {
+  const response = await axiosClient.post(`${AUTH_API_PREFIX}/google`, { token });
+  return normalizeAuthSession(response);
+};
+
 export const requestRegisterOtpService = async (payload) => {
   const response = await axiosClient.post(
     `${AUTH_API_PREFIX}/register/send-otp`,

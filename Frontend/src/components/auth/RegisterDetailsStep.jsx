@@ -2,18 +2,32 @@ import { Link } from "react-router-dom";
 import AuthCard from "./AuthCard";
 import AuthField from "./AuthField";
 
-const RegisterDetailsStep = ({ form, onSubmit, apiError }) => {
+const MAX_BIRTH_DATE = new Date().toISOString().split("T")[0];
+
+const RegisterDetailsStep = ({
+  form,
+  onSubmit,
+  onInvalidSubmit,
+  apiError,
+  validationError,
+}) => {
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = form;
+  const validationMessages = Object.values(errors)
+    .map((error) => error?.message)
+    .filter(Boolean);
 
   return (
     <AuthCard
       theme="dark"
-      title="Create your account"
-      subtitle="Enter your basic information to request a verification OTP. Your password stays in the backend registration flow until email verification is completed."
+      title="Account details"
+      subtitle="Enter your core information and we will send a verification code to your email."
+      className="w-full rounded-[28px] border-white/8 bg-[#11161d]/90"
+      headerClassName="mb-6"
+      footerClassName="mt-6"
       footer={
         <span>
           Already have an account?{" "}
@@ -23,10 +37,27 @@ const RegisterDetailsStep = ({ form, onSubmit, apiError }) => {
         </span>
       }
     >
-      <form className="space-y-4" noValidate onSubmit={handleSubmit(onSubmit)}>
+      <form
+        className="grid gap-5 sm:grid-cols-2"
+        noValidate
+        onSubmit={handleSubmit(onSubmit, onInvalidSubmit)}
+      >
         {apiError ? (
-          <div className="rounded-2xl border border-rose-300/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+          <div className="rounded-2xl border border-rose-300/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-100 sm:col-span-2">
             {apiError}
+          </div>
+        ) : null}
+
+        {!apiError && validationError ? (
+          <div className="rounded-2xl border border-amber-300/25 bg-amber-400/10 px-4 py-3 text-sm text-amber-100 sm:col-span-2">
+            <p className="font-medium">{validationError}</p>
+            {validationMessages.length > 0 ? (
+              <ul className="mt-2 space-y-1">
+                {validationMessages.map((message) => (
+                  <li key={message}>{message}</li>
+                ))}
+              </ul>
+            ) : null}
           </div>
         ) : null}
 
@@ -36,6 +67,7 @@ const RegisterDetailsStep = ({ form, onSubmit, apiError }) => {
           placeholder="Nguyen Van A"
           autoComplete="name"
           error={errors.fullName?.message}
+          inputClassName="min-h-[50px] rounded-2xl border-white/10 bg-[#f7f4ef] shadow-none"
           {...register("fullName")}
         />
 
@@ -46,17 +78,45 @@ const RegisterDetailsStep = ({ form, onSubmit, apiError }) => {
           placeholder="you@example.com"
           autoComplete="email"
           error={errors.email?.message}
+          inputClassName="min-h-[50px] rounded-2xl border-white/10 bg-[#f7f4ef] shadow-none"
           {...register("email")}
+        />
+
+        <AuthField
+          as="select"
+          theme="dark"
+          label="Gender"
+          error={errors.gender?.message}
+          inputClassName="min-h-[50px] rounded-2xl border-white/10 bg-[#f7f4ef] shadow-none"
+          {...register("gender")}
+        >
+          <option value="prefer_not_to_say">Prefer not to say</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+          <option value="other">Other</option>
+        </AuthField>
+
+        <AuthField
+          theme="dark"
+          className="sm:col-span-2"
+          label="Date of birth"
+          type="date"
+          error={errors.dateOfBirth?.message}
+          inputClassName="min-h-[50px] rounded-2xl border-white/10 bg-[#f7f4ef] shadow-none"
+          max={MAX_BIRTH_DATE}
+          onClick={(event) => event.currentTarget.showPicker?.()}
+          onFocus={(event) => event.currentTarget.showPicker?.()}
+          {...register("dateOfBirth")}
         />
 
         <AuthField
           theme="dark"
           label="Password"
           type="password"
-          placeholder="Enter your password"
+          placeholder="Create a password"
           autoComplete="new-password"
-          helperText="Backend currently requires at least 6 characters."
           error={errors.password?.message}
+          inputClassName="min-h-[50px] rounded-2xl border-white/10 bg-[#f7f4ef] shadow-none"
           {...register("password")}
         />
 
@@ -67,15 +127,16 @@ const RegisterDetailsStep = ({ form, onSubmit, apiError }) => {
           placeholder="Re-enter your password"
           autoComplete="new-password"
           error={errors.confirmPassword?.message}
+          inputClassName="min-h-[50px] rounded-2xl border-white/10 bg-[#f7f4ef] shadow-none"
           {...register("confirmPassword")}
         />
 
         <button
-          className="inline-flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-[#f5b66f] via-[#d98235] to-[#17131a] px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_45px_rgba(245,158,66,0.24)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_60px_rgba(245,158,66,0.22)] disabled:cursor-not-allowed disabled:opacity-70"
+          className="inline-flex min-h-[52px] w-full items-center justify-center rounded-2xl bg-[#f5b66f] px-4 py-3 text-sm font-semibold text-[#15181d] transition hover:bg-[#f7c789] disabled:cursor-not-allowed disabled:opacity-70 sm:col-span-2"
           disabled={isSubmitting}
           type="submit"
         >
-          {isSubmitting ? "Sending OTP..." : "Send OTP"}
+          {isSubmitting ? "Sending code..." : "Continue"}
         </button>
       </form>
     </AuthCard>
