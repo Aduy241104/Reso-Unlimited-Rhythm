@@ -1,44 +1,27 @@
 import axiosClient from "../axios/axiosClient";
 
-export const getOverviewStatsService = async (days = 7) => {
-    const res = await axiosClient.get("/api/admin/dashboard/stats/overview", {
-        params: { days },
-    });
-    return res.data?.data ?? null;
+export const getOverviewStatsService = async () => {
+    const res = await axiosClient.get("/api/admin/dashboard/overview");
+    return res.data?.data?.stats ?? null;
 };
 
-export const getDailyStatsService = async (days = 7) => {
-    const res = await axiosClient.get("/api/admin/dashboard/stats/daily", {
-        params: { days },
-    });
-    return res.data?.data?.dailyStats ?? [];
+export const getMonthlyOverviewService = async (year, month) => {
+    const params = {};
+    if (year) params.year = year;
+    if (month) params.month = month;
+    const res = await axiosClient.get("/api/admin/dashboard/monthly", { params });
+    return res.data?.data?.stats ?? null;
 };
 
-export const getTopTracksService = async (limit = 10) => {
-    const res = await axiosClient.get("/api/admin/dashboard/stats/top-tracks", {
-        params: { limit },
-    });
-    return res.data?.data?.topTracks ?? [];
-};
-
-export const getTopArtistsService = async (limit = 10) => {
-    const res = await axiosClient.get("/api/admin/dashboard/stats/top-artists", {
-        params: { limit },
-    });
-    return res.data?.data?.topArtists ?? [];
-};
-
-export const getRecentMonthsStatsService = async (months = 6) => {
-    const res = await axiosClient.get("/api/admin/dashboard/stats/recent-months", {
-        params: { months },
-    });
-    return res.data?.data?.monthsStats ?? [];
+export const getDailyStatsService = async (date) => {
+    const params = {};
+    if (date) params.date = date;
+    const res = await axiosClient.get("/api/admin/dashboard/daily", { params });
+    return res.data?.data?.stats ?? null;
 };
 
 export default {
     getOverviewStatsService,
+    getMonthlyOverviewService,
     getDailyStatsService,
-    getTopTracksService,
-    getTopArtistsService,
-    getRecentMonthsStatsService,
 };
