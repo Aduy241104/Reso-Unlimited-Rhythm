@@ -20,8 +20,16 @@ export const getDailyStatsService = async (date) => {
     return res.data?.data?.stats ?? null;
 };
 
+export const getNewUsersByMonthService = async (year) => {
+    const params = {};
+    if (year) params.year = year;
+    const res = await axiosClient.get("/api/admin/dashboard/new-users", { params });
+    return res.data?.data?.stats ?? null;
+};
+
 export default {
     getOverviewStatsService,
     getMonthlyOverviewService,
     getDailyStatsService,
+    getNewUsersByMonthService,
 };
