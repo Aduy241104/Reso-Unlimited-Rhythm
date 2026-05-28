@@ -1,6 +1,7 @@
 export const routePaths = {
   home: "/",
   dailyTopTracks: "/charts/daily-top-tracks",
+  monthlyTopTracks: "/charts/monthly-top-tracks",
   albumDetail: (albumId = ":id") => `/albums/${albumId}`,
   playlistDetail: (playlistId = ":id") => `/playlists/${playlistId}`,
   lyrics: "/lyrics",

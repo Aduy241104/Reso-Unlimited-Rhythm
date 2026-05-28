@@ -23,6 +23,7 @@ import ArtistTrackEditPage from "../pages/artist/ArtistTrackEditPage";
 import HomePage from "../pages/home/HomePage";
 import LyricsPage from "../pages/lyrics/LyricsPage";
 import DailyTopTracksPage from "../pages/track/DailyTopTracksPage";
+import MonthlyTopTracksPage from "../pages/track/MonthlyTopTracksPage";
 import ArtistProfilePageView from "../pages/profile/ArtistProfilePage";
 import PlaylistDetailPage from "../pages/playlist/PlaylistDetailPage";
 import TrackDetailPage from "../pages/track/TrackDetailPage";
@@ -45,6 +46,10 @@ export const appRoutes = [
       {
         path: routePaths.dailyTopTracks,
         element: <DailyTopTracksPage />,
+      },
+      {
+        path: routePaths.monthlyTopTracks,
+        element: <MonthlyTopTracksPage />,
       },
       {
         path: routePaths.albumDetail(),

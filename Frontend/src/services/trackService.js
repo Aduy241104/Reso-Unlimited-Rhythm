@@ -17,7 +17,7 @@ const normalizeTrackArtist = (artist) => {
   };
 };
 
-const normalizeDailyTopTrackItem = (item, index) => {
+const normalizeTopTrackItem = (item, index) => {
   const rawTrack = item?.track || {};
   const normalizedTrack = {
     id: rawTrack?.id || rawTrack?._id || "",
@@ -195,11 +195,63 @@ export const getDailyTopTracksService = async ({ date, limit = 30 }) => {
 
   const payload = response?.data?.data;
   const topTracks = Array.isArray(payload?.topTracks)
-    ? payload.topTracks.map(normalizeDailyTopTrackItem)
+    ? payload.topTracks.map(normalizeTopTrackItem)
     : [];
 
   return {
     topTracks,
     meta: response?.data?.meta || {},
   };
+};
+
+export const getMonthlyTopTracksService = async ({ year, month, limit = 30 }) => {
+  const rawMonthValue = String(month || "").trim();
+  const resolvedYear = String(year || "").trim();
+  const requestMonthKey = /^\d{4}-\d{2}$/.test(rawMonthValue)
+    ? rawMonthValue
+    : resolvedYear && rawMonthValue
+      ? `${resolvedYear}-${String(rawMonthValue).padStart(2, "0")}`
+      : "";
+
+  const requestCandidates = [
+    `${PUBLIC_TRACK_API_PREFIX}/top/monthly`,
+    `${PUBLIC_TRACK_API_PREFIX}/top/month`,
+  ];
+
+  let lastError = null;
+
+  for (const endpoint of requestCandidates) {
+    try {
+      const response = await axiosClient.get(endpoint, {
+        params: {
+          month: requestMonthKey,
+          limit,
+        },
+      });
+
+      const payload = response?.data?.data;
+      const topTracks = Array.isArray(payload?.topTracks)
+        ? payload.topTracks.map(normalizeTopTrackItem)
+        : [];
+
+      return {
+        topTracks,
+        meta: {
+          ...(response?.data?.meta || {}),
+          date:
+            response?.data?.meta?.date ||
+            requestMonthKey,
+        },
+      };
+    } catch (error) {
+      lastError = error;
+      const status = error?.response?.status;
+
+      if (status !== 404 && status !== 405) {
+        throw error.response?.data || error;
+      }
+    }
+  }
+
+  throw lastError?.response?.data || lastError;
 };
