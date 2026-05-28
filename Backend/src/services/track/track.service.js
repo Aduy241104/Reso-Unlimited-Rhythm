@@ -68,6 +68,7 @@ const formatDailyTopTrackStat = (stat) => ({
     date: stat.date,
     playCount: stat.playCount,
     uniqueListeners: stat.uniqueListeners,
+    averageListenDuration: stat.averageListenDuration,
     skipCount: stat.skipCount,
 });
 

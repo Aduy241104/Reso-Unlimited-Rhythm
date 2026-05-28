@@ -8,6 +8,7 @@ const TrackDailyStatSchema = new Schema(
         date: { type: Date, required: true, index: true },
         playCount: { type: Number, default: 0, min: 0 },
         uniqueListeners: { type: Number, default: 0, min: 0 },
+        averageListenDuration: { type: Number, default: 0, min: 0 },
         skipCount: { type: Number, default: 0, min: 0 },
     },
     { timestamps: true }

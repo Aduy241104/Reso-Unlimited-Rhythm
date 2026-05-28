@@ -25,6 +25,7 @@ const buildDailyAggregationPipeline = ({ startDate, endDate, dayDate }) => ([
             _id: "$trackId",
             playCount: { $sum: 1 },
             uniqueListeners: { $addToSet: "$userId" },
+            averageListenDuration: { $avg: "$duration" },
             skipCount: {
                 $sum: {
                     $cond: [{ $eq: ["$skipped", true] }, 1, 0],
@@ -39,6 +40,7 @@ const buildDailyAggregationPipeline = ({ startDate, endDate, dayDate }) => ([
             date: { $literal: dayDate },
             playCount: 1,
             uniqueListeners: { $size: "$uniqueListeners" },
+            averageListenDuration: 1,
             skipCount: 1,
         },
     },
@@ -91,6 +93,7 @@ const syncDailyTrackStats = async ({ date, nextDate, dailyStats }) => {
                     $set: {
                         playCount: stat.playCount,
                         uniqueListeners: stat.uniqueListeners,
+                        averageListenDuration: stat.averageListenDuration,
                         skipCount: stat.skipCount,
                     },
                 },

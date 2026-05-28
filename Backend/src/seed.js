@@ -8,6 +8,7 @@ dotenv.config();
 const {
     Album,
     Artist,
+    ArtistDailyRanking,
     ArtistMonthlyStat,
     ArtistRequest,
     ArtistStat,
@@ -50,6 +51,7 @@ const ids = {
     genreTalk: oid("681300000000000000000203"),
 
     artistMain: oid("681300000000000000000301"),
+    artistDailyRanking: oid("681300000000000000000305"),
     artistRequest: oid("681300000000000000000302"),
     artistStat: oid("681300000000000000000303"),
     artistMonthlyStat: oid("681300000000000000000304"),
@@ -112,6 +114,7 @@ const seedCollections = [
     { model: Podcast, ids: [ids.podcastMain] },
     { model: Track, ids: [ids.trackSunrise, ids.trackCityLights] },
     { model: Album, ids: [ids.albumMain] },
+    { model: ArtistDailyRanking, ids: [ids.artistDailyRanking] },
     { model: ArtistMonthlyStat, ids: [ids.artistMonthlyStat] },
     { model: ArtistStat, ids: [ids.artistStat] },
     { model: ArtistRequest, ids: [ids.artistRequest] },
@@ -694,7 +697,24 @@ const seedModerationAndStats = async () => {
         date: daysAgo(1),
         playCount: 180,
         uniqueListeners: 124,
+        averageListenDuration: 204,
         skipCount: 18,
+    });
+
+    await ArtistDailyRanking.create({
+        _id: ids.artistDailyRanking,
+        date: daysAgo(1),
+        rankings: [
+            {
+                artistId: ids.artistMain,
+                playCount: 220,
+                uniqueListeners: 130,
+                completedPlayCount: 92,
+                totalTracksPlayed: 2,
+                score: 852,
+                rank: 1,
+            },
+        ],
     });
 
     const now = new Date();
