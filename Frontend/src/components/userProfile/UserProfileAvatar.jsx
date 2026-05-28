@@ -1,4 +1,31 @@
+import { useEffect } from "react";
 import { BadgeCheck } from "lucide-react";
+import {
+  mergeUserProfileSnapshot,
+  useUserProfileCard,
+} from "./UserProfileCard";
+
+const FALLBACK_TEXT = "Not provided";
+
+const normalizeText = (value) => {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.trim();
+};
+
+const getPreferredText = (...values) => {
+  for (const value of values) {
+    const normalizedValue = normalizeText(value);
+
+    if (normalizedValue && normalizedValue !== FALLBACK_TEXT) {
+      return normalizedValue;
+    }
+  }
+
+  return FALLBACK_TEXT;
+};
 
 const getProfileInitials = (fullName, email) => {
   const source = String(fullName || "").trim() || String(email || "").trim();
@@ -18,7 +45,25 @@ const getProfileInitials = (fullName, email) => {
 };
 
 const UserProfileAvatar = ({ avatar, fullName, email }) => {
-  const initials = getProfileInitials(fullName, email);
+  const { profile, setProfile } = useUserProfileCard();
+
+  useEffect(() => {
+    setProfile((current) =>
+      mergeUserProfileSnapshot(current, {
+        avatar,
+        fullName,
+        email,
+      })
+    );
+  }, [avatar, email, fullName, setProfile]);
+
+  const resolvedFullName = getPreferredText(profile?.fullName, fullName);
+  const resolvedEmail = getPreferredText(profile?.email, email);
+  const resolvedAvatar = normalizeText(profile?.avatar) || normalizeText(avatar);
+  const initials = getProfileInitials(
+    resolvedFullName === FALLBACK_TEXT ? "" : resolvedFullName,
+    resolvedEmail === FALLBACK_TEXT ? "" : resolvedEmail
+  );
 
   return (
     <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 text-center shadow-[0_20px_60px_rgba(0,0,0,0.3)] backdrop-blur-md sm:p-8 xl:sticky xl:top-10">
@@ -33,10 +78,10 @@ const UserProfileAvatar = ({ avatar, fullName, email }) => {
               sm:h-44 sm:w-44
             "
           >
-            {avatar ? (
+            {resolvedAvatar ? (
               <img
-                src={avatar}
-                alt={fullName !== "Not provided" ? fullName : email}
+                src={resolvedAvatar}
+                alt={resolvedFullName !== FALLBACK_TEXT ? resolvedFullName : resolvedEmail}
                 className="h-full w-full object-cover"
               />
             ) : (
@@ -51,7 +96,7 @@ const UserProfileAvatar = ({ avatar, fullName, email }) => {
         </div>
 
         <h2 className="mt-5 text-2xl font-semibold tracking-tight text-white sm:text-[2rem]">
-          {fullName}
+          {resolvedFullName}
         </h2>
 
         <p className="mt-4 max-w-xs text-sm leading-7 text-gray-400">
@@ -60,7 +105,7 @@ const UserProfileAvatar = ({ avatar, fullName, email }) => {
         </p>
 
         <p className="mt-6 text-xs font-medium uppercase tracking-[0.24em] text-gray-500">
-          Member since your current Reso account
+          Thank you for using our services.
         </p>
       </div>
     </div>
