@@ -29,7 +29,23 @@ const getTrackPlayback = async (req, res, next) => {
     }
 };
 
+const getDailyTopTracks = async (req, res, next) => {
+    try {
+        const { topTracks, meta } = await trackService.getDailyTopTracks(req.query);
+
+        return formatResponse.success(
+            res,
+            { topTracks },
+            "Daily top tracks fetched successfully",
+            meta
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getTrackDetail,
     getTrackPlayback,
+    getDailyTopTracks,
 };

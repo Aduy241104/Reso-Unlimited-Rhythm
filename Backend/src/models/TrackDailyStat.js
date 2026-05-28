@@ -14,6 +14,7 @@ const TrackDailyStatSchema = new Schema(
 );
 
 TrackDailyStatSchema.index({ trackId: 1, date: 1 }, { unique: true });
+TrackDailyStatSchema.index({ date: 1, playCount: -1 });
 
 const TrackDailyStat = model("TrackDailyStat", TrackDailyStatSchema);
 
