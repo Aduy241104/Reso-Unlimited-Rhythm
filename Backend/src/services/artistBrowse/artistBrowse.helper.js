@@ -99,9 +99,16 @@ const formatArtistProfile = ({ artist, artistStat, albums, tracks }) => ({
     tracks: tracks.map(formatArtistTrack),
 });
 
+const formatArtistFollowState = ({ artistId, isFollowing, followers }) => ({
+    artistId: toId(artistId),
+    isFollowing,
+    followers,
+});
+
 export {
     formatArtistAlbum,
     formatArtistComingRelease,
+    formatArtistFollowState,
     formatArtistTrack,
     formatArtistProfile,
     normalizePositiveInteger,
