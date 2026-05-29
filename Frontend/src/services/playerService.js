@@ -67,19 +67,19 @@ const getFirstAudioFile = (track) =>
   null;
 
 export const resolveTrackLyricsSyncUrl = (track) => {
-  const lyricsSyncUrl =
-    track?.playback?.lyricsSyncUrl ||
-    track?.lyricsSyncUrl ||
-    track?.lyrics?.syncUrl ||
-    track?.raw?.playback?.lyricsSyncUrl ||
-    track?.raw?.lyricsSyncUrl ||
-    track?.raw?.lyrics?.syncUrl;
+  const o3icsSyncUrl =
+    track?.playback?.o3icsSyncUrl ||
+    track?.o3icsSyncUrl ||
+    track?.o3ics?.syncUrl ||
+    track?.raw?.playback?.o3icsSyncUrl ||
+    track?.raw?.o3icsSyncUrl ||
+    track?.raw?.o3ics?.syncUrl;
 
-  if (!lyricsSyncUrl) {
+  if (!o3icsSyncUrl) {
     return "";
   }
 
-  return buildAbsoluteMediaUrl(lyricsSyncUrl);
+  return buildAbsoluteMediaUrl(o3icsSyncUrl);
 };
 
 export const resolveTrackMediaUrl = (track) => {
@@ -126,29 +126,40 @@ export const getTrackPlaybackSource = async (trackId) => {
 };
 
 export const getTrackLyricsSyncTextService = async (trackOrLyricsUrl) => {
-  const lyricsSyncUrl =
+  const o3icsSyncUrl =
     typeof trackOrLyricsUrl === "string"
       ? buildAbsoluteMediaUrl(trackOrLyricsUrl)
       : resolveTrackLyricsSyncUrl(trackOrLyricsUrl);
 
-  if (!lyricsSyncUrl) {
-    throw new Error("Track playback does not include a synced lyrics URL.");
+  if (!o3icsSyncUrl) {
+    throw new Error("Track playback does not include a synced o3ics URL.");
   }
 
-  const response = await axiosClient.get(lyricsSyncUrl, {
+  const response = await axiosClient.get(o3icsSyncUrl, {
     responseType: "text",
   });
 
-  const lyricsText =
+  const o3icsText =
     typeof response?.data === "string"
       ? response.data
       : typeof response?.data?.data === "string"
         ? response.data.data
         : "";
 
-  if (!lyricsText.trim()) {
-    throw new Error("The synced lyrics response is empty.");
+  if (!o3icsText.trim()) {
+    throw new Error("The synced o3ics response is empty.");
   }
 
-  return lyricsText;
+  return o3icsText;
+};
+
+export const recordListenService = async (trackId, duration, skipped = false) => {
+  try {
+    await axiosClient.post(`${TRACK_API_PREFIX}/${trackId}/listen`, {
+      duration: Math.floor(duration),
+      skipped,
+    });
+  } catch (error) {
+    console.warn("[ListenTracking] Failed to record listen event:", error);
+  }
 };

@@ -1,4 +1,5 @@
 import trackService from "../services/Track/track.service.js";
+import listenService from "../services/Track/listen.service.js";
 import formatResponse from "../utils/formatResponse.js";
 
 const getTrackDetail = async (req, res, next) => {
@@ -44,8 +45,29 @@ const getDailyTopTracks = async (req, res, next) => {
     }
 };
 
+const recordListen = async (req, res, next) => {
+    try {
+        const { duration, skipped } = req.body;
+        const result = await listenService.recordListenEvent(
+            req.user.id,
+            req.params.id,
+            duration,
+            skipped
+        );
+
+        return formatResponse.success(
+            res,
+            result,
+            "Listen event recorded successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getTrackDetail,
     getTrackPlayback,
     getDailyTopTracks,
+    recordListen,
 };

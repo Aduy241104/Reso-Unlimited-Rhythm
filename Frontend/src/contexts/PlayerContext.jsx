@@ -8,6 +8,7 @@ import {
   getTrackPlaybackSource,
   resolveTrackLyricsSyncUrl,
   resolveTrackMediaUrl,
+  recordListenService,
 } from "../services/playerService";
 
 const DEFAULT_VOLUME = 0.75;
@@ -80,6 +81,7 @@ export const PlayerProvider = ({ children }) => {
   const syncLyricsRef = useRef(null);
   const lyricsReadyRef = useRef(false);
   const currentLyricsThemeIndexRef = useRef(-1);
+  const listenTrackRef = useRef({ trackId: null, duration: 0 });
 
   const syncQueueState = (nextQueue) => {
     queueRef.current = nextQueue;
@@ -229,6 +231,11 @@ export const PlayerProvider = ({ children }) => {
     };
 
     const handleEnded = () => {
+      const endedTrack = listenTrackRef.current;
+      if (endedTrack?.trackId) {
+        recordListenService(endedTrack.trackId, endedTrack.duration, false);
+      }
+
       const nextIndex = currentIndexRef.current + 1;
 
       if (nextIndex < queueRef.current.length) {
@@ -361,6 +368,11 @@ export const PlayerProvider = ({ children }) => {
         index === nextIndex ? hydratedTrack : track
       );
 
+      listenTrackRef.current = {
+        trackId: hydratedTrack.playbackTrackId || hydratedTrack.id,
+        duration: hydratedTrack.duration || 0,
+      };
+
       syncQueueState(hydratedQueue);
       setCurrentTrack(hydratedTrack);
       releaseCurrentObjectUrl();
@@ -490,6 +502,12 @@ export const PlayerProvider = ({ children }) => {
   };
 
   const playNext = async () => {
+    const currentTrackId = listenTrackRef.current?.trackId;
+    const currentTrackDuration = listenTrackRef.current?.duration ?? 0;
+    if (currentTrackId) {
+      recordListenService(currentTrackId, currentTrackDuration, true);
+    }
+
     const nextIndex = currentIndexRef.current + 1;
 
     if (nextIndex >= queueRef.current.length) {
