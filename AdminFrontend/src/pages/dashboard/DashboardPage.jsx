@@ -267,6 +267,15 @@ const DashboardPage = () => {
         void loadNewUsersByMonth();
     }, []);
 
+    // Auto-refresh every 30 minutes
+    useEffect(() => {
+        const interval = setInterval(() => {
+            void loadOverview();
+            void loadNewUsersByMonth();
+        }, 30 * 60 * 1000);
+        return () => clearInterval(interval);
+    }, []);
+
     useEffect(() => {
         const now = new Date();
         const target = new Date(now.getFullYear(), now.getMonth() - monthOffset, 1);
@@ -536,7 +545,7 @@ const DashboardPage = () => {
             {/* ── Footer ── */}
             <div className="flex items-center justify-between border-t border-black/5 px-1 pt-3">
                 <p className="text-[10px] text-black/25">
-                    Data refreshes automatically at 00:00 (Asia/Ho_Chi_Minh)
+                    Data refreshes automatically every 30 minutes
                 </p>
                 <p className="text-[10px] text-black/25">
                     All dates in dd/mm/yyyy format
