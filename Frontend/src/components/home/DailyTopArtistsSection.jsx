@@ -9,39 +9,21 @@ const getArtistAvatar = (artist) =>
   artist?.avatar || createPlaceholderImage(artist?.name || "Artist", "#1db954", "#101828");
 
 const featuredCardClassNameByRank = {
-  1: "mt-0 sm:-translate-y-2",
-  2: "mt-8",
-  3: "mt-8",
-};
-
-const featuredCardToneByRank = {
-  1: `
-    border-[#f59e0b]/30 bg-[linear-gradient(180deg,rgba(245,158,11,0.18),rgba(255,255,255,0.96))]
-    shadow-[0_30px_70px_rgba(245,158,11,0.22)]
-    dark:bg-[linear-gradient(180deg,rgba(245,158,11,0.22),rgba(24,24,27,0.96))]
-  `,
-  2: `
-    border-[#38bdf8]/25 bg-[linear-gradient(180deg,rgba(56,189,248,0.14),rgba(255,255,255,0.96))]
-    shadow-[0_24px_60px_rgba(56,189,248,0.16)]
-    dark:bg-[linear-gradient(180deg,rgba(56,189,248,0.18),rgba(24,24,27,0.96))]
-  `,
-  3: `
-    border-[#fb7185]/25 bg-[linear-gradient(180deg,rgba(251,113,133,0.14),rgba(255,255,255,0.96))]
-    shadow-[0_24px_60px_rgba(251,113,133,0.16)]
-    dark:bg-[linear-gradient(180deg,rgba(251,113,133,0.18),rgba(24,24,27,0.96))]
-  `,
+  1: "mt-0 sm:-translate-y-3",
+  2: "mt-7",
+  3: "mt-7",
 };
 
 const featuredAvatarClassNameByRank = {
-  1: "h-28 w-28 ring-[#f59e0b]/40 sm:h-40 sm:w-40",
-  2: "h-20 w-20 ring-[#38bdf8]/32 sm:h-28 sm:w-28",
-  3: "h-20 w-20 ring-[#fb7185]/32 sm:h-28 sm:w-28",
+  1: "h-36 w-36 ring-black/10 sm:h-48 sm:w-48 dark:ring-white/12",
+  2: "h-24 w-24 ring-black/10 sm:h-32 sm:w-32 dark:ring-white/12",
+  3: "h-24 w-24 ring-black/10 sm:h-32 sm:w-32 dark:ring-white/12",
 };
 
 const featuredRankBadgeClassNameByRank = {
-  1: "bg-[#f59e0b] text-[#111111]",
-  2: "bg-[#38bdf8] text-[#082f49]",
-  3: "bg-[#fb7185] text-[#4c0519]",
+  1: "bg-[#111111] text-white dark:bg-white dark:text-[#111111]",
+  2: "bg-black/[0.06] text-[#111111] dark:bg-white/[0.08] dark:text-white",
+  3: "bg-black/[0.06] text-[#111111] dark:bg-white/[0.08] dark:text-white",
 };
 
 const FeaturedArtistCard = ({ item }) => {
@@ -53,34 +35,17 @@ const FeaturedArtistCard = ({ item }) => {
       to={ routePaths.artistBrowseProfile(item.artist.id) }
       className={ [
         `
-          group relative flex min-w-0 flex-col items-center overflow-hidden rounded-[28px]
-          border px-3 pb-4 pt-4 text-center transition duration-300 hover:-translate-y-1
-          dark:border-white/10 sm:px-4 sm:pb-5
+          group relative flex min-w-0 flex-col items-center text-center transition duration-300
+          hover:-translate-y-0.5
         `,
         featuredCardClassNameByRank[rank] || "mt-8",
-        featuredCardToneByRank[rank] || featuredCardToneByRank[3],
       ].join(" ") }
     >
-      <div className="pointer-events-none absolute inset-x-6 top-0 h-24 rounded-full bg-white/55 blur-3xl dark:bg-white/10" />
-
       <div
         className={ [
           `
-            relative z-10 inline-flex items-center justify-center rounded-full px-3 py-1
-            text-xs font-semibold tracking-[0.22em]
-          `,
-          featuredRankBadgeClassNameByRank[rank] || featuredRankBadgeClassNameByRank[3],
-        ].join(" ") }
-      >
-        { isChampion ? <Crown className="mr-1.5 h-3.5 w-3.5" /> : null }
-        #{ rank }
-      </div>
-
-      <div
-        className={ [
-          `
-            relative z-10 mt-4 overflow-hidden rounded-full object-cover ring-4
-            shadow-[0_26px_60px_rgba(15,23,42,0.22)]
+            relative z-20 overflow-hidden rounded-full object-cover ring-4
+            shadow-[0_12px_26px_rgba(15,23,42,0.12)]
           `,
           featuredAvatarClassNameByRank[rank] || featuredAvatarClassNameByRank[3],
         ].join(" ") }
@@ -92,28 +57,26 @@ const FeaturedArtistCard = ({ item }) => {
         />
       </div>
 
-      <p
-        className={ [
-          "relative z-10 mt-4 max-w-full truncate font-semibold tracking-tight text-[#111111] dark:text-white",
-          isChampion ? "text-lg sm:text-[1.65rem]" : "text-base sm:text-[1.35rem]",
-        ].join(" ") }
-      >
-        { item.artist.name }
-      </p>
+      <div className="relative z-10 mt-4 flex flex-col items-center">
+        <div
+          className={ [
+            "inline-flex items-center justify-center rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.22em]",
+            featuredRankBadgeClassNameByRank[rank] || featuredRankBadgeClassNameByRank[3],
+          ].join(" ") }
+        >
+          { isChampion ? <Crown className="mr-1.5 h-3.5 w-3.5" /> : null }
+          #{ rank }
+        </div>
 
-      <div
-        className={ [
-          "relative z-10 mt-4 w-full rounded-[20px] px-3 py-2.5 text-center",
-          isChampion
-            ? "bg-black/[0.05] dark:bg-white/[0.07]"
-            : "bg-black/[0.04] dark:bg-white/[0.05]",
-        ].join(" ") }
-      >
-        <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#52525b] dark:text-white/58">
-          { isChampion ? "Leading today" : "Top artist" }
-        </p>
-        <p className="mt-1 text-sm font-medium text-[#111111] dark:text-white/90">
-          Tap to view profile
+        <p
+          className={ [
+            "mt-3 max-w-full truncate font-semibold leading-none tracking-tight text-[#111111] dark:text-white",
+            isChampion
+              ? "text-xl drop-shadow-[0_8px_20px_rgba(15,23,42,0.12)] sm:text-[1.9rem]"
+              : "text-base sm:text-[1.35rem]",
+          ].join(" ") }
+        >
+          { item.artist.name }
         </p>
       </div>
     </Link>
@@ -179,7 +142,7 @@ const DailyTopArtistsSection = ({
           </div>
         ) : isLoading ? (
           <div className="space-y-6 sm:space-y-8">
-            <div className="grid grid-cols-3 items-end gap-3 sm:gap-6">
+            <div className="grid grid-cols-3 items-end gap-1.5 sm:gap-3">
               { [2, 1, 3].map((rank) => {
                 const isChampion = rank === 1;
 
@@ -191,20 +154,27 @@ const DailyTopArtistsSection = ({
                       rank === 1 ? "mt-0" : "mt-8",
                     ].join(" ") }
                   >
-                    <div className="h-7 w-16 rounded-full bg-black/8 dark:bg-white/10" />
                     <div
                       className={ [
-                        "mt-4 rounded-full border border-black/8 bg-black/[0.03] dark:border-white/[0.08] dark:bg-white/[0.04]",
-                        isChampion ? "h-28 w-28 sm:h-40 sm:w-40" : "h-20 w-20 sm:h-28 sm:w-28",
+                        "rounded-full border border-black/8 bg-black/[0.03] dark:border-white/[0.08] dark:bg-white/[0.04]",
+                        isChampion ? "h-36 w-36 sm:h-48 sm:w-48" : "h-24 w-24 sm:h-32 sm:w-32",
                       ].join(" ") }
                     />
                     <div
                       className={ [
-                        "mt-4 rounded-full bg-black/8 dark:bg-white/10",
-                        isChampion ? "h-5 w-24 sm:h-7 sm:w-36" : "h-4 w-16 sm:h-5 sm:w-24",
+                        "mt-[-1.25rem] w-full rounded-[28px] border border-black/8 bg-black/[0.03] px-3 pb-4 pt-12 dark:border-white/[0.08] dark:bg-white/[0.04]",
+                        isChampion ? "min-h-[12.5rem] sm:min-h-[14.5rem] sm:pt-16" : "min-h-[10.5rem] sm:min-h-[12rem] sm:pt-14",
                       ].join(" ") }
-                    />
-                    <div className="mt-4 h-12 w-full rounded-[18px] bg-black/[0.06] dark:bg-white/[0.08]" />
+                    >
+                      <div className="mx-auto h-7 w-16 rounded-full bg-black/8 dark:bg-white/10" />
+                      <div
+                        className={ [
+                          "mx-auto mt-4 rounded-full bg-black/8 dark:bg-white/10",
+                          isChampion ? "h-5 w-24 sm:h-7 sm:w-36" : "h-4 w-16 sm:h-5 sm:w-24",
+                        ].join(" ") }
+                      />
+                      <div className="mx-auto mt-4 h-1.5 w-10 rounded-full bg-black/8 dark:bg-white/10" />
+                    </div>
                   </div>
                 );
               }) }
@@ -230,7 +200,7 @@ const DailyTopArtistsSection = ({
           </div>
         ) : items.length > 0 ? (
           <div className="space-y-6 sm:space-y-8">
-            <div className="grid grid-cols-3 items-end gap-3 sm:gap-6">
+            <div className="grid grid-cols-3 items-end gap-1.5 sm:gap-3">
               { [featuredArtists[1], featuredArtists[0], featuredArtists[2]]
                 .filter(Boolean)
                 .map((item) => (

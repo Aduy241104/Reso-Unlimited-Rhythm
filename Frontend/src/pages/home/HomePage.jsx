@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import DailyTopArtistsSection from "../../components/home/DailyTopArtistsSection";
 import ContentCardSection from "../../components/content/ContentCardSection";
+import TrackChartSection from "../../components/home/TrackChartSection";
 import { useContentPlayback } from "../../hooks/useContentPlayback";
 import { getAlbumsService } from "../../services/albumService";
 import { getDailyTopArtistsService } from "../../services/artistBrowseService";
@@ -242,7 +243,7 @@ const HomePage = () => {
         </div>
       ) : null }
 
-      <ContentCardSection
+      <TrackChartSection
         label="Charts"
         title="Top Track Charts"
         description="Open the latest daily and monthly snapshots, or jump straight into the most-played tracks in the app."
