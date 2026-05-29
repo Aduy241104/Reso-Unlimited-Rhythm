@@ -221,6 +221,9 @@ const UserProfileInfo = ({ fullName, email, gender, country }) => {
 
   const fields = [...displayFields];
 
+  const isGoogleAccount =
+    profileSnapshot?.authProvider === "google";
+
   return (
     <div className="rounded-3xl border border-white/10 bg-black/30 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.25)] backdrop-blur-md sm:p-8">
       <div>
@@ -257,15 +260,17 @@ const UserProfileInfo = ({ fullName, email, gender, country }) => {
       ) : null}
 
       <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-end">
-        <button
-          type="button"
-          onClick={handleOpenPasswordForm}
-          disabled={isPreparingForm}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#ffb15c_0%,#ff8a2a_45%,#a64a00_100%)] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_38px_rgba(255,138,42,0.25)] transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_24px_55px_rgba(255,138,42,0.36)] disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <KeyRound className="h-4 w-4" aria-hidden />
-          Change Password
-        </button>
+        {!isGoogleAccount ? (
+          <button
+            type="button"
+            onClick={handleOpenPasswordForm}
+            disabled={isPreparingForm}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#ffb15c_0%,#ff8a2a_45%,#a64a00_100%)] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_38px_rgba(255,138,42,0.25)] transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_24px_55px_rgba(255,138,42,0.36)] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <KeyRound className="h-4 w-4" aria-hidden />
+            Change Password
+          </button>
+        ) : null}
 
         <button
           type="button"
