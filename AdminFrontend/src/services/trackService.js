@@ -1,9 +1,9 @@
 import axiosClient from "../axios/axiosClient";
 
-const TRACK_API_PREFIX = "/api/tracks";
+const ADMIN_TRACK_API_PREFIX = "/api/admin/tracks";
 
 export const searchAdminTracksService = async (params = {}) => {
-  const response = await axiosClient.get(`${TRACK_API_PREFIX}/admin`, {
+  const response = await axiosClient.get(`${ADMIN_TRACK_API_PREFIX}`, {
     params,
   });
 
