@@ -36,8 +36,15 @@ const monthlyTopTracksQuerySchema = Joi.object({
         .default(10),
 });
 
+const listenEventBodySchema = Joi.object({
+    duration: Joi.number().integer().min(0).required(),
+    skipped: Joi.boolean().default(false),
+
+});
+
 export default {
     trackIdParamSchema,
     dailyTopTracksQuerySchema,
     monthlyTopTracksQuerySchema,
+    listenEventBodySchema,
 };

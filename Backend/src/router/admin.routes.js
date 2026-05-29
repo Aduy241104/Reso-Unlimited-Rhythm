@@ -1,6 +1,7 @@
 import express from "express";
 import adminUserController from "../controllers/admin.user.controller.js";
 import adminGenreController from "../controllers/admin.genre.controller.js";
+import adminDashboardController from "../controllers/admin.dashboard.controller.js";
 import { requireAdmin } from "../middlewares/Authentication/authentication.middleware.js";
 import upload from "../middlewares/upload.middleware.js";
 
@@ -24,5 +25,11 @@ router.patch("/genres/:id", adminGenreController.updateGenre);
 // Uncomment if you need delete endpoints in the future.
 router.patch("/users/:id", adminUserController.updateUser);
 // router.delete("/users/:id", adminUserController.deleteUser);
+
+// Dashboard - Streaming Stats
+router.get("/dashboard/overview", adminDashboardController.getOverviewStats);
+router.get("/dashboard/monthly", adminDashboardController.getMonthlyOverview);
+router.get("/dashboard/daily", adminDashboardController.getDailyStats);
+router.get("/dashboard/new-users", adminDashboardController.getNewUsersByMonth);
 
 export default router;

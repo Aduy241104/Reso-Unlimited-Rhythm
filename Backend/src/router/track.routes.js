@@ -105,6 +105,14 @@ router.patch(
 );
 
 // User routes
+router.post(
+    "/:id/listen",
+    authenticate("user"),
+    validate(trackValidation.trackIdParamSchema, "params"),
+    validate(trackValidation.listenEventBodySchema, "body"),
+    trackController.recordListen
+);
+
 router.get(
     "/top/daily",
     validate(trackValidation.dailyTopTracksQuerySchema, "query"),

@@ -17,11 +17,30 @@ export const runDailyTopTrackAggregation = async () => {
     isJobRunning = true;
 
     try {
-        const result = await syncTrackStatsForDay();
+        const result = await syncTrackStatsForDay("__yesterday__");
         console.log("[Cron] Daily top track aggregation completed:", result);
         return result;
     } catch (error) {
         console.error("[Cron] Daily top track aggregation failed:", error);
+        throw error;
+    } finally {
+        isJobRunning = false;
+    }
+};
+
+export const runTodayAggregation = async () => {
+    if (isJobRunning) {
+        return { message: "Aggregation already running, try again later." };
+    }
+
+    isJobRunning = true;
+
+    try {
+        const result = await syncTrackStatsForDay();
+        console.log("[Today] Aggregation completed:", result);
+        return result;
+    } catch (error) {
+        console.error("[Today] Aggregation failed:", error);
         throw error;
     } finally {
         isJobRunning = false;
@@ -50,5 +69,6 @@ export const startDailyTopTrackCron = () => {
 
 export default {
     runDailyTopTrackAggregation,
+    runTodayAggregation,
     startDailyTopTrackCron,
 };
