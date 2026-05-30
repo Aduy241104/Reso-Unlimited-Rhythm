@@ -75,8 +75,8 @@ const startServer = async () => {
         startDailyTopTrackCron();
         startPlatformStreamingStatsCron();
 
-        server.listen(PORT, () => {
-            console.log(`🚁 Server + Socket.IO đang chạy tại http://localhost:${PORT}`);
+        server.listen(PORT, '0.0.0.0', () => {
+            console.log(`🚁 Server đang mở cổng mạng nội bộ tại mọi IP qua port ${PORT}`);
         });
     } catch (error) {
         console.error("🚨 Failed to start server:", error);

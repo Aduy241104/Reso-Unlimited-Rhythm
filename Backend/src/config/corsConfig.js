@@ -8,7 +8,12 @@ const allowedOrigins = [
     "http://127.0.0.1:5173",
     "http://127.0.0.1:5174",
     "http://127.0.0.1:5500",
-    "http://localhost:3001"
+    "http://localhost:3001",
+
+    
+
+    "http://192.168.1.15:8081",  // Nhận diện khi Mobile gửi request dạng Web-view/H5 hoặc chạy Metro Bundler
+    "exp://192.168.1.15:8081"
 ];
 
 export const corsOptions = {
