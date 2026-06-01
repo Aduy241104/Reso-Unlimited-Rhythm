@@ -2,7 +2,6 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 import PlatformMonthlyStat from "../../models/PlatformMonthlyStat.js";
-import TrackDailyStat from "../../models/TrackDailyStat.js";
 import ListenEvent from "../../models/ListenEvent.js";
 import User from "../../models/User.js";
 import Artist from "../../models/Artist.js";
@@ -38,34 +37,32 @@ export const getOverviewStats = async () => {
         totalUsers,
         totalArtists,
         totalTracks,
-        totalStreamsThisMonth,
-        totalStreamsAllTime,
+        streamsThisMonth,
+        streamsAllTime,
         last7DaysRaw,
     ] = await Promise.all([
         User.countDocuments({}),
         Artist.countDocuments({}),
         Track.countDocuments({ activeStatus: "active", approvalStatus: "approved" }),
-        TrackDailyStat.aggregate([
-            { $match: { date: { $gte: periodStart, $lt: periodEnd } } },
-            { $group: { _id: null, total: { $sum: "$playCount" } } },
+        ListenEvent.aggregate([
+            { $match: { listenedAt: { $gte: periodStart, $lt: periodEnd } } },
+            { $group: { _id: null, total: { $sum: 1 } } },
         ]),
-        TrackDailyStat.aggregate([
-            { $group: { _id: null, total: { $sum: "$playCount" } } },
-        ]),
-        TrackDailyStat.aggregate([
+        ListenEvent.countDocuments({}),
+        ListenEvent.aggregate([
             {
                 $group: {
-                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$date", timezone: analyticsTimezone } },
-                    streams: { $sum: "$playCount" },
-                    uniqueListeners: { $sum: "$uniqueListeners" },
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$listenedAt", timezone: analyticsTimezone } },
+                    streams: { $sum: 1 },
+                    uniqueUsers: { $addToSet: "$userId" },
                 },
             },
             { $sort: { _id: 1 } },
         ]),
     ]);
 
-    const streamsThisMonth = totalStreamsThisMonth[0]?.total ?? 0;
-    const streamsAllTime = totalStreamsAllTime[0]?.total ?? 0;
+    const streamsThisMonthCount = streamsThisMonth[0]?.total ?? 0;
+    const streamsAllTimeCount = streamsAllTime ?? 0;
 
     const rawMap = Object.fromEntries(last7DaysRaw.map((r) => [r._id, r]));
     const last7Days = [];
@@ -76,7 +73,7 @@ export const getOverviewStats = async () => {
         last7Days.push({
             date: dateKey,
             streams: found?.streams ?? 0,
-            uniqueUsers: found?.uniqueListeners ?? 0,
+            uniqueUsers: found?.uniqueUsers?.length ?? 0,
             totalListeningTime: 0,
         });
     }
@@ -85,8 +82,8 @@ export const getOverviewStats = async () => {
         totalUsers,
         totalArtists,
         totalTracks,
-        streamsThisMonth,
-        streamsAllTime,
+        streamsThisMonth: streamsThisMonthCount,
+        streamsAllTime: streamsAllTimeCount,
         topTracks: (monthlyStat?.dailyStats ?? []).length > 0
             ? (monthlyStat?.streamingStats?.trackStreams ?? 0)
             : 0,
@@ -131,7 +128,7 @@ export const getDailyStats = async (date) => {
     const nextDay = targetDay.add(1, "day");
     const dateKey = targetDay.format("YYYY-MM-DD");
 
-    const [listenEvents, trackStats, totalUsers, totalStreams] = await Promise.all([
+    const [listenEvents, topTracksRaw, totalUsers] = await Promise.all([
         ListenEvent.aggregate([
             {
                 $match: {
@@ -155,17 +152,51 @@ export const getDailyStats = async (date) => {
                 },
             },
         ]),
-        TrackDailyStat.find({ date: { $gte: targetDay.toDate(), $lt: nextDay.toDate() } })
-            .sort({ playCount: -1 })
-            .limit(10)
-            .populate({
-                path: "trackId",
-                select: "_id title duration avatar",
-                populate: { path: "artist_artistId", select: "_id name avatar" },
-            })
-            .lean(),
+        ListenEvent.aggregate([
+            {
+                $match: {
+                    listenedAt: { $gte: targetDay.toDate(), $lt: nextDay.toDate() },
+                    trackId: { $ne: null },
+                },
+            },
+            {
+                $group: {
+                    _id: "$trackId",
+                    playCount: { $sum: 1 },
+                    uniqueListeners: { $addToSet: "$userId" },
+                },
+            },
+            { $sort: { playCount: -1 } },
+            { $limit: 10 },
+            {
+                $lookup: {
+                    from: "tracks",
+                    localField: "_id",
+                    foreignField: "_id",
+                    as: "track",
+                },
+            },
+            { $unwind: { path: "$track", preserveNullAndEmptyArrays: true } },
+            {
+                $lookup: {
+                    from: "artists",
+                    localField: "track.artist_artistId",
+                    foreignField: "_id",
+                    as: "artist",
+                },
+            },
+            {
+                $project: {
+                    trackId: "$_id",
+                    title: { $ifNull: ["$track.title", "Unknown"] },
+                    avatar: "$track.avatar",
+                    artistName: { $ifNull: [{ $arrayElemAt: ["$artist.name", 0] }, "Unknown"] },
+                    playCount: 1,
+                    uniqueListeners: { $size: { $ifNull: ["$uniqueListeners", []] } },
+                },
+            },
+        ]),
         User.countDocuments({ createdAt: { $gte: targetDay.toDate(), $lt: nextDay.toDate() } }),
-        ListenEvent.countDocuments({ listenedAt: { $gte: targetDay.toDate(), $lt: nextDay.toDate() } }),
     ]);
 
     const eventStats = listenEvents[0] ?? { totalStreams: 0, totalListeningTime: 0, uniqueUsers: [] };
@@ -176,14 +207,13 @@ export const getDailyStats = async (date) => {
         uniqueUsers: eventStats.uniqueUsers?.length ?? 0,
         totalListeningTime: eventStats.totalListeningTime,
         newUsersToday: totalUsers,
-        topTracks: trackStats.map((stat) => ({
-            trackId: stat.trackId?._id,
-            title: stat.trackId?.title ?? "Unknown",
-            avatar: stat.trackId?.avatar ?? null,
-            artistName: stat.trackId?.artist_artistId?.name ?? "Unknown",
+        topTracks: topTracksRaw.map((stat) => ({
+            trackId: stat.trackId,
+            title: stat.title,
+            avatar: stat.avatar ?? null,
+            artistName: stat.artistName,
             playCount: stat.playCount,
             uniqueListeners: stat.uniqueListeners,
-            skipCount: stat.skipCount,
         })),
     };
 };

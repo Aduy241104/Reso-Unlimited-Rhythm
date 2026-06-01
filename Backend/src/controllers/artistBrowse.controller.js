@@ -78,6 +78,20 @@ const getDailyTopArtists = async (req, res, next) => {
     }
 };
 
+const followArtist = async (req, res, next) => {
+    try {
+        const follow = await artistService.followArtist(req.params.id, req.user.id);
+
+        return formatResponse.success(
+            res,
+            { follow },
+            "Artist followed successfully"
+            );
+    } catch (error) {
+        next(error);
+    }
+};
+
 const getMonthlyTopArtists = async (req, res, next) => {
     try {
         const { topArtists, meta } = await artistService.getMonthlyTopArtists(req.query);
@@ -87,6 +101,34 @@ const getMonthlyTopArtists = async (req, res, next) => {
             { topArtists },
             "Monthly top artists fetched successfully",
             meta
+        );          
+    } catch (error) {
+        next(error);
+    }
+};
+
+const unfollowArtist = async (req, res, next) => {
+    try {
+        const follow = await artistService.unfollowArtist(req.params.id, req.user.id);
+
+        return formatResponse.success(
+            res,
+            { follow },
+            "Artist unfollowed successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+const toggleFollowArtist = async (req, res, next) => {
+    try {
+        const result = await artistService.toggleFollowArtist(req.params.id, req.user.id);
+
+        return formatResponse.success(
+            res,
+            { follow: result.follow },
+            `Artist ${result.action} successfully`
         );
     } catch (error) {
         next(error);
@@ -100,4 +142,7 @@ export default {
     getArtistAlbums,
     getArtistComingReleases,
     getArtistTracks,
+    followArtist,
+    unfollowArtist,
+    toggleFollowArtist,
 };

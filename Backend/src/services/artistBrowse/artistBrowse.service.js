@@ -6,6 +6,7 @@ import Album from "../../models/Album.js";
 import Artist from "../../models/Artist.js";
 import ArtistDailyRanking from "../../models/ArtistDailyRanking.js";
 import ArtistMonthlyRanking from "../../models/ArtistMonthlyRanking.js";
+import Interaction from "../../models/Interaction.js";
 import ReleaseSchedule from "../../models/ReleaseSchedule.js";
 import ArtistStat from "../../models/ArtistStat.js";
 import Track from "../../models/Track.js";
@@ -14,6 +15,7 @@ import { getAnalyticsTimezone } from "../analytics/trackStatAggregation.service.
 import {
     formatArtistAlbum,
     formatArtistComingRelease,
+    formatArtistFollowState,
     formatArtistProfile,
     formatArtistTrack,
     normalizePositiveInteger,
@@ -26,17 +28,25 @@ const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
 
-const validateAndGetArtist = async (artistId) => {
+const validateAndGetArtist = async (artistId, options = {}) => {
+    const { lean = true } = options;
+
     if (!mongoose.Types.ObjectId.isValid(artistId)) {
         throw new AppError("Artist id is invalid.", 400, {
             field: "id",
         });
     }
 
-    const artist = await Artist.findOne({
+    let query = Artist.findOne({
         _id: artistId,
         activeStatus: "active",
-    }).lean();
+    });
+
+    if (lean) {
+        query = query.lean();
+    }
+
+    const artist = await query;
 
     if (!artist) {
         throw new AppError("Artist not found.", 404);
@@ -115,6 +125,13 @@ const formatDailyTopArtistStat = ({ stat, date }) => ({
     uniqueListeners: stat.uniqueListeners,
     playCount: stat.playCount,
     completedPlayCount: stat.completedPlayCount,
+});
+
+const buildArtistFollowFilter = (userId, artistId) => ({
+    userId,
+    targetType: "Artist",
+    targetId: artistId,
+    action: "follow",
 });
 
 const getArtistProfile = async (artistId) => {
@@ -381,6 +398,91 @@ const getMonthlyTopArtists = async (query = {}) => {
     };
 };
 
+const followArtist = async (artistId, userId) => {
+    const artist = await validateAndGetArtist(artistId, { lean: false });
+    const followFilter = buildArtistFollowFilter(userId, artist._id);
+
+    const existingFollow = await Interaction.findOne(followFilter).lean();
+
+    if (existingFollow) {
+        throw new AppError("You have already followed this artist.", 409);
+    }
+
+    await Interaction.create(followFilter);
+
+    const nextFollowers = (artist.stats?.followers || 0) + 1;
+    artist.set("stats.followers", nextFollowers);
+    await artist.save();
+
+    return formatArtistFollowState({
+        artistId: artist._id,
+        isFollowing: true,
+        followers: nextFollowers,
+    });
+};
+
+const unfollowArtist = async (artistId, userId) => {
+    const artist = await validateAndGetArtist(artistId, { lean: false });
+    const followFilter = buildArtistFollowFilter(userId, artist._id);
+
+    const existingFollow = await Interaction.findOne(followFilter).lean();
+
+    if (!existingFollow) {
+        throw new AppError("You have not followed this artist yet.", 404);
+    }
+
+    await Interaction.deleteOne({ _id: existingFollow._id });
+
+    const nextFollowers = Math.max((artist.stats?.followers || 0) - 1, 0);
+    artist.set("stats.followers", nextFollowers);
+    await artist.save();
+
+    return formatArtistFollowState({
+        artistId: artist._id,
+        isFollowing: false,
+        followers: nextFollowers,
+    });
+};
+
+const toggleFollowArtist = async (artistId, userId) => {
+    const artist = await validateAndGetArtist(artistId, { lean: false });
+    const followFilter = buildArtistFollowFilter(userId, artist._id);
+
+    const existingFollow = await Interaction.findOne(followFilter).lean();
+
+    if (existingFollow) {
+        await Interaction.deleteOne({ _id: existingFollow._id });
+
+        const nextFollowers = Math.max((artist.stats?.followers || 0) - 1, 0);
+        artist.set("stats.followers", nextFollowers);
+        await artist.save();
+
+        return {
+            action: "unfollowed",
+            follow: formatArtistFollowState({
+                artistId: artist._id,
+                isFollowing: false,
+                followers: nextFollowers,
+            }),
+        };
+    }
+
+    await Interaction.create(followFilter);
+
+    const nextFollowers = (artist.stats?.followers || 0) + 1;
+    artist.set("stats.followers", nextFollowers);
+    await artist.save();
+
+    return {
+        action: "followed",
+        follow: formatArtistFollowState({
+            artistId: artist._id,
+            isFollowing: true,
+            followers: nextFollowers,
+        }),
+    };
+};
+
 export default {
     getDailyTopArtists,
     getMonthlyTopArtists,
@@ -388,4 +490,7 @@ export default {
     getArtistAlbums,
     getArtistComingReleases,
     getArtistTracks,
+    followArtist,
+    unfollowArtist,
+    toggleFollowArtist,
 };
