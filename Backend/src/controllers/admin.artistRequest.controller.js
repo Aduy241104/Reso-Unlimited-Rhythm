@@ -17,6 +17,23 @@ const getArtistRequests = async (req, res, next) => {
     }
 };
 
+const getArtistRequestDetail = async (req, res, next) => {
+    try {
+        const artistRequest = await adminArtistRequestService.getArtistRequestDetail(
+            req.params.id
+        );
+
+        return formatResponse.success(
+            res,
+            { artistRequest },
+            "Artist request fetched successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getArtistRequests,
+    getArtistRequestDetail,
 };

@@ -4,5 +4,6 @@ import adminArtistRequestController from "../controllers/admin.artistRequest.con
 const router = express.Router();
 
 router.get("/", adminArtistRequestController.getArtistRequests);
+router.get("/:id", adminArtistRequestController.getArtistRequestDetail);
 
 export default router;
