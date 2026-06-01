@@ -12,7 +12,6 @@ import { startDailyTopArtistCron } from "./jobs/dailyTopArtist.cron.js";
 import { startMonthlyTopArtistCron } from "./jobs/monthlyTopArtist.cron.js";
 import { startDailyTopTrackCron } from "./jobs/dailyTopTrack.cron.js";
 import { startMonthlyTrackStatCron } from "./jobs/monthlyTrackStat.cron.js";
-import redisClient from "./config/redisConfig.js";
 import {
     globalErrorHandler,
     notFoundHandler,
@@ -75,11 +74,11 @@ const startServer = async () => {
         startMonthlyTrackStatCron();
         startPlatformStreamingStatsCron();
 
-server.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Server + Socket.IO đang chạy tại port ${PORT}`);
-    console.log(`📡 Server đang mở cổng mạng nội bộ tại mọi IP`);
-});
+        server.listen(PORT, '0.0.0.0', () => {
+            console.log(`🚀 Server + Socket.IO đang chạy tại port ${PORT}`);
+            console.log(`📡 Server đang mở cổng mạng nội bộ tại mọi IP`);
         });
+
     } catch (error) {
         console.error("ðŸš¨ Failed to start server:", error);
         process.exit(1);
