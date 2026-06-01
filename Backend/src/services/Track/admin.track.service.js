@@ -94,6 +94,90 @@ const listTracksForAdmin = async (query = {}) => {
     };
 };
 
+const formatAdminTrackDetailItem = (track) => {
+    const artistRef = track.artist_artistId;
+    const albumRef = track.album_albumId;
+
+    return {
+        id: toId(track._id),
+        title: track.title,
+        duration: track.duration,
+        avatar: track.avatar || "",
+        coverImage: track.coverImage || [],
+        lyricsStatic: track.lyricsStatic || "",
+        lyricsSyncUrl: track.lyricsSyncUrl || "",
+        audioFiles: track.audioFiles || [],
+        genres: (track.genreIds || []).map(g => ({
+            id: toId(g._id),
+            name: g.name || ""
+        })),
+        stats: track.stats || { totalLike: 0, totalPlay: 0 },
+        releaseDate: track.releaseDate || null,
+        approvalStatus: track.approvalStatus,
+        activeStatus: track.activeStatus,
+        rejectReason: track.rejectReason || "",
+        hiddenReason: track.hiddenReason || "",
+        blockedReason: track.blockedReason || "",
+        hiddenAt: track.hiddenAt || null,
+        copyright: {
+            copyrightOwner: track.copyright?.copyrightOwner || "",
+            recordingOwner: track.copyright?.recordingOwner || "",
+            composer: track.copyright?.composer || "",
+            lyricist: track.copyright?.lyricist || "",
+            producer: track.copyright?.producer || "",
+            isOriginal: track.copyright?.isOriginal ?? true,
+            isCover: track.copyright?.isCover ?? false,
+            isRemix: track.copyright?.isRemix ?? false,
+            usesSample: track.copyright?.usesSample ?? false,
+            usesLicensedBeat: track.copyright?.usesLicensedBeat ?? false,
+            originalTrackTitle: track.copyright?.originalTrackTitle || "",
+            originalArtistName: track.copyright?.originalArtistName || "",
+            licenseDocumentUrls: track.copyright?.licenseDocumentUrls || [],
+            copyrightStatus: track.copyright?.copyrightStatus || "pending",
+            copyrightNote: track.copyright?.copyrightNote || ""
+        },
+        moderation: {
+            submittedAt: track.moderation?.submittedAt || null,
+            reviewedAt: track.moderation?.reviewedAt || null,
+            adminNote: track.moderation?.adminNote || "",
+            violationFlags: track.moderation?.violationFlags || [],
+            reviewedBy: track.moderation?.reviewedBy && typeof track.moderation.reviewedBy === "object" ? {
+                id: toId(track.moderation.reviewedBy._id),
+                email: track.moderation.reviewedBy.email || ""
+            } : null
+        },
+        createdAt: track.createdAt,
+        updatedAt: track.updatedAt,
+        artist: artistRef && typeof artistRef === "object" ? {
+            id: toId(artistRef._id),
+            name: artistRef.name || "",
+        } : null,
+        album: albumRef && typeof albumRef === "object" ? {
+            id: toId(albumRef._id),
+            title: albumRef.title || "",
+        } : null,
+    };
+};
+
+const getTrackDetailForAdmin = async (trackId) => {
+    assertObjectId(trackId);
+
+    const track = await Track.findById(trackId)
+        .populate({ path: "artist_artistId", select: "name" })
+        .populate({ path: "album_albumId", select: "title" })
+        .populate({ path: "genreIds", select: "name" })
+        .populate({ path: "moderation.reviewedBy", select: "email" }) // Thêm dòng này để xem ai đã duyệt bài
+        .lean();
+
+    if (!track) {
+        throw new AppError("Track not found.", 404, {
+            field: "id",
+        });
+    }
+
+    return formatAdminTrackDetailItem(track);
+};
+
 const updateTrackApprovalStatus = async (trackId, payload = {}) => {
     assertObjectId(trackId);
 

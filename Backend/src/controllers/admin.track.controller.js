@@ -34,6 +34,21 @@ const listTracksForAdmin = async (req, res, next) => {
     }
 };
 
+const getTrackDetailForAdmin = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const trackDetail = await adminTrackService.getTrackDetailForAdmin(id);
+
+        return formatResponse.success(
+            res,
+            { track: trackDetail },
+            "Track detail fetched successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 const updateTrackApprovalStatus = async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -71,4 +86,5 @@ export default {
     listTracksForAdmin,
     updateTrackApprovalStatus,
     updateTrackVisibilityController,
+    getTrackDetailForAdmin,
 };
