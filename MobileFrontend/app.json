@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "MobileFrontend",
+    "slug": "MobileFrontend",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true,
+          "NSAllowsLocalMessaging": true
+        }
+      }
+    },
+    "android": {
+      "usesCleartextTraffic": true
+    }
+  }
+}

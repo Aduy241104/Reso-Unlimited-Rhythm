@@ -75,8 +75,10 @@ const startServer = async () => {
         startMonthlyTrackStatCron();
         startPlatformStreamingStatsCron();
 
-        server.listen(PORT, () => {
-            console.log(`🚀 Server + Socket.IO đang chạy tại http://localhost:${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Server + Socket.IO đang chạy tại port ${PORT}`);
+    console.log(`📡 Server đang mở cổng mạng nội bộ tại mọi IP`);
+});
         });
     } catch (error) {
         console.error("ðŸš¨ Failed to start server:", error);
