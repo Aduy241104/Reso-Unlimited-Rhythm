@@ -8,12 +8,12 @@ import {
   FileText,
   Flag,
   Music2,
-  Play,
   ShieldAlert,
   Sparkles,
   BadgeCheck,
   Pencil,
 } from "lucide-react";
+import PlayButton from "../../components/common/PlayButton";
 import { usePlayer } from "../../hooks/usePlayer";
 import { routePaths } from "../../routes/routePaths";
 import { trackService } from "../../services/trackService";
@@ -363,6 +363,7 @@ const ArtistTrackDetailPage = () => {
               <Play className="h-5 w-5 fill-current" />
               {canPlayTrack ? "Play" : "Play unavailable"}
             </button>
+            <PlayButton onClick={ handlePlay } size="compact" />
           </div>
         </div>
 

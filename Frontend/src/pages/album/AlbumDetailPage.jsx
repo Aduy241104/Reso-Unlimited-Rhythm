@@ -3,11 +3,12 @@ import {
   CirclePlus,
   Download,
   MoreHorizontal,
-  Play,
   Shuffle,
 } from "lucide-react";
+import PlayButton from "../../components/common/PlayButton";
 import { useParams } from "react-router-dom";
 import TrackCard from "../../components/TrackCard";
+import TrackListSection from "../../components/trackList/TrackListSection";
 import { usePlayer } from "../../hooks/usePlayer";
 import { routePaths } from "../../routes/routePaths";
 import { getAlbumDetailService } from "../../services/albumService";
@@ -20,9 +21,14 @@ import {
 import { getApiErrorMessage } from "../../utils/apiError";
 
 const actionButtonClassName = `
-  inline-flex h-11 w-11 items-center justify-center rounded-full border border-black/8
+  inline-flex h-10 w-10 items-center justify-center rounded-full border border-black/8
   bg-white/70 text-[#18181b] transition hover:scale-[1.03] hover:bg-white
-  dark:border-white/10 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/[0.12]
+  dark:border-white/10 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/[0.12] sm:h-11 sm:w-11
+`;
+
+const metaPillClassName = `
+  inline-flex items-center rounded-full border border-white/14 bg-white/10
+  px-3 py-1.5 text-xs text-white/88 backdrop-blur-sm sm:text-sm
 `;
 
 const AlbumDetailPage = () => {
@@ -30,7 +36,13 @@ const AlbumDetailPage = () => {
   const [album, setAlbum] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
-  const { playAlbum, playTrack } = usePlayer();
+  const {
+    currentTrack,
+    isPlaying,
+    playAlbum,
+    playTrack,
+    togglePlayPause,
+  } = usePlayer();
 
   useEffect(() => {
     let isMounted = true;
@@ -104,6 +116,15 @@ const AlbumDetailPage = () => {
   };
 
   const handlePlayTrack = async (track, index) => {
+    if (!track) {
+      return;
+    }
+
+    if (currentTrack?.id && currentTrack.id === track.id) {
+      await togglePlayPause();
+      return;
+    }
+
     await playTrack(track, {
       queue: trackItems,
       startIndex: index,
@@ -116,7 +137,7 @@ const AlbumDetailPage = () => {
   };
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-4 sm:space-y-6">
       <div
         className="
           overflow-hidden rounded-[14px] border border-black/5 bg-white/80
@@ -127,7 +148,7 @@ const AlbumDetailPage = () => {
         <div
           className="
             bg-gradient-to-b from-[#d97706] via-[#7c3f00] to-transparent
-            px-6 pb-6 pt-8 dark:from-[#f59e0b] dark:via-[#8f4b13] dark:to-[#121212]
+            px-4 pb-5 pt-6 dark:from-[#f59e0b] dark:via-[#8f4b13] dark:to-[#121212]
             sm:px-8 sm:pb-8 sm:pt-10
           "
         >
@@ -141,122 +162,89 @@ const AlbumDetailPage = () => {
               <p className="max-w-xl text-sm text-white/88">{ errorMessage }</p>
             </div>
           ) : (
-            <div className="flex flex-col gap-6 md:flex-row md:items-end">
+            <div className="flex flex-col items-center gap-5 text-center md:flex-row md:items-end md:text-left">
               <img
                 src={ albumCoverImage }
                 alt={ album?.title || "Album cover" }
                 className="
-                  h-48 w-48 rounded-[18px] object-cover shadow-[0_24px_60px_rgba(0,0,0,0.28)]
+                  h-32 w-32 rounded-[16px] object-cover shadow-[0_24px_60px_rgba(0,0,0,0.28)]
+                  min-[420px]:h-36 min-[420px]:w-36
                   sm:h-56 sm:w-56
                 "
               />
 
-              <div className="min-w-0">
+              <div className="min-w-0 max-w-2xl">
                 <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/82">
                   Album
                 </p>
-                <h1 className="mt-3 text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl">
+                <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:mt-3 sm:text-5xl lg:text-6xl">
                   { album?.title || "Untitled album" }
                 </h1>
-                <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-white/88">
-                  <span className="font-medium text-white">{ albumArtistName }</span>
-                  <span className="text-white/55">|</span>
-                  <span>{ releaseYear }</span>
-                  <span className="text-white/55">|</span>
-                  <span>{ totalTracks } tracks</span>
-                  <span className="text-white/55">|</span>
-                  <span>{ totalDuration }</span>
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-2 md:justify-start">
+                  <span className={ `${metaPillClassName} font-medium text-white` }>
+                    { albumArtistName }
+                  </span>
+                  <span className={ metaPillClassName }>{ releaseYear }</span>
+                  <span className={ metaPillClassName }>{ totalTracks } tracks</span>
+                  <span className={ metaPillClassName }>{ totalDuration }</span>
                 </div>
               </div>
             </div>
           ) }
         </div>
 
-        <div className="space-y-6 px-6 pb-6 pt-5 sm:px-8 sm:pb-8">
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={ handlePlayAlbum }
-              className="
-                inline-flex h-14 items-center gap-2 rounded-full bg-[#1ed760] px-7 text-sm
-                font-semibold text-black transition hover:scale-[1.02] hover:brightness-105
-              "
-            >
-              <Play className="h-5 w-5 fill-current" />
-              Play
-            </button>
+        <div className="space-y-4 px-0 pb-4 pt-4 sm:space-y-5 sm:px-8 sm:pb-8 sm:pt-5">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <PlayButton onClick={ handlePlayAlbum } size="compact" />
 
             <button type="button" className={ actionButtonClassName } aria-label="Shuffle album">
-              <Shuffle className="h-5 w-5" />
+              <Shuffle className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </button>
             <button type="button" className={ actionButtonClassName } aria-label="Add album">
-              <CirclePlus className="h-5 w-5" />
+              <CirclePlus className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </button>
             <button type="button" className={ actionButtonClassName } aria-label="Download album">
-              <Download className="h-5 w-5" />
+              <Download className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </button>
             <button type="button" className={ actionButtonClassName } aria-label="More options">
-              <MoreHorizontal className="h-5 w-5" />
+              <MoreHorizontal className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </button>
           </div>
 
-          { isLoading ? (
-            <div className="rounded-[20px] border border-black/5 bg-black/[0.02] px-4 py-6 text-sm text-[#52525b] dark:border-white/10 dark:bg-white/[0.03] dark:text-[#a1a1aa]">
-              Loading tracks...
-            </div>
-          ) : errorMessage ? null : (
-            <div
-              className="
-                rounded-[3px] p-3
-                dark:border-white/10 sm:p-4
-              "
-            >
-              <div
-                className="
-                  mb-2 hidden grid-cols-[2.5rem_minmax(0,1fr)_2.75rem_3.25rem] items-center gap-3
-                  border-b border-black/6 px-3 pb-3 text-xs font-medium uppercase tracking-[0.24em]
-                  text-[#71717a] dark:border-white/10 dark:text-[#a1a1aa] sm:grid
-                "
-              >
-                <span>#</span>
-                <span>Title</span>
-                <span className="text-center">Saved</span>
-                <span className="text-right">Time</span>
-              </div>
+          <TrackListSection
+            isLoading={ isLoading }
+            errorMessage={ errorMessage }
+            loadingMessage="Loading tracks..."
+            mobileLabel="Track list"
+            emptyMessage="No tracks available for this album yet."
+            hasItems={ trackItems.length > 0 }
+          >
+            { trackItems.map((trackItem, index) => {
+              const track = trackItem?.track;
 
-              <div className="space-y-1">
-                { trackItems.length > 0 ? (
-                  trackItems.map((trackItem, index) => {
-                    const track = trackItem?.track;
-
-                    return (
-                      <TrackCard
-                        key={ track?.id || `${trackItem?.order}-${index}` }
-                        index={ trackItem?.order || index + 1 }
-                        image={
-                          track?.coverImage ||
-                          track?.artist?.avatar ||
-                          albumCoverImage
-                        }
-                        title={ track?.title || "Untitled track" }
-                        artist={ track?.artist?.name || albumArtistName }
-                        duration={ formatTrackDuration(track?.duration) }
-                        explicit={ false }
-                        liked={ false }
-                        href={ track?.id ? routePaths.trackDetail(track.id) : undefined }
-                        onPlay={ () => handlePlayTrack(track, index) }
-                        onLike={ () => handleLikeTrack(track) }
-                      />
-                    );
-                  })
-                ) : (
-                  <div className="px-3 py-4 text-sm text-[#52525b] dark:text-[#a1a1aa]">
-                    No tracks available for this album yet.
-                  </div>
-                ) }
-              </div>
-            </div>
-          ) }
+              return (
+                <TrackCard
+                  key={ track?.id || `${trackItem?.order}-${index}` }
+                  index={ trackItem?.order || index + 1 }
+                  image={
+                    track?.coverImage ||
+                    track?.artist?.avatar ||
+                    albumCoverImage
+                  }
+                  title={ track?.title || "Untitled track" }
+                  artist={ track?.artist?.name || albumArtistName }
+                  duration={ formatTrackDuration(track?.duration) }
+                  explicit={ false }
+                  liked={ false }
+                  href={ track?.id ? routePaths.trackDetail(track.id) : undefined }
+                  isPlaybackActive={ currentTrack?.id === track?.id }
+                  isPlaying={ isPlaying }
+                  onPlaybackAction={ () => handlePlayTrack(track, index) }
+                  onLike={ () => handleLikeTrack(track) }
+                />
+              );
+            }) }
+          </TrackListSection>
         </div>
       </div>
     </section>

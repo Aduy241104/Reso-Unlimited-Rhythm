@@ -19,7 +19,18 @@ const validate = (schema, target = "body") => (req, res, next) => {
         );
     }
 
-    req[target] = value;
+    if (target === "query") {
+        const currentQuery = req.query || {};
+
+        Object.keys(currentQuery).forEach((key) => {
+            delete currentQuery[key];
+        });
+
+        Object.assign(currentQuery, value);
+    } else {
+        req[target] = value;
+    }
+
     next();
 };
 

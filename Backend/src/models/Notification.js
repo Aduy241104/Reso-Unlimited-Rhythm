@@ -18,7 +18,7 @@ const NotificationSchema = new Schema(
         actorType: { type: String, enum: ["admin", "artist", "system", "user", ""], default: "" },
 
         targetId: { type: Schema.Types.ObjectId },
-        targetType: { type: String, enum: ["track", "album", "podcast", "episode", "plan", "payment", "report", "artist", ""], default: "" },
+        targetType: { type: String, enum: ["track", "album", "plan", "payment", "report", "artist", ""], default: "" },
 
         receiverType: { type: String, enum: ["single", "all", "group"], default: "single" },
         isGlobal: { type: Boolean, default: false },

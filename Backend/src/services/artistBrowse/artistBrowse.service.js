@@ -1,34 +1,53 @@
 import mongoose from "mongoose";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc.js";
+import timezone from "dayjs/plugin/timezone.js";
 import Album from "../../models/Album.js";
 import Artist from "../../models/Artist.js";
+import ArtistDailyRanking from "../../models/ArtistDailyRanking.js";
+import ArtistMonthlyRanking from "../../models/ArtistMonthlyRanking.js";
+import Interaction from "../../models/Interaction.js";
 import ReleaseSchedule from "../../models/ReleaseSchedule.js";
 import ArtistStat from "../../models/ArtistStat.js";
 import Track from "../../models/Track.js";
 import { AppError } from "../../utils/AppError.js";
+import { getAnalyticsTimezone } from "../analytics/trackStatAggregation.service.js";
 import {
     formatArtistAlbum,
     formatArtistComingRelease,
+    formatArtistFollowState,
     formatArtistProfile,
     formatArtistTrack,
     normalizePositiveInteger,
 } from "./artistBrowse.helper.js";
 import { enrichAlbumsWithTotalDuration } from "../album/album.sync.js";
 
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
 
-const validateAndGetArtist = async (artistId) => {
+const validateAndGetArtist = async (artistId, options = {}) => {
+    const { lean = true } = options;
+
     if (!mongoose.Types.ObjectId.isValid(artistId)) {
         throw new AppError("Artist id is invalid.", 400, {
             field: "id",
         });
     }
 
-    const artist = await Artist.findOne({
+    let query = Artist.findOne({
         _id: artistId,
         activeStatus: "active",
-    }).lean();
+    });
+
+    if (lean) {
+        query = query.lean();
+    }
+
+    const artist = await query;
 
     if (!artist) {
         throw new AppError("Artist not found.", 404);
@@ -36,6 +55,85 @@ const validateAndGetArtist = async (artistId) => {
 
     return artist;
 };
+
+const parseDailyTopArtistsDate = (dateInput) => {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateInput);
+    if (!match) {
+        throw new AppError("Date is invalid.", 400, {
+            field: "date",
+        });
+    }
+
+    const [, yearStr, monthStr, dayStr] = match;
+    const analyticsTimezone = getAnalyticsTimezone();
+    const normalizedDateKey = `${yearStr}-${monthStr}-${dayStr}`;
+    const startDay = dayjs
+        .tz(`${normalizedDateKey}T00:00:00`, analyticsTimezone)
+        .startOf("day");
+
+    if (!startDay.isValid() || startDay.format("YYYY-MM-DD") !== normalizedDateKey) {
+        throw new AppError("Date is invalid.", 400, {
+            field: "date",
+        });
+    }
+
+    return {
+        startDate: startDay.toDate(),
+        endDate: startDay.add(1, "day").toDate(),
+        dateKey: startDay.format("YYYY-MM-DD"),
+    };
+};
+
+const parseMonthlyTopArtistsMonth = (monthInput) => {
+    const match = /^(\d{4})-(\d{2})$/.exec(monthInput);
+    if (!match) {
+        throw new AppError("Month is invalid.", 400, {
+            field: "month",
+        });
+    }
+
+    const [, yearStr, monthStr] = match;
+    const analyticsTimezone = getAnalyticsTimezone();
+    const normalizedMonthKey = `${yearStr}-${monthStr}`;
+    const startMonth = dayjs
+        .tz(`${normalizedMonthKey}-01T00:00:00`, analyticsTimezone)
+        .startOf("month");
+
+    if (!startMonth.isValid() || startMonth.format("YYYY-MM") !== normalizedMonthKey) {
+        throw new AppError("Month is invalid.", 400, {
+            field: "month",
+        });
+    }
+
+    return {
+        year: startMonth.year(),
+        month: startMonth.month() + 1,
+        monthKey: startMonth.format("YYYY-MM"),
+    };
+};
+
+const formatDailyTopArtistStat = ({ stat, date }) => ({
+    artist: stat.artistId
+        ? {
+            id: stat.artistId._id.toString(),
+            name: stat.artistId.name,
+            avatar: stat.artistId.avatar,
+        }
+        : null,
+    rank: stat.rank,
+    date,
+    score: stat.score,
+    uniqueListeners: stat.uniqueListeners,
+    playCount: stat.playCount,
+    completedPlayCount: stat.completedPlayCount,
+});
+
+const buildArtistFollowFilter = (userId, artistId) => ({
+    userId,
+    targetType: "Artist",
+    targetId: artistId,
+    action: "follow",
+});
 
 const getArtistProfile = async (artistId) => {
     const artist = await validateAndGetArtist(artistId);
@@ -221,9 +319,183 @@ const getArtistComingReleases = async (artistId, query = {}) => {
     };
 };
 
+const getDailyTopArtists = async (query = {}) => {
+    const { startDate, endDate, dateKey } = parseDailyTopArtistsDate(query.date);
+    const requestedLimit = normalizePositiveInteger(query.limit, DEFAULT_LIMIT);
+    const limit = Math.min(requestedLimit, 20);
+
+    const rankingDocument = await ArtistDailyRanking.findOne({
+        date: {
+            $gte: startDate,
+            $lt: endDate,
+        },
+    })
+        .populate({
+            path: "rankings.artistId",
+            select: "_id name avatar activeStatus",
+            match: { activeStatus: "active" },
+        })
+        .lean();
+
+    const rankings = Array.isArray(rankingDocument?.rankings)
+        ? rankingDocument.rankings
+        : [];
+
+    const topArtists = rankings
+        .filter((stat) => Boolean(stat.artistId))
+        .slice(0, limit)
+        .map((stat) =>
+            formatDailyTopArtistStat({
+                stat,
+                date: rankingDocument?.date || startDate,
+            })
+        );
+
+    return {
+        topArtists,
+        meta: {
+            date: dateKey,
+            limit,
+        },
+    };
+};
+
+const getMonthlyTopArtists = async (query = {}) => {
+    const { year, month, monthKey } = parseMonthlyTopArtistsMonth(query.month);
+    const requestedLimit = normalizePositiveInteger(query.limit, DEFAULT_LIMIT);
+    const limit = Math.min(requestedLimit, 20);
+
+    const rankingDocument = await ArtistMonthlyRanking.findOne({ year, month })
+        .populate({
+            path: "rankings.artistId",
+            select: "_id name avatar activeStatus",
+            match: { activeStatus: "active" },
+        })
+        .lean();
+
+    const rankings = Array.isArray(rankingDocument?.rankings)
+        ? rankingDocument.rankings
+        : [];
+
+    const topArtists = rankings
+        .filter((stat) => Boolean(stat.artistId))
+        .slice(0, limit)
+        .map((stat) => ({
+            artist: {
+                id: stat.artistId._id.toString(),
+                name: stat.artistId.name,
+                avatar: stat.artistId.avatar,
+            },
+            rank: stat.rank,
+            month: monthKey,
+            score: stat.score,
+            uniqueListeners: stat.uniqueListeners,
+            playCount: stat.playCount,
+            completedPlayCount: stat.completedPlayCount,
+        }));
+
+    return {
+        topArtists,
+        meta: {
+            month: monthKey,
+            limit,
+        },
+    };
+};
+
+const followArtist = async (artistId, userId) => {
+    const artist = await validateAndGetArtist(artistId, { lean: false });
+    const followFilter = buildArtistFollowFilter(userId, artist._id);
+
+    const existingFollow = await Interaction.findOne(followFilter).lean();
+
+    if (existingFollow) {
+        throw new AppError("You have already followed this artist.", 409);
+    }
+
+    await Interaction.create(followFilter);
+
+    const nextFollowers = (artist.stats?.followers || 0) + 1;
+    artist.set("stats.followers", nextFollowers);
+    await artist.save();
+
+    return formatArtistFollowState({
+        artistId: artist._id,
+        isFollowing: true,
+        followers: nextFollowers,
+    });
+};
+
+const unfollowArtist = async (artistId, userId) => {
+    const artist = await validateAndGetArtist(artistId, { lean: false });
+    const followFilter = buildArtistFollowFilter(userId, artist._id);
+
+    const existingFollow = await Interaction.findOne(followFilter).lean();
+
+    if (!existingFollow) {
+        throw new AppError("You have not followed this artist yet.", 404);
+    }
+
+    await Interaction.deleteOne({ _id: existingFollow._id });
+
+    const nextFollowers = Math.max((artist.stats?.followers || 0) - 1, 0);
+    artist.set("stats.followers", nextFollowers);
+    await artist.save();
+
+    return formatArtistFollowState({
+        artistId: artist._id,
+        isFollowing: false,
+        followers: nextFollowers,
+    });
+};
+
+const toggleFollowArtist = async (artistId, userId) => {
+    const artist = await validateAndGetArtist(artistId, { lean: false });
+    const followFilter = buildArtistFollowFilter(userId, artist._id);
+
+    const existingFollow = await Interaction.findOne(followFilter).lean();
+
+    if (existingFollow) {
+        await Interaction.deleteOne({ _id: existingFollow._id });
+
+        const nextFollowers = Math.max((artist.stats?.followers || 0) - 1, 0);
+        artist.set("stats.followers", nextFollowers);
+        await artist.save();
+
+        return {
+            action: "unfollowed",
+            follow: formatArtistFollowState({
+                artistId: artist._id,
+                isFollowing: false,
+                followers: nextFollowers,
+            }),
+        };
+    }
+
+    await Interaction.create(followFilter);
+
+    const nextFollowers = (artist.stats?.followers || 0) + 1;
+    artist.set("stats.followers", nextFollowers);
+    await artist.save();
+
+    return {
+        action: "followed",
+        follow: formatArtistFollowState({
+            artistId: artist._id,
+            isFollowing: true,
+            followers: nextFollowers,
+        }),
+    };
+};
+
 export default {
+    getDailyTopArtists,
+    getMonthlyTopArtists,
     getArtistProfile,
     getArtistAlbums,
     getArtistComingReleases,
     getArtistTracks,
+    followArtist,
+    unfollowArtist,
+    toggleFollowArtist,
 };

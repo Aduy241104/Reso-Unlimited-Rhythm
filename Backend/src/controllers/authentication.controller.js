@@ -76,6 +76,22 @@ const login = async (req, res, next) => {
     }
 };
 
+const googleLogin = async (req, res, next) => {
+    try {
+        const authResult = await authenticationService.googleLogin(req.body);
+
+        setAuthenticationCookies(res, authResult);
+
+        return formatResponse.success(
+            res,
+            { user: authResult.user, accessToken: authResult.accessToken },
+            "Login successful"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 const forgotPassword = async (req, res, next) => {
     try {
         const resetResult = await authenticationService.requestForgotPassword(
@@ -156,6 +172,7 @@ export default {
     requestRegisterOtp,
     register,
     login,
+    googleLogin,
     forgotPassword,
     resetPassword,
     logout,
