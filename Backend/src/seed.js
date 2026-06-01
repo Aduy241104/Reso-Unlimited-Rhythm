@@ -8,25 +8,26 @@ dotenv.config();
 const {
     Album,
     Artist,
+    ArtistDailyRanking,
     ArtistMonthlyStat,
     ArtistRequest,
     ArtistStat,
     AuditLog,
-    Episode,
     Genre,
     Interaction,
     ListenEvent,
     Notification,
     Plan,
     Playlist,
-    Podcast,
     RefreshToken,
     ReleaseSchedule,
     Report,
     SearchEvent,
     Subscription,
     Track,
+    TrackDailyRanking,
     TrackDailyStat,
+    TrackMonthlyRanking,
     TrackMonthlyStat,
     Transaction,
     User,
@@ -50,6 +51,7 @@ const ids = {
     genreTalk: oid("681300000000000000000203"),
 
     artistMain: oid("681300000000000000000301"),
+    artistDailyRanking: oid("681300000000000000000305"),
     artistRequest: oid("681300000000000000000302"),
     artistStat: oid("681300000000000000000303"),
     artistMonthlyStat: oid("681300000000000000000304"),
@@ -60,9 +62,8 @@ const ids = {
     trackCityLights: oid("681300000000000000000502"),
     trackDailyStat: oid("681300000000000000000503"),
     trackMonthlyStat: oid("681300000000000000000504"),
-
-    podcastMain: oid("681300000000000000000601"),
-    episodeFocus: oid("681300000000000000000701"),
+    trackDailyRanking: oid("681300000000000000000505"),
+    trackMonthlyRanking: oid("681300000000000000000506"),
 
     playlistMain: oid("681300000000000000000801"),
 
@@ -74,7 +75,6 @@ const ids = {
 
     searchEventMain: oid("681300000000000000000b01"),
     listenTrackMain: oid("681300000000000000000b02"),
-    listenEpisodeMain: oid("681300000000000000000b03"),
     interactionTrackLike: oid("681300000000000000000b04"),
     interactionArtistFollow: oid("681300000000000000000b05"),
 
@@ -96,7 +96,7 @@ const seedCollections = [
     { model: AuditLog, ids: [ids.auditLogMain] },
     { model: Notification, ids: [ids.notificationUser, ids.notificationGlobal] },
     { model: Interaction, ids: [ids.interactionTrackLike, ids.interactionArtistFollow] },
-    { model: ListenEvent, ids: [ids.listenTrackMain, ids.listenEpisodeMain] },
+    { model: ListenEvent, ids: [ids.listenTrackMain] },
     { model: SearchEvent, ids: [ids.searchEventMain] },
     { model: Report, ids: [ids.reportMain] },
     { model: ReleaseSchedule, ids: [ids.releaseScheduleMain] },
@@ -105,13 +105,14 @@ const seedCollections = [
     { model: Transaction, ids: [ids.transactionMain] },
     { model: Subscription, ids: [ids.subscriptionMain] },
     { model: UserListeningStat, ids: [ids.userListeningStatMain] },
+    { model: TrackDailyRanking, ids: [ids.trackDailyRanking] },
     { model: TrackDailyStat, ids: [ids.trackDailyStat] },
+    { model: TrackMonthlyRanking, ids: [ids.trackMonthlyRanking] },
     { model: TrackMonthlyStat, ids: [ids.trackMonthlyStat] },
     { model: Playlist, ids: [ids.playlistMain] },
-    { model: Episode, ids: [ids.episodeFocus] },
-    { model: Podcast, ids: [ids.podcastMain] },
     { model: Track, ids: [ids.trackSunrise, ids.trackCityLights] },
     { model: Album, ids: [ids.albumMain] },
+    { model: ArtistDailyRanking, ids: [ids.artistDailyRanking] },
     { model: ArtistMonthlyStat, ids: [ids.artistMonthlyStat] },
     { model: ArtistStat, ids: [ids.artistStat] },
     { model: ArtistRequest, ids: [ids.artistRequest] },
@@ -295,7 +296,7 @@ const seedGenres = async () => {
         {
             _id: ids.genreTalk,
             name: "Seed Talk",
-            description: "Noi dung podcast va talk show.",
+            description: "Noi dung talk show va chia se.",
             image: "https://images.unsplash.com/photo-1478737270239-2f02b77fc618",
             isActive: true,
         },
@@ -474,39 +475,6 @@ const seedMusicCatalog = async () => {
     });
 };
 
-const seedPodcastData = async () => {
-    await Podcast.create({
-        _id: ids.podcastMain,
-        title: "Seed Stories",
-        artistId: ids.artistMain,
-        description: "Podcast mau de test episode, follow va nghe.",
-        coverImage: "https://images.unsplash.com/photo-1478737270239-2f02b77fc618",
-        trailerUrl: "https://example.com/audio/seed-stories-trailer.mp3",
-        stats: {
-            followers: 860,
-            totalPlays: 4410,
-        },
-        activeStatus: "active",
-    });
-
-    await Episode.create({
-        _id: ids.episodeFocus,
-        podcastId: ids.podcastMain,
-        title: "Focus Session 01",
-        description: "Tap podcast mau huong dan tap trung khi hoc va lam viec.",
-        thumbnailUrl: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3",
-        audioFiles: [
-            "https://example.com/audio/focus-session-01.mp3",
-        ],
-        duration: 1800,
-        stats: {
-            totalPlay: 1880,
-            totalLikes: 210,
-        },
-        activeStatus: "active",
-    });
-};
-
 const seedUserContent = async () => {
     await Playlist.create({
         _id: ids.playlistMain,
@@ -597,18 +565,6 @@ const seedActivity = async () => {
             device: "web",
             country: "Vietnam",
         },
-        {
-            _id: ids.listenEpisodeMain,
-            userId: ids.userListener,
-            podcastId: ids.podcastMain,
-            episodeId: ids.episodeFocus,
-            listenedAt: daysAgo(2),
-            duration: 1320,
-            completed: false,
-            skipped: false,
-            device: "mobile",
-            country: "Vietnam",
-        },
     ]);
 
     await Interaction.insertMany([
@@ -694,7 +650,47 @@ const seedModerationAndStats = async () => {
         date: daysAgo(1),
         playCount: 180,
         uniqueListeners: 124,
+        averageListenDuration: 204,
         skipCount: 18,
+    });
+
+    await TrackDailyRanking.create({
+        _id: ids.trackDailyRanking,
+        date: daysAgo(1),
+        rankings: [
+            {
+                trackId: ids.trackSunrise,
+                playCount: 180,
+                uniqueListeners: 124,
+                averageListenDuration: 204,
+                skipCount: 18,
+                rank: 1,
+            },
+            {
+                trackId: ids.trackCityLights,
+                playCount: 96,
+                uniqueListeners: 72,
+                averageListenDuration: 190,
+                skipCount: 11,
+                rank: 2,
+            },
+        ],
+    });
+
+    await ArtistDailyRanking.create({
+        _id: ids.artistDailyRanking,
+        date: daysAgo(1),
+        rankings: [
+            {
+                artistId: ids.artistMain,
+                playCount: 220,
+                uniqueListeners: 130,
+                completedPlayCount: 92,
+                totalTracksPlayed: 2,
+                score: 852,
+                rank: 1,
+            },
+        ],
     });
 
     const now = new Date();
@@ -705,6 +701,26 @@ const seedModerationAndStats = async () => {
         month: now.getMonth() + 1,
         playCount: 4120,
         uniqueListeners: 2860,
+    });
+
+    await TrackMonthlyRanking.create({
+        _id: ids.trackMonthlyRanking,
+        year: now.getFullYear(),
+        month: now.getMonth() + 1,
+        rankings: [
+            {
+                trackId: ids.trackSunrise,
+                playCount: 4120,
+                uniqueListeners: 2860,
+                rank: 1,
+            },
+            {
+                trackId: ids.trackCityLights,
+                playCount: 2810,
+                uniqueListeners: 1940,
+                rank: 2,
+            },
+        ],
     });
 
     await UserListeningStat.create({
@@ -793,7 +809,6 @@ const main = async () => {
     await seedGenres();
     await seedArtistData();
     await seedMusicCatalog();
-    await seedPodcastData();
     await seedUserContent();
     await seedCommerce();
     await seedAuthArtifacts(passwords);

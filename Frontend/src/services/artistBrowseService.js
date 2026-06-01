@@ -206,6 +206,20 @@ const buildComingReleasesFromApi = (comingReleases = []) =>
         new Date(releaseA.scheduledAt).getTime() - new Date(releaseB.scheduledAt).getTime()
     );
 
+const normalizeDailyTopArtistItem = (item) => ({
+  artist: {
+    id: item.artist.id,
+    name: item.artist.name,
+    avatar: item.artist.avatar,
+  },
+  rank: item.rank,
+  date: item.date,
+  score: item.score,
+  uniqueListeners: item.uniqueListeners,
+  playCount: item.playCount,
+  completedPlayCount: item.completedPlayCount,
+});
+
 const getPublicArtistProfileService = async (artistId) => {
   const encodedArtistId = encodeURIComponent(artistId);
   const endpoints = [`/api/browse/artists/${encodedArtistId}/profile`];
@@ -340,5 +354,19 @@ export const getArtistExperienceService = async ({ artistId } = {}) => {
     popularTracks: buildPopularTracksFromApi(artistTracksPayload),
     discography: buildDiscography(albumsPayload),
     comingReleases: buildComingReleasesFromApi(comingReleasesPayload),
+  };
+};
+
+export const getDailyTopArtistsService = async ({ date, limit = 9 }) => {
+  const response = await axiosClient.get("/api/browse/artists/top/daily", {
+    params: {
+      date,
+      limit,
+    },
+  });
+
+  return {
+    topArtists: response.data.data.topArtists.map(normalizeDailyTopArtistItem),
+    meta: response.data.meta,
   };
 };
