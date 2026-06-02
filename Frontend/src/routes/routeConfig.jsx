@@ -9,6 +9,10 @@ import ResetPasswordPage from "../pages/auth/ResetPasswordPage";
 import ArtistOverviewPage from "../pages/artist/ArtistOverviewPage";
 import ArtistProfileEditPage from "../pages/artist/ArtistProfileEditPage";
 import ArtistProfilePage from "../pages/artist/ArtistProfilePage";
+import ArtistAlbumPage from "../pages/artist/ArtistAlbumPage";
+import ArtistAlbumDetailPage from "../pages/artist/ArtistAlbumDetailPage";
+import ArtistCreateAlbumPage from "../pages/artist/ArtistCreateAlbumPage";
+import ArtistEditAlbumPage from "../pages/artist/ArtistEditAlbumPage";
 import {
   AnalyticsPage,
   FansPage,
@@ -20,6 +24,7 @@ import {
 import CreateTrackPage from "../pages/artist/CreateTrackPage";
 import ArtistTrackDetailPage from "../pages/artist/ArtistTrackDetailPage";
 import ArtistTrackEditPage from "../pages/artist/ArtistTrackEditPage";
+import ArtistLyricsPage from "../pages/artist/ArtistLyricsPage";
 import HomePage from "../pages/home/HomePage";
 import LyricsPage from "../pages/lyrics/LyricsPage";
 import DailyTopTracksPage from "../pages/track/DailyTopTracksPage";
@@ -111,6 +116,26 @@ export const appRoutes = [
               {
                 path: routePaths.artistTrackEdit(),
                 element: <ArtistTrackEditPage />,
+              },
+              {
+                path: routePaths.artistLyrics,
+                element: <ArtistLyricsPage />,
+              },
+              {
+                path: routePaths.artistAlbums,
+                element: <ArtistAlbumPage />,
+              },
+              {
+                path: routePaths.artistCreateAlbum,
+                element: <ArtistCreateAlbumPage />,
+              },
+              {
+                path: routePaths.artistEditAlbum(),
+                element: <ArtistEditAlbumPage />,
+              },
+              {
+                path: routePaths.artistAlbumDetail(),
+                element: <ArtistAlbumDetailPage />,
               },
               {
                 path: routePaths.artistReleases,

@@ -37,6 +37,19 @@ export const formatTrackDuration = (durationInSeconds) => {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 };
 
+export const resolveAlbumTotalDurationSeconds = (album, tracks = []) => {
+  const stored = Number(album?.totalDuration);
+
+  if (Number.isFinite(stored) && stored > 0) {
+    return stored;
+  }
+
+  return tracks.reduce((sum, item) => {
+    const duration = Number(item?.track?.duration);
+    return Number.isFinite(duration) ? sum + duration : sum;
+  }, 0);
+};
+
 export const formatAlbumDuration = (tracks = []) => {
   const totalSeconds = tracks.reduce((sum, item) => {
     const value = Number(item?.track?.duration);

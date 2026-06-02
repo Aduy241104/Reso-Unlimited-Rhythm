@@ -407,7 +407,7 @@ const seedMusicCatalog = async () => {
         trackList: [],
         releaseDate: daysAgo(30),
         status: "active",
-        totalPlays: 21345,
+        totalDuration: 0,
     });
 
     await Track.insertMany([
@@ -550,6 +550,7 @@ const seedMusicCatalog = async () => {
             { trackId: ids.trackSunrise, order: 1 },
             { trackId: ids.trackCityLights, order: 2 },
         ],
+        totalDuration: 473,
     });
 };
 
