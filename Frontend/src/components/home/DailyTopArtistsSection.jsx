@@ -6,7 +6,7 @@ import { createPlaceholderImage } from "../../utils/artistProfile";
 const FEATURED_ARTIST_COUNT = 3;
 
 const getArtistAvatar = (artist) =>
-  artist?.avatar || createPlaceholderImage(artist?.name || "Artist", "#1db954", "#101828");
+  artist?.avatar || createPlaceholderImage(artist?.name || "Nghe Si", "#1db954", "#101828");
 
 const featuredCardClassNameByRank = {
   1: "mt-0 sm:-translate-y-3",
@@ -112,12 +112,12 @@ const RankingRow = ({ item }) => (
 );
 
 const DailyTopArtistsSection = ({
-  title = "Daily Top Artists",
-  description = "Most popular artists today.",
+  title = "Top nghệ sĩ theo ngày",
+  description = "Những nghệ sĩ được yêu thích nhất hôm nay.",
   items = [],
   isLoading = false,
   errorMessage = "",
-  emptyMessage = "No ranking data available today.",
+  emptyMessage = "Hôm nay chưa có dữ liệu xếp hạng.",
 }) => {
   const featuredArtists = items.slice(0, FEATURED_ARTIST_COUNT);
   const rankingArtists = items.slice(FEATURED_ARTIST_COUNT);

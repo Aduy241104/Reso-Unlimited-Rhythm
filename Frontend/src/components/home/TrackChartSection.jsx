@@ -8,6 +8,7 @@ const TrackChartSection = ({
   isLoading = false,
   emptyMessage = "No content available.",
   onPlay,
+  showPlayButton = true,
 }) => {
   return (
     <section className="space-y-4">
@@ -61,6 +62,7 @@ const TrackChartSection = ({
                 type={ item.type }
                 href={ item.href }
                 onPlay={ () => onPlay?.(item) }
+                showPlayButton={ showPlayButton }
               />
             </div>
           )) }

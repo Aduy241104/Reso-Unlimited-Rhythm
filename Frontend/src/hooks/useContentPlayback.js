@@ -43,7 +43,7 @@ export const useContentPlayback = () => {
       setPlaybackError(
         getApiErrorMessage(
           error,
-          "Unable to load the album tracks for playback right now."
+          "Không thể tải danh sách bài hát của album để phát lúc này."
         )
       );
     }
@@ -65,7 +65,7 @@ export const useContentPlayback = () => {
       setPlaybackError(
         getApiErrorMessage(
           error,
-          "Unable to load the playlist tracks for playback right now."
+          "Không thể tải danh sách bài hát của playlist để phát lúc này."
         )
       );
     }
@@ -85,7 +85,7 @@ export const useContentPlayback = () => {
       const topTracks = response?.topTracks ?? [];
 
       if (topTracks.length === 0) {
-        setPlaybackError("This daily chart does not have any playable tracks yet.");
+        setPlaybackError("Bảng xếp hạng ngày hiện chưa có bài hát nào để phát.");
         return;
       }
 
@@ -105,7 +105,7 @@ export const useContentPlayback = () => {
       setPlaybackError(
         getApiErrorMessage(
           error,
-          "Unable to load the daily top tracks for playback right now."
+          "Không thể tải bảng xếp hạng bài hát theo ngày để phát lúc này."
         )
       );
     }
@@ -125,7 +125,7 @@ export const useContentPlayback = () => {
       const topTracks = response?.topTracks ?? [];
 
       if (topTracks.length === 0) {
-        setPlaybackError("This monthly chart does not have any playable tracks yet.");
+        setPlaybackError("Bảng xếp hạng tháng hiện chưa có bài hát nào để phát.");
         return;
       }
 
@@ -145,7 +145,7 @@ export const useContentPlayback = () => {
       setPlaybackError(
         getApiErrorMessage(
           error,
-          "Unable to load the monthly top tracks for playback right now."
+          "Không thể tải bảng xếp hạng bài hát theo tháng để phát lúc này."
         )
       );
     }
