@@ -3,12 +3,24 @@ import trackController from "../controllers/track.controller.js";
 import trackValidation from "../middlewares/track.validation.js";
 import validate from "../middlewares/validate.middleware.js";
 import { optionalAuthenticate } from "../middlewares/Authentication/authentication.middleware.js";
+import  authenticate  from "../middlewares/Authentication/authentication.middleware.js";
 
 const router = express.Router();
 
-// Giờ không sợ bị trùng /admin nữa, viết thoải mái nhé bạn
+router.post(
+    "/:id/listen",
+    authenticate("user"),
+    validate(trackValidation.trackIdParamSchema, "params"),
+    validate(trackValidation.listenEventBodySchema, "body"),
+    trackController.recordListen
+);
 
-// GET /:id
+router.get(
+    "/top/daily",
+    validate(trackValidation.dailyTopTracksQuerySchema, "query"),
+    trackController.getDailyTopTracks
+);
+
 router.get(
     "/top/monthly",
     validate(trackValidation.monthlyTopTracksQuerySchema, "query"),

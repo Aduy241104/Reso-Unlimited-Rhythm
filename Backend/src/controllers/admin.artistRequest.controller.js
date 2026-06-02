@@ -33,7 +33,31 @@ const getArtistRequestDetail = async (req, res, next) => {
     }
 };
 
+const reviewArtistRequest = async (req, res, next) => {
+    try {
+        const result = await adminArtistRequestService.reviewArtistRequest(
+            req.params.id,
+            req.body,
+            req.user.id
+        );
+
+        return formatResponse.success(
+            res,
+            {
+                artistRequest: result.artistRequest,
+                artist: result.artist,
+            },
+            req.body.status === "approved"
+                ? "Artist request approved successfully"
+                : "Artist request rejected successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getArtistRequests,
     getArtistRequestDetail,
+    reviewArtistRequest,
 };
