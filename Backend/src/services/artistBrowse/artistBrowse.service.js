@@ -143,6 +143,18 @@ const parseDailyTopArtistsDate = (dateInput) => {
     };
 };
 
+const buildDailyDateQuery = ({ dateKey, startDate, endDate }) => ({
+    $or: [
+        { dateKey },
+        {
+            date: {
+                $gte: startDate,
+                $lt: endDate,
+            },
+        },
+    ],
+});
+
 const parseMonthlyTopArtistsMonth = (monthInput) => {
     const match = /^(\d{4})-(\d{2})$/.exec(monthInput);
     if (!match) {
@@ -404,12 +416,9 @@ const getDailyTopArtists = async (query = {}) => {
         }
     }
 
-    const rankingDocument = await ArtistDailyRanking.findOne({
-        date: {
-            $gte: startDate,
-            $lt: endDate,
-        },
-    })
+    const rankingDocument = await ArtistDailyRanking.findOne(
+        buildDailyDateQuery({ dateKey, startDate, endDate })
+    )
         .populate({
             path: "rankings.artistId",
             select: "_id name avatar activeStatus",
@@ -426,7 +435,7 @@ const getDailyTopArtists = async (query = {}) => {
         .map((stat) =>
             formatDailyTopArtistStat({
                 stat,
-                date: rankingDocument?.date || startDate,
+                date: rankingDocument?.dateKey || dateKey,
             })
         );
     const normalizedTopArtists = await normalizeTopArtists(topArtists, limit);

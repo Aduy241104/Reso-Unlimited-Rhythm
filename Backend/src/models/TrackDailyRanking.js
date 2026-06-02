@@ -23,6 +23,7 @@ const TrackDailyRankingItemSchema = new Schema(
 
 const TrackDailyRankingSchema = new Schema(
     {
+        dateKey: { type: String, required: true, trim: true, index: true },
         date: { type: Date, required: true, index: true },
         rankings: {
             type: [TrackDailyRankingItemSchema],

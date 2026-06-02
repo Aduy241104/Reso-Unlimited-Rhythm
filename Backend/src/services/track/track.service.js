@@ -24,6 +24,14 @@ const TOP_TRACKS_PAST_TTL_SECONDS = 24 * 60 * 60;
 const TOP_TRACKS_CURRENT_MONTH_TTL_SECONDS = 15 * 60;
 const TOP_TRACKS_PAST_MONTH_TTL_SECONDS = 24 * 60 * 60;
 
+const getTrackIdentity = (track) => {
+    if (!track) {
+        return null;
+    }
+
+    return track.id || track._id || null;
+};
+
 const getValidTrackIds = async (trackIds) => {
     if (trackIds.length === 0) {
         return new Set();
@@ -43,12 +51,15 @@ const getValidTrackIds = async (trackIds) => {
 const normalizeTopTracks = async (topTracks, limit) => {
     const normalizedTracks = Array.isArray(topTracks) ? topTracks : [];
     const trackIds = normalizedTracks
-        .map((item) => item?.track?.id)
+        .map((item) => getTrackIdentity(item?.track))
         .filter(Boolean);
     const validTrackIds = await getValidTrackIds(trackIds);
 
     return normalizedTracks
-        .filter((item) => item?.track?.id && validTrackIds.has(String(item.track.id)))
+        .filter((item) => {
+            const trackId = getTrackIdentity(item?.track);
+            return trackId && validTrackIds.has(String(trackId));
+        })
         .slice(0, limit)
         .map((item, index) => {
             const nextRank = index + 1;
@@ -110,6 +121,18 @@ const parseDailyTopTracksDate = (dateInput) => {
         dateKey: startDay.format("YYYY-MM-DD"),
     };
 };
+
+const buildDailyDateQuery = ({ dateKey, startDate, endDate }) => ({
+    $or: [
+        { dateKey },
+        {
+            date: {
+                $gte: startDate,
+                $lt: endDate,
+            },
+        },
+    ],
+});
 
 const buildDailyTopTracksCacheKey = ({ dateKey, limit }) =>
     `top_tracks:daily:${dateKey}:limit:${limit}`;
@@ -283,12 +306,9 @@ const getDailyTopTracks = async ({ date, limit }) => {
         }
     }
 
-    const rankingDocument = await TrackDailyRanking.findOne({
-        date: {
-            $gte: startDate,
-            $lt: endDate,
-        },
-    })
+    const rankingDocument = await TrackDailyRanking.findOne(
+        buildDailyDateQuery({ dateKey, startDate, endDate })
+    )
         .populate({
             path: "rankings.trackId",
             match: {
@@ -312,7 +332,7 @@ const getDailyTopTracks = async ({ date, limit }) => {
         .map((stat) =>
             formatDailyTopTrackStat({
                 stat,
-                date: rankingDocument?.date || startDate,
+                date: rankingDocument?.dateKey || dateKey,
             })
         );
     const normalizedTopTracks = await normalizeTopTracks(topTracks, limit);

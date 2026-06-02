@@ -18,6 +18,16 @@ export const getAnalyticsTimezone = () =>
     process.env.CRON_TIMEZONE ||
     "Asia/Ho_Chi_Minh";
 
+const buildStoredDayDate = (targetDay) =>
+    dayjs.utc(`${targetDay.format("YYYY-MM-DD")}T00:00:00Z`).toDate();
+
+const buildDailyDateQuery = ({ dateKey, startDate, endDate }) => ({
+    $or: [
+        { dateKey },
+        { date: { $gte: startDate, $lt: endDate } },
+    ],
+});
+
 const resolveTargetDay = (targetDateInput) => {
     const analyticsTimezone = getAnalyticsTimezone();
 
@@ -124,13 +134,13 @@ const invalidateTrackRankingCaches = async (pattern) => {
     return deletedKeys;
 };
 
-const syncDailyTrackStats = async ({ date, nextDate, dailyStats }) => {
+const syncDailyTrackStats = async ({ date, dateKey, startDate, endDate, dailyStats }) => {
     const trackedIds = dailyStats.map((stat) => stat.trackId);
 
     if (trackedIds.length === 0) {
-        const deleteResult = await TrackDailyStat.deleteMany({
-            date: { $gte: date, $lt: nextDate },
-        });
+        const deleteResult = await TrackDailyStat.deleteMany(
+            buildDailyDateQuery({ dateKey, startDate, endDate })
+        );
 
         return {
             matchedTracks: 0,
@@ -142,9 +152,11 @@ const syncDailyTrackStats = async ({ date, nextDate, dailyStats }) => {
     const bulkResult = await TrackDailyStat.bulkWrite(
         dailyStats.map((stat) => ({
             updateOne: {
-                filter: { trackId: stat.trackId, date },
+                filter: { trackId: stat.trackId, dateKey },
                 update: {
                     $set: {
+                        dateKey,
+                        date,
                         playCount: stat.playCount,
                         uniqueListeners: stat.uniqueListeners,
                         averageListenDuration: stat.averageListenDuration,
@@ -157,10 +169,16 @@ const syncDailyTrackStats = async ({ date, nextDate, dailyStats }) => {
     );
 
     const deleteResult = await TrackDailyStat.deleteMany({
-        date: { $gte: date, $lt: nextDate },
-        $or: [
+        $and: [
+            buildDailyDateQuery({ dateKey, startDate, endDate }),
             { trackId: { $nin: trackedIds } },
-            { date: { $ne: date } },
+        ],
+    });
+
+    await TrackDailyStat.deleteMany({
+        $and: [
+            { date: { $gte: startDate, $lt: endDate } },
+            { dateKey: { $ne: dateKey } },
         ],
     });
 
@@ -194,13 +212,14 @@ const buildDailyTrackRankings = (dailyStats) =>
             rank: index + 1,
         }));
 
-const buildPreviousDailyRankMap = async ({ previousDate, nextPreviousDate }) => {
-    const previousRankingDocument = await TrackDailyRanking.findOne({
-        date: {
-            $gte: previousDate,
-            $lt: nextPreviousDate,
-        },
-    })
+const buildPreviousDailyRankMap = async ({ previousDate, nextPreviousDate, previousDateKey }) => {
+    const previousRankingDocument = await TrackDailyRanking.findOne(
+        buildDailyDateQuery({
+            dateKey: previousDateKey,
+            startDate: previousDate,
+            endDate: nextPreviousDate,
+        })
+    )
         .lean()
         .select("rankings.trackId rankings.rank");
 
@@ -243,12 +262,21 @@ const attachDailyRankMovement = (rankings, previousRankMap) =>
         };
     });
 
-const syncDailyTrackRankings = async ({ date, nextDate, dailyStats, dateKey }) => {
-    const previousDate = dayjs(date).subtract(1, "day").toDate();
-    const nextPreviousDate = dayjs(previousDate).add(1, "day").toDate();
+const syncDailyTrackRankings = async ({
+    date,
+    dateKey,
+    startDate,
+    endDate,
+    dailyStats,
+}) => {
+    const previousDay = dayjs.utc(`${dateKey}T00:00:00Z`).subtract(1, "day");
+    const previousDate = previousDay.toDate();
+    const nextPreviousDate = previousDay.add(1, "day").toDate();
+    const previousDateKey = previousDay.format("YYYY-MM-DD");
     const previousRankMap = await buildPreviousDailyRankMap({
         previousDate,
         nextPreviousDate,
+        previousDateKey,
     });
     const rankings = attachDailyRankMovement(
         buildDailyTrackRankings(dailyStats),
@@ -256,9 +284,9 @@ const syncDailyTrackRankings = async ({ date, nextDate, dailyStats, dateKey }) =
     );
 
     if (rankings.length === 0) {
-        const deleteResult = await TrackDailyRanking.deleteMany({
-            date: { $gte: date, $lt: nextDate },
-        });
+        const deleteResult = await TrackDailyRanking.deleteMany(
+            buildDailyDateQuery({ dateKey, startDate, endDate })
+        );
         const invalidatedCacheKeys = await invalidateTrackRankingCaches(
             `top_tracks:daily:${dateKey}:limit:*`
         );
@@ -272,11 +300,12 @@ const syncDailyTrackRankings = async ({ date, nextDate, dailyStats, dateKey }) =
         };
     }
 
-    const deleteResult = await TrackDailyRanking.deleteMany({
-        date: { $gte: date, $lt: nextDate },
-    });
+    const deleteResult = await TrackDailyRanking.deleteMany(
+        buildDailyDateQuery({ dateKey, startDate, endDate })
+    );
 
     await TrackDailyRanking.create({
+        dateKey,
         date,
         rankings,
     });
@@ -397,7 +426,8 @@ export const syncTrackStatsForDay = async (targetDateInput) => {
     const analyticsTimezone = getAnalyticsTimezone();
     const targetDay = resolveTargetDay(targetDateInput);
     const nextDay = targetDay.add(1, "day");
-    const date = targetDay.toDate();
+    const date = buildStoredDayDate(targetDay);
+    const dateKey = targetDay.format("YYYY-MM-DD");
     const dailyStats = await ListenEvent.aggregate(
         buildDailyAggregationPipeline({
             startDate: targetDay.toDate(),
@@ -408,7 +438,9 @@ export const syncTrackStatsForDay = async (targetDateInput) => {
 
     const dailyResult = await syncDailyTrackStats({
         date,
-        nextDate: nextDay.toDate(),
+        dateKey,
+        startDate: targetDay.toDate(),
+        endDate: nextDay.toDate(),
         dailyStats,
     });
 
@@ -423,22 +455,24 @@ export const syncTrackRankingsForDay = async (targetDateInput) => {
     const analyticsTimezone = getAnalyticsTimezone();
     const targetDay = resolveTargetDay(targetDateInput);
     const nextDay = targetDay.add(1, "day");
-    const date = targetDay.toDate();
+    const date = buildStoredDayDate(targetDay);
     const dateKey = targetDay.format("YYYY-MM-DD");
-    const dailyStats = await TrackDailyStat.find({
-        date: {
-            $gte: date,
-            $lt: nextDay.toDate(),
-        },
-    })
+    const dailyStats = await TrackDailyStat.find(
+        buildDailyDateQuery({
+            dateKey,
+            startDate: targetDay.toDate(),
+            endDate: nextDay.toDate(),
+        })
+    )
         .lean()
         .select("trackId playCount uniqueListeners averageListenDuration skipCount");
 
     const rankingResult = await syncDailyTrackRankings({
         date,
-        nextDate: nextDay.toDate(),
-        dailyStats,
         dateKey,
+        startDate: targetDay.toDate(),
+        endDate: nextDay.toDate(),
+        dailyStats,
     });
 
     return {

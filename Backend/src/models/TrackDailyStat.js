@@ -5,6 +5,7 @@ const { Schema, model } = mongoose;
 const TrackDailyStatSchema = new Schema(
     {
         trackId: { type: Schema.Types.ObjectId, ref: "Track", required: true, index: true },
+        dateKey: { type: String, required: true, trim: true, index: true },
         date: { type: Date, required: true, index: true },
         playCount: { type: Number, default: 0, min: 0 },
         uniqueListeners: { type: Number, default: 0, min: 0 },
