@@ -7,6 +7,7 @@ import playlistRoutes from "./playlist.routes.js";
 import trackRoutes from "./track.routes.js";
 import adminRoutes from "./admin.routes.js";
 import transactionRoutes from "./transaction.routes.js";
+import userRoutes from "./user.routes.js";
 
 function route(app) {
     app.use("/api/auth", authenticationRoutes);
@@ -19,6 +20,7 @@ function route(app) {
     app.use("/api/tracks", trackRoutes);
     app.use("/api/admin", adminRoutes);
     app.use("/api/transactions", transactionRoutes);
+    app.use("/api/users", userRoutes);
 }
 
 export default route;

@@ -31,6 +31,7 @@ import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import RoleRoute from "./RoleRoute";
 import { routePaths } from "./routePaths";
+import { userProfileRoutes } from "./userProfileRoutes";
 
 const publicArtistProfilePath = routePaths.artistBrowseProfile();
 const featuredArtistProfilePath = routePaths.artistBrowseProfile("featured");
@@ -75,11 +76,11 @@ export const appRoutes = [
         path: routePaths.legacyArtistProfile,
         element: <Navigate to={featuredArtistProfilePath} replace />,
       },
-      {
-        path: "/profile",
-        element: <Navigate to={featuredArtistProfilePath} replace />,
-      },
     ],
+  },
+  {
+    element: <ProtectedRoute />,
+    children: userProfileRoutes,
   },
   {
     element: <ProtectedRoute />,
