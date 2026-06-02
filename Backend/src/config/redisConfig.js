@@ -22,7 +22,7 @@ export const connectRedis = async () => {
 
     try {
         await redisClient.connect();
-        console.log("Redis connected successfully");
+        console.log("🚁 Redis connected successfully");
         return true;
     } catch (error) {
         console.error("Failed to connect Redis:", error);

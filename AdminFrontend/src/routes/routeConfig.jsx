@@ -7,10 +7,11 @@ import SystemPlaylistDetailPage from "../pages/systemPlaylists/SystemPlaylistDet
 import SystemPlaylistEditPage from "../pages/systemPlaylists/SystemPlaylistEditPage";
 import SystemPlaylistsListPage from "../pages/systemPlaylists/SystemPlaylistsListPage";
 import SystemTracksListPage from "../pages/systemTracks/SystemTracksListPage";
+import TrackDetailPage from "../pages/systemTracks/SystemTracksDetailPage";
 import GenresListPage from "../pages/systemGenres/GenresListPage";
 import CreateGenrePage from "../pages/systemGenres/CreateGenrePage";
 import EditGenrePage from "../pages/systemGenres/EditGenrePage";
-import HomePage from "../pages/home/HomePage";
+import HomePage from "../pages/dashboard/DashboardPage";
 import UsersListPage from "../pages/users/UsersListPage";
 import UserDetailPage from "../pages/users/UserDetailPage";
 import ProtectedRoute from "./ProtectedRoute";
@@ -66,6 +67,10 @@ export const appRoutes = [
               {
                 path: "system-tracks",
                 element: <SystemTracksListPage />,
+              },
+              {
+                path: "system-tracks/:id", 
+                element: <TrackDetailPage />,
               },
               {
                 path: "genres",

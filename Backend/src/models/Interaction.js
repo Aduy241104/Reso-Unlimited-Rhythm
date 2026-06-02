@@ -8,7 +8,7 @@ const InteractionSchema = new Schema(
 
         targetType: {
             type: String,
-            enum: ["Track", "Artist", "Album", "Episode", "Podcast", "Post"],
+            enum: ["Track", "Artist", "Album", "Post"],
             required: true,
             index: true,
         },

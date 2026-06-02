@@ -66,20 +66,28 @@ const getFirstAudioFile = (track) =>
   track?.audioFiles?.find((audioFile) => audioFile?.url) ||
   null;
 
-export const resolveTrackLyricsSyncUrl = (track) => {
-  const lyricsSyncUrl =
-    track?.playback?.lyricsSyncUrl ||
-    track?.lyricsSyncUrl ||
-    track?.lyrics?.syncUrl ||
-    track?.raw?.playback?.lyricsSyncUrl ||
-    track?.raw?.lyricsSyncUrl ||
-    track?.raw?.lyrics?.syncUrl;
+const resolveLyricsSyncReference = (track) =>
+  track?.playback?.lyricsSyncUrl ||
+  track?.playback?.o3icsSyncUrl ||
+  track?.lyricsSyncUrl ||
+  track?.lyrics?.syncUrl ||
+  track?.o3icsSyncUrl ||
+  track?.o3ics?.syncUrl ||
+  track?.raw?.playback?.lyricsSyncUrl ||
+  track?.raw?.playback?.o3icsSyncUrl ||
+  track?.raw?.lyricsSyncUrl ||
+  track?.raw?.lyrics?.syncUrl ||
+  track?.raw?.o3icsSyncUrl ||
+  track?.raw?.o3ics?.syncUrl;
 
-  if (!lyricsSyncUrl) {
+export const resolveTrackLyricsSyncUrl = (track) => {
+  const lyricsSyncReference = resolveLyricsSyncReference(track);
+
+  if (!lyricsSyncReference) {
     return "";
   }
 
-  return buildAbsoluteMediaUrl(lyricsSyncUrl);
+  return buildAbsoluteMediaUrl(lyricsSyncReference);
 };
 
 export const resolveTrackMediaUrl = (track) => {
@@ -139,16 +147,27 @@ export const getTrackLyricsSyncTextService = async (trackOrLyricsUrl) => {
     responseType: "text",
   });
 
-  const lyricsText =
+  const lyricsSyncText =
     typeof response?.data === "string"
       ? response.data
       : typeof response?.data?.data === "string"
         ? response.data.data
         : "";
 
-  if (!lyricsText.trim()) {
+  if (!lyricsSyncText.trim()) {
     throw new Error("The synced lyrics response is empty.");
   }
 
-  return lyricsText;
+  return lyricsSyncText;
+};
+
+export const recordListenService = async (trackId, duration, skipped = false) => {
+  try {
+    await axiosClient.post(`${TRACK_API_PREFIX}/${trackId}/listen`, {
+      duration: Math.floor(duration),
+      skipped,
+    });
+  } catch (error) {
+    console.warn("[ListenTracking] Failed to record listen event:", error);
+  }
 };

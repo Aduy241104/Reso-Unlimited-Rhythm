@@ -1,9 +1,9 @@
 import axiosClient from "../axios/axiosClient";
 
-const TRACK_API_PREFIX = "/api/tracks";
+const ADMIN_TRACK_API_PREFIX = "/api/admin/tracks";
 
 export const searchAdminTracksService = async (params = {}) => {
-  const response = await axiosClient.get(`${TRACK_API_PREFIX}/admin`, {
+  const response = await axiosClient.get(`${ADMIN_TRACK_API_PREFIX}`, {
     params,
   });
 
@@ -18,10 +18,15 @@ export const updateAdminTrackApprovalStatusService = async (
   payload = {}
 ) => {
   const response = await axiosClient.patch(
-    `${TRACK_API_PREFIX}/admin/${trackId}/approval`,
+    `${ADMIN_TRACK_API_PREFIX}/${trackId}/approval`,
     payload
   );
 
+  return response?.data?.data?.track ?? null;
+};
+
+export const getAdminTrackDetailService = async (trackId) => {
+  const response = await axiosClient.get(`${ADMIN_TRACK_API_PREFIX}/${trackId}`);
   return response?.data?.data?.track ?? null;
 };
 
@@ -30,7 +35,7 @@ export const updateAdminTrackVisibilityService = async (
   payload = {}
 ) => {
   const response = await axiosClient.patch(
-    `${TRACK_API_PREFIX}/admin/${trackId}/visibility`,
+    `${ADMIN_TRACK_API_PREFIX}/${trackId}/visibility`,
     payload
   );
 

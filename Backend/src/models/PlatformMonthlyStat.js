@@ -24,11 +24,28 @@ const PlatformMonthlyStatSchema = new Schema(
             trackStreams: { type: Number, default: 0, min: 0 },
             totalListeningTime: { type: Number, default: 0, min: 0 },
         },
+
+        dailyStats: [{
+            date: { type: String, required: true },
+            totalStreams: { type: Number, default: 0, min: 0 },
+            uniqueUsers: { type: Number, default: 0, min: 0 },
+            totalListeningTime: { type: Number, default: 0, min: 0 },
+            topTracks: [{
+                trackId: { type: Schema.Types.ObjectId, ref: "Track" },
+                title: { type: String, default: "" },
+                streamCount: { type: Number, default: 0, min: 0 },
+            }],
+            topArtists: [{
+                artistId: { type: Schema.Types.ObjectId, ref: "Artist" },
+                streamCount: { type: Number, default: 0, min: 0 },
+            }],
+        }],
     },
     { timestamps: true }
 );
 
 PlatformMonthlyStatSchema.index({ year: 1, month: 1 }, { unique: true });
+PlatformMonthlyStatSchema.index({ "dailyStats.date": 1 });
 
 const PlatformMonthlyStat = model("PlatformMonthlyStat", PlatformMonthlyStatSchema);
 
