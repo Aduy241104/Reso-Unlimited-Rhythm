@@ -10,8 +10,10 @@ import http from "http";
 import { connectRedis } from "./config/redisConfig.js";
 import { startDailyTopArtistCron } from "./jobs/dailyTopArtist.cron.js";
 import { startMonthlyTopArtistCron } from "./jobs/monthlyTopArtist.cron.js";
+import { startDailyTrackStatCron } from "./jobs/dailyTrackStat.cron.js";
 import { startDailyTopTrackCron } from "./jobs/dailyTopTrack.cron.js";
 import { startMonthlyTrackStatCron } from "./jobs/monthlyTrackStat.cron.js";
+import { startMonthlyTopTrackCron } from "./jobs/monthlyTopTrack.cron.js";
 import {
     globalErrorHandler,
     notFoundHandler,
@@ -70,8 +72,10 @@ const startServer = async () => {
         await connectRedis();
         startDailyTopArtistCron();
         startMonthlyTopArtistCron();
+        startDailyTrackStatCron();
         startDailyTopTrackCron();
         startMonthlyTrackStatCron();
+        startMonthlyTopTrackCron();
         startPlatformStreamingStatsCron();
 
         server.listen(PORT, '0.0.0.0', () => {

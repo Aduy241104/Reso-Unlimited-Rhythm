@@ -1,6 +1,7 @@
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
+import redisClient from "../../config/redisConfig.js";
 import ListenEvent from "../../models/ListenEvent.js";
 import TrackDailyRanking from "../../models/TrackDailyRanking.js";
 import TrackDailyStat from "../../models/TrackDailyStat.js";
@@ -16,6 +17,30 @@ export const getAnalyticsTimezone = () =>
     process.env.ANALYTICS_TIMEZONE ||
     process.env.CRON_TIMEZONE ||
     "Asia/Ho_Chi_Minh";
+
+const resolveTargetDay = (targetDateInput) => {
+    const analyticsTimezone = getAnalyticsTimezone();
+
+    if (targetDateInput === "__yesterday__") {
+        return dayjs().tz(analyticsTimezone).subtract(1, "day").startOf("day");
+    }
+
+    if (targetDateInput) {
+        return dayjs(targetDateInput).tz(analyticsTimezone).startOf("day");
+    }
+
+    return dayjs().tz(analyticsTimezone).startOf("day");
+};
+
+const resolveTargetMonth = (targetMonthInput) => {
+    const analyticsTimezone = getAnalyticsTimezone();
+
+    if (targetMonthInput === "__yesterday_month__" || !targetMonthInput) {
+        return dayjs().tz(analyticsTimezone).subtract(1, "day").startOf("month");
+    }
+
+    return dayjs(targetMonthInput).tz(analyticsTimezone).startOf("month");
+};
 
 const buildDailyAggregationPipeline = ({ startDate, endDate, dayDate }) => ([
     {
@@ -73,6 +98,31 @@ const buildMonthlyAggregationPipeline = ({ startDate, endDate }) => ([
         },
     },
 ]);
+
+const invalidateTrackRankingCaches = async (pattern) => {
+    if (!redisClient.isOpen) {
+        return 0;
+    }
+
+    let cursor = "0";
+    let deletedKeys = 0;
+
+    do {
+        const result = await redisClient.scan(cursor, {
+            MATCH: pattern,
+            COUNT: 100,
+        });
+
+        cursor = result.cursor;
+
+        if (result.keys.length > 0) {
+            deletedKeys += result.keys.length;
+            await redisClient.del(result.keys);
+        }
+    } while (cursor !== "0");
+
+    return deletedKeys;
+};
 
 const syncDailyTrackStats = async ({ date, nextDate, dailyStats }) => {
     const trackedIds = dailyStats.map((stat) => stat.trackId);
@@ -144,18 +194,81 @@ const buildDailyTrackRankings = (dailyStats) =>
             rank: index + 1,
         }));
 
-const syncDailyTrackRankings = async ({ date, nextDate, dailyStats }) => {
-    const rankings = buildDailyTrackRankings(dailyStats);
+const buildPreviousDailyRankMap = async ({ previousDate, nextPreviousDate }) => {
+    const previousRankingDocument = await TrackDailyRanking.findOne({
+        date: {
+            $gte: previousDate,
+            $lt: nextPreviousDate,
+        },
+    })
+        .lean()
+        .select("rankings.trackId rankings.rank");
+
+    const previousRankings = Array.isArray(previousRankingDocument?.rankings)
+        ? previousRankingDocument.rankings
+        : [];
+
+    return new Map(
+        previousRankings
+            .filter((item) => item?.trackId && Number.isInteger(item?.rank))
+            .map((item) => [String(item.trackId), item.rank])
+    );
+};
+
+const attachDailyRankMovement = (rankings, previousRankMap) =>
+    rankings.map((ranking) => {
+        const previousRank = previousRankMap.get(String(ranking.trackId)) ?? null;
+
+        if (!previousRank) {
+            return {
+                ...ranking,
+                previousRank: null,
+                rankChange: 0,
+                rankTrend: "new",
+            };
+        }
+
+        const rankChange = previousRank - ranking.rank;
+
+        return {
+            ...ranking,
+            previousRank,
+            rankChange,
+            rankTrend:
+                rankChange > 0
+                    ? "up"
+                    : rankChange < 0
+                        ? "down"
+                        : "same",
+        };
+    });
+
+const syncDailyTrackRankings = async ({ date, nextDate, dailyStats, dateKey }) => {
+    const previousDate = dayjs(date).subtract(1, "day").toDate();
+    const nextPreviousDate = dayjs(previousDate).add(1, "day").toDate();
+    const previousRankMap = await buildPreviousDailyRankMap({
+        previousDate,
+        nextPreviousDate,
+    });
+    const rankings = attachDailyRankMovement(
+        buildDailyTrackRankings(dailyStats),
+        previousRankMap
+    );
 
     if (rankings.length === 0) {
         const deleteResult = await TrackDailyRanking.deleteMany({
             date: { $gte: date, $lt: nextDate },
         });
+        const invalidatedCacheKeys = await invalidateTrackRankingCaches(
+            `top_tracks:daily:${dateKey}:limit:*`
+        );
 
         return {
             storedTracks: 0,
             deletedCount: deleteResult.deletedCount || 0,
             upsertedCount: 0,
+            invalidatedCacheKeys,
+            comparedWithDate: dayjs(previousDate).format("YYYY-MM-DD"),
         };
     }
 
@@ -168,10 +281,16 @@ const syncDailyTrackRankings = async ({ date, nextDate, dailyStats }) => {
         rankings,
     });
 
+    const invalidatedCacheKeys = await invalidateTrackRankingCaches(
+        `top_tracks:daily:${dateKey}:limit:*`
+    );
+
     return {
         storedTracks: rankings.length,
         deletedCount: deleteResult.deletedCount || 0,
         upsertedCount: 1,
+        invalidatedCacheKeys,
+        comparedWithDate: dayjs(previousDate).format("YYYY-MM-DD"),
     };
 };
 
@@ -237,16 +356,20 @@ const buildMonthlyTrackRankings = (monthlyStats) =>
             rank: index + 1,
         }));
 
-const syncMonthlyTrackRankings = async ({ year, month, monthlyStats }) => {
+const syncMonthlyTrackRankings = async ({ year, month, monthlyStats, monthKey }) => {
     const rankings = buildMonthlyTrackRankings(monthlyStats);
 
     if (rankings.length === 0) {
         const deleteResult = await TrackMonthlyRanking.deleteMany({ year, month });
+        const invalidatedCacheKeys = await invalidateTrackRankingCaches(
+            `top_tracks:monthly:${monthKey}:limit:*`
+        );
 
         return {
             storedTracks: 0,
             deletedCount: deleteResult.deletedCount || 0,
             upsertedCount: 0,
+            invalidatedCacheKeys,
         };
     }
 
@@ -258,22 +381,21 @@ const syncMonthlyTrackRankings = async ({ year, month, monthlyStats }) => {
         rankings,
     });
 
+    const invalidatedCacheKeys = await invalidateTrackRankingCaches(
+        `top_tracks:monthly:${monthKey}:limit:*`
+    );
+
     return {
         storedTracks: rankings.length,
         deletedCount: deleteResult.deletedCount || 0,
         upsertedCount: 1,
+        invalidatedCacheKeys,
     };
 };
 
 export const syncTrackStatsForDay = async (targetDateInput) => {
     const analyticsTimezone = getAnalyticsTimezone();
-    const isYesterday = targetDateInput === "__yesterday__";
-    const targetDay = isYesterday
-        ? dayjs().tz(analyticsTimezone).subtract(1, "day").startOf("day")
-        : targetDateInput
-            ? dayjs(targetDateInput).tz(analyticsTimezone).startOf("day")
-            : dayjs().tz(analyticsTimezone).startOf("day");
-
+    const targetDay = resolveTargetDay(targetDateInput);
     const nextDay = targetDay.add(1, "day");
     const date = targetDay.toDate();
     const dailyStats = await ListenEvent.aggregate(
@@ -290,26 +412,45 @@ export const syncTrackStatsForDay = async (targetDateInput) => {
         dailyStats,
     });
 
-    const rankingResult = await syncDailyTrackRankings({
-        date,
-        nextDate: nextDay.toDate(),
-        dailyStats,
-    });
-
     return {
         timezone: analyticsTimezone,
         targetDate: targetDay.format("YYYY-MM-DD"),
         daily: dailyResult,
+    };
+};
+
+export const syncTrackRankingsForDay = async (targetDateInput) => {
+    const analyticsTimezone = getAnalyticsTimezone();
+    const targetDay = resolveTargetDay(targetDateInput);
+    const nextDay = targetDay.add(1, "day");
+    const date = targetDay.toDate();
+    const dateKey = targetDay.format("YYYY-MM-DD");
+    const dailyStats = await TrackDailyStat.find({
+        date: {
+            $gte: date,
+            $lt: nextDay.toDate(),
+        },
+    })
+        .lean()
+        .select("trackId playCount uniqueListeners averageListenDuration skipCount");
+
+    const rankingResult = await syncDailyTrackRankings({
+        date,
+        nextDate: nextDay.toDate(),
+        dailyStats,
+        dateKey,
+    });
+
+    return {
+        timezone: analyticsTimezone,
+        targetDate: dateKey,
         ranking: rankingResult,
     };
 };
 
 export const syncTrackStatsForMonth = async (targetMonthInput) => {
     const analyticsTimezone = getAnalyticsTimezone();
-    const targetMonth = targetMonthInput
-        ? dayjs(targetMonthInput).tz(analyticsTimezone).startOf("month")
-        : dayjs().tz(analyticsTimezone).subtract(1, "month").startOf("month");
-
+    const targetMonth = resolveTargetMonth(targetMonthInput);
     const nextMonth = targetMonth.add(1, "month");
     const monthlyStats = await ListenEvent.aggregate(
         buildMonthlyAggregationPipeline({
@@ -324,21 +465,64 @@ export const syncTrackStatsForMonth = async (targetMonthInput) => {
         monthlyStats,
     });
 
-    const rankingResult = await syncMonthlyTrackRankings({
-        year: targetMonth.year(),
-        month: targetMonth.month() + 1,
-        monthlyStats,
-    });
-
     return {
         timezone: analyticsTimezone,
         targetMonth: targetMonth.format("YYYY-MM"),
         monthly: monthlyResult,
+    };
+};
+
+export const syncTrackRankingsForMonth = async (
+    targetMonthInput = "__yesterday_month__"
+) => {
+    const analyticsTimezone = getAnalyticsTimezone();
+    const targetMonth = resolveTargetMonth(targetMonthInput);
+    const year = targetMonth.year();
+    const month = targetMonth.month() + 1;
+    const monthKey = targetMonth.format("YYYY-MM");
+    const monthlyStats = await TrackMonthlyStat.find({ year, month })
+        .lean()
+        .select("trackId playCount uniqueListeners");
+
+    const rankingResult = await syncMonthlyTrackRankings({
+        year,
+        month,
+        monthlyStats,
+        monthKey,
+    });
+
+    return {
+        timezone: analyticsTimezone,
+        targetMonth: monthKey,
         ranking: rankingResult,
     };
 };
 
+export const syncTrackAnalyticsForDay = async (targetDateInput) => {
+    const statsResult = await syncTrackStatsForDay(targetDateInput);
+    const rankingResult = await syncTrackRankingsForDay(targetDateInput);
+
+    return {
+        ...statsResult,
+        ranking: rankingResult.ranking,
+    };
+};
+
+export const syncTrackAnalyticsForMonth = async (targetMonthInput) => {
+    const statsResult = await syncTrackStatsForMonth(targetMonthInput);
+    const rankingResult = await syncTrackRankingsForMonth(targetMonthInput);
+
+    return {
+        ...statsResult,
+        ranking: rankingResult.ranking,
+    };
+};
+
 export default {
+    syncTrackAnalyticsForDay,
+    syncTrackAnalyticsForMonth,
+    syncTrackRankingsForDay,
+    syncTrackRankingsForMonth,
     syncTrackStatsForDay,
     syncTrackStatsForMonth,
     getAnalyticsTimezone,

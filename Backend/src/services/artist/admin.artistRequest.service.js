@@ -95,25 +95,15 @@ const getArtistRequests = async (query) => {
     const total = await ArtistRequest.countDocuments(filter);
 
     const artistRequests = await ArtistRequest.find(filter)
-        .populate("userId", "_id email role activeStatus profile.fullName avatar")
-        .populate("reviewedBy", "_id email profile.fullName")
+        .populate("userId", "_id email profile.fullName avatar")
         .select(
             [
                 "_id",
                 "userId",
                 "stageName",
-                "bio",
                 "avatar",
-                "genres",
-                "socialLinks",
-                "identityInfo.fullName",
-                "identityInfo.idNumber",
                 "status",
-                "reviewedBy",
-                "reviewedAt",
-                "rejectReason",
                 "createdAt",
-                "updatedAt",
             ].join(" ")
         )
         .sort({ createdAt: -1 })

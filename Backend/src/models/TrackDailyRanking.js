@@ -10,6 +10,13 @@ const TrackDailyRankingItemSchema = new Schema(
         averageListenDuration: { type: Number, default: 0, min: 0 },
         skipCount: { type: Number, default: 0, min: 0 },
         rank: { type: Number, required: true, min: 1 },
+        previousRank: { type: Number, default: null, min: 1 },
+        rankChange: { type: Number, default: 0 },
+        rankTrend: {
+            type: String,
+            enum: ["up", "down", "same", "new"],
+            default: "new",
+        },
     },
     { _id: false }
 );

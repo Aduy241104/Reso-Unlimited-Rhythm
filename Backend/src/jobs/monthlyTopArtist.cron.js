@@ -4,7 +4,7 @@ import {
     syncArtistMonthlyRankingsForMonth,
 } from "../services/analytics/artistMonthlyRankingAggregation.service.js";
 
-const MONTHLY_TOP_ARTIST_CRON_EXPRESSION = "5 1 1 * *";
+const MONTHLY_TOP_ARTIST_CRON_EXPRESSION = "5 0 * * *";
 
 let isJobRunning = false;
 
@@ -42,7 +42,7 @@ export const startMonthlyTopArtistCron = () => {
     );
 
     console.log(
-        `[Cron] Monthly top artist aggregation scheduled at 01:05 on the first day of every month (${analyticsTimezone}).`
+        `[Cron] Monthly top artist aggregation scheduled at 00:05 every day (${analyticsTimezone}).`
     );
 
     return task;
