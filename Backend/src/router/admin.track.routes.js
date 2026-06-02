@@ -33,4 +33,11 @@ router.patch(
     adminTrackController.updateTrackVisibilityController
 );
 
+// GET /:id (Ví dụ: GET /api/admin/tracks/665efab12...)
+router.get(
+    "/:id",
+    validate(trackValidation.trackIdParamSchema, "params"),
+    adminTrackController.getTrackDetailForAdmin
+);
+
 export default router;

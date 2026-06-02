@@ -11,9 +11,7 @@ const MAX_LIMIT = 50;
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const toId = (value) => {
-    if (!value) {
-        return null;
-    }
+    if (!value) return null;
     return value.toString();
 };
 
@@ -34,6 +32,7 @@ const formatAdminTrackListItem = (track) => {
         rejectReason: track.rejectReason || "",
         hiddenReason: track.hiddenReason || "",
         hiddenAt: track.hiddenAt || null,
+        moderation: track.moderation || { adminNote: "", violationFlags: [] },
         artist: isPopulatedArtist
             ? {
                 id: toId(artistRef._id),
@@ -43,11 +42,74 @@ const formatAdminTrackListItem = (track) => {
     };
 };
 
+const formatAdminTrackDetailItem = (track) => {
+    const artistRef = track.artist_artistId;
+    const albumRef = track.album_albumId;
+
+    return {
+        id: toId(track._id),
+        title: track.title,
+        duration: track.duration,
+        avatar: track.avatar || "",
+        coverImage: track.coverImage || [],
+        lyricsStatic: track.lyricsStatic || "",
+        lyricsSyncUrl: track.lyricsSyncUrl || "",
+        audioFiles: track.audioFiles || [],
+        genres: (track.genreIds || []).map(g => ({
+            id: toId(g._id),
+            name: g.name || ""
+        })),
+        stats: track.stats || { totalLike: 0, totalPlay: 0 },
+        releaseDate: track.releaseDate || null,
+        approvalStatus: track.approvalStatus,
+        activeStatus: track.activeStatus,
+        rejectReason: track.rejectReason || "",
+        hiddenReason: track.hiddenReason || "",
+        blockedReason: track.blockedReason || "",
+        hiddenAt: track.hiddenAt || null,
+        copyright: {
+            copyrightOwner: track.copyright?.copyrightOwner || "",
+            recordingOwner: track.copyright?.recordingOwner || "",
+            composer: track.copyright?.composer || "",
+            lyricist: track.copyright?.lyricist || "",
+            producer: track.copyright?.producer || "",
+            isOriginal: track.copyright?.isOriginal ?? true,
+            isCover: track.copyright?.isCover ?? false,
+            isRemix: track.copyright?.isRemix ?? false,
+            usesSample: track.copyright?.usesSample ?? false,
+            usesLicensedBeat: track.copyright?.usesLicensedBeat ?? false,
+            originalTrackTitle: track.copyright?.originalTrackTitle || "",
+            originalArtistName: track.copyright?.originalArtistName || "",
+            licenseDocumentUrls: track.copyright?.licenseDocumentUrls || [],
+            copyrightStatus: track.copyright?.copyrightStatus || "pending",
+            copyrightNote: track.copyright?.copyrightNote || ""
+        },
+        moderation: {
+            submittedAt: track.moderation?.submittedAt || null,
+            reviewedAt: track.moderation?.reviewedAt || null,
+            adminNote: track.moderation?.adminNote || "",
+            violationFlags: track.moderation?.violationFlags || [],
+            reviewedBy: track.moderation?.reviewedBy && typeof track.moderation.reviewedBy === "object" ? {
+                id: toId(track.moderation.reviewedBy._id),
+                email: track.moderation.reviewedBy.email || ""
+            } : null
+        },
+        createdAt: track.createdAt,
+        updatedAt: track.updatedAt,
+        artist: artistRef && typeof artistRef === "object" ? {
+            id: toId(artistRef._id),
+            name: artistRef.name || "",
+        } : null,
+        album: albumRef && typeof albumRef === "object" ? {
+            id: toId(albumRef._id),
+            title: albumRef.title || "",
+        } : null,
+    };
+};
+
 const assertObjectId = (trackId) => {
     if (!mongoose.Types.ObjectId.isValid(trackId)) {
-        throw new AppError("Track id is invalid.", 400, {
-            field: "id",
-        });
+        throw new AppError("Track id is invalid.", 400, { field: "id" });
     }
 };
 
@@ -75,9 +137,6 @@ const listTracksForAdmin = async (query = {}) => {
             .sort({ title: 1, _id: 1 })
             .skip(skip)
             .limit(limit)
-            .select(
-                "title duration approvalStatus activeStatus rejectReason hiddenReason hiddenAt artist_artistId"
-            )
             .populate({ path: "artist_artistId", select: "name" })
             .lean(),
         Track.countDocuments(filter),
@@ -94,76 +153,102 @@ const listTracksForAdmin = async (query = {}) => {
     };
 };
 
+const getTrackDetailForAdmin = async (trackId) => {
+    assertObjectId(trackId);
+
+    const track = await Track.findById(trackId)
+        .populate({ path: "artist_artistId", select: "name" })
+        .populate({ path: "album_albumId", select: "title" })
+        .populate({ path: "genreIds", select: "name" })
+        .populate({ path: "moderation.reviewedBy", select: "email" })
+        .lean();
+
+    if (!track) {
+        throw new AppError("Track not found.", 404, { field: "id" });
+    }
+
+    return formatAdminTrackDetailItem(track);
+};
+
 const updateTrackApprovalStatus = async (trackId, payload = {}) => {
     assertObjectId(trackId);
 
     const track = await Track.findById(trackId);
     if (!track) {
-        throw new AppError("Track not found.", 404, {
-            field: "id",
-        });
+        throw new AppError("Track not found.", 404, { field: "id" });
     }
+
+    const note = (payload.adminNote || payload.rejectReason || "").trim();
+    const flags = payload.violationFlags || [];
 
     if (payload.status === "approved") {
         track.approvalStatus = "approved";
-
         if (track.activeStatus === "draft") {
             track.activeStatus = "active";
         }
-
-        // Xóa lý do reject cũ
         track.rejectReason = "";
+        
+        if (track.copyright) {
+            track.copyright.copyrightStatus = "verified";
+        }
+
+        track.moderation = {
+            submittedAt: track.moderation?.submittedAt || track.createdAt || new Date(),
+            reviewedAt: new Date(),
+            adminNote: note,
+            violationFlags: []
+        };
     } else if (payload.status === "rejected") {
         track.approvalStatus = "rejected";
-
-        // Không public track bị reject
         track.activeStatus = "draft";
+        track.rejectReason = note || "Rejected by administrator.";
 
-        // Lưu lý do reject
-        track.rejectReason = payload.rejectReason?.trim() || "";
+        if (track.copyright) {
+            track.copyright.copyrightStatus = flags.includes("copyright") ? "disputed" : "rejected";
+        }
+
+        track.moderation = {
+            submittedAt: track.moderation?.submittedAt || track.createdAt || new Date(),
+            reviewedAt: new Date(),
+            adminNote: note,
+            violationFlags: flags
+        };
     } else {
-        throw new AppError("Invalid approval status.", 400, {
-            field: "status",
-        });
+        throw new AppError("Invalid approval status.", 400, { field: "status" });
     }
 
     await track.save();
-    await track.populate({
-        path: "artist_artistId",
-        select: "name",
-    });
+    await track.populate({ path: "artist_artistId", select: "name" });
 
-    return formatAdminTrackListItem(track.toObject());
+    return {
+        ...formatAdminTrackListItem(track.toObject()),
+        rejectReason: track.rejectReason,
+        moderation: track.moderation
+    };
 };
+
 const updateTrackVisibility = async (trackId, payload = {}) => {
     assertObjectId(trackId);
 
     const track = await Track.findById(trackId);
     if (!track) {
-        throw new AppError("Track not found.", 404, {
-            field: "id",
-        });
+        throw new AppError("Track not found.", 404, { field: "id" });
     }
 
     if (payload.action === "hide") {
         track.activeStatus = "hidden";
-        track.hiddenReason = payload.hiddenReason?.trim() || "";
+        track.hiddenReason = (payload.hiddenReason || payload.adminNote || "Hidden by administrator.").trim();
         track.hiddenAt = new Date();
     } else if (payload.action === "unhide") {
         track.activeStatus = "active";
         track.hiddenReason = "";
         track.hiddenAt = null;
     } else {
-        throw new AppError("Invalid action.", 400, {
-            field: "action",
-        });
+        throw new AppError("Invalid action.", 400, { field: "action" });
     }
 
     await track.save();
-    await track.populate({
-        path: "artist_artistId",
-        select: "name",
-    });
+    await track.populate({ path: "artist_artistId", select: "name" });
 
     return formatAdminTrackListItem(track.toObject());
 };
@@ -172,4 +257,5 @@ export default {
     listTracksForAdmin,
     updateTrackApprovalStatus,
     updateTrackVisibility,
+    getTrackDetailForAdmin,
 };
