@@ -13,6 +13,8 @@ import EditGenrePage from "../pages/systemGenres/EditGenrePage";
 import HomePage from "../pages/dashboard/DashboardPage";
 import UsersListPage from "../pages/users/UsersListPage";
 import UserDetailPage from "../pages/users/UserDetailPage";
+import ArtistRequestsListPage from "../pages/artistRequests/ArtistRequestsListPage";
+import ArtistRequestDetailPage from "../pages/artistRequests/ArtistRequestDetailPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import RoleRoute from "./RoleRoute";
@@ -66,6 +68,14 @@ export const appRoutes = [
               {
                 path: "system-tracks",
                 element: <SystemTracksListPage />,
+              },
+              {
+                path: "artist-requests",
+                element: <ArtistRequestsListPage />,
+              },
+              {
+                path: "artist-requests/:requestId",
+                element: <ArtistRequestDetailPage />,
               },
               {
                 path: "genres",
