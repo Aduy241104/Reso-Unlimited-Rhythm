@@ -1,8 +1,8 @@
 import mongoose from "mongoose";
-import Track from "../../models/Track.js";
-import Artist from "../../models/Artist.js";
-import { normalizePositiveInteger } from "../Playlist/playlist.helper.js";
-import { AppError } from "../../utils/AppError.js";
+import Track from "../../../models/Track.js";
+import Artist from "../../../models/Artist.js";
+import { normalizePositiveInteger } from "../../Playlist/playlist.helper.js";
+import { AppError } from "../../../utils/AppError.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;

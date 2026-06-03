@@ -1,4 +1,3 @@
-import { Play } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const TrackChartCard = ({
@@ -8,6 +7,7 @@ const TrackChartCard = ({
   href,
   onPlay,
   type,
+  showPlayButton = true,
 }) => {
   const handlePlayClick = (event) => {
     event.preventDefault();
@@ -40,20 +40,23 @@ const TrackChartCard = ({
 
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/12 to-transparent" />
 
-        <button
-          type="button"
-          onClick={ handlePlayClick }
-          aria-label={ `Play ${type} ${title}` }
-          className="
-            absolute bottom-3 right-3 inline-flex h-10 w-10 items-center justify-center rounded-full
-            bg-[#f4f4f5] text-[#111111] shadow-[0_14px_30px_rgba(0,0,0,0.22)] transition
-            hover:scale-[1.04] hover:bg-white focus-visible:outline-none focus-visible:ring-2
-            focus-visible:ring-[#1ed760] focus-visible:ring-offset-2 focus-visible:ring-offset-white
-            dark:bg-white dark:text-[#111111] dark:focus-visible:ring-offset-[#181818]
-          "
-        >
-          <Play className="h-4.5 w-4.5 fill-current" />
-        </button>
+        { showPlayButton ? (
+          <button
+            type="button"
+            onClick={ handlePlayClick }
+            aria-label={ `Play ${type} ${title}` }
+            className="
+              absolute bottom-3 right-3 inline-flex h-10 w-10 items-center justify-center rounded-full
+              bg-[#f4f4f5] text-[#111111] shadow-[0_14px_30px_rgba(0,0,0,0.22)] transition
+              hover:scale-[1.04] hover:bg-white focus-visible:outline-none focus-visible:ring-2
+              focus-visible:ring-[#1ed760] focus-visible:ring-offset-2 focus-visible:ring-offset-white
+              dark:bg-white dark:text-[#111111] dark:focus-visible:ring-offset-[#181818]
+            "
+          >
+            <span className="sr-only">{ `Play ${type} ${title}` }</span>
+            <span className="block h-0 w-0 border-b-[7px] border-l-[11px] border-t-[7px] border-b-transparent border-l-current border-t-transparent" />
+          </button>
+        ) : null }
 
         <div className="absolute left-3 top-3">
           <span

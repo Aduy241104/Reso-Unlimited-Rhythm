@@ -1,10 +1,11 @@
 import cron from "node-cron";
 import {
     getAnalyticsTimezone,
-    syncTrackStatsForDay,
+    syncTrackAnalyticsForDay,
+    syncTrackRankingsForDay,
 } from "../services/analytics/trackStatAggregation.service.js";
 
-const DAILY_TOP_TRACK_CRON_EXPRESSION = "0 0 * * *";
+const DAILY_TOP_TRACK_CRON_EXPRESSION = "5 0 * * *";
 
 let isJobRunning = false;
 
@@ -17,7 +18,7 @@ export const runDailyTopTrackAggregation = async () => {
     isJobRunning = true;
 
     try {
-        const result = await syncTrackStatsForDay("__yesterday__");
+        const result = await syncTrackRankingsForDay("__yesterday__");
         console.log("[Cron] Daily top track aggregation completed:", result);
         return result;
     } catch (error) {
@@ -36,7 +37,7 @@ export const runTodayAggregation = async () => {
     isJobRunning = true;
 
     try {
-        const result = await syncTrackStatsForDay();
+        const result = await syncTrackAnalyticsForDay();
         console.log("[Today] Aggregation completed:", result);
         return result;
     } catch (error) {
@@ -61,7 +62,7 @@ export const startDailyTopTrackCron = () => {
     );
 
     console.log(
-        `[Cron] Daily top track aggregation scheduled at 00:00 every day (${analyticsTimezone}).`
+        `[Cron] Daily top track aggregation scheduled at 00:05 every day (${analyticsTimezone}).`
     );
 
     return task;

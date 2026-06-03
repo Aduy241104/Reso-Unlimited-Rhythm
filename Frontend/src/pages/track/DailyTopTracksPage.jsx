@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  ArrowDown,
+  ArrowUp,
   TrendingUp,
 } from "lucide-react";
 import PlayButton from "../../components/common/PlayButton";
@@ -29,7 +31,7 @@ const dailyChartHeaderColumns = [
 ];
 
 const dailyChartHeaderGridClassName = `
-  mb-2 hidden grid-cols-[2.5rem_minmax(0,1fr)_9rem_3rem] items-center gap-3
+  mb-2 hidden grid-cols-[4.25rem_minmax(0,1fr)_9rem_3rem] items-center gap-3
   border-b border-black/6 px-3 pb-3 text-xs font-medium uppercase tracking-[0.24em]
   text-[#71717a] dark:border-white/10 dark:text-[#a1a1aa] sm:grid
 `;
@@ -65,6 +67,62 @@ const formatChartDate = (dateValue) => {
 
 const formatNumber = (value) => new Intl.NumberFormat("en-US").format(Number(value) || 0);
 
+const getRankChangeAmount = (item) => {
+  const currentRank = Number(item?.rank) || 0;
+  const previousRank = Number(item?.previousRank) || 0;
+
+  if (currentRank > 0 && previousRank > 0) {
+    return Math.abs(previousRank - currentRank);
+  }
+
+  return Math.abs(Number(item?.rankChange) || 0);
+};
+
+const getRankTrendPresentation = (item) => {
+  const rankTrend = typeof item?.rankTrend === "string" ? item.rankTrend.toLowerCase() : "";
+  const previousRank = Number(item?.previousRank) || 0;
+  const rankChangeAmount = getRankChangeAmount(item);
+
+  switch (rankTrend) {
+    case "up":
+      return {
+        icon: ArrowUp,
+        badgeLabel: rankChangeAmount > 0 ? `+${rankChangeAmount}` : "Up",
+        detail: previousRank > 0 ? `From #${previousRank}` : "Moved up",
+        badgeClassName:
+          "border-emerald-500/25 bg-emerald-500/12 text-emerald-700 dark:text-emerald-300",
+        detailClassName: "text-emerald-700 dark:text-emerald-300",
+      };
+    case "down":
+      return {
+        icon: ArrowDown,
+        badgeLabel: rankChangeAmount > 0 ? `-${rankChangeAmount}` : "Down",
+        detail: previousRank > 0 ? `From #${previousRank}` : "Moved down",
+        badgeClassName:
+          "border-rose-500/25 bg-rose-500/12 text-rose-700 dark:text-rose-300",
+        detailClassName: "text-rose-700 dark:text-rose-300",
+      };
+    case "new":
+      return {
+        icon: null,
+        badgeLabel: "NEW",
+        detail: "New entry",
+        badgeClassName:
+          "border-sky-500/25 bg-sky-500/12 text-sky-700 dark:text-sky-300",
+        detailClassName: "text-sky-700 dark:text-sky-300",
+      };
+    default:
+      return {
+        icon: null,
+        badgeLabel: "UNCH",
+        detail: previousRank > 0 ? `Still #${previousRank}` : "No change",
+        badgeClassName:
+          "border-slate-400/25 bg-slate-500/10 text-slate-700 dark:text-slate-300",
+        detailClassName: "text-[#52525b] dark:text-[#a1a1aa]",
+      };
+  }
+};
+
 const renderGrowthContent = (playCount, totalPlay, isMobile = false) => {
   const safePlayCount = Number(playCount) || 0;
   const safeTotalPlay = Number(totalPlay) || 0;
@@ -85,6 +143,34 @@ const renderGrowthContent = (playCount, totalPlay, isMobile = false) => {
     </span>
   );
 };
+
+const renderRankChangeContent = (item, isMobile = false) => {
+  const {
+    icon: Icon,
+    badgeLabel,
+    badgeClassName,
+  } = getRankTrendPresentation(item);
+
+  return (
+    <span
+      className={ [
+        "inline-flex items-center gap-0.5 rounded-full border px-1.5 py-px text-[9px] font-semibold uppercase tracking-[0.12em]",
+        isMobile ? "min-w-[2.6rem] justify-center" : "",
+        badgeClassName,
+      ].join(" ").trim() }
+    >
+      { Icon ? <Icon className="h-2.5 w-2.5" /> : null }
+      <span>{ badgeLabel }</span>
+    </span>
+  );
+};
+
+const renderRankCellContent = (item) => (
+  <span className="inline-flex items-center gap-1">
+    <span>{ item?.rank || 0 }</span>
+    { renderRankChangeContent(item, true) }
+  </span>
+);
 
 const DailyTopTracksPage = () => {
   const [selectedDate] = useState(getPreviousDateValue);
@@ -288,7 +374,7 @@ const DailyTopTracksPage = () => {
               return (
                 <TrackCard
                   key={ item?.track?.id || `${selectedDate}-${index}` }
-                  index={ item?.rank || index + 1 }
+                  index={ renderRankCellContent(item) }
                   indexClassName="!text-sm sm:!text-base"
                   image={
                     item?.track?.coverImage ||
@@ -303,8 +389,8 @@ const DailyTopTracksPage = () => {
                   href={ item?.track?.id ? routePaths.trackDetail(item.track.id) : undefined }
                   size="compact"
                   showLikeButton={ false }
-                  mobileLayoutClassName="grid-cols-[2rem_minmax(0,1fr)_auto]"
-                  desktopLayoutClassName="sm:grid-cols-[2.5rem_minmax(0,1fr)_9rem_3rem]"
+                  mobileLayoutClassName="grid-cols-[4.1rem_minmax(0,1fr)_auto]"
+                  desktopLayoutClassName="sm:grid-cols-[4.25rem_minmax(0,1fr)_9rem_3rem]"
                   mobileMetaItems={ [
                     {
                       content: renderGrowthContent(item?.playCount, totalPlay, true),

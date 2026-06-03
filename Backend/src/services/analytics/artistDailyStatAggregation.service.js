@@ -11,6 +11,16 @@ dayjs.extend(timezone);
 
 const DAILY_TOP_ARTISTS_LIMIT = 20;
 
+const buildStoredDayDate = (targetDay) =>
+    dayjs.utc(`${targetDay.format("YYYY-MM-DD")}T00:00:00Z`).toDate();
+
+const buildDailyDateQuery = ({ dateKey, startDate, endDate }) => ({
+    $or: [
+        { dateKey },
+        { date: { $gte: startDate, $lt: endDate } },
+    ],
+});
+
 const buildDailyArtistAggregationPipeline = ({ startDate, endDate }) => ([
     {
         $match: {
@@ -117,14 +127,14 @@ const fillMissingRankings = async (rankings) => {
     }));
 };
 
-const syncDailyArtistStats = async ({ date, nextDate, dailyStats }) => {
+const syncDailyArtistStats = async ({ date, dateKey, startDate, endDate, dailyStats }) => {
     const baseRankings = buildTopRankings(dailyStats);
     const rankings = await fillMissingRankings(baseRankings);
 
     if (rankings.length === 0) {
-        const deleteResult = await ArtistDailyRanking.deleteMany({
-            date: { $gte: date, $lt: nextDate },
-        });
+        const deleteResult = await ArtistDailyRanking.deleteMany(
+            buildDailyDateQuery({ dateKey, startDate, endDate })
+        );
 
         return {
             matchedArtists: 0,
@@ -133,11 +143,12 @@ const syncDailyArtistStats = async ({ date, nextDate, dailyStats }) => {
         };
     }
 
-    const deleteResult = await ArtistDailyRanking.deleteMany({
-        date: { $gte: date, $lt: nextDate },
-    });
+    const deleteResult = await ArtistDailyRanking.deleteMany(
+        buildDailyDateQuery({ dateKey, startDate, endDate })
+    );
 
     await ArtistDailyRanking.create({
+        dateKey,
         date,
         rankings,
     });
@@ -158,7 +169,8 @@ export const syncArtistDailyStatsForDay = async (targetDateInput) => {
         : dayjs().tz(analyticsTimezone).subtract(1, "day").startOf("day");
 
     const nextDay = targetDay.add(1, "day");
-    const date = targetDay.toDate();
+    const date = buildStoredDayDate(targetDay);
+    const dateKey = targetDay.format("YYYY-MM-DD");
     const dailyStats = await ListenEvent.aggregate(
         buildDailyArtistAggregationPipeline({
             startDate: targetDay.toDate(),
@@ -168,7 +180,9 @@ export const syncArtistDailyStatsForDay = async (targetDateInput) => {
 
     const dailyResult = await syncDailyArtistStats({
         date,
-        nextDate: nextDay.toDate(),
+        dateKey,
+        startDate: targetDay.toDate(),
+        endDate: nextDay.toDate(),
         dailyStats,
     });
 

@@ -6,9 +6,7 @@
   "scripts": {
     "start": "nodemon --inspect src/server.js",
     "seed": "node src/seed.js",
-    "seed2": "node src/seed2.js",
-    "seed3": "node src/seed3.js",
-    "seed4": "node src/seed4.js"
+    "seed5": "node src/seed5.js"
   },
   "author": "",
   "license": "ISC",

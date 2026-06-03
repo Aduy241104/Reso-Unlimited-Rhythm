@@ -1,4 +1,4 @@
-import artistTrackService from "../services/Track/artist.track.service.js";
+import artistTrackService from "../services/track/artist/artist.track.service.js";
 import formatResponse from "../utils/formatResponse.js";
 
 const createTrack = async (req, res, next) => {

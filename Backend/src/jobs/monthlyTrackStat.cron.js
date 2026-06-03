@@ -4,7 +4,7 @@ import {
     syncTrackStatsForMonth,
 } from "../services/analytics/trackStatAggregation.service.js";
 
-const MONTHLY_TRACK_STAT_CRON_EXPRESSION = "0 1 1 * *";
+const MONTHLY_TRACK_STAT_CRON_EXPRESSION = "0 0 * * *";
 
 let isJobRunning = false;
 
@@ -42,7 +42,7 @@ export const startMonthlyTrackStatCron = () => {
     );
 
     console.log(
-        `[Cron] Monthly track stat aggregation scheduled at 01:00 on the first day of every month (${analyticsTimezone}).`
+        `[Cron] Monthly track stat aggregation scheduled at 00:00 every day (${analyticsTimezone}).`
     );
 
     return task;

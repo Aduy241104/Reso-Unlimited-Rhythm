@@ -2,6 +2,7 @@ import express from "express";
 import adminUserController from "../controllers/admin.user.controller.js";
 import adminGenreController from "../controllers/admin.genre.controller.js";
 import adminDashboardController from "../controllers/admin.dashboard.controller.js";
+import adminArtistRequestRouter from "./adminArtistRequest.routes.js";
 import adminTrackRouter from "./admin.track.routes.js";
 import { requireAdmin } from "../middlewares/Authentication/authentication.middleware.js";
 import upload from "../middlewares/upload.middleware.js";
@@ -15,6 +16,7 @@ router.get("/users/:id", adminUserController.getUserDetail);
 router.get("/genres", adminGenreController.getGenres);
 router.get("/genres/:id", adminGenreController.getGenre);
 router.post("/genres", adminGenreController.createGenre);
+router.use("/artist-requests", adminArtistRequestRouter);
 router.use("/tracks", adminTrackRouter);
 router.post(
     "/genres/upload",

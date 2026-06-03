@@ -13,6 +13,7 @@ const NotificationSchema = new Schema(
         },
         title: { type: String, required: true, trim: true },
         content: { type: String, required: true },
+        isRead: { type: Boolean, default: false, index: true },
 
         actorId: { type: Schema.Types.ObjectId },
         actorType: { type: String, enum: ["admin", "artist", "system", "user", ""], default: "" },
