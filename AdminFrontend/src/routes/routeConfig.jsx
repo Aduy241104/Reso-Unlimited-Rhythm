@@ -7,6 +7,7 @@ import SystemPlaylistDetailPage from "../pages/systemPlaylists/SystemPlaylistDet
 import SystemPlaylistEditPage from "../pages/systemPlaylists/SystemPlaylistEditPage";
 import SystemPlaylistsListPage from "../pages/systemPlaylists/SystemPlaylistsListPage";
 import SystemTracksListPage from "../pages/systemTracks/SystemTracksListPage";
+import TrackDetailPage from "../pages/systemTracks/SystemTracksDetailPage";
 import GenresListPage from "../pages/systemGenres/GenresListPage";
 import CreateGenrePage from "../pages/systemGenres/CreateGenrePage";
 import EditGenrePage from "../pages/systemGenres/EditGenrePage";
@@ -76,6 +77,10 @@ export const appRoutes = [
               {
                 path: "artist-requests/:requestId",
                 element: <ArtistRequestDetailPage />,
+              },
+              {
+                path: "system-tracks/:id",
+                element: <TrackDetailPage />,
               },
               {
                 path: "genres",

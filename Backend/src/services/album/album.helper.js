@@ -22,7 +22,7 @@ const formatAlbumItem = (album) => ({
     coverImage: album.coverImage,
     releaseDate: album.releaseDate,
     status: album.status,
-    totalPlays: album.totalPlays,
+    totalDuration: album.totalDuration,
     trackCount: Array.isArray(album.trackList) ? album.trackList.length : 0,
     artist: album.artistId
         ? {
@@ -74,7 +74,7 @@ const formatAlbumDetail = (album) => ({
     coverImage: album.coverImage,
     releaseDate: album.releaseDate,
     status: album.status,
-    totalPlays: album.totalPlays,
+    totalDuration: album.totalDuration,
     trackCount: Array.isArray(album.trackList) ? album.trackList.length : 0,
     artist: album.artistId
         ? {

@@ -129,13 +129,25 @@ const connectDatabase = async () => {
     if (!process.env.DATABASE) {
         throw new Error("Missing DATABASE in .env");
     }
-
+    // 🛠️ GIẢI PHÁP 1: Tắt AutoIndex để ngăn chặn Mongoose tự ý kích hoạt lệnh lỗi khi vừa kết nối
+    mongoose.set('autoIndex', false); 
     await mongoose.connect(process.env.DATABASE);
 };
 
 const ensureIndexes = async () => {
     for (const { model } of seedCollections) {
-        await model.init();
+        try {
+            // Khởi chạy dọn dẹp an toàn các index cũ bị kẹt
+            if (model.collection) {
+                await model.collection.dropIndex("date_1").catch(() => {});
+            }
+            await model.init();
+        } catch (error) {
+            // 🛠️ GIẢI PHÁP 2: Khóa lỗi Code 86 (Xung đột Index) để script chạy mượt mà không bị ngắt quãng
+            if (error.code !== 86) {
+                throw error;
+            }
+        }
     }
 };
 
@@ -395,7 +407,7 @@ const seedMusicCatalog = async () => {
         trackList: [],
         releaseDate: daysAgo(30),
         status: "active",
-        totalPlays: 21345,
+        totalDuration: 0,
     });
 
     await Track.insertMany([
@@ -410,11 +422,15 @@ const seedMusicCatalog = async () => {
                     url: "https://example.com/audio/sunrise-cache.mp4",
                     format: "mp4",
                     bitrate: 128,
+                    label: "original",
+                    priority: 1
                 },
                 {
                     url: "https://example.com/audio/sunrise-cache.mp3",
                     format: "mp3",
                     bitrate: 320,
+                    label: "high",
+                    priority: 2
                 },
             ],
             duration: 228,
@@ -422,7 +438,7 @@ const seedMusicCatalog = async () => {
             coverImage: [
                 "https://images.unsplash.com/photo-1501386761578-eac5c94b800a",
             ],
-            lyricsStatic: "Caching dreams until the city wakes up.",
+            lyricsStatic: "Caching dreams until the city wakes up.\nNeon horizons starting to glow.",
             lyricsSyncUrl: "https://example.com/lyrics/sunrise-cache.lrc",
             stats: {
                 totalLike: 950,
@@ -431,6 +447,35 @@ const seedMusicCatalog = async () => {
             releaseDate: daysAgo(21),
             activeStatus: "active",
             approvalStatus: "approved",
+
+            // 🔴 BÙ ĐẮP DỮ LIỆU BẢN QUYỀN CHUẨN ĐỂ ĐỔ LÊN TRANG CHI TIẾT FRONTEND
+            copyright: {
+                copyrightOwner: "Reso Unlimited Rhythm Publishing Ltd.",
+                recordingOwner: "Seed Waves Records Entertainment",
+                composer: "Le Minh Artist",
+                lyricist: "Nguyen Hoang Listener",
+                producer: "Seed Waves Production",
+                isOriginal: true,
+                isCover: false,
+                isRemix: false,
+                usesSample: false,
+                usesLicensedBeat: false,
+                originalTrackTitle: "",
+                originalArtistName: "",
+                licenseDocumentUrls: [
+                    "https://res.cloudinary.com/do5o9r18f/image/upload/v1779785319/reso/proofs/copyright_cert_sunrise.pdf"
+                ],
+                declarationAccepted: true,
+                copyrightStatus: "verified",
+                copyrightNote: "Chứng từ sở hữu trí tuệ hợp pháp đã được phê duyệt.",
+            },
+            moderation: {
+                submittedAt: daysAgo(25),
+                reviewedBy: ids.userAdmin,
+                reviewedAt: daysAgo(21),
+                adminNote: "Hồ sơ tác giả sạch sẽ, file âm thanh đạt chuẩn chất lượng phòng thu.",
+                violationFlags: []
+            }
         },
         {
             _id: ids.trackCityLights,
@@ -443,11 +488,15 @@ const seedMusicCatalog = async () => {
                     url: "https://example.com/audio/city-lights-commit.mp4",
                     format: "mp4",
                     bitrate: 128,
+                    label: "original",
+                    priority: 1
                 },
                 {
                     url: "https://example.com/audio/city-lights-commit.flac",
                     format: "flac",
                     bitrate: 1411,
+                    label: "high",
+                    priority: 2
                 },
             ],
             duration: 245,
@@ -464,6 +513,35 @@ const seedMusicCatalog = async () => {
             releaseDate: daysAgo(10),
             activeStatus: "active",
             approvalStatus: "approved",
+
+            // 🔴 BÙ ĐẮP DỮ LIỆU BẢN QUYỀN CHUẨN ĐỂ ĐỔ LÊN TRANG CHI TIẾT FRONTEND
+            copyright: {
+                copyrightOwner: "Sơn Thạch Media Group",
+                recordingOwner: "Indie Sound Lab",
+                composer: "Phạm Hải",
+                lyricist: "Anonymous Lyricist",
+                producer: "HypeBeast Beats",
+                isOriginal: false,
+                isCover: false,
+                isRemix: true,
+                usesSample: true,
+                usesLicensedBeat: true,
+                originalTrackTitle: "City Lights Silhouette (Retro Version 1998)",
+                originalArtistName: "The Vintage Synth Band",
+                licenseDocumentUrls: [
+                    "https://res.cloudinary.com/do5o9r18f/image/upload/v1779785319/reso/proofs/sample_clearance.pdf"
+                ],
+                declarationAccepted: true,
+                copyrightStatus: "disputed",
+                copyrightNote: "Đang có tranh chấp khiếu nại sample từ bên thứ ba.",
+            },
+            moderation: {
+                submittedAt: daysAgo(12),
+                reviewedBy: ids.userAdmin,
+                reviewedAt: daysAgo(10),
+                adminNote: "Phát hiện sai lệch metadata tác giả, tạm thời gắn cờ cảnh báo hệ thống.",
+                violationFlags: ["missing_rights_proof", "wrong_metadata"]
+            }
         },
     ]);
 
@@ -472,6 +550,7 @@ const seedMusicCatalog = async () => {
             { trackId: ids.trackSunrise, order: 1 },
             { trackId: ids.trackCityLights, order: 2 },
         ],
+        totalDuration: 473,
     });
 };
 

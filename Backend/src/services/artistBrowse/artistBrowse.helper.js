@@ -22,7 +22,7 @@ const formatArtistAlbum = (album) => ({
     coverImage: album.coverImage,
     releaseDate: album.releaseDate,
     status: album.status,
-    totalPlays: album.totalPlays,
+    totalDuration: album.totalDuration,
     trackCount: Array.isArray(album.trackList) ? album.trackList.length : 0,
 });
 

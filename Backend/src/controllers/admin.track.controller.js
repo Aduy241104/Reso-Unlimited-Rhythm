@@ -1,4 +1,4 @@
-import adminTrackService from "../services/Track/admin.track.service.js";
+import adminTrackService from "../services/track/admin/admin.track.service.js";
 import adminTrackValidation from "../middlewares/Admin/admin.track.validation.js";
 import formatResponse from "../utils/formatResponse.js";
 import { AppError } from "../utils/AppError.js";
@@ -34,13 +34,31 @@ const listTracksForAdmin = async (req, res, next) => {
     }
 };
 
+const getTrackDetailForAdmin = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const trackDetail = await adminTrackService.getTrackDetailForAdmin(id);
+
+        return formatResponse.success(
+            res,
+            { track: trackDetail },
+            "Track detail fetched successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 const updateTrackApprovalStatus = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { status, rejectReason } = req.body;
+        // Bốc đầu đầy đủ tất cả các trường kiểm duyệt nâng cao gửi từ FE lên
+        const { status, adminNote, violationFlags, rejectReason } = req.body;
 
         const updatedTrack = await adminTrackService.updateTrackApprovalStatus(id, {
             status,
+            adminNote,
+            violationFlags,
             rejectReason,
         });
 
@@ -56,12 +74,20 @@ const updateTrackApprovalStatus = async (req, res, next) => {
 
 const updateTrackVisibilityController = async (req, res, next) => {
     try {
-        const track = await adminTrackService.updateTrackVisibility(
-            req.params.id,
-            req.body
-        );
+        const { id } = req.params;
+        const { action, hiddenReason, adminNote } = req.body;
 
-        res.json(track);
+        const track = await adminTrackService.updateTrackVisibility(id, {
+            action,
+            hiddenReason,
+            adminNote
+        });
+
+        return formatResponse.success(
+            res,
+            { track },
+            "Track visibility updated successfully"
+        );
     } catch (error) {
         next(error);
     }
@@ -71,4 +97,5 @@ export default {
     listTracksForAdmin,
     updateTrackApprovalStatus,
     updateTrackVisibilityController,
+    getTrackDetailForAdmin,
 };
