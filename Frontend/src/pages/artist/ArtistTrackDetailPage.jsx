@@ -354,16 +354,12 @@ const ArtistTrackDetailPage = () => {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handlePlay}
+            <PlayButton 
+              onClick={handlePlay} 
+              label={canPlayTrack ? "Play" : "Play unavailable"}
+              size="compact" 
               disabled={!canPlayTrack}
-              className="inline-flex h-12 items-center gap-2 rounded-full bg-[#1ed760] px-5 text-sm font-semibold text-black transition hover:scale-[1.02] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 disabled:hover:brightness-100"
-            >
-              <Play className="h-5 w-5 fill-current" />
-              {canPlayTrack ? "Play" : "Play unavailable"}
-            </button>
-            <PlayButton onClick={ handlePlay } size="compact" />
+            />
           </div>
         </div>
 
