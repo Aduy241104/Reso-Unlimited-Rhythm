@@ -1,4 +1,5 @@
 import authenticationService from "../services/Authentication/authentication.service.js";
+import userServiceHelper from "../services/user/user.service.helper.js";
 import formatResponse from "../utils/formatResponse.js";
 import {
     REFRESH_TOKEN_COOKIE_MAX_AGE_MS,
@@ -160,7 +161,7 @@ const me = async (req, res, next) => {
     try {
         return formatResponse.success(
             res,
-            { user: req.user },
+            { user: userServiceHelper.formatCurrentUserProfile(req.user) },
             "Current user fetched successfully"
         );
     } catch (error) {

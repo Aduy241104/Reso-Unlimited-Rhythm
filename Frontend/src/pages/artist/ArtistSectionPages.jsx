@@ -239,7 +239,6 @@ export const MyMusicPage = () => {
                 <option value="rejected">Rejected</option>
               </select>
             </div>
-
             <button
               onClick={() => navigate(routePaths.artistCreateTrack)}
               className="rounded-md bg-[#8b5e3c] px-6 py-2 font-medium text-white transition-colors hover:bg-[#6d4a2f]"

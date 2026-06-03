@@ -1,41 +1,23 @@
 import express from "express";
 import trackController from "../controllers/track.controller.js";
-import artistTrackController from "../controllers/artist.track.controller.js";
-import uploadController from "../controllers/upload.controller.js";
-import authenticate from "../middlewares/Authentication/authentication.middleware.js";
-import createTrackSchema, {
-    updateTrackSchema,
-} from "../middlewares/TrackMiddlewareValidation/track.validation.js";
-import adminTrackController from "../controllers/admin.track.controller.js";
-import adminTrackValidation from "../middlewares/Admin/admin.track.validation.js";
-import {
-    optionalAuthenticate,
-    requireAdmin,
-} from "../middlewares/Authentication/authentication.middleware.js";
-import { requireArtist } from "../middlewares/Authentication/authentication.middleware.js";
 import trackValidation from "../middlewares/track.validation.js";
+import { updateTrackSchema } from "../middlewares/TrackMiddlewareValidation/track.validation.js";
+import adminTrackValidation from "../middlewares/Admin/admin.track.validation.js";
 import validate from "../middlewares/validate.middleware.js";
-import upload from "../middlewares/upload.middleware.js";
+import { optionalAuthenticate } from "../middlewares/Authentication/authentication.middleware.js";
+import { requireAdmin, requireArtist } from "../middlewares/Authentication/authentication.middleware.js";
+import artistTrackController from "../controllers/artist.track.controller.js";
+import adminTrackController from "../controllers/admin.track.controller.js";
 
 const router = express.Router();
 
-router.post(
-    "/upload",
-    authenticate("artist"),
-    upload.fields([
-        { name: "audioFiles", maxCount: 1 },
-        { name: "avatar", maxCount: 1 },
-        { name: "coverImages", maxCount: 5 },
-        { name: "lyricsSync", maxCount: 1 },
-    ]),
-    uploadController
-);
+// Giờ không sợ bị trùng /admin nữa, viết thoải mái nhé bạn
 
-router.post(
-    "/",
-    requireArtist,
-    validate(createTrackSchema, "body"),
-    artistTrackController.createTrack
+// GET /:id
+router.get(
+    "/top/monthly",
+    validate(trackValidation.monthlyTopTracksQuerySchema, "query"),
+    trackController.getMonthlyTopTracks
 );
 
 router.get(
@@ -58,6 +40,8 @@ router.patch(
     validate(updateTrackSchema, "body"),
     artistTrackController.updateMyTrack
 );
+
+// lyrics management moved to separate lyrics routes
 
 router.patch(
     "/artist/me/:id/hide",
@@ -105,26 +89,13 @@ router.patch(
 );
 
 // User routes
-router.post(
-    "/:id/listen",
-    authenticate("user"),
-    validate(trackValidation.trackIdParamSchema, "params"),
-    validate(trackValidation.listenEventBodySchema, "body"),
-    trackController.recordListen
-);
-
-router.get(
-    "/top/daily",
-    validate(trackValidation.dailyTopTracksQuerySchema, "query"),
-    trackController.getDailyTopTracks
-);
-
 router.get(
     "/:id",
     validate(trackValidation.trackIdParamSchema, "params"),
     trackController.getTrackDetail
 );
 
+// GET /:id/playback
 router.get(
     "/:id/playback",
     optionalAuthenticate(),

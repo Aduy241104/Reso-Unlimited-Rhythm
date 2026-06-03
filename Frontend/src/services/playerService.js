@@ -66,20 +66,28 @@ const getFirstAudioFile = (track) =>
   track?.audioFiles?.find((audioFile) => audioFile?.url) ||
   null;
 
-export const resolveTrackLyricsSyncUrl = (track) => {
-  const o3icsSyncUrl =
-    track?.playback?.o3icsSyncUrl ||
-    track?.o3icsSyncUrl ||
-    track?.o3ics?.syncUrl ||
-    track?.raw?.playback?.o3icsSyncUrl ||
-    track?.raw?.o3icsSyncUrl ||
-    track?.raw?.o3ics?.syncUrl;
+const resolveLyricsSyncReference = (track) =>
+  track?.playback?.lyricsSyncUrl ||
+  track?.playback?.o3icsSyncUrl ||
+  track?.lyricsSyncUrl ||
+  track?.lyrics?.syncUrl ||
+  track?.o3icsSyncUrl ||
+  track?.o3ics?.syncUrl ||
+  track?.raw?.playback?.lyricsSyncUrl ||
+  track?.raw?.playback?.o3icsSyncUrl ||
+  track?.raw?.lyricsSyncUrl ||
+  track?.raw?.lyrics?.syncUrl ||
+  track?.raw?.o3icsSyncUrl ||
+  track?.raw?.o3ics?.syncUrl;
 
-  if (!o3icsSyncUrl) {
+export const resolveTrackLyricsSyncUrl = (track) => {
+  const lyricsSyncReference = resolveLyricsSyncReference(track);
+
+  if (!lyricsSyncReference) {
     return "";
   }
 
-  return buildAbsoluteMediaUrl(o3icsSyncUrl);
+  return buildAbsoluteMediaUrl(lyricsSyncReference);
 };
 
 export const resolveTrackMediaUrl = (track) => {
@@ -126,31 +134,31 @@ export const getTrackPlaybackSource = async (trackId) => {
 };
 
 export const getTrackLyricsSyncTextService = async (trackOrLyricsUrl) => {
-  const o3icsSyncUrl =
+  const lyricsSyncUrl =
     typeof trackOrLyricsUrl === "string"
       ? buildAbsoluteMediaUrl(trackOrLyricsUrl)
       : resolveTrackLyricsSyncUrl(trackOrLyricsUrl);
 
-  if (!o3icsSyncUrl) {
-    throw new Error("Track playback does not include a synced o3ics URL.");
+  if (!lyricsSyncUrl) {
+    throw new Error("Track playback does not include a synced lyrics URL.");
   }
 
-  const response = await axiosClient.get(o3icsSyncUrl, {
+  const response = await axiosClient.get(lyricsSyncUrl, {
     responseType: "text",
   });
 
-  const o3icsText =
+  const lyricsSyncText =
     typeof response?.data === "string"
       ? response.data
       : typeof response?.data?.data === "string"
         ? response.data.data
         : "";
 
-  if (!o3icsText.trim()) {
-    throw new Error("The synced o3ics response is empty.");
+  if (!lyricsSyncText.trim()) {
+    throw new Error("The synced lyrics response is empty.");
   }
 
-  return o3icsText;
+  return lyricsSyncText;
 };
 
 export const recordListenService = async (trackId, duration, skipped = false) => {

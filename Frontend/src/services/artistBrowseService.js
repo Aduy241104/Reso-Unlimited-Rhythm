@@ -16,6 +16,17 @@ const resolveArtistName = (profile) =>
 const resolveArtistImage = (profile, fieldNames = []) =>
   fieldNames.map((field) => profile?.[field]).find(Boolean) || "";
 
+const resolveProfileSource = (payload) =>
+  payload?.artist || payload?.profile || payload?.user || payload || null;
+
+const extractFollowPayload = (response) =>
+  response?.data?.data?.follow ||
+  response?.data?.data?.status ||
+  response?.data?.data ||
+  response?.data?.follow ||
+  response?.data ||
+  null;
+
 const normalizeReleaseType = (item) =>
   item?.type || item?.releaseType || item?.category || item?.format || "Release";
 
@@ -46,7 +57,9 @@ const resolveComingReleaseImage = (releaseItem) => {
   return releaseItem?.avatar || "";
 };
 
-const normalizeProfile = (profile) => {
+const normalizeProfile = (payload) => {
+  const profile = resolveProfileSource(payload);
+
   if (!profile) {
     return null;
   }
@@ -58,7 +71,7 @@ const normalizeProfile = (profile) => {
   }
 
   return {
-    id: profile?.id || profile?.artistId || profile?.slug || "",
+    id: profile?.id || profile?.artistId || profile?._id || profile?.slug || "",
     slug: profile?.slug || profile?.artistSlug || "",
     name: artistName,
     verified:
@@ -75,7 +88,8 @@ const normalizeProfile = (profile) => {
       profile?.followers ||
         profile?.followersCount ||
         profile?.metrics?.followers ||
-        profile?.stats?.followers,
+        profile?.stats?.followers ||
+        profile?.stats?.totalFollowers,
       0
     ),
     avatar: resolveArtistImage(profile, [
@@ -102,8 +116,32 @@ const normalizeProfile = (profile) => {
     bio: profile?.bio || profile?.about || profile?.description || "",
     role: profile?.role || "artist",
     location: profile?.location || profile?.country || profile?.city || "",
+    isFollowing:
+      payload?.isFollowing ??
+      payload?.follow?.isFollowing ??
+      profile?.isFollowing ??
+      profile?.follow?.isFollowing ??
+      false,
   };
 };
+
+const normalizeFollowState = (payload, fallback = {}) => ({
+  artistId:
+    payload?.artistId || payload?.id || payload?._id || fallback.artistId || "",
+  isFollowing:
+    payload?.isFollowing ??
+    payload?.following ??
+    payload?.isFollowed ??
+    fallback.isFollowing ??
+    false,
+  followers: getMetricValue(
+    payload?.followers ??
+      payload?.followersCount ??
+      payload?.stats?.followers ??
+      fallback.followers,
+    fallback.followers ?? 0
+  ),
+});
 
 const buildDiscography = (albums = []) =>
   albums
@@ -168,6 +206,20 @@ const buildComingReleasesFromApi = (comingReleases = []) =>
         new Date(releaseA.scheduledAt).getTime() - new Date(releaseB.scheduledAt).getTime()
     );
 
+const normalizeDailyTopArtistItem = (item) => ({
+  artist: {
+    id: item.artist.id,
+    name: item.artist.name,
+    avatar: item.artist.avatar,
+  },
+  rank: item.rank,
+  date: item.date,
+  score: item.score,
+  uniqueListeners: item.uniqueListeners,
+  playCount: item.playCount,
+  completedPlayCount: item.completedPlayCount,
+});
+
 const getPublicArtistProfileService = async (artistId) => {
   const encodedArtistId = encodeURIComponent(artistId);
   const endpoints = [`/api/browse/artists/${encodedArtistId}/profile`];
@@ -175,13 +227,7 @@ const getPublicArtistProfileService = async (artistId) => {
   for (const endpoint of endpoints) {
     try {
       const response = await axiosClient.get(endpoint);
-      const payload =
-        response?.data?.data?.artist ||
-        response?.data?.data?.user ||
-        response?.data?.data ||
-        response?.data?.artist ||
-        response?.data ||
-        null;
+      const payload = response?.data?.data ?? response?.data ?? null;
 
       if (payload) {
         return payload;
@@ -192,6 +238,54 @@ const getPublicArtistProfileService = async (artistId) => {
   }
 
   return null;
+};
+
+export const getArtistFollowStatusService = async ({ artistId } = {}) => {
+  const encodedArtistId = encodeURIComponent(artistId);
+  const endpoints = [
+    `/api/browse/artists/${encodedArtistId}/follow`,
+    `/api/browse/artists/${encodedArtistId}/follow/status`,
+    `/api/browse/artists/${encodedArtistId}/follow-state`,
+  ];
+
+  for (const endpoint of endpoints) {
+    try {
+      const response = await axiosClient.get(endpoint);
+      return normalizeFollowState(extractFollowPayload(response), { artistId });
+    } catch (error) {
+      const status = error?.response?.status;
+
+      if (status === 401) {
+        throw error;
+      }
+
+      if (status !== 404 && status !== 405) {
+        throw error;
+      }
+    }
+  }
+
+  return null;
+};
+
+export const followArtistService = async ({ artistId } = {}) => {
+  const encodedArtistId = encodeURIComponent(artistId);
+  const response = await axiosClient.post(`/api/browse/artists/${encodedArtistId}/follow`);
+
+  return normalizeFollowState(extractFollowPayload(response), {
+    artistId,
+    isFollowing: true,
+  });
+};
+
+export const unfollowArtistService = async ({ artistId } = {}) => {
+  const encodedArtistId = encodeURIComponent(artistId);
+  const response = await axiosClient.delete(`/api/browse/artists/${encodedArtistId}/follow`);
+
+  return normalizeFollowState(extractFollowPayload(response), {
+    artistId,
+    isFollowing: false,
+  });
 };
 
 const getArtistAlbumsService = async (artistId, params = {}) => {
@@ -260,5 +354,19 @@ export const getArtistExperienceService = async ({ artistId } = {}) => {
     popularTracks: buildPopularTracksFromApi(artistTracksPayload),
     discography: buildDiscography(albumsPayload),
     comingReleases: buildComingReleasesFromApi(comingReleasesPayload),
+  };
+};
+
+export const getDailyTopArtistsService = async ({ date, limit = 9 }) => {
+  const response = await axiosClient.get("/api/browse/artists/top/daily", {
+    params: {
+      date,
+      limit,
+    },
+  });
+
+  return {
+    topArtists: response.data.data.topArtists.map(normalizeDailyTopArtistItem),
+    meta: response.data.meta,
   };
 };

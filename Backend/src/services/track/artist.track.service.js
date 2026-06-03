@@ -7,6 +7,7 @@ import Album from "../../models/Album.js";
 import { AppError } from "../../utils/AppError.js";
 import { deleteCloudinaryAssetsByUrls } from "../../utils/uploadCloud.js";
 import { formatTrackManagementDetail } from "./track.helper.js";
+import { syncAlbumTotalDuration } from "../album/album.sync.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 50;
@@ -121,6 +122,7 @@ const reindexAlbumTrackList = async (albumId) => {
         order: index + 1,
     }));
 
+    await syncAlbumTotalDuration(album);
     await album.save();
 };
 
@@ -142,6 +144,7 @@ const removeTrackFromAlbum = async (albumId, trackId) => {
             order: index + 1,
         }));
 
+    await syncAlbumTotalDuration(album);
     await album.save();
 };
 
@@ -166,6 +169,7 @@ const appendTrackToAlbum = async (albumId, trackId) => {
         },
     ];
 
+    await syncAlbumTotalDuration(album);
     await album.save();
 };
 
@@ -325,6 +329,7 @@ const updateArtistTrack = async (userId, trackId, trackData) => {
     const nextGenreIds = Array.isArray(trackData.genreIds)
         ? trackData.genreIds.filter(Boolean)
         : undefined;
+
 
     if (trackData.title !== undefined) {
         track.title = trackData.title;

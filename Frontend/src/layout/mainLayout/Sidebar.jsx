@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   PanelLeftClose,
   PanelLeftOpen,
+  Trophy,
   UserRound,
   X,
 } from "lucide-react";
@@ -23,6 +24,12 @@ const navItems = [
     label: "Artist Profile",
     to: routePaths.artistBrowseProfile("featured"),
     matches: (pathname) => pathname.startsWith("/artists/"),
+  },
+  {
+    icon: Trophy,
+    label: "Daily Top",
+    to: routePaths.dailyTopTracks,
+    matches: (pathname) => pathname === routePaths.dailyTopTracks,
   },
   {
     icon: LayoutDashboard,

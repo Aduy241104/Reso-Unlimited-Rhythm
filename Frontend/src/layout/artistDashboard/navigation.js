@@ -1,12 +1,14 @@
 import {
   BarChart3,
   Disc3,
+  FileText,
   LayoutDashboard,
   Music2,
   Settings,
   Users,
   Wallet,
   Waves,
+  Album,
 } from "lucide-react";
 import { routePaths } from "../../routes/routePaths";
 
@@ -20,6 +22,16 @@ export const artistNavigation = [
     label: "My Music",
     to: routePaths.artistMusic,
     icon: Music2,
+  },
+  {
+    label: "Lyrics",
+    to: routePaths.artistLyrics,
+    icon: FileText,
+  },
+  {
+    label: "Albums",
+    to: routePaths.artistAlbums,
+    icon: Album,
   },
   {
     label: "Releases",
@@ -38,6 +50,8 @@ export const artistPageTitles = {
   [routePaths.artistMusic]: "My Music",
   [routePaths.artistTrackDetail()]: "Track Detail",
   [routePaths.artistTrackEdit()]: "Edit Track",
+  [routePaths.artistLyrics]: "Lyrics Management",
+  [routePaths.artistAlbums]: "My Albums",
   [routePaths.artistReleases]: "Releases",
   [routePaths.artistAnalytics]: "Analytics",
   [routePaths.artistProfile]: "Artist Profile",

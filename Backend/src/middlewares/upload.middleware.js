@@ -17,8 +17,8 @@ const fileFilter = (req, file, cb) => {
   if (file.fieldname === "audioFiles" && (file.mimetype.startsWith("audio/") || ALLOWED_AUDIO_FORMATS.includes(file.mimetype))) {
     cb(null, true);
   }
-  // Sync o3ics: .lrc (timed text)
-  else if (file.fieldname === "o3icsSync") {
+  // Sync lyrics: .lrc (timed text)
+  else if (file.fieldname === "lyricsSync") {
     const name = (file.originalname || "").toLowerCase();
     const extOk = name.endsWith(".lrc");
     const mimeOk =
@@ -29,7 +29,7 @@ const fileFilter = (req, file, cb) => {
     if (extOk || mimeOk) {
       cb(null, true);
     } else {
-      cb(new Error("Sync o3ics must be a .lrc file (or plain text)."), false);
+      cb(new Error("Sync lyrics must be a .lrc file (or plain text)."), false);
     }
   }
   // Accept image files (for avatar and coverImages)

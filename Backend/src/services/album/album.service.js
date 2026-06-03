@@ -8,6 +8,10 @@ import {
     formatAlbumItem,
     normalizePositiveInteger,
 } from "./album.helper.js";
+import {
+    enrichAlbumWithTotalDuration,
+    enrichAlbumsWithTotalDuration,
+} from "./album.sync.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
@@ -25,7 +29,7 @@ const getAlbumList = async (query = {}) => {
 
     const [albums, total] = await Promise.all([
         Album.find(filter)
-            .sort({ releaseDate: -1, totalPlays: -1, createdAt: -1, _id: -1 })
+            .sort({ releaseDate: -1, totalDuration: -1, createdAt: -1, _id: -1 })
             .skip(skip)
             .limit(limit)
             .populate({
@@ -35,6 +39,8 @@ const getAlbumList = async (query = {}) => {
             .lean(),
         Album.countDocuments(filter),
     ]);
+
+    await enrichAlbumsWithTotalDuration(albums);
 
     return {
         albums: albums.map(formatAlbumItem),
@@ -148,6 +154,8 @@ const getAlbumDetail = async (albumId) => {
 
         album.trackList = [...(album.trackList || []), ...supplemental];
     }
+
+    await enrichAlbumWithTotalDuration(album);
 
     return formatAlbumDetail(album);
 };

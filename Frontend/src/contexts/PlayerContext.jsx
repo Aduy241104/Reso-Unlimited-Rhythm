@@ -13,27 +13,48 @@ import {
 
 const DEFAULT_VOLUME = 0.75;
 
+const getTrackId = (track, fallbackId = null) =>
+  track?.id || track?._id || track?.trackId || fallbackId;
+
 const getArtistName = (track, fallbackArtistName = "") =>
-  track?.artist?.name || track?.artistName || fallbackArtistName || "Unknown artist";
+  track?.artist?.name ||
+  track?.artistName ||
+  track?.owner?.name ||
+  fallbackArtistName ||
+  "Unknown artist";
+
+const getTrackImage = (track, fallbackImage = "") => {
+  const coverImage = Array.isArray(track?.coverImage)
+    ? track.coverImage[0]
+    : track?.coverImage;
+
+  return (
+    coverImage ||
+    track?.image ||
+    track?.avatar ||
+    track?.album?.coverImage ||
+    track?.album?.avatar ||
+    track?.artist?.avatar ||
+    fallbackImage ||
+    ""
+  );
+};
 
 const normalizeQueueTrack = (item, options = {}) => {
   const track = item?.track ?? item ?? {};
+  const normalizedTrackId = getTrackId(
+    track,
+    `${options.collectionId || options.collectionType || "track"}-${options.index || 0}`
+  );
 
   return {
-    id:
-      track?.id ||
-      `${options.collectionId || options.collectionType || "track"}-${options.index || 0}`,
+    id: normalizedTrackId,
     title: track?.title || "Untitled track",
     artist: track?.artist || null,
     artistName: getArtistName(track, options.artistName),
     duration: Number(track?.duration) || 0,
-    image:
-      track?.coverImage ||
-      track?.image ||
-      track?.artist?.avatar ||
-      options.image ||
-      "",
-    playbackTrackId: track?.id || null,
+    image: getTrackImage(track, options.image),
+    playbackTrackId: getTrackId(track),
     streamUrl: resolveTrackMediaUrl(track),
     lyricsSyncUrl: resolveTrackLyricsSyncUrl(track),
     playback: track?.playback || null,
@@ -347,16 +368,16 @@ export const PlayerProvider = ({ children }) => {
 
       const hydratedTrack = {
         ...nextTrack,
+        id: getTrackId(source.track, nextTrack.id),
         lyricsThemeIndex,
         title: source.track?.title || nextTrack.title,
         artist: source.track?.artist || nextTrack.artist,
-        artistName: source.track?.artist?.name || nextTrack.artistName,
+        artistName: getArtistName(source.track, nextTrack.artistName),
         duration: Number(source.track?.duration) || nextTrack.duration,
-        image:
-          source.track?.coverImage ||
-          source.track?.album?.coverImage ||
-          nextTrack.image,
-        playbackTrackId: source.track?.id || nextTrack.playbackTrackId,
+        image: getTrackImage(source.track, nextTrack.image),
+        playbackTrackId:
+          getTrackId(source.track, nextTrack.playbackTrackId) ||
+          nextTrack.playbackTrackId,
         playback: source.track?.playback || nextTrack.playback,
         lyricsSyncUrl:
           resolveTrackLyricsSyncUrl(source.track) || nextTrack.lyricsSyncUrl,
@@ -434,7 +455,7 @@ export const PlayerProvider = ({ children }) => {
 
     const fallbackStartIndex = queueToPlay.findIndex((queueItem) => {
       const candidate = queueItem?.track ?? queueItem;
-      return candidate?.id && candidate.id === normalizedTrack.id;
+      return getTrackId(candidate) === normalizedTrack.id;
     });
 
     await playCollection(queueToPlay, {
