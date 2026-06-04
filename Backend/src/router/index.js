@@ -10,6 +10,7 @@ import lyricsRoutes from "./artist.lyrics.routes.js";
 import adminRoutes from "./admin.routes.js";
 import transactionRoutes from "./transaction.routes.js";
 import userListfollowArtistRoutes from "./user.listfollowArtist.routes.js";
+import userListfollowAlbumRoutes from "./user.listfollowAlbum.routes.js";
 import userRoutes from "./user.routes.js";
 
 function route(app) {
@@ -26,6 +27,7 @@ function route(app) {
     app.use("/api/admin", adminRoutes);
     app.use("/api/transactions", transactionRoutes);
     app.use("/api/users/list-followed-artists", userListfollowArtistRoutes);
+    app.use("/api/users/list-followed-albums", userListfollowAlbumRoutes);
     app.use("/api/users", userRoutes);
 }
 
