@@ -8,7 +8,6 @@ import { optionalAuthenticate } from "../middlewares/Authentication/authenticati
 import { requireAdmin, requireArtist } from "../middlewares/Authentication/authentication.middleware.js";
 import artistTrackController from "../controllers/artist.track.controller.js";
 import adminTrackController from "../controllers/admin.track.controller.js";
-
 const router = express.Router();
 
 // Giờ không sợ bị trùng /admin nữa, viết thoải mái nhé bạn

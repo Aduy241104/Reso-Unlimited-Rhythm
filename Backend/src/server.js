@@ -35,29 +35,29 @@ app.use(morgan("combined"));
 route(app);
 
 app.get("/test", async (req, res) => { res.json("hello") });
-// app.get("/run-cron", async (req, res) => {
-//     try {
-//         const { runTodayAggregation } = await import('./jobs/dailyTopTrack.cron.js');
-//         const { syncTrackStatsForDay } = await import('./services/analytics/trackStatAggregation.service.js');
-//         const { date } = req.query;
-//         const result = date
-//             ? await syncTrackStatsForDay(date)
-//             : await runTodayAggregation();
-//         res.json({ success: true, result });
-//     } catch (e) {
-//         res.status(500).json({ error: e.message });
-//     }
-// });
-// app.get("/run-platform-cron", async (req, res) => {
-//     try {
-//         const { runPlatformStreamingStatsAggregation } = await import('./jobs/platformStreamingStats.cron.js');
-//         const { date } = req.query;
-//         const result = await runPlatformStreamingStatsAggregation(date || undefined);
-//         res.json({ success: true, result });
-//     } catch (e) {
-//         res.status(500).json({ error: e.message });
-//     }
-// });
+app.get("/run-cron", async (req, res) => {
+    try {
+        const { runTodayAggregation } = await import('./jobs/dailyTopTrack.cron.js');
+        const { syncTrackStatsForDay } = await import('./services/analytics/trackStatAggregation.service.js');
+        const { date } = req.query;
+        const result = date
+            ? await syncTrackStatsForDay(date)
+            : await runTodayAggregation();
+        res.json({ success: true, result });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+app.get("/run-platform-cron", async (req, res) => {
+    try {
+        const { runPlatformStreamingStatsAggregation } = await import('./jobs/platformStreamingStats.cron.js');
+        const { date } = req.query;
+        const result = await runPlatformStreamingStatsAggregation(date || undefined);
+        res.json({ success: true, result });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
 
 app.use(notFoundHandler);
 app.use(globalErrorHandler);

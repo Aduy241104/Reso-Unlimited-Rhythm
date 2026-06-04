@@ -5,6 +5,7 @@ import genreRoutes from "./genre.routes.js";
 import authenticationRoutes from "./authentication.routes.js";
 import playlistRoutes from "./playlist.routes.js";
 import trackRoutes from "./track.routes.js";
+import trackListenRoutes from "./track.listen.routes.js";
 import lyricsRoutes from "./artist.lyrics.routes.js";
 import adminRoutes from "./admin.routes.js";
 import transactionRoutes from "./transaction.routes.js";
@@ -18,6 +19,7 @@ function route(app) {
     app.use("/api/artists", artistRoutes);
     app.use("/api/playlists", playlistRoutes);
     app.use("/api/artist/track", trackRoutes);
+    app.use("/api/tracks/:id/listen", trackListenRoutes);
     app.use("/api/tracks", trackRoutes);
     app.use("/api/artist/lyrics", lyricsRoutes);
     app.use("/api/admin", adminRoutes);
