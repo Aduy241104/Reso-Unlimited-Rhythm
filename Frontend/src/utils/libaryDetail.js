@@ -14,3 +14,17 @@ export const DEFAULT_FOLLOWED_ARTISTS_PARAMS = {
   page: 1,
   limit: 24,
 };
+
+export const DEFAULT_FOLLOWED_ALBUMS_PARAMS = {
+  page: 1,
+  limit: 20,
+};
+
+export const LIBARY_ALBUM_TEXT = {
+  typeLabel: "Album",
+  emptyTitle: "B\u1ea1n ch\u01b0a theo d\u00f5i album n\u00e0o",
+  emptyDescription: "C\u00e1c album b\u1ea1n theo d\u00f5i s\u1ebd xu\u1ea5t hi\u1ec7n t\u1ea1i \u0111\u00e2y.",
+  loadingTitle: "\u0110ang t\u1ea3i album...",
+  errorTitle: "Kh\u00f4ng th\u1ec3 t\u1ea3i album",
+  retryLabel: "Th\u1eed l\u1ea1i",
+};
