@@ -30,6 +30,7 @@ import LyricsPage from "../pages/lyrics/LyricsPage";
 import DailyTopTracksPage from "../pages/track/DailyTopTracksPage";
 import MonthlyTopTracksPage from "../pages/track/MonthlyTopTracksPage";
 import ArtistProfilePageView from "../pages/profile/ArtistProfilePage";
+import UserListfollowArtistPage from "../pages/user/UserListfollowArtistPage";
 import PlaylistDetailPage from "../pages/playlist/PlaylistDetailPage";
 import TrackDetailPage from "../pages/track/TrackDetailPage";
 import ProtectedRoute from "./ProtectedRoute";
@@ -80,6 +81,21 @@ export const appRoutes = [
       {
         path: routePaths.legacyArtistProfile,
         element: <Navigate to={featuredArtistProfilePath} replace />,
+      },
+      {
+        path: routePaths.userListfollowArtist,
+        element: <ProtectedRoute />,
+        children: [
+          {
+            element: <RoleRoute allowedRoles={["user"]} />,
+            children: [
+              {
+                index: true,
+                element: <UserListfollowArtistPage />,
+              },
+            ],
+          },
+        ],
       },
     ],
   },

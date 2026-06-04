@@ -1,5 +1,6 @@
 import {
   Disc3,
+  Heart,
   House,
   LayoutDashboard,
   PanelLeftClose,
@@ -18,6 +19,12 @@ const navItems = [
     label: "Home",
     to: routePaths.home,
     matches: (pathname) => pathname === routePaths.home,
+  },
+  {
+    icon: Heart,
+    label: "Followed Artists",
+    to: routePaths.userListfollowArtist,
+    matches: (pathname) => pathname === routePaths.userListfollowArtist,
   },
   {
     icon: UserRound,
