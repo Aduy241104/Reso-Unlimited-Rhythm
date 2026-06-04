@@ -22,9 +22,15 @@ const navItems = [
   },
   {
     icon: Heart,
-    label: "Followed Artists",
-    to: routePaths.userListfollowArtist,
-    matches: (pathname) => pathname === routePaths.userListfollowArtist,
+    label: "Following",
+    to: routePaths.userFollowing,
+    matches: (pathname) => pathname === routePaths.userFollowing,
+  },
+  {
+    icon: Disc3,
+    label: "Followed Albums",
+    to: routePaths.userListfollowAlbum,
+    matches: (pathname) => pathname === routePaths.userListfollowAlbum,
   },
   {
     icon: UserRound,
