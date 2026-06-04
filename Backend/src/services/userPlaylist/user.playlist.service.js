@@ -1,8 +1,11 @@
 import Playlist from "../../models/Playlist.js";
+import mongoose from "mongoose";
 import {
     formatUserPlaylist,
+    formatPlaylistDetail,
     normalizePositiveInteger,
 } from "./user.playlist.service.helper.js";
+import { AppError } from "../../utils/AppError.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
@@ -43,6 +46,94 @@ const getMyPlaylistsByUserId = async (userId, query = {}) => {
     };
 };
 
+
+const buildPlaylistDetailFilter = (
+    playlistId,
+    mode,
+    currentUserId
+) => {
+    if (mode === "adminSystem") {
+        return {
+            _id: playlistId,
+            type: "system",
+        };
+    }
+
+    return {
+        _id: playlistId,
+        $or: [
+            { type: "system" },
+
+            {
+                isHidden: false,
+                isPublic: true,
+            },
+
+            {
+                userId: currentUserId,
+            },
+        ],
+    };
+};
+
+const getPlaylistDetail = async (playlistId, options = {}) => {
+    const mode = options.mode ?? "public";
+
+    if (!mongoose.Types.ObjectId.isValid(playlistId)) {
+        throw new AppError("Playlist id is invalid.", 400, {
+            field: "id",
+        });
+    }
+
+    const filter = buildPlaylistDetailFilter(
+        playlistId,
+        mode,
+        options.currentUserId
+    );
+
+    const playlist = await Playlist.findOne(filter)
+        .populate({
+            path: "userId",
+            select: "email avatar role profile.fullName",
+        })
+        .populate({
+            path: "tracks.trackId",
+            select: [
+                "title",
+                "duration",
+                "avatar",
+                "coverImage",
+                "audioFiles",
+                "lyricsStatic",
+                "lyricsSyncUrl",
+                "stats",
+                "releaseDate",
+                "activeStatus",
+                "approvalStatus",
+                "artist_artistId",
+                "album_albumId",
+            ].join(" "),
+            populate: [
+                {
+                    path: "artist_artistId",
+                    select: "name avatar coverImage",
+                },
+                {
+                    path: "album_albumId",
+                    select: "title coverImage",
+                },
+            ],
+        })
+        .lean();
+
+    if (!playlist) {
+        throw new AppError("Playlist not found.", 404);
+    }
+
+    return formatPlaylistDetail(playlist);
+};
+
 export default {
     getMyPlaylistsByUserId,
+    getPlaylistDetail,
 };

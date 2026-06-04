@@ -5,5 +5,6 @@ import { requireUser } from "../middlewares/Authentication/authentication.middle
 const router = express.Router();
 
 router.get("/", requireUser, userPlaylistController.getMyPlaylists);
+router.get("/detail/:id", userPlaylistController.getPlaylistDetail);
 
 export default router;
