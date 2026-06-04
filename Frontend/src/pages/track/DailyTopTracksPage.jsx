@@ -1,9 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  ArrowDown,
+  ArrowUp,
+  MoreHorizontal,
+  Pause,
+  Play,
   TrendingUp,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import PlayButton from "../../components/common/PlayButton";
-import TrackCard from "../../components/TrackCard";
 import TrackListSection from "../../components/trackList/TrackListSection";
 import { usePlayer } from "../../hooks/usePlayer";
 import { routePaths } from "../../routes/routePaths";
@@ -26,12 +31,13 @@ const dailyChartHeaderColumns = [
   { label: "Title" },
   { label: "Growth", className: "text-right" },
   { label: "Time", className: "text-right" },
+  { label: "" },
 ];
 
 const dailyChartHeaderGridClassName = `
-  mb-2 hidden grid-cols-[2.5rem_minmax(0,1fr)_9rem_3rem] items-center gap-3
-  border-b border-black/6 px-3 pb-3 text-xs font-medium uppercase tracking-[0.24em]
-  text-[#71717a] dark:border-white/10 dark:text-[#a1a1aa] sm:grid
+  mb-0 hidden grid-cols-[5.5rem_minmax(0,1fr)_9.5rem_3rem_2rem] items-center gap-3
+  border-b border-white/[0.06] px-4 pb-4 pt-1 text-[11px] font-semibold uppercase
+  tracking-[0.24em] text-white/42 sm:grid
 `;
 
 const getPreviousDateValue = () => {
@@ -65,26 +71,109 @@ const formatChartDate = (dateValue) => {
 
 const formatNumber = (value) => new Intl.NumberFormat("en-US").format(Number(value) || 0);
 
+const getRankChangeAmount = (item) => {
+  const currentRank = Number(item?.rank) || 0;
+  const previousRank = Number(item?.previousRank) || 0;
+
+  if (currentRank > 0 && previousRank > 0) {
+    return Math.abs(previousRank - currentRank);
+  }
+
+  return Math.abs(Number(item?.rankChange) || 0);
+};
+
+const getRankTrendPresentation = (item) => {
+  const rankTrend = typeof item?.rankTrend === "string" ? item.rankTrend.toLowerCase() : "";
+  const rankChangeAmount = getRankChangeAmount(item);
+
+  switch (rankTrend) {
+    case "up":
+      return {
+        icon: ArrowUp,
+        badgeLabel: rankChangeAmount > 0 ? `+${rankChangeAmount}` : "Up",
+        badgeClassName:
+          "border-emerald-400/20 bg-emerald-500/10 text-emerald-300",
+      };
+    case "down":
+      return {
+        icon: ArrowDown,
+        badgeLabel: rankChangeAmount > 0 ? `-${rankChangeAmount}` : "Down",
+        badgeClassName:
+          "border-rose-400/20 bg-rose-500/10 text-rose-300",
+      };
+    case "new":
+      return {
+        icon: null,
+        badgeLabel: "NEW",
+        badgeClassName:
+          "border-violet-400/20 bg-violet-500/10 text-violet-300",
+      };
+    default:
+      return {
+        icon: null,
+        badgeLabel: "UNCH",
+        badgeClassName:
+          "border-white/[0.08] bg-white/[0.06] text-white/55",
+      };
+  }
+};
+
 const renderGrowthContent = (playCount, totalPlay, isMobile = false) => {
   const safePlayCount = Number(playCount) || 0;
   const safeTotalPlay = Number(totalPlay) || 0;
-  const label =
+  const primaryLabel = `+${formatNumber(safePlayCount)}`;
+  const secondaryLabel =
     safeTotalPlay > 0
-      ? `+${formatNumber(safePlayCount)} to ${formatNumber(safeTotalPlay)} total`
-      : `+${formatNumber(safePlayCount)} plays`;
+      ? `to ${formatNumber(safeTotalPlay)} total`
+      : "plays";
 
   return (
     <span className={ [
-      "inline-flex items-center gap-1 font-medium text-[#16a34a] dark:text-[#4ade80]",
+      "inline-flex items-center text-emerald-300",
       isMobile
-        ? "rounded-full bg-[#16a34a]/10 px-2 py-0.5 text-[11px] sm:hidden"
-        : "justify-end text-xs",
+        ? "rounded-full border border-emerald-400/10 bg-emerald-500/10 px-2 py-0.5 text-[10px] sm:hidden"
+        : "justify-end gap-2 text-right",
     ].join(" ") }>
-      <TrendingUp className={ isMobile ? "h-3 w-3" : "h-3.5 w-3.5" } />
-      <span className="truncate">{ label }</span>
+      <TrendingUp className={ `${isMobile ? "mr-1 h-3 w-3" : "h-3.5 w-3.5 shrink-0"}` } />
+      <span className="flex min-w-0 flex-col">
+        <span className="truncate text-xs font-semibold leading-none text-emerald-300">
+          { primaryLabel }
+        </span>
+        <span className="truncate pt-0.5 text-[10px] font-medium leading-none text-white">
+          { secondaryLabel }
+        </span>
+      </span>
     </span>
   );
 };
+
+const renderRankChangeContent = (item, isMobile = false) => {
+  const {
+    icon: Icon,
+    badgeLabel,
+    badgeClassName,
+  } = getRankTrendPresentation(item);
+
+  return (
+    <span
+      className={ [
+        "inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.14em]",
+        isMobile ? "min-w-[2.85rem] justify-center" : "",
+        badgeClassName,
+      ].join(" ").trim() }
+    >
+      { Icon ? <Icon className="h-2.5 w-2.5" /> : null }
+      <span>{ badgeLabel }</span>
+    </span>
+  );
+};
+
+const renderRankCellContent = (item) => (
+  <span className="inline-flex items-center gap-2">
+    <span className="w-4 text-[13px] font-semibold text-white">{ item?.rank || 0 }</span>
+    { renderRankChangeContent(item, true) }
+  </span>
+);
 
 const DailyTopTracksPage = () => {
   const [selectedDate] = useState(getPreviousDateValue);
@@ -151,6 +240,7 @@ const DailyTopTracksPage = () => {
 
     return (
       topTrack?.coverImage ||
+      topTrack?.artist?.coverImage ||
       topTrack?.avatar ||
       topTrack?.artist?.avatar ||
       createPlaceholderImage("Top 30", "#f59e0b", "#7c2d12")
@@ -203,6 +293,110 @@ const DailyTopTracksPage = () => {
     });
   };
 
+  const renderDailyTrackRow = (item, index) => {
+    const track = item?.track;
+    const totalPlay = Number(track?.stats?.totalPlay) || 0;
+    const durationLabel = formatTrackDuration(track?.duration);
+    const image =
+      track?.coverImage ||
+      track?.avatar ||
+      track?.artist?.avatar ||
+      heroImage;
+    const isPlaybackActive = currentTrack?.id === track?.id;
+    const PlaybackIcon = isPlaybackActive && isPlaying ? Pause : Play;
+
+    return (
+      <div
+        key={ track?.id || `${selectedDate}-${index}` }
+        className={ [
+          "group grid grid-cols-[4.2rem_minmax(0,1fr)_auto] items-center gap-2.5 px-3 py-2.5 transition sm:grid-cols-[5.15rem_minmax(0,1fr)_8.75rem_2.75rem_2rem] sm:px-4",
+          isPlaybackActive ? "bg-white/[0.045]" : "hover:bg-white/[0.03]",
+        ].join(" ") }
+      >
+        <div className="flex items-center">
+          { renderRankCellContent(item) }
+        </div>
+
+        <div className="flex min-w-0 items-center gap-2.5">
+          <button
+            type="button"
+            onClick={ () => handlePlayTrack(track, index) }
+            aria-label={ `${isPlaybackActive && isPlaying ? "Pause" : "Play"} ${track?.title || "track"}` }
+            className="relative h-9 w-9 shrink-0 overflow-hidden rounded-[10px] bg-white/6 shadow-[0_10px_20px_rgba(0,0,0,0.24)] sm:h-10 sm:w-10"
+          >
+            { image ? (
+              <img
+                src={ image }
+                alt={ track?.title || "Track cover" }
+                className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04] group-hover:brightness-[0.4]"
+              />
+            ) : (
+              <div className="h-full w-full bg-[linear-gradient(135deg,#262b39,#12161f)]" />
+            ) }
+            <span
+              className={ [
+                "absolute inset-0 flex items-center justify-center bg-black/35 text-white transition duration-300 sm:bg-black/0 sm:opacity-0 sm:group-hover:bg-black/45 sm:group-hover:opacity-100",
+                isPlaybackActive ? "opacity-100" : "opacity-90 sm:opacity-0",
+              ].join(" ") }
+            >
+              <PlaybackIcon className="h-3.5 w-3.5 fill-current drop-shadow-[0_2px_10px_rgba(0,0,0,0.45)]" />
+            </span>
+          </button>
+
+          <div className="min-w-0">
+            { track?.id ? (
+              <Link
+                to={ routePaths.trackDetail(track.id) }
+                className={ [
+                  "block truncate text-[13px] font-semibold transition hover:text-white/88 hover:underline sm:text-sm",
+                  isPlaybackActive ? "text-emerald-300" : "text-white",
+                ].join(" ") }
+              >
+                { track?.title || "Untitled track" }
+              </Link>
+            ) : (
+              <p className={ [
+                "truncate text-[13px] font-semibold sm:text-sm",
+                isPlaybackActive ? "text-emerald-300" : "text-white",
+              ].join(" ") }>
+                { track?.title || "Untitled track" }
+              </p>
+            ) }
+
+            <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-white/42 sm:text-[11px]">
+              { track?.artist?.id ? (
+                <Link
+                  to={ `/artists/${track.artist.id}` }
+                  className="truncate transition hover:text-white/72 hover:underline"
+                >
+                  { track?.artist?.name || "Unknown artist" }
+                </Link>
+              ) : (
+                <span className="truncate">{ track?.artist?.name || "Unknown artist" }</span>
+              ) }
+              <span className="sm:hidden">{ durationLabel }</span>
+              <span className="sm:hidden">
+                { renderGrowthContent(item?.playCount, totalPlay, true) }
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="hidden items-center justify-end sm:flex">
+          { renderGrowthContent(item?.playCount, totalPlay) }
+        </div>
+
+        <div className="text-right text-[11px] font-medium text-white/56 sm:text-xs">
+          { durationLabel }
+        </div>
+
+        <div className="hidden items-center justify-end text-white/46 sm:flex">
+          <MoreHorizontal className="h-3.5 w-3.5" />
+        </div>
+      </div>
+    );
+  };
+
   return (
     <section className="space-y-4 sm:space-y-6">
       <div
@@ -214,31 +408,49 @@ const DailyTopTracksPage = () => {
       >
         <div
           className="
-            bg-gradient-to-b from-[#f59e0b] via-[#9a3412] to-transparent
-            px-4 pb-5 pt-6 dark:from-[#fbbf24] dark:via-[#7c2d12] dark:to-[#121212]
-            sm:px-8 sm:pb-8 sm:pt-10
+            relative isolate overflow-hidden bg-center bg-cover bg-no-repeat
+            px-4 pb-5 pt-6 sm:px-8 sm:pb-8 sm:pt-10
           "
         >
+          { !isLoading && !errorMessage ? (
+            <>
+              <div
+                className="absolute inset-0 bg-center bg-cover bg-no-repeat"
+                style={ {
+                  backgroundImage: `url(${heroImage})`,
+                  transform: "scale(1.08)",
+                  filter: "blur(8px) saturate(1.08) brightness(0.95)",
+                } }
+              />
+              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.34)_0%,rgba(255,255,255,0.18)_34%,rgba(255,255,255,0.08)_100%)]" />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.42),transparent_44%)]" />
+            </>
+          ) : null }
+
           { isLoading ? (
-            <div className="flex min-h-[20rem] items-end">
+            <div className="relative z-10 flex min-h-[20rem] items-end">
               <p className="text-sm text-white/82">Loading daily top tracks...</p>
             </div>
           ) : errorMessage ? (
-            <div className="flex min-h-[20rem] items-end">
+            <div className="relative z-10 flex min-h-[20rem] items-end">
               <p className="max-w-xl text-sm text-white/88">{ errorMessage }</p>
             </div>
           ) : (
-            <div className="flex flex-col items-center gap-5 text-center md:flex-row md:items-end md:text-left">
+            <div className="relative z-10 flex min-h-[20rem] flex-col items-center justify-end gap-5 text-center md:flex-row md:items-end md:justify-start md:text-left">
               <img
                 src={ heroImage }
                 alt="Daily top tracks cover"
                 className="
-                  h-32 w-32 rounded-[16px] object-cover shadow-[0_24px_60px_rgba(0,0,0,0.28)]
-                  min-[420px]:h-36 min-[420px]:w-36 sm:h-56 sm:w-56
+                  h-32 w-32 rounded-[18px] object-cover
+                  shadow-[0_22px_52px_rgba(15,23,42,0.38)]
+                  ring-1 ring-white/60 backdrop-blur-sm
+                  min-[420px]:h-36 min-[420px]:w-36 sm:h-44 sm:w-44
                 "
               />
-
-              <div className="min-w-0 max-w-3xl">
+              <div
+                className="min-w-0 max-w-3xl"
+                style={ { textShadow: "0 2px 18px rgba(0,0,0,0.32)" } }
+              >
                 <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/82">
                   Daily chart
                 </p>
@@ -248,7 +460,7 @@ const DailyTopTracksPage = () => {
                 <p className="mt-3 text-sm leading-6 text-white/88 sm:mt-4 sm:text-base">
                   The top { DAILY_TOP_TRACK_LIMIT } most-played tracks for { chartDateLabel }.
                 </p>
-                <div className="mt-4 flex flex-wrap items-center justify-center gap-2 md:justify-start">
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
                   <span className={ `${metaPillClassName} font-medium text-white` }>
                     Top { DAILY_TOP_TRACK_LIMIT }
                   </span>
@@ -281,52 +493,12 @@ const DailyTopTracksPage = () => {
             headerGridClassName={ dailyChartHeaderGridClassName }
             emptyMessage="No daily top tracks are available for this date yet."
             hasItems={ dailyTopTracks.length > 0 }
+            loadingClassName="rounded-[24px] border-white/[0.06] bg-transparent text-white/58"
+            containerClassName="overflow-hidden rounded-[24px] border-white/[0.06] bg-transparent !p-0 shadow-none sm:!p-0"
+            mobileLabelClassName="px-4 pt-4 text-white/36"
+            emptyMessageClassName="px-4 py-6 text-white/52"
           >
-            { dailyTopTracks.map((item, index) => {
-              const totalPlay = Number(item?.track?.stats?.totalPlay) || 0;
-
-              return (
-                <TrackCard
-                  key={ item?.track?.id || `${selectedDate}-${index}` }
-                  index={ item?.rank || index + 1 }
-                  indexClassName="!text-sm sm:!text-base"
-                  image={
-                    item?.track?.coverImage ||
-                    item?.track?.avatar ||
-                    item?.track?.artist?.avatar ||
-                    heroImage
-                  }
-                  title={ item?.track?.title || "Untitled track" }
-                  artist={ item?.track?.artist?.name || "Unknown artist" }
-                  artistId={ item?.track?.artist?.id || "" }
-                  duration={ formatTrackDuration(item?.track?.duration) }
-                  href={ item?.track?.id ? routePaths.trackDetail(item.track.id) : undefined }
-                  size="compact"
-                  showLikeButton={ false }
-                  mobileLayoutClassName="grid-cols-[2rem_minmax(0,1fr)_auto]"
-                  desktopLayoutClassName="sm:grid-cols-[2.5rem_minmax(0,1fr)_9rem_3rem]"
-                  mobileMetaItems={ [
-                    {
-                      content: renderGrowthContent(item?.playCount, totalPlay, true),
-                    },
-                  ] }
-                  desktopMetaColumns={ [
-                    {
-                      content: renderGrowthContent(item?.playCount, totalPlay),
-                      className: "hidden items-center justify-end sm:flex",
-                    },
-                    {
-                      content: formatTrackDuration(item?.track?.duration),
-                      className:
-                        "hidden items-center justify-end text-xs text-[#52525b] dark:text-[#a1a1aa] sm:flex",
-                    },
-                  ] }
-                  isPlaybackActive={ currentTrack?.id === item?.track?.id }
-                  isPlaying={ isPlaying }
-                  onPlaybackAction={ () => handlePlayTrack(item?.track, index) }
-                />
-              );
-            }) }
+            { dailyTopTracks.map(renderDailyTrackRow) }
           </TrackListSection>
         </div>
       </div>

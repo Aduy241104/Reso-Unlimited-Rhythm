@@ -4,11 +4,12 @@ import { useAuth } from "../hooks/useAuth";
 import { routePaths } from "../routes/routePaths";
 
 const navigationItems = [
-  { to: routePaths.home, label: "Dashboard", end: true },
-  { to: routePaths.systemTracks, label: "Track moderation", end: false },
-  { to: routePaths.systemPlaylists, label: "System playlists", end: false },
-  { to: routePaths.genres, label: "Genres", end: false },
-  { to: routePaths.users, label: "Users", end: false },
+  { to: routePaths.home, label: "Tổng quan", end: true },
+  { to: routePaths.systemTracks, label: "Kiểm duyệt track", end: false },
+  { to: routePaths.artistRequests, label: "Yêu cầu artist", end: false },
+  { to: routePaths.systemPlaylists, label: "Playlist hệ thống", end: false },
+  { to: routePaths.genres, label: "Thể loại", end: false },
+  { to: routePaths.users, label: "Người dùng", end: false },
 ];
 
 const AdminLayout = () => {

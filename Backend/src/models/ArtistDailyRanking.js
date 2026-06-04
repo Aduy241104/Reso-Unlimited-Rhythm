@@ -17,6 +17,7 @@ const ArtistDailyRankingItemSchema = new Schema(
 
 const ArtistDailyRankingSchema = new Schema(
     {
+        dateKey: { type: String, required: true, trim: true, index: true },
         date: { type: Date, required: true, index: true },
         rankings: {
             type: [ArtistDailyRankingItemSchema],

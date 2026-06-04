@@ -27,13 +27,27 @@ const normalizeTopTrackItem = (item, index) => {
     coverImage: rawTrack?.coverImage || rawTrack?.avatar || "",
     artist: normalizeTrackArtist(rawTrack?.artist),
     stats: rawTrack?.stats || {},
+    activeStatus: rawTrack?.activeStatus || "",
+    approvalStatus: rawTrack?.approvalStatus || "",
   };
+  const numericRank = Number(item?.rank);
+  const numericPreviousRank = Number(item?.previousRank);
+  const numericRankChange = Number(item?.rankChange);
+  const normalizedRankTrend =
+    typeof item?.rankTrend === "string" ? item.rankTrend.trim().toLowerCase() : "";
 
   return {
-    rank: index + 1,
+    rank: numericRank > 0 ? numericRank : index + 1,
     date: item?.date || "",
+    previousRank:
+      item?.previousRank === null || item?.previousRank === undefined
+        ? null
+        : (numericPreviousRank > 0 ? numericPreviousRank : null),
+    rankChange: Number.isFinite(numericRankChange) ? numericRankChange : 0,
+    rankTrend: normalizedRankTrend || "same",
     playCount: Number(item?.playCount) || 0,
     uniqueListeners: Number(item?.uniqueListeners) || 0,
+    averageListenDuration: Number(item?.averageListenDuration) || 0,
     skipCount: Number(item?.skipCount) || 0,
     track: normalizedTrack,
   };

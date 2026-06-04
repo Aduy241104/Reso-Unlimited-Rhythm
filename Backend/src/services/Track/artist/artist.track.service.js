@@ -1,13 +1,13 @@
 import mongoose from "mongoose";
 import { StatusCodes } from "http-status-codes";
-import Artist from "../../models/Artist.js";
-import Track from "../../models/Track.js";
-import User from "../../models/User.js";
-import Album from "../../models/Album.js";
-import { AppError } from "../../utils/AppError.js";
-import { deleteCloudinaryAssetsByUrls } from "../../utils/uploadCloud.js";
-import { formatTrackManagementDetail } from "./track.helper.js";
-import { syncAlbumTotalDuration } from "../album/album.sync.js";
+import Artist from "../../../models/Artist.js";
+import Track from "../../../models/Track.js";
+import User from "../../../models/User.js";
+import Album from "../../../models/Album.js";
+import { AppError } from "../../../utils/AppError.js";
+import { deleteCloudinaryAssetsByUrls } from "../../../utils/uploadCloud.js";
+import { formatTrackManagementDetail } from "../track.helper.js";
+import { syncAlbumTotalDuration } from "../../album/album.sync.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 50;

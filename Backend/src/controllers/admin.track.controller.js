@@ -1,4 +1,4 @@
-import adminTrackService from "../services/Track/admin.track.service.js";
+import adminTrackService from "../services/track/admin/admin.track.service.js";
 import adminTrackValidation from "../middlewares/Admin/admin.track.validation.js";
 import formatResponse from "../utils/formatResponse.js";
 import { AppError } from "../utils/AppError.js";

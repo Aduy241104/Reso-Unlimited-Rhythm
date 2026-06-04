@@ -30,7 +30,7 @@ const TrackSchema = new Schema(
         releaseDate: { type: Date },
         activeStatus: {
             type: String,
-            enum: ["draft", "active", "hidden", "blocked"],
+            enum: ["draft", "active", "inactive","hidden", "blocked"],
             default: "draft",
             index: true,
         },

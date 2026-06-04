@@ -21,7 +21,7 @@ export const getPreviousDateValue = () => {
 
 export const formatDailyTopTracksDate = (dateValue) => {
   if (!dateValue) {
-    return "Unknown day";
+    return "Ngày không xác định";
   }
 
   const date = new Date(`${dateValue}T00:00:00`);
@@ -30,7 +30,7 @@ export const formatDailyTopTracksDate = (dateValue) => {
     return dateValue;
   }
 
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("vi-VN", {
     weekday: "long",
     year: "numeric",
     month: "long",
@@ -43,6 +43,7 @@ export const getDailyTopTracksHeroImage = (topTracks = []) => {
 
   return (
     topTrack?.coverImage ||
+    topTrack?.artist?.coverImage ||
     topTrack?.avatar ||
     topTrack?.artist?.avatar ||
     DAILY_TOP_TRACK_PLACEHOLDER_IMAGE
@@ -55,7 +56,7 @@ export const createDailyTopTracksCollectionMeta = ({
 } = {}) => ({
   id: `daily-top-${date}`,
   type: "daily-top",
-  title: `Daily Top Tracks - ${date}`,
+  title: `Top bài hát ngày - ${date}`,
   image,
   artistName: "Reso Music",
 });
@@ -72,10 +73,10 @@ export const mapDailyTopTracksToContentCards = ({
   return [
     {
       id: `daily-top-${resolvedDate}`,
-      type: "daily chart",
+      type: "BXH ngày",
       image,
-      title: "Daily Top Tracks",
-      subtitle: `Top ${limit} tracks - ${formatDailyTopTracksDate(resolvedDate)}`,
+      title: "Top bài hát ngày",
+      subtitle: `Top ${limit} bài hát · ${formatDailyTopTracksDate(resolvedDate)}`,
       href: routePaths.dailyTopTracks,
       raw: {
         topTracks,

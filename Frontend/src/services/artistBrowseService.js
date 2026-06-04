@@ -220,6 +220,20 @@ const normalizeDailyTopArtistItem = (item) => ({
   completedPlayCount: item.completedPlayCount,
 });
 
+const normalizeMonthlyTopArtistItem = (item) => ({
+  artist: {
+    id: item?.artist?.id || item?.artist?._id || "",
+    name: item?.artist?.name || "Unknown artist",
+    avatar: item?.artist?.avatar || "",
+  },
+  rank: Number(item?.rank) || 0,
+  month: item?.month || "",
+  score: Number(item?.score) || 0,
+  uniqueListeners: Number(item?.uniqueListeners) || 0,
+  playCount: Number(item?.playCount) || 0,
+  completedPlayCount: Number(item?.completedPlayCount) || 0,
+});
+
 const getPublicArtistProfileService = async (artistId) => {
   const encodedArtistId = encodeURIComponent(artistId);
   const endpoints = [`/api/browse/artists/${encodedArtistId}/profile`];
@@ -367,6 +381,20 @@ export const getDailyTopArtistsService = async ({ date, limit = 9 }) => {
 
   return {
     topArtists: response.data.data.topArtists.map(normalizeDailyTopArtistItem),
+    meta: response.data.meta,
+  };
+};
+
+export const getMonthlyTopArtistsService = async ({ month, limit = 9 }) => {
+  const response = await axiosClient.get("/api/browse/artists/top/monthly", {
+    params: {
+      month,
+      limit,
+    },
+  });
+
+  return {
+    topArtists: response.data.data.topArtists.map(normalizeMonthlyTopArtistItem),
     meta: response.data.meta,
   };
 };

@@ -10,8 +10,11 @@ import http from "http";
 import { connectRedis } from "./config/redisConfig.js";
 import { startDailyTopArtistCron } from "./jobs/dailyTopArtist.cron.js";
 import { startMonthlyTopArtistCron } from "./jobs/monthlyTopArtist.cron.js";
+import { startDailyTrackStatCron } from "./jobs/dailyTrackStat.cron.js";
 import { startDailyTopTrackCron } from "./jobs/dailyTopTrack.cron.js";
 import { startMonthlyTrackStatCron } from "./jobs/monthlyTrackStat.cron.js";
+import { startMonthlyTopTrackCron } from "./jobs/monthlyTopTrack.cron.js";
+import { runStartupAnalyticsCatchup } from "./jobs/startupAnalyticsCatchup.js";
 import {
     globalErrorHandler,
     notFoundHandler,
@@ -66,18 +69,24 @@ const PORT = process.env.PORT || 8080;
 
 const startServer = async () => {
     try {
+
+
         await connectMongose();
         await connectRedis();
-        startDailyTopArtistCron();
-        startMonthlyTopArtistCron();
-        startDailyTopTrackCron();
-        startMonthlyTrackStatCron();
-        startPlatformStreamingStatsCron();
 
         server.listen(PORT, '0.0.0.0', () => {
             console.log(`🚀 Server + Socket.IO đang chạy tại port ${PORT}`);
             console.log(`📡 Server đang mở cổng mạng nội bộ tại mọi IP`);
         });
+        await runStartupAnalyticsCatchup();
+        startDailyTopArtistCron();
+        startMonthlyTopArtistCron();
+        startDailyTrackStatCron();
+        startDailyTopTrackCron();
+        startMonthlyTrackStatCron();
+        startMonthlyTopTrackCron();
+        startPlatformStreamingStatsCron();
+
 
     } catch (error) {
         console.error("ðŸš¨ Failed to start server:", error);

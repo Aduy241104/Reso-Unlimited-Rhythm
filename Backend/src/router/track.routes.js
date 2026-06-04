@@ -5,14 +5,26 @@ import { updateTrackSchema } from "../middlewares/TrackMiddlewareValidation/trac
 import adminTrackValidation from "../middlewares/Admin/admin.track.validation.js";
 import validate from "../middlewares/validate.middleware.js";
 import { optionalAuthenticate } from "../middlewares/Authentication/authentication.middleware.js";
+import  authenticate  from "../middlewares/Authentication/authentication.middleware.js";
 import { requireAdmin, requireArtist } from "../middlewares/Authentication/authentication.middleware.js";
 import artistTrackController from "../controllers/artist.track.controller.js";
 import adminTrackController from "../controllers/admin.track.controller.js";
 const router = express.Router();
 
-// Giờ không sợ bị trùng /admin nữa, viết thoải mái nhé bạn
+router.post(
+    "/:id/listen",
+    authenticate("user"),
+    validate(trackValidation.trackIdParamSchema, "params"),
+    validate(trackValidation.listenEventBodySchema, "body"),
+    trackController.recordListen
+);
 
-// GET /:id
+router.get(
+    "/top/daily",
+    validate(trackValidation.dailyTopTracksQuerySchema, "query"),
+    trackController.getDailyTopTracks
+);
+
 router.get(
     "/top/monthly",
     validate(trackValidation.monthlyTopTracksQuerySchema, "query"),

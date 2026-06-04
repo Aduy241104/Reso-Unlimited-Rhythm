@@ -24,6 +24,74 @@ const TOP_TRACKS_PAST_TTL_SECONDS = 24 * 60 * 60;
 const TOP_TRACKS_CURRENT_MONTH_TTL_SECONDS = 15 * 60;
 const TOP_TRACKS_PAST_MONTH_TTL_SECONDS = 24 * 60 * 60;
 
+const getTrackIdentity = (track) => {
+    if (!track) {
+        return null;
+    }
+
+    return track.id || track._id || null;
+};
+
+const getValidTrackIds = async (trackIds) => {
+    if (trackIds.length === 0) {
+        return new Set();
+    }
+
+    const validTracks = await Track.find({
+        _id: { $in: trackIds },
+        activeStatus: "active",
+        approvalStatus: "approved",
+    })
+        .select("_id")
+        .lean();
+
+    return new Set(validTracks.map((track) => track._id.toString()));
+};
+
+const normalizeTopTracks = async (topTracks, limit) => {
+    const normalizedTracks = Array.isArray(topTracks) ? topTracks : [];
+    const trackIds = normalizedTracks
+        .map((item) => getTrackIdentity(item?.track))
+        .filter(Boolean);
+    const validTrackIds = await getValidTrackIds(trackIds);
+
+    return normalizedTracks
+        .filter((item) => {
+            const trackId = getTrackIdentity(item?.track);
+            return trackId && validTrackIds.has(String(trackId));
+        })
+        .slice(0, limit)
+        .map((item, index) => {
+            const nextRank = index + 1;
+            const previousRank = item.previousRank ?? null;
+
+            if (!previousRank) {
+                return {
+                    ...item,
+                    rank: nextRank,
+                    previousRank: null,
+                    rankChange: 0,
+                    rankTrend: "new",
+                };
+            }
+
+            const rankChange = previousRank - nextRank;
+
+            return {
+                ...item,
+                rank: nextRank,
+                previousRank,
+                rankChange,
+                rankTrend:
+                    rankChange > 0
+                        ? "up"
+                        : rankChange < 0
+                            ? "down"
+                            : "same",
+            };
+        });
+};
+
 const parseDailyTopTracksDate = (dateInput) => {
     const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateInput);
     if (!match) {
@@ -54,6 +122,18 @@ const parseDailyTopTracksDate = (dateInput) => {
     };
 };
 
+const buildDailyDateQuery = ({ dateKey, startDate, endDate }) => ({
+    $or: [
+        { dateKey },
+        {
+            date: {
+                $gte: startDate,
+                $lt: endDate,
+            },
+        },
+    ],
+});
+
 const buildDailyTopTracksCacheKey = ({ dateKey, limit }) =>
     `top_tracks:daily:${dateKey}:limit:${limit}`;
 
@@ -82,6 +162,9 @@ const formatDailyTopTrackStat = ({ stat, date }) => ({
     track: formatTrackItem(stat.trackId),
     date,
     rank: stat.rank,
+    previousRank: stat.previousRank ?? null,
+    rankChange: stat.rankChange ?? 0,
+    rankTrend: stat.rankTrend || "new",
     playCount: stat.playCount,
     uniqueListeners: stat.uniqueListeners,
     averageListenDuration: stat.averageListenDuration,
@@ -203,27 +286,29 @@ const getDailyTopTracks = async ({ date, limit }) => {
         try {
             const cachedData = await redisClient.get(cacheKey);
             if (cachedData) {
-                return {
-                    topTracks: JSON.parse(cachedData),
-                    meta: {
-                        date: dateKey,
-                        limit,
-                        cacheKey,
-                        cacheHit: true,
-                    },
-                };
+                const parsedTopTracks = JSON.parse(cachedData);
+                const topTracks = await normalizeTopTracks(parsedTopTracks, limit);
+
+                if (topTracks.length === limit || parsedTopTracks.length < limit) {
+                    return {
+                        topTracks,
+                        meta: {
+                            date: dateKey,
+                            limit,
+                            cacheKey,
+                            cacheHit: true,
+                        },
+                    };
+                }
             }
         } catch (error) {
             console.error("Failed to read daily top tracks from Redis:", error);
         }
     }
 
-    const rankingDocument = await TrackDailyRanking.findOne({
-        date: {
-            $gte: startDate,
-            $lt: endDate,
-        },
-    })
+    const rankingDocument = await TrackDailyRanking.findOne(
+        buildDailyDateQuery({ dateKey, startDate, endDate })
+    )
         .populate({
             path: "rankings.trackId",
             match: {
@@ -244,25 +329,25 @@ const getDailyTopTracks = async ({ date, limit }) => {
 
     const topTracks = rankings
         .filter((stat) => Boolean(stat.trackId))
-        .slice(0, limit)
         .map((stat) =>
             formatDailyTopTrackStat({
                 stat,
-                date: rankingDocument?.date || startDate,
+                date: rankingDocument?.dateKey || dateKey,
             })
         );
+    const normalizedTopTracks = await normalizeTopTracks(topTracks, limit);
 
     if (redisClient.isOpen) {
         try {
             const ttl = getDailyTopTracksCacheTtl(dateKey);
-            await redisClient.setEx(cacheKey, ttl, JSON.stringify(topTracks));
+            await redisClient.setEx(cacheKey, ttl, JSON.stringify(normalizedTopTracks));
         } catch (error) {
             console.error("Failed to cache daily top tracks in Redis:", error);
         }
     }
 
     return {
-        topTracks,
+        topTracks: normalizedTopTracks,
         meta: {
             date: dateKey,
             limit,
@@ -280,15 +365,20 @@ const getMonthlyTopTracks = async ({ month, limit }) => {
         try {
             const cachedData = await redisClient.get(cacheKey);
             if (cachedData) {
-                return {
-                    topTracks: JSON.parse(cachedData),
-                    meta: {
-                        month: monthKey,
-                        limit,
-                        cacheKey,
-                        cacheHit: true,
-                    },
-                };
+                const parsedTopTracks = JSON.parse(cachedData);
+                const topTracks = await normalizeTopTracks(parsedTopTracks, limit);
+
+                if (topTracks.length === limit || parsedTopTracks.length < limit) {
+                    return {
+                        topTracks,
+                        meta: {
+                            month: monthKey,
+                            limit,
+                            cacheKey,
+                            cacheHit: true,
+                        },
+                    };
+                }
             }
         } catch (error) {
             console.error("Failed to read monthly top tracks from Redis:", error);
@@ -328,25 +418,25 @@ const getMonthlyTopTracks = async ({ month, limit }) => {
 
     const topTracks = rankings
         .filter((stat) => Boolean(stat.trackId))
-        .slice(0, limit)
         .map((stat) =>
             formatMonthlyTopTrackStat({
                 stat,
                 monthKey,
             })
         );
+    const normalizedTopTracks = await normalizeTopTracks(topTracks, limit);
 
     if (redisClient.isOpen) {
         try {
             const ttl = getMonthlyTopTracksCacheTtl(monthKey);
-            await redisClient.setEx(cacheKey, ttl, JSON.stringify(topTracks));
+            await redisClient.setEx(cacheKey, ttl, JSON.stringify(normalizedTopTracks));
         } catch (error) {
             console.error("Failed to cache monthly top tracks in Redis:", error);
         }
     }
 
     return {
-        topTracks,
+        topTracks: normalizedTopTracks,
         meta: {
             month: monthKey,
             limit,

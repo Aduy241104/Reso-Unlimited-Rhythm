@@ -167,31 +167,49 @@ const MonthlyTopTracksPage = () => {
       >
         <div
           className="
-            bg-gradient-to-b from-[#38bdf8] via-[#0f766e] to-transparent
-            px-4 pb-5 pt-6 dark:from-[#38bdf8] dark:via-[#155e75] dark:to-[#121212]
-            sm:px-8 sm:pb-8 sm:pt-10
+            relative isolate overflow-hidden bg-center bg-cover bg-no-repeat
+            px-4 pb-5 pt-6 sm:px-8 sm:pb-8 sm:pt-10
           "
         >
+          { !isLoading && !errorMessage ? (
+            <>
+              <div
+                className="absolute inset-0 bg-center bg-cover bg-no-repeat"
+                style={ {
+                  backgroundImage: `url(${heroImage})`,
+                  transform: "scale(1.08)",
+                  filter: "blur(8px) saturate(1.08) brightness(0.95)",
+                } }
+              />
+              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.34)_0%,rgba(255,255,255,0.18)_34%,rgba(255,255,255,0.08)_100%)]" />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.42),transparent_44%)]" />
+            </>
+          ) : null }
+
           { isLoading ? (
-            <div className="flex min-h-[20rem] items-end">
+            <div className="relative z-10 flex min-h-[20rem] items-end">
               <p className="text-sm text-white/82">Loading monthly top tracks...</p>
             </div>
           ) : errorMessage ? (
-            <div className="flex min-h-[20rem] items-end">
+            <div className="relative z-10 flex min-h-[20rem] items-end">
               <p className="max-w-xl text-sm text-white/88">{ errorMessage }</p>
             </div>
           ) : (
-            <div className="flex flex-col items-center gap-5 text-center md:flex-row md:items-end md:text-left">
+            <div className="relative z-10 flex min-h-[20rem] flex-col items-center justify-end gap-5 text-center md:flex-row md:items-end md:justify-start md:text-left">
               <img
                 src={ heroImage }
                 alt="Monthly top tracks cover"
                 className="
-                  h-32 w-32 rounded-[16px] object-cover shadow-[0_24px_60px_rgba(0,0,0,0.28)]
-                  min-[420px]:h-36 min-[420px]:w-36 sm:h-56 sm:w-56
+                  h-32 w-32 rounded-[18px] object-cover
+                  shadow-[0_22px_52px_rgba(15,23,42,0.38)]
+                  ring-1 ring-white/60 backdrop-blur-sm
+                  min-[420px]:h-36 min-[420px]:w-36 sm:h-44 sm:w-44
                 "
               />
-
-              <div className="min-w-0 max-w-3xl">
+              <div
+                className="min-w-0 max-w-3xl"
+                style={ { textShadow: "0 2px 18px rgba(0,0,0,0.32)" } }
+              >
                 <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/82">
                   Monthly chart
                 </p>
@@ -201,7 +219,7 @@ const MonthlyTopTracksPage = () => {
                 <p className="mt-3 text-sm leading-6 text-white/88 sm:mt-4 sm:text-base">
                   The top { MONTHLY_TOP_TRACK_LIMIT } most-played tracks for { chartMonthLabel }.
                 </p>
-                <div className="mt-4 flex flex-wrap items-center justify-center gap-2 md:justify-start">
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
                   <span className={ `${metaPillClassName} font-medium text-white` }>
                     Top { MONTHLY_TOP_TRACK_LIMIT }
                   </span>

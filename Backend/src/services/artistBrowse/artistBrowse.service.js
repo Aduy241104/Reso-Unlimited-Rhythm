@@ -10,6 +10,7 @@ import Interaction from "../../models/Interaction.js";
 import ReleaseSchedule from "../../models/ReleaseSchedule.js";
 import ArtistStat from "../../models/ArtistStat.js";
 import Track from "../../models/Track.js";
+import redisClient from "../../config/redisConfig.js";
 import { AppError } from "../../utils/AppError.js";
 import { getAnalyticsTimezone } from "../analytics/trackStatAggregation.service.js";
 import {
@@ -28,6 +29,65 @@ dayjs.extend(timezone);
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
+const TOP_ARTISTS_TODAY_TTL_SECONDS = 5 * 60;
+const TOP_ARTISTS_PAST_TTL_SECONDS = 24 * 60 * 60;
+const TOP_ARTISTS_CURRENT_MONTH_TTL_SECONDS = 15 * 60;
+const TOP_ARTISTS_PAST_MONTH_TTL_SECONDS = 24 * 60 * 60;
+
+const buildDailyTopArtistsCacheKey = ({ dateKey, limit }) =>
+    `top_artists:daily:${dateKey}:limit:${limit}`;
+
+const buildMonthlyTopArtistsCacheKey = ({ monthKey, limit }) =>
+    `top_artists:monthly:${monthKey}:limit:${limit}`;
+
+const getDailyTopArtistsCacheTtl = (dateKey) => {
+    const analyticsTimezone = getAnalyticsTimezone();
+    const todayKey = dayjs().tz(analyticsTimezone).format("YYYY-MM-DD");
+
+    return dateKey === todayKey
+        ? TOP_ARTISTS_TODAY_TTL_SECONDS
+        : TOP_ARTISTS_PAST_TTL_SECONDS;
+};
+
+const getMonthlyTopArtistsCacheTtl = (monthKey) => {
+    const analyticsTimezone = getAnalyticsTimezone();
+    const currentMonthKey = dayjs().tz(analyticsTimezone).format("YYYY-MM");
+
+    return monthKey === currentMonthKey
+        ? TOP_ARTISTS_CURRENT_MONTH_TTL_SECONDS
+        : TOP_ARTISTS_PAST_MONTH_TTL_SECONDS;
+};
+
+const getValidArtistIds = async (artistIds) => {
+    if (artistIds.length === 0) {
+        return new Set();
+    }
+
+    const validArtists = await Artist.find({
+        _id: { $in: artistIds },
+        activeStatus: "active",
+    })
+        .select("_id")
+        .lean();
+
+    return new Set(validArtists.map((artist) => artist._id.toString()));
+};
+
+const normalizeTopArtists = async (topArtists, limit) => {
+    const normalizedArtists = Array.isArray(topArtists) ? topArtists : [];
+    const artistIds = normalizedArtists
+        .map((item) => item?.artist?.id)
+        .filter(Boolean);
+    const validArtistIds = await getValidArtistIds(artistIds);
+
+    return normalizedArtists
+        .filter((item) => item?.artist?.id && validArtistIds.has(String(item.artist.id)))
+        .slice(0, limit)
+        .map((item, index) => ({
+            ...item,
+            rank: index + 1,
+        }));
+};
 
 const validateAndGetArtist = async (artistId, options = {}) => {
     const { lean = true } = options;
@@ -83,6 +143,18 @@ const parseDailyTopArtistsDate = (dateInput) => {
         dateKey: startDay.format("YYYY-MM-DD"),
     };
 };
+
+const buildDailyDateQuery = ({ dateKey, startDate, endDate }) => ({
+    $or: [
+        { dateKey },
+        {
+            date: {
+                $gte: startDate,
+                $lt: endDate,
+            },
+        },
+    ],
+});
 
 const parseMonthlyTopArtistsMonth = (monthInput) => {
     const match = /^(\d{4})-(\d{2})$/.exec(monthInput);
@@ -323,13 +395,35 @@ const getDailyTopArtists = async (query = {}) => {
     const { startDate, endDate, dateKey } = parseDailyTopArtistsDate(query.date);
     const requestedLimit = normalizePositiveInteger(query.limit, DEFAULT_LIMIT);
     const limit = Math.min(requestedLimit, 20);
+    const cacheKey = buildDailyTopArtistsCacheKey({ dateKey, limit });
 
-    const rankingDocument = await ArtistDailyRanking.findOne({
-        date: {
-            $gte: startDate,
-            $lt: endDate,
-        },
-    })
+    if (redisClient.isOpen) {
+        try {
+            const cachedData = await redisClient.get(cacheKey);
+            if (cachedData) {
+                const parsedTopArtists = JSON.parse(cachedData);
+                const topArtists = await normalizeTopArtists(parsedTopArtists, limit);
+
+                if (topArtists.length === limit || parsedTopArtists.length < limit) {
+                    return {
+                        topArtists,
+                        meta: {
+                            date: dateKey,
+                            limit,
+                            cacheKey,
+                            cacheHit: true,
+                        },
+                    };
+                }
+            }
+        } catch (error) {
+            console.error("Failed to read daily top artists from Redis:", error);
+        }
+    }
+
+    const rankingDocument = await ArtistDailyRanking.findOne(
+        buildDailyDateQuery({ dateKey, startDate, endDate })
+    )
         .populate({
             path: "rankings.artistId",
             select: "_id name avatar activeStatus",
@@ -343,19 +437,30 @@ const getDailyTopArtists = async (query = {}) => {
 
     const topArtists = rankings
         .filter((stat) => Boolean(stat.artistId))
-        .slice(0, limit)
         .map((stat) =>
             formatDailyTopArtistStat({
                 stat,
-                date: rankingDocument?.date || startDate,
+                date: rankingDocument?.dateKey || dateKey,
             })
         );
+    const normalizedTopArtists = await normalizeTopArtists(topArtists, limit);
+
+    if (redisClient.isOpen) {
+        try {
+            const ttl = getDailyTopArtistsCacheTtl(dateKey);
+            await redisClient.setEx(cacheKey, ttl, JSON.stringify(normalizedTopArtists));
+        } catch (error) {
+            console.error("Failed to cache daily top artists in Redis:", error);
+        }
+    }
 
     return {
-        topArtists,
+        topArtists: normalizedTopArtists,
         meta: {
             date: dateKey,
             limit,
+            cacheKey,
+            cacheHit: false,
         },
     };
 };
@@ -364,6 +469,31 @@ const getMonthlyTopArtists = async (query = {}) => {
     const { year, month, monthKey } = parseMonthlyTopArtistsMonth(query.month);
     const requestedLimit = normalizePositiveInteger(query.limit, DEFAULT_LIMIT);
     const limit = Math.min(requestedLimit, 20);
+    const cacheKey = buildMonthlyTopArtistsCacheKey({ monthKey, limit });
+
+    if (redisClient.isOpen) {
+        try {
+            const cachedData = await redisClient.get(cacheKey);
+            if (cachedData) {
+                const parsedTopArtists = JSON.parse(cachedData);
+                const topArtists = await normalizeTopArtists(parsedTopArtists, limit);
+
+                if (topArtists.length === limit || parsedTopArtists.length < limit) {
+                    return {
+                        topArtists,
+                        meta: {
+                            month: monthKey,
+                            limit,
+                            cacheKey,
+                            cacheHit: true,
+                        },
+                    };
+                }
+            }
+        } catch (error) {
+            console.error("Failed to read monthly top artists from Redis:", error);
+        }
+    }
 
     const rankingDocument = await ArtistMonthlyRanking.findOne({ year, month })
         .populate({
@@ -379,7 +509,6 @@ const getMonthlyTopArtists = async (query = {}) => {
 
     const topArtists = rankings
         .filter((stat) => Boolean(stat.artistId))
-        .slice(0, limit)
         .map((stat) => ({
             artist: {
                 id: stat.artistId._id.toString(),
@@ -393,12 +522,24 @@ const getMonthlyTopArtists = async (query = {}) => {
             playCount: stat.playCount,
             completedPlayCount: stat.completedPlayCount,
         }));
+    const normalizedTopArtists = await normalizeTopArtists(topArtists, limit);
+
+    if (redisClient.isOpen) {
+        try {
+            const ttl = getMonthlyTopArtistsCacheTtl(monthKey);
+            await redisClient.setEx(cacheKey, ttl, JSON.stringify(normalizedTopArtists));
+        } catch (error) {
+            console.error("Failed to cache monthly top artists in Redis:", error);
+        }
+    }
 
     return {
-        topArtists,
+        topArtists: normalizedTopArtists,
         meta: {
             month: monthKey,
             limit,
+            cacheKey,
+            cacheHit: false,
         },
     };
 };

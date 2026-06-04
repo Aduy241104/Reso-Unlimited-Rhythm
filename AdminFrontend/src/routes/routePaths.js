@@ -2,6 +2,8 @@ export const routePaths = {
   home: "/",
   login: "/login",
   systemTracks: "/system-tracks",
+  artistRequests: "/artist-requests",
+  artistRequestDetail: (requestId = ":requestId") => `/artist-requests/${requestId}`,
   trackDetail: (trackId = ":id") => `/system-tracks/${trackId}`,
   systemPlaylists: "/system-playlists",
   genres: "/genres",

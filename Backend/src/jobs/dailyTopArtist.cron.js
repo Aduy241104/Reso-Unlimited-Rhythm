@@ -4,7 +4,7 @@ import {
     syncArtistDailyStatsForDay,
 } from "../services/analytics/artistDailyStatAggregation.service.js";
 
-const DAILY_TOP_ARTIST_CRON_EXPRESSION = "0 0 * * *";
+const DAILY_TOP_ARTIST_CRON_EXPRESSION = "5 0 * * *";
 
 let isJobRunning = false;
 
@@ -42,7 +42,7 @@ export const startDailyTopArtistCron = () => {
     );
 
     console.log(
-        `[Cron] Daily top artist aggregation scheduled at 00:00 every day (${analyticsTimezone}).`
+        `[Cron] Daily top artist aggregation scheduled at 00:05 every day (${analyticsTimezone}).`
     );
 
     return task;
