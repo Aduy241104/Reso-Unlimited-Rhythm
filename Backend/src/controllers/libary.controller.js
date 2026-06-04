@@ -20,6 +20,25 @@ const getMyFollowedArtists = async (req, res, next) => {
     }
 };
 
+const getMyFollowedAlbums = async (req, res, next) => {
+    try {
+        const userId = req.user?.id || req.user?._id;
+        const result = await libaryService.getMyFollowedAlbumsByUserId(
+            userId,
+            req.query
+        );
+
+        return formatResponse.success(
+            res,
+            result,
+            "Followed albums fetched successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getMyFollowedArtists,
+    getMyFollowedAlbums,
 };

@@ -21,7 +21,23 @@ const formatFollowedArtist = (interaction) => {
     };
 };
 
+const formatFollowedAlbum = (interaction) => {
+    if (!interaction?.targetId) {
+        return null;
+    }
+
+    const album = interaction.targetId;
+
+    return {
+        albumId: album._id,
+        title: album.title,
+        coverImage: album.coverImage,
+        artistName: album.artistId?.name || "",
+        trackList: album.trackList || [],
+    };
+};
 export {
     normalizePositiveInteger,
     formatFollowedArtist,
+    formatFollowedAlbum,
 };
