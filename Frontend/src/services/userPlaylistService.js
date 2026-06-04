@@ -7,3 +7,10 @@ export const getUserPlaylists = async () => {
 
   return response?.data?.data;
 };
+export const getUserPlaylistDetail = async (playlistId) => {
+  const response = await axiosClient.get(
+    `${USER_PLAYLIST_API_PREFIX}/playlists/detail/${playlistId}`
+  );
+
+  return response?.data?.data?.playlist ?? null;
+};

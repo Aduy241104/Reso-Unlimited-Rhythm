@@ -10,6 +10,7 @@ import { Link, useLocation } from "react-router-dom";
 import { useTheme } from "../../hooks/useTheme";
 import { routePaths } from "../../routes/routePaths";
 import { getFollowedAlbums, getFollowedArtists } from "../../services/libaryService";
+import { getUserPlaylists } from "../../services/userPlaylistService";
 
 const FOLLOWED_ARTISTS_LIMIT = 20;
 
@@ -39,6 +40,8 @@ const Sidebar = ({
   const [activeTab, setActiveTab] = useState("artist");
   const [followedAlbums, setFollowedAlbums] = useState([]);
   const [isLoadingAlbums, setIsLoadingAlbums] = useState(true);
+  const [playlists, setPlaylists] = useState([]);
+  const [isLoadingPlaylists, setIsLoadingPlaylists] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
@@ -92,7 +95,27 @@ const Sidebar = ({
         }
       }
     };
+    const loadPlaylists = async () => {
+      setIsLoadingPlaylists(true);
 
+      try {
+        const response = await getUserPlaylists();
+
+        if (isMounted) {
+          setPlaylists(Array.isArray(response?.playlists) ? response.playlists : []);
+        }
+      } catch {
+        if (isMounted) {
+          setPlaylists([]);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingPlaylists(false);
+        }
+      }
+    };
+
+    loadPlaylists();
     loadFollowedArtists();
     loadFollowedAlbums();
 
@@ -208,11 +231,66 @@ const Sidebar = ({
 
             <div className="space-y-1">
               {activeTab === "playlist" ? (
-                <div className="px-3 py-3 text-sm text-[#b8b0aa]">
-                  Playlist đang phát triển
-                </div>
-              ) : null}
+                isLoadingPlaylists ? (
+                  <div className="flex items-center gap-3 px-3 py-3 text-sm text-[#b8b0aa]">
+                    <Loader2 className="h-4 w-4 animate-spin text-[#f5b66f]" />
+                    <span>Đang tải playlist...</span>
+                  </div>
+                ) : playlists.length === 0 ? (
+                  <div className="px-3 py-3 text-sm text-[#b8b0aa]">
+                    Chưa có playlist nào
+                  </div>
+                ) : (
+                  playlists.map((playlist, index) => {
+                    const title =
+                      typeof playlist?.title === "string" && playlist.title.trim()
+                        ? playlist.title.trim()
+                        : "Untitled Playlist";
 
+                    const coverImage =
+                      typeof playlist?.coverImage === "string" && playlist.coverImage.trim()
+                        ? playlist.coverImage.trim()
+                        : "";
+
+                    const userName =
+                      typeof playlist?.userName === "string" && playlist.userName.trim()
+                        ? playlist.userName.trim()
+                        : "Unknown User";
+
+                    return (
+                      <Link
+                        key={playlist?.playlistId || `${title}-${index}`}
+                        to={routePaths.userPlaylistDetail(playlist?.playlistId)}
+                        onClick={onNavigate}
+                        className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-[#b8b0aa] transition hover:bg-[#241f28] hover:text-[#f7f1ea]"
+                      >
+                        {coverImage ? (
+                          <img
+                            src={coverImage}
+                            alt={title}
+                            className="h-12 w-12 shrink-0 rounded-md object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-white/10 text-sm font-semibold text-[#f7f1ea]">
+                            {title.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-inherit">
+                            {title}
+                          </p>
+                          <p className="truncate text-xs text-[#b8b0aa]">
+                            Playlist • {userName}
+                          </p>
+                        </div>
+                      </Link>
+                    );
+                  })
+                )
+              ) : null}
+              
               {activeTab === "artist" ? (
                 isLoadingArtists ? (
                   <div className="flex items-center gap-3 px-3 py-3 text-sm text-[#b8b0aa]">
