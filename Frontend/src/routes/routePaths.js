@@ -30,4 +30,6 @@ export const routePaths = {
   artistSettings: "/artist/settings",
   artistProfile: "/artist/profile",
   artistProfileEdit: "/artist/profile/edit",
+
+  libraryFollowedArtists: "/library/followed-artists",
 };

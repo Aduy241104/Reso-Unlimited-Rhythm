@@ -35,6 +35,7 @@ import TrackDetailPage from "../pages/track/TrackDetailPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import RoleRoute from "./RoleRoute";
+import { libaryRoutes } from "./libaryRoutes";
 import { routePaths } from "./routePaths";
 import { userProfileRoutes } from "./userProfileRoutes";
 
@@ -86,6 +87,10 @@ export const appRoutes = [
   {
     element: <ProtectedRoute />,
     children: userProfileRoutes,
+  },
+  {
+    element: <ProtectedRoute />,
+    children: libaryRoutes,
   },
   {
     element: <ProtectedRoute />,
