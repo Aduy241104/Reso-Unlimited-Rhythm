@@ -1,4 +1,33 @@
+import {
+  ArrowUpRight,
+  AudioLines,
+  CalendarDays,
+  Mic2,
+  Play,
+} from "lucide-react";
 import { Link } from "react-router-dom";
+
+const variantStyles = {
+  daily: {
+    badge: "border-emerald-500/18 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+    chip: "bg-emerald-500 text-white shadow-[0_10px_24px_rgba(16,185,129,0.28)]",
+  },
+  monthly: {
+    badge: "border-sky-500/18 bg-sky-500/10 text-sky-700 dark:text-sky-300",
+    chip: "bg-sky-500 text-white shadow-[0_10px_24px_rgba(14,165,233,0.28)]",
+  },
+  artist: {
+    badge: "border-violet-500/18 bg-violet-500/10 text-violet-700 dark:text-violet-300",
+    chip: "bg-violet-500 text-white shadow-[0_10px_24px_rgba(139,92,246,0.28)]",
+  },
+};
+
+const cardClassName = `
+  group relative mt-2 flex h-full cursor-pointer flex-col gap-2 rounded-[16px]
+  p-2.5 text-left transition duration-300 sm:gap-3 sm:p-3
+  hover:-translate-y-1 hover:bg-[#f4f4f4] hover:shadow-[0_18px_40px_rgba(15,23,42,0.12)]
+  dark:hover:bg-[#242424]
+`;
 
 const TrackChartCard = ({
   image,
@@ -7,6 +36,8 @@ const TrackChartCard = ({
   href,
   onPlay,
   type,
+  index,
+  variant = "daily",
   showPlayButton = true,
 }) => {
   const handlePlayClick = (event) => {
@@ -15,30 +46,52 @@ const TrackChartCard = ({
     onPlay?.();
   };
 
+  const BadgeIcon =
+    variant === "artist"
+      ? Mic2
+      : variant === "monthly"
+        ? CalendarDays
+        : AudioLines;
+  const resolvedStyles = variantStyles[variant] || variantStyles.daily;
+  const formattedRank = String(index || 0).padStart(2, "0");
+  const isExternalLink = href && !href.startsWith("/");
+
   const cardContent = (
     <>
-      <div className="relative overflow-hidden rounded-[20px] bg-[#ececec] dark:bg-[#1f1f1f]">
-        <div className="aspect-[16/10] overflow-hidden">
+      <div className="relative overflow-hidden rounded-[14px] bg-[#ececec] dark:bg-[#282828]">
+        <div className="aspect-square overflow-hidden">
           { image ? (
             <img
               src={ image }
               alt={ title }
-              className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
+              className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.05]"
             />
           ) : (
-            <div
-              className="
-                flex h-full w-full items-center justify-center bg-gradient-to-br
-                from-[#d4d4d4] via-[#e5e5e5] to-[#f5f5f5] text-3xl font-semibold text-[#3f3f46]
-                dark:from-[#242424] dark:via-[#1f1f1f] dark:to-[#121212] dark:text-white/80
-              "
-            >
-              { title?.charAt(0)?.toUpperCase() ?? "T" }
-            </div>
+            <div className="h-full w-full bg-gradient-to-br from-[#d4d4d4] via-[#e5e5e5] to-[#f5f5f5] dark:from-[#242424] dark:via-[#1f1f1f] dark:to-[#121212]" />
           ) }
         </div>
 
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/12 to-transparent" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/24 via-transparent to-black/6" />
+
+        <div className="absolute left-2.5 top-2.5 flex items-center gap-2">
+          <span
+            className={ [
+              "inline-flex min-w-[2.1rem] items-center justify-center rounded-full px-2 py-1 text-[10px] font-bold tracking-[0.12em]",
+              resolvedStyles.chip,
+            ].join(" ") }
+          >
+            #{ formattedRank }
+          </span>
+          <span
+            className={ [
+              "inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.18em] backdrop-blur-md",
+              resolvedStyles.badge,
+            ].join(" ") }
+          >
+            <BadgeIcon className="h-2.5 w-2.5" />
+            { type }
+          </span>
+        </div>
 
         { showPlayButton ? (
           <button
@@ -46,51 +99,43 @@ const TrackChartCard = ({
             onClick={ handlePlayClick }
             aria-label={ `Play ${type} ${title}` }
             className="
-              absolute bottom-3 right-3 inline-flex h-10 w-10 items-center justify-center rounded-full
-              bg-[#f4f4f5] text-[#111111] shadow-[0_14px_30px_rgba(0,0,0,0.22)] transition
-              hover:scale-[1.04] hover:bg-white focus-visible:outline-none focus-visible:ring-2
-              focus-visible:ring-[#1ed760] focus-visible:ring-offset-2 focus-visible:ring-offset-white
-              dark:bg-white dark:text-[#111111] dark:focus-visible:ring-offset-[#181818]
+              absolute bottom-2.5 right-2.5 inline-flex h-10 w-10 items-center justify-center rounded-full
+              bg-gradient-to-br from-[#E0FFE0] via-[#D3FFCE] to-[#FFD700] text-black opacity-100
+              shadow-[0_14px_28px_rgba(30,215,96,0.38)] transition duration-300 md:translate-y-3
+              md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100
+              hover:scale-[1.03] focus-visible:translate-y-0 focus-visible:opacity-100
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1ed760]
+              focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:ring-offset-[#181818]
             "
           >
-            <span className="sr-only">{ `Play ${type} ${title}` }</span>
-            <span className="block h-0 w-0 border-b-[7px] border-l-[11px] border-t-[7px] border-b-transparent border-l-current border-t-transparent" />
+            <Play className="h-5 w-5 fill-current" />
           </button>
         ) : null }
+      </div>
 
-        <div className="absolute left-3 top-3">
-          <span
-            className="
-              inline-flex rounded-full bg-black/40 px-2.5 py-1 text-[11px] font-medium uppercase
-              tracking-[0.22em] text-white/88 backdrop-blur-sm
-            "
-          >
-            { type }
+      <div className="flex min-h-[3.8rem] flex-col justify-center">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <h3 className="truncate text-sm font-semibold text-[#18181b] dark:text-white sm:text-[15px]">
+              { title }
+            </h3>
+            <p className="mt-1 truncate text-[12px] text-[#52525b] dark:text-[#a1a1aa]">
+              { subtitle }
+            </p>
+          </div>
+          <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-black/[0.045] text-[#52525b] transition group-hover:translate-x-0.5 group-hover:text-[#18181b] dark:bg-white/[0.06] dark:text-white/58 dark:group-hover:text-white">
+            <ArrowUpRight className="h-3.5 w-3.5" />
           </span>
         </div>
       </div>
-
-      <div className="space-y-1 px-1">
-        <h3 className="truncate text-base font-semibold tracking-tight text-[#18181b] dark:text-white">
-          { title }
-        </h3>
-        <p className="line-clamp-2 text-sm leading-5 text-[#52525b] dark:text-[#a1a1aa]">
-          { subtitle }
-        </p>
-      </div>
     </>
   );
-
-  const cardClassName = `
-    group flex h-full flex-col gap-3 rounded-[22px] p-2 transition duration-300
-    hover:-translate-y-1 hover:bg-black/[0.025] dark:hover:bg-white/[0.03]
-  `;
 
   if (!href) {
     return <article className={ cardClassName }>{ cardContent }</article>;
   }
 
-  if (href.startsWith("/")) {
+  if (!isExternalLink) {
     return (
       <Link to={ href } className={ cardClassName }>
         { cardContent }

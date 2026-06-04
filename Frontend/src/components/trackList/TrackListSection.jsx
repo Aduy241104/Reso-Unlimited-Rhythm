@@ -20,11 +20,21 @@ const TrackListSection = ({
   headerGridClassName = defaultHeaderGridClassName,
   emptyMessage = "No tracks available yet.",
   hasItems = false,
+  loadingClassName = "",
+  containerClassName = "",
+  mobileLabelClassName = "",
+  itemsClassName = "",
+  emptyMessageClassName = "",
   children,
 }) => {
   if (isLoading) {
     return (
-      <div className="rounded-[20px] border border-black/5 bg-black/[0.02] px-4 py-6 text-sm text-[#52525b] dark:border-white/10 dark:bg-white/[0.03] dark:text-[#a1a1aa]">
+      <div
+        className={ [
+          "rounded-[20px] border border-black/5 bg-black/[0.02] px-4 py-6 text-sm text-[#52525b] dark:border-white/10 dark:bg-white/[0.03] dark:text-[#a1a1aa]",
+          loadingClassName,
+        ].join(" ").trim() }
+      >
         { loadingMessage }
       </div>
     );
@@ -35,9 +45,19 @@ const TrackListSection = ({
   }
 
   return (
-    <div className="rounded-[18px] border border-black/5 bg-black/[0.02] p-0 dark:border-white/10 dark:bg-white/[0.02] sm:rounded-[3px] sm:border-0 sm:bg-transparent sm:p-4">
+    <div
+      className={ [
+        "rounded-[18px] border border-black/5 sm:rounded-[3px] sm:border-0 sm:bg-transparent sm:p-4",
+        containerClassName,
+      ].join(" ").trim() }
+    >
       <div className="mb-3 px-0 sm:hidden">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#71717a] dark:text-[#a1a1aa]">
+        <p
+          className={ [
+            "text-[11px] font-semibold uppercase tracking-[0.24em] text-[#71717a] dark:text-[#a1a1aa]",
+            mobileLabelClassName,
+          ].join(" ").trim() }
+        >
           { mobileLabel }
         </p>
       </div>
@@ -55,11 +75,16 @@ const TrackListSection = ({
         </div>
       ) : null }
 
-      <div className="space-y-0">
+      <div className={ ["space-y-0", itemsClassName].join(" ").trim() }>
         { hasItems ? (
           children
         ) : (
-          <div className="px-3 py-4 text-sm text-[#52525b] dark:text-[#a1a1aa]">
+          <div
+            className={ [
+              "px-3 py-4 text-sm text-[#52525b] dark:text-[#a1a1aa]",
+              emptyMessageClassName,
+            ].join(" ").trim() }
+          >
             { emptyMessage }
           </div>
         ) }

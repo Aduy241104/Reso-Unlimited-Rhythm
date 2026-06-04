@@ -43,6 +43,7 @@ export const getDailyTopTracksHeroImage = (topTracks = []) => {
 
   return (
     topTrack?.coverImage ||
+    topTrack?.artist?.coverImage ||
     topTrack?.avatar ||
     topTrack?.artist?.avatar ||
     DAILY_TOP_TRACK_PLACEHOLDER_IMAGE
@@ -72,10 +73,10 @@ export const mapDailyTopTracksToContentCards = ({
   return [
     {
       id: `daily-top-${resolvedDate}`,
-      type: "bxh ngày",
+      type: "BXH ngày",
       image,
       title: "Top bài hát ngày",
-      subtitle: `Top ${limit} bài hát - ${formatDailyTopTracksDate(resolvedDate)}`,
+      subtitle: `Top ${limit} bài hát · ${formatDailyTopTracksDate(resolvedDate)}`,
       href: routePaths.dailyTopTracks,
       raw: {
         topTracks,

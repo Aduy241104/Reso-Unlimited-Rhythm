@@ -54,6 +54,7 @@ export const getMonthlyTopTracksHeroImage = (topTracks = []) => {
 
   return (
     topTrack?.coverImage ||
+    topTrack?.artist?.coverImage ||
     topTrack?.avatar ||
     topTrack?.artist?.avatar ||
     MONTHLY_TOP_TRACK_PLACEHOLDER_IMAGE
@@ -83,10 +84,10 @@ export const mapMonthlyTopTracksToContentCards = ({
   return [
     {
       id: `monthly-top-${resolvedMonth}`,
-      type: "bxh tháng",
+      type: "BXH tháng",
       image,
       title: "Top bài hát tháng",
-      subtitle: `Top ${limit} bài hát - ${formatMonthlyTopTracksDate(resolvedMonth)}`,
+      subtitle: `Top ${limit} bài hát · ${formatMonthlyTopTracksDate(resolvedMonth)}`,
       href: routePaths.monthlyTopTracks,
       raw: {
         topTracks,

@@ -30,12 +30,12 @@ export const mapMonthlyTopArtistsToContentCards = ({
   return [
     {
       id: `monthly-top-artists-${resolvedMonth}`,
-      type: "bxh nghệ sĩ",
+      type: "BXH nghệ sĩ",
       image,
       title: "Top nghệ sĩ tháng",
       subtitle: championName
-        ? `#1 ${championName} - ${formatMonthlyTopTracksDate(resolvedMonth)}`
-        : `Top ${limit} nghệ sĩ - ${formatMonthlyTopTracksDate(resolvedMonth)}`,
+        ? `#1 ${championName} · ${formatMonthlyTopTracksDate(resolvedMonth)}`
+        : `Top ${limit} nghệ sĩ · ${formatMonthlyTopTracksDate(resolvedMonth)}`,
       href: champion?.artist?.id
         ? routePaths.artistBrowseProfile(champion.artist.id)
         : undefined,

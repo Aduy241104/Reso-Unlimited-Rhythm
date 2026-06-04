@@ -12,7 +12,6 @@ const {
     ArtistMonthlyStat,
     ArtistRequest,
     ArtistStat,
-    AuditLog,
     Genre,
     Interaction,
     ListenEvent,
@@ -31,7 +30,6 @@ const {
     TrackMonthlyStat,
     Transaction,
     User,
-    UserListeningStat,
     VerificationToken,
 } = models;
 
@@ -83,9 +81,6 @@ const ids = {
 
     reportMain: oid("681300000000000000000d01"),
     releaseScheduleMain: oid("681300000000000000000d02"),
-
-    userListeningStatMain: oid("681300000000000000000e01"),
-    auditLogMain: oid("681300000000000000000f01"),
 };
 
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
@@ -93,7 +88,6 @@ const daysAgo = (days) => new Date(Date.now() - days * DAY_IN_MS);
 const daysFromNow = (days) => new Date(Date.now() + days * DAY_IN_MS);
 
 const seedCollections = [
-    { model: AuditLog, ids: [ids.auditLogMain] },
     { model: Notification, ids: [ids.notificationUser, ids.notificationGlobal] },
     { model: Interaction, ids: [ids.interactionTrackLike, ids.interactionArtistFollow] },
     { model: ListenEvent, ids: [ids.listenTrackMain] },
@@ -104,7 +98,6 @@ const seedCollections = [
     { model: VerificationToken, ids: [ids.verificationTokenMain] },
     { model: Transaction, ids: [ids.transactionMain] },
     { model: Subscription, ids: [ids.subscriptionMain] },
-    { model: UserListeningStat, ids: [ids.userListeningStatMain] },
     { model: TrackDailyRanking, ids: [ids.trackDailyRanking] },
     { model: TrackDailyStat, ids: [ids.trackDailyStat] },
     { model: TrackMonthlyRanking, ids: [ids.trackMonthlyRanking] },
@@ -800,71 +793,6 @@ const seedModerationAndStats = async () => {
                 rank: 2,
             },
         ],
-    });
-
-    await UserListeningStat.create({
-        _id: ids.userListeningStatMain,
-        userId: ids.userListener,
-        year: now.getFullYear(),
-        week: 18,
-        stats_totalListeningTime: 6840,
-        stats_totalTracksPlayed: 42,
-        topGenres: [
-            {
-                genreId: ids.genreLofi,
-                genreName: "Seed Lofi",
-                playCount: 24,
-                listeningTime: 3200,
-            },
-            {
-                genreId: ids.genrePop,
-                genreName: "Seed Pop",
-                playCount: 18,
-                listeningTime: 2100,
-            },
-        ],
-        topTracks: [
-            {
-                trackId: ids.trackSunrise,
-                title: "Sunrise Cache",
-                playCount: 17,
-                listeningTime: 3876,
-            },
-            {
-                trackId: ids.trackCityLights,
-                title: "City Lights Commit",
-                playCount: 12,
-                listeningTime: 2940,
-            },
-        ],
-        topArtists: [
-            {
-                artistId: ids.artistMain,
-                name: "Seed Waves",
-                playCount: 29,
-            },
-        ],
-    });
-
-    await AuditLog.create({
-        _id: ids.auditLogMain,
-        actorId: ids.userAdmin,
-        action: "report.resolve",
-        targetType: "Report",
-        targetId: ids.reportMain,
-        reason: "Seed du lieu moderation cho he thong.",
-        metadata: {
-            before: {
-                status: "pending",
-            },
-            after: {
-                status: "resolved",
-                resolution: "warning",
-            },
-            note: "Du lieu mau duoc tao tu dong bang file seed.",
-        },
-        ipAddress: "127.0.0.1",
-        userAgent: "seed-script",
     });
 };
 

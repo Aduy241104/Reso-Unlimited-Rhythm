@@ -1,15 +1,16 @@
-import DailyTopArtistsSection from "../../components/home/DailyTopArtistsSection";
 import ContentCardSection from "../../components/content/ContentCardSection";
+import DailyTopArtistsSection from "../../components/home/DailyTopArtistsSection";
 import TrackChartSection from "../../components/home/TrackChartSection";
 import { useContentPlayback } from "../../hooks/useContentPlayback";
 import { useHomePageData } from "../../hooks/useHomePageData";
+import { routePaths } from "../../routes/routePaths";
 import { mapDailyTopTracksToContentCards } from "../../utils/dailyTopTracks";
-import { mapMonthlyTopTracksToContentCards } from "../../utils/monthlyTopTracks";
-import { mapMonthlyTopArtistsToContentCards } from "../../utils/monthlyTopArtists";
 import {
   mapAlbumsToContentCards,
   mapSystemPlaylistsToContentCards,
 } from "../../utils/homeContent";
+import { mapMonthlyTopArtistsToContentCards } from "../../utils/monthlyTopArtists";
+import { mapMonthlyTopTracksToContentCards } from "../../utils/monthlyTopTracks";
 
 const HomePage = () => {
   const {
@@ -108,7 +109,7 @@ const HomePage = () => {
       <TrackChartSection
         label="Bảng xếp hạng"
         title="Top nhạc nổi bật"
-        description="Xem nhanh bảng xếp hạng bài hát theo ngày, theo tháng và nghệ sĩ nổi bật nhất trong tháng."
+        description="Theo dõi nhanh các bảng xếp hạng theo ngày, theo tháng và nghệ sĩ đang dẫn đầu."
         items={ [
           ...(!dailyTopTracksError
             ? mapDailyTopTracksToContentCards({
@@ -154,6 +155,8 @@ const HomePage = () => {
         }
         emptyMessage="Hiện chưa có dữ liệu bảng xếp hạng."
         showPlayButton={ false }
+        actionLabel="Xem tất cả bảng xếp hạng"
+        actionHref={ routePaths.dailyTopTracks }
       />
 
       <ContentCardSection
@@ -165,15 +168,6 @@ const HomePage = () => {
         onPlay={ playPlaylistItem }
       />
 
-      <DailyTopArtistsSection
-        title="Top nghệ sĩ theo ngày"
-        description="Những nghệ sĩ được nghe nhiều nhất hôm nay."
-        items={ dailyTopArtists }
-        isLoading={ isLoadingDailyTopArtists }
-        errorMessage={ dailyTopArtistsError }
-        emptyMessage="Hôm nay chưa có dữ liệu xếp hạng."
-      />
-
       <ContentCardSection
         label="Album"
         title="Album nổi bật"
@@ -182,6 +176,15 @@ const HomePage = () => {
         isLoading={ isLoadingAlbums }
         emptyMessage="Hiện chưa có dữ liệu album."
         onPlay={ playAlbumItem }
+      />
+
+      <DailyTopArtistsSection
+        title="Top nghệ sĩ theo ngày"
+        description="Những nghệ sĩ được nghe nhiều nhất hôm nay."
+        items={ dailyTopArtists }
+        isLoading={ isLoadingDailyTopArtists }
+        errorMessage={ dailyTopArtistsError }
+        emptyMessage="Hôm nay chưa có dữ liệu xếp hạng."
       />
 
       { playbackError ? (
