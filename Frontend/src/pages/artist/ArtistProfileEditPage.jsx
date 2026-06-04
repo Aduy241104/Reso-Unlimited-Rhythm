@@ -17,9 +17,15 @@ import {
   getCoverSrc,
   verificationBadgeClass,
 } from "./artistProfileUtils";
+import {
+  dashboardCardLeadClass,
+  dashboardCardTitleClass,
+  dashboardPanelClass,
+  dashboardSecondaryButtonClass,
+} from "../../components/artist/dashboardStyles";
 
 const fieldClassName =
-  "w-full rounded-sm border border-neutral-200 bg-[#fffdf9] px-3 py-2 text-sm text-[#2a2019] outline-none transition placeholder:text-neutral-400 focus:border-[#8b5e3c]";
+  "w-full rounded-sm border border-neutral-200 bg-white px-3 py-2 text-sm text-[#2a2019] outline-none transition placeholder:text-neutral-400 focus:border-[#8b5e3c]";
 
 const FieldLabel = ({ children, htmlFor }) => (
   <label
@@ -212,14 +218,13 @@ const ArtistProfileEditPage = () => {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link
           to={routePaths.artistProfile}
-          className="inline-flex items-center gap-2 text-sm font-medium text-[#8b5e3c] underline-offset-4 hover:underline"
+          className={dashboardSecondaryButtonClass}
         >
-          <ArrowLeft className="h-4 w-4" aria-hidden />
-          Back to profile
+          {"<-"} Back to profile
         </Link>
       </div>
 
-      <div className="overflow-hidden rounded-md border border-neutral-200 bg-white shadow-sm">
+      <div className={[dashboardPanelClass, "overflow-hidden"].join(" ")}>
         <div className="relative h-32 w-full bg-neutral-900 sm:h-40">
           <img
             src={coverSrc}
@@ -231,7 +236,7 @@ const ArtistProfileEditPage = () => {
 
         <div className="relative flex flex-col gap-4 border-b border-neutral-200 px-5 pb-5 pt-0 sm:flex-row sm:items-end sm:px-8">
           <div className="-mt-10 flex shrink-0 items-end gap-4">
-            <div className="h-20 w-20 overflow-hidden rounded-md border-4 border-white bg-white shadow-md sm:h-24 sm:w-24">
+            <div className="h-20 w-20 overflow-hidden rounded-2xl border-4 border-white bg-white shadow-md sm:h-24 sm:w-24">
               <img
                 src={avatarSrc}
                 alt=""
@@ -301,15 +306,12 @@ const ArtistProfileEditPage = () => {
         </div>
       ) : null}
 
-      <form
-        onSubmit={onSaveAll}
-        className="space-y-6 rounded-md border border-neutral-200 bg-white p-6"
-      >
+      <form onSubmit={onSaveAll} className={[dashboardPanelClass, "space-y-6 p-6"].join(" ")}>
         <div>
-          <h2 className="text-lg font-semibold text-[#241b15]">
+          <h2 className={dashboardCardTitleClass}>
             Profile &amp; social links
           </h2>
-          <p className="mt-1 text-sm text-neutral-500">
+          <p className={dashboardCardLeadClass}>
             Update your public name, biography, and social URLs (full https links).
           </p>
 
@@ -463,7 +465,7 @@ const ArtistProfileEditPage = () => {
                 <img
                   src={avatarPreview || avatarSrc}
                   alt="Avatar preview"
-                  className="h-16 w-16 rounded-md object-cover border border-neutral-200"
+                className="h-16 w-16 rounded-2xl object-cover border border-neutral-200"
                 />
                 <span className="text-xs text-neutral-500">
                   {avatarPreview
@@ -534,7 +536,7 @@ const ArtistProfileEditPage = () => {
                 <img
                   src={coverPreview || coverSrc}
                   alt="Cover preview"
-                  className="h-20 w-40 rounded-md object-cover border border-neutral-200"
+                  className="h-20 w-40 rounded-2xl object-cover border border-neutral-200"
                 />
                 <span className="text-xs text-neutral-500">
                   {coverPreview

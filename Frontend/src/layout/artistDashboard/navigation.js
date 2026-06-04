@@ -1,25 +1,23 @@
 import {
   BarChart3,
-  Disc3,
   FileText,
   LayoutDashboard,
   Music2,
   Settings,
-  Users,
-  Wallet,
   Waves,
   Album,
+  UserRound,
 } from "lucide-react";
 import { routePaths } from "../../routes/routePaths";
 
 export const artistNavigation = [
   {
-    label: "Overview",
+    label: "Dashboard",
     to: routePaths.artistRoot,
     icon: LayoutDashboard,
   },
   {
-    label: "My Music",
+    label: "Tracks",
     to: routePaths.artistMusic,
     icon: Music2,
   },
@@ -34,24 +32,30 @@ export const artistNavigation = [
     icon: Album,
   },
   {
-    label: "Releases",
-    to: routePaths.artistReleases,
-    icon: Disc3,
-  },
-  {
     label: "Analytics",
     to: routePaths.artistAnalytics,
     icon: BarChart3,
   },
+  {
+    label: "Profile",
+    to: routePaths.artistProfile,
+    icon: UserRound,
+  },
+  {
+    label: "Settings",
+    to: routePaths.artistSettings,
+    icon: Settings,
+  },
 ];
 
 export const artistPageTitles = {
-  [routePaths.artistRoot]: "Artist Overview",
-  [routePaths.artistMusic]: "My Music",
+  [routePaths.artistRoot]: "Artist Dashboard",
+  [routePaths.artistMusic]: "Tracks",
   [routePaths.artistTrackDetail()]: "Track Detail",
   [routePaths.artistTrackEdit()]: "Edit Track",
+  [routePaths.artistCreateTrack]: "Create Track",
   [routePaths.artistLyrics]: "Lyrics Management",
-  [routePaths.artistAlbums]: "My Albums",
+  [routePaths.artistAlbums]: "Albums",
   [routePaths.artistReleases]: "Releases",
   [routePaths.artistAnalytics]: "Analytics",
   [routePaths.artistProfile]: "Artist Profile",

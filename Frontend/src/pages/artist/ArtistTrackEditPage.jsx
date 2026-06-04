@@ -15,6 +15,13 @@ import {
   serializeCopyrightForApi,
   TITLE_MAX_LENGTH,
 } from "../../utils/trackWorkflow";
+import {
+  dashboardCardLeadClass,
+  dashboardCardTitleClass,
+  dashboardPanelClass,
+  dashboardSecondaryButtonClass,
+  dashboardSectionEyebrowClass,
+} from "../../components/artist/dashboardStyles";
 
 const toDateInputValue = (value) => {
   if (!value) {
@@ -437,7 +444,7 @@ const ArtistTrackEditPage = () => {
 
   if (loading) {
     return (
-      <section className="rounded-md border border-neutral-200 bg-white p-8 text-sm text-neutral-600 shadow-sm">
+      <section className={[dashboardPanelClass, "p-8 text-sm text-neutral-600"].join(" ")}>
         <div className="flex items-center gap-3">
           <Loader2 className="h-5 w-5 animate-spin text-[#8b5e3c]" />
           Loading track editor...
@@ -448,7 +455,7 @@ const ArtistTrackEditPage = () => {
 
   if (errorMessage && !track) {
     return (
-      <section className="rounded-md border border-rose-200 bg-rose-50 p-6 text-rose-900">
+      <section className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-rose-900">
         <h2 className="text-lg font-semibold">Could not load track</h2>
         <p className="mt-2 text-sm leading-6">{errorMessage}</p>
       </section>
@@ -460,33 +467,33 @@ const ArtistTrackEditPage = () => {
       <button
         type="button"
         onClick={() => navigate(routePaths.artistTrackDetail(id))}
-        className="inline-flex items-center gap-2 text-sm font-medium text-neutral-600 transition hover:text-[#8b5e3c]"
+        className={dashboardSecondaryButtonClass}
       >
         <ArrowLeft className="h-4 w-4" />
         Back to Track Detail
       </button>
 
-      <div className="rounded-md border border-neutral-200 bg-white p-6 shadow-sm">
+      <div className={[dashboardPanelClass, "p-6"].join(" ")}>
         <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-[#8b5e3c]">
+          <p className={dashboardSectionEyebrowClass}>
             Artist Dashboard
           </p>
           <h1 className="mt-3 text-2xl font-semibold tracking-tight text-[#241b15]">
             Edit Track
           </h1>
-          <p className="mt-2 text-sm text-neutral-600">
+          <p className={dashboardCardLeadClass}>
             Complete draft details, copyright, and media, then submit for admin approval.
           </p>
         </div>
 
         {draftMessage ? (
-          <div className="mt-4 rounded-md border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+          <div className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
             {draftMessage}
           </div>
         ) : null}
 
         {!canEdit ? (
-          <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             This track is {track?.approvalStatus || "locked"} and cannot be edited.
             {track?.approvalStatus === "rejected" && track?.rejectReason
               ? ` Reason: ${track.rejectReason}`
@@ -507,7 +514,7 @@ const ArtistTrackEditPage = () => {
         ) : null}
 
         {canSubmit ? (
-          <div className="mt-4 rounded-md border border-neutral-200 bg-white p-4">
+          <div className="mt-4 rounded-2xl border border-neutral-200 bg-white p-4">
             <p className="text-sm font-medium text-[#241b15]">Submit readiness</p>
             {submitIssues.length === 0 ? (
               <p className="mt-2 text-sm text-emerald-700">
@@ -572,7 +579,7 @@ const ArtistTrackEditPage = () => {
                       <img
                         src={avatarPreview}
                         alt="Avatar preview"
-                        className="mt-2 h-24 w-24 rounded object-cover border border-neutral-200"
+                        className="mt-2 h-24 w-24 rounded-xl border border-neutral-200 object-cover"
                       />
                     </div>
                   </div>
@@ -604,7 +611,7 @@ const ArtistTrackEditPage = () => {
                         key={idx}
                         src={url}
                         alt={`Cover ${idx + 1}`}
-                        className="h-20 w-20 rounded object-cover border border-neutral-200"
+                        className="h-20 w-20 rounded-xl border border-neutral-200 object-cover"
                       />
                     ))}
                   </div>
@@ -809,7 +816,7 @@ const ArtistTrackEditPage = () => {
             <button
               type="submit"
               disabled={!canEdit || submitting || submittingForApproval}
-              className="inline-flex items-center gap-2 rounded-md bg-[#8b5e3c] px-4 py-2 font-medium text-white hover:bg-[#6d4a2f] disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-full bg-[#ff7a2f] px-4 py-2 font-semibold text-white shadow-[0_12px_28px_rgba(255,122,47,0.22)] hover:bg-[#ef6c1e] disabled:opacity-50"
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               {submitting
@@ -824,7 +831,7 @@ const ArtistTrackEditPage = () => {
                 type="button"
                 onClick={handleSubmitForApproval}
                 disabled={!canEdit || submitting || submittingForApproval || submitIssues.length > 0}
-                className="inline-flex items-center gap-2 rounded-md border border-sky-200 bg-sky-50 px-4 py-2 font-medium text-sky-900 hover:bg-sky-100 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-4 py-2 font-semibold text-sky-900 hover:bg-sky-100 disabled:opacity-50"
               >
                 {submittingForApproval ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -838,7 +845,7 @@ const ArtistTrackEditPage = () => {
             <button
               type="button"
               onClick={() => navigate(routePaths.artistTrackDetail(id))}
-              className="rounded-md border border-neutral-200 px-4 py-2 font-medium text-neutral-700 transition hover:bg-neutral-50"
+              className="rounded-full border border-neutral-200 px-4 py-2 font-semibold text-neutral-700 transition hover:bg-neutral-50"
             >
               Cancel
             </button>

@@ -15,6 +15,12 @@ import {
   getCoverSrc,
   verificationBadgeClass,
 } from "./artistProfileUtils";
+import {
+  dashboardCardLeadClass,
+  dashboardCardTitleClass,
+  dashboardPanelClass,
+  dashboardSectionEyebrowClass,
+} from "../../components/artist/dashboardStyles";
 
 const InfoCard = ({ label, children }) => (
   <div className="rounded-sm border border-neutral-200 bg-[#fcfaf7] p-4">
@@ -134,8 +140,8 @@ const ArtistProfilePage = () => {
 
   return (
     <section className="space-y-6">
-      <div className="overflow-hidden rounded-md border border-neutral-200 bg-white shadow-sm">
-        <div className="relative h-40 w-full bg-neutral-900 sm:h-48">
+      <div className={[dashboardPanelClass, "overflow-hidden"].join(" ")}>
+          <div className="relative h-40 w-full bg-neutral-900 sm:h-48">
           <img
             src={coverSrc}
             alt=""
@@ -146,8 +152,8 @@ const ArtistProfilePage = () => {
 
         <div className="relative px-5 pb-6 pt-0 sm:px-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-              <div className="-mt-12 h-28 w-28 shrink-0 overflow-hidden rounded-md border-4 border-white bg-white shadow-md sm:h-32 sm:w-32">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+              <div className="-mt-12 h-28 w-28 shrink-0 overflow-hidden rounded-2xl border-4 border-white bg-white shadow-md sm:h-32 sm:w-32">
                 <img
                   src={avatarSrc}
                   alt=""
@@ -249,7 +255,7 @@ const ArtistProfilePage = () => {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <InfoCard label="Followers">
           <span className="text-lg font-semibold text-[#241b15]">
             {formatCount(artist.stats?.followers)}
@@ -269,13 +275,13 @@ const ArtistProfilePage = () => {
       </div>
 
       {!isBlocked && !isVerified ? (
-        <div className="rounded-md border border-neutral-200 bg-white p-6">
+        <div className={[dashboardPanelClass, "p-6"].join(" ")}>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-[#241b15]">
+              <h2 className={dashboardCardTitleClass}>
                 Artist verification
               </h2>
-              <p className="mt-1 max-w-2xl text-sm text-neutral-500">
+              <p className={dashboardCardLeadClass}>
                 Request a verified badge for your artist profile. Our team will review
                 your public profile and linked information.
               </p>
@@ -290,7 +296,7 @@ const ArtistProfilePage = () => {
               type="button"
               onClick={handleRequestVerification}
               disabled={hasPendingRequest || isRequestingVerification}
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-sm border border-[#8b5e3c] bg-[#8b5e3c] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#744a30] disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#ff7a2f] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#ef6c1e] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isRequestingVerification ? (
                 <>
@@ -308,7 +314,7 @@ const ArtistProfilePage = () => {
           {verificationFeedback.text ? (
             <div
               className={[
-                "mt-4 rounded-sm border px-4 py-3 text-sm",
+                "mt-4 rounded-2xl border px-4 py-3 text-sm",
                 verificationFeedback.type === "success"
                   ? "border-emerald-200 bg-emerald-50 text-emerald-900"
                   : "border-red-200 bg-red-50 text-red-900",
@@ -321,9 +327,9 @@ const ArtistProfilePage = () => {
         </div>
       ) : null}
 
-      <div className="rounded-md border border-neutral-200 bg-white p-6">
-        <h2 className="text-lg font-semibold text-[#241b15]">Account</h2>
-        <p className="mt-1 text-sm text-neutral-500">
+      <div className={[dashboardPanelClass, "p-6"].join(" ")}>
+        <h2 className={dashboardCardTitleClass}>Account</h2>
+        <p className={dashboardCardLeadClass}>
           Details from your Reso Music login, shown for your own reference.
         </p>
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -334,9 +340,9 @@ const ArtistProfilePage = () => {
         </div>
       </div>
 
-      <div className="rounded-md border border-neutral-200 bg-white p-6">
-        <h2 className="text-lg font-semibold text-[#241b15]">Social links</h2>
-        <p className="mt-1 text-sm text-neutral-500">
+      <div className={[dashboardPanelClass, "p-6"].join(" ")}>
+        <h2 className={dashboardCardTitleClass}>Social links</h2>
+        <p className={dashboardCardLeadClass}>
           Links you have saved on your artist profile.
         </p>
         {socialEntries.length === 0 ? (

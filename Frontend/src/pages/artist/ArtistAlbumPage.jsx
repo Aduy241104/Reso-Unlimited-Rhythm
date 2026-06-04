@@ -10,12 +10,22 @@ import {
   formatTrackDuration,
   resolveAlbumTotalDurationSeconds,
 } from "../../utils/albumDetail";
+import {
+  dashboardCardLeadClass,
+  dashboardCardTitleClass,
+  dashboardMetricCardClass,
+  dashboardPanelClass,
+  dashboardSectionEyebrowClass,
+  dashboardStatusToneClass,
+  dashboardTableHeadClass,
+  dashboardTableShellClass,
+} from "../../components/artist/dashboardStyles";
 
 const statusStyles = {
-  active: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  draft: "bg-neutral-100 text-neutral-600 border-neutral-200",
-  hidden: "bg-amber-50 text-amber-700 border-amber-200",
-  blocked: "bg-rose-50 text-rose-700 border-rose-200",
+  active: dashboardStatusToneClass.active,
+  draft: dashboardStatusToneClass.draft,
+  hidden: dashboardStatusToneClass.hidden,
+  blocked: dashboardStatusToneClass.blocked,
 };
 
 const ArtistAlbumPage = () => {
@@ -157,17 +167,18 @@ const ArtistAlbumPage = () => {
 
   return (
     <section className="space-y-6">
-      <div className="rounded-md border border-neutral-200 bg-white">
-        <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
+      <div className={[dashboardPanelClass, "p-6"].join(" ")}>
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-[#241b15]">Album List</h3>
-            <p className="mt-1 text-sm text-neutral-500">
+            <p className={dashboardSectionEyebrowClass}>Artist Dashboard</p>
+            <h3 className="mt-2 text-2xl font-semibold tracking-tight text-[#241b15]">Album List</h3>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-600">
               A full list of albums tied to your artist profile.
             </p>
           </div>
           <button
             onClick={() => navigate(routePaths.artistCreateAlbum)}
-            className="rounded-md bg-[#8b5e3c] px-6 py-2 font-medium text-white transition-colors hover:bg-[#6d4a2f]"
+            className="rounded-full bg-[#ff7a2f] px-6 py-2.5 font-semibold text-white shadow-[0_12px_28px_rgba(255,122,47,0.22)] transition hover:bg-[#ef6c1e]"
           >
             + Create Album
           </button>
@@ -194,7 +205,7 @@ const ArtistAlbumPage = () => {
           <>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-neutral-200 text-left text-sm">
-                <thead className="bg-[#fcfaf7] text-neutral-500">
+                <thead className={dashboardTableHeadClass}>
                   <tr>
                     <th className="px-5 py-3 font-medium">Album</th>
                     <th className="px-5 py-3 font-medium">Release Date</th>
@@ -207,16 +218,13 @@ const ArtistAlbumPage = () => {
 
                 <tbody className="divide-y divide-neutral-200">
                   {albums.map((album) => (
-                    <tr key={album.id} className="text-[#2f261f]">
+                    <tr key={album.id} className="text-[#2f261f] transition hover:bg-[#fffaf4]">
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                           <img
-                            src={
-                              album.coverImage ||
-                              createPlaceholderImage(album.title)
-                            }
+                            src={album.coverImage || createPlaceholderImage(album.title)}
                             alt={album.title}
-                            className="h-10 w-10 rounded object-cover"
+                              className="h-10 w-10 rounded-xl object-cover"
                           />
                           <button
                             onClick={() => handleViewAlbum(album.id)}
@@ -240,12 +248,12 @@ const ArtistAlbumPage = () => {
                         )}
                       </td>
                       <td className="px-5 py-4">
-                        <span
-                          className={[
-                            "inline-flex rounded-sm border px-2.5 py-1 text-xs font-medium capitalize",
-                            statusStyles[album.status] || statusStyles.draft,
-                          ].join(" ")}
-                        >
+                          <span
+                            className={[
+                              "inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold capitalize",
+                              statusStyles[album.status] || statusStyles.draft,
+                            ].join(" ")}
+                          >
                           {album.status || "draft"}
                         </span>
                       </td>

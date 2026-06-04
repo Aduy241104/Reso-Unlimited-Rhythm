@@ -4,6 +4,13 @@ import { Loader2, Music2, Save, Search } from "lucide-react";
 import trackService from "../../services/trackService";
 import lyricsService from "../../services/lyricsService";
 import { getApiErrorMessage } from "../../utils/apiError";
+import {
+  dashboardCardLeadClass,
+  dashboardCardTitleClass,
+  dashboardPanelClass,
+  dashboardSectionEyebrowClass,
+  dashboardStatusToneClass,
+} from "../../components/artist/dashboardStyles";
 
 const ArtistLyricsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -235,10 +242,10 @@ const ArtistLyricsPage = () => {
 
   return (
     <section className="space-y-6">
-      <div className="rounded-md border border-neutral-200 bg-white p-6 shadow-sm">
+      <div className={[dashboardPanelClass, "p-6"].join(" ")}>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-[#8b5e3c]">
+            <p className={dashboardSectionEyebrowClass}>
               Artist Dashboard
             </p>
             <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[#241b15]">
@@ -255,10 +262,10 @@ const ArtistLyricsPage = () => {
               { label: "With lyrics", value: lyricStats.tracksWithLyrics },
               { label: "Missing lyrics", value: lyricStats.tracksWithoutLyrics },
             ].map((item) => (
-              <div key={item.label} className="rounded-md border border-neutral-200 bg-[#fcfaf7] px-4 py-3">
-                <p className="text-[11px] uppercase tracking-[0.24em] text-neutral-500">{item.label}</p>
-                <p className="mt-2 text-xl font-semibold text-[#241b15]">{item.value}</p>
-              </div>
+            <div key={item.label} className="rounded-2xl border border-neutral-200 bg-white px-4 py-3">
+              <p className="text-[11px] uppercase tracking-[0.24em] text-neutral-500">{item.label}</p>
+              <p className="mt-2 text-xl font-semibold text-[#241b15]">{item.value}</p>
+            </div>
             ))}
           </div>
         </div>
@@ -277,7 +284,7 @@ const ArtistLyricsPage = () => {
       ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
-        <aside className="rounded-md border border-neutral-200 bg-white p-4 shadow-sm">
+        <aside className={[dashboardPanelClass, "p-4"].join(" ")}>
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-[0.24em] text-neutral-500">Tracks</p>
@@ -289,7 +296,7 @@ const ArtistLyricsPage = () => {
             </div>
           </div>
 
-          <label className="mt-4 flex items-center gap-2 rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm focus-within:border-[#8b5e3c]">
+          <label className="mt-4 flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-3 py-2 text-sm focus-within:border-[#d88a53]">
             <Search className="h-4 w-4 text-neutral-400" />
             <input
               type="search"
@@ -321,9 +328,9 @@ const ArtistLyricsPage = () => {
                     type="button"
                     onClick={() => handleSelectTrack(track._id)}
                     className={[
-                      "w-full rounded-md border px-4 py-3 text-left transition",
-                      isActive
-                        ? "border-[#8b5e3c] bg-[#fcfaf7]"
+                  "w-full rounded-2xl border px-4 py-3 text-left transition",
+                  isActive
+                        ? "border-[#d88a53] bg-[#fffaf4]"
                         : "border-neutral-200 bg-white hover:border-neutral-300 hover:bg-neutral-50",
                     ].join(" ")}
                   >
@@ -337,7 +344,7 @@ const ArtistLyricsPage = () => {
 
                       <span
                         className={[
-                          "inline-flex shrink-0 rounded-sm border px-2 py-1 text-[11px] font-medium",
+                      "inline-flex shrink-0 rounded-full border px-2 py-1 text-[11px] font-semibold",
                           lyricsPresent
                             ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                             : "border-neutral-200 bg-neutral-50 text-neutral-600",
@@ -354,7 +361,7 @@ const ArtistLyricsPage = () => {
         </aside>
 
         <div className="space-y-6">
-          <div className="rounded-md border border-neutral-200 bg-white p-6 shadow-sm">
+          <div className={[dashboardPanelClass, "p-6"].join(" ")}>
             {trackLoading ? (
               <div className="flex items-center gap-2 text-sm text-neutral-500">
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -375,7 +382,7 @@ const ArtistLyricsPage = () => {
                 </div>
 
                 {syncedLyricsInfo ? (
-                  <div className="mt-6 rounded-md border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+                  <div className="mt-6 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
                     <p className="text-[11px] uppercase tracking-[0.24em] text-sky-700">Synced lyrics file</p>
                     <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <span className="font-medium">{syncedLyricsInfo.fileName}</span>
@@ -383,7 +390,7 @@ const ArtistLyricsPage = () => {
                         href={syncedLyricsInfo.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-2 rounded-md border border-sky-200 bg-white px-3 py-1.5 text-xs font-medium text-sky-900 transition hover:bg-sky-100"
+                        className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-white px-3 py-1.5 text-xs font-semibold text-sky-900 transition hover:bg-sky-100"
                       >
                         Open file
                       </a>
@@ -397,7 +404,7 @@ const ArtistLyricsPage = () => {
                     { label: "Lyrics length", value: `${selectedTrackSummary?.lyricsLength || 0} chars` },
                     { label: "Approval", value: selectedTrackSummary?.status || "draft" },
                   ].map((item) => (
-                    <div key={item.label} className="rounded-md border border-neutral-200 bg-[#fcfaf7] px-4 py-3">
+                    <div key={item.label} className="rounded-2xl border border-neutral-200 bg-white px-4 py-3">
                       <p className="text-[11px] uppercase tracking-[0.24em] text-neutral-500">{item.label}</p>
                       <p className="mt-2 text-sm font-medium text-[#241b15]">{item.value}</p>
                     </div>
@@ -415,7 +422,7 @@ const ArtistLyricsPage = () => {
                       onChange={(event) => setLyricsStatic(event.target.value)}
                       rows={14}
                       placeholder="Paste or type your lyrics here..."
-                      className="mt-2 w-full rounded-md border border-neutral-200 bg-white px-4 py-3 text-sm leading-6 text-[#241b15] outline-none transition placeholder:text-neutral-400 focus:border-[#8b5e3c]"
+                    className="mt-2 w-full rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm leading-6 text-[#241b15] outline-none transition placeholder:text-neutral-400 focus:border-[#d88a53] focus:ring-4 focus:ring-[#f4dcc7]"
                     />
                   </div>
 
@@ -423,7 +430,7 @@ const ArtistLyricsPage = () => {
                     <button
                       type="submit"
                       disabled={saving || !selectedTrackId || !hasUnsavedChanges}
-                      className="inline-flex items-center gap-2 rounded-md bg-[#8b5e3c] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#6d4a2f] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center gap-2 rounded-full bg-[#ff7a2f] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#ef6c1e] disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                       Save lyrics
@@ -433,7 +440,7 @@ const ArtistLyricsPage = () => {
                       type="button"
                       onClick={() => setLyricsStatic(initialLyrics)}
                       disabled={saving || !hasUnsavedChanges}
-                      className="inline-flex items-center gap-2 rounded-md border border-neutral-200 px-5 py-2.5 text-sm font-medium text-[#241b15] transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center gap-2 rounded-full border border-neutral-200 px-5 py-2.5 text-sm font-semibold text-[#241b15] transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       Reset changes
                     </button>
@@ -449,7 +456,7 @@ const ArtistLyricsPage = () => {
                         type="button"
                         onClick={handleUploadSync}
                         disabled={!lyricsFile || uploadingSync}
-                        className="inline-flex items-center gap-2 rounded-md border border-neutral-200 px-4 py-2 text-sm font-medium text-[#241b15] transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex items-center gap-2 rounded-full border border-neutral-200 px-4 py-2 text-sm font-semibold text-[#241b15] transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {uploadingSync ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update .lrc"}
                       </button>
@@ -464,7 +471,7 @@ const ArtistLyricsPage = () => {
             )}
           </div>
 
-          <div className="rounded-md border border-neutral-200 bg-[#fcfaf7] p-5 text-sm text-neutral-600 shadow-sm">
+          <div className="rounded-2xl border border-neutral-200 bg-[#fcfaf7] p-5 text-sm text-neutral-600">
             <p className="font-medium text-[#241b15]">Note</p>
             <p className="mt-2 leading-6">
               This page manages static lyrics and synced .lrc updates for your tracks.
