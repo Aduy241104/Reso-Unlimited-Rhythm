@@ -17,6 +17,7 @@ router.get("/genres", adminGenreController.getGenres);
 router.get("/genres/:id", adminGenreController.getGenre);
 router.post("/genres", adminGenreController.createGenre);
 router.use("/artist-requests", adminArtistRequestRouter);
+router.delete('/genres/:id', adminGenreController.deleteGenre);
 router.use("/tracks", adminTrackRouter);
 router.post(
     "/genres/upload",
