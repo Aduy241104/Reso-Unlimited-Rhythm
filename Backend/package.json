@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "nodemon --inspect src/server.js",
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand",
     "seed": "node src/seed.js",
     "seed5": "node src/seed5.js"
   },
