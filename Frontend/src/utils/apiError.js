@@ -9,6 +9,35 @@ export const getApiErrorMessage = (
   return payload?.message || error?.message || fallbackMessage;
 };
 
+export const getApiErrorDetailsText = (error) => {
+  const payload = getApiErrorPayload(error) ?? error;
+  const details = payload?.errors;
+
+  if (Array.isArray(details) && details.length > 0) {
+    return details
+      .map((detail) => detail?.message || detail?.field)
+      .filter(Boolean)
+      .join("\n");
+  }
+
+  if (details?.field && details?.message) {
+    return details.message;
+  }
+
+  return "";
+};
+
+export const getApiErrorFullMessage = (error, fallbackMessage = "Something went wrong.") => {
+  const baseMessage = getApiErrorMessage(error, fallbackMessage);
+  const detailsText = getApiErrorDetailsText(error);
+
+  if (!detailsText || detailsText === baseMessage) {
+    return baseMessage;
+  }
+
+  return `${baseMessage}\n${detailsText}`;
+};
+
 export const getResendAfterSecondsFromError = (error) => {
   const details = getApiErrorPayload(error)?.errors;
   const resendAfterSeconds = Number(details?.resendAfterSeconds);

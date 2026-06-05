@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { BarChart3, Eye, EyeOff, Pencil, Trash2 } from "lucide-react";
 import trackService from "../../services/trackService";
 import { routePaths } from "../../routes/routePaths";
+import { getApiErrorFullMessage } from "../../utils/apiError";
+import { canArtistSubmitTrack } from "../../utils/trackWorkflow";
 
 const formatDuration = (duration) => {
   const totalSeconds = Number(duration) || 0;
@@ -160,7 +162,14 @@ export const MyMusicPage = () => {
   const handleSubmitForApproval = async (track) => {
     if (!track || isActionLoading) return;
 
-    const confirmed = window.confirm("Submit this track for review? This will set its approval status to pending.");
+    if (!canArtistSubmitTrack(track)) {
+      setActionError("Only draft or rejected tracks can be submitted.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Submit this track for admin review? You will not be able to edit it while pending."
+    );
     if (!confirmed) return;
 
     setActionMessage("");
@@ -172,7 +181,18 @@ export const MyMusicPage = () => {
       setTracks((current) => current.map((t) => (t._id === updatedTrack?._id ? updatedTrack : t)));
       setActionMessage("Track submitted for approval.");
     } catch (error) {
-      setActionError(error?.message || error?.response?.data?.message || "Failed to submit track.");
+      const message = getApiErrorFullMessage(error, "Failed to submit track.");
+      setActionError(message);
+
+      if (track?._id) {
+        const shouldOpenEditor = window.confirm(
+          `${message}\n\nOpen the track editor to complete missing fields?`
+        );
+
+        if (shouldOpenEditor) {
+          navigate(routePaths.artistTrackEdit(track._id));
+        }
+      }
     } finally {
       setIsActionLoading(false);
     }
