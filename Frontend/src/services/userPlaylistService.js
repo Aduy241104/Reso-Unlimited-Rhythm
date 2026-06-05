@@ -72,3 +72,11 @@ export const updateUserPlaylist = async (playlistId, payload = {}) => {
 
   return response?.data?.data?.playlist ?? response?.data?.data ?? null;
 };
+
+export const deleteUserPlaylist = async (playlistId) => {
+  const response = await axiosClient.delete(
+    `${USER_PLAYLIST_API_PREFIX}/playlists/${playlistId}`
+  );
+
+  return response?.data?.data ?? null;
+};

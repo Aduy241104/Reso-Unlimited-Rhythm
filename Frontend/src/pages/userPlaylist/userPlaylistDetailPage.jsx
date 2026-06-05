@@ -1,11 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  CircleMinus,
   CirclePlus,
   Download,
   MoreHorizontal,
+  Pencil,
   Shuffle,
 } from "lucide-react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import DeletePlaylistConfirmModal from "../../components/userPlaylist/DeletePlaylistConfirmModal";
 import EditPlaylistModal from "../../components/userPlaylist/EditPlaylistModal";
 import PlayButton from "../../components/common/PlayButton";
 import TrackCard from "../../components/TrackCard";
@@ -13,6 +16,7 @@ import TrackListSection from "../../components/trackList/TrackListSection";
 import { usePlayer } from "../../hooks/usePlayer";
 import { routePaths } from "../../routes/routePaths";
 import {
+  deleteUserPlaylist,
   getUserPlaylistDetail,
   getUserPlaylists,
 } from "../../services/userPlaylistService";
@@ -137,11 +141,17 @@ const normalizePlaylists = (payload) => {
 
 const UserPlaylistDetailPage = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [playlist, setPlaylist] = useState(null);
   const [existingPlaylists, setExistingPlaylists] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeletingPlaylist, setIsDeletingPlaylist] = useState(false);
+  const [deleteErrorMessage, setDeleteErrorMessage] = useState("");
+  const actionMenuRef = useRef(null);
   const {
     currentTrack,
     isPlaying,
@@ -219,6 +229,34 @@ const UserPlaylistDetailPage = () => {
     };
   }, [id]);
 
+  useEffect(() => {
+    if (!isActionMenuOpen) {
+      return undefined;
+    }
+
+    const handlePointerDown = (event) => {
+      if (!actionMenuRef.current?.contains(event.target)) {
+        setIsActionMenuOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setIsActionMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isActionMenuOpen]);
+
   const trackItems = normalizeTrackItems(playlist);
   const playlistOwnerLabel = getPlaylistOwnerLabel(playlist);
   const totalTracks = playlist?.trackCount ?? trackItems.length;
@@ -294,7 +332,41 @@ const UserPlaylistDetailPage = () => {
       return;
     }
 
+    setIsActionMenuOpen(false);
     setIsEditModalOpen(true);
+  };
+
+  const handleOpenDeleteModal = () => {
+    if (!playlist || isLoading) {
+      return;
+    }
+
+    setDeleteErrorMessage("");
+    setIsActionMenuOpen(false);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDeletePlaylist = async () => {
+    const playlistId = playlist?.playlistId || playlist?.id;
+
+    if (!playlistId || isDeletingPlaylist) {
+      return;
+    }
+
+    setIsDeletingPlaylist(true);
+    setDeleteErrorMessage("");
+
+    try {
+      await deleteUserPlaylist(playlistId);
+      setIsDeleteModalOpen(false);
+      navigate(routePaths.userPlaylist, { replace: true });
+    } catch (error) {
+      setDeleteErrorMessage(
+        getApiErrorMessage(error, "Không thể xóa playlist lúc này.")
+      );
+    } finally {
+      setIsDeletingPlaylist(false);
+    }
   };
 
   const handlePlaylistUpdated = (updatedPlaylist) => {
@@ -447,9 +519,48 @@ const UserPlaylistDetailPage = () => {
             <button type="button" className={ actionButtonClassName } aria-label="Download playlist">
               <Download className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </button>
-            <button type="button" className={ actionButtonClassName } aria-label="More options">
-              <MoreHorizontal className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
-            </button>
+            <div ref={ actionMenuRef } className="relative">
+              <button
+                type="button"
+                onClick={ () => setIsActionMenuOpen((current) => !current) }
+                className="inline-flex h-10 items-center justify-center rounded-full px-2 text-white/76 transition hover:text-white sm:h-11"
+                aria-label="More options"
+                aria-haspopup="menu"
+                aria-expanded={ isActionMenuOpen }
+              >
+                <MoreHorizontal className="h-6 w-6 sm:h-7 sm:w-7" />
+              </button>
+
+              { isActionMenuOpen ? (
+                <div
+                  className="
+                    absolute left-0 top-full z-20 mt-2 min-w-[230px] overflow-hidden rounded-2xl
+                    border border-white/10 bg-[#2f2f2f] py-2 shadow-[0_20px_45px_rgba(0,0,0,0.4)]
+                  "
+                  role="menu"
+                  aria-label="Playlist actions"
+                >
+                  <button
+                    type="button"
+                    onClick={ handleOpenEditModal }
+                    className="flex w-full items-center gap-3 px-4 py-3 text-left text-base font-medium text-white transition hover:bg-white/8"
+                    role="menuitem"
+                  >
+                    <Pencil className="h-4.5 w-4.5 text-white/82" />
+                    Sửa thông tin chi tiết
+                  </button>
+                  <button
+                    type="button"
+                    onClick={ handleOpenDeleteModal }
+                    className="flex w-full items-center gap-3 px-4 py-3 text-left text-base font-medium text-white transition hover:bg-white/8"
+                    role="menuitem"
+                  >
+                    <CircleMinus className="h-4.5 w-4.5 text-white/82" />
+                    Xóa
+                  </button>
+                </div>
+              ) : null }
+            </div>
           </div>
 
           <TrackListSection
@@ -493,6 +604,20 @@ const UserPlaylistDetailPage = () => {
         onUpdated={ handlePlaylistUpdated }
         playlist={ playlist }
         existingPlaylists={ existingPlaylists }
+      />
+
+      <DeletePlaylistConfirmModal
+        isOpen={ isDeleteModalOpen }
+        playlistTitle={ playlistTitle }
+        isDeleting={ isDeletingPlaylist }
+        errorMessage={ deleteErrorMessage }
+        onClose={ () => {
+          if (!isDeletingPlaylist) {
+            setDeleteErrorMessage("");
+            setIsDeleteModalOpen(false);
+          }
+        } }
+        onConfirm={ handleDeletePlaylist }
       />
     </section>
   );
