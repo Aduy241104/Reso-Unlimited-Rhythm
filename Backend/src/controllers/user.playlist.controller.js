@@ -63,6 +63,28 @@ const addTrackToMyPlaylist = async (req, res, next) => {
     }
 };
 
+const removeTrackFromMyPlaylist = async (req, res, next) => {
+    try {
+        const userId = req.user?.id || req.user?._id;
+        const playlistId = req.params.playlistId;
+        const trackId = req.params.trackId;
+
+        const playlist = await userPlaylistService.removeTrackFromMyPlaylistByUserId(
+            userId,
+            playlistId,
+            trackId
+        );
+
+        return formatResponse.success(
+            res,
+            { playlist },
+            "Track removed from playlist successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 const deleteMyPlaylist = async (req, res, next) => {
     try {
         const userId = req.user?.id || req.user?._id;
@@ -145,6 +167,7 @@ export default {
     createMyPlaylist,
     updateMyPlaylist,
     addTrackToMyPlaylist,
+    removeTrackFromMyPlaylist,
     deleteMyPlaylist,
     updateMyPlaylistCover,
     getMyPlaylists,

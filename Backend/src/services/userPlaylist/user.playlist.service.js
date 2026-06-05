@@ -198,6 +198,64 @@ const addTrackToMyPlaylistByUserId = async (userId, playlistId, trackId) => {
     return formatPlaylistAfterTrackChange(playlist);
 };
 
+const removeTrackFromMyPlaylistByUserId = async (userId, playlistId, trackId) => {
+    if (!userId) {
+        throw new AppError("Unauthorized.", 401);
+    }
+
+    const normalizedPlaylistId = normalizeObjectId(playlistId, "playlistId");
+    const normalizedTrackId = normalizeObjectId(trackId, "trackId");
+
+    const playlist = await Playlist.findOne({
+        _id: normalizedPlaylistId,
+        userId,
+        type: "user",
+    });
+
+    if (!playlist) {
+        throw new AppError("Playlist not found.", 404);
+    }
+
+    const existingTrackIndex = playlist.tracks.findIndex(
+        (item) => String(item.trackId) === String(normalizedTrackId)
+    );
+
+    if (existingTrackIndex === -1) {
+        throw new AppError("Track not found in playlist.", 404, {
+            field: "trackId",
+        });
+    }
+
+    playlist.tracks.splice(existingTrackIndex, 1);
+    playlist.tracks.forEach((item, index) => {
+        item.order = index;
+    });
+
+    const remainingTrackIds = playlist.tracks.map((item) => item.trackId);
+    let totalDuration = 0;
+
+    if (remainingTrackIds.length > 0) {
+        const tracks = await Track.find({
+            _id: { $in: remainingTrackIds },
+        })
+            .select("duration")
+            .lean();
+
+        totalDuration = tracks.reduce(
+            (sum, track) => sum + Number(track?.duration || 0),
+            0
+        );
+    }
+
+    playlist.trackCount = playlist.tracks.length;
+    playlist.totalDuration = totalDuration;
+    playlist.markModified("tracks");
+
+    await playlist.save();
+
+    return formatPlaylistAfterTrackChange(playlist);
+};
+
 const deleteMyPlaylistByUserId = async (userId, playlistId) => {
     if (!userId) {
         throw new AppError("Unauthorized.", 401);
@@ -353,6 +411,7 @@ export default {
     createMyPlaylistByUserId,
     updateMyPlaylistByUserId,
     addTrackToMyPlaylistByUserId,
+    removeTrackFromMyPlaylistByUserId,
     deleteMyPlaylistByUserId,
     getMyPlaylistsByUserId,
     getPlaylistDetail,

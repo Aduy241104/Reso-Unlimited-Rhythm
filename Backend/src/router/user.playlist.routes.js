@@ -48,6 +48,7 @@ const runPlaylistCoverUpload = (req, res, next) => {
 router.post( "/", requireUser, runPlaylistCoverUpload, userPlaylistController.createMyPlaylist);
 
 router.post("/:playlistId/tracks", requireUser, userPlaylistController.addTrackToMyPlaylist);
+router.delete("/:playlistId/tracks/:trackId", requireUser, userPlaylistController.removeTrackFromMyPlaylist);
 router.patch("/:id", requireUser, runPlaylistCoverUpload, userPlaylistController.updateMyPlaylist);
 router.delete("/:id", requireUser, userPlaylistController.deleteMyPlaylist);
 router.get("/", requireUser, userPlaylistController.getMyPlaylists);
