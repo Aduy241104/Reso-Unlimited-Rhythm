@@ -3,9 +3,13 @@ import {
   CircleMinus,
   CirclePlus,
   Download,
+  Loader2,
   MoreHorizontal,
   Pencil,
+  Plus,
+  Search,
   Shuffle,
+  Trash2,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import DeletePlaylistConfirmModal from "../../components/userPlaylist/DeletePlaylistConfirmModal";
@@ -16,9 +20,11 @@ import TrackListSection from "../../components/trackList/TrackListSection";
 import { usePlayer } from "../../hooks/usePlayer";
 import { routePaths } from "../../routes/routePaths";
 import {
+  addTrackToUserPlaylist,
   deleteUserPlaylist,
   getUserPlaylistDetail,
   getUserPlaylists,
+  removeTrackFromUserPlaylist,
 } from "../../services/userPlaylistService";
 import { formatTrackDuration } from "../../utils/albumDetail";
 import { getApiErrorMessage } from "../../utils/apiError";
@@ -37,6 +43,20 @@ const metaPillClassName = `
   inline-flex items-center rounded-full border border-white/14 bg-white/10
   px-3 py-1.5 text-xs text-white/88 backdrop-blur-sm sm:text-sm
 `;
+
+const trackListHeaderGridClassName = `
+  mb-2 hidden grid-cols-[2.5rem_minmax(0,1fr)_2.75rem_3.25rem_2.75rem] items-center gap-3
+  border-b border-black/6 px-3 pb-3 text-xs font-medium uppercase tracking-[0.24em]
+  text-[#71717a] dark:border-white/10 dark:text-[#a1a1aa] md:grid
+`;
+
+const trackListHeaderColumns = [
+  { label: "#" },
+  { label: "Title" },
+  { label: "Saved", className: "text-center" },
+  { label: "Time", className: "text-right" },
+  { label: "" },
+];
 
 const getPlaylistTitle = (playlist) => {
   if (typeof playlist?.title === "string" && playlist.title.trim()) {
@@ -139,6 +159,24 @@ const normalizePlaylists = (payload) => {
   return [];
 };
 
+const getPlaylistIdValue = (playlist) => playlist?.playlistId || playlist?.id || "";
+
+const getPlaylistTrackCount = (playlist) => {
+  if (typeof playlist?.totalTracks === "number") {
+    return playlist.totalTracks;
+  }
+
+  if (typeof playlist?.trackCount === "number") {
+    return playlist.trackCount;
+  }
+
+  if (Array.isArray(playlist?.tracks)) {
+    return playlist.tracks.length;
+  }
+
+  return 0;
+};
+
 const UserPlaylistDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -151,7 +189,16 @@ const UserPlaylistDetailPage = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeletingPlaylist, setIsDeletingPlaylist] = useState(false);
   const [deleteErrorMessage, setDeleteErrorMessage] = useState("");
+  const [openTrackMenuId, setOpenTrackMenuId] = useState("");
+  const [trackMenuSearchValue, setTrackMenuSearchValue] = useState("");
+  const [trackActionErrorMessage, setTrackActionErrorMessage] = useState("");
+  const [trackActionFeedback, setTrackActionFeedback] = useState(null);
+  const [submittingTrackActionId, setSubmittingTrackActionId] = useState("");
+  const [pendingTrackRemoval, setPendingTrackRemoval] = useState(null);
+  const [isRemovingTrack, setIsRemovingTrack] = useState(false);
+  const [removeTrackErrorMessage, setRemoveTrackErrorMessage] = useState("");
   const actionMenuRef = useRef(null);
+  const trackMenuRef = useRef(null);
   const {
     currentTrack,
     isPlaying,
@@ -257,6 +304,48 @@ const UserPlaylistDetailPage = () => {
     };
   }, [isActionMenuOpen]);
 
+  useEffect(() => {
+    if (!openTrackMenuId) {
+      return undefined;
+    }
+
+    const handlePointerDown = (event) => {
+      if (!trackMenuRef.current?.contains(event.target)) {
+        setOpenTrackMenuId("");
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setOpenTrackMenuId("");
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [openTrackMenuId]);
+
+  useEffect(() => {
+    if (!trackActionFeedback?.message || trackActionFeedback.tone !== "success") {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setTrackActionFeedback(null);
+    }, 3000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [trackActionFeedback]);
+
   const trackItems = normalizeTrackItems(playlist);
   const playlistOwnerLabel = getPlaylistOwnerLabel(playlist);
   const totalTracks = playlist?.trackCount ?? trackItems.length;
@@ -267,6 +356,25 @@ const UserPlaylistDetailPage = () => {
   const playlistCoverImage = playlist?.coverImage ?? "";
   const playlistTitle = getPlaylistTitle(playlist);
   const playlistDescription = getPlaylistDescription(playlist);
+  const currentPlaylistId = getPlaylistIdValue(playlist);
+  const availableTargetPlaylists = useMemo(
+    () =>
+      existingPlaylists.filter(
+        (item) => getPlaylistIdValue(item) && getPlaylistIdValue(item) !== currentPlaylistId
+      ),
+    [currentPlaylistId, existingPlaylists]
+  );
+  const filteredTargetPlaylists = useMemo(() => {
+    const normalizedQuery = trackMenuSearchValue.trim().toLocaleLowerCase();
+
+    if (!normalizedQuery) {
+      return availableTargetPlaylists;
+    }
+
+    return availableTargetPlaylists.filter((item) =>
+      getPlaylistTitle(item).toLocaleLowerCase().includes(normalizedQuery)
+    );
+  }, [availableTargetPlaylists, trackMenuSearchValue]);
 
   const collectionMeta = useMemo(
     () => ({
@@ -325,6 +433,151 @@ const UserPlaylistDetailPage = () => {
 
   const handleLikeTrack = (track) => {
     console.log("Toggle like track:", track?.title || track?.name);
+  };
+
+  const mergePlaylistSummary = (sourcePlaylist, updatedPlaylist) => {
+    if (!updatedPlaylist) {
+      return sourcePlaylist;
+    }
+
+    return {
+      ...sourcePlaylist,
+      ...updatedPlaylist,
+      totalTracks:
+        updatedPlaylist?.trackCount ??
+        updatedPlaylist?.totalTracks ??
+        sourcePlaylist?.totalTracks ??
+        sourcePlaylist?.trackCount ??
+        getPlaylistTrackCount(sourcePlaylist),
+      trackCount:
+        updatedPlaylist?.trackCount ??
+        updatedPlaylist?.totalTracks ??
+        sourcePlaylist?.trackCount ??
+        sourcePlaylist?.totalTracks ??
+        getPlaylistTrackCount(sourcePlaylist),
+      totalDuration:
+        updatedPlaylist?.totalDuration ?? sourcePlaylist?.totalDuration ?? 0,
+    };
+  };
+
+  const updatePlaylistSummaryInList = (playlistId, updatedPlaylist) => {
+    if (!playlistId) {
+      return;
+    }
+
+    setExistingPlaylists((current) =>
+      current.map((item) =>
+        getPlaylistIdValue(item) === playlistId
+          ? mergePlaylistSummary(item, updatedPlaylist)
+          : item
+      )
+    );
+  };
+
+  const handleToggleTrackMenu = (trackId) => {
+    setTrackActionErrorMessage("");
+    setTrackActionFeedback(null);
+    setTrackMenuSearchValue("");
+    setOpenTrackMenuId((current) => (current === trackId ? "" : trackId));
+  };
+
+  const handleAddTrackToAnotherPlaylist = async (targetPlaylist, track) => {
+    const targetPlaylistId = getPlaylistIdValue(targetPlaylist);
+    const trackId = getTrackId(track);
+
+    if (!targetPlaylistId || !trackId || submittingTrackActionId) {
+      return;
+    }
+
+    setSubmittingTrackActionId(`${trackId}:${targetPlaylistId}`);
+    setTrackActionErrorMessage("");
+    setTrackActionFeedback(null);
+
+    try {
+      const updatedPlaylist = await addTrackToUserPlaylist(targetPlaylistId, trackId);
+      updatePlaylistSummaryInList(targetPlaylistId, updatedPlaylist);
+      setOpenTrackMenuId("");
+      setTrackMenuSearchValue("");
+      setTrackActionFeedback({
+        tone: "success",
+        message: `Đã thêm "${track?.title || track?.name || "bài hát"}" vào ${getPlaylistTitle(
+          targetPlaylist
+        )}.`,
+        image: getTrackImage(track, playlistCoverImage),
+      });
+    } catch (error) {
+      setTrackActionErrorMessage(
+        getApiErrorMessage(error, "Không thể thêm bài hát vào playlist khác.")
+      );
+    } finally {
+      setSubmittingTrackActionId("");
+    }
+  };
+
+  const handleOpenRemoveTrackModal = (track) => {
+    const trackId = getTrackId(track);
+
+    if (!trackId) {
+      return;
+    }
+
+    setOpenTrackMenuId("");
+    setRemoveTrackErrorMessage("");
+    setPendingTrackRemoval({
+      id: trackId,
+      title: track?.title || track?.name || "bài hát này",
+    });
+  };
+
+  const handleRemoveTrackFromCurrentPlaylist = async () => {
+    if (!currentPlaylistId || !pendingTrackRemoval?.id || isRemovingTrack) {
+      return;
+    }
+
+    setIsRemovingTrack(true);
+    setRemoveTrackErrorMessage("");
+
+    try {
+      const updatedPlaylist = await removeTrackFromUserPlaylist(
+        currentPlaylistId,
+        pendingTrackRemoval.id
+      );
+
+      setPlaylist((current) => {
+        if (!current) {
+          return current;
+        }
+
+        const nextTracks = normalizeTrackItems(current)
+          .filter((item) => getTrackId(getTrackEntity(item)) !== pendingTrackRemoval.id)
+          .map((item, index) => ({
+            ...item,
+            order: index + 1,
+          }));
+
+        return {
+          ...current,
+          trackCount: updatedPlaylist?.trackCount ?? nextTracks.length,
+          totalDuration:
+            updatedPlaylist?.totalDuration ?? getTotalDurationSeconds(nextTracks),
+          tracks: nextTracks,
+        };
+      });
+
+      updatePlaylistSummaryInList(currentPlaylistId, updatedPlaylist);
+      setTrackActionFeedback({
+        tone: "success",
+        message: `Đã xóa "${pendingTrackRemoval.title}" khỏi ${playlistTitle}.`,
+        image: "",
+      });
+      setPendingTrackRemoval(null);
+    } catch (error) {
+      setRemoveTrackErrorMessage(
+        getApiErrorMessage(error, "Không thể xóa bài hát khỏi playlist hiện tại.")
+      );
+    } finally {
+      setIsRemovingTrack(false);
+    }
   };
 
   const handleOpenEditModal = () => {
@@ -568,16 +821,20 @@ const UserPlaylistDetailPage = () => {
             errorMessage={ errorMessage }
             loadingMessage="Loading tracks..."
             mobileLabel="Track list"
+            headerColumns={ trackListHeaderColumns }
+            headerGridClassName={ trackListHeaderGridClassName }
             emptyMessage="No tracks available for this playlist yet."
             hasItems={ trackItems.length > 0 }
           >
             { trackItems.map((trackItem, index) => {
               const track = getTrackEntity(trackItem);
               const trackId = getTrackId(track);
+              const trackActionKey = trackId || `${trackItem?.trackId || "track"}-${index}`;
+              const isTrackMenuOpen = openTrackMenuId === trackActionKey;
 
               return (
                 <TrackCard
-                  key={ trackId || `${trackItem?.trackId || "track"}-${index}` }
+                  key={ trackActionKey }
                   index={ trackItem?.order || index + 1 }
                   image={ getTrackImage(track, playlistCoverImage) }
                   title={ track?.title || track?.name || "" }
@@ -591,6 +848,116 @@ const UserPlaylistDetailPage = () => {
                   isPlaying={ isPlaying }
                   onPlaybackAction={ () => handlePlayTrack(track, index) }
                   onLike={ () => handleLikeTrack(track) }
+                  mobileLayoutClassName="grid-cols-[2rem_minmax(0,1fr)_auto_auto]"
+                  desktopLayoutClassName="sm:grid-cols-[2.5rem_minmax(0,1fr)_2.75rem_3.25rem_2.75rem]"
+                  desktopMetaColumns={ [
+                    {
+                      content: formatTrackDuration(track?.duration),
+                    },
+                    {
+                      content: (
+                        <div
+                          ref={ isTrackMenuOpen ? trackMenuRef : null }
+                          className="relative flex items-center justify-end"
+                        >
+                          <button
+                            type="button"
+                            onClick={ (event) => {
+                              event.stopPropagation();
+                              handleToggleTrackMenu(trackActionKey);
+                            } }
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[#71717a] transition hover:bg-black/[0.06] hover:text-[#111111] dark:text-[#a1a1aa] dark:hover:bg-white/[0.08] dark:hover:text-white"
+                            aria-label={ `Track options for ${track?.title || track?.name || "track"}` }
+                            aria-haspopup="menu"
+                            aria-expanded={ isTrackMenuOpen }
+                          >
+                            <MoreHorizontal className="h-4.5 w-4.5" />
+                          </button>
+
+                          { isTrackMenuOpen ? (
+                            <div
+                              className="
+                                absolute bottom-full right-0 z-30 mb-2 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-[20px]
+                                border border-white/10 bg-[#2f2f2f] p-3 text-left shadow-[0_24px_60px_rgba(0,0,0,0.45)]
+                              "
+                              role="menu"
+                              aria-label="Track actions"
+                              onClick={ (event) => event.stopPropagation() }
+                            >
+                              <label className="flex items-center gap-3 rounded-xl bg-white/8 px-3 py-3 text-white/72">
+                                <Search className="h-4.5 w-4.5 shrink-0" />
+                                <input
+                                  type="text"
+                                  value={ trackMenuSearchValue }
+                                  onChange={ (event) => setTrackMenuSearchValue(event.target.value) }
+                                  placeholder="Tìm playlist khác"
+                                  className="w-full bg-transparent text-sm text-white placeholder:text-white/55 focus:outline-none"
+                                />
+                              </label>
+
+                              <div className="mt-3 space-y-1 border-b border-white/10 pb-3">
+                                <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-white/48">
+                                  Thêm vào playlist khác
+                                </p>
+
+                                { filteredTargetPlaylists.length > 0 ? (
+                                  filteredTargetPlaylists.map((targetPlaylist) => {
+                                    const targetPlaylistId = getPlaylistIdValue(targetPlaylist);
+                                    const isSubmitting =
+                                      submittingTrackActionId ===
+                                      `${trackId}:${targetPlaylistId}`;
+
+                                    return (
+                                      <button
+                                        key={ targetPlaylistId }
+                                        type="button"
+                                        onClick={ () =>
+                                          handleAddTrackToAnotherPlaylist(targetPlaylist, track)
+                                        }
+                                        className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-white transition hover:bg-white/8 disabled:cursor-not-allowed disabled:opacity-60"
+                                        role="menuitem"
+                                        disabled={ Boolean(submittingTrackActionId) }
+                                      >
+                                        <span className="truncate">
+                                          { getPlaylistTitle(targetPlaylist) }
+                                        </span>
+                                        { isSubmitting ? (
+                                          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-white/72" />
+                                        ) : (
+                                          <Plus className="h-4 w-4 shrink-0 text-white/72" />
+                                        ) }
+                                      </button>
+                                    );
+                                  })
+                                ) : (
+                                  <div className="px-3 py-3 text-sm text-white/55">
+                                    Không có playlist khác phù hợp.
+                                  </div>
+                                ) }
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={ () => handleOpenRemoveTrackModal(track) }
+                                className="mt-3 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-white transition hover:bg-white/8"
+                                role="menuitem"
+                              >
+                                <Trash2 className="h-4.5 w-4.5 shrink-0 text-white/72" />
+                                Xóa khỏi playlist hiện tại
+                              </button>
+
+                              { trackActionErrorMessage ? (
+                                <div className="mt-3 rounded-2xl border border-[#ef4444]/20 bg-[#ef4444]/10 px-3 py-2 text-sm text-[#fecaca]">
+                                  { trackActionErrorMessage }
+                                </div>
+                              ) : null }
+                            </div>
+                          ) : null }
+                        </div>
+                      ),
+                      className: "flex items-center justify-end",
+                    },
+                  ] }
                 />
               );
             }) }
@@ -619,6 +986,51 @@ const UserPlaylistDetailPage = () => {
         } }
         onConfirm={ handleDeletePlaylist }
       />
+
+      <DeletePlaylistConfirmModal
+        isOpen={ Boolean(pendingTrackRemoval) }
+        playlistTitle={ pendingTrackRemoval?.title || "" }
+        title="Xóa khỏi playlist?"
+        message={
+          pendingTrackRemoval
+            ? `Thao tác này sẽ xóa ${pendingTrackRemoval.title} khỏi ${playlistTitle}.`
+            : ""
+        }
+        isDeleting={ isRemovingTrack }
+        errorMessage={ removeTrackErrorMessage }
+        onClose={ () => {
+          if (!isRemovingTrack) {
+            setRemoveTrackErrorMessage("");
+            setPendingTrackRemoval(null);
+          }
+        } }
+        onConfirm={ handleRemoveTrackFromCurrentPlaylist }
+      />
+
+      { trackActionFeedback?.message ? (
+        trackActionFeedback.tone === "success" ? (
+          <div className="pointer-events-none fixed left-1/2 top-5 z-[70] w-[min(calc(100vw-2rem),26rem)] -translate-x-1/2">
+            <div className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3 text-[#111111] shadow-[0_24px_60px_rgba(0,0,0,0.35)]">
+              { trackActionFeedback.image ? (
+                <img
+                  src={ trackActionFeedback.image }
+                  alt=""
+                  className="h-10 w-10 shrink-0 rounded-[10px] object-cover"
+                />
+              ) : (
+                <div className="h-10 w-10 shrink-0 rounded-[10px] bg-[#e5e7eb]" />
+              ) }
+              <p className="truncate text-[1.05rem] font-medium text-[#111111]">
+                { trackActionFeedback.message }
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-[#ef4444]/20 bg-[#ef4444]/10 px-4 py-3 text-sm text-[#fecaca]">
+            { trackActionFeedback.message }
+          </div>
+        )
+      ) : null }
     </section>
   );
 };

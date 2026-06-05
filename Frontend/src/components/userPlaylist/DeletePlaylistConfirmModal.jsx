@@ -7,6 +7,9 @@ const ANIMATION_DURATION = 300;
 const DeletePlaylistConfirmModal = ({
   isOpen,
   playlistTitle,
+  title = "Xóa khỏi Thư viện?",
+  message = "",
+  confirmLabel = "Xóa",
   isDeleting = false,
   errorMessage = "",
   onClose,
@@ -81,6 +84,8 @@ const DeletePlaylistConfirmModal = ({
   }
 
   const titleLabel = playlistTitle?.trim() || "playlist này";
+  const resolvedMessage =
+    message || `Thao tác này sẽ xóa ${titleLabel} khỏi Thư viện.`;
 
   return createPortal(
     <div
@@ -113,11 +118,10 @@ const DeletePlaylistConfirmModal = ({
               id="delete-playlist-modal-title"
               className="text-3xl font-bold tracking-tight sm:text-[2.1rem]"
             >
-              Xóa khỏi Thư viện?
+              {title}
             </h2>
             <p className="mt-4 max-w-[26rem] text-lg leading-8 text-black/86">
-              Thao tác này sẽ xóa <span className="font-semibold">{titleLabel}</span>{" "}
-              khỏi Thư viện.
+              {resolvedMessage}
             </p>
           </div>
 
@@ -157,10 +161,10 @@ const DeletePlaylistConfirmModal = ({
             {isDeleting ? (
               <span className="inline-flex items-center gap-2 text-xl">
                 <Loader2 className="h-5 w-5 animate-spin" />
-                Xóa
+                {confirmLabel}
               </span>
             ) : (
-              "Xóa"
+              confirmLabel
             )}
           </button>
         </div>
