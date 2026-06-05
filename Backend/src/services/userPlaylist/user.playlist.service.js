@@ -1,12 +1,15 @@
 import Playlist from "../../models/Playlist.js";
+import Track from "../../models/Track.js";
 import mongoose from "mongoose";
 import {
     buildCreatePlaylistPayload,
     buildUpdatePlaylistPayload,
     formatCreatedPlaylist,
+    formatPlaylistAfterTrackChange,
     formatUpdatedPlaylist,
     formatUserPlaylist,
     formatPlaylistDetail,
+    normalizeObjectId,
     normalizePositiveInteger,
 } from "./user.playlist.service.helper.js";
 import { AppError } from "../../utils/AppError.js";
@@ -140,6 +143,59 @@ const updateMyPlaylistByUserId = async (
     } catch (error) {
         throwPlaylistValidationError(error);
     }
+};
+
+const addTrackToMyPlaylistByUserId = async (userId, playlistId, trackId) => {
+    if (!userId) {
+        throw new AppError("Unauthorized.", 401);
+    }
+
+    const normalizedPlaylistId = normalizeObjectId(playlistId, "playlistId");
+    const normalizedTrackId = normalizeObjectId(trackId, "trackId");
+
+    const playlist = await Playlist.findOne({
+        _id: normalizedPlaylistId,
+        userId,
+        type: "user",
+    });
+
+    if (!playlist) {
+        throw new AppError("Playlist not found.", 404);
+    }
+
+    const track = await Track.findOne({
+        _id: normalizedTrackId,
+        activeStatus: "active",
+        approvalStatus: "approved",
+    }).lean();
+
+    if (!track) {
+        throw new AppError("Track not found or unavailable.", 404);
+    }
+
+    const alreadyExists = playlist.tracks.some(
+        (item) => String(item.trackId) === String(normalizedTrackId)
+    );
+
+    if (alreadyExists) {
+        throw new AppError("Track already exists in playlist.", 409, {
+            field: "trackId",
+        });
+    }
+
+    playlist.tracks.push({
+        trackId: normalizedTrackId,
+        addedAt: new Date(),
+        order: playlist.tracks.length,
+    });
+
+    playlist.trackCount = playlist.tracks.length;
+    playlist.totalDuration =
+        Number(playlist.totalDuration || 0) + Number(track.duration || 0);
+
+    await playlist.save();
+
+    return formatPlaylistAfterTrackChange(playlist);
 };
 
 const deleteMyPlaylistByUserId = async (userId, playlistId) => {
@@ -296,6 +352,7 @@ const getPlaylistDetail = async (playlistId, options = {}) => {
 export default {
     createMyPlaylistByUserId,
     updateMyPlaylistByUserId,
+    addTrackToMyPlaylistByUserId,
     deleteMyPlaylistByUserId,
     getMyPlaylistsByUserId,
     getPlaylistDetail,

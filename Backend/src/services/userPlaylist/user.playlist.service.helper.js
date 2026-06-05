@@ -1,4 +1,5 @@
 import { AppError } from "../../utils/AppError.js";
+import mongoose from "mongoose";
 
 export const normalizePositiveInteger = (value, defaultValue) => {
     const number = Number(value);
@@ -8,6 +9,16 @@ export const normalizePositiveInteger = (value, defaultValue) => {
     }
 
     return number;
+};
+
+export const normalizeObjectId = (value, field) => {
+    if (!mongoose.Types.ObjectId.isValid(value)) {
+        throw new AppError(`${field} is invalid.`, 400, {
+            field,
+        });
+    }
+
+    return value;
 };
 
 export const sanitizeString = (value, field) => {
@@ -105,6 +116,23 @@ export const formatCreatedPlaylist = (playlist) => {
 
 export const formatUpdatedPlaylist = (playlist) => {
     return formatCreatedPlaylist(playlist);
+};
+
+export const formatPlaylistAfterTrackChange = (playlist) => {
+    return {
+        playlistId: playlist._id?.toString?.() || "",
+        title: playlist.title,
+        description: playlist.description || "",
+        coverImage: playlist.coverImage || "",
+        type: playlist.type,
+        trackCount: playlist.trackCount || 0,
+        totalDuration: playlist.totalDuration || 0,
+        tracks: (playlist.tracks || []).map((track) => ({
+            trackId: track.trackId?.toString?.() || "",
+            addedAt: track.addedAt,
+            order: track.order,
+        })),
+    };
 };
 
 export const formatUserPlaylist = (playlist) => {
