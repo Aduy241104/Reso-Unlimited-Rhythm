@@ -1,14 +1,3 @@
-import { ArrowUpRight, BarChart3, Music2, PlayCircle } from "lucide-react";
-import {
-  dashboardCardLeadClass,
-  dashboardCardTitleClass,
-  dashboardMetricCardClass,
-  dashboardPanelClass,
-  dashboardPageLeadClass,
-  dashboardPageTitleClass,
-  dashboardSectionEyebrowClass,
-} from "../../components/artist/dashboardStyles";
-
 const stats = [
   {
     label: "Total Streams",
@@ -90,68 +79,44 @@ const chartBars = [
 ];
 
 const statusClasses = {
-  Live: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  Promoting: "border-amber-200 bg-amber-50 text-amber-700",
-  Draft: "border-neutral-200 bg-neutral-100 text-neutral-600",
+  Live: "bg-[#f3ebe3] text-[#6f4a2c]",
+  Promoting: "bg-[#f7f1e8] text-[#8b5e3c]",
+  Draft: "bg-neutral-100 text-neutral-600",
 };
 
 const ArtistOverviewPage = () => {
   return (
     <section className="space-y-6">
-      <div
-        className={[
-          dashboardPanelClass,
-          "relative overflow-hidden px-6 py-6 sm:px-8",
-        ].join(" ")}
-      >
-        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className={dashboardSectionEyebrowClass}>Artist Dashboard</p>
-            <h2 className={dashboardPageTitleClass}>Welcome back, Alex.</h2>
-            <p className={dashboardPageLeadClass}>
-              Track performance, review moderation status, and jump into your latest releases.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 rounded-full bg-[#241b15] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#3a2d23]"
-          >
-            View tracks
-            <ArrowUpRight className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map((stat) => (
-          <article key={stat.label} className={dashboardMetricCardClass}>
+          <article
+            key={stat.label}
+            className="rounded-md border border-neutral-200 bg-white p-5"
+          >
             <p className="text-sm font-medium text-neutral-500">{stat.label}</p>
             <p className="mt-3 text-3xl font-semibold tracking-tight text-[#241b15]">
               {stat.value}
             </p>
-            <p className="mt-2 text-sm text-[#b15d26]">{stat.detail}</p>
+            <p className="mt-2 text-sm text-[#8b5e3c]">{stat.detail}</p>
           </article>
         ))}
       </div>
 
-      <section className={dashboardPanelClass}>
-        <div className="flex items-center justify-between border-b border-neutral-200/70 px-5 py-4">
+      <section className="rounded-md border border-neutral-200 bg-white">
+        <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
           <div>
-            <h2 className={dashboardCardTitleClass}>Recent Releases</h2>
-            <p className={dashboardCardLeadClass}>
+            <h2 className="text-lg font-semibold text-[#241b15]">
+              Recent Releases
+            </h2>
+            <p className="mt-1 text-sm text-neutral-500">
               A quick view of your latest published and upcoming projects.
             </p>
-          </div>
-          <div className="hidden items-center gap-2 rounded-full border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-neutral-500 sm:flex">
-            <PlayCircle className="h-4 w-4 text-[#ff7a2f]" />
-            Release feed
           </div>
         </div>
 
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-neutral-200 text-left text-sm">
-            <thead className="bg-neutral-50 text-neutral-500">
+            <thead className="bg-[#fcfaf7] text-neutral-500">
               <tr>
                 <th className="px-5 py-3 font-medium">#</th>
                 <th className="px-5 py-3 font-medium">Release</th>
@@ -165,7 +130,7 @@ const ArtistOverviewPage = () => {
 
             <tbody className="divide-y divide-neutral-200">
               {recentReleases.map((release) => (
-                <tr key={release.id} className="text-[#2f261f] transition hover:bg-[#fffaf4]">
+                <tr key={release.id} className="text-[#2f261f]">
                   <td className="px-5 py-4 text-neutral-500">{release.id}</td>
                   <td className="px-5 py-4 font-medium">{release.release}</td>
                   <td className="px-5 py-4">{release.type}</td>
@@ -175,7 +140,7 @@ const ArtistOverviewPage = () => {
                   <td className="px-5 py-4">
                     <span
                       className={[
-                        "inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold",
+                        "inline-flex rounded-sm px-2.5 py-1 text-xs font-medium",
                         statusClasses[release.status],
                       ].join(" ")}
                     >
@@ -190,23 +155,24 @@ const ArtistOverviewPage = () => {
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-        <section className={dashboardPanelClass}>
-          <div className="flex items-center justify-between border-b border-neutral-200/70 px-5 py-4">
+        <section className="rounded-md border border-neutral-200 bg-white p-5">
+          <div className="flex items-center justify-between">
             <div>
-              <h2 className={dashboardCardTitleClass}>Top Songs</h2>
-              <p className={dashboardCardLeadClass}>Best-performing tracks this month.</p>
+              <h2 className="text-lg font-semibold text-[#241b15]">Top Songs</h2>
+              <p className="mt-1 text-sm text-neutral-500">
+                Best-performing tracks this month.
+              </p>
             </div>
-            <Music2 className="h-5 w-5 text-[#ff7a2f]" />
           </div>
 
-          <div className="space-y-3 p-5">
+          <div className="mt-5 space-y-3">
             {topSongs.map((song, index) => (
               <div
                 key={song.title}
-                className="flex items-center justify-between rounded-2xl border border-neutral-200 bg-white px-4 py-3 transition hover:border-[#d88a53] hover:bg-[#fffaf4]"
+                className="flex items-center justify-between rounded-sm border border-neutral-200 px-4 py-3"
               >
                 <div className="flex items-center gap-4">
-                  <span className="text-sm font-semibold text-neutral-400">
+                  <span className="text-sm font-medium text-neutral-400">
                     0{index + 1}
                   </span>
                   <div>
@@ -215,36 +181,37 @@ const ArtistOverviewPage = () => {
                   </div>
                 </div>
 
-                <p className="text-sm font-semibold text-[#b15d26]">{song.streams}</p>
+                <p className="text-sm font-medium text-[#8b5e3c]">
+                  {song.streams}
+                </p>
               </div>
             ))}
           </div>
         </section>
 
-        <section className={dashboardPanelClass}>
-          <div className="flex items-center justify-between border-b border-neutral-200/70 px-5 py-4">
-            <div>
-              <h2 className={dashboardCardTitleClass}>Stream Analytics</h2>
-              <p className={dashboardCardLeadClass}>
-                Placeholder for trend and performance visualizations.
-              </p>
-            </div>
-            <BarChart3 className="h-5 w-5 text-[#ff7a2f]" />
+        <section className="rounded-md border border-neutral-200 bg-white p-5">
+          <div>
+            <h2 className="text-lg font-semibold text-[#241b15]">
+              Stream Analytics
+            </h2>
+            <p className="mt-1 text-sm text-neutral-500">
+              Placeholder for trend and performance visualizations.
+            </p>
           </div>
 
-          <div className="p-5">
-            <div className="flex h-64 items-end justify-between gap-3 rounded-[24px] border border-neutral-200 bg-white p-5">
+          <div className="mt-8 rounded-md border border-neutral-200 bg-[#fcfaf7] p-5">
+            <div className="flex h-64 items-end justify-between gap-3">
               {chartBars.map((bar) => (
                 <div key={bar.month} className="flex flex-1 flex-col items-center">
                   <div className="flex h-40 items-end">
                     <div
                       className={[
-                        "w-9 rounded-full bg-gradient-to-t from-[#ff7a2f] to-[#ffb47f]",
+                        "w-9 rounded-sm bg-[#8b5e3c]",
                         bar.height,
                       ].join(" ")}
                     />
                   </div>
-                  <span className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-400">
+                  <span className="mt-3 text-xs font-medium uppercase tracking-[0.18em] text-neutral-400">
                     {bar.month}
                   </span>
                 </div>

@@ -30,50 +30,42 @@ import {
   getSubmitReadinessIssues,
   usesThirdPartyRights,
 } from "../../utils/trackWorkflow";
-import {
-  dashboardBadgeClass,
-  dashboardCardLeadClass,
-  dashboardCardTitleClass,
-  dashboardPanelClass,
-  dashboardSectionEyebrowClass,
-  dashboardStatusToneClass,
-} from "../../components/artist/dashboardStyles";
 
 const statusMeta = {
   active: {
     label: "Active",
-    className: dashboardStatusToneClass.active,
+    className: "bg-emerald-50 text-emerald-700 border-emerald-200",
   },
   draft: {
     label: "Draft",
-    className: dashboardStatusToneClass.draft,
+    className: "bg-neutral-100 text-neutral-600 border-neutral-200",
   },
   hidden: {
     label: "Hidden",
-    className: dashboardStatusToneClass.hidden,
+    className: "bg-amber-50 text-amber-700 border-amber-200",
   },
   blocked: {
     label: "Blocked",
-    className: dashboardStatusToneClass.blocked,
+    className: "bg-rose-50 text-rose-700 border-rose-200",
   },
 };
 
 const approvalMeta = {
   approved: {
     label: "Approved",
-    className: dashboardStatusToneClass.approved,
+    className: "bg-emerald-50 text-emerald-700 border-emerald-200",
   },
   pending: {
     label: "Pending review",
-    className: dashboardStatusToneClass.pending,
+    className: "bg-amber-50 text-amber-700 border-amber-200",
   },
   rejected: {
     label: "Rejected",
-    className: dashboardStatusToneClass.rejected,
+    className: "bg-rose-50 text-rose-700 border-rose-200",
   },
   draft: {
     label: "Draft",
-    className: dashboardStatusToneClass.draft,
+    className: "bg-neutral-100 text-neutral-600 border-neutral-200",
   },
 };
 
@@ -374,7 +366,7 @@ const ArtistTrackDetailPage = () => {
 
   if (isLoading) {
     return (
-      <section className={[dashboardPanelClass, "p-8 text-sm text-neutral-600"].join(" ")}>
+      <section className="rounded-md border border-neutral-200 bg-white p-8 text-sm text-neutral-600 shadow-sm">
         Loading artist track detail...
       </section>
     );
@@ -382,7 +374,7 @@ const ArtistTrackDetailPage = () => {
 
   if (errorMessage) {
     return (
-      <section className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-rose-900">
+      <section className="rounded-md border border-rose-200 bg-rose-50 p-6 text-rose-900">
         <h2 className="text-lg font-semibold">Could not load track</h2>
         <p className="mt-2 text-sm leading-6">{errorMessage}</p>
       </section>
@@ -394,13 +386,13 @@ const ArtistTrackDetailPage = () => {
       <button
         type="button"
         onClick={() => navigate(routePaths.artistMusic)}
-        className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-[#241b15] transition hover:border-[#d88a53] hover:text-[#b15d26]"
+        className="inline-flex items-center gap-2 text-sm font-medium text-neutral-600 transition hover:text-[#8b5e3c]"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to My Music
       </button>
 
-      <div className={[dashboardPanelClass, "overflow-hidden"].join(" ")}>
+      <div className="overflow-hidden rounded-md border border-neutral-200 bg-white shadow-sm">
         <div className="relative h-56 w-full bg-[#241b15] sm:h-64">
           <img src={coverImage} alt={track?.title || "Track cover"} className="h-full w-full object-cover opacity-90" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
@@ -412,8 +404,8 @@ const ArtistTrackDetailPage = () => {
                 {track?.title || "Untitled track"}
               </h1>
               <div className="mt-4 flex flex-wrap gap-2">
-                <span className={[dashboardBadgeClass, status.className].join(" ")}>{status.label}</span>
-                <span className={[dashboardBadgeClass, approval.className].join(" ")}>{approval.label}</span>
+                <span className={["inline-flex rounded-sm border px-2.5 py-1 text-xs font-medium capitalize", status.className].join(" ")}>{status.label}</span>
+                <span className={["inline-flex rounded-sm border px-2.5 py-1 text-xs font-medium capitalize", approval.className].join(" ")}>{approval.label}</span>
               </div>
             </div>
 
@@ -450,7 +442,7 @@ const ArtistTrackDetailPage = () => {
               type="button"
               onClick={handleEditTrack}
               disabled={!track || !canEdit}
-              className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-900 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-medium text-sky-900 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Pencil className="h-4 w-4" />
               {canEdit ? "Edit track" : "Edit locked"}
@@ -461,8 +453,8 @@ const ArtistTrackDetailPage = () => {
                 type="button"
                 onClick={handleSubmitForApproval}
                 disabled={isActionLoading || submitIssues.length > 0}
-              className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-900 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
-            >
+                className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-900 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
                 <Send className="h-4 w-4" />
                 Submit for approval
               </button>
@@ -472,7 +464,7 @@ const ArtistTrackDetailPage = () => {
               type="button"
               onClick={handleEditLyrics}
               disabled={!track}
-              className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-4 py-2 text-sm font-semibold text-violet-900 transition hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-4 py-2 text-sm font-medium text-violet-900 transition hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <FileText className="h-4 w-4" />
               Edit lyrics
@@ -482,7 +474,7 @@ const ArtistTrackDetailPage = () => {
               type="button"
               onClick={handleHideTrack}
               disabled={isActionLoading || track?.activeStatus === "hidden"}
-              className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <AlertTriangle className="h-4 w-4" />
               {track?.activeStatus === "hidden" ? "Already hidden" : "Hide track"}
@@ -492,7 +484,7 @@ const ArtistTrackDetailPage = () => {
               type="button"
               onClick={handleDeleteTrack}
               disabled={isActionLoading}
-              className="inline-flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-900 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-medium text-rose-900 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <ShieldAlert className="h-4 w-4" />
               Delete track
@@ -524,7 +516,7 @@ const ArtistTrackDetailPage = () => {
                   <div className="rounded-md border border-neutral-200 bg-white p-4">
                     <p className="text-xs uppercase tracking-[0.24em] text-neutral-500">Artist</p>
                     <div className="mt-3 flex items-center gap-3">
-                      <img src={artistAvatar} alt={track?.artist?.name || "Artist"} className="h-14 w-14 rounded-2xl object-cover" />
+                      <img src={artistAvatar} alt={track?.artist?.name || "Artist"} className="h-14 w-14 rounded-full object-cover" />
                       <div>
                         <p className="font-semibold text-[#241b15]">{track?.artist?.name || "Unknown artist"}</p>
                         <p className="text-sm text-neutral-500">Artist account</p>

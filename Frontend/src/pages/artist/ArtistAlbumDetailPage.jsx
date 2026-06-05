@@ -22,14 +22,6 @@ import {
   formatTrackDuration,
   resolveAlbumTotalDurationSeconds,
 } from "../../utils/albumDetail";
-import {
-  dashboardCardLeadClass,
-  dashboardCardTitleClass,
-  dashboardPanelClass,
-  dashboardSectionEyebrowClass,
-  dashboardTableHeadClass,
-  dashboardTableShellClass,
-} from "../../components/artist/dashboardStyles";
 
 const ArtistAlbumDetailPage = () => {
   const { id } = useParams();
@@ -164,12 +156,12 @@ const ArtistAlbumDetailPage = () => {
       <section className="space-y-6">
         <button
           onClick={() => navigate(routePaths.artistAlbums)}
-          className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-[#241b15] transition hover:border-[#d88a53] hover:text-[#b15d26]"
+          className="flex items-center gap-2 text-sm font-medium text-[#8b5e3c] hover:text-[#6d4a2f] transition"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Albums
         </button>
-        <div className={[dashboardPanelClass, "p-8 text-center"].join(" ")}>
+        <div className="rounded-md border border-neutral-200 bg-white p-8 text-center">
           <p className="text-neutral-600">Loading album details...</p>
         </div>
       </section>
@@ -181,12 +173,12 @@ const ArtistAlbumDetailPage = () => {
       <section className="space-y-6">
         <button
           onClick={() => navigate(routePaths.artistAlbums)}
-          className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-[#241b15] transition hover:border-[#d88a53] hover:text-[#b15d26]"
+          className="flex items-center gap-2 text-sm font-medium text-[#8b5e3c] hover:text-[#6d4a2f] transition"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Albums
         </button>
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {errorMessage || "Album not found."}
         </div>
       </section>
@@ -207,14 +199,14 @@ const ArtistAlbumDetailPage = () => {
       <div className="flex items-center justify-between gap-3">
         <button
           onClick={() => navigate(routePaths.artistAlbums)}
-          className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-[#241b15] transition hover:border-[#d88a53] hover:text-[#b15d26]"
+          className="flex items-center gap-2 text-sm font-medium text-[#8b5e3c] hover:text-[#6d4a2f] transition"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Albums
         </button>
         <button
           onClick={() => navigate(routePaths.artistEditAlbum(id))}
-          className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-4 py-2 text-xs font-semibold text-sky-900 transition hover:bg-sky-100"
+          className="flex items-center gap-2 rounded-md bg-sky-50 px-3 py-2 text-xs font-medium text-sky-900 border border-sky-200 transition hover:bg-sky-100"
         >
           <Pencil className="h-4 w-4" />
           Edit Album
@@ -222,18 +214,18 @@ const ArtistAlbumDetailPage = () => {
       </div>
 
       {/* Album Header */}
-      <div className={[dashboardPanelClass, "p-6"].join(" ")}>
+      <div className="rounded-md border border-neutral-200 bg-white p-6">
         <div className="flex flex-col gap-6 md:flex-row md:items-start md:gap-8">
           <div className="shrink-0">
             <img
               src={albumCoverImage}
               alt={album?.title || "Album cover"}
-              className="h-48 w-48 rounded-xl object-cover shadow-[0_18px_40px_rgba(44,28,16,0.15)]"
+              className="h-48 w-48 rounded-lg object-cover shadow-lg"
             />
           </div>
 
           <div className="flex-1">
-            <p className={dashboardSectionEyebrowClass}>
+            <p className="text-xs uppercase tracking-[0.3em] text-[#8b5e3c]">
               Album
             </p>
             <h1 className="mt-2 text-3xl font-bold text-[#241b15]">
@@ -279,18 +271,18 @@ const ArtistAlbumDetailPage = () => {
       </div>
 
       {/* Tracks List */}
-      <div className={dashboardTableShellClass}>
-        <div className="flex items-center justify-between border-b border-neutral-200/70 px-6 py-4">
+      <div className="rounded-md border border-neutral-200 bg-white">
+        <div className="flex items-center justify-between border-b border-neutral-200 px-6 py-4">
           <div>
-            <h2 className={dashboardCardTitleClass}>Tracks</h2>
-            <p className={dashboardCardLeadClass}>
+            <h2 className="text-lg font-semibold text-[#241b15]">Tracks</h2>
+            <p className="mt-1 text-sm text-neutral-500">
               {trackItems.length} {trackItems.length === 1 ? "track" : "tracks"}{" "}
               in this album
             </p>
           </div>
           <button
             onClick={handleAddTracksClick}
-            className="inline-flex items-center gap-2 rounded-full bg-[#ff7a2f] px-4 py-2.5 font-semibold text-white shadow-[0_12px_28px_rgba(255,122,47,0.22)] transition hover:bg-[#ef6c1e]"
+            className="flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 font-medium text-white transition hover:bg-emerald-700"
           >
             <Plus className="h-4 w-4" />
             Add Tracks
@@ -309,7 +301,7 @@ const ArtistAlbumDetailPage = () => {
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-neutral-200 text-left text-sm">
-              <thead className={dashboardTableHeadClass}>
+              <thead className="bg-[#fcfaf7] text-neutral-500">
                 <tr>
                   <th className="px-6 py-3 font-medium">#</th>
                   <th className="px-6 py-3 font-medium">Title</th>
@@ -326,7 +318,10 @@ const ArtistAlbumDetailPage = () => {
                   if (!track) return null;
 
                   return (
-                    <tr key={track.id} className="text-[#2f261f] transition hover:bg-[#fffaf4]">
+                    <tr
+                      key={track.id}
+                      className="text-[#2f261f] hover:bg-[#fcfaf7]"
+                    >
                       <td className="px-6 py-4 font-medium text-neutral-500">
                         {index + 1}
                       </td>
@@ -339,7 +334,7 @@ const ArtistAlbumDetailPage = () => {
                               createPlaceholderImage(track.title)
                             }
                             alt={track.title}
-                            className="h-8 w-8 rounded-xl object-cover"
+                            className="h-8 w-8 rounded object-cover"
                           />
                           <div>
                             <p className="font-medium text-[#241b15]">
@@ -366,7 +361,7 @@ const ArtistAlbumDetailPage = () => {
                         <button
                           type="button"
                           onClick={() => setRemoveConfirm(track.id)}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-full text-rose-600 transition hover:bg-rose-100 hover:text-rose-700"
+                          className="inline-flex items-center justify-center h-8 w-8 rounded hover:bg-rose-100 transition text-rose-600 hover:text-rose-700"
                           aria-label="Remove track"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -383,9 +378,9 @@ const ArtistAlbumDetailPage = () => {
 
       {/* Add Tracks Modal */}
       {showAddTracksModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className={[dashboardPanelClass, "flex max-h-[80vh] w-full max-w-2xl flex-col overflow-hidden"].join(" ")}>
-            <div className="border-b border-neutral-200/70 px-6 py-4">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50 p-4">
+          <div className="rounded-md border border-neutral-200 bg-white max-w-2xl w-full max-h-[80vh] flex flex-col">
+            <div className="border-b border-neutral-200 px-6 py-4">
               <h3 className="text-lg font-semibold text-[#241b15]">
                 Add Tracks to Album
               </h3>
@@ -441,7 +436,7 @@ const ArtistAlbumDetailPage = () => {
               )}
             </div>
 
-            <div className="flex gap-3 border-t border-neutral-200/70 px-6 py-4">
+            <div className="border-t border-neutral-200 px-6 py-4 flex gap-3">
               <button
                 type="button"
                 onClick={() => {
@@ -449,7 +444,7 @@ const ArtistAlbumDetailPage = () => {
                   setSelectedTracks([]);
                 }}
                 disabled={isAddingTracks}
-                className="flex-1 rounded-full border border-neutral-200 px-4 py-2 font-semibold text-[#241b15] transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex-1 rounded-md border border-neutral-200 px-4 py-2 font-medium text-[#241b15] transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -457,7 +452,7 @@ const ArtistAlbumDetailPage = () => {
                 type="button"
                 onClick={handleAddTracks}
                 disabled={isAddingTracks || selectedTracks.length === 0}
-                className="flex-1 rounded-full bg-[#ff7a2f] px-4 py-2 font-semibold text-white transition hover:bg-[#ef6c1e] disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex-1 rounded-md bg-emerald-600 px-4 py-2 font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isAddingTracks
                   ? "Adding..."
@@ -468,8 +463,8 @@ const ArtistAlbumDetailPage = () => {
         </div>
       )}
       {removeConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className={[dashboardPanelClass, "w-[400px] p-6"].join(" ")}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-md p-6 w-[400px]">
             <h3 className="text-lg font-semibold">Remove Track</h3>
 
             <p className="mt-2 text-neutral-600">
@@ -479,7 +474,7 @@ const ArtistAlbumDetailPage = () => {
             <div className="mt-6 flex justify-end gap-3">
               <button
                 onClick={() => setRemoveConfirm(null)}
-                className="rounded-full border border-neutral-200 px-4 py-2 font-semibold"
+                className="px-4 py-2 border rounded"
                 disabled={isRemovingTrack}
               >
                 Cancel
@@ -487,7 +482,7 @@ const ArtistAlbumDetailPage = () => {
 
               <button
                 onClick={() => handleRemoveTrack(removeConfirm)}
-                className="rounded-full bg-rose-600 px-4 py-2 font-semibold text-white"
+                className="px-4 py-2 bg-rose-600 text-white rounded"
                 disabled={isRemovingTrack}
               >
                 {isRemovingTrack ? "Removing..." : "Remove"}

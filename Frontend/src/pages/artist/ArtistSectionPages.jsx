@@ -5,16 +5,6 @@ import trackService from "../../services/trackService";
 import { routePaths } from "../../routes/routePaths";
 import { getApiErrorFullMessage } from "../../utils/apiError";
 import { canArtistSubmitTrack } from "../../utils/trackWorkflow";
-import {
-  dashboardCardLeadClass,
-  dashboardCardTitleClass,
-  dashboardMetricCardClass,
-  dashboardPanelClass,
-  dashboardSectionEyebrowClass,
-  dashboardStatusToneClass,
-  dashboardTableHeadClass,
-  dashboardTableShellClass,
-} from "../../components/artist/dashboardStyles";
 
 const formatDuration = (duration) => {
   const totalSeconds = Number(duration) || 0;
@@ -27,17 +17,17 @@ const formatDuration = (duration) => {
 };
 
 const statusStyles = {
-  active: dashboardStatusToneClass.active,
-  draft: dashboardStatusToneClass.draft,
-  hidden: dashboardStatusToneClass.hidden,
-  blocked: dashboardStatusToneClass.blocked,
+  active: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  draft: "bg-neutral-100 text-neutral-600 border-neutral-200",
+  hidden: "bg-amber-50 text-amber-700 border-amber-200",
+  blocked: "bg-rose-50 text-rose-700 border-rose-200",
 };
 
 const approvalStyles = {
-  approved: dashboardStatusToneClass.approved,
-  pending: dashboardStatusToneClass.pending,
-  rejected: dashboardStatusToneClass.rejected,
-  draft: dashboardStatusToneClass.draft,
+  approved: "bg-emerald-50 text-emerald-700",
+  pending: "bg-amber-50 text-amber-700",
+  rejected: "bg-rose-50 text-rose-700",
+  draft: "bg-neutral-100 text-neutral-600",
 };
 
 export const MyMusicPage = () => {
@@ -224,10 +214,10 @@ export const MyMusicPage = () => {
 
   return (
     <section className="space-y-6">
-      <div className={[dashboardPanelClass, "p-6"].join(" ")}>
+      <div className="rounded-md border border-neutral-200 bg-white p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
-            <p className={dashboardSectionEyebrowClass}>
+            <p className="text-xs uppercase tracking-[0.3em] text-[#8b5e3c]">
               Artist Dashboard
             </p>
             <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[#241b15]">
@@ -239,13 +229,13 @@ export const MyMusicPage = () => {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-3 py-2">
-              <label className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Status</label>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-neutral-600">Status</label>
               <select
                 value={activeFilter}
                 onChange={(e) => setActiveFilter(e.target.value)}
-                className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-sm outline-none"
+                className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-sm"
               >
                 <option value="">All</option>
                 <option value="draft">Draft</option>
@@ -255,12 +245,12 @@ export const MyMusicPage = () => {
               </select>
             </div>
 
-            <div className="flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-3 py-2">
-              <label className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Approval</label>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-neutral-600">Approval</label>
               <select
                 value={approvalFilter}
                 onChange={(e) => setApprovalFilter(e.target.value)}
-                className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-sm outline-none"
+                className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-sm"
               >
                 <option value="">All</option>
                 <option value="draft">Draft</option>
@@ -271,7 +261,7 @@ export const MyMusicPage = () => {
             </div>
             <button
               onClick={() => navigate(routePaths.artistCreateTrack)}
-              className="rounded-full bg-[#ff7a2f] px-6 py-2.5 font-semibold text-white shadow-[0_12px_28px_rgba(255,122,47,0.22)] transition hover:bg-[#ef6c1e]"
+              className="rounded-md bg-[#8b5e3c] px-6 py-2 font-medium text-white transition-colors hover:bg-[#6d4a2f]"
             >
               + Create Track
             </button>
@@ -287,7 +277,7 @@ export const MyMusicPage = () => {
           ].map((item) => (
             <div
               key={item.label}
-              className={dashboardMetricCardClass}
+              className="rounded-md border border-neutral-200 bg-[#fcfaf7] p-4"
             >
               <p className="text-sm text-neutral-500">{item.label}</p>
               <p className="mt-2 text-2xl font-semibold tracking-tight text-[#241b15]">
@@ -316,11 +306,11 @@ export const MyMusicPage = () => {
         </div>
       )}
 
-      <div className={dashboardTableShellClass}>
-        <div className="flex items-center justify-between border-b border-neutral-200/70 px-5 py-4">
+      <div className="rounded-md border border-neutral-200 bg-white">
+        <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
           <div>
-            <h3 className={dashboardCardTitleClass}>Track List</h3>
-            <p className={dashboardCardLeadClass}>
+            <h3 className="text-lg font-semibold text-[#241b15]">Track List</h3>
+            <p className="mt-1 text-sm text-neutral-500">
               A full list of tracks tied to your artist profile.
             </p>
           </div>
@@ -346,7 +336,7 @@ export const MyMusicPage = () => {
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-neutral-200 text-left text-sm">
-              <thead className={dashboardTableHeadClass}>
+              <thead className="bg-[#fcfaf7] text-neutral-500">
                 <tr>
                   <th className="px-5 py-3 font-medium">Title</th>
                   <th className="px-5 py-3 font-medium">Album</th>
@@ -360,7 +350,7 @@ export const MyMusicPage = () => {
 
               <tbody className="divide-y divide-neutral-200">
                 {tracks.map((track) => (
-                  <tr key={track._id} className="text-[#2f261f] transition hover:bg-[#fffaf4]">
+                  <tr key={track._id} className="text-[#2f261f]">
                     <td className="px-5 py-4">
                       <button
                         onClick={() => navigate(routePaths.artistTrackDetail(track._id))}
@@ -406,7 +396,7 @@ export const MyMusicPage = () => {
                         <button
                           type="button"
                           onClick={() => handleViewTrack(track._id)}
-                        className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-[#241b15] transition hover:border-[#d88a53] hover:text-[#b15d26]"
+                          className="inline-flex items-center gap-2 rounded-sm border border-neutral-200 bg-white px-3 py-2 text-xs font-medium text-[#241b15] transition hover:border-[#8b5e3c] hover:text-[#8b5e3c] whitespace-nowrap flex-shrink-0"
                         >
                           <Eye className="h-4 w-4" />
                           View
@@ -415,7 +405,7 @@ export const MyMusicPage = () => {
                         <button
                           type="button"
                           onClick={() => handleEditTrack(track._id)}
-                        className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-900 transition hover:bg-sky-100"
+                          className="inline-flex items-center gap-2 rounded-sm border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-medium text-sky-900 transition hover:bg-sky-100 whitespace-nowrap flex-shrink-0"
                         >
                           <Pencil className="h-4 w-4" />
                           Edit
@@ -425,7 +415,7 @@ export const MyMusicPage = () => {
                           type="button"
                           onClick={() => handleHideTrack(track)}
                           disabled={isActionLoading || track.activeStatus === "hidden"}
-                        className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="inline-flex items-center gap-2 rounded-sm border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60 whitespace-nowrap flex-shrink-0"
                         >
                           <EyeOff className="h-4 w-4" />
                           {track.activeStatus === "hidden" ? "Hidden" : "Hide"}
@@ -436,7 +426,7 @@ export const MyMusicPage = () => {
                             type="button"
                             onClick={() => handleSubmitForApproval(track)}
                             disabled={isActionLoading}
-                            className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-900 transition hover:bg-emerald-100"
+                            className="inline-flex items-center gap-2 rounded-sm border border-sky-200 bg-sky-50 px-2 py-1 text-xs font-medium text-sky-900 transition hover:bg-sky-100 whitespace-nowrap flex-shrink-0"
                           >
                             Submit
                           </button>
@@ -446,7 +436,7 @@ export const MyMusicPage = () => {
                           type="button"
                           onClick={() => handleDeleteTrack(track)}
                           disabled={isActionLoading}
-                          className="inline-flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-900 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="inline-flex items-center gap-2 rounded-sm border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-900 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60 whitespace-nowrap flex-shrink-0"
                         >
                           <Trash2 className="h-4 w-4" />
                           Delete

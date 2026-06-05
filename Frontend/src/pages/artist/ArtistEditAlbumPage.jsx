@@ -7,12 +7,6 @@ import {
 } from "../../services/artist/artistAlbumService";
 import { routePaths } from "../../routes/routePaths";
 import { getApiErrorMessage } from "../../utils/apiError";
-import {
-  dashboardCardLeadClass,
-  dashboardPanelClass,
-  dashboardSecondaryButtonClass,
-  dashboardSectionEyebrowClass,
-} from "../../components/artist/dashboardStyles";
 
 const ArtistEditAlbumPage = () => {
   const navigate = useNavigate();
@@ -180,14 +174,14 @@ const ArtistEditAlbumPage = () => {
     return (
       <div className="space-y-6">
         <button
-          type="button"
           onClick={() => navigate(routePaths.artistAlbums)}
-          className={dashboardSecondaryButtonClass}
+          className="flex items-center gap-2 text-sm font-medium text-[#8b5e3c] hover:text-[#6d4a2f] transition"
         >
-          {"<-"} Back to Albums
+          <ArrowLeft className="h-4 w-4" />
+          Back to Albums
         </button>
 
-        <div className={[dashboardPanelClass, "p-6"].join(" ")}>
+        <div className="rounded-md border border-neutral-200 bg-white p-6">
           <div className="max-w-2xl">
             <p className="text-sm text-neutral-500">Loading album data...</p>
           </div>
@@ -200,14 +194,14 @@ const ArtistEditAlbumPage = () => {
     return (
       <div className="space-y-6">
         <button
-          type="button"
           onClick={() => navigate(routePaths.artistAlbums)}
-          className={dashboardSecondaryButtonClass}
+          className="flex items-center gap-2 text-sm font-medium text-[#8b5e3c] hover:text-[#6d4a2f] transition"
         >
-          {"<-"} Back to Albums
+          <ArrowLeft className="h-4 w-4" />
+          Back to Albums
         </button>
 
-        <div className={[dashboardPanelClass, "p-6"].join(" ")}>
+        <div className="rounded-md border border-neutral-200 bg-white p-6">
           <div className="max-w-2xl">
             <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
               {loadError}
@@ -221,21 +215,21 @@ const ArtistEditAlbumPage = () => {
   return (
     <div className="space-y-6">
       <button
-        type="button"
         onClick={() => navigate(routePaths.artistAlbums)}
-        className={dashboardSecondaryButtonClass}
+        className="flex items-center gap-2 text-sm font-medium text-[#8b5e3c] hover:text-[#6d4a2f] transition"
       >
-        {"<-"} Back to Albums
+        <ArrowLeft className="h-4 w-4" />
+        Back to Albums
       </button>
 
-      <div className={[dashboardPanelClass, "p-6"].join(" ")}>
+      <div className="rounded-md border border-neutral-200 bg-white p-6">
         <div className="max-w-2xl">
           <div className="mb-6">
-            <p className={dashboardSectionEyebrowClass}>
+            <p className="text-xs uppercase tracking-[0.3em] text-[#8b5e3c]">
               Artist Dashboard
             </p>
             <h1 className="mt-2 text-2xl font-bold text-[#241b15]">Edit Album</h1>
-            <p className={dashboardCardLeadClass}>
+            <p className="mt-2 text-sm text-neutral-600">
               Update your album information and cover image.
             </p>
           </div>
@@ -265,7 +259,7 @@ const ArtistEditAlbumPage = () => {
                 value={formData.title}
                 onChange={handleInputChange}
                 placeholder="Enter album title"
-                className="mt-2 w-full rounded-2xl border border-neutral-200 px-3 py-2 text-sm focus:border-[#d88a53] focus:outline-none focus:ring-4 focus:ring-[#f4dcc7]"
+                className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm focus:border-[#8b5e3c] focus:outline-none focus:ring-1 focus:ring-[#8b5e3c]"
               />
               {formErrors.title && (
                 <p className="mt-1 text-xs text-rose-600">{formErrors.title}</p>
@@ -283,7 +277,7 @@ const ArtistEditAlbumPage = () => {
                 name="releaseDate"
                 value={formData.releaseDate}
                 onChange={handleInputChange}
-                className="mt-2 w-full rounded-2xl border border-neutral-200 px-3 py-2 text-sm focus:border-[#d88a53] focus:outline-none focus:ring-4 focus:ring-[#f4dcc7]"
+                className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm focus:border-[#8b5e3c] focus:outline-none focus:ring-1 focus:ring-[#8b5e3c]"
               />
               {formErrors.releaseDate && (
                 <p className="mt-1 text-xs text-rose-600">{formErrors.releaseDate}</p>
@@ -319,15 +313,15 @@ const ArtistEditAlbumPage = () => {
               </label>
 
               {formData.coverImagePreview ? (
-                  <div className="relative mt-2 inline-block">
-                    <img
-                      src={formData.coverImagePreview}
-                      alt="Cover preview"
-                      className="h-40 w-40 rounded-xl border border-neutral-200 object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={removeCoverImage}
+                <div className="mt-2 relative inline-block">
+                  <img
+                    src={formData.coverImagePreview}
+                    alt="Cover preview"
+                    className="h-40 w-40 rounded-md object-cover border border-neutral-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={removeCoverImage}
                     className="absolute top-2 right-2 rounded-full bg-rose-600 p-1 text-white hover:bg-rose-700"
                   >
                     <X className="h-4 w-4" />
@@ -335,7 +329,7 @@ const ArtistEditAlbumPage = () => {
                 </div>
               ) : (
                 <label className="mt-2 block cursor-pointer">
-                  <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-neutral-300 bg-white px-6 py-8 transition hover:border-[#d88a53] hover:bg-white">
+                  <div className="flex flex-col items-center justify-center rounded-md border-2 border-dashed border-neutral-300 bg-neutral-50 px-6 py-8 transition hover:border-[#8b5e3c] hover:bg-[#fcfaf7]">
                     <Upload className="h-8 w-8 text-neutral-400 mb-2" />
                     <span className="text-sm font-medium text-[#241b15]">
                       Click to upload cover image
@@ -362,7 +356,7 @@ const ArtistEditAlbumPage = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-              className="flex-1 rounded-full bg-[#ff7a2f] px-4 py-2.5 font-semibold text-white transition hover:bg-[#ef6c1e] disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex-1 rounded-md bg-[#8b5e3c] px-4 py-2.5 font-medium text-white transition hover:bg-[#6d4a2f] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isLoading ? "Updating..." : "Update Album"}
               </button>
@@ -370,7 +364,7 @@ const ArtistEditAlbumPage = () => {
                 type="button"
                 onClick={() => navigate(routePaths.artistAlbumDetail(albumId))}
                 disabled={isLoading}
-              className="rounded-full border border-neutral-200 px-4 py-2.5 font-semibold text-[#241b15] transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-md border border-neutral-200 px-4 py-2.5 font-medium text-[#241b15] transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Cancel
               </button>
