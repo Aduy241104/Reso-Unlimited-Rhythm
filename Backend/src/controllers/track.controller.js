@@ -1,5 +1,5 @@
-import trackService from "../services/Track/track.service.js";
-import listenService from "../services/Track/listen.service.js";
+import trackService from "../services/track/track.service.js";
+import listenService from "../services/track/listen.service.js";
 import formatResponse from "../utils/formatResponse.js";
 
 const getTrackDetail = async (req, res, next) => {

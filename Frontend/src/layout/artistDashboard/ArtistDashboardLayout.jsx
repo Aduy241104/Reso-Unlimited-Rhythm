@@ -30,8 +30,8 @@ const ArtistDashboardLayout = () => {
         setSidebarArtistName(profile.name || artistProfile.name);
         const statusLabel =
           profile.verificationStatus === "verified"
-            ? "Verified artist"
-            : `Verification: ${profile.verificationStatus}`;
+            ? "Nghệ sĩ đã xác minh"
+            : `Trạng thái xác minh: ${profile.verificationStatus}`;
         setSidebarArtistSubtitle(statusLabel);
       } catch {
         if (isMounted) {
@@ -53,23 +53,23 @@ const ArtistDashboardLayout = () => {
       location.pathname.startsWith("/artist/music/") &&
       location.pathname.endsWith("/edit")
     ) {
-      return artistPageTitles[routePaths.artistTrackEdit()] ?? "Edit Track";
+      return artistPageTitles[routePaths.artistTrackEdit()] ?? "Chỉnh sửa bài hát";
     }
 
     if (location.pathname.startsWith("/artist/music/") && location.pathname !== routePaths.artistMusic) {
-      return artistPageTitles[routePaths.artistTrackDetail()] ?? "Track Detail";
+      return artistPageTitles[routePaths.artistTrackDetail()] ?? "Chi tiết bài hát";
     }
 
     if (location.pathname === routePaths.artistProfileEdit) {
-      return artistPageTitles[routePaths.artistProfileEdit] ?? "Artist Dashboard";
+      return artistPageTitles[routePaths.artistProfileEdit] ?? "Bảng điều khiển nghệ sĩ";
     }
 
     if (location.pathname === routePaths.artistProfile) {
-      return artistPageTitles[routePaths.artistProfile] ?? "Artist Dashboard";
+      return artistPageTitles[routePaths.artistProfile] ?? "Bảng điều khiển nghệ sĩ";
     }
 
     if (location.pathname === routePaths.artistLyrics) {
-      return artistPageTitles[routePaths.artistLyrics] ?? "Artist Dashboard";
+      return artistPageTitles[routePaths.artistLyrics] ?? "Bảng điều khiển nghệ sĩ";
     }
 
     const activeItem = artistNavigation.find((item) => {
@@ -80,25 +80,23 @@ const ArtistDashboardLayout = () => {
       return location.pathname.startsWith(item.to);
     });
 
-    return artistPageTitles[activeItem?.to] ?? "Artist Dashboard";
+    return artistPageTitles[activeItem?.to] ?? "Bảng điều khiển nghệ sĩ";
   }, [location.pathname]);
 
-  const ProfileIcon = artistProfile.icon;
-
   const renderSidebar = () => (
-    <div className="flex h-full flex-col bg-[#171210] text-white">
-      <div className="flex items-center justify-between border-b border-white/10 px-6 py-6 lg:justify-start">
+    <div className="flex h-full flex-col bg-white text-[#2f2747]">
+      <div className="flex items-center justify-between border-b border-[#ece8ff] px-6 py-6 lg:justify-start">
         <div>
           <p className="text-xs uppercase tracking-[0.45em] text-[#b08b65]">
             RESO MUSIC
           </p>
-          <p className="mt-2 text-sm text-white/50">Artist Console</p>
+          <p className="mt-2 text-sm text-[#7c7891]">Trung tâm nghệ sĩ</p>
         </div>
 
         <button
           type="button"
-          onClick={() => setIsSidebarOpen(false)}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-sm border border-white/10 text-white/70 transition hover:bg-white/5 hover:text-white lg:hidden"
+          onClick={ () => setIsSidebarOpen(false) }
+          className="inline-flex h-10 w-10 items-center justify-center rounded-sm border border-[#ece8ff] text-[#6b6682] transition hover:bg-[#f8f6ff] hover:text-[#2f2747] lg:hidden"
           aria-label="Close sidebar"
         >
           <X className="h-5 w-5" />
@@ -106,52 +104,34 @@ const ArtistDashboardLayout = () => {
       </div>
 
       <nav className="flex-1 space-y-1 py-6">
-        {artistNavigation.map((item) => (
+        { artistNavigation.map((item) => (
           <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === "/artist"}
-            onClick={() => setIsSidebarOpen(false)}
-            className={({ isActive }) =>
+            key={ item.to }
+            to={ item.to }
+            end={ item.to === "/artist" }
+            onClick={ () => setIsSidebarOpen(false) }
+            className={ ({ isActive }) =>
               [
-                "mx-3 flex items-center gap-3 px-4 py-3 text-sm font-medium transition",
+                "mx-3 flex items-center gap-3 rounded-md px-4 py-3 text-sm font-medium transition",
                 isActive
-                  ? "rounded-r-md bg-[#f5efe7] text-[#2a2019]"
-                  : "text-white/70 hover:bg-white/5 hover:text-white",
+                  ? "bg-[#f3f0ff] text-[#5f4fe0]"
+                  : "text-[#6b6682] hover:bg-[#f8f6ff] hover:text-[#2f2747]",
               ].join(" ")
             }
           >
             <item.icon className="h-4 w-4 shrink-0" />
-            <span>{item.label}</span>
+            <span>{ item.label }</span>
           </NavLink>
-        ))}
+        )) }
       </nav>
 
-      <div className="border-t border-white/10 px-4 py-5">
-        <div className="rounded-md border border-white/10 bg-[#201915] p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-sm bg-[#8b5e3c] text-white">
-              <ProfileIcon className="h-5 w-5" />
-            </div>
-
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-white">
-                {sidebarArtistName || artistProfile.name}
-              </p>
-              <p className="truncate text-xs text-white/55">
-                {sidebarArtistSubtitle || artistProfile.role}
-              </p>
-            </div>
-          </div>
-
-          <Link
-            to={routePaths.artistProfile}
-            onClick={() => setIsSidebarOpen(false)}
-            className="mt-4 block w-full rounded-sm border border-[#8b5e3c]/45 px-3 py-2 text-center text-sm font-medium text-[#d0b290] transition hover:bg-[#8b5e3c] hover:text-white"
-          >
-            View Profile
-          </Link>
-        </div>
+      <div className="border-t border-[#ece8ff] px-6 py-5">
+        <p className="truncate text-sm font-medium text-[#2f2747]">
+          { sidebarArtistName || artistProfile.name }
+        </p>
+        <p className="mt-1 truncate text-xs text-[#7c7891]">
+          { sidebarArtistSubtitle || artistProfile.role }
+        </p>
       </div>
     </div>
   );
@@ -159,11 +139,11 @@ const ArtistDashboardLayout = () => {
   return (
     <div
       data-artist-dashboard
-      className="scheme-light h-screen overflow-hidden bg-[#f6f0e8] text-[#221a14] [color-scheme:light]"
+      className="scheme-light h-screen overflow-hidden bg-white text-[#221a14] [color-scheme:light]"
     >
       <div className="flex h-full overflow-hidden">
         <aside
-          className="fixed inset-y-0 left-0 z-30 hidden border-r border-[#2f2721] lg:block"
+          className="fixed inset-y-0 left-0 z-30 hidden border-r border-[#ece8ff] lg:block"
           style={{ width: SIDEBAR_WIDTH }}
         >
           {renderSidebar()}
@@ -182,7 +162,7 @@ const ArtistDashboardLayout = () => {
 
         <aside
           className={[
-            "fixed inset-y-0 left-0 z-50 w-[264px] max-w-[85vw] border-r border-[#2f2721] transition-transform duration-200 lg:hidden",
+            "fixed inset-y-0 left-0 z-50 w-[264px] max-w-[85vw] border-r border-[#ece8ff] transition-transform duration-200 lg:hidden",
             isSidebarOpen ? "translate-x-0" : "-translate-x-full",
           ].join(" ")}
         >
@@ -190,7 +170,7 @@ const ArtistDashboardLayout = () => {
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col lg:pl-[264px]">
-          <header className="border-b border-neutral-200 bg-white">
+          <header className="border-b border-[#ece8ff] bg-white">
             <div className="flex items-center justify-between gap-4 px-6 py-4">
               <div className="flex items-center gap-3">
                 <button
@@ -203,11 +183,11 @@ const ArtistDashboardLayout = () => {
                 </button>
 
                 <div>
-                  <h1 className="text-2xl font-semibold tracking-tight text-[#241b15]">
+                  <h1 className="text-2xl font-semibold tracking-tight text-[#2f2747]">
                     {pageTitle}
                   </h1>
-                  <p className="mt-1 text-sm text-neutral-500">
-                    Manage your catalog, audience, and performance in one place.
+                  <p className="mt-1 text-sm text-[#7c7891]">
+                    Quản lý danh mục phát hành, khán giả và hiệu suất trong một không gian thống nhất.
                   </p>
                 </div>
               </div>
@@ -217,14 +197,14 @@ const ArtistDashboardLayout = () => {
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
                   <input
                     type="search"
-                    placeholder="Search releases or tracks"
-                    className="h-10 w-60 rounded-sm border border-neutral-200 bg-[#fffdf9] pl-9 pr-3 text-sm text-[#2a2019] outline-none transition placeholder:text-neutral-400 focus:border-[#8b5e3c]"
+                    placeholder="Tìm bản phát hành hoặc bài hát"
+                    className="h-10 w-60 rounded-sm border border-[#ece8ff] bg-white pl-9 pr-3 text-sm text-[#2f2747] outline-none transition placeholder:text-[#9a93b8] focus:border-[#7c6cf2]"
                   />
                 </label>
 
                 <button
                   type="button"
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-sm border border-neutral-200 text-[#3a2d23] transition hover:bg-neutral-50"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-sm border border-[#ece8ff] text-[#5f4fe0] transition hover:bg-[#f8f6ff]"
                   aria-label="Notifications"
                 >
                   <Bell className="h-5 w-5" />
@@ -233,7 +213,7 @@ const ArtistDashboardLayout = () => {
             </div>
           </header>
 
-          <main className="min-h-0 flex-1 overflow-y-auto bg-[#f8f4ef]">
+          <main className="min-h-0 flex-1 overflow-y-auto bg-white">
             <div className="p-6">
               <Outlet />
             </div>

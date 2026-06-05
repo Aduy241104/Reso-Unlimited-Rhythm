@@ -152,7 +152,7 @@ export const syncArtistMonthlyRankingsForMonth = async (targetMonthInput) => {
     const analyticsTimezone = getAnalyticsTimezone();
     const targetMonth = targetMonthInput
         ? dayjs(targetMonthInput).tz(analyticsTimezone).startOf("month")
-        : dayjs().tz(analyticsTimezone).subtract(1, "month").startOf("month");
+        : dayjs().tz(analyticsTimezone).subtract(1, "day").startOf("month");
 
     const nextMonth = targetMonth.add(1, "month");
     const monthlyStats = await ListenEvent.aggregate(

@@ -19,7 +19,7 @@ export const getCurrentMonthValue = () => {
 
 export const formatMonthlyTopTracksDate = (monthValue) => {
   if (!monthValue) {
-    return "Unknown month";
+    return "Tháng không xác định";
   }
 
   const resolvedMonthValue = (() => {
@@ -43,7 +43,7 @@ export const formatMonthlyTopTracksDate = (monthValue) => {
     return monthValue;
   }
 
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("vi-VN", {
     month: "long",
     year: "numeric",
   }).format(date);
@@ -54,6 +54,7 @@ export const getMonthlyTopTracksHeroImage = (topTracks = []) => {
 
   return (
     topTrack?.coverImage ||
+    topTrack?.artist?.coverImage ||
     topTrack?.avatar ||
     topTrack?.artist?.avatar ||
     MONTHLY_TOP_TRACK_PLACEHOLDER_IMAGE
@@ -66,7 +67,7 @@ export const createMonthlyTopTracksCollectionMeta = ({
 } = {}) => ({
   id: `monthly-top-${month}`,
   type: "monthly-top",
-  title: `Monthly Top Tracks - ${formatMonthlyTopTracksDate(month)}`,
+  title: `Top bài hát tháng - ${formatMonthlyTopTracksDate(month)}`,
   image,
   artistName: "Reso Music",
 });
@@ -83,10 +84,10 @@ export const mapMonthlyTopTracksToContentCards = ({
   return [
     {
       id: `monthly-top-${resolvedMonth}`,
-      type: "monthly chart",
+      type: "BXH tháng",
       image,
-      title: "Monthly Top Tracks",
-      subtitle: `Top ${limit} tracks - ${formatMonthlyTopTracksDate(resolvedMonth)}`,
+      title: "Top bài hát tháng",
+      subtitle: `Top ${limit} bài hát · ${formatMonthlyTopTracksDate(resolvedMonth)}`,
       href: routePaths.monthlyTopTracks,
       raw: {
         topTracks,

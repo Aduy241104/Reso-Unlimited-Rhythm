@@ -1,201 +1,53 @@
-import { useEffect, useState } from "react";
-import DailyTopArtistsSection from "../../components/home/DailyTopArtistsSection";
 import ContentCardSection from "../../components/content/ContentCardSection";
+import DailyTopArtistsSection from "../../components/home/DailyTopArtistsSection";
 import TrackChartSection from "../../components/home/TrackChartSection";
 import { useContentPlayback } from "../../hooks/useContentPlayback";
-import { getAlbumsService } from "../../services/albumService";
-import { getDailyTopArtistsService } from "../../services/artistBrowseService";
-import { getSystemPlaylistsService } from "../../services/playlistService";
-import {
-  getDailyTopTracksService,
-  getMonthlyTopTracksService,
-} from "../../services/trackService";
-import { getApiErrorMessage } from "../../utils/apiError";
-import {
-  DAILY_TOP_TRACK_LIMIT,
-  getPreviousDateValue,
-  mapDailyTopTracksToContentCards,
-} from "../../utils/dailyTopTracks";
-import {
-  MONTHLY_TOP_TRACK_LIMIT,
-  getCurrentMonthValue,
-  mapMonthlyTopTracksToContentCards,
-} from "../../utils/monthlyTopTracks";
+import { useHomePageData } from "../../hooks/useHomePageData";
+import { routePaths } from "../../routes/routePaths";
+import { mapDailyTopTracksToContentCards } from "../../utils/dailyTopTracks";
 import {
   mapAlbumsToContentCards,
   mapSystemPlaylistsToContentCards,
 } from "../../utils/homeContent";
-
-const DAILY_TOP_ARTISTS_DATE = "2026-05-27";
-const DAILY_TOP_ARTISTS_LIMIT = 9;
-const DAILY_TOP_TRACKS_DATE = getPreviousDateValue();
-const MONTHLY_TOP_TRACKS_DATE = getCurrentMonthValue();
+import { mapMonthlyTopArtistsToContentCards } from "../../utils/monthlyTopArtists";
+import { mapMonthlyTopTracksToContentCards } from "../../utils/monthlyTopTracks";
 
 const HomePage = () => {
-  const [albums, setAlbums] = useState([]);
-  const [systemPlaylists, setSystemPlaylists] = useState([]);
-  const [dailyTopTracks, setDailyTopTracks] = useState([]);
-  const [dailyTopTracksMeta, setDailyTopTracksMeta] = useState(null);
-  const [monthlyTopTracks, setMonthlyTopTracks] = useState([]);
-  const [monthlyTopTracksMeta, setMonthlyTopTracksMeta] = useState(null);
-  const [dailyTopArtists, setDailyTopArtists] = useState([]);
-  const [isLoadingAlbums, setIsLoadingAlbums] = useState(true);
-  const [isLoadingSystemPlaylists, setIsLoadingSystemPlaylists] = useState(true);
-  const [isLoadingDailyTopTracks, setIsLoadingDailyTopTracks] = useState(true);
-  const [isLoadingMonthlyTopTracks, setIsLoadingMonthlyTopTracks] = useState(true);
-  const [isLoadingDailyTopArtists, setIsLoadingDailyTopArtists] = useState(true);
-  const [albumsError, setAlbumsError] = useState("");
-  const [systemPlaylistsError, setSystemPlaylistsError] = useState("");
-  const [dailyTopTracksError, setDailyTopTracksError] = useState("");
-  const [monthlyTopTracksError, setMonthlyTopTracksError] = useState("");
-  const [dailyTopArtistsError, setDailyTopArtistsError] = useState("");
+  const {
+    albums,
+    systemPlaylists,
+    dailyTopTracks,
+    dailyTopTracksMeta,
+    monthlyTopTracks,
+    monthlyTopTracksMeta,
+    monthlyTopArtists,
+    monthlyTopArtistsMeta,
+    dailyTopArtists,
+    isLoadingAlbums,
+    isLoadingSystemPlaylists,
+    isLoadingDailyTopTracks,
+    isLoadingMonthlyTopTracks,
+    isLoadingMonthlyTopArtists,
+    isLoadingDailyTopArtists,
+    albumsError,
+    systemPlaylistsError,
+    dailyTopTracksError,
+    monthlyTopTracksError,
+    monthlyTopArtistsError,
+    dailyTopArtistsError,
+    dailyTopTracksDate,
+    monthlyTopTracksDate,
+    monthlyTopArtistsDate,
+    dailyTopTracksLimit,
+    monthlyTopTracksLimit,
+    monthlyTopArtistsLimit,
+  } = useHomePageData();
+
   const {
     playbackError,
     playAlbumItem,
-    playDailyTopTracksItem,
-    playMonthlyTopTracksItem,
     playPlaylistItem,
   } = useContentPlayback();
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadHomeContent = async () => {
-      setIsLoadingAlbums(true);
-      setIsLoadingSystemPlaylists(true);
-      setIsLoadingDailyTopTracks(true);
-      setIsLoadingMonthlyTopTracks(true);
-      setAlbumsError("");
-      setSystemPlaylistsError("");
-      setDailyTopTracksError("");
-      setMonthlyTopTracksError("");
-
-      const [albumsResult, systemPlaylistsResult, dailyTopTracksResult, monthlyTopTracksResult] =
-        await Promise.allSettled([
-          getAlbumsService({ limit: 10 }),
-          getSystemPlaylistsService({ limit: 10 }),
-          getDailyTopTracksService({
-            date: DAILY_TOP_TRACKS_DATE,
-            limit: DAILY_TOP_TRACK_LIMIT,
-          }),
-          getMonthlyTopTracksService({
-            month: MONTHLY_TOP_TRACKS_DATE,
-            limit: MONTHLY_TOP_TRACK_LIMIT,
-          }),
-        ]);
-
-      if (!isMounted) {
-        return;
-      }
-
-      if (albumsResult.status === "fulfilled") {
-        setAlbums(albumsResult.value.albums);
-      } else {
-        setAlbums([]);
-        setAlbumsError(
-          getApiErrorMessage(
-            albumsResult.reason,
-            "Unable to load albums from the backend right now."
-          )
-        );
-      }
-
-      if (systemPlaylistsResult.status === "fulfilled") {
-        setSystemPlaylists(systemPlaylistsResult.value.playlists);
-      } else {
-        setSystemPlaylists([]);
-        setSystemPlaylistsError(
-          getApiErrorMessage(
-            systemPlaylistsResult.reason,
-            "Unable to load system playlists from the backend right now."
-          )
-        );
-      }
-
-      if (dailyTopTracksResult.status === "fulfilled") {
-        setDailyTopTracks(dailyTopTracksResult.value.topTracks);
-        setDailyTopTracksMeta(dailyTopTracksResult.value.meta || null);
-      } else {
-        setDailyTopTracks([]);
-        setDailyTopTracksMeta(null);
-        setDailyTopTracksError(
-          getApiErrorMessage(
-            dailyTopTracksResult.reason,
-            "Unable to load daily top tracks from the backend right now."
-          )
-        );
-      }
-
-      if (monthlyTopTracksResult.status === "fulfilled") {
-        setMonthlyTopTracks(monthlyTopTracksResult.value.topTracks);
-        setMonthlyTopTracksMeta(monthlyTopTracksResult.value.meta || null);
-      } else {
-        setMonthlyTopTracks([]);
-        setMonthlyTopTracksMeta(null);
-        setMonthlyTopTracksError(
-          getApiErrorMessage(
-            monthlyTopTracksResult.reason,
-            "Unable to load monthly top tracks from the backend right now."
-          )
-        );
-      }
-
-      setIsLoadingAlbums(false);
-      setIsLoadingSystemPlaylists(false);
-      setIsLoadingDailyTopTracks(false);
-      setIsLoadingMonthlyTopTracks(false);
-    };
-
-    loadHomeContent();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadDailyTopArtists = async () => {
-      setIsLoadingDailyTopArtists(true);
-      setDailyTopArtistsError("");
-
-      try {
-        const response = await getDailyTopArtistsService({
-          date: DAILY_TOP_ARTISTS_DATE,
-          limit: DAILY_TOP_ARTISTS_LIMIT,
-        });
-
-        if (!isMounted) {
-          return;
-        }
-
-        setDailyTopArtists(response.topArtists);
-      } catch (error) {
-        if (!isMounted) {
-          return;
-        }
-
-        setDailyTopArtists([]);
-        setDailyTopArtistsError(
-          getApiErrorMessage(
-            error,
-            "Unable to load daily top artists from the backend right now."
-          )
-        );
-      } finally {
-        if (isMounted) {
-          setIsLoadingDailyTopArtists(false);
-        }
-      }
-    };
-
-    loadDailyTopArtists();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   return (
     <section className="space-y-8 sm:space-y-10">
@@ -243,17 +95,28 @@ const HomePage = () => {
         </div>
       ) : null }
 
+      { monthlyTopArtistsError ? (
+        <div
+          className="
+            rounded-[18px] border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm
+            text-amber-700 dark:text-amber-300
+          "
+        >
+          { monthlyTopArtistsError }
+        </div>
+      ) : null }
+
       <TrackChartSection
-        label="Charts"
-        title="Top Track Charts"
-        description="Open the latest daily and monthly snapshots, or jump straight into the most-played tracks in the app."
+        label="Bảng xếp hạng"
+        title="Top nhạc nổi bật"
+        description="Theo dõi nhanh các bảng xếp hạng theo ngày, theo tháng và nghệ sĩ đang dẫn đầu."
         items={ [
           ...(!dailyTopTracksError
             ? mapDailyTopTracksToContentCards({
                 topTracks: dailyTopTracks,
                 meta: dailyTopTracksMeta || {},
-                date: DAILY_TOP_TRACKS_DATE,
-                limit: DAILY_TOP_TRACK_LIMIT,
+                date: dailyTopTracksDate,
+                limit: dailyTopTracksLimit,
               }).map((item) => ({
                 ...item,
                 raw: {
@@ -266,8 +129,8 @@ const HomePage = () => {
             ? mapMonthlyTopTracksToContentCards({
                 topTracks: monthlyTopTracks,
                 meta: monthlyTopTracksMeta || {},
-                month: MONTHLY_TOP_TRACKS_DATE,
-                limit: MONTHLY_TOP_TRACK_LIMIT,
+                month: monthlyTopTracksDate,
+                limit: monthlyTopTracksLimit,
               }).map((item) => ({
                 ...item,
                 raw: {
@@ -276,42 +139,52 @@ const HomePage = () => {
                 },
               }))
             : []),
+          ...(!monthlyTopArtistsError
+            ? mapMonthlyTopArtistsToContentCards({
+                topArtists: monthlyTopArtists,
+                meta: monthlyTopArtistsMeta || {},
+                month: monthlyTopArtistsDate,
+                limit: monthlyTopArtistsLimit,
+              })
+            : []),
         ] }
-        isLoading={ isLoadingDailyTopTracks || isLoadingMonthlyTopTracks }
-        emptyMessage="The track chart endpoints returned no data yet."
-        onPlay={ (item) =>
-          item?.raw?.period === "monthly"
-            ? playMonthlyTopTracksItem(item)
-            : playDailyTopTracksItem(item)
+        isLoading={
+          isLoadingDailyTopTracks ||
+          isLoadingMonthlyTopTracks ||
+          isLoadingMonthlyTopArtists
         }
+        emptyMessage="Hiện chưa có dữ liệu bảng xếp hạng."
+        showPlayButton={ false }
+        actionLabel="Xem tất cả bảng xếp hạng"
+        actionHref={ routePaths.dailyTopTracks }
       />
 
       <ContentCardSection
-        title="System Playlist"
-        description="Discover playlists curated to help you enjoy the right music at the right moment."
+        title="Playlist hệ thống"
+        description="Khám phá các playlist được tuyển chọn để phù hợp với từng khoảnh khắc nghe nhạc của bạn."
         items={ mapSystemPlaylistsToContentCards(systemPlaylists) }
         isLoading={ isLoadingSystemPlaylists }
-        emptyMessage="The system playlist endpoint returned no data yet."
+        emptyMessage="Hiện chưa có dữ liệu playlist hệ thống."
         onPlay={ playPlaylistItem }
       />
 
+      <ContentCardSection
+        label="Album"
+        title="Album nổi bật"
+        description="Khám phá các album nổi bật và tuyển tập âm nhạc phù hợp với mọi tâm trạng."
+        items={ mapAlbumsToContentCards(albums) }
+        isLoading={ isLoadingAlbums }
+        emptyMessage="Hiện chưa có dữ liệu album."
+        onPlay={ playAlbumItem }
+      />
+
       <DailyTopArtistsSection
-        title="Daily Top Artists"
-        description="Most popular artists today."
+        title="Top nghệ sĩ theo ngày"
+        description="Những nghệ sĩ được nghe nhiều nhất hôm nay."
         items={ dailyTopArtists }
         isLoading={ isLoadingDailyTopArtists }
         errorMessage={ dailyTopArtistsError }
-        emptyMessage="No ranking data available today."
-      />
-
-      <ContentCardSection
-        label="Albums"
-        title="Latest album data"
-        description="Browse featured albums and discover music collections tailored for every mood."
-        items={ mapAlbumsToContentCards(albums) }
-        isLoading={ isLoadingAlbums }
-        emptyMessage="The album endpoint returned no data yet."
-        onPlay={ playAlbumItem }
+        emptyMessage="Hôm nay chưa có dữ liệu xếp hạng."
       />
 
       { playbackError ? (

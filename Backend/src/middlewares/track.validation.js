@@ -6,6 +6,10 @@ const trackIdParamSchema = Joi.object({
     id: Joi.string().trim().pattern(objectIdPattern).required(),
 });
 
+const trackAnalyticsTrackIdParamSchema = Joi.object({
+    trackId: Joi.string().trim().pattern(objectIdPattern).required(),
+});
+
 const dailyTopTracksQuerySchema = Joi.object({
     date: Joi.string()
         .trim()
@@ -44,6 +48,7 @@ const listenEventBodySchema = Joi.object({
 
 export default {
     trackIdParamSchema,
+    trackAnalyticsTrackIdParamSchema,
     dailyTopTracksQuerySchema,
     monthlyTopTracksQuerySchema,
     listenEventBodySchema,

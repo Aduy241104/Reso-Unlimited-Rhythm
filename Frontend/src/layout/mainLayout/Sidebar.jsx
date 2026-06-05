@@ -149,17 +149,6 @@ const Sidebar = ({
           );
         }) }
       </nav>
-
-      { !isCollapsed ? (
-        <div
-          className={[
-            "border-t px-5 py-4 text-xs leading-6",
-            isDark ? "border-[#f5b66f]/10 text-[#b8b0aa]" : "border-white/10 text-[#b8b0aa]",
-          ].join(" ")}
-        >
-          Your music shortcuts stay here. On mobile, use the menu button to open this drawer.
-        </div>
-      ) : null }
     </aside>
   );
 };

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Pencil, Trash2 } from "lucide-react";
+import { BarChart3, Eye, EyeOff, Pencil, Trash2 } from "lucide-react";
 import trackService from "../../services/trackService";
 import { routePaths } from "../../routes/routePaths";
 import { getApiErrorFullMessage } from "../../utils/apiError";
@@ -29,6 +29,9 @@ const approvalStyles = {
   rejected: "bg-rose-50 text-rose-700",
   draft: "bg-neutral-100 text-neutral-600",
 };
+
+const buildTrackInsightsPath = (trackId) =>
+  `${routePaths.artistAnalytics}?trackId=${trackId}`;
 
 export const MyMusicPage = () => {
   const navigate = useNavigate();
@@ -409,6 +412,15 @@ export const MyMusicPage = () => {
                         >
                           <Pencil className="h-4 w-4" />
                           Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => navigate(buildTrackInsightsPath(track._id))}
+                          className="inline-flex items-center gap-2 rounded-sm border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-medium text-violet-900 transition hover:bg-violet-100 whitespace-nowrap flex-shrink-0"
+                        >
+                          <BarChart3 className="h-4 w-4" />
+                          Phân tích
                         </button>
 
                         <button

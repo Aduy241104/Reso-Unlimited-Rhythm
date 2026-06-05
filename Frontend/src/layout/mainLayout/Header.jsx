@@ -36,7 +36,7 @@ const Header = ({ onToggleSidebar, isDesktopSidebarVisible = true }) => {
 
   const menuItems = [
     { label: "Home", to: routePaths.home },
-    { label: "Artist Profile", to: routePaths.artistBrowseProfile("featured") },
+    { label: "Profile", to: routePaths.userProfile },
     ...(userRole === "artist" ? [{ label: "Artist", to: routePaths.artistRoot }] : []),
   ];
 
@@ -70,21 +70,6 @@ const Header = ({ onToggleSidebar, isDesktopSidebarVisible = true }) => {
       ].join(" ")}
     >
       <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-        <button
-          type="button"
-          onClick={ onToggleSidebar }
-          className={[
-            "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition",
-            isDark
-              ? "border-[#f5b66f]/10 bg-[#1c1820] text-[#f7f1ea] hover:bg-[#241f28]"
-              : "border-[#e5e7eb] bg-white text-[#111111] hover:bg-[#f9fafb]",
-          ].join(" ")}
-          aria-label={ isDesktopSidebarVisible ? "Close sidebar" : "Open sidebar" }
-          aria-pressed={ isDesktopSidebarVisible }
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-
         <img src={ brandArtwork } alt="" className="h-11 w-11 shrink-0 sm:h-14 sm:w-14" />
         <div className="min-w-0">
           <p

@@ -27,13 +27,27 @@ const normalizeTopTrackItem = (item, index) => {
     coverImage: rawTrack?.coverImage || rawTrack?.avatar || "",
     artist: normalizeTrackArtist(rawTrack?.artist),
     stats: rawTrack?.stats || {},
+    activeStatus: rawTrack?.activeStatus || "",
+    approvalStatus: rawTrack?.approvalStatus || "",
   };
+  const numericRank = Number(item?.rank);
+  const numericPreviousRank = Number(item?.previousRank);
+  const numericRankChange = Number(item?.rankChange);
+  const normalizedRankTrend =
+    typeof item?.rankTrend === "string" ? item.rankTrend.trim().toLowerCase() : "";
 
   return {
-    rank: index + 1,
+    rank: numericRank > 0 ? numericRank : index + 1,
     date: item?.date || "",
+    previousRank:
+      item?.previousRank === null || item?.previousRank === undefined
+        ? null
+        : (numericPreviousRank > 0 ? numericPreviousRank : null),
+    rankChange: Number.isFinite(numericRankChange) ? numericRankChange : 0,
+    rankTrend: normalizedRankTrend || "same",
     playCount: Number(item?.playCount) || 0,
     uniqueListeners: Number(item?.uniqueListeners) || 0,
+    averageListenDuration: Number(item?.averageListenDuration) || 0,
     skipCount: Number(item?.skipCount) || 0,
     track: normalizedTrack,
   };
@@ -108,6 +122,21 @@ export const trackService = {
 
       const payload = response?.data?.data;
       return payload?.track || response?.data?.track || payload || null;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  getArtistTrackAnalytics: async (trackId, params = {}) => {
+    try {
+      const response = await axiosClient.get(
+        `/api/artist/tracks/${trackId}/analytics`,
+        {
+          params,
+        }
+      );
+
+      return response?.data?.data || null;
     } catch (error) {
       throw error.response?.data || error;
     }
