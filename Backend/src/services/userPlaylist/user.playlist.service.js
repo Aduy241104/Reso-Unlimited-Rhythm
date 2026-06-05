@@ -10,7 +10,8 @@ import {
     normalizePositiveInteger,
 } from "./user.playlist.service.helper.js";
 import { AppError } from "../../utils/AppError.js";
-import { uploadImageBuffer } from "../cloudinaryService.js";
+import { uploadImageBuffer, deleteImageByPublicId } from "../cloudinaryService.js";
+import { extractPublicIdFromUrl } from "../../utils/uploadCloud.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
@@ -100,21 +101,11 @@ const updateMyPlaylistByUserId = async (
 
     assertPlaylistId(playlistId);
 
-    const requestBody =
-        body && typeof body === "object" && !Array.isArray(body)
-            ? body
-            : {};
-    const payload = buildUpdatePlaylistPayload(requestBody);
+    const payload = buildUpdatePlaylistPayload(body);
     const hasCoverImageFile = Boolean(file?.buffer);
 
     if (Object.keys(payload).length === 0 && !hasCoverImageFile) {
-        throw new AppError(
-            "Provide at least one field to update: title, description, or coverImage.",
-            400,
-            {
-                fields: ["title", "description", "coverImage"],
-            }
-        );
+        throw new AppError("No changes provided.", 400);
     }
 
     const playlist = await Playlist.findOne({
@@ -149,6 +140,42 @@ const updateMyPlaylistByUserId = async (
     } catch (error) {
         throwPlaylistValidationError(error);
     }
+};
+
+const deleteMyPlaylistByUserId = async (userId, playlistId) => {
+    if (!userId) {
+        throw new AppError("Unauthorized.", 401);
+    }
+
+    assertPlaylistId(playlistId);
+
+    const playlist = await Playlist.findOne({
+        _id: playlistId,
+        userId,
+        type: "user",
+    });
+
+    if (!playlist) {
+        throw new AppError("Playlist not found.", 404);
+    }
+
+    if (playlist.coverImage) {
+        const publicId = extractPublicIdFromUrl(playlist.coverImage);
+
+        if (publicId) {
+            try {
+                await deleteImageByPublicId(publicId, true);
+            } catch (error) {
+                console.error("[ERROR] Delete user playlist cover failed:", error);
+            }
+        }
+    }
+
+    await Playlist.deleteOne({
+        _id: playlistId,
+        userId,
+        type: "user",
+    });
 };
 
 const getMyPlaylistsByUserId = async (userId, query = {}) => {
@@ -186,12 +213,7 @@ const getMyPlaylistsByUserId = async (userId, query = {}) => {
     };
 };
 
-
-const buildPlaylistDetailFilter = (
-    playlistId,
-    mode,
-    currentUserId
-) => {
+const buildPlaylistDetailFilter = (playlistId, mode, currentUserId) => {
     if (mode === "adminSystem") {
         return {
             _id: playlistId,
@@ -203,12 +225,10 @@ const buildPlaylistDetailFilter = (
         _id: playlistId,
         $or: [
             { type: "system" },
-
             {
                 isHidden: false,
                 isPublic: true,
             },
-
             {
                 userId: currentUserId,
             },
@@ -276,6 +296,7 @@ const getPlaylistDetail = async (playlistId, options = {}) => {
 export default {
     createMyPlaylistByUserId,
     updateMyPlaylistByUserId,
+    deleteMyPlaylistByUserId,
     getMyPlaylistsByUserId,
     getPlaylistDetail,
 };

@@ -41,6 +41,25 @@ const updateMyPlaylist = async (req, res, next) => {
     }
 };
 
+const deleteMyPlaylist = async (req, res, next) => {
+    try {
+        const userId = req.user?.id || req.user?._id;
+
+        await userPlaylistService.deleteMyPlaylistByUserId(
+            userId,
+            req.params.id
+        );
+
+        return formatResponse.success(
+            res,
+            { deleted: true },
+            "Playlist deleted successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 const updateMyPlaylistCover = async (req, res, next) => {
     try {
         const userId = req.user?.id || req.user?._id;
@@ -103,6 +122,7 @@ const getPlaylistDetail = async (req, res, next) => {
 export default {
     createMyPlaylist,
     updateMyPlaylist,
+    deleteMyPlaylist,
     updateMyPlaylistCover,
     getMyPlaylists,
     getPlaylistDetail
