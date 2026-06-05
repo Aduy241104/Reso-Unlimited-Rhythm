@@ -7,12 +7,17 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import CreatePlaylistButton from "../../components/userPlaylist/CreatePlaylistButton";
+import CreatePlaylistModal from "../../components/userPlaylist/CreatePlaylistModal";
 import { useTheme } from "../../hooks/useTheme";
 import { routePaths } from "../../routes/routePaths";
-import { getFollowedAlbums, getFollowedArtists } from "../../services/libaryService";
+import {
+  getFollowedAlbums,
+  getFollowedArtists,
+} from "../../services/libaryService";
 import { getUserPlaylists } from "../../services/userPlaylistService";
 
-const FOLLOWED_ARTISTS_LIMIT = 20;
+const FOLLOWED_ITEMS_LIMIT = 20;
 
 const getArtistInitial = (name) => {
   if (typeof name !== "string") {
@@ -23,6 +28,49 @@ const getArtistInitial = (name) => {
 
   return normalizedName ? normalizedName.charAt(0).toUpperCase() : "?";
 };
+
+const getPlaylistTitle = (playlist) => {
+  if (typeof playlist?.title === "string" && playlist.title.trim()) {
+    return playlist.title.trim();
+  }
+
+  if (typeof playlist?.name === "string" && playlist.name.trim()) {
+    return playlist.name.trim();
+  }
+
+  return "Untitled Playlist";
+};
+
+const getPlaylistCoverImage = (playlist) => {
+  if (
+    typeof playlist?.coverImage === "string" &&
+    playlist.coverImage.trim()
+  ) {
+    return playlist.coverImage.trim();
+  }
+
+  return "";
+};
+
+const getPlaylistOwnerName = (playlist) => {
+  if (typeof playlist?.userName === "string" && playlist.userName.trim()) {
+    return playlist.userName.trim();
+  }
+
+  if (
+    typeof playlist?.owner?.fullName === "string" &&
+    playlist.owner.fullName.trim()
+  ) {
+    return playlist.owner.fullName.trim();
+  }
+
+  return "Unknown User";
+};
+
+const tabButtonClassName = (isActive) =>
+  isActive
+    ? "rounded-full bg-white/20 px-3 py-1.5 text-xs font-medium text-white"
+    : "rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-[#f7f1ea]";
 
 const Sidebar = ({
   isCollapsed = false,
@@ -37,11 +85,13 @@ const Sidebar = ({
 
   const [followedArtists, setFollowedArtists] = useState([]);
   const [isLoadingArtists, setIsLoadingArtists] = useState(true);
-  const [activeTab, setActiveTab] = useState("artist");
+  const [activeTab, setActiveTab] = useState("playlist");
   const [followedAlbums, setFollowedAlbums] = useState([]);
   const [isLoadingAlbums, setIsLoadingAlbums] = useState(true);
   const [playlists, setPlaylists] = useState([]);
   const [isLoadingPlaylists, setIsLoadingPlaylists] = useState(true);
+  const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
+    useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -52,7 +102,7 @@ const Sidebar = ({
       try {
         const response = await getFollowedArtists({
           page: 1,
-          limit: FOLLOWED_ARTISTS_LIMIT,
+          limit: FOLLOWED_ITEMS_LIMIT,
         });
 
         if (isMounted) {
@@ -77,7 +127,7 @@ const Sidebar = ({
       try {
         const response = await getFollowedAlbums({
           page: 1,
-          limit: FOLLOWED_ARTISTS_LIMIT,
+          limit: FOLLOWED_ITEMS_LIMIT,
         });
 
         if (isMounted) {
@@ -95,6 +145,7 @@ const Sidebar = ({
         }
       }
     };
+
     const loadPlaylists = async () => {
       setIsLoadingPlaylists(true);
 
@@ -102,7 +153,9 @@ const Sidebar = ({
         const response = await getUserPlaylists();
 
         if (isMounted) {
-          setPlaylists(Array.isArray(response?.playlists) ? response.playlists : []);
+          setPlaylists(
+            Array.isArray(response?.playlists) ? response.playlists : []
+          );
         }
       } catch {
         if (isMounted) {
@@ -115,9 +168,9 @@ const Sidebar = ({
       }
     };
 
-    loadPlaylists();
-    loadFollowedArtists();
-    loadFollowedAlbums();
+    void loadPlaylists();
+    void loadFollowedArtists();
+    void loadFollowedAlbums();
 
     return () => {
       isMounted = false;
@@ -142,41 +195,34 @@ const Sidebar = ({
           isDark ? "border-[#f5b66f]/10" : "border-white/10",
         ].join(" ")}
       >
-        {isCollapsed ? (
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-[#f5b66f]">
-            <Disc3 className="h-5 w-5" />
-          </div>
-        ) : (
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.35em] text-[#f5b66f]/80">
-              RESO MUSIC
-            </p>
-            <p className="mt-2 text-sm text-[#b8b0aa]">
-              Browse music, playlists, and artist pages.
-            </p>
-          </div>
-        )}
+        
 
-        <button
-          type="button"
-          onClick={onToggleDesktop}
-          className="hidden h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/70 transition hover:bg-white/5 hover:text-white lg:inline-flex"
-          aria-label={isCollapsed ? "Open sidebar" : "Collapse sidebar"}
-          title={isCollapsed ? "Open sidebar" : "Collapse sidebar"}
-        >
-          <DesktopToggleIcon className="h-5 w-5" />
-        </button>
-
-        {showCloseButton ? (
+        <CreatePlaylistButton
+          onClick={() => setIsCreatePlaylistModalOpen(true)}
+          isCompact={isCollapsed}
+        />
+        <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={onClose}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/70 transition hover:bg-white/5 hover:text-white lg:hidden"
-            aria-label="Close sidebar"
+            onClick={onToggleDesktop}
+            className="hidden h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/70 transition hover:bg-white/5 hover:text-white lg:inline-flex"
+            aria-label={isCollapsed ? "Open sidebar" : "Collapse sidebar"}
+            title={isCollapsed ? "Open sidebar" : "Collapse sidebar"}
           >
-            <X className="h-5 w-5" />
+            <DesktopToggleIcon className="h-5 w-5" />
           </button>
-        ) : null}
+
+          {showCloseButton ? (
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/70 transition hover:bg-white/5 hover:text-white lg:hidden"
+              aria-label="Close sidebar"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <nav
@@ -194,39 +240,32 @@ const Sidebar = ({
       >
         {!isCollapsed ? (
           <>
-            <div className="mb-4 flex flex-nowrap gap-2 px-3">
-              <button
-                type="button"
-                onClick={() => setActiveTab("playlist")}
-                className={activeTab === "playlist"
-                  ? "rounded-full bg-white/20 px-3 py-1.5 text-xs font-medium text-white"
-                  : "rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-[#f7f1ea]"
-                }
-              >
-                Playlist
-              </button>
+            <div className="mb-4 px-3">
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("playlist")}
+                  className={tabButtonClassName(activeTab === "playlist")}
+                >
+                  Playlist
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setActiveTab("artist")}
-                className={activeTab === "artist"
-                  ? "rounded-full bg-white/20 px-3 py-1.5 text-xs font-medium text-white"
-                  : "rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-[#f7f1ea]"
-                }
-              >
-                Nghệ sĩ
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("artist")}
+                  className={tabButtonClassName(activeTab === "artist")}
+                >
+                  Nghệ sĩ
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setActiveTab("album")}
-                className={activeTab === "album"
-                  ? "rounded-full bg-white/20 px-3 py-1.5 text-xs font-medium text-white"
-                  : "rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-[#f7f1ea]"
-                }
-              >
-                Album
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("album")}
+                  className={tabButtonClassName(activeTab === "album")}
+                >
+                  Album
+                </button>
+              </div>
             </div>
 
             <div className="space-y-1">
@@ -234,28 +273,17 @@ const Sidebar = ({
                 isLoadingPlaylists ? (
                   <div className="flex items-center gap-3 px-3 py-3 text-sm text-[#b8b0aa]">
                     <Loader2 className="h-4 w-4 animate-spin text-[#f5b66f]" />
-                    <span>Đang tải playlist...</span>
+                    <span>Dang tai playlist...</span>
                   </div>
                 ) : playlists.length === 0 ? (
                   <div className="px-3 py-3 text-sm text-[#b8b0aa]">
-                    Chưa có playlist nào
+                    Chua co playlist nao
                   </div>
                 ) : (
                   playlists.map((playlist, index) => {
-                    const title =
-                      typeof playlist?.title === "string" && playlist.title.trim()
-                        ? playlist.title.trim()
-                        : "Untitled Playlist";
-
-                    const coverImage =
-                      typeof playlist?.coverImage === "string" && playlist.coverImage.trim()
-                        ? playlist.coverImage.trim()
-                        : "";
-
-                    const userName =
-                      typeof playlist?.userName === "string" && playlist.userName.trim()
-                        ? playlist.userName.trim()
-                        : "Unknown User";
+                    const title = getPlaylistTitle(playlist);
+                    const coverImage = getPlaylistCoverImage(playlist);
+                    const userName = getPlaylistOwnerName(playlist);
 
                     return (
                       <Link
@@ -290,16 +318,16 @@ const Sidebar = ({
                   })
                 )
               ) : null}
-              
+
               {activeTab === "artist" ? (
                 isLoadingArtists ? (
                   <div className="flex items-center gap-3 px-3 py-3 text-sm text-[#b8b0aa]">
                     <Loader2 className="h-4 w-4 animate-spin text-[#f5b66f]" />
-                    <span>Đang tải nghệ sĩ...</span>
+                    <span>Dang tai nghe si...</span>
                   </div>
                 ) : followedArtists.length === 0 ? (
                   <div className="px-3 py-3 text-sm text-[#b8b0aa]">
-                    Chưa theo dõi nghệ sĩ nào
+                    Chua theo doi nghe si nao
                   </div>
                 ) : (
                   followedArtists.map((artist, index) => {
@@ -313,7 +341,9 @@ const Sidebar = ({
                         ? artist.avatar.trim()
                         : "";
 
-                    const artistPath = routePaths.artistBrowseProfile(artist?.artistId);
+                    const artistPath = routePaths.artistBrowseProfile(
+                      artist?.artistId
+                    );
                     const isArtistActive = location.pathname === artistPath;
 
                     return (
@@ -359,11 +389,11 @@ const Sidebar = ({
                 isLoadingAlbums ? (
                   <div className="flex items-center gap-3 px-3 py-3 text-sm text-[#b8b0aa]">
                     <Loader2 className="h-4 w-4 animate-spin text-[#f5b66f]" />
-                    <span>Đang tải album...</span>
+                    <span>Dang tai album...</span>
                   </div>
                 ) : followedAlbums.length === 0 ? (
                   <div className="px-3 py-3 text-sm text-[#b8b0aa]">
-                    Chưa theo dõi album nào
+                    Chua theo doi album nao
                   </div>
                 ) : (
                   followedAlbums.map((album, index) => {
@@ -373,12 +403,14 @@ const Sidebar = ({
                         : "Untitled Album";
 
                     const coverImage =
-                      typeof album?.coverImage === "string" && album.coverImage.trim()
+                      typeof album?.coverImage === "string" &&
+                        album.coverImage.trim()
                         ? album.coverImage.trim()
                         : "";
 
                     const artistName =
-                      typeof album?.artistName === "string" && album.artistName.trim()
+                      typeof album?.artistName === "string" &&
+                        album.artistName.trim()
                         ? album.artistName.trim()
                         : "Unknown Artist";
 
@@ -419,6 +451,20 @@ const Sidebar = ({
           </>
         ) : null}
       </nav>
+
+      <CreatePlaylistModal
+        isOpen={isCreatePlaylistModalOpen}
+        onClose={() => setIsCreatePlaylistModalOpen(false)}
+        existingPlaylists={playlists}
+        onCreated={(createdPlaylist) => {
+          if (!createdPlaylist) {
+            return;
+          }
+
+          setActiveTab("playlist");
+          setPlaylists((current) => [createdPlaylist, ...current]);
+        }}
+      />
     </aside>
   );
 };

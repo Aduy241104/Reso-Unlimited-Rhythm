@@ -14,3 +14,32 @@ export const getUserPlaylistDetail = async (playlistId) => {
 
   return response?.data?.data?.playlist ?? null;
 };
+
+export const createUserPlaylist = async (payload = {}) => {
+  const formData = new FormData();
+  const title =
+    typeof payload.title === "string" ? payload.title.trim() : "";
+  const description =
+    typeof payload.description === "string" ? payload.description.trim() : "";
+  const isPublic = payload.isPublic === true;
+
+  formData.append("title", title);
+  formData.append("description", description);
+  formData.append("isPublic", String(isPublic));
+
+  if (payload.coverImage instanceof File) {
+    formData.append("coverImage", payload.coverImage);
+  }
+
+  const response = await axiosClient.post(
+    `${USER_PLAYLIST_API_PREFIX}/playlists`,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
+  );
+
+  return response?.data?.data?.playlist ?? response?.data?.data ?? null;
+};
