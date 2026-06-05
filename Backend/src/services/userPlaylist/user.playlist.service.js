@@ -1,15 +1,52 @@
 import Playlist from "../../models/Playlist.js";
 import mongoose from "mongoose";
 import {
+    buildCreatePlaylistPayload,
+    formatCreatedPlaylist,
     formatUserPlaylist,
     formatPlaylistDetail,
     normalizePositiveInteger,
 } from "./user.playlist.service.helper.js";
 import { AppError } from "../../utils/AppError.js";
+import { uploadImageBuffer } from "../cloudinaryService.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
+
+const createMyPlaylistByUserId = async (userId, body = {}, file = null) => {
+    if (!userId) {
+        throw new AppError("Unauthorized.", 401);
+    }
+
+    const { title, description } = buildCreatePlaylistPayload(body);
+    let coverImage = "";
+
+    if (file?.buffer) {
+        const uploaded = await uploadImageBuffer({
+            buffer: file.buffer,
+            folder: "reso/playlists",
+            publicId: `user_playlist_${userId}_${Date.now()}`,
+        });
+
+        coverImage = uploaded?.secure_url || "";
+    }
+
+    const createdPlaylist = await Playlist.create({
+        userId,
+        title,
+        description,
+        coverImage,
+        type: "user",
+        isPublic: false,
+        isHidden: false,
+        trackCount: 0,
+        totalDuration: 0,
+        tracks: [],
+    });
+
+    return formatCreatedPlaylist(createdPlaylist);
+};
 
 const getMyPlaylistsByUserId = async (userId, query = {}) => {
     const page = normalizePositiveInteger(query.page, DEFAULT_PAGE);
@@ -134,6 +171,7 @@ const getPlaylistDetail = async (playlistId, options = {}) => {
 };
 
 export default {
+    createMyPlaylistByUserId,
     getMyPlaylistsByUserId,
     getPlaylistDetail,
 };

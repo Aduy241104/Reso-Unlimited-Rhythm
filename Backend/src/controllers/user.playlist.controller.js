@@ -1,6 +1,27 @@
 import userPlaylistService from "../services/userPlaylist/user.playlist.service.js";
 import formatResponse from "../utils/formatResponse.js";
 
+const createMyPlaylist = async (req, res, next) => {
+    try {
+        const userId = req.user?.id || req.user?._id;
+        console.log("BODY:", req.body);
+        const playlist = await userPlaylistService.createMyPlaylistByUserId(
+            userId,
+            req.body,
+            req.file
+        );
+        
+
+        return formatResponse.success(
+            res,
+            { playlist },
+            "Playlist created successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 const getMyPlaylists = async (req, res, next) => {
     try {
         const userId = req.user?.id || req.user?._id;
@@ -40,6 +61,7 @@ const getPlaylistDetail = async (req, res, next) => {
 };
 
 export default {
+    createMyPlaylist,
     getMyPlaylists,
     getPlaylistDetail
 };

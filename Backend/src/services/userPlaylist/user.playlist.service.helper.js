@@ -1,3 +1,5 @@
+import { AppError } from "../../utils/AppError.js";
+
 export const normalizePositiveInteger = (value, defaultValue) => {
     const number = Number(value);
 
@@ -6,6 +8,63 @@ export const normalizePositiveInteger = (value, defaultValue) => {
     }
 
     return number;
+};
+
+export const sanitizeString = (value, field) => {
+    if (value === undefined || value === null) {
+        return "";
+    }
+
+    if (typeof value !== "string") {
+        throw new AppError(`${field} must be a string.`, 400, {
+            field,
+        });
+    }
+
+    return value.trim();
+};
+
+export const buildCreatePlaylistPayload = (body = {}) => {
+    const title = sanitizeString(body.title, "title");
+    const description = sanitizeString(body.description, "description");
+
+    if (!title) {
+        throw new AppError("Title is required.", 400, {
+            field: "title",
+        });
+    }
+
+    if (title.length > 100) {
+        throw new AppError("Title must not exceed 100 characters.", 400, {
+            field: "title",
+        });
+    }
+
+    if (description.length > 1000) {
+        throw new AppError("Description must not exceed 1000 characters.", 400, {
+            field: "description",
+        });
+    }
+
+    return {
+        title,
+        description,
+    };
+};
+
+export const formatCreatedPlaylist = (playlist) => {
+    return {
+        playlistId: playlist._id?.toString?.() || "",
+        title: playlist.title,
+        description: playlist.description || "",
+        coverImage: playlist.coverImage || "",
+        type: playlist.type,
+        isPublic: playlist.isPublic,
+        isHidden: playlist.isHidden,
+        trackCount: playlist.trackCount,
+        totalDuration: playlist.totalDuration,
+        createdAt: playlist.createdAt,
+    };
 };
 
 
