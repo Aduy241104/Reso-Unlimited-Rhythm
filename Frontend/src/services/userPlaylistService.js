@@ -73,6 +73,17 @@ export const updateUserPlaylist = async (playlistId, payload = {}) => {
   return response?.data?.data?.playlist ?? response?.data?.data ?? null;
 };
 
+export const addTrackToUserPlaylist = async (playlistId, trackId) => {
+  const response = await axiosClient.post(
+    `${USER_PLAYLIST_API_PREFIX}/playlists/${playlistId}/tracks`,
+    {
+      trackId,
+    }
+  );
+
+  return response?.data?.data?.playlist ?? response?.data?.data ?? null;
+};
+
 export const deleteUserPlaylist = async (playlistId) => {
   const response = await axiosClient.delete(
     `${USER_PLAYLIST_API_PREFIX}/playlists/${playlistId}`
