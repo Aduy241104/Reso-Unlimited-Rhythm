@@ -6,12 +6,16 @@ import {
   Shuffle,
 } from "lucide-react";
 import { useParams } from "react-router-dom";
+import EditPlaylistModal from "../../components/userPlaylist/EditPlaylistModal";
 import PlayButton from "../../components/common/PlayButton";
 import TrackCard from "../../components/TrackCard";
 import TrackListSection from "../../components/trackList/TrackListSection";
 import { usePlayer } from "../../hooks/usePlayer";
 import { routePaths } from "../../routes/routePaths";
-import { getUserPlaylistDetail } from "../../services/userPlaylistService";
+import {
+  getUserPlaylistDetail,
+  getUserPlaylists,
+} from "../../services/userPlaylistService";
 import { formatTrackDuration } from "../../utils/albumDetail";
 import { getApiErrorMessage } from "../../utils/apiError";
 import {
@@ -119,11 +123,25 @@ const getTotalDurationSeconds = (trackItems) =>
     return Number.isFinite(duration) ? sum + duration : sum;
   }, 0);
 
+const normalizePlaylists = (payload) => {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (Array.isArray(payload?.playlists)) {
+    return payload.playlists;
+  }
+
+  return [];
+};
+
 const UserPlaylistDetailPage = () => {
   const { id } = useParams();
   const [playlist, setPlaylist] = useState(null);
+  const [existingPlaylists, setExistingPlaylists] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const {
     currentTrack,
     isPlaying,
@@ -140,7 +158,18 @@ const UserPlaylistDetailPage = () => {
       setErrorMessage("");
 
       try {
-        const playlistDetail = await getUserPlaylistDetail(id);
+        const [playlistDetailResult, playlistsResult] = await Promise.allSettled([
+          getUserPlaylistDetail(id),
+          getUserPlaylists(),
+        ]);
+
+        if (playlistDetailResult.status !== "fulfilled") {
+          throw playlistDetailResult.reason;
+        }
+
+        const playlistDetail = playlistDetailResult.value;
+        const playlistsPayload =
+          playlistsResult.status === "fulfilled" ? playlistsResult.value : [];
 
         if (!isMounted) {
           return;
@@ -153,12 +182,14 @@ const UserPlaylistDetailPage = () => {
         }
 
         setPlaylist(playlistDetail);
+        setExistingPlaylists(normalizePlaylists(playlistsPayload));
       } catch (error) {
         if (!isMounted) {
           return;
         }
 
         setPlaylist(null);
+        setExistingPlaylists([]);
         setErrorMessage(
           getApiErrorMessage(
             error,
@@ -258,6 +289,47 @@ const UserPlaylistDetailPage = () => {
     console.log("Toggle like track:", track?.title || track?.name);
   };
 
+  const handleOpenEditModal = () => {
+    if (!playlist || isLoading) {
+      return;
+    }
+
+    setIsEditModalOpen(true);
+  };
+
+  const handlePlaylistUpdated = (updatedPlaylist) => {
+    if (!updatedPlaylist) {
+      return;
+    }
+
+    setPlaylist((current) => {
+      if (!current) {
+        return updatedPlaylist;
+      }
+
+      return {
+        ...current,
+        ...updatedPlaylist,
+      };
+    });
+
+    setExistingPlaylists((current) =>
+      current.map((item) => {
+        const itemId = item?.playlistId || item?.id;
+        const updatedId = updatedPlaylist?.playlistId || updatedPlaylist?.id;
+
+        if (itemId && updatedId && itemId === updatedId) {
+          return {
+            ...item,
+            ...updatedPlaylist,
+          };
+        }
+
+        return item;
+      })
+    );
+  };
+
   const metaItems = [
     playlistOwnerLabel,
     createdDate,
@@ -291,35 +363,52 @@ const UserPlaylistDetailPage = () => {
             </div>
           ) : (
             <div className="flex flex-col items-center gap-5 text-center md:flex-row md:items-end md:text-left">
-              { playlistCoverImage ? (
-                <img
-                  src={ playlistCoverImage }
-                  alt={ playlistTitle || "Playlist cover" }
-                  className="
-                    h-32 w-32 rounded-[16px] object-cover shadow-[0_24px_60px_rgba(0,0,0,0.28)]
-                    min-[420px]:h-36 min-[420px]:w-36
-                    sm:h-56 sm:w-56
-                  "
-                />
-              ) : (
-                <div
-                  className="
-                    flex h-32 w-32 items-center justify-center rounded-[16px] bg-white/12
-                    text-sm font-medium text-white/72 shadow-[0_24px_60px_rgba(0,0,0,0.18)]
-                    backdrop-blur min-[420px]:h-36 min-[420px]:w-36 sm:h-56 sm:w-56
-                  "
-                >
-                  No cover image
-                </div>
-              ) }
+              <button
+                type="button"
+                onClick={ handleOpenEditModal }
+                className="group relative overflow-hidden rounded-[16px] focus:outline-none"
+                aria-label="Edit playlist image"
+              >
+                { playlistCoverImage ? (
+                  <img
+                    src={ playlistCoverImage }
+                    alt={ playlistTitle || "Playlist cover" }
+                    className="
+                      h-32 w-32 rounded-[16px] object-cover shadow-[0_24px_60px_rgba(0,0,0,0.28)]
+                      transition duration-300 group-hover:brightness-75
+                      min-[420px]:h-36 min-[420px]:w-36
+                      sm:h-56 sm:w-56
+                    "
+                  />
+                ) : (
+                  <div
+                    className="
+                      flex h-32 w-32 items-center justify-center rounded-[16px] bg-white/12
+                      text-sm font-medium text-white/72 shadow-[0_24px_60px_rgba(0,0,0,0.18)]
+                      backdrop-blur transition duration-300 group-hover:bg-white/20
+                      min-[420px]:h-36 min-[420px]:w-36 sm:h-56 sm:w-56
+                    "
+                  >
+                    No cover image
+                  </div>
+                ) }
+
+                <span className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-[16px] bg-black/0 text-sm font-semibold text-white opacity-0 transition duration-300 group-hover:bg-black/30 group-hover:opacity-100">
+                  Edit details
+                </span>
+              </button>
 
               <div className="min-w-0 max-w-2xl">
                 <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/82">
                   User playlist
                 </p>
-                <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:mt-3 sm:text-5xl lg:text-6xl">
+                <button
+                  type="button"
+                  onClick={ handleOpenEditModal }
+                  className="mt-2 text-left text-2xl font-semibold tracking-tight text-white transition hover:text-white/80 sm:mt-3 sm:text-5xl lg:text-6xl"
+                >
                   { playlistTitle }
-                </h1>
+                </button>
                 { playlistDescription ? (
                   <p className="mt-3 line-clamp-3 max-w-3xl text-sm leading-6 text-white/88 sm:mt-4 sm:line-clamp-none sm:text-base">
                     { playlistDescription }
@@ -397,6 +486,14 @@ const UserPlaylistDetailPage = () => {
           </TrackListSection>
         </div>
       </div>
+
+      <EditPlaylistModal
+        isOpen={ isEditModalOpen }
+        onClose={ () => setIsEditModalOpen(false) }
+        onUpdated={ handlePlaylistUpdated }
+        playlist={ playlist }
+        existingPlaylists={ existingPlaylists }
+      />
     </section>
   );
 };
