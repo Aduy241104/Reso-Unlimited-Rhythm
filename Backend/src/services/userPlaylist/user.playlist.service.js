@@ -2,7 +2,9 @@ import Playlist from "../../models/Playlist.js";
 import mongoose from "mongoose";
 import {
     buildCreatePlaylistPayload,
+    buildUpdatePlaylistPayload,
     formatCreatedPlaylist,
+    formatUpdatedPlaylist,
     formatUserPlaylist,
     formatPlaylistDetail,
     normalizePositiveInteger,
@@ -14,38 +16,139 @@ const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
 
-const createMyPlaylistByUserId = async (userId, body = {}, file = null) => {
-    if (!userId) {
-        throw new AppError("Unauthorized.", 401);
+const throwPlaylistValidationError = (error) => {
+    if (error instanceof AppError) {
+        throw error;
     }
 
-    const { title, description } = buildCreatePlaylistPayload(body);
-    let coverImage = "";
+    if (error?.name === "ValidationError") {
+        const firstField = Object.keys(error.errors || {})[0] || "playlist";
+        throw new AppError("Invalid playlist data.", 400, {
+            field: firstField,
+        });
+    }
 
-    if (file?.buffer) {
+    throw error;
+};
+
+const uploadPlaylistCoverImage = async (userId, file) => {
+    if (!file?.buffer) {
+        return "";
+    }
+
+    try {
         const uploaded = await uploadImageBuffer({
             buffer: file.buffer,
             folder: "reso/playlists",
             publicId: `user_playlist_${userId}_${Date.now()}`,
         });
 
-        coverImage = uploaded?.secure_url || "";
+        return uploaded?.secure_url || "";
+    } catch {
+        throw new AppError(
+            "Could not upload cover image. Check storage configuration and try again.",
+            502
+        );
+    }
+};
+
+const assertPlaylistId = (playlistId) => {
+    if (!mongoose.Types.ObjectId.isValid(playlistId)) {
+        throw new AppError("Playlist id is invalid.", 400, {
+            field: "id",
+        });
+    }
+};
+
+const createMyPlaylistByUserId = async (userId, body = {}, file = null) => {
+    if (!userId) {
+        throw new AppError("Unauthorized.", 401);
     }
 
-    const createdPlaylist = await Playlist.create({
+    const { title, description } = buildCreatePlaylistPayload(body);
+    const coverImage = await uploadPlaylistCoverImage(userId, file);
+
+    try {
+        const createdPlaylist = await Playlist.create({
+            userId,
+            title,
+            description,
+            coverImage,
+            type: "user",
+            isPublic: false,
+            isHidden: false,
+            trackCount: 0,
+            totalDuration: 0,
+            tracks: [],
+        });
+
+        return formatCreatedPlaylist(createdPlaylist);
+    } catch (error) {
+        throwPlaylistValidationError(error);
+    }
+};
+
+const updateMyPlaylistByUserId = async (
+    userId,
+    playlistId,
+    body = {},
+    file = null
+) => {
+    if (!userId) {
+        throw new AppError("Unauthorized.", 401);
+    }
+
+    assertPlaylistId(playlistId);
+
+    const requestBody =
+        body && typeof body === "object" && !Array.isArray(body)
+            ? body
+            : {};
+    const payload = buildUpdatePlaylistPayload(requestBody);
+    const hasCoverImageFile = Boolean(file?.buffer);
+
+    if (Object.keys(payload).length === 0 && !hasCoverImageFile) {
+        throw new AppError(
+            "Provide at least one field to update: title, description, or coverImage.",
+            400,
+            {
+                fields: ["title", "description", "coverImage"],
+            }
+        );
+    }
+
+    const playlist = await Playlist.findOne({
+        _id: playlistId,
         userId,
-        title,
-        description,
-        coverImage,
         type: "user",
-        isPublic: false,
-        isHidden: false,
-        trackCount: 0,
-        totalDuration: 0,
-        tracks: [],
     });
 
-    return formatCreatedPlaylist(createdPlaylist);
+    if (!playlist) {
+        throw new AppError("Playlist not found.", 404);
+    }
+
+    if (payload.title !== undefined) {
+        playlist.title = payload.title;
+    }
+
+    if (payload.description !== undefined) {
+        playlist.description = payload.description;
+    }
+
+    if (hasCoverImageFile) {
+        const newCoverImage = await uploadPlaylistCoverImage(userId, file);
+
+        if (newCoverImage) {
+            playlist.coverImage = newCoverImage;
+        }
+    }
+
+    try {
+        await playlist.save();
+        return formatUpdatedPlaylist(playlist);
+    } catch (error) {
+        throwPlaylistValidationError(error);
+    }
 };
 
 const getMyPlaylistsByUserId = async (userId, query = {}) => {
@@ -172,6 +275,7 @@ const getPlaylistDetail = async (playlistId, options = {}) => {
 
 export default {
     createMyPlaylistByUserId,
+    updateMyPlaylistByUserId,
     getMyPlaylistsByUserId,
     getPlaylistDetail,
 };

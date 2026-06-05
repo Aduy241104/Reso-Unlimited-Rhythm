@@ -52,6 +52,42 @@ export const buildCreatePlaylistPayload = (body = {}) => {
     };
 };
 
+export const buildUpdatePlaylistPayload = (body = {}) => {
+    const payload = {};
+
+    if (body.title !== undefined) {
+        const title = sanitizeString(body.title, "title");
+
+        if (!title) {
+            throw new AppError("Title is required.", 400, {
+                field: "title",
+            });
+        }
+
+        if (title.length > 100) {
+            throw new AppError("Title must not exceed 100 characters.", 400, {
+                field: "title",
+            });
+        }
+
+        payload.title = title;
+    }
+
+    if (body.description !== undefined) {
+        const description = sanitizeString(body.description, "description");
+
+        if (description.length > 1000) {
+            throw new AppError("Description must not exceed 1000 characters.", 400, {
+                field: "description",
+            });
+        }
+
+        payload.description = description;
+    }
+
+    return payload;
+};
+
 export const formatCreatedPlaylist = (playlist) => {
     return {
         playlistId: playlist._id?.toString?.() || "",
@@ -67,21 +103,27 @@ export const formatCreatedPlaylist = (playlist) => {
     };
 };
 
+export const formatUpdatedPlaylist = (playlist) => {
+    return formatCreatedPlaylist(playlist);
+};
 
 export const formatUserPlaylist = (playlist) => {
     return {
-        playlistId: playlist._id,
+        playlistId: playlist._id?.toString?.() || "",
         title: playlist.title,
         description: playlist.description || "",
         coverImage: playlist.coverImage || "",
-        totalTracks: Array.isArray(playlist.trackList)
-            ? playlist.trackList.length
-            : 0,
+        totalTracks: Array.isArray(playlist.tracks)
+            ? playlist.tracks.length
+            : playlist.trackCount || 0,
         userName: playlist.userId?.profile?.fullName || "",
-        status: playlist.status,
+        type: playlist.type,
+        isPublic: playlist.isPublic,
+        isHidden: playlist.isHidden,
         createdAt: playlist.createdAt,
     };
 };
+
 const toId = (value) => {
     if (!value) {
         return "";
@@ -107,6 +149,7 @@ const formatPlaylistTrack = (playlistTrack) => {
 
     return {
         order: playlistTrack.order,
+        addedAt: playlistTrack.addedAt,
         trackId: toId(track._id),
         track: {
             id: toId(track._id),
@@ -141,14 +184,14 @@ const formatPlaylistTrack = (playlistTrack) => {
 export const formatPlaylistDetail = (playlist) => ({
     id: toId(playlist._id),
     title: playlist.title,
-    description: playlist.description,
+    description: playlist.description || "",
     type: playlist.type,
-    coverImage: playlist.coverImage,
+    coverImage: playlist.coverImage || "",
     isPublic: playlist.isPublic,
     isHidden: playlist.isHidden,
     trackCount: playlist.trackCount,
     totalDuration: playlist.totalDuration,
-    aiPrompt: playlist.aiPrompt,
+    aiPrompt: playlist.aiPrompt || "",
     aiGeneratedAt: playlist.aiGeneratedAt,
     owner: playlist.userId
         ? {
@@ -161,7 +204,8 @@ export const formatPlaylistDetail = (playlist) => ({
         : null,
     tracks: (playlist.tracks || [])
         .sort((firstTrack, secondTrack) => firstTrack.order - secondTrack.order)
-        .map(formatPlaylistTrack),
+        .map(formatPlaylistTrack)
+        .filter(Boolean),
     createdAt: playlist.createdAt,
     updatedAt: playlist.updatedAt,
 });
