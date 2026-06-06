@@ -5,13 +5,19 @@ import Header from "./Header";
 import Player from "./Player";
 import Sidebar from "./Sidebar";
 
-const SIDEBAR_EXPANDED_WIDTH = "260px";
+const SIDEBAR_EXPANDED_WIDTH = "285px";
 const SIDEBAR_COLLAPSED_WIDTH = "84px";
 
 const MainLayout = () => {
   const location = useLocation();
   const { isDark } = useTheme();
-  const [isDesktopViewport, setIsDesktopViewport] = useState(false);
+  const [isDesktopViewport, setIsDesktopViewport] = useState(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    return window.matchMedia("(min-width: 1024px)").matches;
+  });
   const [isDesktopSidebarVisible, setIsDesktopSidebarVisible] = useState(true);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const desktopSidebarWidth = isDesktopSidebarVisible
@@ -27,9 +33,6 @@ const MainLayout = () => {
     const updateViewportState = (event) => {
       setIsDesktopViewport(event.matches);
     };
-
-    setIsDesktopViewport(mediaQuery.matches);
-
     if (typeof mediaQuery.addEventListener === "function") {
       mediaQuery.addEventListener("change", updateViewportState);
 
@@ -46,7 +49,13 @@ const MainLayout = () => {
   }, []);
 
   useEffect(() => {
-    setIsMobileSidebarOpen(false);
+    const timeoutId = window.setTimeout(() => {
+      setIsMobileSidebarOpen(false);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
   }, [location.pathname]);
 
   useEffect(() => {
@@ -114,7 +123,7 @@ const MainLayout = () => {
 
       <aside
         className={[
-          "fixed inset-y-0 left-0 z-50 w-[260px] max-w-[85vw] transition-transform duration-200 lg:hidden",
+          "fixed inset-y-0 left-0 z-50 w-[285px] max-w-[85vw] transition-transform duration-200 lg:hidden",
           isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full",
         ].join(" ")}
       >
@@ -128,7 +137,7 @@ const MainLayout = () => {
       <div
         className={[
           "grid h-full min-w-0 grid-rows-[68px_minmax(0,1fr)] overflow-hidden transition-[padding] duration-300 lg:grid-rows-[72px_minmax(0,1fr)]",
-          isDesktopSidebarVisible ? "lg:pl-[260px]" : "lg:pl-[84px]",
+          isDesktopSidebarVisible ? "lg:pl-[285px]" : "lg:pl-[84px]",
           isDark ? "bg-black" : "bg-white",
         ].join(" ")}
       >

@@ -116,7 +116,7 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
         lg:transition-[left,width] lg:duration-300
       `,
         isDesktopSidebarVisible
-          ? "lg:left-[calc(50%+130px)] lg:w-[calc(100%-292px)]"
+          ? "lg:left-[calc(50%+142.5px)] lg:w-[calc(100%-317px)]"
           : "lg:left-[calc(50%+42px)] lg:w-[calc(100%-116px)]",
       ].join(" ")}
     >

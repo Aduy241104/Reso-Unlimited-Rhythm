@@ -35,7 +35,9 @@ import TrackDetailPage from "../pages/track/TrackDetailPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import RoleRoute from "./RoleRoute";
+import { libaryRoutes } from "./libaryRoutes";
 import { routePaths } from "./routePaths";
+import { userPlaylistRoutes } from "./userPlaylistRoutes";
 import { userProfileRoutes } from "./userProfileRoutes";
 
 const publicArtistProfilePath = routePaths.artistBrowseProfile();
@@ -86,6 +88,14 @@ export const appRoutes = [
   {
     element: <ProtectedRoute />,
     children: userProfileRoutes,
+  },
+  {
+    element: <ProtectedRoute />,
+    children: userPlaylistRoutes,
+  },
+  {
+    element: <ProtectedRoute />,
+    children: libaryRoutes,
   },
   {
     element: <ProtectedRoute />,

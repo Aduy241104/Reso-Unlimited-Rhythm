@@ -11,8 +11,10 @@ import trackRoutes from "./track.routes.js";
 import artistTrackRoutes from "./artist.track.routes.js";
 import lyricsRoutes from "./artist.lyrics.routes.js";
 import adminRoutes from "./admin.routes.js";
+import libaryRoutes from "./libary.routes.js";
 import transactionRoutes from "./transaction.routes.js";
 import userRoutes from "./user.routes.js";
+import userPlaylistRoutes from "./user.playlist.routes.js"
 
 function route(app) {
     app.use("/api/auth", authenticationRoutes);
@@ -28,8 +30,10 @@ function route(app) {
     app.use("/api/tracks", trackRoutes);
     app.use("/api/artist/lyrics", lyricsRoutes);
     app.use("/api/admin", adminRoutes);
+    app.use("/api/libary", libaryRoutes);
     app.use("/api/transactions", transactionRoutes);
     app.use("/api/users", userRoutes);
+    app.use("/api/users/playlists", userPlaylistRoutes);
 }
 
 export default route;
