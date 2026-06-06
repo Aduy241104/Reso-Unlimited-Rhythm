@@ -30,6 +30,7 @@ import LyricsPage from "../pages/lyrics/LyricsPage";
 import DailyTopTracksPage from "../pages/track/DailyTopTracksPage";
 import MonthlyTopTracksPage from "../pages/track/MonthlyTopTracksPage";
 import ArtistProfilePageView from "../pages/profile/ArtistProfilePage";
+import ArtistRegistrationRequestPage from "../pages/artistRegistrationRequest/ArtistRegistrationRequestPage";
 import PlaylistDetailPage from "../pages/playlist/PlaylistDetailPage";
 import TrackDetailPage from "../pages/track/TrackDetailPage";
 import ProtectedRoute from "./ProtectedRoute";
@@ -88,6 +89,15 @@ export const appRoutes = [
   {
     element: <ProtectedRoute />,
     children: userProfileRoutes,
+  },
+  {
+    element: <ProtectedRoute />,
+    children: [
+      {
+        path: routePaths.artistRegistrationRequest,
+        element: <ArtistRegistrationRequestPage />,
+      },
+    ],
   },
   {
     element: <ProtectedRoute />,

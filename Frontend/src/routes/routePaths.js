@@ -20,6 +20,7 @@ export const routePaths = {
   artistBrowseProfile: (artistId = ":id") => `/artists/${artistId}`,
   legacyArtistProfile: "/artist-profile",
   userProfile: "/profile",
+  artistRegistrationRequest: "/artist-registration-request",
   artistRoot: "/artist",
   artistMusic: "/artist/music",
   artistCreateTrack: "/artist/music/create",

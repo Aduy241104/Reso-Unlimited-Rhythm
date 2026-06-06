@@ -2,6 +2,7 @@ import albumRoutes from "./album.routes.js";
 import artistBrowseRoutes from "./artistBrowse.routes.js";
 import artistTrackAnalyticsRoutes from "./artist.trackAnalytics.routes.js";
 import artistRoutes from "./artist.routes.js";
+import artistRegistrationRoutes from "./artist.registration.routes.js";
 import artistAlbumRoutes from "./artist.album.routes.js";
 import genreRoutes from "./genre.routes.js";
 import authenticationRoutes from "./authentication.routes.js";
@@ -23,6 +24,7 @@ function route(app) {
     app.use("/api/albums", albumRoutes);
     app.use("/api/browse/artists", artistBrowseRoutes);
     app.use("/api/artists", artistRoutes);
+    app.use("/api/users", artistRegistrationRoutes);
     app.use("/api/artists/albums", artistAlbumRoutes);
     app.use("/api/artist", artistTrackAnalyticsRoutes);
     app.use("/api/playlists", playlistRoutes);
