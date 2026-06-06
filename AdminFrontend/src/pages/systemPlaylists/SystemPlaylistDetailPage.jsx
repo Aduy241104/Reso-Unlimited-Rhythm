@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
-import { ArrowLeft, Disc, Loader2, Music, Pencil, Plus, Trash2, X } from "lucide-react";
+import { ArrowLeft, Disc, Loader2, Music, Pencil, Plus, Trash2, X, Clock, Calendar } from "lucide-react";
 import AddTracksModal from "./AddTracksModal";
 import {
   deleteAdminSystemPlaylistService,
@@ -27,23 +27,36 @@ const fmtDate = (value) => {
   });
 };
 
-const StatusPill = ({ on, label }) => (
-  <span className={`inline-flex items-center rounded px-2.5 py-0.5 text-xs font-semibold ${
-    on ? "bg-emerald-100 text-emerald-700" : "bg-neutral-100 text-neutral-500"
+const StatusPill = ({ on, onLabel, offLabel }) => (
+  <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+    on
+      ? "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200"
+      : "bg-slate-100 text-slate-400 ring-1 ring-slate-200"
   }`}>
-    {label ?? (on ? "On" : "Off")}
+    <span className={`h-1.5 w-1.5 rounded-full ${on ? "bg-emerald-500" : "bg-slate-300"}`} />
+    {on ? (onLabel ?? "On") : (offLabel ?? "Off")}
   </span>
 );
 
-const StatCard = ({ icon: Icon, label, value }) => (
-  <div className="flex items-center gap-3 border border-black/10 bg-white px-4 py-3">
-    <Icon className="h-5 w-5 text-black/40" />
-    <div>
-      <p className="text-xs font-semibold uppercase tracking-widest text-black/30">{label}</p>
-      <p className="mt-0.5 text-sm font-semibold text-black">{value}</p>
+const InfoCard = ({ icon: Icon, label, value, accent = "slate" }) => {
+  const accentMap = {
+    slate: "bg-slate-100 text-slate-500",
+    violet: "bg-violet-100 text-violet-600",
+    blue: "bg-blue-100 text-blue-600",
+    amber: "bg-amber-100 text-amber-600",
+  };
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${accentMap[accent]}`}>
+        <Icon className="h-4 w-4" />
+      </div>
+      <div>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-400">{label}</p>
+        <p className="mt-0.5 text-sm font-bold text-slate-800">{value}</p>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const SystemPlaylistDetailPage = () => {
   const { playlistId } = useParams();
@@ -114,120 +127,163 @@ const SystemPlaylistDetailPage = () => {
     return [...tracks].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   }, [tracks]);
 
+  /* Loading */
   if (isLoading) {
     return (
-      <section className="m-6">
-        <div className="flex min-h-[200px] items-center justify-center border border-black bg-white">
-          <Loader2 className="h-6 w-6 animate-spin text-black/30" />
+      <div className="flex min-h-[400px] items-center justify-center bg-slate-50 p-6">
+        <div className="flex flex-col items-center gap-3 text-slate-400">
+          <Loader2 className="h-8 w-8 animate-spin text-violet-500" />
+          <p className="text-sm">Loading playlist...</p>
         </div>
-      </section>
+      </div>
     );
   }
 
+  /* Error */
   if (errorMessage || !playlist) {
     return (
-      <section className="m-6 space-y-4">
-        <Link to={routePaths.systemPlaylists}
-          className="inline-flex items-center gap-2 border border-black/10 bg-white px-5 py-3 text-sm font-semibold text-black/60 hover:bg-black/[0.03]">
+      <div className="min-h-screen bg-slate-50 p-6 space-y-4">
+        <Link
+          to={routePaths.systemPlaylists}
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm hover:bg-slate-50"
+        >
           <ArrowLeft className="h-4 w-4" /> System Playlists
         </Link>
-        <div className="border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+        <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-600">
           {errorMessage || "Playlist not found."}
         </div>
-      </section>
+      </div>
     );
   }
 
   return (
-    <section className="m-6 space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4 border border-black bg-white px-6 py-4">
+    <div className="min-h-screen bg-slate-50 p-6 space-y-5">
+
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
         <div className="flex items-center gap-3">
-          <Link to={routePaths.systemPlaylists}
-            className="inline-flex items-center gap-2 text-sm font-semibold text-black/50 hover:text-black/80">
+          <Link
+            to={routePaths.systemPlaylists}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-all hover:border-violet-300 hover:bg-violet-50 hover:text-violet-600"
+          >
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-black/30">System Playlist</p>
-            <h1 className="text-xl font-bold text-black">{playlist.title}</h1>
+            <p className="text-[9px] font-semibold uppercase tracking-[0.3em] text-slate-400">System Playlist</p>
+            <h1 className="text-xl font-black text-slate-900">{playlist.title}</h1>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Link to={routePaths.systemPlaylistEdit(playlistId)}
-            className="inline-flex items-center gap-2 border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-black/70 hover:bg-black/[0.03]">
+          <Link
+            to={routePaths.systemPlaylistEdit(playlistId)}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition-all hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700"
+          >
             <Pencil className="h-4 w-4" /> Edit
           </Link>
-          <button type="button" onClick={handleDelete} disabled={isDeleting}
-            className="inline-flex items-center gap-2 border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-500 hover:bg-red-50 disabled:opacity-40">
-            <Trash2 className="h-4 w-4" /> {isDeleting ? "..." : "Delete"}
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-500 shadow-sm transition-all hover:bg-red-50 disabled:opacity-40"
+          >
+            {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+            {isDeleting ? "Deleting..." : "Delete"}
           </button>
         </div>
       </div>
 
-      {/* Info */}
-      <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
-        <div className="border border-black bg-white px-6 py-5">
-          <div className="flex flex-wrap gap-3">
-            <StatusPill on={playlist.isPublic} label={playlist.isPublic ? "Public" : "Private"} />
-            <StatusPill on={!playlist.isHidden} label={playlist.isHidden ? "Hidden" : "Visible"} />
+      {/* ── Info + Cover ── */}
+      <div className="grid gap-5 lg:grid-cols-[1fr_260px]">
+        {/* Left: info */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+          {/* Badges */}
+          <div className="flex flex-wrap gap-2">
+            <StatusPill on={playlist.isPublic} onLabel="Public" offLabel="Private" />
+            <StatusPill on={!playlist.isHidden} onLabel="Visible" offLabel="Hidden" />
           </div>
+
+          {/* Description */}
           {playlist.description && (
-            <p className="mt-3 text-sm text-black/50">{playlist.description}</p>
+            <p className="text-sm leading-relaxed text-slate-500">{playlist.description}</p>
           )}
-          <div className="mt-4 grid grid-cols-3 gap-3">
-            <StatCard icon={Music} label="Tracks" value={playlist.trackCount ?? 0} />
-            <StatCard icon={Disc} label="Duration" value={fmtDur(playlist.totalDuration)} />
-            <StatCard icon={Disc} label="Created" value={fmtDate(playlist.createdAt)} />
+
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-3">
+            <InfoCard icon={Music} label="Tracks" value={playlist.trackCount ?? 0} accent="violet" />
+            <InfoCard icon={Clock} label="Duration" value={fmtDur(playlist.totalDuration)} accent="blue" />
+            <InfoCard icon={Calendar} label="Created" value={fmtDate(playlist.createdAt)} accent="slate" />
           </div>
         </div>
-        <div className="border border-black bg-white px-6 py-5">
+
+        {/* Right: cover */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           {playlist.coverImage ? (
-            <img src={playlist.coverImage} alt={playlist.title} className="h-48 w-full object-cover" />
+            <img
+              src={playlist.coverImage}
+              alt={playlist.title}
+              className="h-full w-full rounded-xl object-cover"
+              style={{ minHeight: "180px", maxHeight: "220px" }}
+            />
           ) : (
-            <div className="flex h-48 w-full items-center justify-center border-2 border-dashed border-black/10 bg-black/[0.02]">
-              <Disc className="h-10 w-10 text-black/10" />
+            <div className="flex h-full min-h-[180px] w-full items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50">
+              <div className="flex flex-col items-center gap-2 text-slate-300">
+                <Disc className="h-10 w-10" />
+                <p className="text-xs">No cover image</p>
+              </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Tracks */}
-      <div className="border border-black bg-white">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-black/10">
-          <h2 className="text-sm font-bold uppercase tracking-widest text-black/50">
-            Tracks · {orderedTracks.length}
-          </h2>
-          <button type="button" onClick={() => { setTracksMsg({ type: "", text: "" }); setAddTracksOpen(true); }}
-            className="inline-flex items-center gap-2 bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-black/80">
+      {/* ── Tracks ── */}
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        {/* Tracks header */}
+        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-bold text-slate-800">Tracks</h2>
+            <span className="rounded-lg bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-500">
+              {orderedTracks.length}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => { setTracksMsg({ type: "", text: "" }); setAddTracksOpen(true); }}
+            className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-violet-200 transition-all hover:bg-violet-700 hover:-translate-y-0.5"
+          >
             <Plus className="h-4 w-4" /> Add Tracks
           </button>
         </div>
 
+        {/* Tracks message */}
         {tracksMsg.text && (
-          <div className={`mx-5 mt-4 border px-4 py-3 text-sm font-medium ${
+          <div className={`mx-5 mt-4 rounded-xl border px-4 py-3 text-sm font-medium ${
             tracksMsg.type === "error"
-              ? "border-red-200 bg-red-50 text-red-700"
+              ? "border-red-200 bg-red-50 text-red-600"
               : "border-emerald-200 bg-emerald-50 text-emerald-700"
           }`}>
             {tracksMsg.text}
           </div>
         )}
 
+        {/* Track list */}
         {orderedTracks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <Music className="h-8 w-8 text-black/10" />
-            <p className="mt-3 text-sm font-semibold text-black/30">No tracks yet</p>
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
+              <Music className="h-6 w-6 text-slate-400" />
+            </div>
+            <p className="mt-3 text-sm font-semibold text-slate-500">No tracks yet</p>
+            <p className="mt-0.5 text-xs text-slate-400">Add tracks to this playlist</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full border-separate border-spacing-0 text-sm text-black">
+            <table className="w-full">
               <thead>
-                <tr className="text-xs font-semibold uppercase tracking-widest text-black/30 border-b border-black/10">
-                  <th className="px-5 py-3 text-center w-12">#</th>
-                  <th className="px-5 py-3 text-left">Track</th>
-                  <th className="px-5 py-3 text-left">Artist</th>
-                  <th className="px-5 py-3 text-right w-20">Duration</th>
-                  <th className="px-5 py-3 w-28" />
+                <tr className="border-b border-slate-100 bg-slate-50">
+                  <th className="w-12 py-3 pl-5 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">#</th>
+                  <th className="py-3 px-3 text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Track</th>
+                  <th className="py-3 px-3 text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Artist</th>
+                  <th className="w-24 py-3 px-3 text-right text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Duration</th>
+                  <th className="w-28 py-3 pr-5" />
                 </tr>
               </thead>
               <tbody>
@@ -238,17 +294,24 @@ const SystemPlaylistDetailPage = () => {
                   const rowTrackId = row.trackId ?? track?.id ?? null;
                   const isRemoving = removingTrackId === rowTrackId;
                   return (
-                    <tr key={rowTrackId ?? `orphan-${i}`} className="hover:bg-black/[0.02]">
-                      <td className="px-5 py-3 text-center text-black/25">{i + 1}</td>
-                      <td className="px-5 py-3 font-medium text-black/80">{title}</td>
-                      <td className="px-5 py-3 text-black/45">{artistName}</td>
-                      <td className="px-5 py-3 text-right text-black/35">{fmtDur(track?.duration)}</td>
-                      <td className="px-5 py-3 text-center">
+                    <tr
+                      key={rowTrackId ?? `orphan-${i}`}
+                      className="group border-b border-slate-100 transition-colors hover:bg-violet-50/40"
+                    >
+                      <td className="py-3.5 pl-5 text-center text-sm text-slate-400">{i + 1}</td>
+                      <td className="px-3 py-3.5 text-sm font-semibold text-slate-700">{title}</td>
+                      <td className="px-3 py-3.5 text-sm text-slate-500">{artistName}</td>
+                      <td className="px-3 py-3.5 text-right text-sm text-slate-400">{fmtDur(track?.duration)}</td>
+                      <td className="py-3.5 pr-5 text-right">
                         {rowTrackId && (
-                          <button type="button" onClick={() => handleRemoveTrack(rowTrackId, title)}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveTrack(rowTrackId, title)}
                             disabled={isRemoving}
-                            className="inline-flex items-center gap-1.5 border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50 disabled:opacity-40">
-                            <X className="h-3 w-3" /> {isRemoving ? "..." : "Remove"}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-400 transition-all hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
+                          >
+                            {isRemoving ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
+                            {isRemoving ? "..." : "Remove"}
                           </button>
                         )}
                       </td>
@@ -268,7 +331,7 @@ const SystemPlaylistDetailPage = () => {
         existingTrackIds={existingTrackIds}
         onAdded={handleTracksBatchAdded}
       />
-    </section>
+    </div>
   );
 };
 
