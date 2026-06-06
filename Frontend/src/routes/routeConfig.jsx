@@ -13,8 +13,8 @@ import ArtistAlbumPage from "../pages/artist/ArtistAlbumPage";
 import ArtistAlbumDetailPage from "../pages/artist/ArtistAlbumDetailPage";
 import ArtistCreateAlbumPage from "../pages/artist/ArtistCreateAlbumPage";
 import ArtistEditAlbumPage from "../pages/artist/ArtistEditAlbumPage";
+import ArtistTrackInsightsPage from "../pages/artist/ArtistTrackInsightsPage";
 import {
-  AnalyticsPage,
   FansPage,
   MyMusicPage,
   ReleasesPage,
@@ -153,7 +153,7 @@ export const appRoutes = [
               },
               {
                 path: routePaths.artistAnalytics,
-                element: <AnalyticsPage />,
+                element: <ArtistTrackInsightsPage />,
               },
               {
                 path: routePaths.artistFans,

@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Pencil, Trash2 } from "lucide-react";
+import { BarChart3, Eye, EyeOff, Pencil, Trash2 } from "lucide-react";
 import trackService from "../../services/trackService";
 import { routePaths } from "../../routes/routePaths";
+import { getApiErrorFullMessage } from "../../utils/apiError";
+import { canArtistSubmitTrack } from "../../utils/trackWorkflow";
 
 const formatDuration = (duration) => {
   const totalSeconds = Number(duration) || 0;
@@ -27,6 +29,9 @@ const approvalStyles = {
   rejected: "bg-rose-50 text-rose-700",
   draft: "bg-neutral-100 text-neutral-600",
 };
+
+const buildTrackInsightsPath = (trackId) =>
+  `${routePaths.artistAnalytics}?trackId=${trackId}`;
 
 export const MyMusicPage = () => {
   const navigate = useNavigate();
@@ -157,7 +162,14 @@ export const MyMusicPage = () => {
   const handleSubmitForApproval = async (track) => {
     if (!track || isActionLoading) return;
 
-    const confirmed = window.confirm("Submit this track for review? This will set its approval status to pending.");
+    if (!canArtistSubmitTrack(track)) {
+      setActionError("Only draft or rejected tracks can be submitted.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Submit this track for admin review? You will not be able to edit it while pending."
+    );
     if (!confirmed) return;
 
     setActionMessage("");
@@ -169,7 +181,18 @@ export const MyMusicPage = () => {
       setTracks((current) => current.map((t) => (t._id === updatedTrack?._id ? updatedTrack : t)));
       setActionMessage("Track submitted for approval.");
     } catch (error) {
-      setActionError(error?.message || error?.response?.data?.message || "Failed to submit track.");
+      const message = getApiErrorFullMessage(error, "Failed to submit track.");
+      setActionError(message);
+
+      if (track?._id) {
+        const shouldOpenEditor = window.confirm(
+          `${message}\n\nOpen the track editor to complete missing fields?`
+        );
+
+        if (shouldOpenEditor) {
+          navigate(routePaths.artistTrackEdit(track._id));
+        }
+      }
     } finally {
       setIsActionLoading(false);
     }
@@ -389,6 +412,15 @@ export const MyMusicPage = () => {
                         >
                           <Pencil className="h-4 w-4" />
                           Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => navigate(buildTrackInsightsPath(track._id))}
+                          className="inline-flex items-center gap-2 rounded-sm border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-medium text-violet-900 transition hover:bg-violet-100 whitespace-nowrap flex-shrink-0"
+                        >
+                          <BarChart3 className="h-4 w-4" />
+                          Phân tích
                         </button>
 
                         <button

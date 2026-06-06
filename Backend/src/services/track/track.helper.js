@@ -20,6 +20,7 @@ const formatTrackManagementDetail = (track) => {
     return {
         _id: track._id,
         title: track.title,
+        versionTitle: track.versionTitle || "",
         artist: track.artist_artistId
             ? {
                   _id: track.artist_artistId._id,
@@ -54,6 +55,9 @@ const formatTrackManagementDetail = (track) => {
         releaseDate: track.releaseDate,
         activeStatus: track.activeStatus,
         approvalStatus: track.approvalStatus,
+        copyright: track.copyright || null,
+        moderation: track.moderation || null,
+        rejectReason: track.rejectReason || "",
         blockedReason: track.blockedReason,
         hiddenReason: track.hiddenReason,
         hiddenAt: track.hiddenAt,

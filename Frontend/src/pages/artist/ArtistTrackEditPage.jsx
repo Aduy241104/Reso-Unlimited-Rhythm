@@ -1,10 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2, Save } from "lucide-react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, Loader2, Save, Send } from "lucide-react";
+import TrackCopyrightFields from "../../components/artist/TrackCopyrightFields";
 import genreService from "../../services/genreService";
 import trackService from "../../services/trackService";
 import { routePaths } from "../../routes/routePaths";
-import { getApiErrorMessage } from "../../utils/apiError";
+import { getApiErrorFullMessage, getApiErrorMessage } from "../../utils/apiError";
+import {
+  canArtistEditTrack,
+  canArtistSubmitTrack,
+  getSubmitReadinessIssues,
+  mapTrackCopyrightToForm,
+  MAX_GENRE_IDS,
+  serializeCopyrightForApi,
+  TITLE_MAX_LENGTH,
+} from "../../utils/trackWorkflow";
 
 const toDateInputValue = (value) => {
   if (!value) {
@@ -24,11 +34,14 @@ const toDateInputValue = (value) => {
 const ArtistTrackEditPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [track, setTrack] = useState(null);
   const [albums, setAlbums] = useState([]);
   const [genres, setGenres] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [submittingForApproval, setSubmittingForApproval] = useState(false);
+  const [copyrightForm, setCopyrightForm] = useState(mapTrackCopyrightToForm());
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [audioFile, setAudioFile] = useState(null);
@@ -44,6 +57,7 @@ const ArtistTrackEditPage = () => {
   const [genresOpen, setGenresOpen] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
+    versionTitle: "",
     duration: "",
     lyricsStatic: "",
     album_albumId: "",
@@ -80,8 +94,10 @@ const ArtistTrackEditPage = () => {
         setLyricsPreviewText(trackDetail?.lyricsSyncUrl ? trackDetail.lyricsSyncUrl.split("/").pop() : "");
         setAlbums(albumResponse?.data?.albums || []);
         setGenres(Array.isArray(genreList) ? genreList : []);
+        setCopyrightForm(mapTrackCopyrightToForm(trackDetail?.copyright));
         setFormData({
           title: trackDetail?.title || "",
+          versionTitle: trackDetail?.versionTitle || "",
           duration: trackDetail?.duration ?? "",
           lyricsStatic: trackDetail?.lyricsStatic || "",
           album_albumId: trackDetail?.album?._id || "",
@@ -122,6 +138,22 @@ const ArtistTrackEditPage = () => {
   }, [id]);
 
   const genreOptions = useMemo(() => genres || [], [genres]);
+  const canEdit = canArtistEditTrack(track);
+  const canSubmit = canArtistSubmitTrack(track);
+  const submitIssues = useMemo(
+    () =>
+      getSubmitReadinessIssues(
+        track
+          ? {
+              ...track,
+              genres: track.genres,
+              copyright: serializeCopyrightForApi(copyrightForm),
+            }
+          : null
+      ),
+    [track, copyrightForm]
+  );
+  const draftMessage = location.state?.message || "";
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
@@ -133,12 +165,24 @@ const ArtistTrackEditPage = () => {
 
   const handleGenreToggle = (genreId) => {
     const nextGenreId = String(genreId);
-    setFormData((current) => ({
-      ...current,
-      genreIds: current.genreIds.includes(nextGenreId)
-        ? current.genreIds.filter((item) => item !== nextGenreId)
-        : [...current.genreIds, nextGenreId],
-    }));
+    setFormData((current) => {
+      if (current.genreIds.includes(nextGenreId)) {
+        return {
+          ...current,
+          genreIds: current.genreIds.filter((item) => item !== nextGenreId),
+        };
+      }
+
+      if (current.genreIds.length >= MAX_GENRE_IDS) {
+        setErrorMessage(`You can select at most ${MAX_GENRE_IDS} genres.`);
+        return current;
+      }
+
+      return {
+        ...current,
+        genreIds: [...current.genreIds, nextGenreId],
+      };
+    });
   };
 
   const handleAudioChange = (event) => {
@@ -197,8 +241,106 @@ const ArtistTrackEditPage = () => {
     }
   };
 
+  const handleSubmitForApproval = async () => {
+    if (!track || !canSubmit) {
+      return;
+    }
+
+    const issues = getSubmitReadinessIssues({
+      ...track,
+      title: formData.title.trim() || track.title,
+      duration: formData.duration !== "" ? Number(formData.duration) : track.duration,
+      genres: formData.genreIds.map((genreId) => ({ _id: genreId })),
+      copyright: serializeCopyrightForApi(copyrightForm),
+    });
+
+    if (issues.length > 0) {
+      setErrorMessage(
+        `Complete the following before submitting:\n${issues.map((item) => `• ${item}`).join("\n")}`
+      );
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Submit this track for admin review? You will not be able to edit it while it is pending."
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setSubmittingForApproval(true);
+    setSuccessMessage("");
+    setErrorMessage("");
+
+    try {
+      let uploadedMedia = null;
+      const shouldUploadMedia = Boolean(
+        audioFile || avatarFile || lyricsSyncFile || coverImageFiles.length > 0
+      );
+
+      if (shouldUploadMedia) {
+        setIsUploadingMedia(true);
+        const uploadResponse = await trackService.uploadFiles(
+          audioFile,
+          avatarFile,
+          coverImageFiles,
+          lyricsSyncFile
+        );
+        uploadedMedia = uploadResponse?.data || null;
+        setIsUploadingMedia(false);
+      }
+
+      const savePayload = {
+        title: formData.title.trim(),
+        versionTitle: formData.versionTitle.trim(),
+        duration: Number(formData.duration),
+        lyricsStatic: formData.lyricsStatic,
+        album_albumId: formData.album_albumId,
+        genreIds: formData.genreIds,
+        releaseDate: formData.releaseDate || null,
+        copyright: serializeCopyrightForApi(copyrightForm),
+        avatar: uploadedMedia?.avatar || track?.avatar || "",
+        coverImage:
+          uploadedMedia?.coverImages?.length > 0
+            ? uploadedMedia.coverImages
+            : Array.isArray(track?.coverImage)
+              ? track.coverImage
+              : [],
+        lyricsSyncUrl:
+          uploadedMedia?.lyricsSyncUrl !== undefined && uploadedMedia?.lyricsSyncUrl !== ""
+            ? uploadedMedia.lyricsSyncUrl
+            : track?.lyricsSyncUrl || "",
+      };
+
+      if (uploadedMedia?.audioFiles?.length > 0) {
+        savePayload.audioFiles = uploadedMedia.audioFiles;
+      }
+
+      const savedTrack = await trackService.updateArtistTrack(id, savePayload);
+      setTrack(savedTrack);
+
+      await trackService.submitForApproval(id);
+      navigate(routePaths.artistTrackDetail(id), {
+        state: { message: "Track submitted for approval." },
+      });
+    } catch (error) {
+      setErrorMessage(
+        getApiErrorFullMessage(error, "Unable to submit this track for approval.")
+      );
+    } finally {
+      setSubmittingForApproval(false);
+    }
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    if (!canEdit) {
+      setErrorMessage("This track cannot be edited in its current approval status.");
+      return;
+    }
+
     setSubmitting(true);
     setSuccessMessage("");
     setErrorMessage("");
@@ -223,11 +365,13 @@ const ArtistTrackEditPage = () => {
 
       const payload = {
         title: formData.title.trim(),
+        versionTitle: formData.versionTitle.trim(),
         duration: Number(formData.duration),
         lyricsStatic: formData.lyricsStatic,
         album_albumId: formData.album_albumId,
         genreIds: formData.genreIds,
         releaseDate: formData.releaseDate || null,
+        copyright: serializeCopyrightForApi(copyrightForm),
         avatar: uploadedMedia?.avatar || track?.avatar || "",
         coverImage:
           uploadedMedia?.coverImages?.length > 0
@@ -268,7 +412,7 @@ const ArtistTrackEditPage = () => {
       setLyricsSyncFile(null);
     } catch (error) {
       setErrorMessage(
-        getApiErrorMessage(error, "Unable to update this track right now.")
+        getApiErrorFullMessage(error, "Unable to update this track right now.")
       );
     } finally {
       setIsUploadingMedia(false);
@@ -331,9 +475,24 @@ const ArtistTrackEditPage = () => {
             Edit Track
           </h1>
           <p className="mt-2 text-sm text-neutral-600">
-            Update the track information, album, genres, and published metadata.
+            Complete draft details, copyright, and media, then submit for admin approval.
           </p>
         </div>
+
+        {draftMessage ? (
+          <div className="mt-4 rounded-md border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+            {draftMessage}
+          </div>
+        ) : null}
+
+        {!canEdit ? (
+          <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            This track is {track?.approvalStatus || "locked"} and cannot be edited.
+            {track?.approvalStatus === "rejected" && track?.rejectReason
+              ? ` Reason: ${track.rejectReason}`
+              : ""}
+          </div>
+        ) : null}
 
         {successMessage ? (
           <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
@@ -342,8 +501,25 @@ const ArtistTrackEditPage = () => {
         ) : null}
 
         {errorMessage ? (
-          <div className="mt-4 rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+          <div className="mt-4 whitespace-pre-line rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
             {errorMessage}
+          </div>
+        ) : null}
+
+        {canSubmit ? (
+          <div className="mt-4 rounded-md border border-neutral-200 bg-white p-4">
+            <p className="text-sm font-medium text-[#241b15]">Submit readiness</p>
+            {submitIssues.length === 0 ? (
+              <p className="mt-2 text-sm text-emerald-700">
+                All required fields look ready. Save changes, then submit for approval.
+              </p>
+            ) : (
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-neutral-600">
+                {submitIssues.map((issue) => (
+                  <li key={issue}>{issue}</li>
+                ))}
+              </ul>
+            )}
           </div>
         ) : null}
 
@@ -469,8 +645,24 @@ const ArtistTrackEditPage = () => {
                 name="title"
                 value={formData.title}
                 onChange={handleInputChange}
+                maxLength={TITLE_MAX_LENGTH}
+                disabled={!canEdit || submitting}
                 className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm focus:border-[#8b5e3c] focus:outline-none"
                 required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-[#241b15]">
+                Version title
+              </label>
+              <input
+                type="text"
+                name="versionTitle"
+                value={formData.versionTitle}
+                onChange={handleInputChange}
+                disabled={!canEdit || submitting}
+                className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm focus:border-[#8b5e3c] focus:outline-none"
               />
             </div>
 
@@ -485,11 +677,18 @@ const ArtistTrackEditPage = () => {
                 onChange={handleInputChange}
                 min="1"
                 step="1"
+                disabled={!canEdit || submitting}
                 className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm focus:border-[#8b5e3c] focus:outline-none"
                 required
               />
             </div>
           </div>
+
+          <TrackCopyrightFields
+            value={copyrightForm}
+            onChange={setCopyrightForm}
+            disabled={!canEdit || submitting}
+          />
 
           <div className="grid gap-4 md:grid-cols-2">
             <div>
@@ -521,12 +720,12 @@ const ArtistTrackEditPage = () => {
 
           <div className="relative">
             <label className="block text-sm font-medium text-[#241b15]">
-              Genres
+              Genres (required before submit, max {MAX_GENRE_IDS})
             </label>
             <button
               type="button"
               onClick={() => setGenresOpen((current) => !current)}
-              disabled={submitting}
+              disabled={!canEdit || submitting}
               className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-left text-sm flex items-center justify-between"
             >
               <span className="truncate text-neutral-700">
@@ -606,10 +805,10 @@ const ArtistTrackEditPage = () => {
             </select>
           </div>
 
-          <div className="flex gap-2 pt-4">
+          <div className="flex flex-wrap gap-2 pt-4">
             <button
               type="submit"
-              disabled={submitting}
+              disabled={!canEdit || submitting || submittingForApproval}
               className="inline-flex items-center gap-2 rounded-md bg-[#8b5e3c] px-4 py-2 font-medium text-white hover:bg-[#6d4a2f] disabled:opacity-50"
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -617,8 +816,24 @@ const ArtistTrackEditPage = () => {
                 ? isUploadingMedia
                   ? "Uploading media..."
                   : "Saving..."
-                : "Save Changes"}
+                : "Save draft changes"}
             </button>
+
+            {canSubmit ? (
+              <button
+                type="button"
+                onClick={handleSubmitForApproval}
+                disabled={!canEdit || submitting || submittingForApproval || submitIssues.length > 0}
+                className="inline-flex items-center gap-2 rounded-md border border-sky-200 bg-sky-50 px-4 py-2 font-medium text-sky-900 hover:bg-sky-100 disabled:opacity-50"
+              >
+                {submittingForApproval ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+                {submittingForApproval ? "Submitting..." : "Submit for approval"}
+              </button>
+            ) : null}
 
             <button
               type="button"
