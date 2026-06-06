@@ -37,6 +37,9 @@ const Header = ({ onToggleSidebar, isDesktopSidebarVisible = true }) => {
   const menuItems = [
     { label: "Home", to: routePaths.home },
     { label: "Profile", to: routePaths.userProfile },
+    { label: "FollowingArtist", to: routePaths.libraryFollowedArtists },
+    { label: "FollowingAlbum", to: routePaths. libraryFollowedAlbums},
+    { label: "Playlist", to: routePaths. userPlaylist},
     ...(userRole === "artist" ? [{ label: "Artist", to: routePaths.artistRoot }] : []),
   ];
 
