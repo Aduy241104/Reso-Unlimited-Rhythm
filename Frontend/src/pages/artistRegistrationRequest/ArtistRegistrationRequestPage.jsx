@@ -18,6 +18,7 @@ import {
   getApiErrorFullMessage,
 } from "../../utils/apiError";
 import { createArtistRegistrationRequestService } from "../../services/artist/artistRegistrationRequestService";
+import { getMyArtistRegistrationRequestsService } from "../../services/artist/userArtistRegistrationListService";
 
 const GENRE_OPTIONS = [
   "Pop",
@@ -279,6 +280,210 @@ const UrlListEditor = ({
   </div>
 );
 
+const STATUS_VIEW_CONFIG = {
+  pending: {
+    heroBorder: "border-[#f5b66f]/20",
+    heroBackground: "bg-gradient-to-br from-[#f5b66f]/12 via-[#f5b66f]/6 to-transparent",
+    glowPrimary: "bg-[#f5b66f]/20",
+    glowSecondary: "bg-[#f5b66f]/10",
+    iconWrapper: "border-[#f5b66f]/30 bg-[#f5b66f]/15 shadow-[0_8px_32px_rgba(245,182,111,0.2)]",
+    badge: "border-amber-400/25 bg-amber-400/10 text-amber-300",
+    badgeDot: "bg-amber-300",
+    title: "Bạn đã có một yêu cầu đăng kí nghệ sĩ đang chờ duyệt",
+    description:
+      "Yêu cầu của bạn đang được đội ngũ xem xét. Bạn không thể gửi thêm yêu cầu mới cho đến khi yêu cầu hiện tại được xử lý xong.",
+    icon: FileCheck2,
+    iconClassName: "text-[#f5b66f]",
+    statusLabel: "Đang chờ duyệt",
+    timeline: [
+      {
+        key: "submitted",
+        label: "Đã gửi yêu cầu",
+        description: "Hồ sơ đăng kí nghệ sĩ của bạn đã được gửi thành công.",
+        state: "done",
+      },
+      {
+        key: "reviewing",
+        label: "Đang xem xét",
+        description: "Đội ngũ đang xem xét và đánh giá hồ sơ của bạn.",
+        state: "active",
+      },
+      {
+        key: "completed",
+        label: "Hoàn tất",
+        description: "Bạn sẽ nhận được thông báo khi có kết quả.",
+        state: "upcoming",
+      },
+    ],
+  },
+  submitted: {
+    heroBorder: "border-emerald-400/20",
+    heroBackground: "bg-gradient-to-br from-emerald-400/10 via-[#f5b66f]/8 to-transparent",
+    glowPrimary: "bg-emerald-400/15",
+    glowSecondary: "bg-emerald-400/10",
+    iconWrapper: "border-emerald-400/30 bg-emerald-400/15 shadow-[0_8px_32px_rgba(52,211,153,0.2)]",
+    badge: "border-emerald-400/25 bg-emerald-400/10 text-emerald-400",
+    badgeDot: "bg-emerald-400",
+    title: "Yêu cầu đăng kí nghệ sĩ của bạn đã được gửi",
+    description:
+      "Cảm ơn bạn đã gửi hồ sơ. Đội ngũ sẽ xem xét thông tin và phản hồi trong thời gian sớm nhất.",
+    icon: CheckCircle2,
+    iconClassName: "text-emerald-400",
+    statusLabel: "Gửi thành công",
+    timeline: [
+      {
+        key: "submitted",
+        label: "Đã gửi hồ sơ",
+        description: "Hồ sơ của bạn đã được gửi thành công đến đội ngũ xét duyệt.",
+        state: "done",
+      },
+      {
+        key: "reviewing",
+        label: "Đang xem xét",
+        description: "Đội ngũ đang xem xét hồ sơ của bạn.",
+        state: "active",
+      },
+      {
+        key: "completed",
+        label: "Hoàn tất",
+        description: "Bạn sẽ nhận thông báo khi có kết quả.",
+        state: "upcoming",
+      },
+    ],
+  },
+};
+
+const STATUS_TIMELINE_STEP_STYLES = {
+  done: {
+    wrapper: "border-emerald-400/60 bg-emerald-400/15",
+    line: "bg-emerald-400/40",
+    title: "text-emerald-400",
+    description: "text-white/40",
+  },
+  active: {
+    wrapper: "border-[#f5b66f] bg-[#f5b66f]/15 shadow-[0_0_12px_rgba(245,182,111,0.3)]",
+    line: "bg-white/15",
+    title: "text-[#f5b66f]",
+    description: "text-white/40",
+  },
+  upcoming: {
+    wrapper: "border-white/20 bg-white/5",
+    line: "bg-transparent",
+    title: "text-white/30",
+    description: "text-white/25",
+  },
+};
+
+const StatusTimelineStep = ({ step, isLast = false }) => {
+  const styles = STATUS_TIMELINE_STEP_STYLES[step.state];
+
+  return (
+    <div className="flex items-start gap-4">
+      <div className="flex flex-col items-center">
+        <div
+          className={`flex h-8 w-8 items-center justify-center rounded-full border-2 ${styles.wrapper}`}
+        >
+          {step.state === "done" ? (
+            <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+          ) : step.state === "active" ? (
+            <Loader2 className="h-4 w-4 animate-spin text-[#f5b66f]" />
+          ) : (
+            <span className="text-xs font-bold text-white/30">3</span>
+          )}
+        </div>
+        {!isLast ? <div className={`h-8 w-px ${styles.line}`} /> : null}
+      </div>
+      <div className={isLast ? "" : "pb-8"}>
+        <p className={`text-sm font-semibold ${styles.title}`}>{step.label}</p>
+        <p className={`mt-0.5 text-xs ${styles.description}`}>{step.description}</p>
+      </div>
+    </div>
+  );
+};
+
+const ArtistRegistrationStatusView = ({
+  status,
+  navigate,
+  homeRoute,
+  listRoute,
+}) => {
+  const config = STATUS_VIEW_CONFIG[status];
+  const Icon = config.icon;
+
+  return (
+    <main className={pageShellClassName}>
+      <section className="mx-auto max-w-3xl space-y-6">
+        <div
+          className={`relative overflow-hidden rounded-[28px] border ${config.heroBorder} ${config.heroBackground} p-8 text-center sm:p-10`}
+        >
+          <div className={`pointer-events-none absolute -left-16 -top-16 h-56 w-56 rounded-full ${config.glowPrimary} blur-3xl`} />
+          <div className={`pointer-events-none absolute -bottom-10 -right-10 h-40 w-40 rounded-full ${config.glowSecondary} blur-3xl`} />
+          <div className="relative">
+            <div
+              className={`mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border ${config.iconWrapper}`}
+            >
+              <Icon className={`h-8 w-8 ${config.iconClassName}`} />
+            </div>
+            <div
+              className={`mb-3 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-semibold ${config.badge}`}
+            >
+              <span className={`h-1.5 w-1.5 animate-pulse rounded-full ${config.badgeDot}`} />
+              {config.statusLabel}
+            </div>
+            <h1 className="mt-4 text-xl font-bold leading-relaxed tracking-[0.04em] text-white sm:text-2xl">
+              {config.title}
+            </h1>
+            <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-white/55">
+              {config.description}
+            </p>
+          </div>
+        </div>
+
+        <div className="overflow-hidden rounded-[24px] border border-white/8 bg-white/[0.03] backdrop-blur-sm">
+          <div className="border-b border-white/8 px-6 py-4">
+            <p className="text-xs font-semibold uppercase tracking-widest text-white/40">Tiến trình</p>
+          </div>
+          <div className="p-6">
+            <div className="space-y-0">
+              {config.timeline.map((step, index) => (
+                <StatusTimelineStep
+                  key={step.key}
+                  step={step}
+                  isLast={index === config.timeline.length - 1}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-white/45">
+            Theo dõi trạng thái yêu cầu trong mục{" "}
+            <span className="font-medium text-white/70">Yêu cầu của tôi</span>.
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => navigate(homeRoute, { replace: true })}
+              className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-5 text-sm font-medium text-white/75 transition hover:border-white/20 hover:bg-white/[0.07]"
+            >
+              Trang chủ
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate(listRoute, { replace: true })}
+              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-[#f5b66f] px-5 text-sm font-semibold text-[#15181d] transition hover:bg-[#f7c789]"
+            >
+              <FileCheck2 className="h-4 w-4" />
+              Xem yêu cầu
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+};
+
 const SectionCard = ({ title, subtitle, icon: Icon, children }) => (
   <section className={sectionCardClassName}>
     <div className="mb-5 flex items-start gap-3">
@@ -300,6 +505,8 @@ const ArtistRegistrationRequestPage = () => {
 
   const [formData, setFormData] = useState(createInitialFormState());
   const [errors, setErrors] = useState({});
+  const [isPendingRequestLoading, setIsPendingRequestLoading] = useState(true);
+  const [hasPendingRequest, setHasPendingRequest] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -314,6 +521,46 @@ const ArtistRegistrationRequestPage = () => {
       navigate(routePaths.home, { replace: true });
     }
   }, [authLoading, navigate, user]);
+
+  useEffect(() => {
+    if (authLoading || !user || user.role !== "user") {
+      setIsPendingRequestLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const checkPendingRequest = async () => {
+      setIsPendingRequestLoading(true);
+
+      try {
+        const result = await getMyArtistRegistrationRequestsService(
+          { page: 1, limit: 1, status: "pending" },
+          { signal: controller.signal }
+        );
+
+        const pendingRequests = result?.data?.requests || [];
+        setHasPendingRequest(pendingRequests.length > 0);
+      } catch (error) {
+        if (error.name !== "CanceledError") {
+          setSubmitError(
+            getApiErrorFullMessage(
+              error,
+              "Không thể kiểm tra trạng thái yêu cầu đăng kí nghệ sĩ."
+            )
+          );
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsPendingRequestLoading(false);
+        }
+      }
+    };
+
+    checkPendingRequest();
+
+    return () => controller.abort();
+  }, [authLoading, user]);
 
   const selectedGenreText = useMemo(() => {
     if (formData.genres.length === 0) {
@@ -438,6 +685,13 @@ const ArtistRegistrationRequestPage = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
+    if (hasPendingRequest) {
+      setSubmitError(
+        "Bạn đang có một yêu cầu đăng kí nghệ sĩ ở trạng thái chờ duyệt nên không thể gửi thêm yêu cầu mới."
+      );
+      return;
+    }
+
     if (!validateForm()) {
       return;
     }
@@ -447,6 +701,7 @@ const ArtistRegistrationRequestPage = () => {
 
     try {
       await createArtistRegistrationRequestService(formData);
+      setHasPendingRequest(true);
       setIsSubmitted(true);
     } catch (error) {
       setSubmitError(
@@ -489,7 +744,7 @@ const ArtistRegistrationRequestPage = () => {
     }
   };
 
-  if (authLoading) {
+  if (authLoading || isPendingRequestLoading) {
     return (
       <main className={pageShellClassName}>
         <div className="mx-auto flex min-h-[60vh] max-w-5xl items-center justify-center">
@@ -502,51 +757,25 @@ const ArtistRegistrationRequestPage = () => {
     );
   }
 
+  if (hasPendingRequest) {
+    return (
+      <ArtistRegistrationStatusView
+        status="pending"
+        navigate={navigate}
+        homeRoute={routePaths.home}
+        listRoute={routePaths.artistRegistrationRequestsList}
+      />
+    );
+  }
+
   if (isSubmitted) {
     return (
-      <main className={pageShellClassName}>
-        <section className="mx-auto max-w-4xl">
-          <div className={cardClassName}>
-            <div className="pointer-events-none absolute -left-20 top-8 h-40 w-40 rounded-full bg-[#ff9f43]/10 blur-3xl" />
-            <div className="pointer-events-none absolute bottom-0 right-0 h-48 w-48 rounded-full bg-[#ff9f43]/10 blur-3xl" />
-            <div className="relative p-8 text-center sm:p-10 lg:p-12">
-              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-emerald-300/25 bg-emerald-400/10 text-emerald-300 shadow-[0_0_0_12px_rgba(52,211,153,0.08)]">
-                <CheckCircle2 className="h-10 w-10" aria-hidden />
-              </div>
-              <p className="mt-6 text-xs font-semibold uppercase tracking-[0.36em] text-[#f5b66f]">
-                Gửi thành công
-              </p>
-              <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-                Yêu cầu đăng kí nghệ sĩ của bạn đang chờ duyệt
-              </h1>
-              <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-white/65 sm:text-base">
-                Cảm ơn bạn đã gửi hồ sơ. Đội ngũ sẽ xem xét thông tin và phản hồi sau khi đánh giá xong.
-              </p>
-              <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-                <button
-                  type="button"
-                  onClick={() => navigate(routePaths.home, { replace: true })}
-                  className="inline-flex min-h-[52px] items-center justify-center rounded-2xl bg-[#f5b66f] px-6 text-sm font-semibold text-[#15181d] transition hover:bg-[#f7c789]"
-                >
-                  Quay về trang chủ
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsSubmitted(false);
-                    setFormData(createInitialFormState());
-                    setErrors({});
-                    setSubmitError("");
-                  }}
-                  className="inline-flex min-h-[52px] items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] px-6 text-sm font-medium text-white/85 transition hover:border-white/20 hover:bg-white/[0.06]"
-                >
-                  Gửi hồ sơ khác
-                </button>
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
+      <ArtistRegistrationStatusView
+        status="submitted"
+        navigate={navigate}
+        homeRoute={routePaths.home}
+        listRoute={routePaths.artistRegistrationRequestsList}
+      />
     );
   }
 

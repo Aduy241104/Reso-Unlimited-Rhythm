@@ -40,6 +40,7 @@ import { libaryRoutes } from "./libaryRoutes";
 import { routePaths } from "./routePaths";
 import { userPlaylistRoutes } from "./userPlaylistRoutes";
 import { userProfileRoutes } from "./userProfileRoutes";
+import { myArtistRegistrationRequestRoutes } from "./myArtistRegistrationRequestRoutes";
 
 const publicArtistProfilePath = routePaths.artistBrowseProfile();
 const featuredArtistProfilePath = routePaths.artistBrowseProfile("featured");
@@ -98,6 +99,10 @@ export const appRoutes = [
         element: <ArtistRegistrationRequestPage />,
       },
     ],
+  },
+  {
+    element: <ProtectedRoute />,
+    children: myArtistRegistrationRequestRoutes,
   },
   {
     element: <ProtectedRoute />,

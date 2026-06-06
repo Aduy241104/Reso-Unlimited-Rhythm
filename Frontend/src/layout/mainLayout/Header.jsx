@@ -38,7 +38,13 @@ const Header = ({ onToggleSidebar, isDesktopSidebarVisible = true }) => {
     { label: "Home", to: routePaths.home },
     { label: "Profile", to: routePaths.userProfile },
     ...(userRole === "user"
-      ? [{ label: "Đăng kí nghệ sĩ", to: routePaths.artistRegistrationRequest }]
+      ? [
+          { label: "Đăng kí nghệ sĩ", to: routePaths.artistRegistrationRequest },
+          { label: "Yêu cầu của tôi", to: routePaths.artistRegistrationRequestsList },
+        ]
+      : []),
+    ...(userRole === "artist"
+      ? [{ label: "Yêu cầu của tôi", to: routePaths.artistRegistrationRequestsList }]
       : []),
     { label: "FollowingArtist", to: routePaths.libraryFollowedArtists },
     { label: "FollowingAlbum", to: routePaths. libraryFollowedAlbums},
