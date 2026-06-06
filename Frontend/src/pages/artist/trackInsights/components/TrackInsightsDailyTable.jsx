@@ -9,8 +9,8 @@ const TrackInsightsDailyTable = ({ dailyChart }) => (
         </p>
         <h3 className="mt-2 text-xl font-semibold text-[#2f2747]">Bảng chi tiết</h3>
         <p className="mt-2 text-[13px] leading-5 text-[#7c7891]">
-          Toàn bộ dữ liệu trả về từ backend theo từng ngày để bạn dễ đối chiếu
-          biến động tăng giảm.
+          Toàn bộ số liệu theo từng ngày để bạn dễ đối chiếu mức tăng giảm giữa
+          các mốc thời gian.
         </p>
       </div>
     </div>

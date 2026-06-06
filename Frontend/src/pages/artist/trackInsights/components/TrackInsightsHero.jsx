@@ -10,16 +10,8 @@ import {
 const TrackInsightsHero = ({
   analytics,
   displayedTrack,
-  draftFrom,
-  draftTo,
-  onApplyCustomRange,
-  onChangeDraftFrom,
-  onChangeDraftTo,
-  onChangeRange,
   onRefresh,
   onViewTrackDetail,
-  rangeOptions,
-  selectedRange,
 }) => (
   <div className="relative overflow-hidden rounded-[20px] bg-[#6658d9] text-white shadow-[0_20px_60px_rgba(124,108,242,0.20)]">
     <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.22),_transparent_34%),radial-gradient(circle_at_bottom_right,_rgba(227,221,255,0.22),_transparent_30%)]" />
@@ -35,58 +27,6 @@ const TrackInsightsHero = ({
           Theo dõi hiệu suất phát, khả năng giữ chân người nghe và xu hướng bỏ
           qua để đánh giá sức hút của bài hát trong từng khoảng thời gian.
         </p>
-
-        <div className="mt-5 flex flex-wrap gap-2.5">
-          {rangeOptions.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => onChangeRange(option.value)}
-              className={[
-                "rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition",
-                selectedRange === option.value
-                  ? "border-white bg-white text-[#4b3fb5]"
-                  : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:bg-white/10 hover:text-white",
-              ].join(" ")}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-
-        {selectedRange === "custom" ? (
-          <div className="mt-4 flex flex-col gap-3 rounded-[20px] border border-white/10 bg-white/5 p-3.5 sm:flex-row sm:items-end">
-            <label className="flex-1">
-              <span className="text-xs uppercase tracking-[0.24em] text-white/55">
-                Từ ngày
-              </span>
-              <input
-                type="date"
-                value={draftFrom}
-                onChange={(event) => onChangeDraftFrom(event.target.value)}
-                className="mt-2 h-11 w-full rounded-2xl border border-white/10 bg-black/10 px-4 text-sm text-white outline-none transition focus:border-[#f0cfa8]"
-              />
-            </label>
-            <label className="flex-1">
-              <span className="text-xs uppercase tracking-[0.24em] text-white/55">
-                Đến ngày
-              </span>
-              <input
-                type="date"
-                value={draftTo}
-                onChange={(event) => onChangeDraftTo(event.target.value)}
-                className="mt-2 h-11 w-full rounded-2xl border border-white/10 bg-black/10 px-4 text-sm text-white outline-none transition focus:border-[#f0cfa8]"
-              />
-            </label>
-            <button
-              type="button"
-              onClick={onApplyCustomRange}
-              className="h-11 rounded-full bg-white px-5 text-sm font-semibold text-[#241b15] transition hover:brightness-95"
-            >
-              Áp dụng
-            </button>
-          </div>
-        ) : null}
 
         <div className="mt-5 flex flex-wrap gap-3 text-sm text-white/65">
           <div className="inline-flex items-center gap-2">

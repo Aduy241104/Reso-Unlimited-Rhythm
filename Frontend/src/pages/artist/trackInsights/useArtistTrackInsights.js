@@ -13,6 +13,18 @@ import {
   resolveTrackId,
 } from "./helpers";
 
+const ALL_TIME_RANGE = "all";
+const ALL_TIME_START = "2000-01-01";
+
+const getTodayDateKey = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
 export const useArtistTrackInsights = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [tracks, setTracks] = useState([]);
@@ -23,14 +35,10 @@ export const useArtistTrackInsights = () => {
   const [analyticsError, setAnalyticsError] = useState("");
   const [chartMetric, setChartMetric] = useState("playCount");
   const [monthlyChartMetric, setMonthlyChartMetric] = useState("playCount");
-  const [draftFrom, setDraftFrom] = useState(searchParams.get("from") || "");
-  const [draftTo, setDraftTo] = useState(searchParams.get("to") || "");
   const [reloadNonce, setReloadNonce] = useState(0);
 
   const selectedTrackId = searchParams.get("trackId") || "";
   const selectedRange = resolveRange(searchParams.get("range"));
-  const appliedFrom = searchParams.get("from") || "";
-  const appliedTo = searchParams.get("to") || "";
 
   const updateQuery = (updates, options = {}) => {
     const next = new URLSearchParams(searchParams);
@@ -86,20 +94,9 @@ export const useArtistTrackInsights = () => {
   }, []);
 
   useEffect(() => {
-    if (selectedRange === "custom") {
-      setDraftFrom(appliedFrom);
-      setDraftTo(appliedTo);
-    }
-  }, [appliedFrom, appliedTo, selectedRange]);
-
-  useEffect(() => {
     if (!selectedTrackId) {
       setAnalytics(null);
       setAnalyticsError("");
-      return;
-    }
-
-    if (selectedRange === "custom" && (!appliedFrom || !appliedTo)) {
       return;
     }
 
@@ -111,11 +108,11 @@ export const useArtistTrackInsights = () => {
 
       try {
         const params =
-          selectedRange === "custom"
+          selectedRange === ALL_TIME_RANGE
             ? {
                 range: "custom",
-                from: appliedFrom,
-                to: appliedTo,
+                from: ALL_TIME_START,
+                to: getTodayDateKey(),
               }
             : { range: selectedRange };
 
@@ -149,7 +146,7 @@ export const useArtistTrackInsights = () => {
     return () => {
       isMounted = false;
     };
-  }, [selectedTrackId, selectedRange, appliedFrom, appliedTo, reloadNonce]);
+  }, [selectedTrackId, selectedRange, reloadNonce]);
 
   const selectedTrack = useMemo(
     () => tracks.find((track) => resolveTrackId(track) === selectedTrackId) || null,
@@ -174,7 +171,8 @@ export const useArtistTrackInsights = () => {
     [analytics?.dailyChart]
   );
   const monthlyChart = useMemo(
-    () => (Array.isArray(analytics?.monthlyChart) ? analytics.monthlyChart : EMPTY_ARRAY),
+    () =>
+      Array.isArray(analytics?.monthlyChart) ? analytics.monthlyChart : EMPTY_ARRAY,
     [analytics?.monthlyChart]
   );
 
@@ -208,14 +206,6 @@ export const useArtistTrackInsights = () => {
     );
   }, [dailyChart]);
 
-  const lastActiveDay = useMemo(
-    () =>
-      [...dailyChart]
-        .reverse()
-        .find((item) => (Number(item?.playCount) || 0) > 0) || null,
-    [dailyChart]
-  );
-
   const activeDays = useMemo(
     () => dailyChart.filter((item) => (Number(item?.playCount) || 0) > 0).length,
     [dailyChart]
@@ -246,24 +236,6 @@ export const useArtistTrackInsights = () => {
     (item) => (Number(item?.[monthlyChartMetric]) || 0) === 0
   );
 
-  const trackSummary = useMemo(() => {
-    const totalTracks = tracks.length;
-    const totalPlays = tracks.reduce(
-      (sum, track) => sum + Number(track?.stats?.totalPlay || 0),
-      0
-    );
-
-    return {
-      totalTracks,
-      totalPlays,
-    };
-  }, [tracks]);
-
-  const rangeHint =
-    selectedTrackId && selectedRange === "custom" && (!appliedFrom || !appliedTo)
-      ? "Hãy chọn ngày bắt đầu và ngày kết thúc rồi bấm áp dụng để xem dữ liệu."
-      : "";
-
   const summaryCards = useMemo(() => buildSummaryCards(summary), [summary]);
 
   const quickInsights = useMemo(
@@ -271,8 +243,7 @@ export const useArtistTrackInsights = () => {
       {
         label: "Nghe trung bình",
         value: displayRawValue(summary?.averageListenDuration),
-        helper:
-          "Giữ nguyên giá trị thời gian nghe trung bình backend trả về cho bài hát này.",
+        helper: "Thời lượng nghe trung bình mà mỗi lượt phát ghi nhận được.",
         accentClassName: "bg-[#34caa5]",
       },
       {
@@ -285,13 +256,14 @@ export const useArtistTrackInsights = () => {
       {
         label: "Ngày tốt nhất",
         value: bestPlayDay ? bestPlayDay.date : "Chưa có dữ liệu",
-        helper: "Ngày có số lượt phát cao nhất trong tập dữ liệu hiện tại.",
+        helper: "Ngày có số lượt phát cao nhất trong khoảng thời gian đang xem.",
         accentClassName: "bg-[#d6a06b]",
       },
       {
         label: "Ngày có hoạt động",
         value: `${activeDays}/${dailyChart.length || 0}`,
-        helper: "Số ngày thực sự có phát sinh lượt nghe trong dữ liệu hiện có.",
+        helper:
+          "Số ngày thực sự phát sinh lượt nghe trong toàn bộ giai đoạn đã chọn.",
         accentClassName: "bg-[#f17171]",
       },
     ],
@@ -299,15 +271,6 @@ export const useArtistTrackInsights = () => {
   );
 
   const handleRangeChange = (range) => {
-    if (range === "custom") {
-      updateQuery({
-        range: "custom",
-        from: appliedFrom || draftFrom || null,
-        to: appliedTo || draftTo || null,
-      });
-      return;
-    }
-
     updateQuery({
       range,
       from: null,
@@ -315,41 +278,17 @@ export const useArtistTrackInsights = () => {
     });
   };
 
-  const handleApplyCustomRange = () => {
-    if (!draftFrom || !draftTo) {
-      setAnalyticsError("Vui lòng chọn đầy đủ ngày bắt đầu và ngày kết thúc.");
-      return;
-    }
-
-    if (draftFrom > draftTo) {
-      setAnalyticsError("Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc.");
-      return;
-    }
-
-    updateQuery({
-      range: "custom",
-      from: draftFrom,
-      to: draftTo,
-    });
-  };
-
   return {
     analytics,
     analyticsError,
-    appliedFrom,
-    appliedTo,
     chartIsEmpty,
     chartMeta,
     chartMetric,
     dailyChart,
     displayedTrack,
-    draftFrom,
-    draftTo,
-    handleApplyCustomRange,
     handleRangeChange,
     isAnalyticsLoading,
     isTracksLoading,
-    lastActiveDay,
     latestMetricValue,
     latestMonthlyMetricValue,
     maxMetricValue,
@@ -359,17 +298,14 @@ export const useArtistTrackInsights = () => {
     monthlyChartMeta,
     monthlyChartMetric,
     quickInsights,
-    rangeHint,
+    rangeHint: "",
     selectedRange,
     selectedTrack,
     selectedTrackId,
     setChartMetric,
-    setDraftFrom,
-    setDraftTo,
     setMonthlyChartMetric,
     setReloadNonce,
     summaryCards,
-    trackSummary,
     tracks,
     tracksError,
     updateQuery,

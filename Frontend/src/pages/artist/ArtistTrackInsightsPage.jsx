@@ -13,7 +13,6 @@ import TrackInsightsDailyTable from "./trackInsights/components/TrackInsightsDai
 import TrackInsightsHero from "./trackInsights/components/TrackInsightsHero";
 import TrackInsightsSidebar from "./trackInsights/components/TrackInsightsSidebar";
 import TrackInsightsSummaryGrid from "./trackInsights/components/TrackInsightsSummaryGrid";
-import TrackInsightsTrackSelector from "./trackInsights/components/TrackInsightsTrackSelector";
 import { useArtistTrackInsights } from "./trackInsights/useArtistTrackInsights";
 
 const ArtistTrackInsightsPage = () => {
@@ -26,13 +25,9 @@ const ArtistTrackInsightsPage = () => {
     chartMetric,
     dailyChart,
     displayedTrack,
-    draftFrom,
-    draftTo,
-    handleApplyCustomRange,
     handleRangeChange,
     isAnalyticsLoading,
     isTracksLoading,
-    lastActiveDay,
     latestMetricValue,
     latestMonthlyMetricValue,
     maxMetricValue,
@@ -41,18 +36,14 @@ const ArtistTrackInsightsPage = () => {
     monthlyChartIsEmpty,
     monthlyChartMeta,
     monthlyChartMetric,
-    quickInsights,
     rangeHint,
     selectedRange,
     selectedTrack,
     selectedTrackId,
     setChartMetric,
-    setDraftFrom,
-    setDraftTo,
     setMonthlyChartMetric,
     setReloadNonce,
     summaryCards,
-    trackSummary,
     tracks,
     tracksError,
     updateQuery,
@@ -79,8 +70,8 @@ const ArtistTrackInsightsPage = () => {
           Phân tích bài hát
         </h2>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-[#7c7891]">
-          Bạn cần có ít nhất một bài hát để xem số liệu phân tích. Hãy tạo bài
-          hát mới rồi quay lại trang này.
+          Bạn cần có ít nhất một bài hát để xem số liệu phân tích. Hãy tạo bài hát
+          mới rồi quay lại trang này.
         </p>
 
         {tracksError ? (
@@ -103,15 +94,6 @@ const ArtistTrackInsightsPage = () => {
 
   return (
     <section className="space-y-6">
-      <TrackInsightsTrackSelector
-        selectedTrack={selectedTrack}
-        selectedTrackId={selectedTrackId}
-        trackSummary={trackSummary}
-        tracks={tracks}
-        onOpenMusicPage={() => navigate(routePaths.artistMusic)}
-        onSelectTrack={(trackId) => updateQuery({ trackId })}
-      />
-
       {tracksError ? (
         <div className="rounded-[24px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           {tracksError}
@@ -119,33 +101,45 @@ const ArtistTrackInsightsPage = () => {
       ) : null}
 
       {!selectedTrackId ? (
-        <section className="rounded-[20px] border border-dashed border-[#d8d0ff] bg-white p-8 text-center shadow-sm sm:p-9">
-          <p className="text-lg font-semibold text-[#2f2747]">
-            Chọn một bài hát để xem phân tích
-          </p>
-          <p className="mt-3 text-[13px] leading-5 text-[#7c7891]">
-            Sau khi chọn, hệ thống sẽ hiển thị các chỉ số cốt lõi, biểu đồ theo
-            ngày và diễn biến hiệu suất của bài hát tương ứng.
-          </p>
-        </section>
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(300px,0.9fr)]">
+          <section className="rounded-[20px] border border-dashed border-[#d8d0ff] bg-white p-8 text-center shadow-sm sm:p-9">
+            <p className="text-lg font-semibold text-[#2f2747]">
+              Chọn một bài hát để xem phân tích
+            </p>
+            <p className="mt-3 text-[13px] leading-5 text-[#7c7891]">
+              Sau khi chọn, hệ thống sẽ hiển thị các chỉ số cốt lõi, biểu đồ theo
+              ngày, biểu đồ theo tháng và diễn biến hiệu suất của bài hát tương ứng.
+            </p>
+          </section>
+
+          <TrackInsightsSidebar
+            onOpenMusicPage={() => navigate(routePaths.artistMusic)}
+            onSelectTrack={(trackId) => updateQuery({ trackId })}
+            selectedTrack={selectedTrack}
+            selectedTrackId={selectedTrackId}
+            tracks={tracks}
+          />
+        </div>
       ) : (
         <>
-          <TrackInsightsHero
-            analytics={analytics}
-            displayedTrack={displayedTrack}
-            draftFrom={draftFrom}
-            draftTo={draftTo}
-            onApplyCustomRange={handleApplyCustomRange}
-            onChangeDraftFrom={setDraftFrom}
-            onChangeDraftTo={setDraftTo}
-            onChangeRange={handleRangeChange}
-            onRefresh={() => setReloadNonce((value) => value + 1)}
-            onViewTrackDetail={() =>
-              navigate(routePaths.artistTrackDetail(selectedTrackId))
-            }
-            rangeOptions={RANGE_OPTIONS}
-            selectedRange={selectedRange}
-          />
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(300px,0.9fr)]">
+            <TrackInsightsHero
+              analytics={analytics}
+              displayedTrack={displayedTrack}
+              onRefresh={() => setReloadNonce((value) => value + 1)}
+              onViewTrackDetail={() =>
+                navigate(routePaths.artistTrackDetail(selectedTrackId))
+              }
+            />
+
+            <TrackInsightsSidebar
+              onOpenMusicPage={() => navigate(routePaths.artistMusic)}
+              onSelectTrack={(trackId) => updateQuery({ trackId })}
+              selectedTrack={selectedTrack}
+              selectedTrackId={selectedTrackId}
+              tracks={tracks}
+            />
+          </div>
 
           {rangeHint ? (
             <div className="rounded-[24px] border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
@@ -159,10 +153,31 @@ const ArtistTrackInsightsPage = () => {
             </div>
           ) : null}
 
+          <section className="bg-transparent">
+            <div className="flex flex-wrap gap-2">
+              {RANGE_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => handleRangeChange(option.value)}
+                  className={[
+                    "rounded-full border px-3.5 py-2 text-sm font-medium transition",
+                    selectedRange === option.value
+                      ? "border-[#6f5cf1] bg-[#6f5cf1] text-white"
+                      : "border-[#e7e1ff] bg-[#f8f6ff] text-[#645d86] hover:border-[#b7abff] hover:text-[#2f2747]",
+                  ].join(" ")}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </section>
+
           <TrackInsightsSummaryGrid summaryCards={summaryCards} />
 
-          <div className="grid gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(300px,0.9fr)]">
+          <section className="rounded-[18px] border border-[#e7e1ff] bg-white p-4 shadow-sm">
             <TrackInsightsChartPanel
+              embedded
               chartIsEmpty={chartIsEmpty}
               chartMeta={chartMeta}
               chartMetric={chartMetric}
@@ -174,7 +189,7 @@ const ArtistTrackInsightsPage = () => {
               onChangeMetric={setChartMetric}
               sectionEyebrow="Xu hướng theo ngày"
               sectionTitle="Biểu đồ hiệu suất"
-              sectionDescription="Chọn chỉ số cần theo dõi để so sánh diễn biến lượt phát, quy mô người nghe, thời lượng nghe trung bình và số lượt bỏ qua."
+              sectionDescription="Theo dõi diễn biến lượt phát, quy mô người nghe, thời lượng nghe trung bình và số lượt bỏ qua theo từng ngày."
               tooltipLabelFormatter={(value) =>
                 formatDateLabel(value, {
                   day: "2-digit",
@@ -185,34 +200,30 @@ const ArtistTrackInsightsPage = () => {
               xAxisLabelFormatter={(value) => formatDateLabel(value)}
             />
 
-            <TrackInsightsSidebar
-              analytics={analytics}
-              dailyChartLength={dailyChart.length}
-              lastActiveDay={lastActiveDay}
-              quickInsights={quickInsights}
-            />
-          </div>
+            <div className="my-5 h-px bg-[#ece8ff]" />
 
-          <TrackInsightsChartPanel
-            chartIsEmpty={monthlyChartIsEmpty}
-            chartMeta={monthlyChartMeta}
-            chartMetric={monthlyChartMetric}
-            items={monthlyChart}
-            isAnalyticsLoading={isAnalyticsLoading}
-            latestMetricValue={latestMonthlyMetricValue}
-            maxMetricValue={maxMonthlyMetricValue}
-            metricOptions={MONTHLY_CHART_METRICS}
-            onChangeMetric={setMonthlyChartMetric}
-            sectionEyebrow="Xu hướng theo tháng"
-            sectionTitle="Biểu đồ tích lũy theo tháng"
-            sectionDescription="Theo dõi hiệu suất dài hạn của bài hát qua từng tháng với lượt phát, người nghe, stream hợp lệ và doanh thu."
-            emptyTitle="Chưa có dữ liệu theo tháng"
-            emptyDescription="Khi backend bắt đầu tổng hợp dữ liệu theo tháng, biểu đồ tích lũy sẽ hiển thị tại đây."
-            tooltipLabelFormatter={(value) => formatMonthLabel(value)}
-            xAxisLabelFormatter={(value) =>
-              formatMonthLabel(value, { month: "2-digit", year: "2-digit" })
-            }
-          />
+            <TrackInsightsChartPanel
+              embedded
+              chartIsEmpty={monthlyChartIsEmpty}
+              chartMeta={monthlyChartMeta}
+              chartMetric={monthlyChartMetric}
+              items={monthlyChart}
+              isAnalyticsLoading={isAnalyticsLoading}
+              latestMetricValue={latestMonthlyMetricValue}
+              maxMetricValue={maxMonthlyMetricValue}
+              metricOptions={MONTHLY_CHART_METRICS}
+              onChangeMetric={setMonthlyChartMetric}
+              sectionEyebrow="Xu hướng theo tháng"
+              sectionTitle="Biểu đồ tích lũy theo tháng"
+              sectionDescription="So sánh nhịp tăng trưởng dài hạn của bài hát qua từng tháng với lượt phát, người nghe, stream hợp lệ và doanh thu."
+              emptyTitle="Chưa có dữ liệu theo tháng"
+              emptyDescription="Khi hệ thống bắt đầu tổng hợp dữ liệu theo tháng, biểu đồ tích lũy sẽ xuất hiện tại đây."
+              tooltipLabelFormatter={(value) => formatMonthLabel(value)}
+              xAxisLabelFormatter={(value) =>
+                formatMonthLabel(value, { month: "2-digit", year: "2-digit" })
+              }
+            />
+          </section>
 
           <TrackInsightsDailyTable dailyChart={dailyChart} />
         </>

@@ -10,13 +10,13 @@ import { createPlaceholderImage } from "../../../utils/albumDetail";
 
 export const DEFAULT_RANGE = "30d";
 export const EMPTY_ARRAY = [];
-export const VALID_RANGES = new Set(["7d", "30d", "90d", "custom"]);
+export const VALID_RANGES = new Set(["7d", "30d", "90d", "all"]);
 
 export const RANGE_OPTIONS = [
   { value: "7d", label: "7 ngày" },
   { value: "30d", label: "30 ngày" },
   { value: "90d", label: "90 ngày" },
-  { value: "custom", label: "Tùy chỉnh" },
+  { value: "all", label: "Toàn thời gian" },
 ];
 
 export const formatNumber = (value) =>
@@ -36,29 +36,43 @@ export const displayRawValue = (value, fallback = "0") => {
   return String(value);
 };
 
+export const appendUnit = (value, unit, fallback = `0 ${unit}`) => {
+  const resolvedValue = displayRawValue(value, "");
+
+  if (!resolvedValue) {
+    return fallback;
+  }
+
+  if (/[A-Za-zÀ-ỹ%]/u.test(resolvedValue)) {
+    return resolvedValue;
+  }
+
+  return `${resolvedValue} ${unit}`;
+};
+
 export const CHART_METRICS = {
   playCount: {
     label: "Lượt phát",
     color: "#d6a06b",
-    description: "Số lượt phát theo ngày",
+    description: "Số lượt phát theo từng ngày",
     formatter: (value) => formatNumber(value),
   },
   uniqueListeners: {
     label: "Người nghe",
     color: "#6ea8fe",
-    description: "Số người nghe theo ngày",
+    description: "Số người nghe theo từng ngày",
     formatter: (value) => formatNumber(value),
   },
   averageListenDuration: {
     label: "Nghe trung bình",
     color: "#34caa5",
-    description: "Thời lượng nghe trung bình mỗi ngày, hiển thị đúng giá trị API trả về",
+    description: "Thời lượng nghe trung bình mỗi ngày",
     formatter: (value) => displayRawValue(value),
   },
   skipCount: {
     label: "Lượt bỏ qua",
     color: "#f17171",
-    description: "Số lượt skip theo ngày",
+    description: "Số lượt bỏ qua theo từng ngày",
     formatter: (value) => formatNumber(value),
   },
 };
@@ -79,7 +93,7 @@ export const MONTHLY_CHART_METRICS = {
   eligibleStreams: {
     label: "Stream hợp lệ",
     color: "#34caa5",
-    description: "Số stream hợp lệ được ghi nhận theo tháng",
+    description: "Số stream hợp lệ trong từng tháng",
     formatter: (value) => formatNumber(value),
   },
   artistRevenueAmount: {
@@ -170,38 +184,39 @@ export const getVisibleDateStep = (totalItems) => {
 export const buildSummaryCards = (summary) => [
   {
     label: "Tổng lượt phát",
-    value: formatNumber(summary?.totalPlays),
-    helper: "Tổng số lượt phát của bài hát trong dữ liệu backend hiện tại.",
+    value: `${formatNumber(summary?.totalPlays)} lượt`,
+    helper: "Tổng số lượt bài hát đã được phát trong khoảng thời gian đã chọn.",
     icon: Headphones,
   },
   {
     label: "Người nghe",
-    value: formatNumber(summary?.uniqueListeners),
-    helper: "Tổng số người nghe riêng biệt được ghi nhận.",
+    value: `${formatNumber(summary?.uniqueListeners)} người`,
+    helper: "Số lượng người nghe riêng biệt đã phát bài hát này.",
     icon: Users,
   },
   {
     label: "Tổng thời gian nghe",
-    value: displayRawValue(summary?.totalListeningTime),
-    helper: "Hiển thị nguyên giá trị thời gian nghe backend trả về.",
+    value: appendUnit(summary?.totalListeningTime, "phút"),
+    helper: "Tổng thời lượng nghe mà khán giả đã dành cho bài hát.",
     icon: Clock3,
   },
   {
     label: "Nghe trung bình",
-    value: displayRawValue(summary?.averageListenDuration),
-    helper: "Hiển thị nguyên giá trị nghe trung bình, không format lại trên UI.",
+    value: appendUnit(summary?.averageListenDuration, "phút"),
+    helper:
+      "Thời lượng nghe trung bình trước khi người nghe dừng hoặc chuyển bài.",
     icon: Waves,
   },
   {
     label: "Lượt bỏ qua",
-    value: formatNumber(summary?.skipCount),
-    helper: "Tổng số lần bài hát bị bỏ qua trong dữ liệu hiện có.",
+    value: `${formatNumber(summary?.skipCount)} lượt`,
+    helper: "Số lần bài hát bị bỏ qua trong giai đoạn đang theo dõi.",
     icon: Activity,
   },
   {
     label: "Tỉ lệ bỏ qua",
     value: formatPercent(summary?.skipRate),
-    helper: "Tỷ lệ phần trăm lượt phát kết thúc bằng hành động bỏ qua.",
+    helper: "Tỷ lệ lượt phát kết thúc bằng hành động bỏ qua.",
     icon: TrendingDown,
   },
 ];

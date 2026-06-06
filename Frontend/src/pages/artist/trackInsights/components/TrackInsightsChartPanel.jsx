@@ -13,7 +13,11 @@ import { Line } from "react-chartjs-2";
 import { displayRawValue, formatNumber, getVisibleDateStep } from "../helpers";
 
 const GRID_LINE_COUNT = 4;
-const CHART_MIN_WIDTH = 900;
+const MIN_POINT_GAP = 46;
+const MIN_CHART_WIDTH = 560;
+const MAX_CHART_WIDTH = 760;
+const TOOLTIP_WIDTH = 190;
+const TOOLTIP_HEIGHT_OFFSET = 18;
 
 ChartJS.register(
   CategoryScale,
@@ -28,7 +32,8 @@ const TrackInsightsChartPanel = ({
   chartIsEmpty,
   chartMeta,
   chartMetric,
-  emptyDescription = "Khi bài hát bắt đầu phát sinh lượt nghe, biểu đồ sẽ tự động phản ánh dữ liệu tại đây.",
+  embedded = false,
+  emptyDescription = "Khi bài hát bắt đầu có lượt nghe, biểu đồ sẽ hiển thị diễn biến dữ liệu tại đây.",
   emptyTitle = "Chưa có dữ liệu trong giai đoạn này",
   items,
   isAnalyticsLoading,
@@ -46,6 +51,7 @@ const TrackInsightsChartPanel = ({
 }) => {
   const [hoveredPoint, setHoveredPoint] = useState(null);
   const chartContainerRef = useRef(null);
+  const Wrapper = embedded ? "div" : "section";
 
   const chartId = `${sectionEyebrow}-${chartMetric}`
     .toLowerCase()
@@ -110,6 +116,17 @@ const TrackInsightsChartPanel = ({
     [chartData, chartMeta?.color]
   );
 
+  const chartWidth = useMemo(() => {
+    if (chartData.length <= 1) {
+      return MIN_CHART_WIDTH;
+    }
+
+    return Math.min(
+      MAX_CHART_WIDTH,
+      Math.max(MIN_CHART_WIDTH, chartData.length * MIN_POINT_GAP)
+    );
+  }, [chartData.length]);
+
   const chartOptions = useMemo(() => {
     const visibleStep = getVisibleDateStep(chartData.length);
 
@@ -149,12 +166,21 @@ const TrackInsightsChartPanel = ({
               return;
             }
 
+            const rawX =
+              tooltip.caretX + (chartBounds.left - containerBounds.left);
+            const clampedX = Math.min(
+              Math.max(rawX, TOOLTIP_WIDTH / 2 + 8),
+              chartContainerRef.current.clientWidth - TOOLTIP_WIDTH / 2 - 8
+            );
+            const rawY =
+              tooltip.caretY + (chartBounds.top - containerBounds.top);
+
             setHoveredPoint({
               label: point.label,
               listenValue: point.listenValue,
               metricValue: point.rawMetricValue,
-              x: tooltip.caretX + (chartBounds.left - containerBounds.left),
-              y: tooltip.caretY + (chartBounds.top - containerBounds.top),
+              x: clampedX,
+              y: Math.max(rawY, TOOLTIP_HEIGHT_OFFSET),
             });
           },
         },
@@ -227,7 +253,13 @@ const TrackInsightsChartPanel = ({
   }
 
   return (
-    <section className="rounded-[18px] border border-[#e7e1ff] bg-white p-4 shadow-sm">
+    <Wrapper
+      className={
+        embedded
+          ? ""
+          : "rounded-[18px] border border-[#e7e1ff] bg-white p-4 shadow-sm"
+      }
+    >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-[#7c6cf2]">
@@ -260,7 +292,12 @@ const TrackInsightsChartPanel = ({
         </div>
       </div>
 
-      <div className="mt-5 rounded-[16px] border border-[#e7e1ff] bg-[#f8f6ff] p-3.5 sm:p-4">
+      <div
+        className={[
+          "rounded-[16px] border border-[#e7e1ff] bg-[#f8f6ff] p-3.5 sm:p-4",
+          embedded ? "mt-4" : "mt-5",
+        ].join(" ")}
+      >
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-sm font-medium text-[#2f2747]">{chartMeta.label}</p>
@@ -303,12 +340,12 @@ const TrackInsightsChartPanel = ({
           ) : (
             <div
               ref={chartContainerRef}
-              className="relative overflow-x-auto rounded-[20px] bg-white p-3"
+              className="relative overflow-visible rounded-[20px] bg-white p-3"
               onMouseLeave={() => setHoveredPoint(null)}
             >
               {hoveredPoint ? (
                 <div
-                  className="pointer-events-none absolute z-10 min-w-[150px] -translate-x-1/2 -translate-y-[calc(100%+14px)] rounded-2xl border border-[#e7e1ff] bg-white px-3 py-2 text-left shadow-lg shadow-[#7c6cf2]/10"
+                  className="pointer-events-none absolute z-20 w-[190px] -translate-x-1/2 -translate-y-[calc(100%+14px)] rounded-2xl border border-[#e7e1ff] bg-white px-3 py-2 text-left shadow-lg shadow-[#7c6cf2]/10"
                   style={{
                     left: hoveredPoint.x,
                     top: hoveredPoint.y,
@@ -318,7 +355,7 @@ const TrackInsightsChartPanel = ({
                     {tooltipLabelFormatter(hoveredPoint.label)}
                   </p>
                   <p className="mt-1 text-sm font-semibold text-[#2f2747]">
-                    {formatNumber(hoveredPoint.listenValue)} lượt listen
+                    {formatNumber(hoveredPoint.listenValue)} lượt nghe
                   </p>
                   <p className="mt-1 text-xs text-[#7c7891]">
                     {chartMeta.label}:{" "}
@@ -329,23 +366,25 @@ const TrackInsightsChartPanel = ({
                 </div>
               ) : null}
 
-              <div
-                style={{ minWidth: `${CHART_MIN_WIDTH}px` }}
-                role="img"
-                aria-labelledby={`chart-title-${chartId}`}
-              >
-                <p id={`chart-title-${chartId}`} className="sr-only">
-                  {sectionTitle}
-                </p>
-                <div className="h-[320px] w-full">
-                  <Line data={lineChartData} options={chartOptions} />
+              <div className="overflow-x-auto overflow-y-visible">
+                <div
+                  style={{ minWidth: `${chartWidth}px` }}
+                  role="img"
+                  aria-labelledby={`chart-title-${chartId}`}
+                >
+                  <p id={`chart-title-${chartId}`} className="sr-only">
+                    {sectionTitle}
+                  </p>
+                  <div className="h-[320px] w-full">
+                    <Line data={lineChartData} options={chartOptions} />
+                  </div>
                 </div>
               </div>
             </div>
           )}
         </div>
       </div>
-    </section>
+    </Wrapper>
   );
 };
 
