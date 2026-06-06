@@ -1,48 +1,38 @@
 import express from "express";
 import multer from "multer";
 import authenticate from "../middlewares/Authentication/authentication.middleware.js";
-import upload from "../middlewares/upload.middleware.js";
 import artistRegistrationController from "../controllers/artist.registration.controller.js";
 import { AppError } from "../utils/AppError.js";
 
 const router = express.Router();
 
-const remapArtistRegistrationImageFields = (req, res, next) => {
-    if (!Array.isArray(req.body)) {
-        next();
+const artistRegistrationStorage = multer.memoryStorage();
+
+const artistRegistrationFileFilter = (req, file, cb) => {
+    if (
+        (file.fieldname === "avatar" ||
+            file.fieldname === "frontImage" ||
+            file.fieldname === "backImage") &&
+        file.mimetype.startsWith("image/")
+    ) {
+        cb(null, true);
         return;
     }
 
-    req.body = req.body.map((entry) => {
-        if (entry?.name === "frontImage") {
-            return { ...entry, name: "coverImage" };
-        }
-
-        if (entry?.name === "backImage") {
-            return { ...entry, name: "coverImages" };
-        }
-
-        return entry;
-    });
-
-    next();
+    cb(new AppError(`Invalid file type for ${file.fieldname}. Please upload an image file.`, 400), false);
 };
 
-const artistRegistrationUpload = upload.fields([
+const artistRegistrationUpload = multer({
+    storage: artistRegistrationStorage,
+    fileFilter: artistRegistrationFileFilter,
+    limits: {
+        fileSize: 500 * 1024 * 1024,
+    },
+}).fields([
     { name: "avatar", maxCount: 1 },
-    { name: "coverImage", maxCount: 1 },
-    { name: "coverImages", maxCount: 1 },
+    { name: "frontImage", maxCount: 1 },
+    { name: "backImage", maxCount: 1 },
 ]);
-
-const restoreArtistRegistrationFiles = (req, res, next) => {
-    req.files = {
-        ...(req.files ?? {}),
-        frontImage: req.files?.coverImage ?? [],
-        backImage: req.files?.coverImages ?? [],
-    };
-
-    next();
-};
 
 const runArtistRegistrationUpload = (req, res, next) => {
     artistRegistrationUpload(req, res, (err) => {
@@ -68,9 +58,7 @@ const runArtistRegistrationUpload = (req, res, next) => {
 router.post(
     "/artist-registration-requests",
     authenticate("user"),
-    remapArtistRegistrationImageFields,
     runArtistRegistrationUpload,
-    restoreArtistRegistrationFiles,
     artistRegistrationController.requestArtistRegistration
 );
 
