@@ -30,9 +30,6 @@ import LyricsPage from "../pages/lyrics/LyricsPage";
 import DailyTopTracksPage from "../pages/track/DailyTopTracksPage";
 import MonthlyTopTracksPage from "../pages/track/MonthlyTopTracksPage";
 import ArtistProfilePageView from "../pages/profile/ArtistProfilePage";
-import UserListfollowArtistPage from "../pages/user/UserListfollowArtistPage";
-import UserListfollowAlbumPage from "../pages/user/UserListfollowAlbumPage";
-import FollowingPage from "../pages/user/FollowingPage";
 import PlaylistDetailPage from "../pages/playlist/PlaylistDetailPage";
 import TrackDetailPage from "../pages/track/TrackDetailPage";
 import ProtectedRoute from "./ProtectedRoute";
@@ -83,51 +80,6 @@ export const appRoutes = [
       {
         path: routePaths.legacyArtistProfile,
         element: <Navigate to={featuredArtistProfilePath} replace />,
-      },
-      {
-        path: routePaths.userFollowing,
-        element: <ProtectedRoute />,
-        children: [
-          {
-            element: <RoleRoute allowedRoles={["user"]} />,
-            children: [
-              {
-                index: true,
-                element: <FollowingPage />,
-              },
-            ],
-          },
-        ],
-      },
-      {
-        path: routePaths.userListfollowArtist,
-        element: <ProtectedRoute />,
-        children: [
-          {
-            element: <RoleRoute allowedRoles={["user"]} />,
-            children: [
-              {
-                index: true,
-                element: <UserListfollowArtistPage />,
-              },
-            ],
-          },
-        ],
-      },
-      {
-        path: routePaths.userListfollowAlbum,
-        element: <ProtectedRoute />,
-        children: [
-          {
-            element: <RoleRoute allowedRoles={["user"]} />,
-            children: [
-              {
-                index: true,
-                element: <UserListfollowAlbumPage />,
-              },
-            ],
-          },
-        ],
       },
     ],
   },

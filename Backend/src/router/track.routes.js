@@ -9,6 +9,7 @@ import  authenticate  from "../middlewares/Authentication/authentication.middlew
 import { requireAdmin, requireArtist } from "../middlewares/Authentication/authentication.middleware.js";
 import artistTrackController from "../controllers/artist.track.controller.js";
 import adminTrackController from "../controllers/admin.track.controller.js";
+
 const router = express.Router();
 
 
