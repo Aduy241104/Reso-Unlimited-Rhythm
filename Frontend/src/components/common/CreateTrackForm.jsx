@@ -1,12 +1,18 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import trackService from "../../services/trackService";
 import genreService from "../../services/genreService";
+import { routePaths } from "../../routes/routePaths";
+import { getApiErrorFullMessage } from "../../utils/apiError";
+import { MAX_GENRE_IDS, TITLE_MAX_LENGTH } from "../../utils/trackWorkflow";
 import AudioQualityDisplay from "./AudioQualityDisplay";
 import AudioQualityPreview from "./AudioQualityPreview";
 
 const CreateTrackForm = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     title: "",
+    versionTitle: "",
     duration: "",
     avatar: "",
     coverImage: [],
@@ -30,13 +36,6 @@ const CreateTrackForm = () => {
   const [genres, setGenres] = useState([]);
   const [genresLoading, setGenresLoading] = useState(true);
   const [genresOpen, setGenresOpen] = useState(false);
-
-  const statusOptions = [
-    { value: "draft", label: "Draft" },
-    { value: "active", label: "Active" },
-    { value: "hidden", label: "Hidden" },
-    { value: "blocked", label: "Blocked" },
-  ];
 
   useEffect(() => {
     const fetchAlbums = async () => {
@@ -111,12 +110,24 @@ const CreateTrackForm = () => {
 
   const handleGenreToggle = (genreId) => {
     const id = String(genreId);
-    setFormData((prev) => ({
-      ...prev,
-      genreIds: prev.genreIds.includes(id)
-        ? prev.genreIds.filter((g) => g !== id)
-        : [...prev.genreIds, id],
-    }));
+    setFormData((prev) => {
+      if (prev.genreIds.includes(id)) {
+        return {
+          ...prev,
+          genreIds: prev.genreIds.filter((g) => g !== id),
+        };
+      }
+
+      if (prev.genreIds.length >= MAX_GENRE_IDS) {
+        setErrorMessage(`You can select at most ${MAX_GENRE_IDS} genres.`);
+        return prev;
+      }
+
+      return {
+        ...prev,
+        genreIds: [...prev.genreIds, id],
+      };
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -128,58 +139,90 @@ const CreateTrackForm = () => {
     setUploadingQualities(false);
 
     try {
-      if (!formData.title.trim()) {
-        throw new Error("Title is required");
-      }
-      if (!formData.duration || formData.duration <= 0) {
-        throw new Error("Duration must be a positive number");
-      }
-      if (!audioFile) {
-        throw new Error("Please upload exactly one audio file for this track");
+      const title = formData.title.trim();
+
+      if (!title) {
+        throw new Error("Title is required to save a draft.");
       }
 
-      setUploadingQualities(true);
+      if (title.length > TITLE_MAX_LENGTH) {
+        throw new Error(`Title cannot exceed ${TITLE_MAX_LENGTH} characters.`);
+      }
 
-      const uploadResponse = await trackService.uploadFiles(
-        audioFile,
-        avatarFile,
-        coverImages,
-        lyricsSyncFile
+      let uploadedAudioUrls = [];
+      let avatarUrl = formData.avatar || "";
+      let uploadedCoverUrls = [];
+      let uploadedLyricsSyncUrl = "";
+
+      const shouldUploadMedia = Boolean(
+        audioFile || avatarFile || coverImages.length > 0 || lyricsSyncFile
       );
 
-      if (!uploadResponse.success) {
-        throw new Error("File upload failed");
+      if (shouldUploadMedia) {
+        setUploadingQualities(true);
+
+        const uploadResponse = await trackService.uploadFiles(
+          audioFile,
+          avatarFile,
+          coverImages,
+          lyricsSyncFile
+        );
+
+        if (!uploadResponse.success) {
+          throw new Error("File upload failed");
+        }
+
+        ({
+          audioFiles: uploadedAudioUrls = [],
+          avatar: avatarUrl = "",
+          coverImages: uploadedCoverUrls = [],
+          lyricsSyncUrl: uploadedLyricsSyncUrl = "",
+        } = uploadResponse.data || {});
+
+        setUploadedQualities(uploadedAudioUrls || []);
+        setUploadingQualities(false);
       }
-
-      const {
-        audioFiles: uploadedAudioUrls,
-        avatar: avatarUrl,
-        coverImages: uploadedCoverUrls,
-        lyricsSyncUrl: uploadedLyricsSyncUrl,
-      } = uploadResponse.data;
-
-      setUploadedQualities(uploadedAudioUrls || []);
-      setUploadingQualities(false);
-
-      const qualityCount = uploadedAudioUrls?.length || 0;
-      setSuccessMessage(
-        `✓ Files processed successfully! ${qualityCount} quality version(s) created.`
-      );
 
       const trackDataToSubmit = {
-        ...formData,
+        title,
+        versionTitle: formData.versionTitle?.trim() || "",
+        album_albumId: formData.album_albumId,
+        genreIds: formData.genreIds,
+        lyricsStatic: formData.lyricsStatic,
+        releaseDate: formData.releaseDate || null,
         lyricsSyncUrl: uploadedLyricsSyncUrl || "",
         audioFiles: uploadedAudioUrls,
         coverImage: uploadedCoverUrls,
-        avatar: avatarUrl || formData.avatar,
+        avatar: avatarUrl,
       };
+
+      if (formData.duration !== "" && formData.duration !== null) {
+        trackDataToSubmit.duration = Number(formData.duration);
+      }
 
       const response = await trackService.createTrack(trackDataToSubmit);
 
       if (response.success) {
-        setSuccessMessage(response.message || "Track created successfully!");
+        const createdTrack = response?.data?.track;
+        const trackId = createdTrack?._id;
+
+        if (trackId) {
+          navigate(routePaths.artistTrackEdit(trackId), {
+            state: {
+              message:
+                "Draft saved. Complete genres, cover, copyright, and audio, then submit for approval.",
+            },
+          });
+          return;
+        }
+
+        setSuccessMessage(
+          response.message ||
+            "Draft track created. Open the track editor to complete details before submitting."
+        );
         setFormData({
           title: "",
+          versionTitle: "",
           duration: "",
           avatar: "",
           coverImage: [],
@@ -193,18 +236,9 @@ const CreateTrackForm = () => {
         setCoverImages([]);
         setAvatarFile(null);
         setUploadedQualities([]);
-
-        setTimeout(() => {
-          setSuccessMessage("");
-          setUploadedQualities([]);
-        }, 3000);
       }
     } catch (error) {
-      const errorMsg =
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to create track";
-      setErrorMessage(errorMsg);
+      setErrorMessage(getApiErrorFullMessage(error, "Failed to create track"));
       setUploadingQualities(false);
     } finally {
       setLoading(false);
@@ -215,7 +249,8 @@ const CreateTrackForm = () => {
     <div className="rounded-md border border-neutral-200 bg-white p-6">
       <h3 className="text-lg font-semibold text-[#241b15]">Create New Track</h3>
       <p className="mt-2 text-sm text-neutral-600">
-        Upload your track details and media files
+        Save a draft with a title first. Upload media, genres, cover, and copyright on
+        the edit page, then submit for approval when everything is ready.
       </p>
 
       {successMessage && (
@@ -225,7 +260,7 @@ const CreateTrackForm = () => {
       )}
 
       {errorMessage && (
-        <div className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-700">
+        <div className="mt-4 whitespace-pre-line rounded-md bg-red-50 p-3 text-sm text-red-700">
           ✗ {errorMessage}
         </div>
       )}
@@ -252,6 +287,7 @@ const CreateTrackForm = () => {
             value={formData.title}
             onChange={handleInputChange}
             placeholder="Enter track title"
+            maxLength={TITLE_MAX_LENGTH}
             className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm focus:border-[#8b5e3c] focus:outline-none"
             required
           />
@@ -259,7 +295,24 @@ const CreateTrackForm = () => {
 
         <div>
           <label className="block text-sm font-medium text-[#241b15]">
-            Duration (seconds) *
+            Version title (optional)
+          </label>
+          <input
+            type="text"
+            name="versionTitle"
+            value={formData.versionTitle}
+            onChange={handleInputChange}
+            placeholder="e.g. Acoustic, Live, Remix"
+            className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm focus:border-[#8b5e3c] focus:outline-none"
+          />
+          <p className="mt-1 text-xs text-neutral-500">
+            Use this to distinguish versions with the same main title.
+          </p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-[#241b15]">
+            Duration (seconds)
           </label>
           <input
             type="number"
@@ -270,13 +323,15 @@ const CreateTrackForm = () => {
             min="1"
             step="1"
             className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm focus:border-[#8b5e3c] focus:outline-none"
-            required
           />
+          <p className="mt-1 text-xs text-neutral-500">
+            Required before submit for approval. You can add it now or later on the edit page.
+          </p>
         </div>
 
         <div>
           <label className="block text-sm font-medium text-[#241b15]">
-            Audio file * (one file per track)
+            Audio file (optional for draft)
           </label>
           <p className="mt-1 text-xs text-neutral-500">
             One upload is transcoded into multiple qualities (e.g. 320k, 192k, 128k, 96k).
@@ -417,7 +472,9 @@ const CreateTrackForm = () => {
 
         <div className="relative">
           <label className="block text-sm font-medium text-[#241b15]">Genres</label>
-          <p className="mt-1 text-xs text-neutral-500">Chọn một hoặc nhiều thể loại.</p>
+          <p className="mt-1 text-xs text-neutral-500">
+            Optional for draft. Select up to {MAX_GENRE_IDS} genres (required before submit).
+          </p>
 
           {genresLoading ? (
             <p className="mt-2 text-sm text-neutral-600">Loading genres...</p>
@@ -536,7 +593,11 @@ const CreateTrackForm = () => {
             disabled={loading}
             className="rounded-md bg-[#8b5e3c] px-4 py-2 font-medium text-white hover:bg-[#6d4a2f] disabled:opacity-50"
           >
-            {loading ? "Uploading & Creating..." : "Create Track"}
+            {loading
+              ? uploadingQualities
+                ? "Uploading media..."
+                : "Saving draft..."
+              : "Save draft"}
           </button>
         </div>
       </form>

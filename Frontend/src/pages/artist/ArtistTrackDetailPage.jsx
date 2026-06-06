@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   AlertTriangle,
@@ -12,6 +12,7 @@ import {
   Sparkles,
   BadgeCheck,
   Pencil,
+  Send,
 } from "lucide-react";
 import PlayButton from "../../components/common/PlayButton";
 import { usePlayer } from "../../hooks/usePlayer";
@@ -22,7 +23,13 @@ import {
   formatReleaseYear,
   formatTrackDuration,
 } from "../../utils/albumDetail";
-import { getApiErrorMessage } from "../../utils/apiError";
+import { getApiErrorFullMessage, getApiErrorMessage } from "../../utils/apiError";
+import {
+  canArtistEditTrack,
+  canArtistSubmitTrack,
+  getSubmitReadinessIssues,
+  usesThirdPartyRights,
+} from "../../utils/trackWorkflow";
 
 const statusMeta = {
   active: {
@@ -105,6 +112,7 @@ const InfoCard = ({ icon, label, value, helper }) => (
 const ArtistTrackDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { playTrack } = usePlayer();
   const [track, setTrack] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -190,6 +198,10 @@ const ArtistTrackDetailPage = () => {
     track?.activeStatus === "active" &&
     track?.approvalStatus === "approved" &&
     audioFiles.length > 0;
+  const canEdit = canArtistEditTrack(track);
+  const canSubmit = canArtistSubmitTrack(track);
+  const submitIssues = useMemo(() => getSubmitReadinessIssues(track), [track]);
+  const locationMessage = location.state?.message || "";
 
   const handlePlay = async () => {
     if (!track) {
@@ -236,7 +248,50 @@ const ArtistTrackDetailPage = () => {
       return;
     }
 
+    if (!canEdit) {
+      setActionError("This track cannot be edited while pending or after approval.");
+      return;
+    }
+
     navigate(routePaths.artistTrackEdit(track._id));
+  };
+
+  const handleSubmitForApproval = async () => {
+    if (!track || isActionLoading || !canSubmit) {
+      return;
+    }
+
+    if (submitIssues.length > 0) {
+      setActionError(
+        `Complete the track before submitting:\n${submitIssues.map((item) => `• ${item}`).join("\n")}`
+      );
+      navigate(routePaths.artistTrackEdit(track._id));
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Submit this track for admin review? You will not be able to edit it while pending."
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setActionError("");
+    setActionMessage("");
+    setIsActionLoading(true);
+
+    try {
+      const updatedTrack = await trackService.submitForApproval(track._id);
+      setTrack(updatedTrack);
+      setActionMessage("Track submitted for approval.");
+    } catch (error) {
+      setActionError(
+        getApiErrorFullMessage(error, "Unable to submit this track for approval.")
+      );
+    } finally {
+      setIsActionLoading(false);
+    }
   };
 
   const handleEditLyrics = () => {
@@ -354,20 +409,22 @@ const ArtistTrackDetailPage = () => {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handlePlay}
+            <PlayButton 
+              onClick={handlePlay} 
+              label={canPlayTrack ? "Play" : "Play unavailable"}
+              size="compact" 
               disabled={!canPlayTrack}
-              className="inline-flex h-12 items-center gap-2 rounded-full bg-[#1ed760] px-5 text-sm font-semibold text-black transition hover:scale-[1.02] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 disabled:hover:brightness-100"
-            >
-              <Play className="h-5 w-5 fill-current" />
-              {canPlayTrack ? "Play" : "Play unavailable"}
-            </button>
-            <PlayButton onClick={ handlePlay } size="compact" />
+            />
           </div>
         </div>
 
         <div className="space-y-6 p-5 sm:p-8">
+          {locationMessage ? (
+            <div className="rounded-md border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+              {locationMessage}
+            </div>
+          ) : null}
+
           {actionMessage ? (
             <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
               {actionMessage}
@@ -375,7 +432,7 @@ const ArtistTrackDetailPage = () => {
           ) : null}
 
           {actionError ? (
-            <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+            <div className="whitespace-pre-line rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
               {actionError}
             </div>
           ) : null}
@@ -384,12 +441,24 @@ const ArtistTrackDetailPage = () => {
             <button
               type="button"
               onClick={handleEditTrack}
-              disabled={!track}
+              disabled={!track || !canEdit}
               className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-medium text-sky-900 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Pencil className="h-4 w-4" />
-              Edit track
+              {canEdit ? "Edit track" : "Edit locked"}
             </button>
+
+            {canSubmit ? (
+              <button
+                type="button"
+                onClick={handleSubmitForApproval}
+                disabled={isActionLoading || submitIssues.length > 0}
+                className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-900 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Send className="h-4 w-4" />
+                Submit for approval
+              </button>
+            ) : null}
 
             <button
               type="button"
@@ -530,6 +599,67 @@ const ArtistTrackDetailPage = () => {
                       <p className="mt-1 text-sm">{formatDateTime(track.hiddenAt)}</p>
                     </div>
                   ) : null}
+                  {track?.rejectReason ? (
+                    <div className="rounded-md border border-rose-200 bg-rose-50 p-3 text-rose-900">
+                      <p className="font-medium">Reject reason</p>
+                      <p className="mt-1 text-sm text-rose-800">{track.rejectReason}</p>
+                    </div>
+                  ) : null}
+                  {track?.moderation?.submittedAt ? (
+                    <div className="rounded-md border border-neutral-200 bg-neutral-50 p-3 text-neutral-700">
+                      <p className="font-medium">Submitted at</p>
+                      <p className="mt-1 text-sm">{formatDateTime(track.moderation.submittedAt)}</p>
+                    </div>
+                  ) : null}
+                  {canSubmit && submitIssues.length > 0 ? (
+                    <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-900">
+                      <p className="font-medium">Before you can submit</p>
+                      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
+                        {submitIssues.map((issue) => (
+                          <li key={issue}>{issue}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="rounded-md border border-neutral-200 bg-white p-5 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <BadgeCheck className="h-5 w-5 text-[#8b5e3c]" />
+                  <h2 className="text-lg font-semibold text-[#241b15]">Copyright</h2>
+                </div>
+                <div className="mt-4 space-y-2 text-sm text-neutral-700">
+                  <p>
+                    <span className="font-medium text-[#241b15]">Copyright owner:</span>{" "}
+                    {track?.copyright?.copyrightOwner || "Not provided"}
+                  </p>
+                  <p>
+                    <span className="font-medium text-[#241b15]">Recording owner:</span>{" "}
+                    {track?.copyright?.recordingOwner || "Not provided"}
+                  </p>
+                  <p>
+                    <span className="font-medium text-[#241b15]">Declaration:</span>{" "}
+                    {track?.copyright?.declarationAccepted ? "Accepted" : "Not accepted"}
+                  </p>
+                  {usesThirdPartyRights(track?.copyright) ? (
+                    <>
+                      <p>
+                        <span className="font-medium text-[#241b15]">Original track:</span>{" "}
+                        {track?.copyright?.originalTrackTitle || "—"} by{" "}
+                        {track?.copyright?.originalArtistName || "—"}
+                      </p>
+                      <p>
+                        <span className="font-medium text-[#241b15]">License documents:</span>{" "}
+                        {track?.copyright?.licenseDocumentUrls?.length || 0}
+                      </p>
+                    </>
+                  ) : (
+                    <p>
+                      <span className="font-medium text-[#241b15]">Rights type:</span>{" "}
+                      {track?.copyright?.isOriginal ? "Original work" : "Not specified"}
+                    </p>
+                  )}
                 </div>
               </div>
 
