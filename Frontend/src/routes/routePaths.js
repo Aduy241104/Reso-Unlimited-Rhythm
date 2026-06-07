@@ -24,6 +24,7 @@ export const routePaths = {
   artistMusic: "/artist/music",
   artistCreateTrack: "/artist/music/create",
   artistReleases: "/artist/releases",
+  artistCreateReleaseSchedule: "/artist/releases/create",
   artistAnalytics: "/artist/analytics",
   artistFans: "/artist/fans",
   artistRoyalties: "/artist/royalties",
