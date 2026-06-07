@@ -23,6 +23,27 @@ const getMyReleaseSchedules = async (req, res, next) => {
     }
 };
 
+const createMyReleaseSchedule = async (req, res, next) => {
+    try {
+        const result = await artistReleaseScheduleService.createMyReleaseSchedule(
+            req.user.id,
+            req.body
+        );
+
+        return formatResponse.success(
+            res,
+            {
+                artist: result.artist,
+                releaseSchedule: result.releaseSchedule,
+            },
+            "Artist release schedule created successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
+    createMyReleaseSchedule,
     getMyReleaseSchedules,
 };

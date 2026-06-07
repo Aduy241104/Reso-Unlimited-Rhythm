@@ -42,6 +42,63 @@ const getArtistByUserId = async (userId) => {
     return artist;
 };
 
+const getOwnedReleaseTarget = async ({ artistId, type, targetId }) => {
+    if (type === "album") {
+        const album = await Album.findOne({
+            _id: targetId,
+            artistId,
+        }).lean();
+
+        if (!album) {
+            throw new AppError("Album not found for this artist.", 404);
+        }
+
+        return album;
+    }
+
+    const track = await Track.findOne({
+        _id: targetId,
+        artist_artistId: artistId,
+    }).lean();
+
+    if (!track) {
+        throw new AppError("Track not found for this artist.", 404);
+    }
+
+    return track;
+};
+
+const ensureNoConflictingScheduledRelease = async ({ artistId, type, targetId }) => {
+    const existingSchedule = await ReleaseSchedule.findOne({
+        artistId,
+        type,
+        targetId,
+        status: "scheduled",
+    }).lean();
+
+    if (existingSchedule) {
+        throw new AppError(
+            "A scheduled release already exists for this item.",
+            409
+        );
+    }
+};
+
+const syncTargetReleaseDate = async ({ type, targetId, scheduledAt }) => {
+    if (type === "album") {
+        await Album.updateOne(
+            { _id: targetId },
+            { $set: { releaseDate: scheduledAt } }
+        );
+        return;
+    }
+
+    await Track.updateOne(
+        { _id: targetId },
+        { $set: { releaseDate: scheduledAt } }
+    );
+};
+
 const buildScheduleFilter = ({ artistId, scope, status, type }) => {
     const filter = { artistId };
     const now = new Date();
@@ -165,6 +222,58 @@ const getMyReleaseSchedules = async (userId, query = {}) => {
     };
 };
 
+const createMyReleaseSchedule = async (userId, payload) => {
+    const artist = await getArtistByUserId(userId);
+    const scheduledAt = new Date(payload.scheduledAt);
+
+    if (Number.isNaN(scheduledAt.getTime())) {
+        throw new AppError("Scheduled date is invalid.", 400, {
+            field: "scheduledAt",
+        });
+    }
+
+    const target = await getOwnedReleaseTarget({
+        artistId: artist._id,
+        type: payload.type,
+        targetId: payload.targetId,
+    });
+
+    await ensureNoConflictingScheduledRelease({
+        artistId: artist._id,
+        type: payload.type,
+        targetId: payload.targetId,
+    });
+
+    const schedule = await ReleaseSchedule.create({
+        type: payload.type,
+        targetId: payload.targetId,
+        artistId: artist._id,
+        scheduledAt,
+        status: "scheduled",
+    });
+
+    await syncTargetReleaseDate({
+        type: payload.type,
+        targetId: payload.targetId,
+        scheduledAt,
+    });
+
+    return {
+        artist: {
+            id: artist._id.toString(),
+            name: artist.name,
+        },
+        releaseSchedule: formatArtistComingRelease({
+            schedule,
+            target: {
+                ...target,
+                releaseDate: scheduledAt,
+            },
+        }),
+    };
+};
+
 export default {
+    createMyReleaseSchedule,
     getMyReleaseSchedules,
 };
