@@ -16,6 +16,7 @@ import UsersListPage from "../pages/users/UsersListPage";
 import UserDetailPage from "../pages/users/UserDetailPage";
 import ArtistRequestsListPage from "../pages/artistRequests/ArtistRequestsListPage";
 import ArtistRequestDetailPage from "../pages/artistRequests/ArtistRequestDetailPage";
+import SystemArtistsListPage from "../pages/artist/SystemArtistsListPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import RoleRoute from "./RoleRoute";
@@ -77,6 +78,10 @@ export const appRoutes = [
               {
                 path: "artist-requests/:requestId",
                 element: <ArtistRequestDetailPage />,
+              },
+              {
+                path: "system-artists",
+                element: <SystemArtistsListPage />,
               },
               {
                 path: "system-tracks/:id",
