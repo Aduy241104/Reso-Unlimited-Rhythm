@@ -108,9 +108,21 @@ const listArtistsForAdmin = async (query = {}) => {
     const requestedLimit = normalizePositiveInteger(query.limit, DEFAULT_LIMIT);
     const limit = Math.min(requestedLimit, MAX_LIMIT);
     const skip = (page - 1) * limit;
+    
     const rawSearch = typeof query.q === "string" ? query.q.trim() : "";
+    const { verificationStatus, activeStatus } = query;
 
+    // 1. Tạo Match Stage ban đầu cho bảng Artist
     const matchStage = {};
+    
+    if (verificationStatus) {
+        matchStage.verificationStatus = verificationStatus;
+    }
+    if (activeStatus) {
+        matchStage.activeStatus = activeStatus;
+    }
+
+    // Nếu tìm kiếm theo tên
     if (rawSearch) {
         matchStage.name = new RegExp(escapeRegex(rawSearch), "i");
     }
@@ -146,6 +158,16 @@ const listArtistsForAdmin = async (query = {}) => {
                 userContext: 0
             }
         },
+        // 2. Sau khi đã có trường 'email' từ lookup, nếu có tìm kiếm text, 
+        // ta bổ sung lọc OR (hoặc khớp Name từ trước, hoặc khớp Email ở đây)
+        ...(rawSearch ? [{
+            $match: {
+                $or: [
+                    { name: new RegExp(escapeRegex(rawSearch), "i") },
+                    { email: new RegExp(escapeRegex(rawSearch), "i") }
+                ]
+            }
+        }] : []),
         { $sort: { createdAt: -1, _id: 1 } },
         {
             $facet: {
