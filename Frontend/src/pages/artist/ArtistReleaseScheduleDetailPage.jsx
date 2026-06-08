@@ -12,9 +12,14 @@ import {
   Music2,
   Pencil,
   Sparkles,
+  Trash2,
+  X,
 } from "lucide-react";
 import { routePaths } from "../../routes/routePaths";
-import { getMyReleaseScheduleDetailService } from "../../services/artistReleaseScheduleService";
+import {
+  cancelMyReleaseScheduleService,
+  getMyReleaseScheduleDetailService,
+} from "../../services/artistReleaseScheduleService";
 
 const statusMeta = {
   scheduled: {
@@ -266,6 +271,10 @@ const ArtistReleaseScheduleDetailPage = () => {
   const [releaseSchedule, setReleaseSchedule] = useState(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [actionMessage, setActionMessage] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -280,6 +289,7 @@ const ArtistReleaseScheduleDetailPage = () => {
 
       setLoading(true);
       setErrorMessage("");
+      setActionError("");
 
       try {
         const response = await getMyReleaseScheduleDetailService(id);
@@ -316,9 +326,16 @@ const ArtistReleaseScheduleDetailPage = () => {
     };
   }, [id]);
 
-  const statusInfo = statusMeta[releaseSchedule?.status] || statusMeta.draft;
+  const normalizedStatus = String(releaseSchedule?.status || "")
+    .trim()
+    .toLowerCase();
+  const statusInfo = statusMeta[normalizedStatus] || statusMeta.draft;
   const sourceInfo =
     sourceTypeMeta[releaseSchedule?.sourceType] || sourceTypeMeta.track;
+  const canCancelRelease =
+    Boolean(releaseSchedule?.id) &&
+    normalizedStatus !== "released" &&
+    normalizedStatus !== "cancelled";
   const ReleaseIcon = sourceInfo.icon;
   const releaseImage = getReleaseImage(releaseSchedule);
   const detailPath = getDetailPath(releaseSchedule);
@@ -341,8 +358,7 @@ const ArtistReleaseScheduleDetailPage = () => {
         id: "future-date",
         label: "Đã đặt lịch phát hành thành công",
         done:
-          releaseSchedule?.status === "scheduled" ||
-          releaseSchedule?.status === "released",
+          normalizedStatus === "scheduled" || normalizedStatus === "released",
       },
       {
         id: "schedule-created",
@@ -350,8 +366,54 @@ const ArtistReleaseScheduleDetailPage = () => {
         done: Boolean(releaseSchedule?.id),
       },
     ],
-    [releaseSchedule]
+    [normalizedStatus, releaseSchedule]
   );
+
+  const handleOpenCancelModal = () => {
+    if (!canCancelRelease || isCancelling) {
+      return;
+    }
+
+    setActionError("");
+    setIsCancelModalOpen(true);
+  };
+
+  const handleCloseCancelModal = () => {
+    if (isCancelling) {
+      return;
+    }
+
+    setIsCancelModalOpen(false);
+  };
+
+  const handleCancelReleaseSchedule = async () => {
+    if (!releaseSchedule?.id || !canCancelRelease || isCancelling) {
+      return;
+    }
+
+    setIsCancelling(true);
+    setActionError("");
+    setActionMessage("");
+
+    try {
+      const response = await cancelMyReleaseScheduleService(releaseSchedule.id);
+
+      setArtistName(response?.artist?.name || artistName);
+      setReleaseSchedule(response?.releaseSchedule || releaseSchedule);
+      setActionMessage(
+        response?.message || "Đã hủy lịch phát hành thành công."
+      );
+      setIsCancelModalOpen(false);
+    } catch (error) {
+      setActionError(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Không thể hủy lịch phát hành lúc này."
+      );
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -443,6 +505,18 @@ const ArtistReleaseScheduleDetailPage = () => {
           ) : null}
         </div>
       </div>
+
+      {actionMessage ? (
+        <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-800">
+          {actionMessage}
+        </div>
+      ) : null}
+
+      {actionError ? (
+        <div className="rounded-[24px] border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-800">
+          {actionError}
+        </div>
+      ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.75fr)_320px]">
         <div className="space-y-6">
@@ -599,8 +673,6 @@ const ArtistReleaseScheduleDetailPage = () => {
               </div>
             </div>
           </div>
-
-          
         </div>
 
         <div className="space-y-6">
@@ -633,6 +705,43 @@ const ArtistReleaseScheduleDetailPage = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+
+          <div className="rounded-[28px] border border-[#ebe8f8] bg-white p-5 shadow-[0_30px_60px_-40px_rgba(54,35,94,0.35)] sm:p-6">
+            <h2 className="text-lg font-semibold text-[#1e172f]">Hành động</h2>
+
+            <div className="mt-5 space-y-3">
+              <button
+                type="button"
+                onClick={() => editPath && navigate(editPath)}
+                disabled={!editPath || isCancelling}
+                className="flex w-full items-center gap-3 rounded-2xl border border-[#ebe8f8] px-4 py-3 text-left text-sm font-medium text-[#3e3560] transition hover:border-[#d7d1ff] hover:bg-[#faf9ff] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Pencil className="h-4 w-4 text-[#5b4dde]" />
+                Chỉnh sửa nội dung phát hành
+              </button>
+
+              <button
+                type="button"
+                onClick={handleOpenCancelModal}
+                disabled={!canCancelRelease || isCancelling}
+                className={[
+                  "flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60",
+                  canCancelRelease
+                    ? "border-[#ffe1e1] bg-[#fff7f7] text-[#d85858] hover:border-[#ffcaca] hover:bg-[#fff0f0]"
+                    : "border-[#f0eef9] bg-[#faf9ff] text-[#9d98b0]",
+                ].join(" ")}
+              >
+                <Trash2 className="h-4 w-4" />
+                {isCancelling ? "Đang hủy lịch phát hành..." : "Hủy lịch phát hành"}
+              </button>
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-[#ebe8f8] bg-[#faf9ff] px-4 py-3 text-sm text-[#7c7690]">
+              {canCancelRelease
+                ? "Bạn chỉ có thể hủy lịch khi bản phát hành vẫn đang ở trạng thái sắp tới."
+                : "Lịch đã phát hành hoặc đã hủy sẽ không thể hủy thêm lần nữa."}
             </div>
           </div>
 
@@ -681,6 +790,61 @@ const ArtistReleaseScheduleDetailPage = () => {
           </div>
         </div>
       </div>
+
+      {isCancelModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#171125]/45 px-4 backdrop-blur-[2px]">
+          <div className="relative w-full max-w-[460px] rounded-[28px] bg-white px-6 pb-6 pt-5 shadow-[0_35px_80px_-35px_rgba(31,23,54,0.45)]">
+            <button
+              type="button"
+              onClick={handleCloseCancelModal}
+              disabled={isCancelling}
+              className="absolute right-5 top-5 inline-flex h-9 w-9 items-center justify-center rounded-full text-[#807b92] transition hover:bg-[#f5f2ff] hover:text-[#4d4275] disabled:cursor-not-allowed disabled:opacity-60"
+              aria-label="Đóng xác nhận hủy lịch phát hành"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[radial-gradient(circle_at_center,#ffe5e5_0%,#fff5f5_72%)] text-[#ef4444]">
+              <Trash2 className="h-7 w-7" />
+            </div>
+
+            <div className="mt-5 text-center">
+              <h2 className="text-[28px] font-semibold tracking-tight text-[#221b35]">
+                Hủy lịch phát hành?
+              </h2>
+              <p className="mt-3 text-sm leading-6 text-[#7f7a8f]">
+                Bạn có chắc chắn muốn hủy lịch phát hành{" "}
+                <span className="font-semibold text-[#221b35]">
+                  "{releaseSchedule?.item?.title || "bản phát hành này"}"
+                </span>
+                ?
+              </p>
+              <p className="mt-1 text-sm text-[#ef4444]">
+                Hành động này không thể hoàn tác.
+              </p>
+            </div>
+
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={handleCloseCancelModal}
+                disabled={isCancelling}
+                className="inline-flex h-12 items-center justify-center rounded-2xl border border-[#ebe8f8] bg-white px-4 text-sm font-medium text-[#4b4461] transition hover:border-[#d7d1ff] hover:bg-[#faf9ff] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Không, quay lại
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelReleaseSchedule}
+                disabled={isCancelling}
+                className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#ef4444] px-4 text-sm font-medium text-white transition hover:bg-[#dc2626] disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {isCancelling ? "Đang hủy..." : "Xác nhận hủy"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 };
