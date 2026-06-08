@@ -25,8 +25,15 @@ export const getAdminArtistDetailService = async (artistId) => {
     return response;
 };
 
+export const updateAdminArtistStatusService = async (artistId, data) => {
+    // data gồm: { activeStatus: "blocked" | "active", blockedReason: "..." }
+    const response = await axiosClient.patch(`/api/admin/artists/${artistId}/status`, data);
+    return response?.data?.data?.artist ?? response?.data ?? response;
+};
+
 
 export default {
     searchAdminArtistsService,
     getAdminArtistDetailService,
+    updateAdminArtistStatusService,
 };
