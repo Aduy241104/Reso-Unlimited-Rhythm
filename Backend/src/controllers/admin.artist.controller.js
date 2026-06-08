@@ -34,6 +34,22 @@ const listArtistsForAdmin = async (req, res, next) => {
     }
 };
 
+const getArtistDetailForAdmin = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const artistDetail = await adminArtistService.getArtistDetailForAdmin(id);
+
+        return formatResponse.success(
+            res,
+            { artist: artistDetail },
+            "Artist detail fetched successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     listArtistsForAdmin,
+    getArtistDetailForAdmin,
 };

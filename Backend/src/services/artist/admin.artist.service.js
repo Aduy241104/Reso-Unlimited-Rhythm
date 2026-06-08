@@ -1,5 +1,11 @@
+import mongoose from "mongoose";
+import Track from "../../models/Track.js";
 import Artist from "../../models/Artist.js";
+import Album from "../../models/Album.js";
+import ArtistStat from "../../models/ArtistStat.js";
+import ArtistRevenueSummary from "../../models/ArtistRevenueSummary.js";
 import { normalizePositiveInteger } from "../Playlist/playlist.helper.js";
+import { AppError } from "../../utils/AppError.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
@@ -12,7 +18,6 @@ const toId = (value) => {
     return value.toString();
 };
 
-// Định dạng dữ liệu đầu ra trả về cho Front-End gọn gàng, bảo mật
 const formatAdminArtistListItem = (artist) => {
     return {
         id: toId(artist._id),
@@ -28,6 +33,76 @@ const formatAdminArtistListItem = (artist) => {
     };
 };
 
+const formatAdminArtistDetailItem = (artist, trackCount, albumCount, advancedStats, revenueSummary) => {
+    const hasActiveTracks = trackCount > 0;
+    const isPopular = (artist.stats?.followers || 0) > 100 || (artist.stats?.totalStreams || 0) > 1000;
+    const hasLinkedSocials = !!(artist.socialLinks?.facebook || artist.socialLinks?.instagram || artist.socialLinks?.youtube);
+
+    return {
+        name: artist.name,
+        email: artist.userId?.email || "—",
+        bio: artist.bio || "Nghệ sĩ chưa cập nhật tiểu sử.",
+        avatar: artist.avatar || "",
+        coverImage: artist.coverImage || "",
+        verificationStatus: artist.verificationStatus || "pending",
+        activeStatus: artist.activeStatus || "active",
+        createdAt: artist.createdAt,
+        updatedAt: artist.updatedAt,
+        blockedReason: artist.blockedReason || "",
+        
+        metrics: {
+            followers: artist.stats?.followers || 0,
+            totalStreams: artist.stats?.totalStreams || 0,
+            monthlyListeners: advancedStats?.monthlyListeners || 0,
+            totalTracks: trackCount,
+            totalAlbums: albumCount
+        },
+        demographics: advancedStats?.demographics?.countries || {},
+
+        finance: revenueSummary ? {
+            availableAmount: revenueSummary.availableAmount || 0,
+            withdrawnAmount: revenueSummary.withdrawnAmount || 0,
+            grossRevenueAmount: revenueSummary.grossRevenueAmount || 0,
+            lastCalculatedPeriod: `Tháng ${revenueSummary.month}/${revenueSummary.year}`,
+            status: revenueSummary.status
+        } : null,
+
+        checklist: {
+            hasMusicActivity: hasActiveTracks ? "pass" : "fail",
+            isIdentityVerified: artist.verificationStatus === "verified" ? "pass" : "fail",
+            isAudienceGrowing: isPopular ? "pass" : "fail",
+            hasSocialNodes: hasLinkedSocials ? "pass" : "fail",
+            isFinanceActive: revenueSummary ? "pass" : "fail",
+            isAccountClean: artist.activeStatus === "active" ? "pass" : "fail"
+        },
+
+        socialLinks: artist.socialLinks || { facebook: "", instagram: "", youtube: "" }
+    };
+};
+
+const getArtistDetailForAdmin = async (artistId) => {
+    if (!mongoose.Types.ObjectId.isValid(artistId)) {
+        throw new AppError("Artist id is invalid.", 400, { field: "id" });
+    }
+
+    const artist = await Artist.findById(artistId)
+        .populate({ path: "userId", select: "email" })
+        .lean();
+
+    if (!artist) {
+        throw new AppError("Artist not found.", 404, { field: "id" });
+    }
+
+    const [trackCount, albumCount, advancedStats, revenueSummary] = await Promise.all([
+        Track.countDocuments({ artist_artistId: artistId }),
+        Album.countDocuments({ artistId: artistId }),
+        ArtistStat.findOne({ artistId: artistId }).lean(),
+        ArtistRevenueSummary.findOne({ artistId: artistId }).sort({ year: -1, month: -1 }).lean()
+    ]);
+
+    return formatAdminArtistDetailItem(artist, trackCount, albumCount, advancedStats, revenueSummary);
+};
+
 const listArtistsForAdmin = async (query = {}) => {
     const page = normalizePositiveInteger(query.page, DEFAULT_PAGE);
     const requestedLimit = normalizePositiveInteger(query.limit, DEFAULT_LIMIT);
@@ -35,18 +110,16 @@ const listArtistsForAdmin = async (query = {}) => {
     const skip = (page - 1) * limit;
     const rawSearch = typeof query.q === "string" ? query.q.trim() : "";
 
-    // Giai đoạn Match (Lọc tìm kiếm theo tên)
     const matchStage = {};
     if (rawSearch) {
         matchStage.name = new RegExp(escapeRegex(rawSearch), "i");
     }
 
-    // Pipeline Aggregate tối ưu hóa hiệu năng kết hợp phân trang
     const aggregateQuery = [
         { $match: matchStage },
         {
             $lookup: {
-                from: "users", // Map sang collection User để lấy trường Email
+                from: "users",
                 localField: "userId",
                 foreignField: "_id",
                 as: "userContext"
@@ -55,9 +128,9 @@ const listArtistsForAdmin = async (query = {}) => {
         { $unwind: { path: "$userContext", preserveNullAndEmptyArrays: true } },
         {
             $lookup: {
-                from: "tracks", // Map sang collection Track đếm tổng số bài nhạc đang sở hữu
+                from: "tracks",
                 localField: "_id",
-                foreignField: "artist_artistId", // Khớp đúng với foreign key schema Track của bạn
+                foreignField: "artist_artistId",
                 as: "tracksData"
             }
         },
@@ -100,4 +173,5 @@ const listArtistsForAdmin = async (query = {}) => {
 
 export default {
     listArtistsForAdmin,
+    getArtistDetailForAdmin,
 };

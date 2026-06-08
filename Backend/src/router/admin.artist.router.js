@@ -15,4 +15,11 @@ router.get(
     adminArtistController.listArtistsForAdmin
 );
 
+router.get(
+    "/:id",
+    validate(adminArtistValidation.artistIdParamSchema, "params"),
+    adminArtistController.getArtistDetailForAdmin
+);
+
+
 export default router;
