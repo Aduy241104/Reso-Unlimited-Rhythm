@@ -19,6 +19,13 @@ router.get(
     artistReleaseScheduleController.getMyReleaseSchedules
 );
 
+router.patch(
+    "/:id/cancel",
+    requireArtist,
+    validate(artistReleaseScheduleValidation.releaseScheduleIdParamSchema, "params"),
+    artistReleaseScheduleController.cancelMyReleaseSchedule
+);
+
 router.get(
     "/:id",
     requireArtist,

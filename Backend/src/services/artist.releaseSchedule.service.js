@@ -99,6 +99,107 @@ const syncTargetReleaseDate = async ({ type, targetId, scheduledAt }) => {
     );
 };
 
+const syncTargetReleaseDateAfterCancellation = async ({
+    artistId,
+    type,
+    targetId,
+    cancelledScheduledAt,
+    currentReleaseDate,
+}) => {
+    const nextScheduledRelease = await ReleaseSchedule.findOne({
+        artistId,
+        type,
+        targetId,
+        status: "scheduled",
+    })
+        .sort({ scheduledAt: 1, createdAt: 1, _id: 1 })
+        .lean();
+
+    const currentReleaseDateValue = currentReleaseDate
+        ? new Date(currentReleaseDate).getTime()
+        : null;
+    const cancelledScheduledAtValue = cancelledScheduledAt
+        ? new Date(cancelledScheduledAt).getTime()
+        : null;
+
+    if (
+        currentReleaseDateValue === null ||
+        cancelledScheduledAtValue === null ||
+        currentReleaseDateValue !== cancelledScheduledAtValue
+    ) {
+        return currentReleaseDate || null;
+    }
+
+    if (type === "album") {
+        if (nextScheduledRelease?.scheduledAt) {
+            await Album.updateOne(
+                { _id: targetId, artistId },
+                { $set: { releaseDate: nextScheduledRelease.scheduledAt } }
+            );
+            return nextScheduledRelease.scheduledAt;
+        }
+
+        await Album.updateOne(
+            { _id: targetId, artistId },
+            { $unset: { releaseDate: 1 } }
+        );
+        return null;
+    }
+
+    if (nextScheduledRelease?.scheduledAt) {
+        await Track.updateOne(
+            { _id: targetId, artist_artistId: artistId },
+            { $set: { releaseDate: nextScheduledRelease.scheduledAt } }
+        );
+        return nextScheduledRelease.scheduledAt;
+    }
+
+    await Track.updateOne(
+        { _id: targetId, artist_artistId: artistId },
+        { $unset: { releaseDate: 1 } }
+    );
+
+    return null;
+};
+
+const publishDueReleaseSchedules = async (extraFilter = {}) => {
+    const now = new Date();
+    const dueSchedules = await ReleaseSchedule.find({
+        status: "scheduled",
+        scheduledAt: { $lte: now },
+        ...extraFilter,
+    })
+        .select("_id scheduledAt")
+        .lean();
+
+    if (dueSchedules.length === 0) {
+        return {
+            updatedCount: 0,
+        };
+    }
+
+    await ReleaseSchedule.bulkWrite(
+        dueSchedules.map((schedule) => ({
+            updateOne: {
+                filter: {
+                    _id: schedule._id,
+                    status: "scheduled",
+                },
+                update: {
+                    $set: {
+                        status: "released",
+                        releasedAt: schedule.scheduledAt,
+                    },
+                },
+            },
+        }))
+    );
+
+    return {
+        updatedCount: dueSchedules.length,
+    };
+};
+
 const buildScheduleFilter = ({ artistId, scope, status, type }) => {
     const filter = { artistId };
     const now = new Date();
@@ -159,6 +260,7 @@ const mapReleaseTargets = async ({ schedules, artistId }) => {
 
 const getMyReleaseSchedules = async (userId, query = {}) => {
     const artist = await getArtistByUserId(userId);
+    await publishDueReleaseSchedules({ artistId: artist._id });
     const page = normalizePositiveInteger(query.page, DEFAULT_PAGE);
     const requestedLimit = normalizePositiveInteger(query.limit, DEFAULT_LIMIT);
     const limit = Math.min(requestedLimit, MAX_LIMIT);
@@ -224,6 +326,7 @@ const getMyReleaseSchedules = async (userId, query = {}) => {
 
 const getMyReleaseScheduleDetail = async (userId, scheduleId) => {
     const artist = await getArtistByUserId(userId);
+    await publishDueReleaseSchedules({ artistId: artist._id });
     const schedule = await ReleaseSchedule.findOne({
         _id: scheduleId,
         artistId: artist._id,
@@ -246,6 +349,67 @@ const getMyReleaseScheduleDetail = async (userId, scheduleId) => {
         },
         releaseSchedule: {
             ...formatArtistComingRelease({ schedule, target }),
+            createdAt: schedule.createdAt || null,
+            updatedAt: schedule.updatedAt || null,
+        },
+    };
+};
+
+const cancelMyReleaseSchedule = async (userId, scheduleId) => {
+    const artist = await getArtistByUserId(userId);
+    await publishDueReleaseSchedules({ artistId: artist._id });
+    const schedule = await ReleaseSchedule.findOne({
+        _id: scheduleId,
+        artistId: artist._id,
+    });
+
+    if (!schedule) {
+        throw new AppError("Release schedule not found.", 404);
+    }
+
+    if (schedule.status === "cancelled") {
+        throw new AppError("Release schedule has already been cancelled.", 409);
+    }
+
+    if (schedule.status === "released") {
+        throw new AppError("Released schedules cannot be cancelled.", 409);
+    }
+
+    if (new Date(schedule.scheduledAt).getTime() <= Date.now()) {
+        throw new AppError("This release schedule can no longer be cancelled.", 409);
+    }
+
+    const target = await getOwnedReleaseTarget({
+        artistId: artist._id,
+        type: schedule.type,
+        targetId: schedule.targetId,
+    });
+
+    schedule.status = "cancelled";
+    schedule.releasedAt = null;
+    await schedule.save();
+
+    const nextReleaseDate = await syncTargetReleaseDateAfterCancellation({
+        artistId: artist._id,
+        type: schedule.type,
+        targetId: schedule.targetId,
+        cancelledScheduledAt: schedule.scheduledAt,
+        currentReleaseDate: target?.releaseDate || null,
+    });
+
+    return {
+        artist: {
+            id: artist._id.toString(),
+            name: artist.name,
+        },
+        releaseSchedule: {
+            ...formatArtistComingRelease({
+                schedule,
+                target: {
+                    ...target,
+                    releaseDate: nextReleaseDate,
+                },
+            }),
             createdAt: schedule.createdAt || null,
             updatedAt: schedule.updatedAt || null,
         },
@@ -304,7 +468,10 @@ const createMyReleaseSchedule = async (userId, payload) => {
 };
 
 export default {
+    cancelMyReleaseSchedule,
     createMyReleaseSchedule,
     getMyReleaseScheduleDetail,
     getMyReleaseSchedules,
 };
+
+export { publishDueReleaseSchedules };

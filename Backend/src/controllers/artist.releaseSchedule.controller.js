@@ -43,6 +43,26 @@ const getMyReleaseScheduleDetail = async (req, res, next) => {
     }
 };
 
+const cancelMyReleaseSchedule = async (req, res, next) => {
+    try {
+        const result = await artistReleaseScheduleService.cancelMyReleaseSchedule(
+            req.user.id,
+            req.params.id
+        );
+
+        return formatResponse.success(
+            res,
+            {
+                artist: result.artist,
+                releaseSchedule: result.releaseSchedule,
+            },
+            "Artist release schedule cancelled successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 const createMyReleaseSchedule = async (req, res, next) => {
     try {
         const result = await artistReleaseScheduleService.createMyReleaseSchedule(
@@ -64,6 +84,7 @@ const createMyReleaseSchedule = async (req, res, next) => {
 };
 
 export default {
+    cancelMyReleaseSchedule,
     createMyReleaseSchedule,
     getMyReleaseScheduleDetail,
     getMyReleaseSchedules,
