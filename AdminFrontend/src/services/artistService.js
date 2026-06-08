@@ -12,3 +12,21 @@ export const searchAdminArtistsService = async (params = {}) => {
         pagination: response?.data?.meta ?? null,
     };
 };
+
+export const getAdminArtistDetailService = async (artistId) => {
+    const response = await axiosClient.get(`${ADMIN_ARTIST_API_PREFIX}/${artistId}`);
+    
+    console.log("👇 Cấu trúc Response nhận được từ API chi tiết:", response);
+
+    if (response?.data?.artist) return response.data.artist;
+    if (response?.artist) return response.artist;
+    if (response?.data) return response.data;
+    
+    return response;
+};
+
+
+export default {
+    searchAdminArtistsService,
+    getAdminArtistDetailService,
+};
