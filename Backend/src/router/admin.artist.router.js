@@ -21,5 +21,11 @@ router.get(
     adminArtistController.getArtistDetailForAdmin
 );
 
+// PATCH /api/admin/artists/:id/status
+router.patch(
+    "/:id/status",
+    validate(adminArtistValidation.artistIdParamSchema, "params"),
+    adminArtistController.updateArtistStatusForAdmin
+);
 
 export default router;

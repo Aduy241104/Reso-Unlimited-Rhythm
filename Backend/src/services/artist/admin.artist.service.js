@@ -193,7 +193,43 @@ const listArtistsForAdmin = async (query = {}) => {
     };
 };
 
+const updateArtistStatusForAdmin = async (artistId, { activeStatus, blockedReason }) => {
+    if (!mongoose.Types.ObjectId.isValid(artistId)) {
+        throw new AppError("Artist id is invalid.", 400, { field: "id" });
+    }
+
+    if (!["active", "blocked"].includes(activeStatus)) {
+        throw new AppError("Invalid active status. Allowed: active, blocked", 400, { field: "activeStatus" });
+    }
+
+    const updateData = { activeStatus };
+    
+    if (activeStatus === "blocked") {
+        updateData.blockedReason = blockedReason || "Vi phạm điều khoản hệ thống.";
+    } else {
+        updateData.blockedReason = ""; // Xóa lý do khi unblock
+    }
+
+    const updatedArtist = await Artist.findByIdAndUpdate(
+        artistId,
+        { $set: updateData },
+        { new: true }
+    ).lean();
+
+    if (!updatedArtist) {
+        throw new AppError("Artist not found.", 404, { field: "id" });
+    }
+
+    return {
+        id: updatedArtist._id.toString(),
+        activeStatus: updatedArtist.activeStatus,
+        blockedReason: updatedArtist.blockedReason
+    };
+};
+
+
 export default {
     listArtistsForAdmin,
     getArtistDetailForAdmin,
+    updateArtistStatusForAdmin,
 };

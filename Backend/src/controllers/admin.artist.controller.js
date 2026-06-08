@@ -49,7 +49,33 @@ const getArtistDetailForAdmin = async (req, res, next) => {
     }
 };
 
+const updateArtistStatusForAdmin = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { activeStatus, blockedReason } = req.body;
+
+        const updatedArtist = await adminArtistService.updateArtistStatusForAdmin(id, {
+            activeStatus,
+            blockedReason
+        });
+
+        const statusMessage = activeStatus === "blocked" 
+            ? "Artist account blocked successfully" 
+            : "Artist account restored successfully";
+
+        return formatResponse.success(
+            res,
+            { artist: updatedArtist },
+            statusMessage
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+
 export default {
     listArtistsForAdmin,
     getArtistDetailForAdmin,
+    updateArtistStatusForAdmin,
 };
