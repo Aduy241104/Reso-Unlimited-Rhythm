@@ -292,16 +292,11 @@ const ArtistReleaseSchedulePage = () => {
   }, [releaseSchedules]);
 
   const handleOpenRelease = (release) => {
-    if (!release?.item?.id) {
+    if (!release?.id) {
       return;
     }
 
-    if (release.sourceType === "album") {
-      navigate(routePaths.artistAlbumDetail(release.item.id));
-      return;
-    }
-
-    navigate(routePaths.artistTrackDetail(release.item.id));
+    navigate(routePaths.artistReleaseScheduleDetail(release.id));
   };
 
   const handleEditRelease = (release) => {
@@ -525,7 +520,7 @@ const ArtistReleaseSchedulePage = () => {
                             type="button"
                             onClick={() => handleOpenRelease(release)}
                             className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[#736d88] transition hover:bg-[#f3f1ff] hover:text-[#5b4dde]"
-                            aria-label="Xem bản phát hành"
+                            aria-label="Xem chi tiết lịch phát hành"
                           >
                             <Eye className="h-4 w-4" />
                           </button>

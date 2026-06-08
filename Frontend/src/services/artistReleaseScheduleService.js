@@ -26,7 +26,18 @@ export const createMyReleaseScheduleService = async (payload) => {
   };
 };
 
+export const getMyReleaseScheduleDetailService = async (scheduleId) => {
+  const response = await axiosClient.get(`/api/artist/release-schedules/${scheduleId}`);
+
+  return {
+    artist: response?.data?.data?.artist ?? null,
+    releaseSchedule: response?.data?.data?.releaseSchedule ?? null,
+    message: response?.data?.message ?? "",
+  };
+};
+
 export default {
   createMyReleaseScheduleService,
+  getMyReleaseScheduleDetailService,
   getMyReleaseSchedulesService,
 };
