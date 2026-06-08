@@ -222,6 +222,36 @@ const getMyReleaseSchedules = async (userId, query = {}) => {
     };
 };
 
+const getMyReleaseScheduleDetail = async (userId, scheduleId) => {
+    const artist = await getArtistByUserId(userId);
+    const schedule = await ReleaseSchedule.findOne({
+        _id: scheduleId,
+        artistId: artist._id,
+    }).lean();
+
+    if (!schedule) {
+        throw new AppError("Release schedule not found.", 404);
+    }
+
+    const target = await getOwnedReleaseTarget({
+        artistId: artist._id,
+        type: schedule.type,
+        targetId: schedule.targetId,
+    });
+
+    return {
+        artist: {
+            id: artist._id.toString(),
+            name: artist.name,
+        },
+        releaseSchedule: {
+            ...formatArtistComingRelease({ schedule, target }),
+            createdAt: schedule.createdAt || null,
+            updatedAt: schedule.updatedAt || null,
+        },
+    };
+};
+
 const createMyReleaseSchedule = async (userId, payload) => {
     const artist = await getArtistByUserId(userId);
     const scheduledAt = new Date(payload.scheduledAt);
@@ -275,5 +305,6 @@ const createMyReleaseSchedule = async (userId, payload) => {
 
 export default {
     createMyReleaseSchedule,
+    getMyReleaseScheduleDetail,
     getMyReleaseSchedules,
 };

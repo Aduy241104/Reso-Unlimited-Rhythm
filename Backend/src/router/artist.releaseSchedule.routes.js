@@ -19,4 +19,11 @@ router.get(
     artistReleaseScheduleController.getMyReleaseSchedules
 );
 
+router.get(
+    "/:id",
+    requireArtist,
+    validate(artistReleaseScheduleValidation.releaseScheduleIdParamSchema, "params"),
+    artistReleaseScheduleController.getMyReleaseScheduleDetail
+);
+
 export default router;

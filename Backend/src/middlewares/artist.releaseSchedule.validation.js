@@ -2,6 +2,13 @@ import Joi from "joi";
 
 const objectIdPattern = /^[0-9a-fA-F]{24}$/;
 
+const releaseScheduleIdParamSchema = Joi.object({
+    id: Joi.string()
+        .trim()
+        .pattern(objectIdPattern)
+        .required(),
+});
+
 const createReleaseScheduleSchema = Joi.object({
     type: Joi.string()
         .trim()
@@ -22,4 +29,5 @@ const createReleaseScheduleSchema = Joi.object({
 
 export default {
     createReleaseScheduleSchema,
+    releaseScheduleIdParamSchema,
 };
