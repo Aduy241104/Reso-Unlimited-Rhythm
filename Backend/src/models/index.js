@@ -14,6 +14,7 @@ import Notification from "./Notification.js";
 import Plan from "./Plan.js";
 import Playlist from "./Playlist.js";
 import PlatformMonthlyStat from "./PlatformMonthlyStat.js";
+import PersonalizedMix from "./PersonalizedMix.js";
 import RefreshToken from "./RefreshToken.js";
 import ReleaseSchedule from "./ReleaseSchedule.js";
 import Report from "./Report.js";
@@ -46,6 +47,7 @@ export default {
     Plan,
     Playlist,
     PlatformMonthlyStat,
+    PersonalizedMix,
     RefreshToken,
     ReleaseSchedule,
     Report,
