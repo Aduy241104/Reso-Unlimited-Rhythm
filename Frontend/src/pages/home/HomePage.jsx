@@ -1,8 +1,10 @@
 import ContentCardSection from "../../components/content/ContentCardSection";
 import DailyTopArtistsSection from "../../components/home/DailyTopArtistsSection";
 import TrackChartSection from "../../components/home/TrackChartSection";
+import { useAuth } from "../../hooks/useAuth";
 import { useContentPlayback } from "../../hooks/useContentPlayback";
 import { useHomePageData } from "../../hooks/useHomePageData";
+import { useRecommendationMixes } from "../../hooks/useRecommendationMixes";
 import { routePaths } from "../../routes/routePaths";
 import { mapDailyTopTracksToContentCards } from "../../utils/dailyTopTracks";
 import {
@@ -11,8 +13,13 @@ import {
 } from "../../utils/homeContent";
 import { mapMonthlyTopArtistsToContentCards } from "../../utils/monthlyTopArtists";
 import { mapMonthlyTopTracksToContentCards } from "../../utils/monthlyTopTracks";
+import {
+  getRecommendationUserDisplayName,
+  mapRecommendationMixesToContentCards,
+} from "../../utils/recommendation";
 
 const HomePage = () => {
+  const { isAuthenticated, isLoading: isAuthLoading, user } = useAuth();
   const {
     albums,
     systemPlaylists,
@@ -42,75 +49,95 @@ const HomePage = () => {
     monthlyTopTracksLimit,
     monthlyTopArtistsLimit,
   } = useHomePageData();
-
+  const {
+    mixes: recommendationMixes,
+    isLoading: isLoadingRecommendationMixes,
+    errorMessage: recommendationMixesError,
+  } = useRecommendationMixes({
+    enabled: isAuthenticated && !isAuthLoading,
+  });
   const {
     playbackError,
     playAlbumItem,
     playPlaylistItem,
+    playRecommendationMixItem,
   } = useContentPlayback();
+  const recommendationUserName = getRecommendationUserDisplayName(user);
+  const shouldShowRecommendationSection = isAuthenticated && !isAuthLoading;
 
   return (
     <section className="space-y-8 sm:space-y-10">
-      { albumsError ? (
+      {albumsError ? (
         <div
           className="
             rounded-[18px] border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm
             text-amber-700 dark:text-amber-300
           "
         >
-          { albumsError }
+          {albumsError}
         </div>
-      ) : null }
+      ) : null}
 
-      { systemPlaylistsError ? (
+      {systemPlaylistsError ? (
         <div
           className="
             rounded-[18px] border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm
             text-amber-700 dark:text-amber-300
           "
         >
-          { systemPlaylistsError }
+          {systemPlaylistsError}
         </div>
-      ) : null }
+      ) : null}
 
-      { dailyTopTracksError ? (
+      {recommendationMixesError ? (
         <div
           className="
             rounded-[18px] border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm
             text-amber-700 dark:text-amber-300
           "
         >
-          { dailyTopTracksError }
+          {recommendationMixesError}
         </div>
-      ) : null }
+      ) : null}
 
-      { monthlyTopTracksError ? (
+      {dailyTopTracksError ? (
         <div
           className="
             rounded-[18px] border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm
             text-amber-700 dark:text-amber-300
           "
         >
-          { monthlyTopTracksError }
+          {dailyTopTracksError}
         </div>
-      ) : null }
+      ) : null}
 
-      { monthlyTopArtistsError ? (
+      {monthlyTopTracksError ? (
         <div
           className="
             rounded-[18px] border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm
             text-amber-700 dark:text-amber-300
           "
         >
-          { monthlyTopArtistsError }
+          {monthlyTopTracksError}
         </div>
-      ) : null }
+      ) : null}
+
+      {monthlyTopArtistsError ? (
+        <div
+          className="
+            rounded-[18px] border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm
+            text-amber-700 dark:text-amber-300
+          "
+        >
+          {monthlyTopArtistsError}
+        </div>
+      ) : null}
 
       <TrackChartSection
         label="Bảng xếp hạng"
         title="Top nhạc nổi bật"
         description="Theo dõi nhanh các bảng xếp hạng theo ngày, theo tháng và nghệ sĩ đang dẫn đầu."
-        items={ [
+        items={[
           ...(!dailyTopTracksError
             ? mapDailyTopTracksToContentCards({
                 topTracks: dailyTopTracks,
@@ -147,56 +174,71 @@ const HomePage = () => {
                 limit: monthlyTopArtistsLimit,
               })
             : []),
-        ] }
+        ]}
         isLoading={
           isLoadingDailyTopTracks ||
           isLoadingMonthlyTopTracks ||
           isLoadingMonthlyTopArtists
         }
         emptyMessage="Hiện chưa có dữ liệu bảng xếp hạng."
-        showPlayButton={ false }
+        showPlayButton={false}
         actionLabel="Xem tất cả bảng xếp hạng"
-        actionHref={ routePaths.dailyTopTracks }
+        actionHref={routePaths.dailyTopTracks}
       />
 
       <ContentCardSection
         title="Playlist hệ thống"
         description="Khám phá các playlist được tuyển chọn để phù hợp với từng khoảnh khắc nghe nhạc của bạn."
-        items={ mapSystemPlaylistsToContentCards(systemPlaylists) }
-        isLoading={ isLoadingSystemPlaylists }
+        items={mapSystemPlaylistsToContentCards(systemPlaylists)}
+        isLoading={isLoadingSystemPlaylists}
         emptyMessage="Hiện chưa có dữ liệu playlist hệ thống."
-        onPlay={ playPlaylistItem }
+        onPlay={playPlaylistItem}
       />
+
+      {shouldShowRecommendationSection ? (
+        <ContentCardSection
+          label="Daily Mix"
+          title={`D\u00e0nh cho ${recommendationUserName}`}
+          description="Những playlist gợi ý được làm mới mỗi ngày dựa trên lịch sử nghe, lượt thích và playlist của bạn."
+          items={mapRecommendationMixesToContentCards(
+            recommendationMixes,
+            recommendationUserName
+          )}
+          isLoading={isLoadingRecommendationMixes}
+          emptyMessage="Hôm nay chưa có playlist gợi ý cá nhân nào sẵn sàng."
+          onPlay={(item) => playRecommendationMixItem(item, user)}
+        />
+      ) : null}
 
       <ContentCardSection
         label="Album"
         title="Album nổi bật"
         description="Khám phá các album nổi bật và tuyển tập âm nhạc phù hợp với mọi tâm trạng."
-        items={ mapAlbumsToContentCards(albums) }
-        isLoading={ isLoadingAlbums }
+        items={mapAlbumsToContentCards(albums)}
+        isLoading={isLoadingAlbums}
         emptyMessage="Hiện chưa có dữ liệu album."
-        onPlay={ playAlbumItem }
+        onPlay={playAlbumItem}
       />
 
       <DailyTopArtistsSection
         title="Top nghệ sĩ theo ngày"
         description="Những nghệ sĩ được nghe nhiều nhất hôm nay."
-        items={ dailyTopArtists }
-        isLoading={ isLoadingDailyTopArtists }
-        errorMessage={ dailyTopArtistsError }
+        items={dailyTopArtists}
+        isLoading={isLoadingDailyTopArtists}
+        errorMessage={dailyTopArtistsError}
         emptyMessage="Hôm nay chưa có dữ liệu xếp hạng."
       />
 
-      { playbackError ? (
+      {playbackError ? (
         <div
           className="
             rounded-[18px] border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm
             text-rose-700 dark:text-rose-300
           "
         >
-          { playbackError }
+          {playbackError}
         </div>
-      ) : null }
+      ) : null}
     </section>
   );
 };

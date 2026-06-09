@@ -4,6 +4,8 @@ export const routePaths = {
   monthlyTopTracks: "/charts/monthly-top-tracks",
   albumDetail: (albumId = ":id") => `/albums/${albumId}`,
   playlistDetail: (playlistId = ":id") => `/playlists/${playlistId}`,
+  recommendationMixDetail: (mixId = ":id") =>
+    `/recommendations/daily-mixes/${mixId}`,
   lyrics: "/lyrics",
   trackDetail: (trackId = ":id") => `/tracks/${trackId}`,
   artistTrackDetail: (trackId = ":id") => `/artist/music/${trackId}`,
