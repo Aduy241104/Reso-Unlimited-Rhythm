@@ -15,6 +15,7 @@ import libaryRoutes from "./libary.routes.js";
 import transactionRoutes from "./transaction.routes.js";
 import userRoutes from "./user.routes.js";
 import userPlaylistRoutes from "./user.playlist.routes.js"
+import adminArtistRouter from "./admin.artist.router.js";
 
 function route(app) {
     app.use("/api/auth", authenticationRoutes);
@@ -34,6 +35,7 @@ function route(app) {
     app.use("/api/transactions", transactionRoutes);
     app.use("/api/users", userRoutes);
     app.use("/api/users/playlists", userPlaylistRoutes);
+    app.use("/api/admin/artists", adminArtistRouter);
 }
 
 export default route;
