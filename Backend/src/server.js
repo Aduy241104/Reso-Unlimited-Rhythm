@@ -15,6 +15,7 @@ import { startDailyTopTrackCron } from "./jobs/dailyTopTrack.cron.js";
 import { startMonthlyTrackStatCron } from "./jobs/monthlyTrackStat.cron.js";
 import { startMonthlyTopTrackCron } from "./jobs/monthlyTopTrack.cron.js";
 import { runStartupAnalyticsCatchup } from "./jobs/startupAnalyticsCatchup.js";
+import { startListenEventSyncCron } from "./jobs/syncListenEventsFromRedis.job.js";
 import {
     globalErrorHandler,
     notFoundHandler,
@@ -86,6 +87,7 @@ const startServer = async () => {
         startMonthlyTrackStatCron();
         startMonthlyTopTrackCron();
         startPlatformStreamingStatsCron();
+        startListenEventSyncCron();
 
 
     } catch (error) {
