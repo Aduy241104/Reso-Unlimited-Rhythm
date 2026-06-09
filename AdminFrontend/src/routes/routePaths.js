@@ -8,6 +8,8 @@ export const routePaths = {
   systemPlaylists: "/system-playlists",
   genres: "/genres",
   genreNew: "/genres/new",
+  systemArtists: "/system-artists",
+  artistDetail: (artistId = ":id") => `/system-artists/${artistId}`,
   genreEdit: (genreId = ":genreId") => `/genres/${genreId}/edit`,
   users: "/users",
   userDetail: (userId = ":userId") => `/users/${userId}`,
