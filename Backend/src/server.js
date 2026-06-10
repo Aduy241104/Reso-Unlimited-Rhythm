@@ -22,6 +22,10 @@ import {
 } from "./middlewares/error.middleware.js";
 import model from "./models/index.js";
 import { startPlatformStreamingStatsCron } from "./jobs/platformStreamingStats.cron.js";
+import {
+    runReleaseSchedulePublication,
+    startReleaseScheduleCron,
+} from "./jobs/releaseSchedule.cron.js";
 
 dotenv.config();
 const app = express();
@@ -79,6 +83,7 @@ const startServer = async () => {
             console.log(`🚀 Server + Socket.IO đang chạy tại port ${PORT}`);
             console.log(`📡 Server đang mở cổng mạng nội bộ tại mọi IP`);
         });
+        await runReleaseSchedulePublication();
         await runStartupAnalyticsCatchup();
         startDailyTopArtistCron();
         startMonthlyTopArtistCron();
@@ -88,6 +93,7 @@ const startServer = async () => {
         startMonthlyTopTrackCron();
         startPlatformStreamingStatsCron();
         startListenEventSyncCron();
+        startReleaseScheduleCron();
 
 
     } catch (error) {

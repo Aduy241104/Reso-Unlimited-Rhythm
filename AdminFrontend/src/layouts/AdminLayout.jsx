@@ -8,6 +8,7 @@ const navigationItems = [
   { to: routePaths.systemTracks, label: "Kiểm duyệt track", end: false },
   { to: routePaths.artistRequests, label: "Yêu cầu artist", end: false },
   { to: routePaths.systemPlaylists, label: "Playlist hệ thống", end: false },
+  { to: routePaths.systemArtists, label: "Artist hệ thống", end: false },
   { to: routePaths.genres, label: "Thể loại", end: false },
   { to: routePaths.users, label: "Người dùng", end: false },
 ];

@@ -1,6 +1,6 @@
 import { usesThirdPartyRights } from "../../utils/trackWorkflow";
 
-const TrackCopyrightFields = ({ value, onChange, disabled = false }) => {
+const TrackCopyrightFields = ({ value, onChange, disabled = false, errors = {} }) => {
   const copyright = value || {};
   const thirdParty = usesThirdPartyRights(copyright);
 
@@ -12,24 +12,13 @@ const TrackCopyrightFields = ({ value, onChange, disabled = false }) => {
   };
 
   const updateRightsType = (field) => {
-    const nextValue = !copyright[field];
-
-    if (field === "isOriginal" && nextValue) {
-      onChange({
-        ...copyright,
-        isOriginal: true,
-        isCover: false,
-        isRemix: false,
-        usesSample: false,
-        usesLicensedBeat: false,
-      });
-      return;
-    }
-
     onChange({
       ...copyright,
-      [field]: nextValue,
-      isOriginal: field === "isOriginal" ? nextValue : false,
+      isOriginal: field === "isOriginal",
+      isCover: field === "isCover",
+      isRemix: field === "isRemix",
+      usesSample: field === "usesSample",
+      usesLicensedBeat: field === "usesLicensedBeat",
     });
   };
 
@@ -56,8 +45,15 @@ const TrackCopyrightFields = ({ value, onChange, disabled = false }) => {
             value={copyright.copyrightOwner || ""}
             onChange={(event) => updateField("copyrightOwner", event.target.value)}
             disabled={disabled}
-            className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm"
+            className={`mt-2 w-full rounded-md border px-3 py-2 text-sm ${
+              errors.copyrightOwner
+                ? "border-red-500"
+                : "border-neutral-200"
+            }`}
           />
+          {errors.copyrightOwner && (
+            <p className="mt-1 text-xs text-red-500">{errors.copyrightOwner}</p>
+          )}
         </div>
         <div>
           <label className="block text-sm font-medium text-[#241b15]">
@@ -68,8 +64,15 @@ const TrackCopyrightFields = ({ value, onChange, disabled = false }) => {
             value={copyright.recordingOwner || ""}
             onChange={(event) => updateField("recordingOwner", event.target.value)}
             disabled={disabled}
-            className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm"
+            className={`mt-2 w-full rounded-md border px-3 py-2 text-sm ${
+              errors.recordingOwner
+                ? "border-red-500"
+                : "border-neutral-200"
+            }`}
           />
+          {errors.recordingOwner && (
+            <p className="mt-1 text-xs text-red-500">{errors.recordingOwner}</p>
+          )}
         </div>
       </div>
 
@@ -179,19 +182,26 @@ const TrackCopyrightFields = ({ value, onChange, disabled = false }) => {
         />
       </div>
 
-      <label className="inline-flex items-start gap-2 text-sm text-neutral-700">
-        <input
-          type="checkbox"
-          checked={Boolean(copyright.declarationAccepted)}
-          onChange={(event) => updateField("declarationAccepted", event.target.checked)}
-          disabled={disabled}
-          className="mt-1 h-4 w-4 rounded border-neutral-300 text-[#8b5e3c]"
-        />
-        <span>
-          I declare that I own or have obtained all necessary rights to distribute this
-          track, and the information provided is accurate.
-        </span>
-      </label>
+      <div>
+        <label className="inline-flex items-start gap-2 text-sm text-neutral-700">
+          <input
+            type="checkbox"
+            checked={Boolean(copyright.declarationAccepted)}
+            onChange={(event) => updateField("declarationAccepted", event.target.checked)}
+            disabled={disabled}
+            className={`mt-1 h-4 w-4 rounded border-neutral-300 text-[#8b5e3c] ${
+              errors.declarationAccepted ? "border-red-500" : ""
+            }`}
+          />
+          <span>
+            I declare that I own or have obtained all necessary rights to distribute this
+            track, and the information provided is accurate.
+          </span>
+        </label>
+        {errors.declarationAccepted && (
+          <p className="mt-1 text-xs text-red-500">{errors.declarationAccepted}</p>
+        )}
+      </div>
     </div>
   );
 };

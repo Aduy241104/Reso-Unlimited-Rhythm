@@ -4,9 +4,10 @@ import trackService from "../../services/trackService";
 import genreService from "../../services/genreService";
 import { routePaths } from "../../routes/routePaths";
 import { getApiErrorFullMessage } from "../../utils/apiError";
-import { MAX_GENRE_IDS, TITLE_MAX_LENGTH } from "../../utils/trackWorkflow";
+import { MAX_GENRE_IDS, TITLE_MAX_LENGTH, mapTrackCopyrightToForm, serializeCopyrightForApi } from "../../utils/trackWorkflow";
 import AudioQualityDisplay from "./AudioQualityDisplay";
 import AudioQualityPreview from "./AudioQualityPreview";
+import TrackCopyrightFields from "../artist/TrackCopyrightFields";
 
 const CreateTrackForm = () => {
   const navigate = useNavigate();
@@ -36,6 +37,8 @@ const CreateTrackForm = () => {
   const [genres, setGenres] = useState([]);
   const [genresLoading, setGenresLoading] = useState(true);
   const [genresOpen, setGenresOpen] = useState(false);
+  const [copyrightForm, setCopyrightForm] = useState(mapTrackCopyrightToForm());
+  const [fieldErrors, setFieldErrors] = useState({});
 
   useEffect(() => {
     const fetchAlbums = async () => {
@@ -130,25 +133,63 @@ const CreateTrackForm = () => {
     });
   };
 
+  const navigateToMusicPage = () => {
+    navigate(routePaths.artistMusic);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setErrorMessage("");
     setSuccessMessage("");
+    setFieldErrors({});
+
+    const errors = {};
+    const title = formData.title.trim();
+
+    if (!title) {
+      errors.title = "Title is required.";
+    } else if (title.length > TITLE_MAX_LENGTH) {
+      errors.title = `Title cannot exceed ${TITLE_MAX_LENGTH} characters.`;
+    }
+
+    if (formData.genreIds.length === 0) {
+      errors.genres = "Select at least one genre.";
+    }
+
+    if (!audioFile) {
+      errors.audio = "Upload at least one audio file.";
+    }
+
+    if (!formData.duration || formData.duration <= 0) {
+      errors.duration = "Duration must be greater than 0 seconds.";
+    }
+
+    if (!avatarFile && coverImages.length === 0) {
+      errors.media = "Add a track avatar or at least one cover image.";
+    }
+
+    if (!copyrightForm.copyrightOwner?.trim()) {
+      errors.copyrightOwner = "Copyright owner is required.";
+    }
+
+    if (!copyrightForm.recordingOwner?.trim()) {
+      errors.recordingOwner = "Recording owner is required.";
+    }
+
+    if (!copyrightForm.declarationAccepted) {
+      errors.declarationAccepted = "Accept the copyright declaration.";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
+    }
+
+    setLoading(true);
     setUploadedQualities([]);
     setUploadingQualities(false);
 
     try {
-      const title = formData.title.trim();
-
-      if (!title) {
-        throw new Error("Title is required to save a draft.");
-      }
-
-      if (title.length > TITLE_MAX_LENGTH) {
-        throw new Error(`Title cannot exceed ${TITLE_MAX_LENGTH} characters.`);
-      }
-
       let uploadedAudioUrls = [];
       let avatarUrl = formData.avatar || "";
       let uploadedCoverUrls = [];
@@ -194,6 +235,7 @@ const CreateTrackForm = () => {
         audioFiles: uploadedAudioUrls,
         coverImage: uploadedCoverUrls,
         avatar: avatarUrl,
+        copyright: serializeCopyrightForApi(copyrightForm),
       };
 
       if (formData.duration !== "" && formData.duration !== null) {
@@ -203,39 +245,11 @@ const CreateTrackForm = () => {
       const response = await trackService.createTrack(trackDataToSubmit);
 
       if (response.success) {
-        const createdTrack = response?.data?.track;
-        const trackId = createdTrack?._id;
-
-        if (trackId) {
-          navigate(routePaths.artistTrackEdit(trackId), {
-            state: {
-              message:
-                "Draft saved. Complete genres, cover, copyright, and audio, then submit for approval.",
-            },
-          });
-          return;
-        }
-
-        setSuccessMessage(
-          response.message ||
-            "Draft track created. Open the track editor to complete details before submitting."
-        );
-        setFormData({
-          title: "",
-          versionTitle: "",
-          duration: "",
-          avatar: "",
-          coverImage: [],
-          lyricsStatic: "",
-          album_albumId: "",
-          genreIds: [],
-          releaseDate: "",
+        navigate(routePaths.artistMusic, {
+          state: {
+            message: "Draft track created successfully.",
+          },
         });
-        setAudioFile(null);
-        setLyricsSyncFile(null);
-        setCoverImages([]);
-        setAvatarFile(null);
-        setUploadedQualities([]);
       }
     } catch (error) {
       setErrorMessage(getApiErrorFullMessage(error, "Failed to create track"));
@@ -288,9 +302,16 @@ const CreateTrackForm = () => {
             onChange={handleInputChange}
             placeholder="Enter track title"
             maxLength={TITLE_MAX_LENGTH}
-            className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm focus:border-[#8b5e3c] focus:outline-none"
+            className={`mt-2 w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${
+              fieldErrors.title
+                ? "border-red-500 focus:border-red-500"
+                : "border-neutral-200 focus:border-[#8b5e3c]"
+            }`}
             required
           />
+          {fieldErrors.title && (
+            <p className="mt-1 text-xs text-red-500">{fieldErrors.title}</p>
+          )}
         </div>
 
         <div>
@@ -312,7 +333,7 @@ const CreateTrackForm = () => {
 
         <div>
           <label className="block text-sm font-medium text-[#241b15]">
-            Duration (seconds)
+            Duration (seconds) *
           </label>
           <input
             type="number"
@@ -322,26 +343,40 @@ const CreateTrackForm = () => {
             placeholder="e.g., 240"
             min="1"
             step="1"
-            className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm focus:border-[#8b5e3c] focus:outline-none"
+            className={`mt-2 w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${
+              fieldErrors.duration
+                ? "border-red-500 focus:border-red-500"
+                : "border-neutral-200 focus:border-[#8b5e3c]"
+            }`}
           />
-          <p className="mt-1 text-xs text-neutral-500">
-            Required before submit for approval. You can add it now or later on the edit page.
-          </p>
+          {fieldErrors.duration ? (
+            <p className="mt-1 text-xs text-red-500">{fieldErrors.duration}</p>
+          ) : (
+            <p className="mt-1 text-xs text-neutral-500">
+              Required before submit for approval.
+            </p>
+          )}
         </div>
 
         <div>
           <label className="block text-sm font-medium text-[#241b15]">
-            Audio file (optional for draft)
+            Audio file *
           </label>
-          <p className="mt-1 text-xs text-neutral-500">
-            One upload is transcoded into multiple qualities (e.g. 320k, 192k, 128k, 96k).
+          <p className={`mt-1 text-xs ${
+            fieldErrors.audio ? "text-red-500" : "text-neutral-500"
+          }`}>
+            {fieldErrors.audio || "One upload is transcoded into multiple qualities (e.g. 320k, 192k, 128k, 96k)."}
           </p>
           <input
             type="file"
             accept="audio/*,video/mp4"
             onChange={handleAudioFileChange}
             disabled={loading}
-            className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm disabled:bg-neutral-100"
+            className={`mt-2 w-full rounded-md border px-3 py-2 text-sm disabled:bg-neutral-100 ${
+              fieldErrors.audio
+                ? "border-red-500"
+                : "border-neutral-200"
+            }`}
           />
           {audioFile && (
             <div className="mt-2 flex items-center justify-between rounded-md bg-neutral-50 p-2">
@@ -360,68 +395,80 @@ const CreateTrackForm = () => {
 
         <div>
           <label className="block text-sm font-medium text-[#241b15]">
-            Track Avatar (Image)
+            Track Avatar or Cover Images *
           </label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleAvatarChange}
-            disabled={loading}
-            className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm disabled:bg-neutral-100"
-          />
-          {avatarFile && (
-            <div className="mt-2 flex items-center justify-between rounded-md bg-neutral-50 p-2">
-              <p className="truncate text-sm text-neutral-700">
-                {avatarFile.name}
-              </p>
-              <button
-                type="button"
-                onClick={handleRemoveAvatar}
+          <p className={`mt-1 text-xs ${
+            fieldErrors.media ? "text-red-500" : "text-neutral-500"
+          }`}>
+            {fieldErrors.media || "Upload at least one avatar or cover image."}
+          </p>
+          <div className="mt-2 space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-[#241b15]">Avatar</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarChange}
                 disabled={loading}
-                className="ml-2 text-red-500 hover:text-red-700 disabled:opacity-50"
-              >
-                ✕
-              </button>
+                className={`mt-1 w-full rounded-md border px-3 py-2 text-sm disabled:bg-neutral-100 ${
+                  fieldErrors.media && !avatarFile && coverImages.length === 0
+                    ? "border-red-500"
+                    : "border-neutral-200"
+                }`}
+              />
+              {avatarFile && (
+                <div className="mt-2 flex items-center justify-between rounded-md bg-neutral-50 p-2">
+                  <p className="truncate text-sm text-neutral-700">
+                    {avatarFile.name}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleRemoveAvatar}
+                    disabled={loading}
+                    className="ml-2 text-red-500 hover:text-red-700 disabled:opacity-50"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-[#241b15]">
-            Cover Images (Upload images)
-          </label>
-          <input
-            type="file"
-            multiple
-            accept="image/*"
-            onChange={handleCoverImagesChange}
-            disabled={loading}
-            className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm disabled:bg-neutral-100"
-          />
-          {coverImages.length > 0 && (
-            <p className="mt-2 text-sm text-neutral-600">
-              {coverImages.length} file(s) selected
-            </p>
-          )}
-          <div className="mt-2 space-y-2">
-            {coverImages.map((file, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between rounded-md bg-neutral-50 p-2"
-              >
-                <p className="truncate text-sm text-neutral-700">
-                  {file.name}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => handleRemoveCoverImage(index)}
-                  disabled={loading}
-                  className="ml-2 text-red-500 hover:text-red-700 disabled:opacity-50"
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
+            <div>
+              <label className="block text-xs font-medium text-[#241b15]">Cover Images</label>
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleCoverImagesChange}
+                disabled={loading}
+                className={`mt-1 w-full rounded-md border px-3 py-2 text-sm disabled:bg-neutral-100 ${
+                  fieldErrors.media && !avatarFile && coverImages.length === 0
+                    ? "border-red-500"
+                    : "border-neutral-200"
+                }`}
+              />
+              {coverImages.length > 0 && (
+                <div className="mt-2 space-y-2">
+                  {coverImages.map((file, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between rounded-md bg-neutral-50 p-2"
+                    >
+                      <p className="truncate text-sm text-neutral-700">
+                        {file.name}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveCoverImage(index)}
+                        disabled={loading}
+                        className="ml-2 text-red-500 hover:text-red-700 disabled:opacity-50"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -471,9 +518,11 @@ const CreateTrackForm = () => {
         </div>
 
         <div className="relative">
-          <label className="block text-sm font-medium text-[#241b15]">Genres</label>
-          <p className="mt-1 text-xs text-neutral-500">
-            Optional for draft. Select up to {MAX_GENRE_IDS} genres (required before submit).
+          <label className="block text-sm font-medium text-[#241b15]">Genres *</label>
+          <p className={`mt-1 text-xs ${
+            fieldErrors.genres ? "text-red-500" : "text-neutral-500"
+          }`}>
+            {fieldErrors.genres || `Select up to ${MAX_GENRE_IDS} genres.`}
           </p>
 
           {genresLoading ? (
@@ -486,7 +535,11 @@ const CreateTrackForm = () => {
                 type="button"
                 onClick={() => setGenresOpen((s) => !s)}
                 disabled={loading}
-                className="w-full text-left rounded-md border border-neutral-200 px-3 py-2 text-sm flex items-center justify-between"
+                className={`w-full text-left rounded-md border px-3 py-2 text-sm flex items-center justify-between ${
+                  fieldErrors.genres
+                    ? "border-red-500"
+                    : "border-neutral-200"
+                }`}
               >
                 <div className="truncate">
                   {formData.genreIds.length === 0
@@ -587,6 +640,13 @@ const CreateTrackForm = () => {
           />
         </div>
 
+        <TrackCopyrightFields
+          value={copyrightForm}
+          onChange={setCopyrightForm}
+          disabled={loading}
+          errors={fieldErrors}
+        />
+
         <div className="flex gap-2 pt-4">
           <button
             type="submit"
@@ -598,6 +658,14 @@ const CreateTrackForm = () => {
                 ? "Uploading media..."
                 : "Saving draft..."
               : "Save draft"}
+          </button>
+          <button
+            type="button"
+            onClick={navigateToMusicPage}
+            disabled={loading}
+            className="rounded-md border border-neutral-300 px-4 py-2 font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
+          >
+            Cancel
           </button>
         </div>
       </form>
