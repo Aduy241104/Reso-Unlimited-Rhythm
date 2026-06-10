@@ -12,7 +12,9 @@ import ArtistProfilePage from "../pages/artist/ArtistProfilePage";
 import ArtistAlbumPage from "../pages/artist/ArtistAlbumPage";
 import ArtistAlbumDetailPage from "../pages/artist/ArtistAlbumDetailPage";
 import ArtistCreateAlbumPage from "../pages/artist/ArtistCreateAlbumPage";
+import ArtistCreateReleaseSchedulePage from "../pages/artist/ArtistCreateReleaseSchedulePage";
 import ArtistEditAlbumPage from "../pages/artist/ArtistEditAlbumPage";
+import ArtistReleaseScheduleDetailPage from "../pages/artist/ArtistReleaseScheduleDetailPage";
 import ArtistTrackInsightsPage from "../pages/artist/ArtistTrackInsightsPage";
 import {
   FansPage,
@@ -165,6 +167,14 @@ export const appRoutes = [
               {
                 path: routePaths.artistReleases,
                 element: <ReleasesPage />,
+              },
+              {
+                path: routePaths.artistCreateReleaseSchedule,
+                element: <ArtistCreateReleaseSchedulePage />,
+              },
+              {
+                path: routePaths.artistReleaseScheduleDetail(),
+                element: <ArtistReleaseScheduleDetailPage />,
               },
               {
                 path: routePaths.artistAnalytics,

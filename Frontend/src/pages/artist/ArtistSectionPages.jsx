@@ -5,6 +5,7 @@ import trackService from "../../services/trackService";
 import { routePaths } from "../../routes/routePaths";
 import { getApiErrorFullMessage } from "../../utils/apiError";
 import { canArtistSubmitTrack } from "../../utils/trackWorkflow";
+import ArtistReleaseSchedulePage from "./ArtistReleaseSchedulePage";
 
 const formatDuration = (duration) => {
   const totalSeconds = Number(duration) || 0;
@@ -466,12 +467,7 @@ export const MyMusicPage = () => {
   );
 };
 
-export const ReleasesPage = () => (
-  <ArtistSectionPage
-    title="Releases"
-    description="Plan release schedules, monitor launch readiness, and track how each project performs after it goes live."
-  />
-);
+export const ReleasesPage = () => <ArtistReleaseSchedulePage />;
 
 export const AnalyticsPage = () => (
   <ArtistSectionPage

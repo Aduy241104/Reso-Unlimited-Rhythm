@@ -44,6 +44,7 @@ const ArtistTrackEditPage = () => {
   const [copyrightForm, setCopyrightForm] = useState(mapTrackCopyrightToForm());
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const [audioFile, setAudioFile] = useState(null);
   const [avatarFile, setAvatarFile] = useState(null);
   const [coverImageFiles, setCoverImageFiles] = useState([]);
@@ -241,6 +242,50 @@ const ArtistTrackEditPage = () => {
     }
   };
 
+  const validateFormFields = () => {
+    const errors = {};
+    
+    const title = formData.title.trim();
+    if (!title) {
+      errors.title = "Title is required.";
+    } else if (title.length > TITLE_MAX_LENGTH) {
+      errors.title = `Title cannot exceed ${TITLE_MAX_LENGTH} characters.`;
+    }
+
+    if (formData.genreIds.length === 0) {
+      errors.genres = "Select at least one genre.";
+    }
+
+    const audioFiles = Array.isArray(track?.audioFiles) ? track.audioFiles : [];
+    if (audioFiles.length === 0 && !audioFile) {
+      errors.audio = "Upload at least one audio file.";
+    }
+
+    if (!formData.duration || formData.duration <= 0) {
+      errors.duration = "Duration must be greater than 0 seconds.";
+    }
+
+    const hasAvatar = avatarFile || (track?.avatar && typeof track.avatar === "string" && track.avatar.trim());
+    const hasCovers = coverImageFiles.length > 0 || (Array.isArray(track?.coverImage) && track.coverImage.length > 0);
+    if (!hasAvatar && !hasCovers) {
+      errors.media = "Add a track avatar or at least one cover image.";
+    }
+
+    if (!copyrightForm.copyrightOwner?.trim()) {
+      errors.copyrightOwner = "Copyright owner is required.";
+    }
+
+    if (!copyrightForm.recordingOwner?.trim()) {
+      errors.recordingOwner = "Recording owner is required.";
+    }
+
+    if (!copyrightForm.declarationAccepted) {
+      errors.declarationAccepted = "Accept the copyright declaration.";
+    }
+
+    return errors;
+  };
+
   const handleSubmitForApproval = async () => {
     if (!track || !canSubmit) {
       return;
@@ -341,9 +386,17 @@ const ArtistTrackEditPage = () => {
       return;
     }
 
-    setSubmitting(true);
     setSuccessMessage("");
     setErrorMessage("");
+    setFieldErrors({});
+
+    const errors = validateFormFields();
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
+    }
+
+    setSubmitting(true);
 
     try {
       let uploadedMedia = null;
@@ -403,7 +456,7 @@ const ArtistTrackEditPage = () => {
       setSuccessMessage("Track updated successfully.");
 
       setTimeout(() => {
-        navigate(routePaths.artistTrackDetail(id));
+        navigate(routePaths.artistMusic);
       }, 900);
 
       setAudioFile(null);
@@ -525,21 +578,27 @@ const ArtistTrackEditPage = () => {
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-6">
           <div className="rounded-md border border-neutral-200 bg-[#fcfaf7] p-4">
-            <p className="text-sm font-medium text-[#241b15]">Replace Media (Optional)</p>
-            <p className="mt-1 text-xs text-neutral-600">
-              If you upload new media and save, old replaced files will be removed from Cloudinary automatically.
+            <p className="text-sm font-medium text-[#241b15]">Media *</p>
+            <p className={`mt-1 text-xs ${
+              fieldErrors.audio || fieldErrors.media ? "text-red-500" : "text-neutral-600"
+            }`}>
+              {fieldErrors.audio || fieldErrors.media || "Upload or verify your audio, avatar, and cover images."}
             </p>
 
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-[#241b15]">
-                  New audio file
+                  Audio file {!audioPreviewUrl && !audioFile ? "*" : ""}
                 </label>
                 <input
                   type="file"
                   accept="audio/*,video/mp4"
                   onChange={handleAudioChange}
-                  className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm"
+                  className={`mt-2 w-full rounded-md border px-3 py-2 text-sm ${
+                    fieldErrors.audio
+                      ? "border-red-500"
+                      : "border-neutral-200"
+                  }`}
                 />
                 {audioFile ? (
                   <p className="mt-2 text-xs text-neutral-600">Selected: {audioFile.name}</p>
@@ -554,13 +613,17 @@ const ArtistTrackEditPage = () => {
 
               <div>
                 <label className="block text-sm font-medium text-[#241b15]">
-                  New avatar image
+                  Avatar image {!avatarPreview && !avatarFile ? "*" : ""}
                 </label>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleAvatarChange}
-                  className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm"
+                  className={`mt-2 w-full rounded-md border px-3 py-2 text-sm ${
+                    fieldErrors.media
+                      ? "border-red-500"
+                      : "border-neutral-200"
+                  }`}
                 />
                 {avatarFile ? (
                   <p className="mt-2 text-xs text-neutral-600">Selected: {avatarFile.name}</p>
@@ -647,9 +710,16 @@ const ArtistTrackEditPage = () => {
                 onChange={handleInputChange}
                 maxLength={TITLE_MAX_LENGTH}
                 disabled={!canEdit || submitting}
-                className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm focus:border-[#8b5e3c] focus:outline-none"
+                className={`mt-2 w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${
+                  fieldErrors.title
+                    ? "border-red-500 focus:border-red-500"
+                    : "border-neutral-200 focus:border-[#8b5e3c]"
+                }`}
                 required
               />
+              {fieldErrors.title && (
+                <p className="mt-1 text-xs text-red-500">{fieldErrors.title}</p>
+              )}
             </div>
 
             <div>
@@ -678,9 +748,16 @@ const ArtistTrackEditPage = () => {
                 min="1"
                 step="1"
                 disabled={!canEdit || submitting}
-                className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm focus:border-[#8b5e3c] focus:outline-none"
+                className={`mt-2 w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${
+                  fieldErrors.duration
+                    ? "border-red-500 focus:border-red-500"
+                    : "border-neutral-200 focus:border-[#8b5e3c]"
+                }`}
                 required
               />
+              {fieldErrors.duration && (
+                <p className="mt-1 text-xs text-red-500">{fieldErrors.duration}</p>
+              )}
             </div>
           </div>
 
@@ -688,6 +765,7 @@ const ArtistTrackEditPage = () => {
             value={copyrightForm}
             onChange={setCopyrightForm}
             disabled={!canEdit || submitting}
+            errors={fieldErrors}
           />
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -720,13 +798,22 @@ const ArtistTrackEditPage = () => {
 
           <div className="relative">
             <label className="block text-sm font-medium text-[#241b15]">
-              Genres (required before submit, max {MAX_GENRE_IDS})
+              Genres *
             </label>
+            <p className={`mt-1 text-xs ${
+              fieldErrors.genres ? "text-red-500" : "text-neutral-500"
+            }`}>
+              {fieldErrors.genres || `Select at least one genre (max ${MAX_GENRE_IDS})`}
+            </p>
             <button
               type="button"
               onClick={() => setGenresOpen((current) => !current)}
               disabled={!canEdit || submitting}
-              className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-left text-sm flex items-center justify-between"
+              className={`mt-2 w-full rounded-md border px-3 py-2 text-left text-sm flex items-center justify-between ${
+                fieldErrors.genres
+                  ? "border-red-500"
+                  : "border-neutral-200"
+              }`}
             >
               <span className="truncate text-neutral-700">
                 {formData.genreIds.length === 0
