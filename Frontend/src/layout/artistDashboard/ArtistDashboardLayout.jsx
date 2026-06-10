@@ -1,18 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Bell, Menu, Search, X } from "lucide-react";
 import { getMyArtistProfileService } from "../../services/artistService";
-import { routePaths } from "../../routes/routePaths";
 import {
   artistNavigation,
-  artistPageTitles,
   artistProfile,
 } from "./navigation";
 
 const SIDEBAR_WIDTH = "264px";
 
 const ArtistDashboardLayout = () => {
-  const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [sidebarArtistName, setSidebarArtistName] = useState("");
   const [sidebarArtistSubtitle, setSidebarArtistSubtitle] = useState("");
@@ -48,62 +45,31 @@ const ArtistDashboardLayout = () => {
     };
   }, []);
 
-  const pageTitle = useMemo(() => {
-    if (
-      location.pathname.startsWith("/artist/music/") &&
-      location.pathname.endsWith("/edit")
-    ) {
-      return artistPageTitles[routePaths.artistTrackEdit()] ?? "Chỉnh sửa bài hát";
-    }
-
-    if (location.pathname.startsWith("/artist/music/") && location.pathname !== routePaths.artistMusic) {
-      return artistPageTitles[routePaths.artistTrackDetail()] ?? "Chi tiết bài hát";
-    }
-
-    if (location.pathname === routePaths.artistProfileEdit) {
-      return artistPageTitles[routePaths.artistProfileEdit] ?? "Bảng điều khiển nghệ sĩ";
-    }
-
-    if (location.pathname === routePaths.artistProfile) {
-      return artistPageTitles[routePaths.artistProfile] ?? "Bảng điều khiển nghệ sĩ";
-    }
-
-    if (location.pathname === routePaths.artistLyrics) {
-      return artistPageTitles[routePaths.artistLyrics] ?? "Bảng điều khiển nghệ sĩ";
-    }
-
-    const activeItem = artistNavigation.find((item) => {
-      if (item.to === "/artist") {
-        return location.pathname === item.to;
-      }
-
-      return location.pathname.startsWith(item.to);
-    });
-
-    return artistPageTitles[activeItem?.to] ?? "Bảng điều khiển nghệ sĩ";
-  }, [location.pathname]);
-
   const renderSidebar = () => (
-    <div className="flex h-full flex-col bg-white text-[#2f2747]">
-      <div className="flex items-center justify-between border-b border-[#ece8ff] px-6 py-6 lg:justify-start">
+    <div className="flex h-full flex-col bg-[#2f2747] text-white">
+      {/* Header */ }
+      <div className="flex items-center justify-between border-b border-white/10 px-6 py-6 lg:justify-start">
         <div>
-          <p className="text-xs uppercase tracking-[0.45em] text-[#b08b65]">
+          <p className="text-xs font-semibold uppercase tracking-[0.45em] text-[#d6b48c]">
             RESO MUSIC
           </p>
-          <p className="mt-2 text-sm text-[#7c7891]">Trung tâm nghệ sĩ</p>
+          <p className="mt-2 text-sm font-medium text-white/55">
+            Trung tâm nghệ sĩ
+          </p>
         </div>
 
         <button
           type="button"
           onClick={ () => setIsSidebarOpen(false) }
-          className="inline-flex h-10 w-10 items-center justify-center rounded-sm border border-[#ece8ff] text-[#6b6682] transition hover:bg-[#f8f6ff] hover:text-[#2f2747] lg:hidden"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 text-white/60 transition hover:bg-white/10 hover:text-white lg:hidden"
           aria-label="Close sidebar"
         >
           <X className="h-5 w-5" />
         </button>
       </div>
 
-      <nav className="flex-1 space-y-1 py-6">
+      {/* Navigation */ }
+      <nav className="flex-1 space-y-1 py-5 pl-3 pr-0">
         { artistNavigation.map((item) => (
           <NavLink
             key={ item.to }
@@ -112,26 +78,51 @@ const ArtistDashboardLayout = () => {
             onClick={ () => setIsSidebarOpen(false) }
             className={ ({ isActive }) =>
               [
-                "mx-3 flex items-center gap-3 rounded-md px-4 py-3 text-sm font-medium transition",
+                "relative flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-200",
                 isActive
-                  ? "bg-[#f3f0ff] text-[#5f4fe0]"
-                  : "text-[#6b6682] hover:bg-[#f8f6ff] hover:text-[#2f2747]",
+                  ? "mr-0 rounded-l-xl rounded-r-none bg-white text-[#5f4fe0]"
+                  : "mr-3 rounded-xl text-white/60 hover:bg-white/10 hover:text-white",
               ].join(" ")
             }
           >
-            <item.icon className="h-4 w-4 shrink-0" />
-            <span>{ item.label }</span>
+            { ({ isActive }) => (
+              <>
+                { isActive && (
+                  <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-[#d6b48c]" />
+                ) }
+
+                <item.icon
+                  className={ [
+                    "h-4 w-4 shrink-0 transition",
+                    isActive ? "text-[#5f4fe0]" : "text-white/45",
+                  ].join(" ") }
+                />
+
+                <span className="truncate">{ item.label }</span>
+              </>
+            ) }
           </NavLink>
         )) }
       </nav>
 
-      <div className="border-t border-[#ece8ff] px-6 py-5">
-        <p className="truncate text-sm font-medium text-[#2f2747]">
-          { sidebarArtistName || artistProfile.name }
-        </p>
-        <p className="mt-1 truncate text-xs text-[#7c7891]">
-          { sidebarArtistSubtitle || artistProfile.role }
-        </p>
+      {/* Artist profile */ }
+      <div className="border-t border-white/10 px-6 py-5">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-sm font-semibold text-[#d6b48c] ring-1 ring-white/10">
+            { (sidebarArtistName || artistProfile.name || "A")
+              .charAt(0)
+              .toUpperCase() }
+          </div>
+
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-white">
+              { sidebarArtistName || artistProfile.name }
+            </p>
+            <p className="mt-1 truncate text-xs text-white/50">
+              { sidebarArtistSubtitle || artistProfile.role }
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -181,15 +172,6 @@ const ArtistDashboardLayout = () => {
                 >
                   <Menu className="h-5 w-5" />
                 </button>
-
-                <div>
-                  <h1 className="text-2xl font-semibold tracking-tight text-[#2f2747]">
-                    {pageTitle}
-                  </h1>
-                  <p className="mt-1 text-sm text-[#7c7891]">
-                    Quản lý danh mục phát hành, khán giả và hiệu suất trong một không gian thống nhất.
-                  </p>
-                </div>
               </div>
 
               <div className="flex items-center gap-3">

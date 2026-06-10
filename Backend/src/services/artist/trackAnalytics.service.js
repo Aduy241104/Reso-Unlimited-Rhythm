@@ -166,6 +166,24 @@ const buildRecentDailyChartPeriod = ({ from, to, maxDays = 7 }) => {
     };
 };
 
+const buildLatestDailyChartPeriod = (maxDays = 7) => {
+    const today = getTodayInAnalyticsTimezone();
+
+    return {
+        from: today.subtract(maxDays - 1, "day").format(DATE_KEY_FORMAT),
+        to: today.format(DATE_KEY_FORMAT),
+    };
+};
+
+const buildLatestMonthlyChartPeriod = (maxMonths = 12) => {
+    const currentMonth = getTodayInAnalyticsTimezone().startOf("month");
+
+    return {
+        from: currentMonth.subtract(maxMonths - 1, "month"),
+        to: currentMonth,
+    };
+};
+
 const buildTrackPayload = (track) => ({
     id: String(track._id),
     title: track.title,
@@ -204,23 +222,37 @@ const resolveLastUpdatedAt = (stats = []) => {
     return latestTimestamp ? new Date(latestTimestamp).toISOString() : null;
 };
 
-const fetchTrackDailyStats = async ({ trackId, from, to }) =>
-    TrackDailyStat.find({
-        trackId,
-        dateKey: {
+const resolveLatestTimestamp = (...collections) =>
+    resolveLastUpdatedAt(collections.flatMap((collection) => collection || []));
+
+const fetchTrackDailyStats = async ({ trackId, from, to }) => {
+    const query = { trackId };
+
+    if (from && to) {
+        query.dateKey = {
             $gte: from,
             $lte: to,
-        },
-    })
+        };
+    }
+
+    return TrackDailyStat.find(query)
         .sort({ dateKey: 1, _id: 1 })
         .select("dateKey date playCount uniqueListeners averageListenDuration skipCount updatedAt")
         .lean();
+};
 
-const fetchTrackMonthlyStats = async ({ trackId, year }) =>
-    TrackMonthlyStat.find({ trackId, year })
-        .sort({ month: 1, _id: 1 })
-        .select("month playCount uniqueListeners revenue updatedAt")
+const fetchTrackMonthlyStats = async ({ trackId, year }) => {
+    const query = { trackId };
+
+    if (year !== undefined && year !== null) {
+        query.year = year;
+    }
+
+    return TrackMonthlyStat.find(query)
+        .sort({ year: 1, month: 1, _id: 1 })
+        .select("year month playCount uniqueListeners revenue updatedAt")
         .lean();
+};
 
 const sumDailyMetric = (stats, fieldName) =>
     stats.reduce((total, stat) => total + Number(stat?.[fieldName] || 0), 0);
@@ -348,6 +380,42 @@ export const fillMissingMonthlyStats = (stats = [], year) => {
     }).map(({ year: _year, ...rest }) => rest);
 };
 
+export const fillRecentMonthlyChartStats = (stats = [], maxMonths = 12) => {
+    const statMap = new Map(
+        stats.map((stat) => [`${stat.year}-${String(stat.month).padStart(2, "0")}`, stat])
+    );
+    const { from, to } = buildLatestMonthlyChartPeriod(maxMonths);
+    const filledStats = [];
+    let currentMonth = from;
+
+    while (
+        currentMonth.isBefore(to, "month") ||
+        currentMonth.isSame(to, "month")
+    ) {
+        const year = currentMonth.year();
+        const month = currentMonth.month() + 1;
+        const monthKey = `${year}-${String(month).padStart(2, "0")}`;
+        const stat = statMap.get(monthKey);
+        const revenue = stat?.revenue || {};
+
+        filledStats.push({
+            month: monthKey,
+            year,
+            monthNumber: month,
+            playCount: Number(stat?.playCount || 0),
+            uniqueListeners: Number(stat?.uniqueListeners || 0),
+            eligibleStreams: Number(revenue.eligibleStreams || 0),
+            artistRevenueAmount: roundToTwoDecimals(
+                Number(revenue.artistRevenueAmount || 0)
+            ),
+        });
+
+        currentMonth = currentMonth.add(1, "month");
+    }
+
+    return filledStats;
+};
+
 export const validateTrackOwnership = async ({ artistId, trackId }) => {
     if (!mongoose.Types.ObjectId.isValid(trackId)) {
         throw new AppError("Invalid request data.", StatusCodes.BAD_REQUEST);
@@ -384,32 +452,40 @@ export const getTrackAnalyticsOverview = async ({
         artistId: artist._id,
         trackId,
     });
-    const previousPeriod = buildPreviousPeriod(period);
-    const dailyChartPeriod = buildRecentDailyChartPeriod(period);
+    const dailyChartPeriod = buildLatestDailyChartPeriod();
 
-    const [currentStats, previousStats] = await Promise.all([
+    const [currentStats, lifetimeStats, dailyChartStats, monthlyChartStats] = await Promise.all([
         fetchTrackDailyStats({ trackId, from: period.from, to: period.to }),
+        fetchTrackDailyStats({ trackId }),
         fetchTrackDailyStats({
             trackId,
-            from: previousPeriod.from,
-            to: previousPeriod.to,
+            from: dailyChartPeriod.from,
+            to: dailyChartPeriod.to,
         }),
+        fetchTrackMonthlyStats({ trackId }),
     ]);
 
     const summary = buildDailySummary(currentStats);
-    const previousSummary = buildDailySummary(previousStats);
+    const lifetimeSummary = buildDailySummary(lifetimeStats);
 
     return {
         track: buildTrackPayload(track),
         period,
-        summary,
-        comparison: buildComparison(summary, previousSummary),
-        lastUpdatedAt: resolveLastUpdatedAt(currentStats),
+        summary: {
+            ...summary,
+            totalListeningTime: lifetimeSummary.totalListeningTime,
+        },
+        lastUpdatedAt: resolveLatestTimestamp(
+            lifetimeStats,
+            dailyChartStats,
+            monthlyChartStats
+        ),
         dailyChart: fillMissingDailyStats(
-            currentStats,
+            dailyChartStats,
             dailyChartPeriod.from,
             dailyChartPeriod.to
         ),
+        monthlyChart: fillRecentMonthlyChartStats(monthlyChartStats),
     };
 };
 
@@ -531,4 +607,5 @@ export default {
     buildComparison,
     fillMissingDailyStats,
     fillMissingMonthlyStats,
+    fillRecentMonthlyChartStats,
 };

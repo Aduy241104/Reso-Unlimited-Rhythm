@@ -39,5 +39,9 @@ export const uploadAdminGenreImageService = async (file) => {
 
   return res.data?.data?.url ?? null;
 };
-
-export default { getAdminGenresService, createAdminGenreService, getAdminGenreService, updateAdminGenreService, uploadAdminGenreImageService };
+export const deleteAdminGenreService = async (id) => {
+  const res = await axiosClient.delete(`/api/admin/genres/${id}`);
+  // Trả về data giống format cấu trúc chung của bạn
+  return res.data; 
+};
+export default { getAdminGenresService, createAdminGenreService, getAdminGenreService, updateAdminGenreService, uploadAdminGenreImageService, deleteAdminGenreService };

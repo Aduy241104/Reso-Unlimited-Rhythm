@@ -25,6 +25,15 @@ const transcodeAudioToMultipleQualities = async (fileBuffer, fileName) => {
     try {
         const transcodedVersions = [];
 
+        // Add original file as highest priority
+        transcodedVersions.push({
+            buffer: fileBuffer,
+            bitrate: 320, // Assume original is high quality
+            format: "mp3",
+            label: "original",
+            priority: 5, // Highest priority
+        });
+
         // Process each quality preset sequentially
         for (const preset of QUALITY_PRESETS) {
             try {

@@ -12,7 +12,9 @@ import ArtistProfilePage from "../pages/artist/ArtistProfilePage";
 import ArtistAlbumPage from "../pages/artist/ArtistAlbumPage";
 import ArtistAlbumDetailPage from "../pages/artist/ArtistAlbumDetailPage";
 import ArtistCreateAlbumPage from "../pages/artist/ArtistCreateAlbumPage";
+import ArtistCreateReleaseSchedulePage from "../pages/artist/ArtistCreateReleaseSchedulePage";
 import ArtistEditAlbumPage from "../pages/artist/ArtistEditAlbumPage";
+import ArtistReleaseScheduleDetailPage from "../pages/artist/ArtistReleaseScheduleDetailPage";
 import ArtistTrackInsightsPage from "../pages/artist/ArtistTrackInsightsPage";
 import {
   FansPage,
@@ -30,13 +32,17 @@ import LyricsPage from "../pages/lyrics/LyricsPage";
 import DailyTopTracksPage from "../pages/track/DailyTopTracksPage";
 import MonthlyTopTracksPage from "../pages/track/MonthlyTopTracksPage";
 import ArtistProfilePageView from "../pages/profile/ArtistProfilePage";
+import ArtistRegistrationRequestPage from "../pages/artistRegistrationRequest/ArtistRegistrationRequestPage";
 import PlaylistDetailPage from "../pages/playlist/PlaylistDetailPage";
 import TrackDetailPage from "../pages/track/TrackDetailPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import RoleRoute from "./RoleRoute";
+import { libaryRoutes } from "./libaryRoutes";
 import { routePaths } from "./routePaths";
+import { userPlaylistRoutes } from "./userPlaylistRoutes";
 import { userProfileRoutes } from "./userProfileRoutes";
+import { myArtistRegistrationRequestRoutes } from "./myArtistRegistrationRequestRoutes";
 
 const publicArtistProfilePath = routePaths.artistBrowseProfile();
 const featuredArtistProfilePath = routePaths.artistBrowseProfile("featured");
@@ -91,6 +97,27 @@ export const appRoutes = [
     element: <ProtectedRoute />,
     children: [
       {
+        path: routePaths.artistRegistrationRequest,
+        element: <ArtistRegistrationRequestPage />,
+      },
+    ],
+  },
+  {
+    element: <ProtectedRoute />,
+    children: myArtistRegistrationRequestRoutes,
+  },
+  {
+    element: <ProtectedRoute />,
+    children: userPlaylistRoutes,
+  },
+  {
+    element: <ProtectedRoute />,
+    children: libaryRoutes,
+  },
+  {
+    element: <ProtectedRoute />,
+    children: [
+      {
         element: <RoleRoute allowedRoles={["artist"]} />,
         children: [
           {
@@ -140,6 +167,14 @@ export const appRoutes = [
               {
                 path: routePaths.artistReleases,
                 element: <ReleasesPage />,
+              },
+              {
+                path: routePaths.artistCreateReleaseSchedule,
+                element: <ArtistCreateReleaseSchedulePage />,
+              },
+              {
+                path: routePaths.artistReleaseScheduleDetail(),
+                element: <ArtistReleaseScheduleDetailPage />,
               },
               {
                 path: routePaths.artistAnalytics,

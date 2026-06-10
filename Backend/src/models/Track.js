@@ -16,7 +16,8 @@ const TrackSchema = new Schema(
             priority: { type: Number, default: 0 },
         }],
 
-        duration: { type: Number, required: true, min: 0 },
+        duration: { type: Number, default: 0, min: 0 },
+        versionTitle: { type: String, default: "", trim: true },
         avatar: { type: String, default: "" },
         coverImage: [{ type: String }],
         lyricsStatic: { type: String, default: "" },
@@ -102,6 +103,10 @@ const TrackSchema = new Schema(
 );
 
 TrackSchema.index({ artist_artistId: 1, title: 1 });
+TrackSchema.index(
+    { artist_artistId: 1, title: 1, versionTitle: 1 },
+    { unique: true }
+);
 
 const Track = model("Track", TrackSchema);
 export default Track;   
