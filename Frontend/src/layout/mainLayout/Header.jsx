@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faDoorClosed } from "@fortawesome/free-solid-svg-icons";
-import { Menu } from "lucide-react";
+import { ChevronDown, Menu } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import brandArtwork from "../../assets/images/ChatGPT Image 13_16_10 4 thg 5, 2026.png";
 import ThemeToggle from "../../components/common/ThemeToggle";
@@ -10,7 +10,7 @@ import { useTheme } from "../../hooks/useTheme";
 import { routePaths } from "../../routes/routePaths";
 import { testAccessTokenService } from "../../services/authService";
 
-const Header = ({ onToggleSidebar, isDesktopSidebarVisible = true }) => {
+const Header = ({ onToggleSidebar }) => {
   const { isAuthenticated, isLoading, logout, user } = useAuth();
   const { isDark } = useTheme();
   const navigate = useNavigate();
@@ -18,6 +18,7 @@ const Header = ({ onToggleSidebar, isDesktopSidebarVisible = true }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const displayName = user?.name || user?.email || "User";
+  const displayInitial = displayName.trim().charAt(0).toUpperCase() || "U";
   const userRole = user?.role;
 
   useEffect(() => {
@@ -66,18 +67,32 @@ const Header = ({ onToggleSidebar, isDesktopSidebarVisible = true }) => {
   return (
     <header
       className={[
-        "flex h-full items-center justify-between gap-3 border-b px-3 backdrop-blur-xl sm:px-4 lg:px-6",
+        "flex h-full items-center justify-between gap-2 border-b px-3 backdrop-blur-xl sm:gap-3 sm:px-4 lg:px-5",
         isDark
           ? "border-[#f5b66f]/10 bg-black text-[#f7f1ea]"
           : "border-[#eeeeee] bg-white text-[#111111]",
       ].join(" ")}
     >
-      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-        <img src={ brandArtwork } alt="" className="h-11 w-11 shrink-0 sm:h-14 sm:w-14" />
+      <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+        <button
+          type="button"
+          onClick={ onToggleSidebar }
+          className={[
+            "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition lg:hidden",
+            isDark
+              ? "border-[#f5b66f]/10 bg-[#1c1820] text-[#f7f1ea] hover:bg-[#241f28]"
+              : "border-[#e5e7eb] bg-white text-[#111111] hover:bg-[#f9fafb]",
+          ].join(" ")}
+          aria-label="Open navigation menu"
+        >
+          <Menu className="h-4 w-4" />
+        </button>
+
+        <img src={ brandArtwork } alt="" className="h-9 w-9 shrink-0 sm:h-10 sm:w-10 lg:h-11 lg:w-11" />
         <div className="min-w-0">
           <p
             className={[
-              "text-[10px] uppercase tracking-[0.28em] sm:text-xs sm:tracking-[0.3em]",
+              "hidden text-[9px] uppercase tracking-[0.24em] sm:block sm:text-[10px] sm:tracking-[0.28em]",
               isDark ? "text-[#b8b0aa]" : "text-[#6b7280]",
             ].join(" ")}
           >
@@ -85,7 +100,7 @@ const Header = ({ onToggleSidebar, isDesktopSidebarVisible = true }) => {
           </p>
           <h2
             className={[
-              "mt-1 truncate font-title text-base font-semibold sm:text-xl",
+              "truncate font-title text-sm font-semibold sm:mt-0.5 sm:text-base lg:text-lg",
               isDark ? "text-[#f7f1ea]" : "text-[#111111]",
             ].join(" ")}
           >
@@ -94,12 +109,12 @@ const Header = ({ onToggleSidebar, isDesktopSidebarVisible = true }) => {
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+      <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
         { isAuthenticated && (
           <button
             onClick={ testAccessToken }
             className={[
-              "hidden shrink-0 rounded-full border px-3 py-2 text-sm font-medium transition md:inline-flex md:px-4",
+              "hidden shrink-0 rounded-full border px-2.5 py-1.5 text-xs font-medium transition md:inline-flex md:px-3",
               isDark
                 ? "border-[#f5b66f]/10 bg-[#1c1820] text-[#f7f1ea] hover:bg-[#241f28]"
                 : "border-[#e5e7eb] bg-white text-[#111111] hover:bg-[#f9fafb]",
@@ -114,7 +129,7 @@ const Header = ({ onToggleSidebar, isDesktopSidebarVisible = true }) => {
         { isLoading ? (
           <div
             className={[
-              "shrink-0 rounded-full border px-3 py-2 text-sm sm:px-4",
+              "shrink-0 rounded-full border px-2 py-1.5 text-[11px] sm:px-3 sm:text-xs",
               isDark
                 ? "border-[#f5b66f]/10 bg-[#1c1820] text-[#b8b0aa]"
                 : "border-[#e5e7eb] bg-white text-[#6b7280]",
@@ -126,7 +141,7 @@ const Header = ({ onToggleSidebar, isDesktopSidebarVisible = true }) => {
           <Link
             to="/login"
             className={[
-              "inline-flex shrink-0 items-center rounded-full px-3 py-2 text-sm font-medium transition sm:px-4",
+              "inline-flex h-9 shrink-0 items-center rounded-full px-2.5 text-[11px] font-medium transition sm:px-3 sm:text-xs",
               isDark
                 ? "bg-white text-black hover:bg-[#f5f5f5]"
                 : "bg-black text-white hover:bg-[#1f1f1f]",
@@ -140,20 +155,24 @@ const Header = ({ onToggleSidebar, isDesktopSidebarVisible = true }) => {
               type="button"
               onClick={ () => setIsOpen((value) => !value) }
               className={[
-                "flex max-w-[9.5rem] items-center gap-2 rounded-full border px-3 py-2 text-sm transition sm:max-w-none sm:gap-3 sm:px-4",
+                "flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-1.5 pr-2 transition sm:max-w-none sm:gap-2 sm:px-3",
                 isDark
                   ? "border-[#f5b66f]/10 bg-white text-black hover:bg-[#f5b66f]/20"
                   : "border-[#e5e7eb] bg-white text-[#111111] hover:bg-[#f9fafb]",
               ].join(" ")}
+              aria-label="Open account menu"
             >
-              <span className="truncate sm:max-w-40">{ displayName }</span>
-              <span className="text-xs">v</span>
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-black text-[10px] font-semibold text-white sm:hidden">
+                { displayInitial }
+              </span>
+              <span className="hidden truncate text-xs sm:block sm:max-w-36">{ displayName }</span>
+              <ChevronDown className="hidden h-3.5 w-3.5 sm:block" />
             </button>
 
             { isOpen ? (
               <div
                 className={[
-                  "absolute right-0 top-full z-[100] mt-3 w-48 rounded-2xl border p-2 backdrop-blur-xl sm:w-56",
+                  "absolute right-0 top-full z-[100] mt-2 w-44 rounded-2xl border p-2 backdrop-blur-xl sm:w-52",
                   isDark
                     ? "border-[#f5b66f]/10 bg-[#151218]/95 shadow-[0_20px_60px_rgba(245,158,66,0.15)]"
                     : "border-[#e5e7eb] bg-white shadow-[0_20px_60px_rgba(15,23,42,0.12)]",
@@ -167,7 +186,7 @@ const Header = ({ onToggleSidebar, isDesktopSidebarVisible = true }) => {
                 >
                   <p
                     className={[
-                      "truncate text-sm font-medium",
+                      "truncate text-xs font-medium sm:text-sm",
                       isDark ? "text-[#f7f1ea]" : "text-[#111111]",
                     ].join(" ")}
                   >
@@ -190,7 +209,7 @@ const Header = ({ onToggleSidebar, isDesktopSidebarVisible = true }) => {
                       type="button"
                       onClick={ () => handleNavigate(item.to) }
                       className={[
-                        "flex w-full rounded-xl px-3 py-2 text-left text-sm transition",
+                        "flex w-full rounded-xl px-3 py-1.5 text-left text-xs transition sm:text-sm",
                         isDark
                           ? "text-[#f7f1ea] hover:bg-[#241f28] hover:text-[#f5b66f]"
                           : "text-[#111111] hover:bg-[#f9fafb] hover:text-[#111111]",
@@ -211,13 +230,13 @@ const Header = ({ onToggleSidebar, isDesktopSidebarVisible = true }) => {
                     type="button"
                     onClick={ handleLogout }
                     className={[
-                      "flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm transition",
+                      "flex w-full items-center gap-2 rounded-xl px-3 py-1.5 text-left text-xs transition sm:text-sm",
                       isDark
                         ? "text-[#f7f1ea] hover:bg-[#241f28] hover:text-[#f5b66f]"
                         : "text-[#111111] hover:bg-[#f9fafb] hover:text-[#111111]",
                     ].join(" ")}
                   >
-                    <FontAwesomeIcon icon={ faDoorClosed } className="text-sm" />
+                    <FontAwesomeIcon icon={ faDoorClosed } className="text-xs sm:text-sm" />
                     Logout
                   </button>
                 </div>

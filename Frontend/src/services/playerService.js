@@ -1,7 +1,24 @@
 import axiosClient from "../axios/axiosClient";
 import { API_BASE_URL } from "../constants/auth";
+import { getStoredAccessToken } from "./authStorage";
 
 const TRACK_API_PREFIX = "/api/tracks";
+const LISTEN_EVENT_API_PREFIX = "/api/listen-events";
+const VALID_LISTEN_SOURCES = new Set([
+  "track_detail",
+  "album",
+  "playlist",
+  "search",
+  "artist_profile",
+  "unknown",
+]);
+
+const normalizeAudioQualityLabel = (value) => {
+  const normalizedValue =
+    typeof value === "string" ? value.trim().toLowerCase() : "";
+
+  return normalizedValue || "original";
+};
 
 const looksLikeResolvableMediaReference = (value) => {
   if (!value || typeof value !== "string") {
@@ -66,6 +83,19 @@ const getFirstAudioFile = (track) =>
   track?.audioFiles?.find((audioFile) => audioFile?.url) ||
   null;
 
+const getTrackAudioFiles = (track) => {
+  const playbackFiles = Array.isArray(track?.playback?.audioFiles)
+    ? track.playback.audioFiles
+    : [];
+  const directFiles = Array.isArray(track?.audioFiles) ? track.audioFiles : [];
+  const rawPlaybackFiles = Array.isArray(track?.raw?.playback?.audioFiles)
+    ? track.raw.playback.audioFiles
+    : [];
+  const rawFiles = Array.isArray(track?.raw?.audioFiles) ? track.raw.audioFiles : [];
+
+  return [...playbackFiles, ...directFiles, ...rawPlaybackFiles, ...rawFiles];
+};
+
 const resolveLyricsSyncReference = (track) =>
   track?.playback?.lyricsSyncUrl ||
   track?.playback?.o3icsSyncUrl ||
@@ -109,18 +139,106 @@ export const resolveTrackMediaUrl = (track) => {
   return buildAbsoluteMediaUrl(mediaUrl);
 };
 
+export const resolveTrackAudioQualityOptions = (track) => {
+  const audioFiles = getTrackAudioFiles(track);
+  const qualityOptions = [];
+  const seenKeys = new Set();
+
+  audioFiles.forEach((audioFile, index) => {
+    const url = buildAbsoluteMediaUrl(audioFile?.url);
+
+    if (!url) {
+      return;
+    }
+
+    const label = normalizeAudioQualityLabel(audioFile?.label);
+    const key = `${label}:${url}`;
+
+    if (seenKeys.has(key)) {
+      return;
+    }
+
+    seenKeys.add(key);
+    qualityOptions.push({
+      label,
+      bitrate: Number(audioFile?.bitrate) || 0,
+      priority: Number(audioFile?.priority) || 0,
+      url,
+      isDefault:
+        buildAbsoluteMediaUrl(track?.playback?.defaultAudio?.url) === url ||
+        buildAbsoluteMediaUrl(track?.defaultAudio?.url) === url,
+      index,
+    });
+  });
+
+  return qualityOptions.sort((left, right) => {
+    if ((right.priority || 0) !== (left.priority || 0)) {
+      return (right.priority || 0) - (left.priority || 0);
+    }
+
+    if ((right.bitrate || 0) !== (left.bitrate || 0)) {
+      return (right.bitrate || 0) - (left.bitrate || 0);
+    }
+
+    return left.index - right.index;
+  });
+};
+
+export const resolveTrackMediaUrlForQuality = (track, preferredQuality = "") => {
+  const preferredQualityLabel =
+    typeof preferredQuality === "string"
+      ? preferredQuality
+      : preferredQuality?.label || "";
+  const preferredQualityUrl =
+    typeof preferredQuality === "string" ? "" : preferredQuality?.url || "";
+  const normalizedPreferredLabel = normalizeAudioQualityLabel(preferredQualityLabel);
+  const qualityOptions = resolveTrackAudioQualityOptions(track);
+  const matchingQuality =
+    qualityOptions.find((quality) => quality.url === preferredQualityUrl) ||
+    qualityOptions.find((quality) => quality.label === normalizedPreferredLabel);
+
+  if (matchingQuality?.url) {
+    return matchingQuality.url;
+  }
+
+  const playbackDefaultAudio = track?.playback?.defaultAudio;
+  const mediaUrl =
+    playbackDefaultAudio?.url ||
+    track?.defaultAudio?.url ||
+    getFirstAudioFile(track)?.url ||
+    track?.streamUrl ||
+    track?.audioUrl ||
+    track?.playbackUrl ||
+    track?.url ||
+    track?.mediaUrl;
+
+  if (!mediaUrl) {
+    return "";
+  }
+
+  return buildAbsoluteMediaUrl(mediaUrl);
+};
+
 export const getTrackPlaybackService = async (trackId) => {
   const response = await axiosClient.get(`${TRACK_API_PREFIX}/${trackId}/playback`);
   return response?.data?.data?.track ?? null;
 };
 
-export const getTrackPlaybackSource = async (trackId) => {
+export const getTrackPlaybackSource = async (
+  trackId,
+  { preferredQualityLabel = "", preferredQualityUrl = "" } = {}
+) => {
   if (!trackId) {
     throw new Error("Track id is required to resolve playback source.");
   }
 
   const playbackTrack = await getTrackPlaybackService(trackId);
-  const streamUrl = resolveTrackMediaUrl(playbackTrack);
+  const streamUrl = preferredQualityLabel || preferredQualityUrl
+    ? resolveTrackMediaUrlForQuality(playbackTrack, {
+        label: preferredQualityLabel,
+        url: preferredQualityUrl,
+      })
+    : resolveTrackMediaUrl(playbackTrack);
 
   if (!streamUrl) {
     throw new Error("Track playback does not include a playable audio URL.");
@@ -161,13 +279,35 @@ export const getTrackLyricsSyncTextService = async (trackOrLyricsUrl) => {
   return lyricsSyncText;
 };
 
-export const recordListenService = async (trackId, duration, skipped = false) => {
+const normalizeListenSource = (source = "unknown") =>
+  VALID_LISTEN_SOURCES.has(source) ? source : "unknown";
+
+export const recordListenService = async ({
+  trackId,
+  listenedDuration,
+  source = "unknown",
+} = {}) => {
+  const accessToken = getStoredAccessToken();
+  const normalizedListenedDuration = Math.max(
+    Math.floor(Number(listenedDuration) || 0),
+    0
+  );
+
+  if (!accessToken || !trackId || normalizedListenedDuration <= 0) {
+    return null;
+  }
+
   try {
-    await axiosClient.post(`${TRACK_API_PREFIX}/${trackId}/listen`, {
-      duration: Math.floor(duration),
-      skipped,
+    return await axiosClient.post(`${LISTEN_EVENT_API_PREFIX}/complete`, {
+      trackId,
+      listenedDuration: normalizedListenedDuration,
+      source: normalizeListenSource(source),
     });
   } catch (error) {
-    console.warn("[ListenTracking] Failed to record listen event:", error);
+    if (error?.response?.status !== 401) {
+      console.warn("[ListenTracking] Failed to record listen event:", error);
+    }
+
+    return null;
   }
 };
