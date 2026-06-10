@@ -1,12 +1,10 @@
 import { useEffect, useState } from "react";
 import ReactPaginate from "react-paginate";
 import { Link } from "react-router-dom";
-import { Search, ArrowUpRight } from "lucide-react";
+import { Search, ArrowUpRight, ShieldCheck, ArrowLeft } from "lucide-react";
 import { getUsersService } from "../../services/userService";
 import { routePaths } from "../../routes/routePaths";
 
-// Gỡ bỏ hoàn toàn 'admin' khỏi bộ lọc tìm kiếm cục bộ
-const roles = ["", "user", "artist"];
 const statuses = ["", "active", "inactive", "blocked"];
 
 const formatDate = (value) => {
@@ -20,7 +18,6 @@ const formatDate = (value) => {
   });
 };
 
-// Cấu hình Badge có chấm tròn chỉ thị trạng thái chuẩn xác như hình mẫu
 const getStatusBadge = (status) => {
   switch (status) {
     case "active":
@@ -34,7 +31,7 @@ const getStatusBadge = (status) => {
       return (
         <span className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-600 border border-amber-100 rounded-full px-2.5 py-0.5 text-xs font-medium capitalize">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-          Chưa kích hoạt
+          Tạm ngưng
         </span>
       );
     case "blocked":
@@ -54,7 +51,6 @@ const getStatusBadge = (status) => {
   }
 };
 
-// Đồng bộ màu thanh chỉ thị dọc sát rìa trái mỗi hàng
 const getAccentClasses = (status) => {
   switch (status) {
     case "active": return "bg-emerald-500";
@@ -64,21 +60,6 @@ const getAccentClasses = (status) => {
   }
 };
 
-const getRoleBadge = (role) => {
-  if (role === "artist") {
-    return (
-      <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-600 border border-blue-100 rounded-full px-2.5 py-0.5 text-xs font-medium uppercase tracking-wider">
-        Artist
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center gap-1.5 bg-slate-50 text-slate-600 border border-slate-200 rounded-full px-2.5 py-0.5 text-xs font-medium uppercase tracking-wider">
-      User
-    </span>
-  );
-};
-
 const HeaderStat = ({ label, value }) => (
   <div className="rounded-xl bg-slate-100 px-4 py-2.5 min-w-[100px] text-center sm:text-left">
     <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">{label}</p>
@@ -86,32 +67,30 @@ const HeaderStat = ({ label, value }) => (
   </div>
 );
 
-const UserListPage = () => {
-  const [users, setUsers] = useState([]);
+const AdminListPage = () => {
+  const [admins, setAdmins] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterRole, setFilterRole] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
 
-  const [query, setQuery] = useState({ search: "", role: "", status: "", page: 1, limit: 10 });
+  const [query, setQuery] = useState({ search: "", status: "", page: 1, limit: 10 });
   const [pagination, setPagination] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  const loadUsers = async (params = query) => {
+  const loadAdmins = async (params = query) => {
     setIsLoading(true);
     setMessage("");
     try {
       const result = await getUsersService({
         q: params.search,
-        role: params.role,
+        role: "admin",
         status: params.status
       });
 
-      // Lọc sạch Admin hệ thống ngay tại Frontend tầng hiển thị
-      const cleanUsers = (result ?? []).filter((u) => u.role !== "admin");
-      setUsers(cleanUsers);
+      const cleanAdmins = (result ?? []).filter((u) => u.role === "admin");
+      setAdmins(cleanAdmins);
 
-      const totalItems = cleanUsers.length;
+      const totalItems = cleanAdmins.length;
       const totalPages = Math.ceil(totalItems / params.limit) || 1;
 
       setPagination({
@@ -121,20 +100,19 @@ const UserListPage = () => {
         totalPages: totalPages
       });
     } catch (error) {
-      setMessage("Không thể tải danh sách tài khoản thành viên.");
+      setMessage("Không thể tải danh sách tài khoản quản trị viên.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  useEffect(() => { void loadUsers(query); }, [query]);
+  useEffect(() => { void loadAdmins(query); }, [query]);
 
   const handleSearchSubmit = (event) => {
     event.preventDefault();
     setQuery((prev) => ({
       ...prev,
       search: searchTerm.trim(),
-      role: filterRole,
       status: filterStatus,
       page: 1
     }));
@@ -142,9 +120,8 @@ const UserListPage = () => {
 
   const handleResetFilters = () => {
     setSearchTerm("");
-    setFilterRole("");
     setFilterStatus("");
-    setQuery({ search: "", role: "", status: "", page: 1, limit: 10 });
+    setQuery({ search: "", status: "", page: 1, limit: 10 });
   };
 
   const handlePageChange = ({ selected }) => {
@@ -157,50 +134,49 @@ const UserListPage = () => {
   return (
     <section className="space-y-6 max-w-[1400px] mx-auto p-6 bg-slate-50/50 min-h-screen text-slate-800 font-sans antialiased">
       
-      {/* Khung 1: Header Dashboard tích hợp khối thông số dồn phải kèm nút chuyển đổi Admin */}
+      {/* Khung 1: Header Dashboard tích hợp nút Quay lại bất đối xứng sang phải */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">Hệ thống thành viên</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">User Account Registry</h1>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-indigo-600">Hệ thống điều hành</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Admin Personnel Registry</h1>
         </div>
 
         <div className="flex flex-wrap items-center gap-4 self-start lg:self-auto">
           <div className="grid gap-2 grid-cols-3">
-            <HeaderStat label="Tổng hồ sơ" value={total} />
-            <HeaderStat label="Hiển thị" value={users.length} />
+            <HeaderStat label="Tổng quản trị" value={total} />
+            <HeaderStat label="Hiển thị" value={admins.length} />
             <HeaderStat label="Trang" value={pageLabel} />
           </div>
-          
-          {/* NÚT BẤM ĐIỀU HƯỚNG SANG TRANG ADMIN DANH SÁCH MỚI */}
+
+          {/* NÚT QUAY LẠI DANH SÁCH THÀNH VIÊN ĐƯỢC TÍCH HỢP ĐỒNG BỘ */}
           <Link 
-            to={routePaths.adminList || "/admins"} 
-            className="bg-slate-950 hover:bg-slate-800 text-white px-5 py-3 text-sm font-semibold rounded-xl shadow-sm transition whitespace-nowrap inline-block text-center h-[44px] flex items-center"
+            to={routePaths.users || "/users"} 
+            className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 h-[44px]"
           >
-            Danh sách Admin →
+            <ArrowLeft size={16} className="mr-1.5" /> Quay lại
           </Link>
         </div>
       </div>
 
-      {/* Khung 2: Thanh điều khiển chứa đầy đủ bộ lọc phối hợp có nút Đặt lại */}
-      <form onSubmit={handleSearchSubmit} className="grid gap-3 rounded-2xl bg-white p-4 shadow-[0_12px_32px_rgba(15,23,42,0.06)] grid-cols-1 sm:grid-cols-2 md:grid-cols-[1.5fr_1fr_1fr_100px_100px]">
+      {/* Khung 2: Thanh điều khiển chứa bộ tìm kiếm và lọc trạng thái */}
+      <form onSubmit={handleSearchSubmit} className="grid gap-3 rounded-2xl bg-white p-4 shadow-[0_12px_32px_rgba(15,23,42,0.06)] grid-cols-1 sm:grid-cols-3 md:grid-cols-[2fr_1fr_120px_120px]">
         <label className="relative block">
           <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
           <input 
             value={searchTerm} 
             onChange={(e) => setSearchTerm(e.target.value)} 
-            placeholder="Tìm theo tên hoặc địa chỉ email..." 
-            className="w-full rounded-lg bg-slate-100 py-3 pl-11 pr-4 text-sm text-slate-900 outline-none transition focus:bg-sky-50" 
+            placeholder="Tìm theo tên hoặc địa chỉ email quản trị..." 
+            className="w-full rounded-lg bg-slate-100 py-3 pl-11 pr-4 text-sm text-slate-900 outline-none transition focus:bg-indigo-50/50" 
           />
         </label>
 
-        <select value={filterRole} onChange={(e) => setFilterRole(e.target.value)} className="rounded-lg bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition focus:bg-sky-50 cursor-pointer">
-          <option value="">Tất cả phân quyền</option>
-          {roles.slice(1).map((role) => <option key={role} value={role}>{role}</option>)}
-        </select>
-
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="rounded-lg bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition focus:bg-sky-50 cursor-pointer">
+        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="rounded-lg bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition focus:bg-indigo-50/50 cursor-pointer font-medium">
           <option value="">Tất cả trạng thái</option>
-          {statuses.slice(1).map((status) => <option key={status} value={status}>{status}</option>)}
+          {statuses.slice(1).map((status) => (
+            <option key={status} value={status}>
+              {status === "active" ? "Hoạt động" : status === "inactive" ? "Tạm ngưng" : "Đã khóa"}
+            </option>
+          ))}
         </select>
 
         <button
@@ -211,52 +187,58 @@ const UserListPage = () => {
           Đặt lại
         </button>
 
-        <button type="submit" className="rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 shadow-sm">
+        <button type="submit" className="rounded-lg bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 shadow-sm">
           Tìm kiếm
         </button>
       </form>
 
       {message && <div className="border border-red-100 bg-red-50/50 px-4 py-3 text-sm rounded-xl text-red-600">{message}</div>}
 
-      {/* Khung 3: Danh sách cấu trúc hàng Spaced Rows tuyệt đẹp */}
-      <div className="overflow-hidden rounded-2xl bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
-        <div className="grid min-w-[1020px] grid-cols-[minmax(0,1.5fr)_minmax(0,1.2fr)_120px_160px_180px_120px] gap-4 border-b border-slate-200 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-          <span>Tài khoản email</span>
+      {/* Khung 3: Danh sách cấu trúc hàng Spaced Rows */}
+      <div className="overflow-hidden rounded-2xl bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)] border border-slate-100">
+        <div className="grid min-w-[1020px] grid-cols-[minmax(0,1.5fr)_minmax(0,1.2fr)_120px_160px_180px_120px] gap-4 border-b border-slate-200 px-6 py-4 text-[10px] font-bold uppercase tracking-[0.24em] text-slate-400">
+          <span>Tài khoản quản trị</span>
           <span>Họ và tên</span>
-          <span>Vai trò</span>
+          <span>Cấp bậc</span>
           <span>Trạng thái hoạt động</span>
-          <span>Ngày đăng ký</span>
+          <span>Ngày bổ nhiệm</span>
           <span className="text-right pr-4">Hành động</span>
         </div>
 
         <div className="overflow-x-auto">
           <div className="min-w-[1020px] divide-y divide-slate-100">
             {isLoading ? (
-              <div className="p-12 text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Đang tải danh sách dữ liệu...</div>
-            ) : users.length === 0 ? (
-              <div className="p-12 text-center text-slate-400 italic">Không tìm thấy tài khoản người dùng phù hợp điều kiện lọc.</div>
+              <div className="p-12 text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Đang kết xuất nhân sự quản trị...</div>
+            ) : admins.length === 0 ? (
+              <div className="p-12 text-center text-slate-400 italic">Không tìm thấy tài khoản quản trị nào phù hợp.</div>
             ) : (
-              users.slice((query.page - 1) * query.limit, query.page * query.limit).map((user) => (
-                <article key={user._id} className="relative grid grid-cols-[minmax(0,1.5fr)_minmax(0,1.2fr)_120px_160px_180px_120px] gap-4 px-6 py-4 transition hover:bg-slate-50/60 items-center">
+              admins.slice((query.page - 1) * query.limit, query.page * query.limit).map((admin) => (
+                <article key={admin._id} className="relative grid grid-cols-[minmax(0,1.5fr)_minmax(0,1.2fr)_120px_160px_180px_120px] gap-4 px-6 py-4 transition hover:bg-slate-50/60 items-center">
                   
-                  {/* Vạch màu chỉ thị rìa trái đồng bộ trạng thái */}
-                  <div className={`absolute inset-y-2 left-0 w-1 rounded-r ${getAccentClasses(user.activeStatus)}`} />
+                  {/* Vạch chỉ thị trạng thái */}
+                  <div className={`absolute inset-y-2 left-0 w-1 rounded-r ${getAccentClasses(admin.activeStatus)}`} />
                   
                   <div className="flex min-w-0 items-center gap-3 pl-2">
-                    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-slate-900 text-[10px] font-black text-white uppercase tracking-wider shadow-sm">
-                      USER
+                    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-purple-600 text-white shadow-sm">
+                      <ShieldCheck size={16} />
                     </div>
-                    <span className="truncate text-sm font-semibold text-slate-950">{user.email}</span>
+                    <span className="truncate text-sm font-bold text-slate-950">{admin.email}</span>
                   </div>
 
-                  <span className="truncate text-sm text-slate-600 font-medium">{user.profile?.fullName || "—"}</span>
-                  <div>{getRoleBadge(user.role)}</div>
-                  <div>{getStatusBadge(user.activeStatus)}</div>
-                  <span className="text-xs font-mono font-medium text-slate-400">{formatDate(user.createdAt)}</span>
+                  <span className="truncate text-sm text-slate-600 font-semibold">{admin.profile?.fullName || "—"}</span>
+                  
+                  <div>
+                    <span className="inline-flex items-center bg-purple-50 text-purple-700 border border-purple-100 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                      SUPER ADMIN
+                    </span>
+                  </div>
+                  
+                  <div>{getStatusBadge(admin.activeStatus)}</div>
+                  <span className="text-xs font-mono font-medium text-slate-400">{formatDate(admin.createdAt)}</span>
                   
                   <div className="flex justify-end pr-2">
                     <Link 
-                      to={routePaths.userDetail(user._id)} 
+                      to={routePaths.userDetail(admin._id)} 
                       className="inline-flex items-center gap-1 rounded-xl bg-slate-900 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800 shadow-sm"
                     >
                       Chi tiết <ArrowUpRight size={14} />
@@ -270,12 +252,12 @@ const UserListPage = () => {
       </div>
 
       {/* Khung 4: Khối điều khiển Phân trang */}
-      {pagination && (
-        <div className="flex flex-col gap-4 rounded-2xl bg-white px-6 py-5 sm:flex-row sm:items-center sm:justify-between shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+      {pagination && admins.length > 0 && (
+        <div className="flex flex-col gap-4 rounded-2xl bg-white px-6 py-5 sm:flex-row sm:items-center sm:justify-between shadow-[0_12px_30px_rgba(15,23,42,0.05)] border border-slate-100">
           <p className="text-sm text-slate-500 font-medium">
             Trang {pagination.page} / {pagination.totalPages}
             <span className="mx-2 text-slate-300">|</span>
-            Tổng cộng: {pagination.total} bản ghi
+            Tổng cộng: {pagination.total} nhân sự
           </p>
           <ReactPaginate 
             breakLabel="..." 
@@ -301,4 +283,4 @@ const UserListPage = () => {
   );
 };
 
-export default UserListPage;
+export default AdminListPage;

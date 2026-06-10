@@ -2,6 +2,7 @@ export const routePaths = {
   home: "/",
   login: "/login",
   systemTracks: "/system-tracks",
+  trackModeration: "/system-tracks/moderation",
   artistRequests: "/artist-requests",
   artistRequestDetail: (requestId = ":requestId") => `/artist-requests/${requestId}`,
   trackDetail: (trackId = ":id") => `/system-tracks/${trackId}`,
@@ -12,6 +13,7 @@ export const routePaths = {
   artistDetail: (artistId = ":id") => `/system-artists/${artistId}`,
   genreEdit: (genreId = ":genreId") => `/genres/${genreId}/edit`,
   users: "/users",
+  adminList: "/users/admins",
   userDetail: (userId = ":userId") => `/users/${userId}`,
   systemPlaylistNew: "/system-playlists/new",
   systemPlaylistDetail: (playlistId = ":playlistId") =>
