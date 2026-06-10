@@ -1,35 +1,76 @@
 import { useEffect, useState } from "react";
+import ReactPaginate from "react-paginate";
 import { Link } from "react-router-dom";
+import { Search, ArrowUpRight } from "lucide-react";
 import { searchAdminArtistsService } from "../../services/artistService";
 import { routePaths } from "../../routes/routePaths";
 
-const getStatusClasses = (status) => {
+const getStatusBadge = (status) => {
     switch (status) {
         case "verified":
         case "active":
-            return "bg-emerald-100/70 text-emerald-600 border border-emerald-200 rounded-full px-3 py-1 font-medium text-[11px] inline-block capitalize";
+            return (
+                <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full px-2.5 py-0.5 text-xs font-medium capitalize">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    {status === "verified" ? "Đã xác minh" : "Hoạt động"}
+                </span>
+            );
         case "pending":
-            return "bg-yellow-100/70 text-yellow-700 border border-yellow-200 rounded-full px-3 py-1 font-medium text-[11px] inline-block capitalize";
+            return (
+                <span className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-600 border border-amber-100 rounded-full px-2.5 py-0.5 text-xs font-medium capitalize">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                    Chờ duyệt
+                </span>
+            );
         case "rejected":
         case "inactive":
-            return "bg-rose-100/70 text-rose-600 border border-rose-200 rounded-full px-3 py-1 font-medium text-[11px] inline-block capitalize";
+            return (
+                <span className="inline-flex items-center gap-1.5 bg-slate-50 text-slate-500 border border-slate-200 rounded-full px-2.5 py-0.5 text-xs font-medium capitalize">
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                    {status === "rejected" ? "Từ chối" : "Tạm ngưng"}
+                </span>
+            );
         case "blocked":
-            return "bg-red-100 text-red-600 border border-red-200 rounded-full px-3 py-1 font-medium text-[11px] inline-block capitalize";
+            return (
+                <span className="inline-flex items-center gap-1.5 bg-rose-50 text-rose-600 border border-rose-100 rounded-full px-2.5 py-0.5 text-xs font-medium capitalize">
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                    Đã khóa
+                </span>
+            );
         default:
-            return "bg-slate-100 text-slate-600 border border-slate-200 rounded-full px-3 py-1 font-medium text-[11px] inline-block capitalize";
+            return (
+                <span className="inline-flex items-center gap-1.5 bg-slate-50 text-slate-500 border border-slate-200 rounded-full px-2.5 py-0.5 text-xs font-medium capitalize">
+                    {status}
+                </span>
+            );
     }
 };
+
+// Cấu hình dải màu Accent Bar chạy dọc rìa trái mỗi hàng theo trạng thái hoạt động
+const getAccentClasses = (status) => {
+    switch (status) {
+        case "active": return "bg-emerald-500";
+        case "inactive": return "bg-amber-500";
+        case "blocked": return "bg-rose-500";
+        default: return "bg-slate-300";
+    }
+};
+
+const HeaderStat = ({ label, value }) => (
+    <div className="rounded-xl bg-slate-100 px-4 py-2.5 min-w-[100px] text-center sm:text-left">
+        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">{label}</p>
+        <p className="mt-0.5 text-base font-bold text-slate-900">{value}</p>
+    </div>
+);
 
 const SystemArtistsListPage = () => {
     const [artists, setArtists] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
-    
-    // State lưu bộ lọc tạm thời trên UI giống hệt trang Track
     const [filterVerify, setFilterVerify] = useState("");
     const [filterActive, setFilterActive] = useState("");
 
-    // Query thực tế gửi lên API bổ sung các trường filter status
-    const [query, setQuery] = useState({ q: "", verificationStatus: "", activeStatus: "", page: 1, limit: 20 });
+    // Bộ Query chuẩn cấu hình phân trang gửi lên máy chủ
+    const [query, setQuery] = useState({ q: "", verificationStatus: "", activeStatus: "", page: 1, limit: 10 });
     const [pagination, setPagination] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState("");
@@ -51,7 +92,12 @@ const SystemArtistsListPage = () => {
         }
     };
 
-    useEffect(() => { void loadArtists(query); }, [query]);
+    useEffect(() => { void loadTracksCatalog(query); }, [query]);
+
+    // Kích hoạt hàm gọi dữ liệu qua API từ trang đầu tiên (page 1) tránh bị lệch chỉ mục
+    const loadTracksCatalog = (params) => {
+        void loadArtists(params);
+    };
 
     const handleSearchSubmit = (event) => {
         event.preventDefault();
@@ -64,155 +110,169 @@ const SystemArtistsListPage = () => {
         }));
     };
 
+    const handleResetFilters = () => {
+        setSearchTerm("");
+        setFilterVerify("");
+        setFilterActive("");
+        setQuery({ q: "", verificationStatus: "", activeStatus: "", page: 1, limit: 10 });
+    };
+
+    const handlePageChange = ({ selected }) => {
+        setQuery((prev) => ({ ...prev, page: selected + 1 }));
+    };
+
+    // SỬA LỖI LOGIC: Khắc chế hoàn toàn hiện tượng hiển thị sai lệch chỉ số dạng "1/0" khi danh sách rỗng
+    const total = pagination?.total ?? 0;
+    const totalPages = pagination?.totalPages ?? 0;
+    const currentPage = total === 0 ? 0 : (pagination?.page ?? 1);
+    const pageLabel = `${currentPage}/${totalPages}`;
+    const visibleCount = artists.length;
+
     return (
-        <section className="space-y-6 text-slate-800 font-sans antialiased max-w-[1400px] mx-auto p-2 rounded-none">
-            {/* Khung 1: Header */}
-            <div className="border border-black bg-white p-8 rounded-none">
-                <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-400">System Artist Management</p>
-                <h1 className="text-3xl font-bold tracking-tight text-slate-900 uppercase mt-1">Artist Moderation List</h1>
+        <section className="space-y-6 max-w-[1400px] mx-auto p-6 bg-slate-50/50 min-h-screen text-slate-800 font-sans antialiased">
+            
+            {/* Khung 1: Tiêu đề trang & Khối thẻ thống kê Header */}
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">Hệ thống nghệ sĩ</p>
+                  <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Artist Moderation List</h1>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 self-start lg:self-auto">
+                    <div className="grid gap-2 grid-cols-3">
+                        <HeaderStat label="Tổng hồ sơ" value={total} />
+                        <HeaderStat label="Hiển thị" value={visibleCount} />
+                        <HeaderStat label="Trang" value={pageLabel} />
+                    </div>
+                </div>
             </div>
 
-            {/* Khung 2: Search & Filter - Khớp 100% cấu trúc một hàng ngang kéo dài của trang Track */}
-            <form onSubmit={handleSearchSubmit} className="border border-black bg-white p-6 flex flex-col sm:flex-row gap-4 rounded-none">
-                {/* Thanh tìm kiếm chữ / thông tin chính */}
-                <div className="flex-1 space-y-1 rounded-none">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Search</label>
+            {/* Khung 2: Thanh Tìm kiếm & Bộ lọc phối hợp đồng bộ */}
+            <form onSubmit={handleSearchSubmit} className="grid gap-3 rounded-2xl bg-white p-4 shadow-[0_12px_32px_rgba(15,23,42,0.06)] grid-cols-1 sm:grid-cols-2 md:grid-cols-[1.5fr_1fr_1fr_100px_100px]">
+                <label className="relative block">
+                    <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input 
                         type="text" 
                         value={searchTerm} 
                         onChange={(e) => setSearchTerm(e.target.value)} 
-                        className="w-full border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-xs font-semibold outline-none focus:bg-white rounded-none" 
-                        placeholder="Search by name, email or info..." 
+                        placeholder="Tìm kiếm theo tên nghệ danh, email..." 
+                        className="w-full rounded-lg bg-slate-100 py-3 pl-11 pr-4 text-sm text-slate-900 outline-none transition focus:bg-sky-50" 
                     />
-                </div>
+                </label>
 
-                {/* Dropdown 1: Lọc Verification Status */}
-                <div className="w-full sm:w-48 space-y-1 rounded-none">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Verification</label>
-                    <select 
-                        value={filterVerify} 
-                        onChange={(e) => setFilterVerify(e.target.value)}
-                        className="w-full border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-xs font-semibold outline-none focus:bg-white rounded-none h-[37px] cursor-pointer appearance-none"
-                    >
-                        <option value="">— All —</option>
-                        <option value="pending">Pending</option>
-                        <option value="verified">Verified</option>
-                        <option value="rejected">Rejected</option>
-                    </select>
-                </div>
+                <select value={filterVerify} onChange={(e) => setFilterVerify(e.target.value)} className="rounded-lg bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition focus:bg-sky-50 cursor-pointer">
+                    <option value="">Tất cả xác minh</option>
+                    <option value="pending">Chờ duyệt (Pending)</option>
+                    <option value="verified">Đã xác minh (Verified)</option>
+                    <option value="rejected">Từ chối (Rejected)</option>
+                </select>
 
-                {/* Dropdown 2: Lọc Active State */}
-                <div className="w-full sm:w-48 space-y-1 rounded-none">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Status</label>
-                    <select 
-                        value={filterActive} 
-                        onChange={(e) => setFilterActive(e.target.value)}
-                        className="w-full border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-xs font-semibold outline-none focus:bg-white rounded-none h-[37px] cursor-pointer appearance-none"
-                    >
-                        <option value="">— All —</option>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                        <option value="blocked">Blocked</option>
-                    </select>
-                </div>
+                <select value={filterActive} onChange={(e) => setFilterActive(e.target.value)} className="rounded-lg bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition focus:bg-sky-50 cursor-pointer">
+                    <option value="">Tất cả hiển thị</option>
+                    <option value="active">Đang hoạt động</option>
+                    <option value="inactive">Tạm ngưng</option>
+                    <option value="blocked">Đã khóa ban</option>
+                </select>
 
-                {/* Nút bấm Kích hoạt Tìm kiếm vuông vức đặt ở cuối dòng */}
-                <div className="flex items-end rounded-none">
-                    <button 
-                        type="submit" 
-                        className="w-full sm:w-36 border border-black bg-black py-2.5 text-xs font-black uppercase tracking-wider text-white transition hover:bg-zinc-800 rounded-none"
-                    >
-                        Search
-                    </button>
-                </div>
+                <button
+                    type="button"
+                    onClick={handleResetFilters}
+                    className="rounded-lg border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition py-3"
+                >
+                    Đặt lại
+                </button>
+
+                <button type="submit" className="rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 shadow-sm">
+                    Tìm kiếm
+                </button>
             </form>
 
-            {message && <div className="border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-600 rounded-none">{message}</div>}
+            {message && <div className="border border-red-100 bg-red-50/50 px-4 py-3 text-sm rounded-xl text-red-600">{message}</div>}
 
-            {/* Khung 3: Table List Data */}
-            <div className="border border-black bg-white overflow-hidden rounded-none">
-                <div className="overflow-x-auto rounded-none">
-                    <table className="min-w-full text-left text-xs border-collapse rounded-none">
-                        <thead className="bg-slate-50 font-bold uppercase text-slate-500 tracking-wider border-b border-black text-[11px]">
-                            <tr>
-                                <th className="px-6 py-4 font-semibold border-r border-slate-100">Artist Profile</th>
-                                <th className="px-6 py-4 font-semibold border-r border-slate-100">Linked Email</th>
-                                <th className="px-6 py-4 font-semibold border-r border-slate-100">Tracks</th>
-                                <th className="px-6 py-4 font-semibold border-r border-slate-100">Verification</th>
-                                <th className="px-6 py-4 font-semibold border-r border-slate-100">Active State</th>
-                                <th className="px-6 py-4 text-center font-semibold">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 text-slate-700 rounded-none">
-                            {isLoading ? (
-                                <tr>
-                                    <td colSpan="6" className="p-12 text-center text-sm font-medium text-slate-400 uppercase tracking-wider">Loading master records ledger...</td>
-                                </tr>
-                            ) : artists.length > 0 ? (
-                                artists.map((artist) => (
-                                    <tr key={artist.id} className="hover:bg-slate-50/40 transition rounded-none">
-                                        <td className="px-6 py-4 border-r border-slate-100 rounded-none">
-                                            <div className="flex items-center gap-3">
-                                                {artist.avatar ? (
-                                                    <img src={artist.avatar} alt={artist.name} className="w-8 h-8 object-cover border border-slate-200 rounded-none" />
-                                                ) : (
-                                                    <div className="w-8 h-8 bg-slate-100 border flex items-center justify-center text-[9px] text-slate-400 font-bold rounded-none">N/A</div>
-                                                )}
-                                                <span className="font-bold text-slate-900 text-sm tracking-tight">{artist.name}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 font-mono text-slate-500 border-r border-slate-100 rounded-none">{artist.email}</td>
-                                        <td className="px-6 py-4 font-bold text-slate-900 uppercase tracking-wide border-r border-slate-100 rounded-none">{artist.totalTracks} tracks</td>
-                                        <td className="px-6 py-4 border-r border-slate-100 rounded-none">
-                                            <span className={getStatusClasses(artist.verificationStatus)}>
-                                                {artist.verificationStatus}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 border-r border-slate-100 rounded-none">
-                                            <span className={getStatusClasses(artist.activeStatus)}>
-                                                {artist.activeStatus}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-center rounded-none">
-                                            <Link
-                                                to={routePaths.artistDetail ? routePaths.artistDetail(artist.id) : `/admin/artists/${artist.id}`}
-                                                className="inline-block border border-black bg-black px-4 py-1.5 text-[10px] font-black uppercase tracking-wider text-white hover:bg-zinc-800 transition rounded-none"
-                                            >
-                                                Details
-                                            </Link>
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan="6" className="p-8 text-center text-slate-400 italic">No artists record found matching current query.</td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+            {/* Khung 3: Danh sách cấu trúc hàng Spaced Rows (Tuyệt đẹp như hình mẫu) */}
+            {artists.length === 0 ? (
+                <div className="rounded-2xl bg-white px-6 py-20 text-center shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+                    <p className="text-base font-semibold text-slate-900">Không tìm thấy hồ sơ nghệ sĩ nào.</p>
+                    <p className="mt-1 text-sm text-slate-400">Hàng đợi trống hoặc không có bản ghi nào khớp điều kiện tra cứu.</p>
                 </div>
-            </div>
+            ) : (
+                <div className="overflow-hidden rounded-2xl bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+                    <div className="grid min-w-[1020px] grid-cols-[minmax(0,1.5fr)_minmax(0,1.2fr)_120px_160px_160px_120px] gap-4 border-b border-slate-200 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+                        <span>Nghệ sĩ</span>
+                        <span>Email liên kết</span>
+                        <span>Tổng tác phẩm</span>
+                        <span>Xác minh danh tính</span>
+                        <span>Trạng thái hoạt động</span>
+                        <span className="text-right pr-4">Hành động</span>
+                    </div>
 
-            {/* Phân trang */}
-            {pagination && pagination.totalPages > 1 && (
-                <div className="flex justify-end gap-2 text-[10px] font-bold">
-                    <button 
-                        disabled={query.page <= 1}
-                        onClick={() => setQuery(prev => ({ ...prev, page: prev.page - 1 }))}
-                        className="px-3 py-1.5 border border-black bg-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 uppercase"
-                    >
-                        PREV
-                    </button>
-                    <span className="px-3 py-1.5 border border-black bg-slate-100 flex items-center">
-                        {query.page} / {pagination.totalPages}
-                    </span>
-                    <button 
-                        disabled={query.page >= pagination.totalPages}
-                        onClick={() => setQuery(prev => ({ ...prev, page: prev.page + 1 }))}
-                        className="px-3 py-1.5 border border-black bg-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 uppercase"
-                    >
-                        NEXT
-                    </button>
+                    <div className="overflow-x-auto">
+                        <div className="min-w-[1020px] divide-y divide-slate-100">
+                            {artists.map((artist) => (
+                                <article key={artist.id} className="relative grid grid-cols-[minmax(0,1.5fr)_minmax(0,1.2fr)_120px_160px_160px_120px] gap-4 px-6 py-4 transition hover:bg-slate-50/60 items-center">
+                                    
+                                    {/* Thanh vạch chỉ thị màu bên rìa trái hàng */}
+                                    <div className={`absolute inset-y-2 left-0 w-1 rounded-r ${getAccentClasses(artist.activeStatus)}`} />
+                                    
+                                    <div className="flex min-w-0 items-center gap-3 pl-2">
+                                        {artist.avatar ? (
+                                            <img src={artist.avatar} alt={artist.name} className="h-10 w-10 rounded-xl object-cover border border-slate-100 shadow-sm" />
+                                        ) : (
+                                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-[9px] font-black text-white uppercase tracking-wider">ARTIST</div>
+                                        )}
+                                        <p className="truncate text-sm font-semibold text-slate-950">{artist.name}</p>
+                                    </div>
+
+                                    <p className="truncate text-sm text-slate-600 font-mono font-medium">{artist.email}</p>
+                                    <p className="text-sm font-bold text-slate-900">{artist.totalTracks} bài hát</p>
+                                    
+                                    <div>{getStatusBadge(artist.verificationStatus)}</div>
+                                    <div>{getStatusBadge(artist.activeStatus)}</div>
+
+                                    <div className="flex justify-end pr-2">
+                                        <Link
+                                            to={routePaths.artistDetail ? routePaths.artistDetail(artist.id) : `/admin/artists/${artist.id}`}
+                                            className="inline-flex items-center gap-1 rounded-xl bg-slate-900 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800 shadow-sm"
+                                        >
+                                            Chi tiết <ArrowUpRight size={14} />
+                                        </Link>
+                                    </div>
+                                </article>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Khung 4: Khối điều khiển phân trang ReactPaginate ổn định ở chân trang */}
+            {pagination && (
+                <div className="flex flex-col gap-4 rounded-2xl bg-white px-6 py-5 sm:flex-row sm:items-center sm:justify-between shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+                    <p className="text-sm text-slate-500 font-medium">
+                        Trang {currentPage} / {totalPages}
+                        <span className="mx-2 text-slate-300">|</span>
+                        Tổng cộng: {total} bản ghi
+                    </p>
+
+                    {totalPages > 1 && (
+                        <ReactPaginate 
+                            breakLabel="..." 
+                            nextLabel=">" 
+                            previousLabel="<" 
+                            forcePage={Math.max(pagination.page - 1, 0)} 
+                            onPageChange={handlePageChange} 
+                            pageRangeDisplayed={3} 
+                            marginPagesDisplayed={1} 
+                            pageCount={totalPages} 
+                            renderOnZeroPageCount={null} 
+                            containerClassName="flex flex-wrap items-center gap-2" 
+                            pageLinkClassName="flex h-10 min-w-10 items-center justify-center rounded-xl bg-slate-100 px-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-200" 
+                            previousLinkClassName="flex h-10 min-w-10 items-center justify-center rounded-xl bg-slate-100 px-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-200" 
+                            nextLinkClassName="flex h-10 min-w-10 items-center justify-center rounded-xl bg-slate-100 px-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-200" 
+                            breakLinkClassName="flex h-10 min-w-10 items-center justify-center rounded-xl bg-slate-100 px-3 text-sm font-semibold text-slate-500" 
+                            activeLinkClassName="bg-blue-600 text-white hover:bg-blue-600" 
+                            disabledLinkClassName="cursor-not-allowed opacity-40 hover:bg-slate-100" 
+                        />
+                    )}
                 </div>
             )}
         </section>
