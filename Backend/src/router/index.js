@@ -11,6 +11,7 @@ import authenticationRoutes from "./authentication.routes.js";
 import notificationRoutes from "./notification.routes.js";
 import playlistRoutes from "./playlist.routes.js";
 import trackRoutes from "./track.routes.js";
+import listenEventRoutes from "./listenEvent.routes.js";
 import artistTrackRoutes from "./artist.track.routes.js";
 import lyricsRoutes from "./artist.lyrics.routes.js";
 import adminRoutes from "./admin.routes.js";
@@ -35,6 +36,7 @@ function route(app) {
     app.use("/api/playlists", playlistRoutes);
     app.use("/api/artist/track", artistTrackRoutes);
     app.use("/api/tracks", trackRoutes);
+    app.use("/api/listen-events", listenEventRoutes);
     app.use("/api/artist/lyrics", lyricsRoutes);
     app.use("/api/admin", adminRoutes);
     app.use("/api/libary", libaryRoutes);
