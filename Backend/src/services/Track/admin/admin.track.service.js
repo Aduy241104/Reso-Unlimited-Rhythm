@@ -121,6 +121,21 @@ const listTracksForAdmin = async (query = {}) => {
     const rawSearch = typeof query.q === "string" ? query.q.trim() : "";
 
     const filter = {};
+
+    // 1. XỬ LÝ BỘ LỌC PHÊ DUYỆT (APPROVAL STATUS)
+    if (query.approvalStatus) {
+        filter.approvalStatus = query.approvalStatus;
+    } else {
+        // MẶC ĐỊNH CHỐN CŨ: Nếu không chọn gì, lấy cả approved & rejected, loại bỏ hoàn toàn bài 'pending'
+        filter.approvalStatus = { $ne: "pending" };
+    }
+
+    // 2. XỬ LÝ BỘ LỌC HIỂN THỊ (ACTIVE STATUS)
+    if (query.activeStatus) {
+        filter.activeStatus = query.activeStatus;
+    }
+
+    // 3. Xử lý tìm kiếm từ khóa chuỗi
     if (rawSearch) {
         const titleRegex = new RegExp(escapeRegex(rawSearch), "i");
         const matchingArtists = await Artist.find({ name: titleRegex }).select("_id").lean();
@@ -134,7 +149,7 @@ const listTracksForAdmin = async (query = {}) => {
 
     const [tracks, total] = await Promise.all([
         Track.find(filter)
-            .sort({ title: 1, _id: 1 })
+            .sort({ createdAt: -1, _id: 1 }) // Đổi sang sort theo ngày tạo mới nhất lên đầu
             .skip(skip)
             .limit(limit)
             .populate({ path: "artist_artistId", select: "name" })

@@ -1,224 +1,254 @@
 import { useEffect, useState } from "react";
+import ReactPaginate from "react-paginate";
 import { Link } from "react-router-dom";
+import { Search, Plus, Trash2, Edit2, ArrowUpRight } from "lucide-react";
 import adminGenreService from "../../services/adminGenreService";
 import { routePaths } from "../../routes/routePaths";
 
 const formatDate = (value) => {
   if (!value) return "-";
-  return new Date(value).toLocaleString();
+  return new Date(value).toLocaleDateString("vi-VN", { year: "numeric", month: "2-digit", day: "2-digit" });
 };
+
+const HeaderStat = ({ label, value }) => (
+  <div className="rounded-xl bg-slate-100 px-4 py-2.5 min-w-[100px] text-center sm:text-left">
+    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">{label}</p>
+    <p className="mt-0.5 text-base font-bold text-slate-900">{value}</p>
+  </div>
+);
 
 const GenresListPage = () => {
   const [genres, setGenres] = useState([]);
-  const [filters, setFilters] = useState({ search: "" });
+  
+  // State lưu trữ giá trị nhập tạm thời trên ô input ô tìm kiếm để chống spam API
+  const [searchTerm, setSearchTerm] = useState("");
+  
+  // State Query chuẩn chỉ kích hoạt gọi dữ liệu và phân trang
+  const [query, setQuery] = useState({ search: "", page: 1, limit: 10 });
+  const [pagination, setPagination] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [isDeleting, setIsDeleting] = useState(false); 
 
-  // --- STATE CHO MODAL XÁC NHẬN XÓA ---
-  const [deleteModal, setDeleteModal] = useState({
-    isOpen: false,
-    genreId: null,
-    genreName: "",
-  });
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, genreId: null, genreName: "" });
 
-  const loadGenres = async () => {
+  const loadGenres = async (params = query) => {
     setIsLoading(true);
     setMessage("");
-
     try {
-      const { genres: list } = await adminGenreService.getAdminGenresService(filters);
-      setGenres(Array.isArray(list) ? list : []);
+      const response = await adminGenreService.getAdminGenresService({ search: params.search });
+      const list = response?.genres ?? [];
+      const dataList = Array.isArray(list) ? list : [];
+      setGenres(dataList);
+      
+      const totalItems = dataList.length;
+      const totalPages = Math.ceil(totalItems / params.limit) || 0;
+
+      setPagination({
+        page: params.page,
+        limit: params.limit,
+        total: totalItems,
+        totalPages: totalPages
+      });
     } catch (error) {
-      setMessage(error?.response?.data?.message || error?.message || "Không thể tải danh sách thể loại.");
+      setMessage("Không thể đồng bộ cơ sở dữ liệu phân mục thể loại nhạc.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    void loadGenres();
-  }, [filters]);
+  useEffect(() => { void loadGenres(query); }, [query]);
 
-  const handleChange = (field) => (e) => {
-    setFilters((p) => ({ ...p, [field]: e.target.value }));
+  const handleSearchSubmit = (e) => { 
+    e.preventDefault(); 
+    setQuery(prev => ({ ...prev, search: searchTerm.trim(), page: 1 }));
+  };
+  
+  const handleResetFilters = () => {
+    setSearchTerm("");
+    setQuery({ search: "", page: 1, limit: 10 });
   };
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    await loadGenres();
+  const handlePageChange = ({ selected }) => {
+    setQuery((prev) => ({ ...prev, page: selected + 1 }));
   };
 
-  // --- MỞ MODAL XÁC NHẬN ---
-  const openDeleteModal = (id, name) => {
-    setDeleteModal({
-      isOpen: true,
-      genreId: id,
-      genreName: name,
-    });
-  };
+  const openDeleteModal = (id, name) => { setDeleteModal({ isOpen: true, genreId: id, genreName: name }); };
+  const closeDeleteModal = () => { setDeleteModal({ isOpen: false, genreId: null, genreName: "" }); };
 
-  // --- ĐÓNG MODAL ---
-  const closeDeleteModal = () => {
-    setDeleteModal({ isOpen: false, genreId: null, genreName: "" });
-  };
-
-  // --- XỬ LÝ XÓA KHI USER BẤM "XÁC NHẬN" TRÊN MODAL ---
   const handleConfirmDelete = async () => {
     const { genreId } = deleteModal;
     if (!genreId) return;
-
     setIsDeleting(true);
-    setMessage("");
-
     try {
       await adminGenreService.deleteAdminGenreService(genreId);
-      await loadGenres(); 
-      // Có thể đổi thông báo alert thành thông báo state nếu muốn
-      alert("Xóa thể loại thành công!"); 
+      await loadGenres(query); 
       closeDeleteModal();
     } catch (error) {
-      setMessage(error?.response?.data?.message || error?.message || "Xóa thể loại thất bại.");
+      setMessage("Xóa phân mục thể loại thất bại.");
       closeDeleteModal();
     } finally {
       setIsDeleting(false);
     }
   };
 
+  // SỬA LỖI LOGIC TẠI ĐÂY: Triệt tiêu hoàn toàn lỗi hiển thị dạng 1/0 khi trống danh sách
+  const total = pagination?.total ?? 0;
+  const totalPages = pagination?.totalPages ?? 0;
+  const currentPage = total === 0 ? 0 : (pagination?.page ?? 1);
+  const pageLabel = `${currentPage}/${totalPages}`;
+  
+  // Lấy danh sách cắt mảng thực tế của trang hiện tại
+  const paginatedGenres = genres.slice((query.page - 1) * query.limit, query.page * query.limit);
+
   return (
-    <section className="space-y-6 relative">
-      <div className="flex flex-col gap-3 rounded border border-black bg-white p-8 md:flex-row md:items-center md:justify-between">
+    <section className="space-y-6 max-w-[1400px] mx-auto p-6 bg-slate-50/50 min-h-screen text-slate-800 font-sans antialiased">
+      
+      {/* Khung 1: Header Dashboard đồng bộ cấu trúc hình mẫu */}
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.32em] text-black/50">Genre Management</p>
-          <h1 className="mt-3 text-4xl font-semibold text-black">Genre List</h1>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-black/70">Browse and manage music genres with cover images and status.</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">Danh mục hệ thống</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Music Genres Catalog</h1>
         </div>
-        <div className="flex-shrink-0">
-          <Link to={routePaths.genreNew} className="inline-flex items-center justify-center rounded bg-black px-5 py-3 text-sm font-semibold text-white transition hover:bg-black/90">
-            Create Genre
+
+        <div className="flex flex-wrap items-center gap-4 self-start lg:self-auto">
+          <div className="grid gap-2 grid-cols-3">
+            <HeaderStat label="Tổng hồ sơ" value={total} />
+            <HeaderStat label="Hiển thị" value={paginatedGenres.length} />
+            <HeaderStat label="Trang" value={pageLabel} />
+          </div>
+          <Link to={routePaths.genreNew} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 text-sm font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5 whitespace-nowrap">
+            <Plus size={16} /> Thêm thể loại mới
           </Link>
         </div>
       </div>
 
-      <form onSubmit={handleSearch} className="grid gap-4 rounded border border-black bg-white p-6 md:grid-cols-[1.5fr_0.8fr]">
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-black/70">Search</label>
-          <input value={filters.search} onChange={handleChange("search")} placeholder="Name or description" className="w-full rounded border border-black/10 bg-slate-50 px-4 py-3 text-sm text-black outline-none focus:border-black" />
-        </div>
+      {/* Khung 2: Thanh điều khiển chứa ô Tìm kiếm & Đặt lại */}
+      <form onSubmit={handleSearchSubmit} className="grid gap-3 rounded-2xl bg-white p-4 shadow-[0_12px_32px_rgba(15,23,42,0.06)] grid-cols-1 sm:grid-cols-[1fr_100px_100px]">
+        <label className="relative block">
+          <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Tìm kiếm theo tên nhãn hoặc mô tả thể loại nhạc..." className="w-full rounded-lg bg-slate-100 py-3 pl-11 pr-4 text-sm text-slate-900 outline-none transition focus:bg-sky-50" />
+        </label>
+        
+        <button
+          type="button"
+          onClick={handleResetFilters}
+          className="rounded-lg border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition py-3"
+        >
+          Đặt lại
+        </button>
 
-        <div className="flex items-end">
-          <button type="submit" className="w-full rounded bg-black px-5 py-3 text-sm font-semibold text-white transition hover:bg-black/90">Search</button>
-        </div>
+        <button type="submit" className="rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 shadow-sm">Tìm kiếm</button>
       </form>
 
-      {message && <div className="rounded border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">{message}</div>}
+      {message && <div className="border border-red-100 bg-red-50/50 px-4 py-3 text-sm rounded-xl text-red-600">{message}</div>}
 
-      <div className="overflow-hidden rounded border border-black bg-white">
-        <div className="overflow-x-auto">
-          <table className="min-w-full border-separate border-spacing-0 text-left text-sm text-black">
-            <thead className="bg-slate-100 text-xs uppercase tracking-[0.16em] text-slate-700">
-              <tr>
-                <th className="border-b border-black/10 px-6 py-4">Image</th>
-                <th className="border-b border-black/10 px-6 py-4">Name</th>
-                <th className="border-b border-black/10 px-6 py-4">Description</th>
-                <th className="border-b border-black/10 px-6 py-4">Active</th>
-                <th className="border-b border-black/10 px-6 py-4">Created At</th>
-                <th className="border-b border-black/10 px-6 py-4 text-right">Actions</th> 
-              </tr>
-            </thead>
-            <tbody>
+      {/* Khung 3: Danh sách cấu trúc hàng Spaced Rows (Đã đồng bộ) */}
+      {genres.length === 0 ? (
+        <div className="rounded-2xl bg-white px-6 py-20 text-center shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+          <p className="text-base font-semibold text-slate-900">Chưa có phân mục thể loại nhạc nào được thiết lập.</p>
+          <p className="mt-1 text-sm text-slate-400">Hồ sơ trống hoặc không có dữ liệu nào khớp từ khóa tìm kiếm.</p>
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-2xl bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+          <div className="grid min-w-[960px] grid-cols-[80px_minmax(0,1.5fr)_minmax(0,2fr)_140px_160px_140px] gap-4 border-b border-slate-200 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+            <span>Artwork</span>
+            <span>Tên nhãn</span>
+            <span>Mô tả tổng quan</span>
+            <span>Trạng thái</span>
+            <span>Ngày tạo</span>
+            <span className="text-right pr-4">Hành động</span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <div className="min-w-[960px] divide-y divide-slate-100">
               {isLoading ? (
-                <tr>
-                  <td colSpan="6" className="px-6 py-10 text-center text-sm text-slate-500">Loading genres...</td>
-                </tr>
-              ) : genres.length === 0 ? (
-                <tr>
-                  <td colSpan="6" className="px-6 py-10 text-center text-sm text-slate-500">No genres found.</td>
-                </tr>
+                <div className="p-12 text-center text-sm font-medium text-slate-400 uppercase tracking-wider">Đang đồng bộ ma trận dữ liệu...</div>
               ) : (
-                genres.map((g) => (
-                  <tr key={g._id} className="even:bg-slate-50">
-                    <td className="border-b border-black/10 px-6 py-4">
-                      {g.image ? (
-                        <img src={g.image} alt={g.name} className="h-14 w-14 rounded object-cover border border-black/10" />
-                      ) : (
-                        <div className="flex h-14 w-14 items-center justify-center rounded border border-black/10 bg-slate-100 text-xs text-black/40">No image</div>
-                      )}
-                    </td>
-                    <td className="border-b border-black/10 px-6 py-4 font-semibold text-black">{g.name}</td>
-                    <td className="border-b border-black/10 px-6 py-4">{g.description || "-"}</td>
-                    <td className="border-b border-black/10 px-6 py-4">
-                      <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${g.isActive ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>
-                        {g.isActive ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-                    <td className="border-b border-black/10 px-6 py-4">{formatDate(g.createdAt)}</td>
+                paginatedGenres.map((g) => (
+                  <article key={g._id} className="relative grid grid-cols-[80px_minmax(0,1.5fr)_minmax(0,2fr)_140px_160px_140px] gap-4 px-6 py-4 transition hover:bg-slate-50/60 items-center">
+                    <div className={`absolute inset-y-2 left-0 w-1 rounded-r ${g.isActive ? "bg-emerald-500" : "bg-slate-300"}`} />
                     
-                    <td className="border-b border-black/10 px-6 py-4 text-right space-x-2 whitespace-nowrap">
-                      <Link
-                        to={routePaths.genreEdit(g._id)}
-                        className="inline-flex rounded bg-black px-3 py-2 text-xs font-semibold text-white transition hover:bg-black/90"
-                      >
-                        Edit
+                    <div className="pl-2">
+                      {g.image ? (
+                        <img src={g.image} alt={g.name} className="h-10 w-10 rounded-xl object-cover border border-slate-100 shadow-sm" />
+                      ) : (
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-100 bg-slate-50 text-[10px] font-black text-slate-400 uppercase">GENRE</div>
+                      )}
+                    </div>
+
+                    <span className="text-sm font-bold text-slate-900">{g.name}</span>
+                    <p className="truncate text-xs text-slate-500 font-medium">{g.description || "—"}</p>
+                    
+                    <div>
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${g.isActive ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-slate-50 text-slate-500 border-slate-200"}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${g.isActive ? "bg-emerald-500" : "bg-slate-400"}`}></span>
+                        {g.isActive ? "Công khai" : "Tạm khóa"}
+                      </span>
+                    </div>
+
+                    <span className="text-xs font-mono font-medium text-slate-400">{formatDate(g.createdAt)}</span>
+
+                    <div className="flex items-center justify-end gap-1.5 pr-2">
+                      <Link to={routePaths.genreEdit(g._id)} className="inline-flex items-center gap-1 border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 px-3 py-1.5 text-xs font-semibold rounded-xl transition shadow-sm">
+                        <Edit2 size={12} /> Sửa
                       </Link>
-                      
-                      {/* Bấm nút này sẽ mở modal thay vì gọi confirm của trình duyệt */}
-                      <button
-                        type="button"
-                        onClick={() => openDeleteModal(g._id, g.name)}
-                        className="inline-flex rounded bg-rose-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-rose-700"
-                      >
-                        Delete
+                      <button type="button" onClick={() => openDeleteModal(g._id, g.name)} className="inline-flex items-center gap-1 border border-rose-100 bg-rose-50/50 text-rose-600 hover:bg-rose-50 px-3 py-1.5 text-xs font-semibold rounded-xl transition shadow-sm">
+                        <Trash2 size={12} /> Xóa
                       </button>
-                    </td>
-                  </tr>
+                    </div>
+                  </article>
                 ))
               )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* --- GIAO DIỆN MODAL XÁC NHẬN ĐẸP (POPUP) --- */}
-      {deleteModal.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Lớp nền mờ bên sau (Backdrop) */}
-          <div 
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
-            onClick={closeDeleteModal} // Bấm ra ngoài modal để đóng
-          ></div>
-
-          {/* Hộp thoại Modal */}
-          <div className="relative w-full max-w-md transform overflow-hidden rounded bg-white p-8 text-left align-middle shadow-2xl border border-black transition-all space-y-6">
-            <div className="space-y-2">
-              <span className="inline-flex items-center justify-center rounded-full bg-rose-100 p-3 text-rose-600">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-6 w-6">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                </svg>
-              </span>
-              <h3 className="text-xl font-semibold leading-6 text-black">Xóa thể loại này?</h3>
-              <p className="text-sm text-black/60 leading-relaxed">
-                Bạn có chắc chắn muốn xóa thể loại <strong className="text-black font-semibold">"{deleteModal.genreName}"</strong>? 
-                Hành động này không thể hoàn tác và dữ liệu liên quan có thể bị ảnh hưởng.
-              </p>
             </div>
+          </div>
+        </div>
+      )}
 
-            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                onClick={closeDeleteModal}
-                className="inline-flex justify-center rounded border border-black/20 bg-white px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-slate-50"
-              >
-                Hủy bỏ
-              </button>
-              <button
-                type="button"
-                disabled={isDeleting}
-                onClick={handleConfirmDelete}
-                className="inline-flex justify-center rounded bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:opacity-50"
-              >
-                {isDeleting ? "Đang xóa..." : "Xác nhận xóa"}
-              </button>
+      {/* Khung 4: Khối điều khiển Phân trang cố định chuẩn chỉ chân trang */}
+      {pagination && (
+        <div className="flex flex-col gap-4 rounded-2xl bg-white px-6 py-5 sm:flex-row sm:items-center sm:justify-between shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+          <p className="text-sm text-slate-500 font-medium">
+            Trang {currentPage} / {totalPages}
+            <span className="mx-2 text-slate-300">|</span>
+            Tổng cộng: {total} bản ghi
+          </p>
+
+          {totalPages > 1 && (
+            <ReactPaginate 
+              breakLabel="..." 
+              nextLabel=">" 
+              previousLabel="<" 
+              forcePage={Math.max(pagination.page - 1, 0)} 
+              onPageChange={handlePageChange} 
+              pageRangeDisplayed={3} 
+              marginPagesDisplayed={1} 
+              pageCount={totalPages} 
+              renderOnZeroPageCount={null} 
+              containerClassName="flex flex-wrap items-center gap-2" 
+              pageLinkClassName="flex h-10 min-w-10 items-center justify-center rounded-xl bg-slate-100 px-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-200" 
+              previousLinkClassName="flex h-10 min-w-10 items-center justify-center rounded-xl bg-slate-100 px-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-200" 
+              nextLinkClassName="flex h-10 min-w-10 items-center justify-center rounded-xl bg-slate-100 px-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-200" 
+              breakLinkClassName="flex h-10 min-w-10 items-center justify-center rounded-xl bg-slate-100 px-3 text-sm font-semibold text-slate-500" 
+              activeLinkClassName="bg-blue-600 text-white hover:bg-blue-600" 
+              disabledLinkClassName="cursor-not-allowed opacity-40 hover:bg-slate-100" 
+            />
+          )}
+        </div>
+      )}
+
+      {/* Pop-up Modal Xóa Thể Loại */}
+      {deleteModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-white p-6 shadow-xl rounded-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">Xóa thể loại nhạc?</h2>
+              <p className="text-xs text-slate-400 mt-0.5">Mọi liên kết bài hát thuộc thể loại này có thể bị ảnh hưởng chỉ mục cấu trúc gộp.</p>
+            </div>
+            <p className="text-sm text-slate-600 leading-relaxed">Xác nhận gỡ bỏ hoàn toàn phân mục danh mục <span className="font-bold text-slate-950">"{deleteModal.genreName}"</span>?</p>
+            <div className="flex gap-2 justify-end pt-1">
+              <button type="button" onClick={closeDeleteModal} className="px-4 py-2 text-xs font-semibold border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 transition">Hủy bỏ</button>
+              <button type="button" disabled={isDeleting} onClick={handleConfirmDelete} className="px-4 py-2 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-sm transition disabled:opacity-50">Xác nhận gỡ bỏ</button>
             </div>
           </div>
         </div>
