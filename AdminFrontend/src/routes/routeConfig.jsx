@@ -20,6 +20,7 @@ import SystemArtistsListPage from "../pages/artist/SystemArtistsListPage";
 import SystemArtistDetailPage from "../pages/artist/ArtistDetailPage";
 import SystemTracksModerationPage from "../pages/systemTracks/SystemTracksModerationPage";
 import AdminListPage from "../pages/users/AdminListPage";
+import TransactionListPage from "../pages/transactions/TransactionsListPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import RoleRoute from "./RoleRoute";
@@ -102,6 +103,8 @@ export const appRoutes = [
                 path: "system-tracks/:id",
                 element: <TrackDetailPage />,
               },
+              { path: "transactions", 
+                element: <TransactionListPage /> },
               {
                 path: "genres",
                 element: <GenresListPage />,

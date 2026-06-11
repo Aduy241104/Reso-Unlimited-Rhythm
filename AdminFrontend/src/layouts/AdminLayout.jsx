@@ -11,6 +11,7 @@ const navigationItems = [
   { to: routePaths.systemArtists, label: "Artist hệ thống", end: false },
   { to: routePaths.genres, label: "Thể loại", end: false },
   { to: routePaths.users, label: "Người dùng", end: false },
+  { to: routePaths.transactions, label: "Lịch sử giao dịch", end: false },
 ];
 
 const AdminLayout = () => {

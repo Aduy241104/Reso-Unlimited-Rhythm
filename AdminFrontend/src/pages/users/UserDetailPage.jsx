@@ -1,16 +1,13 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
   getUserService,
   updateUserService,
 } from "../../services/userService";
-import { getTransactionsByUserIdService } from "../../services/transactionsService";
 
-// Chỉ cho phép điều hướng giữa user và admin trực tiếp tại đây
 const roles = ["user", "admin"];
 
-// Danh sách tùy chọn lý do khóa tài khoản Thành viên/Người dùng đồng bộ hệ thống SaaS
 const BLOCK_REASON_OPTIONS = [
   { value: "community_violation", label: "Community Violation (Vi phạm tiêu chuẩn cộng đồng)" },
   { value: "spam_abuse", label: "Spam & Abuse (Cố tình spam hoặc lạm dụng hệ thống)" },
@@ -40,33 +37,24 @@ const UserDetailPage = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
-  const [transactions, setTransactions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
   
-  // 1. States cho Modal Block tài khoản với lý do chi tiết
   const [modalOpen, setModalOpen] = useState(false);
   const [adminNote, setAdminNote] = useState("");
   const [selectedReasons, setSelectedReasons] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // 2. States cho Modal Xác nhận đổi quyền thông thường (User <-> Admin)
   const [roleModalOpen, setRoleModalOpen] = useState(false);
   const [pendingRole, setPendingRole] = useState("");
-
-  // 3. State cho Modal Cảnh báo nếu tài khoản đích thực đang là Artist
   const [artistWarningModalOpen, setArtistWarningModalOpen] = useState(false);
 
   const loadUser = async () => {
     setIsLoading(true);
     setMessage("");
     try {
-      const [userData, transactionData] = await Promise.all([
-        getUserService(userId),
-        getTransactionsByUserIdService(userId),
-      ]);
+      const userData = await getUserService(userId);
       setUser(userData);
-      setTransactions(transactionData);
     } catch (error) {
       setMessage(error?.response?.data?.message || error?.message || "Unable to load user data.");
     } finally {
@@ -79,25 +67,20 @@ const UserDetailPage = () => {
     void loadUser();
   }, [userId]);
 
-  // Bộ chặn sự kiện thay đổi Dropdown phân quyền
   const handleRoleSelectChange = (event) => {
     if (!user) return;
     const targetRole = event.target.value;
 
-    // Nếu tài khoản hiện tại đang là Artist -> Chặn đứng hành vi và mở Modal cảnh báo chỉnh sửa bên hệ thống Artist
     if (user.role === "artist") {
       setArtistWarningModalOpen(true);
       return;
     }
-
     if (targetRole === user.role) return;
 
-    // Gán role tạm thời chờ duyệt và mở Modal xác nhận
     setPendingRole(targetRole);
     setRoleModalOpen(true);
   };
 
-  // Xác nhận cập nhật quyền lên server từ Modal
   const handleConfirmRoleChange = async () => {
     setIsProcessing(true);
     setMessage("");
@@ -115,7 +98,6 @@ const UserDetailPage = () => {
     }
   };
 
-  // Xử lý nút kích hoạt trạng thái hoạt động / Mở khóa
   const handleToggleBlockAction = async () => {
     if (!user) return;
     if (user.activeStatus !== "blocked") {
@@ -140,7 +122,6 @@ const UserDetailPage = () => {
     }
   };
 
-  // Thực thi lệnh khóa tài khoản diện rộng
   const handleConfirmBlockEnforcement = async () => {
     if (!user) return;
     setIsProcessing(true);
@@ -172,12 +153,6 @@ const UserDetailPage = () => {
     );
   };
 
-  const getStatusBorderColor = () => {
-    if (user?.activeStatus === "active") return "border-l-[4px] border-l-emerald-500";
-    if (user?.activeStatus === "blocked") return "border-l-[4px] border-l-rose-500";
-    return "border-l-[4px] border-l-slate-300";
-  };
-
   return (
     <section className="mx-auto max-w-7xl space-y-6 p-6 bg-[#f8fafc] min-h-screen font-sans text-slate-800">
       
@@ -185,19 +160,19 @@ const UserDetailPage = () => {
       <div className="flex flex-col gap-4 rounded-2xl bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between border border-slate-100">
         <div className="flex items-center gap-4">
           {user?.avatar ? (
-            <img src={user.avatar} alt="Avatar" className="h-14 w-14 rounded-full border border-slate-100 object-cover" />
+            <img src={user.avatar} alt="Avatar" className="h-16 w-16 rounded-full border-2 border-slate-100 object-cover shadow-inner" />
           ) : (
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-900 font-bold text-white text-lg">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-900 font-bold text-white text-xl shadow-md">
               {user?.profile?.fullName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "?"}
             </div>
           )}
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Hệ thống quản trị thành viên</p>
-            <h1 className="mt-1 text-2xl font-bold text-slate-900 flex items-center gap-2">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Hệ thống quản trị thành viên</p>
+            <h1 className="mt-1 text-2xl font-black text-slate-900 flex items-center gap-2">
               {user?.profile?.fullName || "Chưa cập nhật tên"}
-              <span className={`px-2.5 py-0.5 text-[10px] font-bold rounded-full tracking-wider uppercase ${
-                user?.role === "artist" ? "bg-blue-50 text-blue-600 border border-blue-100" :
-                user?.role === "admin" ? "bg-purple-50 text-purple-600 border border-purple-100" : "bg-slate-100 text-slate-500"
+              <span className={`px-2.5 py-0.5 text-[10px] font-bold rounded-md tracking-wider uppercase border ${
+                user?.role === "artist" ? "bg-blue-50 text-blue-600 border-blue-200" :
+                user?.role === "admin" ? "bg-purple-50 text-purple-600 border-purple-200" : "bg-slate-50 text-slate-500 border-slate-200"
               }`}>
                 {user?.role || "USER"}
               </span>
@@ -205,19 +180,27 @@ const UserDetailPage = () => {
           </div>
         </div>
 
+        {/* THAO TÁC QUẢN TRỊ ĐƯỢC ĐƯA LÊN HEADER ĐỂ TỐI ƯU KHÔNG GIAN */}
         <div className="flex flex-wrap items-center gap-3">
-          <div className="rounded-xl bg-slate-50 px-4 py-2 border border-slate-100 min-w-[100px] text-center">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Trạng thái</p>
-            <p className={`mt-0.5 text-xs font-bold ${user?.activeStatus === "active" ? "text-emerald-600" : "text-rose-600"}`}>
-              ● {user?.activeStatus === "active" ? "Hoạt Động" : "Bị Khóa"}
-            </p>
-          </div>
-          <div className="rounded-xl bg-slate-50 px-4 py-2 border border-slate-100 min-w-[100px] text-center">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Hội viên</p>
-            <p className="mt-0.5 text-xs font-bold text-slate-900">
-              {user?.subscription?.isPremium ? "Premium ★" : "Free Tier"}
-            </p>
-          </div>
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50"
+          >
+            ← Danh sách
+          </button>
+          <button
+            type="button"
+            disabled={isProcessing || !user}
+            onClick={handleToggleBlockAction}
+            className={`flex items-center gap-1 rounded-xl px-5 py-2.5 text-xs font-bold text-white shadow-sm transition ${
+              user?.activeStatus === "blocked" 
+                ? "bg-emerald-600 hover:bg-emerald-700" 
+                : "bg-rose-600 hover:bg-rose-700"
+            } disabled:opacity-50`}
+          >
+            {user?.activeStatus === "blocked" ? "Mở khóa tài khoản" : "Khóa tài khoản"}
+          </button>
         </div>
       </div>
 
@@ -228,7 +211,7 @@ const UserDetailPage = () => {
           <div>
             <h3 className="font-bold text-sm">Tài khoản này hiện đang bị đình chỉ hoạt động</h3>
             <p className="mt-1 text-xs text-rose-700/90 leading-relaxed font-semibold">
-              <span className="underline">Lý do hệ thống trích xuất:</span> {user?.blockReason || "Không có giải trình cụ thể được lưu trữ."}
+              <span className="underline">Lý do:</span> {user?.blockReason || "Không có giải trình cụ thể."}
             </p>
           </div>
         </div>
@@ -238,231 +221,143 @@ const UserDetailPage = () => {
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">{message}</div>
       )}
 
-      {/* KPI METRICS (STATS GỐC) */}
+      {/* KPI METRICS GRID */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
           <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tổng thời gian nghe</p>
-          <p className="mt-2 text-2xl font-bold text-slate-900">{formatDuration(user?.stats?.totalListeningTime)}</p>
+          <p className="mt-2 text-2xl font-black text-slate-900">{formatDuration(user?.stats?.totalListeningTime)}</p>
         </div>
         <div className="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
           <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Số bài hát đã phát</p>
-          <p className="mt-2 text-2xl font-bold text-slate-900">{(user?.stats?.totalTracksPlayed || 0).toLocaleString()}</p>
+          <p className="mt-2 text-2xl font-black text-slate-900">{(user?.stats?.totalTracksPlayed || 0).toLocaleString()}</p>
         </div>
         <div className="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Phương thức xác thực</p>
-          <p className="mt-2 text-lg font-bold text-slate-900 capitalize flex items-center gap-2">
-            {user?.authProvider === "google" ? "Google SSO" : "Mật khẩu"}
-            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${user?.emailVerified ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
-              {user?.emailVerified ? "Đã xác minh" : "Chưa xác minh"}
+          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Xác thực tài khoản</p>
+          <div className="mt-2 flex flex-col gap-1">
+            <span className="text-sm font-bold text-slate-900 capitalize">
+              {user?.authProvider === "google" ? "Google SSO" : "Mật khẩu hệ thống"}
             </span>
-          </p>
+            <span className={`w-fit text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${user?.emailVerified ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-amber-50 text-amber-700 border border-amber-200"}`}>
+              {user?.emailVerified ? "Đã verify" : "Chưa verify"}
+            </span>
+          </div>
         </div>
         <div className="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Trạng thái gói hội viên</p>
-          <p className="mt-2 text-xl font-bold text-slate-900">
-            {user?.subscription?.isPremium ? "🎯 Gói Premium" : "🛡️ Gói miễn phí (Free)"}
-          </p>
+          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Trạng thái hoạt động</p>
+          <span className={`mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${
+            user?.activeStatus === "active" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+          }`}>
+            <span className={`h-2 w-2 rounded-full ${user?.activeStatus === "active" ? "bg-emerald-500" : "bg-rose-500"}`}></span>
+            {user?.activeStatus === "active" ? "Đang hoạt động" : "Bị đình chỉ"}
+          </span>
         </div>
       </div>
 
-      {/* BỐ CỤC CHÍNH ĐẦY ĐỦ PHÂN CHIA GRID 2:1 */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      {/* BỐ CỤC CHÍNH: 3 CỘT ĐỀU NHAU (3-COLUMN DASHBOARD) */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         
-        {/* CỘT TRÁI: THÔNG TIN CHI TIẾT TÀI KHOẢN & LỊCH SỬ HÓA ĐƠN */}
-        <div className="lg:col-span-2 space-y-6">
-          
-          {/* Card 1: Thông tin chi tiết tài khoản */}
-          <div className={`rounded-2xl bg-white p-6 shadow-sm border border-slate-100 transition-all ${getStatusBorderColor()}`}>
-            <h2 className="text-base font-bold text-slate-900 border-b border-slate-50 pb-3">Thông tin chi tiết hồ sơ</h2>
-            <div className="mt-4 grid gap-y-4 gap-x-6 sm:grid-cols-2">
+        {/* CỘT 1: THÔNG TIN CHI TIẾT HỒ SƠ */}
+        <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100 flex flex-col justify-between">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-3 mb-4">Thông tin hồ sơ</h2>
+            <div className="space-y-4">
               <div>
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Địa chỉ Email</label>
-                <p className="mt-1 text-sm font-semibold text-slate-900">{user?.email || "-"}</p>
+                <p className="mt-0.5 text-sm font-semibold text-slate-900 break-all">{user?.email || "-"}</p>
               </div>
               <div>
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Họ và tên</label>
-                <p className="mt-1 text-sm font-semibold text-slate-900">{user?.profile?.fullName || "-"}</p>
+                <p className="mt-0.5 text-sm font-semibold text-slate-900">{user?.profile?.fullName || "-"}</p>
               </div>
               <div>
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Phân quyền hệ thống</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Quốc gia / Giới tính</label>
+                <p className="mt-0.5 text-sm font-medium text-slate-900 capitalize">
+                  {user?.profile?.country || "-"} / {user?.profile?.gender?.replace(/_/g, " ") || "-"}
+                </p>
+              </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Ngày sinh</label>
+                <p className="mt-0.5 text-sm font-medium text-slate-900">
+                  {user?.profile?.dateOfBirth ? new Date(user.profile.dateOfBirth).toLocaleDateString("vi-VN") : "-"}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* CỘT 2: PHÂN QUYỀN & THỜI GIAN HỆ THỐNG */}
+        <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100 flex flex-col justify-between">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-3 mb-4">Hệ thống & Quyền</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Phân quyền tài khoản</label>
                 <select
                   value={user?.role || "user"}
                   onChange={handleRoleSelectChange}
                   disabled={!user || isProcessing}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-400 transition cursor-pointer font-semibold"
+                  className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-slate-400 transition cursor-pointer font-bold shadow-sm"
                 >
-                  {user?.role === "artist" && <option value="artist">Artist (Nghệ sĩ chuyên biệt)</option>}
-                  <option value="user">User (Thành viên thông thường)</option>
-                  <option value="admin">Admin (Quản trị viên hệ thống)</option>
+                  {user?.role === "artist" && <option value="artist">Artist (Nghệ sĩ)</option>}
+                  <option value="user">User (Thành viên)</option>
+                  <option value="admin">Admin (Quản trị viên)</option>
                 </select>
               </div>
               <div>
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Quốc gia</label>
-                <p className="mt-1 text-sm font-medium text-slate-900">{user?.profile?.country || "-"}</p>
-              </div>
-              <div>
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Giới tính</label>
-                <p className="mt-1 text-sm font-medium text-slate-900 capitalize">{user?.profile?.gender?.replace(/_/g, " ") || "-"}</p>
-              </div>
-              <div>
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Ngày sinh</label>
-                <p className="mt-1 text-sm font-medium text-slate-900">
-                  {user?.profile?.dateOfBirth ? new Date(user.profile.dateOfBirth).toLocaleDateString("vi-VN") : "-"}
-                </p>
-              </div>
-              <div>
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Ngày tạo tài khoản</label>
-                <p className="mt-1 text-sm text-slate-500">{formatDate(user?.createdAt)}</p>
+                <p className="mt-0.5 text-sm font-semibold text-slate-600">{formatDate(user?.createdAt)}</p>
               </div>
               <div>
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Cập nhật hồ sơ cuối</label>
-                <p className="mt-1 text-sm text-slate-500">{formatDate(user?.updatedAt)}</p>
+                <p className="mt-0.5 text-sm font-semibold text-slate-600">{formatDate(user?.updatedAt)}</p>
               </div>
-            </div>
-          </div>
-
-          {/* Card 2: Lịch sử hóa đơn giao dịch */}
-          <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
-            <div className="flex items-center justify-between border-b border-slate-50 pb-3">
-              <h2 className="text-base font-bold text-slate-900">Lịch sử thanh toán hóa đơn</h2>
-              <span className="rounded-full bg-slate-50 px-2.5 py-0.5 text-[11px] font-bold text-slate-500 border border-slate-100">
-                {transactions?.length ?? 0} Bản ghi
-              </span>
-            </div>
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full text-left text-sm text-slate-600">
-                <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100">
-                  <tr>
-                    <th className="px-4 py-3">Mã đơn hàng</th>
-                    <th className="px-4 py-3">Số tiền</th>
-                    <th className="px-4 py-3">Cổng giao dịch</th>
-                    <th className="px-4 py-3">Trạng thái</th>
-                    <th className="px-4 py-3">Thời gian</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {isLoading ? (
-                    <tr><td colSpan="5" className="px-4 py-6 text-center text-slate-400">Đang tải dữ liệu...</td></tr>
-                  ) : transactions.length === 0 ? (
-                    <tr><td colSpan="5" className="px-4 py-6 text-center text-slate-400">Không tìm thấy dữ liệu giao dịch.</td></tr>
-                  ) : (
-                    transactions.map((transaction) => (
-                      <tr key={transaction._id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-4 py-3 font-mono text-xs text-slate-900">{transaction.gatewayTransactionId || transaction.invoiceNumber || transaction._id}</td>
-                        <td className="px-4 py-3 font-bold text-slate-900">+{transaction.totalAmount?.toLocaleString("en-US")} {transaction.currency}</td>
-                        <td className="px-4 py-3 text-xs capitalize">{transaction.paymentMethod || transaction.paymentGateway || "-"}</td>
-                        <td className="px-4 py-3">
-                          <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold uppercase ${
-                            transaction.status === "completed" || transaction.status === "success" ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-700"
-                          }`}>{transaction.status}</span>
-                        </td>
-                        <td className="px-4 py-3 text-xs text-slate-400">{formatDate(transaction.paidAt || transaction.createdAt)}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
             </div>
           </div>
         </div>
 
-        {/* CỘT PHẢI: THAO TÁC QUẢN TRỊ + SUBSCRIPTION DETAILS CARD + APP PREFERENCES CARD */}
-        <div className="space-y-6">
-          
-          {/* Card 1: Thao tác quản trị nhanh */}
-          <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100 space-y-3">
-            <h2 className="text-base font-bold text-slate-900">Thao tác quản trị</h2>
-            <button
-              type="button"
-              disabled={isProcessing}
-              onClick={handleToggleBlockAction}
-              className={`w-full flex items-center justify-center gap-1 rounded-xl py-2.5 text-xs font-bold text-white shadow-sm transition ${
-                user?.activeStatus === "blocked" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-slate-900 hover:bg-slate-800"
-              } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
-            >
-              {user?.activeStatus === "blocked" ? "Kích hoạt tài khoản ↗" : "Khóa tài khoản hệ thống ↗"}
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate(-1)}
-              className="w-full rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50"
-            >
-              Quay lại danh sách
-            </button>
-          </div>
-
-          {/* KHÔI PHỤC Card 2: Thông tin chi tiết gói hội viên Premium */}
-          <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
-            <h2 className="text-base font-bold text-slate-900 border-b border-slate-50 pb-3">Chi tiết Gói hội viên</h2>
-            <div className="mt-4 space-y-4">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Hạng mục Premium</p>
-                <p className="mt-1 text-sm font-bold text-slate-900">
-                  {user?.subscription?.isPremium ? "🎯 Premium Active" : "🛡️ Free Tier Account"}
+        {/* CỘT 3: GÓI HỘI VIÊN & CONFIG CÀI ĐẶT APP */}
+        <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100 space-y-5">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-3 mb-4">Gói dịch vụ & Cài đặt</h2>
+            <div className="space-y-3">
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Hạng mục hội viên</p>
+                <p className="mt-0.5 text-sm font-black text-slate-950">
+                  {user?.subscription?.isPremium ? "🎯 Premium Active ★" : "🛡️ Free Tier Account"}
                 </p>
-              </div>
-              {user?.subscription?.isPremium && (
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Ngày hết hạn Premium</p>
-                  <p className="mt-1 text-sm font-semibold text-slate-900">
-                    {user?.subscription?.premiumEndDate ? new Date(user.subscription.premiumEndDate).toLocaleDateString("vi-VN") : "-"}
+                {user?.subscription?.isPremium && (
+                  <p className="text-[11px] font-medium text-slate-500 mt-1">
+                    Hết hạn: {new Date(user.subscription.premiumEndDate).toLocaleDateString("vi-VN")}
                   </p>
-                </div>
-              )}
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Mã liên kết Plan ID</p>
-                <p className="mt-1 font-mono text-xs text-slate-400 break-all">{user?.subscription?.currentPlanId || "Trống (Không định dạng)"}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* KHÔI PHỤC Card 3: Cấu hình ứng dụng cục bộ của User */}
-          <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
-            <h2 className="text-base font-bold text-slate-900 border-b border-slate-50 pb-3">Cấu hình ứng dụng</h2>
-            <div className="mt-4 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold text-slate-900">Ngôn ngữ hiển thị</p>
-                  <p className="text-[11px] text-slate-400">Hệ thống cục bộ</p>
-                </div>
-                <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold uppercase text-slate-700">
-                  {user?.settings?.language || "vi"}
-                </span>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold text-slate-900">Thông báo đẩy</p>
-                  <p className="text-[11px] text-slate-400">Marketing & System</p>
-                </div>
-                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                  user?.settings?.notificationsEnabled ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"
-                }`}>
-                  {user?.settings?.notificationsEnabled ? "ĐANG BẬT" : "TẮT"}
-                </span>
+                )}
               </div>
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold text-slate-900">Phát ngẫu nhiên mặc định</p>
-                  <p className="text-[11px] text-slate-400">Shuffle Play Default</p>
-                </div>
-                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                  user?.settings?.shufflePlayDefault ? "bg-blue-50 text-blue-600" : "bg-slate-100 text-slate-500"
-                }`}>
-                  {user?.settings?.shufflePlayDefault ? "ĐANG BẬT" : "TẮT"}
+              <div className="flex items-center justify-between text-xs font-semibold pt-1">
+                <span className="text-slate-500">Ngôn ngữ ứng dụng:</span>
+                <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-bold uppercase text-slate-700">{user?.settings?.language || "vi"}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs font-semibold">
+                <span className="text-slate-500">Thông báo đẩy:</span>
+                <span className={`text-[10px] font-bold uppercase ${user?.settings?.notificationsEnabled ? "text-emerald-600" : "text-slate-400"}`}>
+                  {user?.settings?.notificationsEnabled ? "Đang bật" : "Tắt"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs font-semibold">
+                <span className="text-slate-500">Phát ngẫu nhiên mặc định:</span>
+                <span className={`text-[10px] font-bold uppercase ${user?.settings?.shufflePlayDefault ? "text-blue-600" : "text-slate-400"}`}>
+                  {user?.settings?.shufflePlayDefault ? "Đang bật" : "Tắt"}
                 </span>
               </div>
             </div>
           </div>
-
         </div>
+
       </div>
 
       {/* ================= MODAL 1: CẢNH BÁO NẾU ĐÃ LÀ ARTIST ================= */}
       {artistWarningModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl border border-slate-100 space-y-4 animate-scale-up">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl border border-slate-100 space-y-4">
             <div className="flex items-center gap-2.5 text-amber-600">
               <span className="text-xl">⚠️</span>
               <h2 className="text-base font-bold uppercase tracking-wide">Hồ sơ Nghệ sĩ chuyên biệt</h2>
@@ -486,7 +381,7 @@ const UserDetailPage = () => {
       {/* ================= MODAL 2: XÁC NHẬN ĐỔI QUYỀN THÔNG THƯỜNG (USER <-> ADMIN) ================= */}
       {roleModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl border border-slate-100 space-y-4 animate-scale-up">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl border border-slate-100 space-y-4">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Phân quyền hệ thống</p>
               <h2 className="mt-0.5 text-base font-bold text-slate-900 uppercase">Xác nhận đổi vai trò</h2>
@@ -523,7 +418,7 @@ const UserDetailPage = () => {
       {/* ================= MODAL 3: KHÓA TÀI KHOẢN REASON OPTIONS ================= */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-sm">
-          <div className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl border border-slate-100 max-h-[90vh] overflow-y-auto space-y-5 animate-scale-up">
+          <div className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl border border-slate-100 max-h-[90vh] overflow-y-auto space-y-5">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">An toàn hệ thống</p>
