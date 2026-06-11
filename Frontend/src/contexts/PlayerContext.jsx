@@ -1,17 +1,25 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Liricle from "liricle";
+import { useAuth } from "../hooks/useAuth";
 import PlayerContext from "./player-context.js";
 import { getApiErrorMessage } from "../utils/apiError";
 import { getRandomLyricsThemeIndex } from "../utils/lyricsTheme";
+import { hasPremiumAccess } from "../utils/premiumAccess";
 import {
   getTrackLyricsSyncTextService,
   getTrackPlaybackSource,
+  resolveTrackAudioQualityOptions,
   resolveTrackLyricsSyncUrl,
   resolveTrackMediaUrl,
+  resolveTrackMediaUrlForQuality,
   recordListenService,
 } from "../services/playerService";
 
 const DEFAULT_VOLUME = 0.75;
+const FREE_SKIP_LIMIT = 6;
+const FREE_SKIP_WINDOW_MS = 5 * 60 * 60 * 1000;
+const FREE_SKIP_STORAGE_KEY = "capstone.player.free_skip_window";
+const MAX_NATURAL_LISTEN_DELTA_SECONDS = 2;
 
 const getTrackId = (track, fallbackId = null) =>
   track?.id || track?._id || track?.trackId || fallbackId;
@@ -22,6 +30,21 @@ const getArtistName = (track, fallbackArtistName = "") =>
   track?.owner?.name ||
   fallbackArtistName ||
   "Unknown artist";
+
+const resolveListenSource = (value = "unknown") => {
+  switch (value) {
+    case "track_detail":
+    case "album":
+    case "playlist":
+    case "search":
+    case "artist_profile":
+      return value;
+    case "track":
+      return "track_detail";
+    default:
+      return "unknown";
+  }
+};
 
 const getTrackImage = (track, fallbackImage = "") => {
   const coverImage = Array.isArray(track?.coverImage)
@@ -57,6 +80,9 @@ const normalizeQueueTrack = (item, options = {}) => {
     playbackTrackId: getTrackId(track),
     streamUrl: resolveTrackMediaUrl(track),
     lyricsSyncUrl: resolveTrackLyricsSyncUrl(track),
+    listenSource: resolveListenSource(
+      track?.listenSource || options.listenSource || options.collectionType
+    ),
     playback: track?.playback || null,
     raw: track,
   };
@@ -71,11 +97,134 @@ const normalizeQueue = (tracks, collection = null) =>
         artistName: collection?.artistName,
         collectionId: collection?.id,
         collectionType: collection?.type,
+        listenSource: collection?.listenSource,
       })
     )
     .filter((track) => Boolean(track?.id));
 
+const createFreeSkipWindow = (startedAt = Date.now()) => ({
+  startedAt,
+  skipCount: 0,
+});
+
+const getActiveFreeSkipWindow = (value, now = Date.now()) => {
+  const startedAt = Number(value?.startedAt);
+  const skipCount = Math.max(Math.floor(Number(value?.skipCount) || 0), 0);
+
+  if (!Number.isFinite(startedAt) || startedAt <= 0) {
+    return createFreeSkipWindow(now);
+  }
+
+  if (now - startedAt >= FREE_SKIP_WINDOW_MS) {
+    return createFreeSkipWindow(now);
+  }
+
+  return {
+    startedAt,
+    skipCount,
+  };
+};
+
+const loadStoredFreeSkipWindow = () => {
+  if (typeof window === "undefined") {
+    return createFreeSkipWindow();
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(FREE_SKIP_STORAGE_KEY);
+
+    if (!rawValue) {
+      return createFreeSkipWindow();
+    }
+
+    return getActiveFreeSkipWindow(JSON.parse(rawValue));
+  } catch {
+    return createFreeSkipWindow();
+  }
+};
+
+const persistFreeSkipWindow = (value) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(FREE_SKIP_STORAGE_KEY, JSON.stringify(value));
+};
+
+const waitForAudioMetadata = (audio, timeoutMs = 1500) =>
+  new Promise((resolve) => {
+    if (!audio || audio.readyState >= 1) {
+      resolve();
+      return;
+    }
+
+    let isResolved = false;
+    const timeoutId = window.setTimeout(() => {
+      if (isResolved) {
+        return;
+      }
+
+      isResolved = true;
+      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      audio.removeEventListener("error", handleError);
+      resolve();
+    }, timeoutMs);
+
+    const handleLoadedMetadata = () => {
+      if (isResolved) {
+        return;
+      }
+
+      isResolved = true;
+      window.clearTimeout(timeoutId);
+      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      audio.removeEventListener("error", handleError);
+      resolve();
+    };
+
+    const handleError = () => {
+      if (isResolved) {
+        return;
+      }
+
+      isResolved = true;
+      window.clearTimeout(timeoutId);
+      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      audio.removeEventListener("error", handleError);
+      resolve();
+    };
+
+    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
+    audio.addEventListener("error", handleError);
+  });
+
+const getTrackQualityOptions = (track) => resolveTrackAudioQualityOptions(track);
+
+const resolveSelectedQualityLabel = (track, streamUrl = "") => {
+  const qualityOptions = getTrackQualityOptions(track);
+
+  if (qualityOptions.length === 0) {
+    return "";
+  }
+
+  if (streamUrl) {
+    const matchedQuality = qualityOptions.find(
+      (quality) => quality.url === streamUrl
+    );
+
+    if (matchedQuality?.label) {
+      return matchedQuality.label;
+    }
+  }
+
+  const defaultQuality =
+    qualityOptions.find((quality) => quality.isDefault) || qualityOptions[0];
+
+  return defaultQuality?.label || "";
+};
+
 export const PlayerProvider = ({ children }) => {
+  const { user } = useAuth();
   const [queue, setQueue] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [currentTrack, setCurrentTrack] = useState(null);
@@ -85,12 +234,18 @@ export const PlayerProvider = ({ children }) => {
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(DEFAULT_VOLUME);
   const [errorMessage, setErrorMessage] = useState("");
+  const [restrictionMessage, setRestrictionMessage] = useState("");
   const [activeCollection, setActiveCollection] = useState(null);
   const [lyricsLines, setLyricsLines] = useState([]);
   const [activeLyricLineIndex, setActiveLyricLineIndex] = useState(-1);
   const [activeLyricWordIndex, setActiveLyricWordIndex] = useState(-1);
   const [isLyricsLoading, setIsLyricsLoading] = useState(false);
   const [lyricsErrorMessage, setLyricsErrorMessage] = useState("");
+  const [availableAudioQualities, setAvailableAudioQualities] = useState([]);
+  const [selectedQualityLabel, setSelectedQualityLabel] = useState("");
+  const [freeSkipWindow, setFreeSkipWindow] = useState(() =>
+    loadStoredFreeSkipWindow()
+  );
   const audioRef = useRef(null);
   const queueRef = useRef([]);
   const currentIndexRef = useRef(-1);
@@ -102,11 +257,109 @@ export const PlayerProvider = ({ children }) => {
   const syncLyricsRef = useRef(null);
   const lyricsReadyRef = useRef(false);
   const currentLyricsThemeIndexRef = useRef(-1);
-  const listenTrackRef = useRef({ trackId: null, duration: 0 });
+  const selectedQualityLabelRef = useRef("");
+  const isPremiumRef = useRef(false);
+  const freeSkipWindowRef = useRef(freeSkipWindow);
+  const listenTrackRef = useRef({
+    trackId: null,
+    duration: 0,
+    source: "unknown",
+    hasReported: false,
+  });
+  const listenedDurationRef = useRef(0);
+  const lastTrackedAudioTimeRef = useRef(0);
+  const ignoreNextListenDeltaRef = useRef(true);
+
+  const isPremium = useMemo(() => hasPremiumAccess(user), [user]);
 
   const syncQueueState = (nextQueue) => {
     queueRef.current = nextQueue;
     setQueue(nextQueue);
+  };
+
+  const syncQualityState = (track, streamUrl = "") => {
+    const qualityOptions = getTrackQualityOptions(track);
+    const nextQualityLabel = resolveSelectedQualityLabel(track, streamUrl);
+
+    setAvailableAudioQualities(qualityOptions);
+    setSelectedQualityLabel(nextQualityLabel);
+    selectedQualityLabelRef.current = nextQualityLabel;
+  };
+
+  const clearPlaybackState = () => {
+    const audio = audioRef.current;
+
+    playbackRequestIdRef.current += 1;
+    releaseCurrentObjectUrl();
+
+    if (audio) {
+      audio.pause();
+      audio.removeAttribute("src");
+      audio.load();
+    }
+
+    listenTrackRef.current = {
+      trackId: null,
+      duration: 0,
+      source: "unknown",
+      hasReported: false,
+    };
+    currentIndexRef.current = -1;
+    resetListenProgress();
+    resetLyricsState();
+    syncQueueState([]);
+    setCurrentIndex(-1);
+    setCurrentTrack(null);
+    setCurrentTime(0);
+    setDuration(0);
+    setIsPlaying(false);
+    setIsBuffering(false);
+    setErrorMessage("");
+    setRestrictionMessage("");
+    setActiveCollection(null);
+    setAvailableAudioQualities([]);
+    setSelectedQualityLabel("");
+    selectedQualityLabelRef.current = "";
+  };
+
+  const getLatestFreeSkipWindow = (now = Date.now()) => {
+    const nextWindow = getActiveFreeSkipWindow(freeSkipWindowRef.current, now);
+
+    if (
+      nextWindow.startedAt !== freeSkipWindowRef.current.startedAt ||
+      nextWindow.skipCount !== freeSkipWindowRef.current.skipCount
+    ) {
+      freeSkipWindowRef.current = nextWindow;
+      setFreeSkipWindow(nextWindow);
+    }
+
+    return nextWindow;
+  };
+
+  const consumeFreeSkip = () => {
+    if (isPremiumRef.current) {
+      setRestrictionMessage("");
+      return true;
+    }
+
+    const currentWindow = getLatestFreeSkipWindow();
+
+    if (currentWindow.skipCount >= FREE_SKIP_LIMIT) {
+      setRestrictionMessage(
+        "Free listeners can skip up to 6 tracks every 5 hours. Upgrade to Premium for unlimited skips."
+      );
+      return false;
+    }
+
+    const nextWindow = {
+      ...currentWindow,
+      skipCount: currentWindow.skipCount + 1,
+    };
+
+    freeSkipWindowRef.current = nextWindow;
+    setFreeSkipWindow(nextWindow);
+    setRestrictionMessage("");
+    return true;
   };
 
   const resetLyricsState = () => {
@@ -170,6 +423,64 @@ export const PlayerProvider = ({ children }) => {
     objectUrlRef.current = "";
   };
 
+  const resetListenProgress = useCallback(({
+    listenedDuration = 0,
+    currentTime = 0,
+    ignoreNextDelta = true,
+  } = {}) => {
+    listenedDurationRef.current = Math.max(Number(listenedDuration) || 0, 0);
+    lastTrackedAudioTimeRef.current = Math.max(Number(currentTime) || 0, 0);
+    ignoreNextListenDeltaRef.current = ignoreNextDelta;
+  }, []);
+
+  const trackListenProgress = useCallback((nextTime) => {
+    const normalizedNextTime = Math.max(Number(nextTime) || 0, 0);
+    const previousTrackedTime = Math.max(lastTrackedAudioTimeRef.current || 0, 0);
+    const delta = normalizedNextTime - previousTrackedTime;
+
+    if (ignoreNextListenDeltaRef.current) {
+      ignoreNextListenDeltaRef.current = false;
+      lastTrackedAudioTimeRef.current = normalizedNextTime;
+      return;
+    }
+
+    if (delta > 0 && delta <= MAX_NATURAL_LISTEN_DELTA_SECONDS) {
+      listenedDurationRef.current += delta;
+    }
+
+    lastTrackedAudioTimeRef.current = normalizedNextTime;
+  }, []);
+
+  const flushCurrentListenAttempt = useCallback(async () => {
+    const activeListen = listenTrackRef.current;
+
+    if (!activeListen?.trackId || activeListen.hasReported) {
+      return;
+    }
+
+    trackListenProgress(audioRef.current?.currentTime || 0);
+
+    const rawListenedDuration = listenedDurationRef.current;
+    const trackDuration = Number(activeListen.duration) || 0;
+    const boundedListenedDuration =
+      trackDuration > 0
+        ? Math.min(Math.max(rawListenedDuration, 0), trackDuration)
+        : Math.max(rawListenedDuration, 0);
+    const listenedDuration = Math.floor(boundedListenedDuration);
+
+    if (listenedDuration <= 0) {
+      return;
+    }
+
+    activeListen.hasReported = true;
+
+    await recordListenService({
+      trackId: activeListen.trackId,
+      listenedDuration,
+      source: activeListen.source,
+    });
+  }, [trackListenProgress]);
+
   syncLyricsRef.current = (nextTime, continuous = false) => {
     const liricle = liricleRef.current;
     const normalizedTime = Math.max(Number(nextTime) || 0, 0);
@@ -191,6 +502,23 @@ export const PlayerProvider = ({ children }) => {
 
     liricle.sync(normalizedTime, continuous);
   };
+
+  useEffect(() => {
+    isPremiumRef.current = isPremium;
+
+    if (isPremium) {
+      setRestrictionMessage("");
+    }
+  }, [isPremium]);
+
+  useEffect(() => {
+    selectedQualityLabelRef.current = selectedQualityLabel;
+  }, [selectedQualityLabel]);
+
+  useEffect(() => {
+    freeSkipWindowRef.current = freeSkipWindow;
+    persistFreeSkipWindow(freeSkipWindow);
+  }, [freeSkipWindow]);
 
   useEffect(() => {
     const audio = new Audio();
@@ -224,8 +552,10 @@ export const PlayerProvider = ({ children }) => {
     });
 
     const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime || 0);
-      syncLyricsRef.current?.(audio.currentTime || 0);
+      const nextTime = audio.currentTime || 0;
+      trackListenProgress(nextTime);
+      setCurrentTime(nextTime);
+      syncLyricsRef.current?.(nextTime || 0);
     };
 
     const handleLoadedMetadata = () => {
@@ -251,16 +581,18 @@ export const PlayerProvider = ({ children }) => {
       setIsBuffering(false);
     };
 
-    const handleEnded = () => {
+    const handleEnded = async () => {
       const endedTrack = listenTrackRef.current;
       if (endedTrack?.trackId) {
-        recordListenService(endedTrack.trackId, endedTrack.duration, false);
+        await flushCurrentListenAttempt();
       }
 
       const nextIndex = currentIndexRef.current + 1;
 
       if (nextIndex < queueRef.current.length) {
-        playTrackByIndexRef.current?.(nextIndex);
+        await playTrackByIndexRef.current?.(nextIndex, null, {
+          skipListenFlush: true,
+        });
         return;
       }
 
@@ -300,7 +632,7 @@ export const PlayerProvider = ({ children }) => {
       audioRef.current = null;
       liricleRef.current = null;
     };
-  }, []);
+  }, [flushCurrentListenAttempt, trackListenProgress]);
 
   useEffect(() => {
     if (!audioRef.current) {
@@ -310,13 +642,32 @@ export const PlayerProvider = ({ children }) => {
     audioRef.current.volume = volume;
   }, [volume]);
 
-  playTrackByIndexRef.current = async (nextIndex, incomingQueue = null) => {
+  playTrackByIndexRef.current = async (
+    nextIndex,
+    incomingQueue = null,
+    options = {}
+  ) => {
     const audio = audioRef.current;
     const workingQueue = incomingQueue || queueRef.current;
     const nextTrack = workingQueue?.[nextIndex];
+    const nextTrackPlaybackId = nextTrack?.playbackTrackId || nextTrack?.id;
+    const isQueueSwitch =
+      Array.isArray(incomingQueue) && incomingQueue !== queueRef.current;
+    const shouldFlushCurrentListen =
+      !options.skipListenFlush &&
+      Boolean(listenTrackRef.current?.trackId) &&
+      (
+        isQueueSwitch ||
+        currentIndexRef.current !== nextIndex ||
+        listenTrackRef.current.trackId !== nextTrackPlaybackId
+      );
 
     if (!audio || !nextTrack) {
       return;
+    }
+
+    if (shouldFlushCurrentListen) {
+      await flushCurrentListenAttempt();
     }
 
     playbackRequestIdRef.current += 1;
@@ -324,6 +675,12 @@ export const PlayerProvider = ({ children }) => {
     const lyricsThemeIndex = getRandomLyricsThemeIndex(
       currentLyricsThemeIndexRef.current
     );
+    const preferredQualityLabel = isPremiumRef.current
+      ? options.preferredQualityLabel || selectedQualityLabelRef.current || ""
+      : "";
+    const preferredQualityUrl = isPremiumRef.current
+      ? options.preferredQualityUrl || ""
+      : "";
 
     currentIndexRef.current = nextIndex;
     currentLyricsThemeIndexRef.current = lyricsThemeIndex;
@@ -335,6 +692,7 @@ export const PlayerProvider = ({ children }) => {
     setCurrentTime(0);
     setDuration(nextTrack.duration || 0);
     setErrorMessage("");
+    setRestrictionMessage("");
     setIsBuffering(true);
     resetLyricsState();
 
@@ -346,12 +704,20 @@ export const PlayerProvider = ({ children }) => {
 
       if (!shouldHydratePlayback && nextTrack.streamUrl) {
         source = {
-          url: nextTrack.streamUrl,
+          url: (preferredQualityLabel || preferredQualityUrl)
+            ? resolveTrackMediaUrlForQuality(nextTrack, {
+                label: preferredQualityLabel,
+                url: preferredQualityUrl,
+              }) || nextTrack.streamUrl
+            : nextTrack.streamUrl,
           revokeOnChange: false,
           track: nextTrack.raw,
         };
       } else {
-        source = await getTrackPlaybackSource(nextTrack.playbackTrackId || nextTrack.id);
+        source = await getTrackPlaybackSource(nextTrack.playbackTrackId || nextTrack.id, {
+          preferredQualityLabel,
+          preferredQualityUrl,
+        });
       }
 
       if (!source?.url) {
@@ -366,6 +732,11 @@ export const PlayerProvider = ({ children }) => {
         return;
       }
 
+      const hydratedTrackSource = source.track || nextTrack.raw || nextTrack;
+      const activeQualityLabel = resolveSelectedQualityLabel(
+        hydratedTrackSource,
+        source.url
+      );
       const hydratedTrack = {
         ...nextTrack,
         id: getTrackId(source.track, nextTrack.id),
@@ -383,24 +754,70 @@ export const PlayerProvider = ({ children }) => {
           resolveTrackLyricsSyncUrl(source.track) || nextTrack.lyricsSyncUrl,
         raw: source.track || nextTrack.raw,
         streamUrl: source.url,
+        activeQualityLabel,
       };
 
       const hydratedQueue = workingQueue.map((track, index) =>
         index === nextIndex ? hydratedTrack : track
       );
+      const shouldPreserveListenProgress =
+        Boolean(options.skipListenFlush) &&
+        listenTrackRef.current.trackId ===
+          (hydratedTrack.playbackTrackId || hydratedTrack.id);
+      const preservedListenedDuration = shouldPreserveListenProgress
+        ? listenedDurationRef.current
+        : 0;
+      const preservedCurrentTime =
+        shouldPreserveListenProgress && Number.isFinite(Number(options.resumeTime))
+          ? Number(options.resumeTime) || 0
+          : 0;
 
       listenTrackRef.current = {
         trackId: hydratedTrack.playbackTrackId || hydratedTrack.id,
         duration: hydratedTrack.duration || 0,
+        source: resolveListenSource(hydratedTrack.listenSource),
+        hasReported: false,
       };
+      resetListenProgress({
+        listenedDuration: preservedListenedDuration,
+        currentTime: preservedCurrentTime,
+        ignoreNextDelta: true,
+      });
 
       syncQueueState(hydratedQueue);
       setCurrentTrack(hydratedTrack);
+      syncQualityState(hydratedTrack, source.url);
       releaseCurrentObjectUrl();
       objectUrlRef.current = source.revokeOnChange ? source.url : "";
+      audio.pause();
       audio.src = source.url;
       audio.load();
       await loadLyricsForTrack(hydratedTrack);
+
+      if (Number.isFinite(Number(options.resumeTime)) && Number(options.resumeTime) > 0) {
+        await waitForAudioMetadata(audio);
+
+        const maxDuration = Number.isFinite(audio.duration)
+          ? audio.duration
+          : hydratedTrack.duration || 0;
+        const boundedResumeTime =
+          maxDuration > 0
+            ? Math.min(Math.max(Number(options.resumeTime) || 0, 0), maxDuration)
+            : Math.max(Number(options.resumeTime) || 0, 0);
+
+        audio.currentTime = boundedResumeTime;
+        lastTrackedAudioTimeRef.current = boundedResumeTime;
+        ignoreNextListenDeltaRef.current = true;
+        setCurrentTime(boundedResumeTime);
+        syncLyricsRef.current?.(boundedResumeTime, true);
+      }
+
+      if (options.autoplay === false) {
+        setIsPlaying(false);
+        setIsBuffering(false);
+        return;
+      }
+
       await audio.play();
     } catch (error) {
       if (requestId !== playbackRequestIdRef.current) {
@@ -433,6 +850,7 @@ export const PlayerProvider = ({ children }) => {
       startIndex >= 0 && startIndex < normalizedQueue.length ? startIndex : 0;
 
     setActiveCollection(collection);
+    setRestrictionMessage("");
     syncQueueState(normalizedQueue);
     await playTrackByIndexRef.current?.(safeIndex, normalizedQueue);
   };
@@ -448,6 +866,7 @@ export const PlayerProvider = ({ children }) => {
       artistName: options.collection?.artistName,
       collectionId: options.collection?.id,
       collectionType: options.collection?.type,
+      listenSource: options.collection?.listenSource,
     });
 
     const explicitStartIndex =
@@ -523,15 +942,13 @@ export const PlayerProvider = ({ children }) => {
   };
 
   const playNext = async () => {
-    const currentTrackId = listenTrackRef.current?.trackId;
-    const currentTrackDuration = listenTrackRef.current?.duration ?? 0;
-    if (currentTrackId) {
-      recordListenService(currentTrackId, currentTrackDuration, true);
-    }
-
     const nextIndex = currentIndexRef.current + 1;
 
     if (nextIndex >= queueRef.current.length) {
+      return;
+    }
+
+    if (!consumeFreeSkip()) {
       return;
     }
 
@@ -561,6 +978,10 @@ export const PlayerProvider = ({ children }) => {
       return;
     }
 
+    if (!consumeFreeSkip()) {
+      return;
+    }
+
     await playTrackByIndexRef.current?.(previousIndex);
   };
 
@@ -571,14 +992,83 @@ export const PlayerProvider = ({ children }) => {
       return;
     }
 
+    if (!isPremiumRef.current) {
+      setRestrictionMessage(
+        "Seeking on the progress bar is available for Premium listeners only."
+      );
+      return;
+    }
+
     const boundedTime = Math.min(
       Math.max(Number(nextTime) || 0, 0),
       Number.isFinite(audio.duration) ? audio.duration : duration
     );
 
+    setRestrictionMessage("");
     audio.currentTime = boundedTime;
+    lastTrackedAudioTimeRef.current = boundedTime;
+    ignoreNextListenDeltaRef.current = true;
     setCurrentTime(boundedTime);
     syncLyricsRef.current?.(boundedTime, true);
+  };
+
+  const changeAudioQuality = async (nextQuality) => {
+    if (!isPremiumRef.current) {
+      setRestrictionMessage(
+        "Audio quality switching is available for Premium listeners only."
+      );
+      return;
+    }
+
+    if (!currentTrack || currentIndexRef.current < 0) {
+      return;
+    }
+
+    const normalizedLabel =
+      typeof nextQuality === "string"
+        ? nextQuality.trim().toLowerCase()
+        : typeof nextQuality?.label === "string"
+          ? nextQuality.label.trim().toLowerCase()
+          : "";
+    const normalizedUrl =
+      typeof nextQuality === "object" && nextQuality !== null
+        ? nextQuality.url || ""
+        : "";
+
+    const qualityOptions = getTrackQualityOptions(currentTrack);
+    const targetQuality =
+      qualityOptions.find((quality) => quality.url === normalizedUrl) ||
+      qualityOptions.find((quality) => quality.label === normalizedLabel);
+
+    if (!targetQuality) {
+      setRestrictionMessage("This track does not provide that audio quality.");
+      return;
+    }
+
+    if (
+      targetQuality.url === currentTrack.streamUrl ||
+      (
+        !normalizedUrl &&
+        normalizedLabel &&
+        normalizedLabel === selectedQualityLabelRef.current &&
+        qualityOptions.filter((quality) => quality.label === normalizedLabel).length === 1
+      )
+    ) {
+      return;
+    }
+
+    const audio = audioRef.current;
+    const resumeTime = Number(audio?.currentTime) || currentTime;
+    const wasPlaying = audio ? !audio.paused : isPlaying;
+
+    setRestrictionMessage("");
+    await playTrackByIndexRef.current?.(currentIndexRef.current, queueRef.current, {
+      preferredQualityLabel: targetQuality.label,
+      preferredQualityUrl: targetQuality.url,
+      resumeTime,
+      autoplay: wasPlaying,
+      skipListenFlush: true,
+    });
   };
 
   const setVolumeLevel = (nextVolume) => {
@@ -591,6 +1081,55 @@ export const PlayerProvider = ({ children }) => {
     setVolume(boundedVolume);
   };
 
+  const removeTrackFromQueue = async (targetIndex) => {
+    if (
+      !Number.isInteger(targetIndex) ||
+      targetIndex < 0 ||
+      targetIndex >= queueRef.current.length
+    ) {
+      return;
+    }
+
+    const nextQueue = queueRef.current.filter((_, index) => index !== targetIndex);
+    const activeIndex = currentIndexRef.current;
+
+    if (nextQueue.length === 0) {
+      if (listenTrackRef.current?.trackId) {
+        await flushCurrentListenAttempt();
+      }
+
+      clearPlaybackState();
+      return;
+    }
+
+    if (activeIndex < 0 || targetIndex > activeIndex) {
+      syncQueueState(nextQueue);
+      return;
+    }
+
+    if (targetIndex < activeIndex) {
+      const nextIndex = activeIndex - 1;
+      currentIndexRef.current = nextIndex;
+      syncQueueState(nextQueue);
+      setCurrentIndex(nextIndex);
+      return;
+    }
+
+    const audio = audioRef.current;
+    const nextIndex =
+      targetIndex < nextQueue.length ? targetIndex : nextQueue.length - 1;
+
+    await playTrackByIndexRef.current?.(nextIndex, nextQueue, {
+      autoplay: audio ? !audio.paused : isPlaying,
+    });
+  };
+
+  const activeFreeSkipWindow = getActiveFreeSkipWindow(freeSkipWindow, Date.now());
+  const freeSkipsRemaining = Math.max(
+    FREE_SKIP_LIMIT - activeFreeSkipWindow.skipCount,
+    0
+  );
+
   const value = {
     queue,
     currentIndex,
@@ -601,12 +1140,20 @@ export const PlayerProvider = ({ children }) => {
     duration,
     volume,
     errorMessage,
+    restrictionMessage,
     activeCollection,
     lyricsLines,
     activeLyricLineIndex,
     activeLyricWordIndex,
     isLyricsLoading,
     lyricsErrorMessage,
+    isPremium,
+    canSeek: isPremium,
+    availableAudioQualities,
+    selectedQualityLabel,
+    freeSkipsRemaining,
+    freeSkipLimit: FREE_SKIP_LIMIT,
+    freeSkipWindowEndsAt: activeFreeSkipWindow.startedAt + FREE_SKIP_WINDOW_MS,
     playTrack,
     playAlbum,
     playPlaylist,
@@ -615,7 +1162,9 @@ export const PlayerProvider = ({ children }) => {
     playNext,
     playPrevious,
     seekTo,
+    changeAudioQuality,
     setVolumeLevel,
+    removeTrackFromQueue,
   };
 
   return <PlayerContext.Provider value={ value }>{ children }</PlayerContext.Provider>;

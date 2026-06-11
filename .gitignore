@@ -26,6 +26,7 @@ Backend/coverage/
 Backend/tmp/
 Backend/temp/
 Backend/logs/
+Backend/guide/
 Backend/data/        # MongoDB local (nếu có)
 
 # =========================

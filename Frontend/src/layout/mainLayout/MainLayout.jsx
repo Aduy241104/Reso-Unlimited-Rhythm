@@ -136,7 +136,7 @@ const MainLayout = () => {
 
       <div
         className={[
-          "grid h-full min-w-0 grid-rows-[68px_minmax(0,1fr)] overflow-hidden transition-[padding] duration-300 lg:grid-rows-[72px_minmax(0,1fr)]",
+          "grid h-full min-w-0 grid-rows-[58px_minmax(0,1fr)] overflow-hidden transition-[padding] duration-300 lg:grid-rows-[62px_minmax(0,1fr)]",
           isDesktopSidebarVisible ? "lg:pl-[285px]" : "lg:pl-[84px]",
           isDark ? "bg-black" : "bg-white",
         ].join(" ")}
@@ -148,7 +148,7 @@ const MainLayout = () => {
 
         <main
           className={[
-            "min-h-0 overflow-y-auto px-3 py-4 pb-44 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#f5b66f]/30 [&::-webkit-scrollbar]:w-2 sm:px-4 sm:py-5 sm:pb-36 lg:px-6",
+            "min-h-0 overflow-y-auto px-3 py-4 pb-28 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#f5b66f]/30 [&::-webkit-scrollbar]:w-2 sm:px-4 sm:py-5 sm:pb-24 lg:px-6",
             isDark
               ? "bg-black text-[#f7f1ea] [scrollbar-color:rgba(245,182,111,0.3)_#0f0f14] [&::-webkit-scrollbar-track]:bg-[#0f0f14]"
               : "bg-white text-[#111111] [scrollbar-color:rgba(209,213,219,0.9)_#ffffff] [&::-webkit-scrollbar-track]:bg-[#ffffff]",

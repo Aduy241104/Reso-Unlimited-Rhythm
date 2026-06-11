@@ -267,6 +267,7 @@ const TrackDetailPage = () => {
         title: track?.album?.title || track?.title || "Track",
         image: trackImage,
         artistName,
+        listenSource: "track_detail",
       },
     });
   };
