@@ -29,7 +29,7 @@ const UserSchema = new Schema(
 
         googleId: {
             type: String,
-            trim: true,
+            trim: true, 
             sparse: true,
             index: true,
         },
