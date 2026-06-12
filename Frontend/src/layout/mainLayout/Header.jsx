@@ -9,6 +9,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { useTheme } from "../../hooks/useTheme";
 import { routePaths } from "../../routes/routePaths";
 import { testAccessTokenService } from "../../services/authService";
+import { hasPremiumAccess } from "../../utils/premiumAccess";
 
 const Header = ({ onToggleSidebar }) => {
   const { isAuthenticated, isLoading, logout, user } = useAuth();
@@ -20,6 +21,7 @@ const Header = ({ onToggleSidebar }) => {
   const displayName = user?.name || user?.email || "User";
   const displayInitial = displayName.trim().charAt(0).toUpperCase() || "U";
   const userRole = user?.role;
+  const isPremiumUser = hasPremiumAccess(user);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -47,6 +49,7 @@ const Header = ({ onToggleSidebar }) => {
     ...(userRole === "artist"
       ? [{ label: "Yêu cầu của tôi", to: routePaths.artistRegistrationRequestsList }]
       : []),
+    { label: "Premium", to: routePaths.premium },
     { label: "FollowingArtist", to: routePaths.libraryFollowedArtists },
     { label: "FollowingAlbum", to: routePaths. libraryFollowedAlbums},
     { label: "Playlist", to: routePaths. userPlaylist},
@@ -119,6 +122,20 @@ const Header = ({ onToggleSidebar }) => {
       </div>
 
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+        { isAuthenticated && (
+          <Link
+            to={ routePaths.premium }
+            className={[
+              "hidden shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition md:inline-flex",
+              isDark
+                ? "bg-[#f5b66f] text-black hover:bg-[#f8c886]"
+                : "bg-black text-white hover:bg-[#1f1f1f]",
+            ].join(" ")}
+          >
+            { isPremiumUser ? "Premium" : "Upgrade" }
+          </Link>
+        ) }
+
         { isAuthenticated && (
           <button
             onClick={ testAccessToken }
