@@ -85,7 +85,7 @@ const PremiumPaymentSuccessPage = () => {
         setErrorMessage(
           getApiErrorMessage(
             error,
-            "Payment succeeded, but the premium status could not be refreshed yet."
+            "Thanh toan thanh cong nhung chua the cap nhat trang thai premium."
           )
         );
       } finally {
@@ -103,108 +103,83 @@ const PremiumPaymentSuccessPage = () => {
   }, [refreshSession, setUser]);
 
   return (
-    <main
-      className={[
-        "mx-auto flex min-h-full w-full max-w-3xl items-center py-8",
-        isDark ? "text-[#f7f1ea]" : "text-[#111111]",
-      ].join(" ")}
-    >
+    <main className="mx-auto max-w-3xl py-8">
       <section
         className={[
-          "w-full rounded-[32px] border p-6 shadow-[0_28px_90px_rgba(15,23,42,0.16)] sm:p-8",
-          isDark
-            ? "border-[#f5b66f]/10 bg-[radial-gradient(circle_at_top,_rgba(245,182,111,0.14),_transparent_40%),linear-gradient(145deg,_#09080b_0%,_#131018_52%,_#19151e_100%)]"
-            : "border-[#e5e7eb] bg-[radial-gradient(circle_at_top,_rgba(251,191,36,0.16),_transparent_40%),linear-gradient(145deg,_#fff8ec_0%,_#ffffff_52%,_#fff4dc_100%)]",
+          "rounded-2xl border p-6 sm:p-8",
+          isDark ? "border-white/10 bg-[#111111] text-[#f7f1ea]" : "border-[#e5e7eb] bg-white text-[#111111]",
         ].join(" ")}
       >
-        <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-emerald-500/15 text-emerald-400">
-          <CheckCircle2 className="h-9 w-9" />
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-500">
+          <CheckCircle2 className="h-6 w-6" />
         </div>
 
-        <p className="mt-6 text-xs font-semibold uppercase tracking-[0.28em] text-[#f5b66f]">
-          Payment success
-        </p>
-        <h1 className="mt-3 font-title text-3xl font-semibold tracking-tight sm:text-4xl">
-          Your premium purchase was completed successfully.
-        </h1>
-        <p
-          className={[
-            "mt-4 text-sm leading-7 sm:text-base",
-            isDark ? "text-[#d8d0ca]" : "text-[#4b5563]",
-          ].join(" ")}
-        >
-          The backend has confirmed the VNPAY transaction and activated your
-          premium flow.
+        <h1 className="mt-4 text-2xl font-semibold">Thanh toán thành công</h1>
+        <p className={`mt-2 text-sm ${isDark ? "text-[#b3b3b3]" : "text-[#6b7280]"}`}>
+          Hệ thống đã nhận kết quả thanh toán từ VNPAY.
         </p>
 
         <div
           className={[
-            "mt-6 rounded-2xl border p-4",
-            isDark
-              ? "border-[#f5b66f]/10 bg-black/25"
-              : "border-[#f3f4f6] bg-white/80",
+            "mt-6 rounded-xl border p-4",
+            isDark ? "border-white/10 bg-[#151515]" : "border-[#e5e7eb] bg-[#fafafa]",
           ].join(" ")}
         >
           {isLoading ? (
             <div className="flex items-center gap-3 text-sm">
               <Loader2 className="h-4 w-4 animate-spin text-[#f5b66f]" />
-              <span>Refreshing your premium status...</span>
+              <span>Đang cập nhật trạng thái premium...</span>
             </div>
           ) : errorMessage ? (
-            <p
-              className={[
-                "text-sm",
-                isDark ? "text-red-100" : "text-red-700",
-              ].join(" ")}
-            >
+            <p className={`text-sm ${isDark ? "text-red-100" : "text-red-700"}`}>
               {errorMessage}
             </p>
           ) : (
             <div className="space-y-3 text-sm">
               <p>
-                Status:{" "}
+                Trạng thái:{" "}
                 <span className="font-semibold">
-                  {subscription?.isPremium ? "Premium active" : "Updated"}
+                  {subscription?.isPremium ? "Premium" : "Đã cập nhật"}
                 </span>
               </p>
               <p>
-                Plan:{" "}
+                Gói:{" "}
                 <span className="font-semibold">
                   {subscription?.currentPlan?.name || "--"}
                 </span>
               </p>
               <p>
-                Premium until:{" "}
+                Hết hạn:{" "}
                 <span className="font-semibold">
                   {formatDate(subscription?.premiumEndDate)}
                 </span>
               </p>
               {invoiceNumber ? (
                 <p>
-                  Invoice: <span className="font-semibold">{invoiceNumber}</span>
+                  Mã đơn: <span className="font-semibold">{invoiceNumber}</span>
                 </p>
               ) : null}
             </div>
           )}
         </div>
 
-        <div className="mt-8 flex flex-wrap gap-3">
+        <div className="mt-6 flex flex-wrap gap-3">
           <Link
             to={routePaths.premium}
-            className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#f5b66f] px-5 text-sm font-semibold text-black transition hover:bg-[#f8c886]"
+            className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#f5b66f] px-4 text-sm font-semibold text-black transition hover:bg-[#f8c886]"
           >
-            Back to Premium
+            Quay lại Premium
           </Link>
           <Link
             to={routePaths.home}
             className={[
-              "inline-flex min-h-11 items-center justify-center rounded-full border px-5 text-sm font-semibold transition",
+              "inline-flex min-h-11 items-center justify-center rounded-xl border px-4 text-sm font-semibold transition",
               isDark
-                ? "border-[#f5b66f]/10 bg-white/5 text-[#f7f1ea] hover:bg-white/10"
+                ? "border-white/10 bg-[#151515] text-[#f7f1ea] hover:bg-[#1b1b1b]"
                 : "border-[#e5e7eb] bg-white text-[#111111] hover:bg-[#f9fafb]",
             ].join(" ")}
           >
-            Continue listening
+            Về trang chủ
           </Link>
         </div>
       </section>
