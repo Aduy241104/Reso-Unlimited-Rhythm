@@ -13,6 +13,7 @@ import TrackInsightsDailyTable from "./trackInsights/components/TrackInsightsDai
 import TrackInsightsHero from "./trackInsights/components/TrackInsightsHero";
 import TrackInsightsSidebar from "./trackInsights/components/TrackInsightsSidebar";
 import TrackInsightsSummaryGrid from "./trackInsights/components/TrackInsightsSummaryGrid";
+import TrackInsightsTopTracksPanel from "./trackInsights/components/TrackInsightsTopTracksPanel";
 import { useArtistTrackInsights } from "./trackInsights/useArtistTrackInsights";
 
 const ArtistTrackInsightsPage = () => {
@@ -27,6 +28,7 @@ const ArtistTrackInsightsPage = () => {
     displayedTrack,
     handleRangeChange,
     isAnalyticsLoading,
+    isTopTracksLoading,
     isTracksLoading,
     latestMetricValue,
     latestMonthlyMetricValue,
@@ -44,6 +46,9 @@ const ArtistTrackInsightsPage = () => {
     setMonthlyChartMetric,
     setReloadNonce,
     summaryCards,
+    topTracks,
+    topTracksError,
+    topTracksSummary,
     tracks,
     tracksError,
     updateQuery,
@@ -100,6 +105,35 @@ const ArtistTrackInsightsPage = () => {
         </div>
       ) : null}
 
+      <section className="bg-transparent">
+        <div className="flex flex-wrap gap-2">
+          {RANGE_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => handleRangeChange(option.value)}
+              className={[
+                "rounded-full border px-3.5 py-2 text-sm font-medium transition",
+                selectedRange === option.value
+                  ? "border-[#6f5cf1] bg-[#6f5cf1] text-white"
+                  : "border-[#e7e1ff] bg-[#f8f6ff] text-[#645d86] hover:border-[#b7abff] hover:text-[#2f2747]",
+              ].join(" ")}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <TrackInsightsTopTracksPanel
+        error={topTracksError}
+        isLoading={isTopTracksLoading}
+        onSelectTrack={(trackId) => updateQuery({ trackId })}
+        selectedTrackId={selectedTrackId}
+        topTracks={topTracks}
+        topTracksSummary={topTracksSummary}
+      />
+
       {!selectedTrackId ? (
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(300px,0.9fr)]">
           <section className="rounded-[20px] border border-dashed border-[#d8d0ff] bg-white p-8 text-center shadow-sm sm:p-9">
@@ -152,26 +186,6 @@ const ArtistTrackInsightsPage = () => {
               {analyticsError}
             </div>
           ) : null}
-
-          <section className="bg-transparent">
-            <div className="flex flex-wrap gap-2">
-              {RANGE_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => handleRangeChange(option.value)}
-                  className={[
-                    "rounded-full border px-3.5 py-2 text-sm font-medium transition",
-                    selectedRange === option.value
-                      ? "border-[#6f5cf1] bg-[#6f5cf1] text-white"
-                      : "border-[#e7e1ff] bg-[#f8f6ff] text-[#645d86] hover:border-[#b7abff] hover:text-[#2f2747]",
-                  ].join(" ")}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </section>
 
           <TrackInsightsSummaryGrid summaryCards={summaryCards} />
 
