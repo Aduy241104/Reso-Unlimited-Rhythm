@@ -13,6 +13,10 @@ const REPORT_REASON_OPTIONS = [
   { value: "spam_or_scam", label: "Spam / lừa đảo" },
   { value: "misleading_information", label: "Thông tin sai lệch" },
   { value: "impersonation", label: "Mạo danh" },
+  { value: "wrong_metadata", label: "Thông tin bài hát không chính xác" },
+  { value: "lyrics_issue", label: "Lời bài hát không phù hợp" },
+  { value: "audio_quality", label: "Chất lượng âm thanh kém" },
+  { value: "fake_artist", label: "Nghệ sĩ giả mạo" },
   { value: "other", label: "Khác" },
 ];
 
