@@ -127,8 +127,75 @@ const createReportByUserId = async (userId, payload = {}, files = []) => {
   return report.toObject();
 };
 
+const getReportsByUserId = async (userId, params = {}) => {
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    throw new AppError("User id is invalid.", StatusCodes.BAD_REQUEST, {
+      field: "userId",
+    });
+  }
+
+  const page = Math.max(1, parseInt(params.page, 10) || 1);
+  const limit = Math.min(50, Math.max(1, parseInt(params.limit, 10) || 10));
+  const skip = (page - 1) * limit;
+  const sortField = params.sortField || "createdAt";
+  const sortOrder = params.sortOrder === "asc" ? 1 : -1;
+
+  const filter = { userId };
+
+  if (params.status) {
+    filter.status = params.status;
+  }
+
+  if (params.targetType) {
+    filter.targetType = params.targetType;
+  }
+
+  const [reports, total] = await Promise.all([
+    Report.find(filter)
+      .sort({ [sortField]: sortOrder })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    Report.countDocuments(filter),
+  ]);
+
+  return {
+    reports,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};
+
+const getReportById = async (userId, reportId) => {
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    throw new AppError("User id is invalid.", StatusCodes.BAD_REQUEST, {
+      field: "userId",
+    });
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(reportId)) {
+    throw new AppError("Report id is invalid.", StatusCodes.BAD_REQUEST, {
+      field: "reportId",
+    });
+  }
+
+  const report = await Report.findOne({ _id: reportId, userId }).lean();
+
+  if (!report) {
+    throw new AppError("Report not found.", StatusCodes.NOT_FOUND);
+  }
+
+  return report;
+};
+
 export default {
   ALLOWED_REPORT_REASONS,
   ALLOWED_TARGET_TYPES,
   createReportByUserId,
+  getReportsByUserId,
+  getReportById,
 };
