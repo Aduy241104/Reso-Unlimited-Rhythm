@@ -1,6 +1,6 @@
-import { CirclePlus, Download, Loader2, MoreHorizontal, Play, Plus, Search } from "lucide-react";
+import { CirclePlus, Download, Loader2, MoreHorizontal, Play, Plus, Search, ShieldAlert } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import TrackDetailArtistCard from "../../components/trackDetail/TrackDetailArtistCard";
 import TrackDetailHero from "../../components/trackDetail/TrackDetailHero";
 import TrackDetailLikeSection from "../../components/trackDetail/TrackDetailLikeSection";
@@ -78,6 +78,7 @@ const getPlaylistTitle = (playlist) => {
 
 const TrackDetailPage = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [track, setTrack] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
@@ -279,6 +280,16 @@ const TrackDetailPage = () => {
     console.log("Download track:", track?.title);
   };
 
+  const handleReportTrack = () => {
+    if (!track?.id) {
+      return;
+    }
+
+    navigate(
+      `${routePaths.userCreateReport}?targetId=${encodeURIComponent(track.id)}&targetType=track`
+    );
+  };
+
   const handleTogglePlaylistMenu = () => {
     setPlaylistFeedback(null);
     setPlaylistMenuError("");
@@ -458,6 +469,11 @@ const TrackDetailPage = () => {
           <button type="button" onClick={ handleDownload } className={ secondaryActionClassName }>
             <Download className="h-4.5 w-4.5" />
             Download
+          </button>
+
+          <button type="button" onClick={ handleReportTrack } className={ secondaryActionClassName }>
+            <ShieldAlert className="h-4.5 w-4.5" />
+            Report
           </button>
 
           <div ref={ moreMenuRef } className="relative self-start">

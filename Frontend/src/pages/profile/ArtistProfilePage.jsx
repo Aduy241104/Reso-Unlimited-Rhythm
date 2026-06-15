@@ -339,6 +339,18 @@ const ArtistProfileView = () => {
     }
   };
 
+  const handleReportArtist = () => {
+    const artistId = artistData.profile?.id || id;
+
+    if (!artistId) {
+      return;
+    }
+
+    navigate(
+      `${routePaths.userCreateReport}?targetId=${encodeURIComponent(artistId)}&targetType=artist`
+    );
+  };
+
   const profile = artistData.profile;
   const nextComingRelease = artistData.comingReleases[0] || null;
 
@@ -366,6 +378,7 @@ const ArtistProfileView = () => {
                 isFollowLoading={ isFollowLoading || isFollowStatusLoading }
                 followErrorMessage={ followErrorMessage }
                 onToggleFollow={ handleToggleFollow }
+                onReport={ handleReportArtist }
               />
             </div>
 
