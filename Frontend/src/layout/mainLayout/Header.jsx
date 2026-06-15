@@ -53,7 +53,7 @@ const Header = ({ onToggleSidebar }) => {
     { label: "FollowingArtist", to: routePaths.libraryFollowedArtists },
     { label: "FollowingAlbum", to: routePaths.libraryFollowedAlbums },
     { label: "Playlist", to: routePaths.userPlaylist },
-    { label: "Báo cáo của tôi", to: routePaths.userReportList },
+    { label: "Báo cáo của tôi", to: routePaths.userReportList},
     ...(userRole === "artist" ? [{ label: "Artist", to: routePaths.artistRoot }] : []),
   ];
 
