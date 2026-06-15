@@ -49,7 +49,7 @@ const Header = ({ onToggleSidebar }) => {
     ...(userRole === "artist"
       ? [{ label: "Yêu cầu của tôi", to: routePaths.artistRegistrationRequestsList }]
       : []),
-    { label: "Premium", to: routePaths.premium },
+    ...(!isPremiumUser ? [{ label: "Premium", to: routePaths.premium }] : []),
     { label: "FollowingArtist", to: routePaths.libraryFollowedArtists },
     { label: "FollowingAlbum", to: routePaths. libraryFollowedAlbums},
     { label: "Playlist", to: routePaths. userPlaylist},
@@ -100,39 +100,53 @@ const Header = ({ onToggleSidebar }) => {
           <Menu className="h-4 w-4" />
         </button>
 
-        <img src={ brandArtwork } alt="" className="h-9 w-9 shrink-0 sm:h-10 sm:w-10 lg:h-11 lg:w-11" />
-        <div className="min-w-0">
-          <p
-            className={[
-              "hidden text-[9px] uppercase tracking-[0.24em] sm:block sm:text-[10px] sm:tracking-[0.28em]",
-              isDark ? "text-[#b8b0aa]" : "text-[#6b7280]",
-            ].join(" ")}
-          >
-            Browse
-          </p>
-          <h2
-            className={[
-              "truncate font-title text-sm font-semibold sm:mt-0.5 sm:text-base lg:text-lg",
-              isDark ? "text-[#f7f1ea]" : "text-[#111111]",
-            ].join(" ")}
-          >
-            Discover Music
-          </h2>
-        </div>
+        <Link
+          to={ routePaths.home }
+          className="flex min-w-0 items-center gap-2 sm:gap-3"
+          aria-label="Go to home page"
+        >
+          <img
+            src={ brandArtwork }
+            alt="Reso Unlimited Rhythm logo"
+            className="h-9 w-9 shrink-0 sm:h-10 sm:w-10 lg:h-11 lg:w-11"
+          />
+          <div className="min-w-0">
+            <p
+              className={[
+                "hidden text-[9px] uppercase tracking-[0.24em] sm:block sm:text-[10px] sm:tracking-[0.28em]",
+                isPremiumUser
+                  ? "text-[#f5b66f]"
+                  : isDark
+                    ? "text-[#b8b0aa]"
+                    : "text-[#6b7280]",
+              ].join(" ")}
+            >
+              { isPremiumUser ? "PREMIUM" : "Browse" }
+            </p>
+            <h2
+              className={[
+                "truncate font-title text-sm font-semibold sm:mt-0.5 sm:text-base lg:text-lg",
+                isDark ? "text-[#f7f1ea]" : "text-[#111111]",
+              ].join(" ")}
+            >
+              Discover Music
+            </h2>
+          </div>
+        </Link>
       </div>
 
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-        { isAuthenticated && (
+        { isAuthenticated && !isPremiumUser && (
           <Link
             to={ routePaths.premium }
             className={[
               "hidden shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition md:inline-flex",
               isDark
-                ? "bg-[#f5b66f] text-black hover:bg-[#f8c886]"
+                ? "bg-white text-black hover:bg-[#f8c886]"
                 : "bg-black text-white hover:bg-[#1f1f1f]",
             ].join(" ")}
           >
-            { isPremiumUser ? "Premium" : "Upgrade" }
+            Get Premium
           </Link>
         ) }
 

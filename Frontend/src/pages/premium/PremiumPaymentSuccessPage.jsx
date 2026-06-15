@@ -5,6 +5,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { useTheme } from "../../hooks/useTheme";
 import { routePaths } from "../../routes/routePaths";
 import { getMySubscriptionService } from "../../services/subscriptionService";
+import { getCurrentUserProfile } from "../../services/userProfileService";
 import { getApiErrorMessage } from "../../utils/apiError";
 
 const dateFormatter = new Intl.DateTimeFormat("vi-VN", {
@@ -12,6 +13,13 @@ const dateFormatter = new Intl.DateTimeFormat("vi-VN", {
   month: "2-digit",
   year: "numeric",
 });
+const PREMIUM_SYNC_MAX_ATTEMPTS = 4;
+const PREMIUM_SYNC_RETRY_DELAY_MS = 1200;
+
+const wait = (durationMs) =>
+  new Promise((resolve) => {
+    window.setTimeout(resolve, durationMs);
+  });
 
 const formatDate = (value) => {
   if (!value) {
@@ -32,13 +40,34 @@ const mergeSubscriptionIntoUser = (user, subscription) => {
     return user;
   }
 
+  const isPremium = Boolean(
+    subscription?.isPremium ||
+    user.isPremium ||
+    user.premium ||
+    user.subscription?.isPremium
+  );
+  const currentPlanName =
+    subscription?.currentPlan?.name ||
+    user.premiumType ||
+    user.subscriptionType ||
+    user.subscription?.tier ||
+    user.subscription?.type ||
+    null;
+
   return {
     ...user,
+    isPremium,
+    premium: isPremium,
+    premiumType: currentPlanName || user.premiumType || null,
+    subscriptionType: currentPlanName || user.subscriptionType || null,
     subscription: {
       ...(user.subscription || {}),
-      isPremium: Boolean(subscription?.isPremium),
+      isPremium,
       currentPlanId:
         subscription?.currentPlan?._id || user.subscription?.currentPlanId || null,
+      currentPlan: subscription?.currentPlan || user.subscription?.currentPlan || null,
+      tier: currentPlanName || user.subscription?.tier || null,
+      type: currentPlanName || user.subscription?.type || null,
       premiumEndDate: subscription?.premiumEndDate || null,
     },
   };
@@ -67,7 +96,26 @@ const PremiumPaymentSuccessPage = () => {
       }
 
       try {
-        const subscriptionResponse = await getMySubscriptionService();
+        let subscriptionResponse = null;
+        let currentUserProfile = null;
+
+        for (let attempt = 0; attempt < PREMIUM_SYNC_MAX_ATTEMPTS; attempt += 1) {
+          const [latestSubscription, latestUserProfile] = await Promise.all([
+            getMySubscriptionService(),
+            getCurrentUserProfile().catch(() => null),
+          ]);
+
+          subscriptionResponse = latestSubscription || subscriptionResponse;
+          currentUserProfile = latestUserProfile || currentUserProfile;
+
+          if (latestSubscription?.isPremium) {
+            break;
+          }
+
+          if (attempt < PREMIUM_SYNC_MAX_ATTEMPTS - 1) {
+            await wait(PREMIUM_SYNC_RETRY_DELAY_MS);
+          }
+        }
 
         if (!isMounted) {
           return;
@@ -75,7 +123,10 @@ const PremiumPaymentSuccessPage = () => {
 
         setSubscription(subscriptionResponse || null);
         setUser((currentUser) =>
-          mergeSubscriptionIntoUser(currentUser, subscriptionResponse)
+          mergeSubscriptionIntoUser(
+            currentUserProfile || currentUser,
+            subscriptionResponse
+          )
         );
       } catch (error) {
         if (!isMounted) {

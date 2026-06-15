@@ -11,6 +11,32 @@ import vnpayService from "./vnpay.service.js";
 const PENDING_PAYMENT_TIMEOUT_MINUTES =
     Number(process.env.PAYMENT_PENDING_TIMEOUT_MINUTES || 15) || 15;
 const VNPAY_SUCCESS_CODE = "00";
+const PREMIUM_TAX_RATE = 0.1;
+
+const roundVndAmount = (value) => Math.round(Number(value) || 0);
+
+const calculateTaxAmount = (baseAmount) =>
+    roundVndAmount((Number(baseAmount) || 0) * PREMIUM_TAX_RATE);
+
+const calculateTotalAmount = (baseAmount) =>
+    roundVndAmount((Number(baseAmount) || 0) + calculateTaxAmount(baseAmount));
+
+const enrichPlanPricing = (plan) => {
+    if (!plan) {
+        return plan;
+    }
+
+    const price = roundVndAmount(plan.price);
+    const taxAmount = calculateTaxAmount(price);
+
+    return {
+        ...plan,
+        price,
+        taxRate: PREMIUM_TAX_RATE,
+        taxAmount,
+        totalPrice: calculateTotalAmount(price),
+    };
+};
 
 const assertObjectId = (value, fieldName) => {
     if (!mongoose.Types.ObjectId.isValid(value)) {
@@ -161,7 +187,8 @@ const findPaymentContextByInvoiceNumber = async (invoiceNumber) => {
 const listActivePlans = async () =>
     Plan.find({ status: "active" })
         .sort({ price: 1, createdAt: 1 })
-        .lean();
+        .lean()
+        .then((plans) => plans.map(enrichPlanPricing));
 
 const getMySubscriptionStatus = async (userId) => {
     const now = new Date();
@@ -200,11 +227,13 @@ const getMySubscriptionStatus = async (userId) => {
                 }
                 : null;
 
+    const pricedCurrentPlan = enrichPlanPricing(currentPlan);
+
     return {
         isPremium:
             Boolean(user.subscription?.isPremium) &&
             (!user.subscription?.premiumEndDate || new Date(user.subscription.premiumEndDate) > now),
-        currentPlan,
+        currentPlan: pricedCurrentPlan,
         premiumEndDate: user.subscription?.premiumEndDate || null,
         activeSubscription: activeSubscription
             ? {
@@ -213,6 +242,16 @@ const getMySubscriptionStatus = async (userId) => {
                 startDate: activeSubscription.startDate,
                 endDate: activeSubscription.endDate,
                 planId: activeSubscription.planId?._id || activeSubscription.planId,
+                plan: enrichPlanPricing(
+                    activeSubscription.planId && typeof activeSubscription.planId === "object"
+                        ? {
+                            _id: activeSubscription.planId._id,
+                            name: activeSubscription.planId.name,
+                            price: activeSubscription.planId.price,
+                            durationDays: activeSubscription.planId.durationDays,
+                        }
+                        : null
+                ),
             }
             : null,
     };
@@ -242,6 +281,9 @@ const createVnpayOrder = async ({
         });
     }
 
+    const amount = roundVndAmount(plan.price);
+    const tax = calculateTaxAmount(amount);
+    const totalAmount = calculateTotalAmount(amount);
     const invoiceNumber = buildInvoiceNumber(user._id);
     let subscription;
     let transaction;
@@ -258,9 +300,9 @@ const createVnpayOrder = async ({
             userId: user._id,
             subscriptionId: subscription._id,
             planId: plan._id,
-            amount: plan.price,
-            tax: 0,
-            totalAmount: plan.price,
+            amount,
+            tax,
+            totalAmount,
             currency: "VND",
             paymentMethod: "vnpay",
             paymentGateway: "vnpay",
@@ -286,6 +328,10 @@ const createVnpayOrder = async ({
             invoiceNumber,
             transactionId: transaction._id,
             subscriptionId: subscription._id,
+            amount: transaction.amount,
+            tax: transaction.tax,
+            taxRate: PREMIUM_TAX_RATE,
+            totalAmount: transaction.totalAmount,
         };
     } catch (error) {
         if (transaction?.status === "pending") {

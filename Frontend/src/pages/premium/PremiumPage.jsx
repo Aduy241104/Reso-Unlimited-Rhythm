@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AudioLines,
+  ChevronLeft,
   Bot,
   Brain,
   Check,
@@ -12,10 +13,12 @@ import {
   X,
 } from "lucide-react";
 import { createPortal } from "react-dom";
+import { Link } from "react-router-dom";
 import {
   createVnpayOrderService,
   getSubscriptionPlansService,
 } from "../../services/subscriptionService";
+import { routePaths } from "../../routes/routePaths";
 import { getApiErrorMessage } from "../../utils/apiError";
 
 const currencyFormatter = new Intl.NumberFormat("vi-VN", {
@@ -83,6 +86,54 @@ const getFeatureMeta = (feature) =>
     Icon: Check,
   };
 
+const MODAL_OPEN_DELAY_MS = 260;
+
+const PremiumModalStyles = () => (
+  <style>{`
+    @keyframes premiumModalOverlayIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes premiumModalContentIn {
+      from {
+        opacity: 0;
+        transform: translateY(18px) scale(0.97);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+  `}</style>
+);
+
+const ModalOpeningState = ({ isOpen, label }) => {
+  if (!isOpen || typeof document === "undefined") {
+    return null;
+  }
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/78 p-4 backdrop-blur-sm [animation:premiumModalOverlayIn_180ms_ease-out]"
+      aria-hidden="true"
+    >
+      <div className="w-full max-w-[320px] rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,#171717_0%,#101010_100%)] p-6 text-center text-white shadow-[0_28px_90px_rgba(0,0,0,0.5)] [animation:premiumModalContentIn_220ms_ease-out_both]">
+        <div className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/[0.05]">
+          <Loader2 className="h-5 w-5 animate-spin" />
+        </div>
+        <p className="mt-4 text-sm font-semibold text-white/92">{label}</p>
+        <p className="mt-2 text-xs text-white/56">Vui long cho trong giay lat...</p>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
 const useModalEscape = ({ isOpen, isLocked, onClose }) => {
   useEffect(() => {
     if (!isOpen) {
@@ -117,12 +168,12 @@ const PlanDetailModal = ({ isOpen, plan, onClose, onPurchase }) => {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/82 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/82 p-4 backdrop-blur-sm [animation:premiumModalOverlayIn_180ms_ease-out]"
       onClick={onClose}
       aria-hidden="true"
     >
       <div
-        className="w-full max-w-[760px] rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,#181818_0%,#101010_100%)] p-6 text-white shadow-[0_32px_120px_rgba(0,0,0,0.62)] sm:p-7"
+        className="w-full max-w-[760px] rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,#181818_0%,#101010_100%)] p-6 text-white shadow-[0_32px_120px_rgba(0,0,0,0.62)] [animation:premiumModalContentIn_220ms_ease-out_both] sm:p-7"
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -246,12 +297,12 @@ const PurchaseConfirmationModal = ({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/84 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/84 p-4 backdrop-blur-sm [animation:premiumModalOverlayIn_180ms_ease-out]"
       onClick={isProcessing ? undefined : onClose}
       aria-hidden="true"
     >
       <div
-        className="w-full max-w-[620px] rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,#1a1a1a_0%,#111111_100%)] p-6 text-white shadow-[0_32px_120px_rgba(0,0,0,0.65)] sm:p-7"
+        className="w-full max-w-[620px] rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,#1a1a1a_0%,#111111_100%)] p-6 text-white shadow-[0_32px_120px_rgba(0,0,0,0.65)] [animation:premiumModalContentIn_220ms_ease-out_both] sm:p-7"
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -310,9 +361,16 @@ const PurchaseConfirmationModal = ({
         <div className="mt-6 h-px bg-white/10" />
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
             <span className="text-sm font-semibold">Phương thức thanh toán</span>
-            <span className="text-sm text-white/88">VNPAY</span>
+            <div className="inline-flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2">
+              <img
+                src="/img_vieclam24h_vn_162996575242.png"
+                alt="VNPAY"
+                className="h-8 w-auto rounded-md bg-white px-2 py-1"
+              />
+              <span className="text-sm font-medium text-white/88">VNPAY</span>
+            </div>
           </div>
 
           <div className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] px-4 text-xs font-semibold text-white/82">
@@ -355,9 +413,14 @@ const PremiumPage = () => {
   const [plans, setPlans] = useState([]);
   const [detailPlanId, setDetailPlanId] = useState("");
   const [purchasePlanId, setPurchasePlanId] = useState("");
+  const [modalOpeningState, setModalOpeningState] = useState({
+    type: "",
+    planId: "",
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [checkoutPlanId, setCheckoutPlanId] = useState("");
+  const modalOpenTimerRef = useRef(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -420,17 +483,64 @@ const PremiumPage = () => {
     [orderedPlans, purchasePlanId]
   );
 
-  const openDetailPlan = (planId) => {
-    setDetailPlanId(planId);
+  const openingPlan = useMemo(
+    () =>
+      orderedPlans.find((plan) => (plan?._id || plan?.id || "") === modalOpeningState.planId) ||
+      null,
+    [modalOpeningState.planId, orderedPlans]
+  );
+
+  useEffect(
+    () => () => {
+      if (modalOpenTimerRef.current) {
+        window.clearTimeout(modalOpenTimerRef.current);
+      }
+    },
+    []
+  );
+
+  const clearModalOpeningState = () => {
+    if (modalOpenTimerRef.current) {
+      window.clearTimeout(modalOpenTimerRef.current);
+      modalOpenTimerRef.current = null;
+    }
+
+    setModalOpeningState({ type: "", planId: "" });
+  };
+
+  const beginOpenModal = (type, planId) => {
+    if (!planId) {
+      return;
+    }
+
+    clearModalOpeningState();
     setErrorMessage("");
+    setDetailPlanId("");
+    setPurchasePlanId("");
+    setModalOpeningState({ type, planId });
+
+    modalOpenTimerRef.current = window.setTimeout(() => {
+      if (type === "detail") {
+        setDetailPlanId(planId);
+      } else {
+        setPurchasePlanId(planId);
+      }
+
+      modalOpenTimerRef.current = null;
+      setModalOpeningState({ type: "", planId: "" });
+    }, MODAL_OPEN_DELAY_MS);
+  };
+
+  const openDetailPlan = (planId) => {
+    beginOpenModal("detail", planId);
   };
 
   const openPurchasePlan = (planId) => {
-    setPurchasePlanId(planId);
-    setErrorMessage("");
+    beginOpenModal("purchase", planId);
   };
 
   const closeDetailPlan = () => {
+    clearModalOpeningState();
     setDetailPlanId("");
   };
 
@@ -439,6 +549,7 @@ const PremiumPage = () => {
       return;
     }
 
+    clearModalOpeningState();
     setPurchasePlanId("");
   };
 
@@ -449,8 +560,7 @@ const PremiumPage = () => {
       return;
     }
 
-    setDetailPlanId("");
-    setPurchasePlanId(planId);
+    beginOpenModal("purchase", planId);
   };
 
   const handleCheckout = async () => {
@@ -480,11 +590,34 @@ const PremiumPage = () => {
     }
   };
 
+  const modalOpeningLabel =
+    modalOpeningState.type === "detail"
+      ? `Dang mo chi tiet ${openingPlan?.name || "goi"}...`
+      : `Dang chuan bi ${openingPlan?.name || "goi"}...`;
+
   return (
     <>
-      <main className="min-h-screen bg-black text-white">
-        <div className="mx-auto max-w-[1560px] px-5 py-12 sm:px-8 lg:px-10 lg:py-14">
+      <PremiumModalStyles />
+      <main className="relative min-h-screen overflow-hidden bg-[#050505] text-white">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(252,211,77,0.16),transparent_28%),radial-gradient(circle_at_18%_30%,rgba(56,189,248,0.14),transparent_26%),radial-gradient(circle_at_82%_74%,rgba(244,114,182,0.12),transparent_24%),linear-gradient(180deg,#090909_0%,#040404_100%)]" />
+          <div className="absolute inset-0 opacity-40 [background-image:linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] [background-size:72px_72px]" />
+          <div className="absolute left-[-8rem] top-24 h-72 w-72 rounded-full bg-[#66c7f0]/10 blur-3xl" />
+          <div className="absolute right-[-6rem] top-12 h-80 w-80 rounded-full bg-[#ffd36a]/10 blur-3xl" />
+          <div className="absolute bottom-[-7rem] left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-[#ff7cb0]/10 blur-3xl" />
+        </div>
+
+        <div className="relative z-10 mx-auto max-w-[1560px] px-5 py-12 sm:px-8 lg:px-10 lg:py-14">
           <section className="mx-auto max-w-[880px] text-center">
+            <div className="mb-6 flex justify-center">
+              <Link
+                to={routePaths.home}
+                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-white/88 transition hover:bg-white/[0.08] hover:text-white"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                <span>Trở về trang chủ</span>
+              </Link>
+            </div>
             <h1 className="text-[2rem] font-medium tracking-tight text-white sm:text-[2.35rem]">
               Nâng cấp gói của bạn
             </h1>
@@ -496,7 +629,7 @@ const PremiumPage = () => {
             </section>
           ) : null}
 
-          <section className="mx-auto mt-10 max-w-[1500px]">
+          <section className="mx-auto mt-10 max-w-[1180px]">
             {isLoading ? (
               <div className="flex min-h-[240px] items-center justify-center gap-3 text-[14px] text-white/70">
                 <Loader2 className="h-5 w-5 animate-spin" />
@@ -507,21 +640,24 @@ const PremiumPage = () => {
                 Hiện chưa có gói Premium khả dụng.
               </div>
             ) : (
-              <div className="grid justify-center gap-7 lg:grid-cols-2 xl:grid-cols-3">
+              <div className="mx-auto grid w-fit justify-center gap-4 lg:grid-cols-2 xl:grid-cols-3">
                 {orderedPlans.map((plan) => {
                   const planId = plan?._id || plan?.id || "";
                   const features = Array.isArray(plan?.features)
                     ? plan.features.slice(0, 5)
                     : [];
                   const isProcessing = checkoutPlanId === planId;
+                  const isOpeningThisPlan = modalOpeningState.planId === planId;
+                  const isOpeningAnyModal = Boolean(modalOpeningState.type);
 
                   return (
                     <article
                       key={planId || plan?.name}
-                      className="flex h-full min-h-[680px] w-full max-w-[480px] flex-col rounded-[28px] border border-white/10 bg-[#232323] p-7 shadow-[0_18px_54px_rgba(0,0,0,0.28)]"
+                      className="flex h-full min-h-[560px] w-full max-w-[360px] flex-col rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(31,31,32,0.9)_0%,rgba(18,18,19,0.96)_100%)] p-5 shadow-[0_18px_44px_rgba(0,0,0,0.24)] backdrop-blur-sm"
                     >
-                      <div className="flex items-start justify-between gap-4">
-                        <h2 className="text-[28px] font-semibold leading-none tracking-tight">
+                      <div className="flex min-h-[220px] flex-col">
+                        <div className="flex min-h-[60px] items-start justify-between gap-4">
+                        <h2 className="text-[23px] font-semibold leading-tight tracking-tight">
                           {plan?.name || "Premium"}
                         </h2>
 
@@ -529,54 +665,62 @@ const PremiumPage = () => {
                           <button
                             type="button"
                             onClick={() => openDetailPlan(planId)}
-                            className="rounded-full px-1 py-1 text-[14px] font-medium text-white/62 transition hover:text-white"
+                            disabled={isOpeningAnyModal}
+                            className="rounded-full px-1 py-1 text-[13px] font-medium text-white/62 transition hover:text-white"
                           >
                             Chi tiết
                           </button>
                         </div>
                       </div>
 
-                      <div className="mt-10 flex items-end gap-3">
+                      <div className="mt-7 flex items-end gap-2.5">
                         <span className="pb-1 text-[14px] leading-none text-white/65">₫</span>
-                        <span className="text-[48px] font-semibold leading-[0.9] tracking-[-0.04em]">
+                        <span className="text-[38px] font-semibold leading-[0.9] tracking-[-0.04em]">
                           {(Number(plan?.price) || 0).toLocaleString("vi-VN")}
                         </span>
-                        <span className="max-w-[10rem] pb-1 text-[14px] font-medium leading-5 text-white">
+                        <span className="max-w-[8.5rem] pb-1 text-[12px] font-medium leading-5 text-white/86">
                           {getPlanPeriodText(plan?.durationDays)}
                         </span>
                       </div>
 
-                      <p className="mt-6 min-h-[72px] text-[14px] font-semibold leading-6 text-white">
+                      <p className="mt-5 min-h-[58px] text-[13px] font-semibold leading-6 text-white/92">
                         {plan?.description ||
                           "Tiếp tục trò chuyện với quyền truy cập mở rộng và nhiều quyền lợi hơn."}
                       </p>
 
+                      </div>
+
                       <button
                         type="button"
                         onClick={() => openPurchasePlan(planId)}
-                        disabled={isProcessing}
-                        className="mt-3 inline-flex min-h-[52px] w-full items-center justify-center rounded-full border border-white/10 bg-transparent text-[14px] font-semibold text-white transition hover:bg-white/[0.04] disabled:cursor-not-allowed disabled:opacity-60"
+                        disabled={isProcessing || isOpeningAnyModal}
+                        className="mt-4 inline-flex min-h-[46px] w-full items-center justify-center rounded-full bg-white text-[13px] font-semibold text-black transition hover:bg-[#ececec] disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {isProcessing ? (
                           <span className="flex items-center gap-2">
                             <Loader2 className="h-4 w-4 animate-spin" />
                             Đang xử lý...
                           </span>
+                        ) : isOpeningThisPlan && modalOpeningState.type === "purchase" ? (
+                          <span className="flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Dang mo...
+                          </span>
                         ) : (
                           `Chuyển sang ${plan?.name || "gói này"}`
                         )}
                       </button>
 
-                      <div className="mt-10 flex-1 space-y-4">
+                      <div className="mt-7 flex-1 space-y-3">
                         {features.map((feature) => {
                           const { label, Icon } = getFeatureMeta(feature);
 
                           return (
                             <div
                               key={feature}
-                              className="flex items-start gap-4 text-[14px] leading-6 text-white"
+                              className="flex items-start gap-3 rounded-[18px] px-3 py-3 text-[13px] leading-6 text-white"
                             >
-                              <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/10">
+                              <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04]">
                                 <Icon className="h-4.5 w-4.5 text-white/92" />
                               </span>
                               <span className="text-white/92">{label}</span>
@@ -585,7 +729,7 @@ const PremiumPage = () => {
                         })}
 
                         {features.length === 0 ? (
-                          <div className="rounded-[20px] border border-white/8 bg-black/10 px-4 py-4 text-[14px] text-white/62">
+                          <div className="rounded-[20px] border border-white/8 bg-black/10 px-4 py-4 text-[13px] text-white/62">
                             Gói này hiện chưa có quyền lợi hiển thị.
                           </div>
                         ) : null}
@@ -598,6 +742,11 @@ const PremiumPage = () => {
           </section>
         </div>
       </main>
+
+      <ModalOpeningState
+        isOpen={Boolean(modalOpeningState.type)}
+        label={modalOpeningLabel}
+      />
 
       <PlanDetailModal
         isOpen={Boolean(detailPlan)}
