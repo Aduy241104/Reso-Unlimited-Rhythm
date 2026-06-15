@@ -7,6 +7,14 @@ export const getMyArtistProfileService = async () => {
   return response?.data?.data?.artist ?? null;
 };
 
+export const getArtistPerformanceOverviewService = async (params = {}) => {
+  const response = await axiosClient.get("/api/artist/overview/performance", {
+    params,
+  });
+
+  return response?.data?.data ?? null;
+};
+
 export const postArtistVerificationRequestService = async (payload = {}) => {
   const response = await axiosClient.post(
     `${ARTIST_API_PREFIX}/me/verification-request`,
