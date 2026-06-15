@@ -20,6 +20,7 @@ import SystemArtistsListPage from "../pages/artist/SystemArtistsListPage";
 import SystemArtistDetailPage from "../pages/artist/ArtistDetailPage";
 import SystemTracksModerationPage from "../pages/systemTracks/SystemTracksModerationPage";
 import AdminListPage from "../pages/users/AdminListPage";
+import ReportsListPage from "../pages/reports/ReportsListPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import RoleRoute from "./RoleRoute";
@@ -113,6 +114,10 @@ export const appRoutes = [
               {
                 path: "genres/:genreId/edit",
                 element: <EditGenrePage />,
+              },
+              {
+                path: "reports",
+                element: <ReportsListPage />,
               },
             ],
           },
