@@ -15,9 +15,9 @@ import ArtistCreateAlbumPage from "../pages/artist/ArtistCreateAlbumPage";
 import ArtistCreateReleaseSchedulePage from "../pages/artist/ArtistCreateReleaseSchedulePage";
 import ArtistEditAlbumPage from "../pages/artist/ArtistEditAlbumPage";
 import ArtistReleaseScheduleDetailPage from "../pages/artist/ArtistReleaseScheduleDetailPage";
+import ArtistListenerBehaviorPage from "../pages/artist/ArtistListenerBehaviorPage";
 import ArtistTrackInsightsPage from "../pages/artist/ArtistTrackInsightsPage";
 import {
-  FansPage,
   MyMusicPage,
   ReleasesPage,
   RoyaltiesPage,
@@ -182,7 +182,7 @@ export const appRoutes = [
               },
               {
                 path: routePaths.artistFans,
-                element: <FansPage />,
+                element: <ArtistListenerBehaviorPage />,
               },
               {
                 path: routePaths.artistRoyalties,
