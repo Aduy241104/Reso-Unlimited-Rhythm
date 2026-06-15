@@ -16,6 +16,7 @@ import ArtistCreateReleaseSchedulePage from "../pages/artist/ArtistCreateRelease
 import ArtistEditAlbumPage from "../pages/artist/ArtistEditAlbumPage";
 import ArtistReleaseScheduleDetailPage from "../pages/artist/ArtistReleaseScheduleDetailPage";
 import ArtistListenerBehaviorPage from "../pages/artist/ArtistListenerBehaviorPage";
+import ArtistNotificationsPage from "../pages/artist/ArtistNotificationsPage";
 import ArtistTrackInsightsPage from "../pages/artist/ArtistTrackInsightsPage";
 import {
   MyMusicPage,
@@ -199,6 +200,10 @@ export const appRoutes = [
               {
                 path: routePaths.artistAnalytics,
                 element: <ArtistTrackInsightsPage />,
+              },
+              {
+                path: routePaths.artistNotifications,
+                element: <ArtistNotificationsPage />,
               },
               {
                 path: routePaths.artistFans,

@@ -92,10 +92,7 @@ const TrackInsightsTopTracksPanel = ({
                 const isActive = trackId === selectedTrackId;
 
                 return (
-                  <tr
-                    key={trackId}
-                    className={isActive ? "bg-[#f6f3ff]" : "bg-white"}
-                  >
+                  <tr key={trackId} className={isActive ? "bg-[#f6f3ff]" : "bg-white"}>
                     <td className="px-4 py-4 align-top">
                       <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#f3f0ff] text-xs font-semibold text-[#6f5cf1]">
                         {item.rank}
@@ -117,7 +114,9 @@ const TrackInsightsTopTracksPanel = ({
                           <div className="mt-1 flex flex-wrap gap-2 text-[12px] text-[#7c7891]">
                             <span>{formatNumber(item?.track?.duration || 0)} phút</span>
                             <span>•</span>
-                            <span>{formatNumber(item?.track?.stats?.totalPlay || 0)} lượt phát toàn thời gian</span>
+                            <span>
+                              {formatNumber(item?.track?.stats?.totalPlay || 0)} lượt phát toàn thời gian
+                            </span>
                           </div>
                         </div>
                       </div>

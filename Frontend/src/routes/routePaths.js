@@ -33,6 +33,7 @@ export const routePaths = {
   artistCreateReleaseSchedule: "/artist/releases/create",
   artistReleaseScheduleDetail: (scheduleId = ":id") => `/artist/releases/${scheduleId}`,
   artistAnalytics: "/artist/analytics",
+  artistNotifications: "/artist/notifications",
   artistFans: "/artist/fans",
   artistRoyalties: "/artist/royalties",
   artistSettings: "/artist/settings",

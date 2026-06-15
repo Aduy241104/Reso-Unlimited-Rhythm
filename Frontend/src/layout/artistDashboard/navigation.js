@@ -1,6 +1,7 @@
 import {
   Album,
   BarChart3,
+  Bell,
   Disc3,
   FileText,
   LayoutDashboard,
@@ -47,6 +48,11 @@ export const artistNavigation = [
     icon: Users,
   },
   {
+    label: "Thông báo",
+    to: routePaths.artistNotifications,
+    icon: Bell,
+  },
+  {
     label: "Hồ sơ nghệ sĩ",
     to: routePaths.artistProfile,
     icon: BarChart3,
@@ -63,6 +69,7 @@ export const artistPageTitles = {
   [routePaths.artistReleases]: "Phát hành",
   [routePaths.artistAnalytics]: "Phân tích bài hát",
   [routePaths.artistFans]: "Hành vi người nghe",
+  [routePaths.artistNotifications]: "Thông báo",
   [routePaths.artistProfile]: "Hồ sơ nghệ sĩ",
   [routePaths.artistProfileEdit]: "Chỉnh sửa hồ sơ nghệ sĩ",
 };
