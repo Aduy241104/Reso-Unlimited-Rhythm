@@ -7,6 +7,7 @@ import {
   Shuffle,
 } from "lucide-react";
 import PlayButton from "../../components/common/PlayButton";
+import CreateReportModal from "../../components/report/CreateReportModal";
 import { useNavigate, useParams } from "react-router-dom";
 import TrackCard from "../../components/TrackCard";
 import TrackListSection from "../../components/trackList/TrackListSection";
@@ -44,6 +45,7 @@ const AlbumDetailPage = () => {
   const [album, setAlbum] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const {
     currentTrack,
     isPlaying,
@@ -159,9 +161,7 @@ const AlbumDetailPage = () => {
       return;
     }
 
-    navigate(
-      `${routePaths.userCreateReport}?targetId=${encodeURIComponent(album.id)}&targetType=album`
-    );
+    setIsReportModalOpen(true);
   };
 
   return (
@@ -294,6 +294,13 @@ const AlbumDetailPage = () => {
           </TrackListSection>
         </div>
       </div>
+
+      <CreateReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        targetId={album?.id}
+        targetType="album"
+      />
     </section>
   );
 };

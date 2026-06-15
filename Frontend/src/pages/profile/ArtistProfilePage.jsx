@@ -5,6 +5,7 @@ import ComingSoonCountdownOverlay from "../../components/artist/ComingSoonCountd
 import ArtistHeroSection from "../../components/artist/ArtistHeroSection";
 import DiscographySection from "../../components/artist/DiscographySection";
 import PopularTracksSection from "../../components/artist/PopularTracksSection";
+import CreateReportModal from "../../components/report/CreateReportModal";
 import { useAuth } from "../../hooks/useAuth";
 import { routePaths } from "../../routes/routePaths";
 import {
@@ -71,6 +72,7 @@ const ArtistProfileView = () => {
   const savedScrollPositionRef = useRef(0);
   const savedOverflowRef = useRef("");
   const [overlayBounds, setOverlayBounds] = useState(null);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [artistData, setArtistData] = useState({
     profile: null,
     popularTracks: [],
@@ -346,9 +348,7 @@ const ArtistProfileView = () => {
       return;
     }
 
-    navigate(
-      `${routePaths.userCreateReport}?targetId=${encodeURIComponent(artistId)}&targetType=artist`
-    );
+    setIsReportModalOpen(true);
   };
 
   const profile = artistData.profile;
@@ -436,6 +436,13 @@ const ArtistProfileView = () => {
           onBack={ closeComingSoonExperience }
         />
       ) : null }
+
+      <CreateReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        targetId={artistData.profile?.id || id}
+        targetType="artist"
+      />
     </section>
   );
 };

@@ -6,6 +6,7 @@ import TrackDetailHero from "../../components/trackDetail/TrackDetailHero";
 import TrackDetailLikeSection from "../../components/trackDetail/TrackDetailLikeSection";
 import TrackDetailLyrics from "../../components/trackDetail/TrackDetailLyrics";
 import CreatePlaylistModal from "../../components/userPlaylist/CreatePlaylistModal";
+import CreateReportModal from "../../components/report/CreateReportModal";
 import { usePlayer } from "../../hooks/usePlayer";
 import { routePaths } from "../../routes/routePaths";
 import { getTrackDetailService } from "../../services/trackService";
@@ -89,6 +90,7 @@ const TrackDetailPage = () => {
   const [hasLoadedPlaylists, setHasLoadedPlaylists] = useState(false);
   const [isPlaylistMenuOpen, setIsPlaylistMenuOpen] = useState(false);
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [playlistSearchValue, setPlaylistSearchValue] = useState("");
   const [playlistMenuError, setPlaylistMenuError] = useState("");
   const [playlistFeedback, setPlaylistFeedback] = useState(null);
@@ -286,9 +288,7 @@ const TrackDetailPage = () => {
       return;
     }
 
-    navigate(
-      `${routePaths.userCreateReport}?targetId=${encodeURIComponent(track.id)}&targetType=track`
-    );
+    setIsReportModalOpen(true);
   };
 
   const handleTogglePlaylistMenu = () => {
@@ -606,6 +606,13 @@ const TrackDetailPage = () => {
           setIsCreatePlaylistModalOpen(false);
           void handlePlaylistCreated(createdPlaylist);
         } }
+      />
+
+      <CreateReportModal
+        isOpen={ isReportModalOpen }
+        onClose={ () => setIsReportModalOpen(false) }
+        targetId={ track?.id }
+        targetType="track"
       />
     </section>
   );
