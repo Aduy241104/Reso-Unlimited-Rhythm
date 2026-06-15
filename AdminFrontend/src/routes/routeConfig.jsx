@@ -19,6 +19,7 @@ import ArtistRequestDetailPage from "../pages/artistRequests/ArtistRequestDetail
 import SystemArtistsListPage from "../pages/artist/SystemArtistsListPage";
 import SystemArtistDetailPage from "../pages/artist/ArtistDetailPage";
 import SystemTracksModerationPage from "../pages/systemTracks/SystemTracksModerationPage";
+import CreateNotificationPage from "../pages/notification/CreateNotificationPage";
 import AdminListPage from "../pages/users/AdminListPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
@@ -69,6 +70,10 @@ export const appRoutes = [
               {
                 path: "users/:userId",
                 element: <UserDetailPage />,
+              },
+              {
+                path: "notifications",
+                element: <CreateNotificationPage />,
               },
               {
                 path: "users/admins",
