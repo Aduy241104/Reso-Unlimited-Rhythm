@@ -38,6 +38,8 @@ export const routePaths = {
   userPlaylist: "/user/playlist",
   userPlaylistDetail: (playlistId = ":id") => `/user/playlist/${playlistId}`,
   userCreateReport: "/user/reports/create",
+  userReportList: "/user/reports",
+  userReportDetail: (reportId = ":id") => `/user/reports/${reportId}`,
 
   libraryFollowedArtists: "/library/followed-artists",
   libraryFollowedAlbums: "/library/followed-albums",
