@@ -8,9 +8,12 @@ import {
   MoreHorizontal,
   Pause,
   Play,
+  Repeat,
+  Repeat1,
   Settings2,
   SkipBack,
   SkipForward,
+  Shuffle,
   Volume2,
   VolumeX,
 } from "lucide-react";
@@ -26,6 +29,15 @@ const controlButtonClassName =
 
 const utilityButtonClassName =
   "inline-flex h-8 w-8 items-center justify-center rounded-lg text-[#fff7ef] transition hover:bg-[#2b252f] disabled:cursor-not-allowed disabled:opacity-40";
+
+const modeButtonClassName = (isActive = false) =>
+  [
+    controlButtonClassName,
+    isActive ? "text-[#cfff73]" : "text-[#fff7ef]",
+  ].join(" ");
+
+const desktopModeButtonSizeClassName = "h-9 w-9 sm:h-10 sm:w-10";
+const desktopModeIconSizeClassName = "h-4 w-4 sm:h-[18px] sm:w-[18px]";
 
 const QUALITY_LABELS = {
   original: "Original",
@@ -71,14 +83,18 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
     errorMessage,
     restrictionMessage,
     activeCollection,
+    isShuffleEnabled,
+    repeatMode,
     isPremium,
     canSeek,
     availableAudioQualities,
     selectedQualityLabel,
-    playTrack,
+    playFromQueueIndex,
     togglePlayPause,
     playNext,
     playPrevious,
+    toggleShuffle,
+    cycleRepeatMode,
     seekTo,
     changeAudioQuality,
     setVolumeLevel,
@@ -140,6 +156,9 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
   const progressPercent =
     progressMax > 0 ? Math.min((progressValue / progressMax) * 100, 100) : 0;
   const volumePercent = Math.round(volume * 100);
+  const canPlayNext =
+    queue.length > 0 &&
+    (currentIndex < queue.length - 1 || repeatMode === "all" || currentIndex < 0);
   const hasQualitySelector = isPremium && availableAudioQualities.length > 1;
   const progressDisabled = progressMax === 0 || !canSeek;
   const selectedQuality =
@@ -157,6 +176,12 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
   const selectedQualityText = selectedQuality
     ? `${formatQualityLabel(selectedQuality.label)}${selectedQuality.bitrate ? ` - ${selectedQuality.bitrate} kbps` : ""}`
     : formatQualityLabel(selectedQualityLabel);
+  const repeatButtonLabel =
+    repeatMode === "one"
+      ? "Repeat one track"
+      : repeatMode === "all"
+        ? "Repeat queue"
+        : "Repeat off";
 
   const handleOpenLyrics = () => {
     setIsMobileMenuOpen(false);
@@ -243,22 +268,12 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
   };
 
   const handlePlayQueueTrack = async (targetIndex) => {
-    const selectedTrack = queue[targetIndex];
-
-    if (!selectedTrack) {
-      return;
-    }
-
     if (targetIndex === currentIndex) {
       await togglePlayPause();
       return;
     }
 
-    await playTrack(selectedTrack, {
-      queue,
-      startIndex: targetIndex,
-      collection: activeCollection,
-    });
+    await playFromQueueIndex(targetIndex);
   };
 
   const handleSelectQuality = async (nextQuality) => {
@@ -482,7 +497,7 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
           <button
             type="button"
             onClick={ playNext }
-            disabled={ currentIndex < 0 || currentIndex >= queue.length - 1 }
+            disabled={ !canPlayNext }
             className={ `${controlButtonClassName} h-6 w-6` }
             aria-label="Next track"
           >
@@ -544,6 +559,42 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
               >
                 <Mic2 className="h-4 w-4" />
                 <span>Lyrics</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={ toggleShuffle }
+                className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-[#f7f1ea] transition hover:bg-[#241f28]"
+                aria-pressed={ isShuffleEnabled }
+              >
+                <Shuffle className={ `h-4 w-4 ${isShuffleEnabled ? "text-[#f5b66f]" : ""}` } />
+                <span>Shuffle</span>
+                <span className="ml-auto text-[11px] text-[#b8b0aa]">
+                  { isShuffleEnabled ? "On" : "Off" }
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={ cycleRepeatMode }
+                className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-[#f7f1ea] transition hover:bg-[#241f28]"
+                aria-label={ repeatButtonLabel }
+              >
+                { repeatMode === "one" ? (
+                  <Repeat1 className="h-4 w-4 text-[#f5b66f]" />
+                ) : (
+                  <Repeat
+                    className={ `h-4 w-4 ${repeatMode === "all" ? "text-[#f5b66f]" : ""}` }
+                  />
+                ) }
+                <span>Repeat</span>
+                <span className="ml-auto text-[11px] text-[#b8b0aa]">
+                  { repeatMode === "one"
+                    ? "One"
+                    : repeatMode === "all"
+                      ? "All"
+                      : "Off" }
+                </span>
               </button>
 
               { renderMobileQualitySelector() }
@@ -628,6 +679,17 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
         <div className="flex items-center justify-center gap-1.5">
           <button
             type="button"
+            onClick={ toggleShuffle }
+            className={ `${modeButtonClassName(isShuffleEnabled)} ${desktopModeButtonSizeClassName}` }
+            aria-label="Toggle shuffle"
+            aria-pressed={ isShuffleEnabled }
+            title={ isShuffleEnabled ? "Shuffle is on" : "Shuffle is off" }
+          >
+            <Shuffle className={ desktopModeIconSizeClassName } />
+          </button>
+
+          <button
+            type="button"
             onClick={ playPrevious }
             disabled={ queue.length === 0 }
             className={ `${controlButtonClassName} h-7 w-7 sm:h-8 sm:w-8` }
@@ -655,11 +717,25 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
           <button
             type="button"
             onClick={ playNext }
-            disabled={ currentIndex < 0 || currentIndex >= queue.length - 1 }
+            disabled={ !canPlayNext }
             className={ `${controlButtonClassName} h-7 w-7 sm:h-8 sm:w-8` }
             aria-label="Next track"
           >
             <SkipForward className="h-[14px] w-[14px] fill-current text-white" />
+          </button>
+
+          <button
+            type="button"
+            onClick={ cycleRepeatMode }
+            className={ `${modeButtonClassName(repeatMode !== "off")} ${desktopModeButtonSizeClassName}` }
+            aria-label={ repeatButtonLabel }
+            title={ repeatButtonLabel }
+          >
+            { repeatMode === "one" ? (
+              <Repeat1 className={ desktopModeIconSizeClassName } />
+            ) : (
+              <Repeat className={ desktopModeIconSizeClassName } />
+            ) }
           </button>
         </div>
 
