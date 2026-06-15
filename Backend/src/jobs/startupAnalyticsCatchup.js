@@ -2,6 +2,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 import Artist from "../models/Artist.js";
+import ArtistDailyStat from "../models/ArtistDailyStat.js";
 import ArtistDailyRanking from "../models/ArtistDailyRanking.js";
 import ArtistMonthlyRanking from "../models/ArtistMonthlyRanking.js";
 import ListenEvent from "../models/ListenEvent.js";
@@ -10,6 +11,7 @@ import TrackDailyStat from "../models/TrackDailyStat.js";
 import TrackMonthlyRanking from "../models/TrackMonthlyRanking.js";
 import TrackMonthlyStat from "../models/TrackMonthlyStat.js";
 import { runDailyTopArtistAggregation } from "./dailyTopArtist.cron.js";
+import { runDailyArtistOverviewStatAggregation } from "./dailyArtistOverviewStat.cron.js";
 import { runDailyTrackStatAggregation } from "./dailyTrackStat.cron.js";
 import { runDailyTopTrackAggregation } from "./dailyTopTrack.cron.js";
 import { runMonthlyTopArtistAggregation } from "./monthlyTopArtist.cron.js";
@@ -55,10 +57,12 @@ const runStartupAnalyticsCatchup = async () => {
     const targetMonthDate = targetMonth.toDate();
     const nextMonthDate = nextMonth.toDate();
 
+    const shouldRunArtistDailyStatisticCatchup = hasPassedMinuteOfDay(now, 0, 3);
     const shouldRunStatisticCatchup = hasPassedMinuteOfDay(now, 0, 0);
     const shouldRunRankingCatchup = hasPassedMinuteOfDay(now, 0, 5);
 
     const [
+        hasArtistDailyStats,
         hasTrackDailyStats,
         hasTrackDailyRanking,
         hasTrackMonthlyStats,
@@ -71,6 +75,9 @@ const runStartupAnalyticsCatchup = async () => {
         hasArtistMonthlySourceData,
         hasActiveArtists,
     ] = await Promise.all([
+        ArtistDailyStat.exists({
+            date: { $gte: targetDayDate, $lt: nextDayDate },
+        }),
         TrackDailyStat.exists({
             date: { $gte: targetDayDate, $lt: nextDayDate },
         }),
@@ -91,6 +98,14 @@ const runStartupAnalyticsCatchup = async () => {
     ]);
 
     const summary = [];
+
+    if (shouldRunArtistDailyStatisticCatchup && hasArtistDailySourceData && !hasArtistDailyStats) {
+        console.log(
+            `[Startup Catch-up] Missing daily artist overview stats for ${targetDay.format("YYYY-MM-DD")}, running catch-up.`
+        );
+        summary.push("dailyArtistOverviewStat");
+        await runDailyArtistOverviewStatAggregation();
+    }
 
     if (shouldRunStatisticCatchup && hasTrackDailySourceData && !hasTrackDailyStats) {
         console.log(

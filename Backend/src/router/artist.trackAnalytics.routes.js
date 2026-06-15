@@ -7,6 +7,12 @@ import trackValidation from "../middlewares/track.validation.js";
 const router = express.Router();
 
 router.get(
+    "/overview/performance",
+    requireArtist,
+    artistTrackAnalyticsController.getArtistPerformanceOverviewController
+);
+
+router.get(
     "/tracks/:trackId/analytics",
     requireArtist,
     validate(trackValidation.trackAnalyticsTrackIdParamSchema, "params"),

@@ -7,6 +7,7 @@
     "start": "nodemon --inspect src/server.js",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand",
     "seed": "node src/seed.js",
+    "seed:artist-overview": "node src/seedArtistPerformanceOverview.js",
     "seed:premium-user": "node src/seedPremiumUser.js",
     "seed5": "node src/seed5.js",
     "seed7": "node src/seed7.js"
