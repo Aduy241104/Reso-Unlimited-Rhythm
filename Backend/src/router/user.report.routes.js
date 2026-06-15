@@ -53,6 +53,8 @@ const runReportUpload = (req, res, next) => {
   });
 };
 
+router.get("/reports", authenticate("user"), userReportController.getMyReports);
+router.get("/reports/:id", authenticate("user"), userReportController.getMyReportDetail);
 router.post("/reports", authenticate("user"), runReportUpload, userReportController.createReport);
 
 export default router;
