@@ -34,6 +34,9 @@ import MonthlyTopTracksPage from "../pages/track/MonthlyTopTracksPage";
 import ArtistProfilePageView from "../pages/profile/ArtistProfilePage";
 import ArtistRegistrationRequestPage from "../pages/artistRegistrationRequest/ArtistRegistrationRequestPage";
 import PlaylistDetailPage from "../pages/playlist/PlaylistDetailPage";
+import PremiumPaymentFailedPage from "../pages/premium/PremiumPaymentFailedPage";
+import PremiumPaymentSuccessPage from "../pages/premium/PremiumPaymentSuccessPage";
+import PremiumPage from "../pages/premium/PremiumPage";
 import TrackDetailPage from "../pages/track/TrackDetailPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
@@ -80,6 +83,14 @@ export const appRoutes = [
         element: <TrackDetailPage />,
       },
       {
+        path: routePaths.premiumPaymentSuccess,
+        element: <PremiumPaymentSuccessPage />,
+      },
+      {
+        path: routePaths.premiumPaymentFailed,
+        element: <PremiumPaymentFailedPage />,
+      },
+      {
         path: publicArtistProfilePath,
         element: <ArtistProfilePageView />,
       },
@@ -92,6 +103,15 @@ export const appRoutes = [
   {
     element: <ProtectedRoute />,
     children: userProfileRoutes,
+  },
+  {
+    element: <ProtectedRoute />,
+    children: [
+      {
+        path: routePaths.premium,
+        element: <PremiumPage />,
+      },
+    ],
   },
   {
     element: <ProtectedRoute />,

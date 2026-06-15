@@ -27,6 +27,10 @@ import {
     runReleaseSchedulePublication,
     startReleaseScheduleCron,
 } from "./jobs/releaseSchedule.cron.js";
+import {
+    runSubscriptionMaintenance,
+    startSubscriptionMaintenanceCron,
+} from "./jobs/subscriptionMaintenance.cron.js";
 
 dotenv.config();
 const app = express();
@@ -42,31 +46,6 @@ app.use("/static", express.static("public"));
 app.use(morgan("combined"));
 
 route(app);
-
-app.get("/test", async (req, res) => { res.json("hello") });
-// app.get("/run-cron", async (req, res) => {
-//     try {
-//         const { runTodayAggregation } = await import('./jobs/dailyTopTrack.cron.js');
-//         const { syncTrackStatsForDay } = await import('./services/analytics/trackStatAggregation.service.js');
-//         const { date } = req.query;
-//         const result = date
-//             ? await syncTrackStatsForDay(date)
-//             : await runTodayAggregation();
-//         res.json({ success: true, result });
-//     } catch (e) {
-//         res.status(500).json({ error: e.message });
-//     }
-// });
-// app.get("/run-platform-cron", async (req, res) => {
-//     try {
-//         const { runPlatformStreamingStatsAggregation } = await import('./jobs/platformStreamingStats.cron.js');
-//         const { date } = req.query;
-//         const result = await runPlatformStreamingStatsAggregation(date || undefined);
-//         res.json({ success: true, result });
-//     } catch (e) {
-//         res.status(500).json({ error: e.message });
-//     }
-// });
 
 app.use(notFoundHandler);
 app.use(globalErrorHandler);
@@ -85,6 +64,7 @@ const startServer = async () => {
             console.log(`📡 Server đang mở cổng mạng nội bộ tại mọi IP`);
         });
         await runReleaseSchedulePublication();
+        await runSubscriptionMaintenance();
         await runStartupAnalyticsCatchup();
         startDailyArtistOverviewStatCron();
         startDailyTopArtistCron();
@@ -96,10 +76,11 @@ const startServer = async () => {
         startPlatformStreamingStatsCron();
         startListenEventSyncCron();
         startReleaseScheduleCron();
+        startSubscriptionMaintenanceCron();
 
 
     } catch (error) {
-        console.error("ðŸš¨ Failed to start server:", error);
+        console.error("💥¨ Failed to start server:", error);
         process.exit(1);
     }
 };
