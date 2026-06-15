@@ -1,10 +1,12 @@
-import { Bell, LoaderCircle } from "lucide-react";
+import { Bell, ChevronRight, LoaderCircle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { routePaths } from "../../routes/routePaths";
 import { getMyArtistNotificationsService } from "../../services/artist.notification.service";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
+
 const TYPE_OPTIONS = [
   { value: "", label: "Tất cả" },
   { value: "system", label: "Hệ thống" },
@@ -47,6 +49,8 @@ const normalizeErrorMessage = (error) =>
   "Không thể tải danh sách thông báo.";
 
 const ArtistNotificationsPage = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number.parseInt(searchParams.get("page") || "", 10) || DEFAULT_PAGE;
   const type = searchParams.get("type") || "";
@@ -137,6 +141,18 @@ const ArtistNotificationsPage = () => {
     () => Array.from({ length: totalPages }, (_, index) => index + 1),
     [totalPages]
   );
+
+  const handleOpenDetail = (notificationId) => {
+    if (!notificationId) {
+      return;
+    }
+
+    navigate(routePaths.artistNotificationDetail(notificationId), {
+      state: {
+        from: `${location.pathname}${location.search}`,
+      },
+    });
+  };
 
   return (
     <section className="space-y-6">
@@ -246,36 +262,45 @@ const ArtistNotificationsPage = () => {
         ) : (
           <div className="space-y-3">
             {notifications.map((notification) => (
-              <article
+              <button
                 key={notification._id}
+                type="button"
+                onClick={() => handleOpenDetail(notification?._id)}
                 className={[
-                  "rounded-[16px] border px-4 py-4 transition",
+                  "w-full rounded-[16px] border px-4 py-4 text-left transition",
                   notification?.isRead
-                    ? "border-[#ece8ff] bg-white"
-                    : "border-[#dcd2ff] bg-[#faf8ff]",
+                    ? "border-[#ece8ff] bg-white hover:border-[#dcd2ff] hover:bg-[#fcfbff]"
+                    : "border-[#dcd2ff] bg-[#faf8ff] hover:border-[#cfc4ff] hover:bg-[#f6f2ff]",
                 ].join(" ")}
               >
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-[#f3f0ff] px-2.5 py-1 text-[11px] font-semibold text-[#5f4fe0]">
-                    {TYPE_LABELS[notification?.type] || "Thông báo"}
-                  </span>
-                  {!notification?.isRead ? (
-                    <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
-                      Mới
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-[#f3f0ff] px-2.5 py-1 text-[11px] font-semibold text-[#5f4fe0]">
+                      {TYPE_LABELS[notification?.type] || "Thông báo"}
                     </span>
-                  ) : null}
+                    {!notification?.isRead ? (
+                      <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+                        Mới
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-[#7c6cf2]">
+                    Xem chi tiết
+                    <ChevronRight className="h-4 w-4" />
+                  </span>
                 </div>
 
                 <p className="mt-3 text-base font-semibold text-[#2f2747]">
                   {notification?.title || "Thông báo"}
                 </p>
-                <p className="mt-2 text-sm leading-6 text-[#7c7891]">
+                <p className="mt-2 line-clamp-2 text-sm leading-6 text-[#7c7891]">
                   {notification?.content || "Không có nội dung."}
                 </p>
                 <p className="mt-3 text-xs text-[#9a93b8]">
                   {formatDateTime(notification?.createdAt)}
                 </p>
-              </article>
+              </button>
             ))}
           </div>
         )}

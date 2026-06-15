@@ -11,6 +11,13 @@ export const getMyArtistNotificationsService = async (params = {}) => {
   };
 };
 
+export const getMyArtistNotificationDetailService = async (notificationId) => {
+  const response = await axiosClient.get(`/api/artist/notifications/${notificationId}`);
+
+  return response?.data?.data?.notification || null;
+};
+
 export default {
   getMyArtistNotificationsService,
+  getMyArtistNotificationDetailService,
 };
