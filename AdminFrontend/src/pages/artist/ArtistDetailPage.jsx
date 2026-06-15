@@ -18,17 +18,17 @@ const getStatusClasses = (status) => {
         case "approved":
         case "calculated":
         case "paid":
-            return "bg-emerald-100/70 text-emerald-700 border border-emerald-300 rounded-full px-3 py-0.5 font-bold text-[10px] uppercase tracking-wider inline-block";
+            return "bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-3 py-0.5 font-bold text-[10px] uppercase tracking-wider inline-block";
         case "pending":
-            return "bg-yellow-100/70 text-yellow-800 border border-yellow-300 rounded-full px-3 py-0.5 font-bold text-[10px] uppercase tracking-wider inline-block";
+            return "bg-amber-50 text-amber-800 border border-amber-200 rounded-full px-3 py-0.5 font-bold text-[10px] uppercase tracking-wider inline-block";
         case "rejected":
         case "inactive":
         case "disputed":
-            return "bg-rose-100/70 text-rose-700 border-rose-300 rounded-full px-3 py-0.5 font-bold text-[10px] uppercase tracking-wider inline-block";
+            return "bg-rose-50 text-rose-700 border border-rose-200 rounded-full px-3 py-0.5 font-bold text-[10px] uppercase tracking-wider inline-block";
         case "blocked":
-            return "bg-red-100 text-red-700 border-red-300 rounded-full px-3 py-0.5 font-bold text-[10px] uppercase tracking-wider inline-block";
+            return "bg-red-50 text-red-700 border border-red-200 rounded-full px-3 py-0.5 font-bold text-[10px] uppercase tracking-wider inline-block";
         default:
-            return "bg-slate-100 text-slate-700 border-slate-300 rounded-full px-3 py-0.5 font-bold text-[10px] uppercase tracking-wider inline-block";
+            return "bg-slate-100 text-slate-600 border border-slate-200 rounded-full px-3 py-0.5 font-bold text-[10px] uppercase tracking-wider inline-block";
     }
 };
 
@@ -65,7 +65,6 @@ const ArtistDetailPage = () => {
         return () => { isMounted = false; };
     }, [id]);
 
-    // Xử lý trực tiếp hành động Mở khóa (Unblock) hoặc Kích hoạt mở Modal điền lý do Khóa (Block)
     const handleToggleBlockAction = async () => {
         if (!artist) return;
 
@@ -76,7 +75,6 @@ const ArtistDetailPage = () => {
             return;
         }
 
-        // Thực thi Unblock tài khoản ngay lập tức
         setIsProcessing(true);
         setError("");
         try {
@@ -93,7 +91,6 @@ const ArtistDetailPage = () => {
         }
     };
 
-    // Xác nhận gửi cấu hình dữ liệu từ Modal lên Server để Block tài khoản
     const handleConfirmBlockEnforcement = async () => {
         if (!artist) return;
         setIsProcessing(true);
@@ -133,212 +130,258 @@ const ArtistDetailPage = () => {
 
     if (error && !artist) {
         return (
-            <div className="p-8 text-center border border-black bg-red-50 text-red-700">
-                <p className="font-bold">{error || "Artist database record not found."}</p>
-                <button onClick={() => navigate(-1)} className="mt-4 border border-black bg-black px-4 py-2 text-xs font-bold text-white uppercase rounded-none">Go Back</button>
+            <div className="mx-auto max-w-xl mt-12 p-6 rounded-2xl border border-rose-100 bg-rose-50 text-center text-rose-800 shadow-sm">
+                <p className="font-bold text-sm">{error || "Artist database record not found."}</p>
+                <button onClick={() => navigate(-1)} className="mt-4 rounded-xl bg-slate-900 px-5 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-slate-800">
+                    Go Back
+                </button>
             </div>
         );
     }
 
+    const getStatusBorderColor = () => {
+        if (artist?.activeStatus === "active") return "border-l-[4px] border-l-emerald-500";
+        if (artist?.activeStatus === "blocked") return "border-l-[4px] border-l-rose-500";
+        return "border-l-[4px] border-l-slate-300";
+    };
+
     return (
-        <section className="space-y-6 text-black font-sans max-w-[1400px] mx-auto p-2 antialiased rounded-none">
-            {error && <div className="border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-600 rounded-none">{error}</div>}
+        <section className="mx-auto max-w-7xl space-y-6 p-6 bg-[#f8fafc] min-h-screen font-sans text-slate-800 antialiased">
+            {error && (
+                <div className="rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs font-bold text-rose-600 shadow-sm">
+                    {error}
+                </div>
+            )}
             
             {/* KHUNG 1: Header Top Bar */}
-            <div className="border border-black bg-white p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6 rounded-none">
-                <div className="flex items-center gap-5">
+            <div className="flex flex-col gap-4 rounded-2xl bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between border border-slate-100">
+                <div className="flex items-center gap-4">
                     {artist.avatar ? (
-                        <img src={artist.avatar} alt={artist.name} className="w-20 h-20 object-cover border border-slate-200 rounded-none" />
+                        <img src={artist.avatar} alt={artist.name} className="w-16 h-16 object-cover rounded-full border border-slate-100" />
                     ) : (
-                        <div className="w-20 h-20 bg-slate-50 border flex items-center justify-center text-xs text-slate-400 font-bold rounded-none">No Avatar</div>
+                        <div className="w-16 h-16 bg-slate-900 flex items-center justify-center text-sm text-white font-bold rounded-full">
+                            {artist.name?.[0]?.toUpperCase() || "?"}
+                        </div>
                     )}
                     <div className="space-y-0.5">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.32em] text-slate-400">Artist Inspection</p>
-                        <h1 className="text-3xl font-bold tracking-tight text-slate-950">{artist.name}</h1>
-                        <p className="text-xs font-mono font-bold text-slate-400">{artist.email}</p>
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Hệ thống nghệ sĩ</p>
+                        <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+                            {artist.name}
+                            <span className={getStatusClasses(artist.activeStatus)}>
+                                {artist.activeStatus || "active"}
+                            </span>
+                        </h1>
+                        <p className="text-xs font-mono font-medium text-slate-400">{artist.email}</p>
                     </div>
                 </div>
 
-                <div className="flex gap-2 self-start sm:self-center rounded-none">
-                    {/* NÚT BẤM BLOCK / UNBLOCK ĐỘNG KHỚP PHONG CÁCH HỆ THỐNG */}
+                <div className="flex gap-2.5 self-start sm:self-center">
                     <button
                         type="button"
                         disabled={isProcessing}
                         onClick={handleToggleBlockAction}
-                        className={`border border-black px-5 py-2.5 text-xs font-black uppercase tracking-wider text-white transition rounded-none disabled:opacity-50 ${
-                            artist.activeStatus === "blocked" ? "bg-sky-600 hover:bg-sky-700" : "bg-rose-600 hover:bg-rose-700"
+                        className={`rounded-xl px-5 py-2.5 text-xs font-bold shadow-sm transition disabled:opacity-50 text-white ${
+                            artist.activeStatus === "blocked" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-slate-900 hover:bg-slate-800"
                         }`}
                     >
-                        {artist.activeStatus === "blocked" ? "Unblock Artist" : "Block Artist"}
+                        {artist.activeStatus === "blocked" ? "Mở khóa nghệ sĩ ↗" : "Khóa nghệ sĩ ↗"}
                     </button>
                     <button
                         type="button"
                         onClick={() => navigate(-1)}
-                        className="border border-black bg-white px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 transition rounded-none"
+                        className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 transition"
                     >
-                        Back to List
+                        Quay lại
                     </button>
                 </div>
             </div>
 
-            {/* KHUNG 2: Tháp thông tin tập trung bọc viền mảnh */}
-            <div className="border border-black bg-white p-8 space-y-8 rounded-none">
-                
-                {/* 1. Tổng quan Metrics */}
-                <div>
-                    <h3 className="text-xs font-bold uppercase tracking-[0.15em] text-slate-900 mb-4">General Info & System Performance</h3>
-                    <div className="grid gap-4 grid-cols-2 lg:grid-cols-4 rounded-none">
-                        <div className="bg-slate-50/70 border border-slate-100 rounded-none p-4 space-y-1">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Core Linked Login User</span>
-                            <span className="text-xs font-mono text-slate-800 font-bold break-all block">{artist.email}</span>
-                        </div>
-                        <div className="bg-slate-50/70 border border-slate-100 rounded-none p-4 space-y-1">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Total Followers</span>
-                            <span className="text-lg font-bold text-slate-950 block">{(artist.metrics?.followers || artist.stats?.followers || 0).toLocaleString()} hits</span>
-                        </div>
-                        <div className="bg-slate-50/70 border border-slate-100 rounded-none p-4 space-y-1">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Accumulated Stream Plays</span>
-                            <span className="text-lg font-bold text-slate-950 block">{(artist.metrics?.totalStreams || artist.stats?.totalStreams || 0).toLocaleString()} hits</span>
-                        </div>
-                        <div className="bg-slate-50/70 border border-slate-100 rounded-none p-4 space-y-1">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Monthly Active Listeners</span>
-                            <span className="text-lg font-bold text-slate-950 block">{(artist.metrics?.monthlyListeners || 0).toLocaleString()} listeners</span>
-                        </div>
-                    </div>
-                    
-                    <div className="grid gap-4 sm:grid-cols-2 mt-4 rounded-none">
-                        <div className="bg-slate-50/70 border border-slate-100 rounded-none p-4 space-y-1">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">System Account Created At</span>
-                            <span className="text-sm font-bold text-slate-800 block">
-                                {artist.createdAt ? new Date(artist.createdAt).toLocaleString("vi-VN") : "—"}
-                            </span>
-                        </div>
-                        <div className="bg-slate-50/70 border border-slate-100 rounded-none p-4 space-y-1">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Releases Matrix Count</span>
-                            <div className="flex gap-6 text-sm font-bold text-slate-800 pt-0.5">
-                                <span>Tracks: <span className="text-slate-950 font-extrabold">{artist.metrics?.totalTracks || artist.totalTracks || 0}</span></span>
-                                <span>Albums: <span className="text-slate-950 font-extrabold">{artist.metrics?.totalAlbums || 0}</span></span>
-                            </div>
-                        </div>
+            {/* HIỂN THỊ BANNER LÝ DO KHÓA NẾU BỊ ĐÌNH CHỈ */}
+            {artist.activeStatus === "blocked" && artist.blockedReason && (
+                <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 flex items-start gap-3 shadow-sm">
+                    <span className="text-lg">⚠️</span>
+                    <div>
+                        <h3 className="font-bold text-sm">Hồ sơ nghệ sĩ này hiện đang bị đình chỉ hoạt động</h3>
+                        <p className="mt-1 text-xs text-rose-700/90 leading-relaxed font-semibold">
+                            <span className="underline">Lý do hệ thống trích xuất:</span> {artist.blockedReason}
+                        </p>
                     </div>
                 </div>
+            )}
 
-                {/* 2. Demographics */}
-                <div className="border-t border-slate-100 pt-6">
-                    <h3 className="text-xs font-bold uppercase tracking-[0.15em] text-slate-900 mb-4">Audience Demographics Distribution</h3>
-                    <div className="grid gap-3 sm:grid-cols-3 rounded-none">
-                        {artist.demographics && Object.keys(artist.demographics).length > 0 ? (
-                            Object.entries(artist.demographics).map(([country, percentage]) => (
-                                <div key={country} className="flex justify-between items-center bg-slate-50/70 border border-slate-100 rounded-none p-4 text-xs font-bold">
-                                    <span className="font-mono text-slate-400 uppercase block">📍 {country}</span>
-                                    <span className="text-slate-950 font-extrabold bg-white border border-slate-200 px-2.5 py-0.5 rounded-none shadow-sm">{percentage}% share</span>
-                                </div>
-                            ))
-                        ) : (
-                            <p className="text-xs text-slate-400 italic font-mono pl-1">No demographic location analytics data tracked yet.</p>
-                        )}
-                    </div>
+            {/* KHUNG SỐ LIỆU THỐNG KÊ CHI TIẾT (KPI METRICS) */}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tổng người theo dõi</p>
+                    <p className="mt-2 text-2xl font-bold text-slate-900">
+                        {(artist.metrics?.followers || artist.stats?.followers || 0).toLocaleString()} hits
+                    </p>
                 </div>
-
-                {/* 3. Đối soát tài chính */}
-                <div className="border-t border-slate-100 pt-6 space-y-4">
-                    <h3 className="text-xs font-bold uppercase tracking-[0.15em] text-slate-900 mb-4">Advanced Financial Statement Ledger</h3>
-                    
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 text-xs font-bold rounded-none">
-                        <div className="p-4 bg-slate-50/70 border border-slate-100 rounded-none space-y-1">
-                            <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wide">Available Wallet Amount (Khả dụng)</span>
-                            <span className="text-base font-extrabold text-emerald-600 block">{(artist.finance?.availableAmount || 0).toLocaleString()} ₫</span>
-                        </div>
-                        <div className="p-4 bg-slate-50/70 border border-slate-100 rounded-none space-y-1">
-                            <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wide">Withdrawn Amount (Đã rút)</span>
-                            <span className="text-base font-extrabold text-slate-800 block">{(artist.finance?.withdrawnAmount || 0).toLocaleString()} ₫</span>
-                        </div>
-                        <div className="p-4 bg-slate-50/70 border border-slate-100 rounded-none space-y-1">
-                            <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wide">Gross Revenue Amount (Tổng gộp)</span>
-                            <span className="text-base font-extrabold text-slate-800 block">{(artist.finance?.grossRevenueAmount || 0).toLocaleString()} ₫</span>
-                        </div>
-                    </div>
-
-                    {artist.finance && (
-                        <div className="p-4 bg-slate-50 border border-slate-100 rounded-none text-xs font-bold flex justify-between items-center">
-                            <div><span className="text-slate-400 uppercase text-[10px] font-bold tracking-wider mr-1">Last Calculations Settlement:</span> <span className="text-slate-700 font-mono font-bold">{artist.finance.lastCalculatedPeriod}</span></div>
-                            <span className={getStatusClasses(artist.finance.status)}>
-                                {artist.finance.status}
-                            </span>
-                        </div>
-                    )}
+                <div className="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tổng lượt Stream Plays</p>
+                    <p className="mt-2 text-2xl font-bold text-slate-900">
+                        {(artist.metrics?.totalStreams || artist.stats?.totalStreams || 0).toLocaleString()} hits
+                    </p>
                 </div>
-
-                {/* 4. Mạng xã hội */}
-                <div className="border-t border-slate-100 pt-6">
-                    <h3 className="text-xs font-bold uppercase tracking-[0.15em] text-slate-900 mb-3">External Verified Creator Identity Links</h3>
-                    <div className="grid gap-3 sm:grid-cols-3 text-xs font-bold rounded-none">
-                        <div className="p-3 bg-slate-50/70 border border-slate-100 rounded-none">
-                            <span className="text-slate-400 block text-[10px] uppercase tracking-wide mb-1">Facebook Endpoint</span>
-                            {artist.socialLinks?.facebook ? <a href={artist.socialLinks.facebook} target="_blank" rel="noreferrer" className="text-sky-600 font-bold hover:underline truncate block">{artist.socialLinks.facebook}</a> : <span className="text-slate-300 font-mono italic">— Connected</span>}
-                        </div>
-                        <div className="p-3 bg-slate-50/70 border border-slate-100 rounded-none">
-                            <span className="text-slate-400 block text-[10px] uppercase tracking-wide mb-1">Instagram Node</span>
-                            {artist.socialLinks?.instagram ? <a href={artist.socialLinks.instagram} target="_blank" rel="noreferrer" className="text-sky-600 font-bold hover:underline truncate block">{artist.socialLinks.instagram}</a> : <span className="text-slate-300 font-mono italic">— Connected</span>}
-                        </div>
-                        <div className="p-3 bg-slate-50/70 border border-slate-100 rounded-none">
-                            <span className="text-slate-400 block text-[10px] uppercase tracking-wide mb-1">YouTube Channel</span>
-                            {artist.socialLinks?.youtube ? <a href={artist.socialLinks.youtube} target="_blank" rel="noreferrer" className="text-sky-600 font-bold hover:underline truncate block">{artist.socialLinks.youtube}</a> : <span className="text-slate-300 font-mono italic">— Connected</span>}
-                        </div>
-                    </div>
+                <div className="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Lượt nghe hàng tháng</p>
+                    <p className="mt-2 text-2xl font-bold text-slate-900">
+                        {(artist.metrics?.monthlyListeners || 0).toLocaleString()} người
+                    </p>
                 </div>
-
-                {/* 5. Tiểu sử */}
-                <div className="border-t border-slate-100 pt-6">
-                    <h3 className="text-xs font-bold uppercase tracking-[0.15em] text-slate-900 mb-2">Creator Biography Context</h3>
-                    <div className="border border-slate-100 bg-slate-50/40 p-4 font-mono text-xs font-medium leading-relaxed text-slate-600 whitespace-pre-line rounded-none">
-                        {artist.bio || "No biography text records written for this active creator profile record."}
+                <div className="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Danh mục phát hành</p>
+                    <div className="mt-3 flex gap-4 text-xs font-bold text-slate-700">
+                        <span className="bg-slate-50 px-2 py-1 rounded-md border border-slate-100">Tracks: <span className="text-slate-950 font-extrabold">{artist.metrics?.totalTracks || artist.totalTracks || 0}</span></span>
+                        <span className="bg-slate-50 px-2 py-1 rounded-md border border-slate-100">Albums: <span className="text-slate-950 font-extrabold">{artist.metrics?.totalAlbums || 0}</span></span>
                     </div>
-                </div>
-
-                {/* 6. Quản trị hệ thống */}
-                <div className="border-t border-slate-100 pt-6 space-y-4">
-                    <h3 className="text-xs font-bold uppercase tracking-[0.15em] text-slate-900 mb-4">Account System Governance</h3>
-                    <div className="grid gap-4 sm:grid-cols-2 text-xs font-bold rounded-none">
-                        <div className="p-4 bg-slate-50 border border-slate-100 rounded-none flex justify-between items-center">
-                            <span className="text-slate-400 uppercase text-[10px] tracking-wider">Verification Identity</span>
-                            <span className={getStatusClasses(artist.verificationStatus)}>{artist.verificationStatus || "pending"}</span>
-                        </div>
-                        <div className="p-4 bg-slate-50 border border-slate-100 rounded-none flex justify-between items-center">
-                            <span className="text-slate-400 uppercase text-[10px] tracking-wider">Visibility Active State</span>
-                            <span className={getStatusClasses(artist.activeStatus)}>{artist.activeStatus || "active"}</span>
-                        </div>
-                    </div>
-
-                    {artist.blockedReason && (
-                        <div className="border border-red-200 bg-red-50 p-4 rounded-none text-xs font-medium text-red-800">
-                            <strong className="block uppercase text-[10px] font-black tracking-wider mb-1">Administrative Ban Blocked Reason:</strong> {artist.blockedReason}
-                        </div>
-                    )}
                 </div>
             </div>
 
-            {/* MODAL KHÓA TÀI KHOẢN NGHỆ SĨ CHUẨN ĐỒNG BỘ LAYOUT */}
-            {modalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm rounded-none">
-                    <div className="w-full max-w-xl border border-black bg-white p-6 shadow-xl space-y-5 max-h-[90vh] overflow-y-auto rounded-none">
-                        <div className="flex items-start justify-between rounded-none">
-                            <div className="rounded-none">
-                                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">System Security Enforcement</p>
-                                <h2 className="mt-1 text-xl font-bold uppercase text-slate-900">Block Artist Account</h2>
+            {/* BỐ CỤC CARD KHỐI NỘI DUNG CHÍNH (2:1 Layout) */}
+            <div className="grid gap-6 lg:grid-cols-3">
+                
+                {/* CỘT TRÁI (THÔNG TIN CƠ BẢN + DEMOGRAPHICS + TÀI CHÍNH) */}
+                <div className="lg:col-span-2 space-y-6">
+                    
+                    {/* Thông tin hồ sơ tổng quan */}
+                    <div className={`rounded-2xl bg-white p-6 shadow-sm border border-slate-100 transition-all ${getStatusBorderColor()}`}>
+                        <h2 className="text-base font-bold text-slate-900 border-b border-slate-50 pb-3">Hồ sơ & Phân quyền gốc</h2>
+                        <div className="mt-4 grid gap-y-4 gap-x-6 sm:grid-cols-2">
+                            <div>
+                                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Liên kết tài khoản email</label>
+                                <p className="mt-1 text-sm font-semibold text-slate-900 break-all">{artist.email || "-"}</p>
                             </div>
-                            <button type="button" onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold transition rounded-none">✕</button>
+                            <div>
+                                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Ngày thiết lập tài khoản</label>
+                                <p className="mt-1 text-sm font-medium text-slate-900">
+                                    {artist.createdAt ? new Date(artist.createdAt).toLocaleString("vi-VN") : "—"}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Đối soát tài chính nâng cao */}
+                    <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
+                        <h2 className="text-base font-bold text-slate-900 border-b border-slate-50 pb-3">Dữ liệu đối soát tài chính doanh thu</h2>
+                        
+                        <div className="grid gap-4 sm:grid-cols-3 text-xs font-bold mt-4">
+                            <div className="p-4 bg-slate-50/70 border border-slate-100 rounded-xl space-y-1">
+                                <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wide">Ví khả dụng</span>
+                                <span className="text-base font-extrabold text-emerald-600 block">{(artist.finance?.availableAmount || 0).toLocaleString()} ₫</span>
+                            </div>
+                            <div className="p-4 bg-slate-50/70 border border-slate-100 rounded-xl space-y-1">
+                                <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wide">Đã rút tiền</span>
+                                <span className="text-base font-extrabold text-slate-800 block">{(artist.finance?.withdrawnAmount || 0).toLocaleString()} ₫</span>
+                            </div>
+                            <div className="p-4 bg-slate-50/70 border border-slate-100 rounded-xl space-y-1">
+                                <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wide">Doanh thu gộp (Gross)</span>
+                                <span className="text-base font-extrabold text-slate-800 block">{(artist.finance?.grossRevenueAmount || 0).toLocaleString()} ₫</span>
+                            </div>
                         </div>
 
-                        <div className="border border-slate-200 bg-slate-50 p-4 text-xs font-bold rounded-none">
-                            <p className="text-slate-900 uppercase tracking-tight rounded-none">{artist.name}</p>
-                            <p className="mt-1 text-[10px] text-slate-400 uppercase rounded-none">Email: {artist.email}</p>
+                        {artist.finance && (
+                            <div className="mt-4 p-3.5 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold flex justify-between items-center">
+                                <div>
+                                    <span className="text-slate-400 uppercase text-[10px] font-bold tracking-wider mr-1">Chu kỳ đối soát gần nhất:</span> 
+                                    <span className="text-slate-700 font-mono font-bold">{artist.finance.lastCalculatedPeriod || "N/A"}</span>
+                                </div>
+                                <span className={getStatusClasses(artist.finance.status)}>
+                                    {artist.finance.status}
+                                </span>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Phân phối khu vực Demographics */}
+                    <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
+                        <h2 className="text-base font-bold text-slate-900 border-b border-slate-50 pb-3">Phân bổ vị trí khán giả (Demographics)</h2>
+                        <div className="grid gap-3 sm:grid-cols-3 mt-4">
+                            {artist.demographics && Object.keys(artist.demographics).length > 0 ? (
+                                Object.entries(artist.demographics).map(([country, percentage]) => (
+                                    <div key={country} className="flex justify-between items-center bg-slate-50/70 border border-slate-100 rounded-xl p-4 text-xs font-bold">
+                                        <span className="font-mono text-slate-400 uppercase block">📍 {country}</span>
+                                        <span className="text-slate-950 font-extrabold bg-white border border-slate-100 px-2 py-0.5 rounded-lg shadow-sm">{percentage}%</span>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-xs text-slate-400 italic font-medium pl-1">Chưa có dữ liệu vị trí người nghe.</p>
+                            )}
+                        </div>
+                    </div>
+
+                </div>
+
+                {/* CỘT PHẢI (GOVERNANCE + SOCIAL LINKS + BIO) */}
+                <div className="space-y-6">
+                    
+                    {/* Quản trị & Xác minh hệ thống */}
+                    <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
+                        <h2 className="text-base font-bold text-slate-900 border-b border-slate-50 pb-3">Trạng thái định danh quản trị</h2>
+                        <div className="mt-4 space-y-3">
+                            <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex justify-between items-center text-xs font-bold">
+                                <span className="text-slate-400 uppercase text-[10px] tracking-wider">Trạng thái tích xanh</span>
+                                <span className={getStatusClasses(artist.verificationStatus)}>{artist.verificationStatus || "pending"}</span>
+                            </div>
+                            <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex justify-between items-center text-xs font-bold">
+                                <span className="text-slate-400 uppercase text-[10px] tracking-wider">Trạng thái hiển thị</span>
+                                <span className={getStatusClasses(artist.activeStatus)}>{artist.activeStatus || "active"}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Mạng xã hội liên kết */}
+                    <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
+                        <h2 className="text-base font-bold text-slate-900 border-b border-slate-50 pb-3">Kênh định danh mạng xã hội</h2>
+                        <div className="mt-4 space-y-3 text-xs font-bold">
+                            <div className="p-3 bg-slate-50/70 border border-slate-100 rounded-xl">
+                                <span className="text-slate-400 block text-[10px] uppercase tracking-wide mb-1">Facebook Endpoint</span>
+                                {artist.socialLinks?.facebook ? <a href={artist.socialLinks.facebook} target="_blank" rel="noreferrer" className="text-blue-600 font-bold hover:underline truncate block">{artist.socialLinks.facebook}</a> : <span className="text-slate-300 font-medium italic">— Chưa liên kết</span>}
+                            </div>
+                            <div className="p-3 bg-slate-50/70 border border-slate-100 rounded-xl">
+                                <span className="text-slate-400 block text-[10px] uppercase tracking-wide mb-1">Instagram Node</span>
+                                {artist.socialLinks?.instagram ? <a href={artist.socialLinks.instagram} target="_blank" rel="noreferrer" className="text-blue-600 font-bold hover:underline truncate block">{artist.socialLinks.instagram}</a> : <span className="text-slate-300 font-medium italic">— Chưa liên kết</span>}
+                            </div>
+                            <div className="p-3 bg-slate-50/70 border border-slate-100 rounded-xl">
+                                <span className="text-slate-400 block text-[10px] uppercase tracking-wide mb-1">YouTube Channel</span>
+                                {artist.socialLinks?.youtube ? <a href={artist.socialLinks.youtube} target="_blank" rel="noreferrer" className="text-blue-600 font-bold hover:underline truncate block">{artist.socialLinks.youtube}</a> : <span className="text-slate-300 font-medium italic">— Chưa liên kết</span>}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Tiểu sử Creator Biography */}
+                    <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
+                        <h2 className="text-base font-bold text-slate-900 border-b border-slate-50 pb-3">Tiểu sử (Biography)</h2>
+                        <div className="mt-3 border border-slate-100 bg-slate-50/40 p-4 font-mono text-xs font-medium leading-relaxed text-slate-500 whitespace-pre-line rounded-xl">
+                            {artist.bio || "Không có dữ liệu văn bản tiểu sử nghệ sĩ."}
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            {/* MODAL KHÓA TÀI KHOẢN NGHỆ SĨ CHUẨN ĐỒNG BỘ LAYOUT VỚI USER */}
+            {modalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-sm">
+                    <div className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl border border-slate-100 max-h-[90vh] overflow-y-auto space-y-5 animate-scale-up">
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">An toàn hệ thống</p>
+                                <h2 className="mt-0.5 text-lg font-bold text-slate-900 uppercase">Khóa tài khoản nghệ sĩ</h2>
+                            </div>
+                            <button type="button" onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold transition">✕</button>
                         </div>
 
-                        <div className="space-y-4 rounded-none">
-                            <div className="space-y-2 rounded-none">
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs font-bold">
+                            <p className="text-slate-900 uppercase">{artist.name}</p>
+                            <p className="mt-1 text-[10px] text-slate-400 uppercase font-mono">Email nhận dạng: {artist.email}</p>
+                        </div>
+
+                        <div className="space-y-4">
+                            {/* PHẦN CHỌN NHIỀU CHECKBOX LÝ DO HỆ THỐNG */}
+                            <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Violation Reason Flags (Chọn lý do hệ thống)</label>
-                                <div className="grid gap-2 sm:grid-cols-2 rounded-none">
+                                <div className="grid gap-2 sm:grid-cols-2">
                                     {BLOCK_REASON_OPTIONS.map((reason) => {
                                         const isChecked = blockReasons.includes(reason.value);
                                         return (
@@ -346,11 +389,15 @@ const ArtistDetailPage = () => {
                                                 key={reason.value}
                                                 type="button"
                                                 onClick={() => handleReasonCheckboxToggle(reason.value)}
-                                                className={`flex items-center text-left gap-3 p-3 border text-xs font-bold transition rounded-none ${
-                                                    isChecked ? "bg-rose-50 border-rose-400 text-rose-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                                                className={`flex items-center text-left gap-3 p-3 border text-xs font-bold transition rounded-xl ${
+                                                    isChecked 
+                                                        ? "bg-rose-50 border-rose-300 text-rose-700" 
+                                                        : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
                                                 }`}
                                             >
-                                                <div className={`w-3.5 h-3.5 flex items-center justify-center border text-[9px] rounded-none ${isChecked ? "bg-rose-600 border-rose-600 text-white" : "bg-white border-slate-300"}`}>
+                                                <div className={`w-3.5 h-3.5 flex items-center justify-center border text-[9px] rounded-md ${
+                                                    isChecked ? "bg-rose-600 border-rose-600 text-white" : "bg-white border-slate-300"
+                                                }`}>
                                                     {isChecked && "✓"}
                                                 </div>
                                                 {reason.label}
@@ -360,30 +407,36 @@ const ArtistDetailPage = () => {
                                 </div>
                             </div>
 
-                            <div className="space-y-2 rounded-none">
-                                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 rounded-none">Detailed Enforcement Explanation (Lý do cụ thể bắt buộc)</label>
+                            {/* Ô NHẬP GIẢI TRÌNH CHI TIẾT */}
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Detailed Enforcement Explanation (Giải trình chi tiết bắt buộc)</label>
                                 <textarea
                                     value={adminNote}
                                     onChange={(e) => setAdminNote(e.target.value)}
                                     rows={3}
-                                    className="w-full border border-slate-200 bg-slate-50/50 px-4 py-3 text-xs font-semibold text-slate-800 outline-none focus:border-slate-400 rounded-none"
-                                    placeholder="Điền giải trình hoặc trích lục bằng chứng cụ thể để khóa tài khoản..."
+                                    className="w-full border border-slate-200 bg-slate-50/50 px-4 py-3 text-xs font-semibold text-slate-800 outline-none focus:border-slate-400 rounded-xl resize-none transition"
+                                    placeholder="Điền giải trình hoặc trích lục bằng chứng cụ thể để khóa tài khoản nghệ sĩ..."
                                     required
                                 />
                             </div>
                         </div>
 
-                        <div className="flex justify-end gap-3 pt-2 border-t border-slate-100 rounded-none">
-                            <button type="button" onClick={() => setModalOpen(false)} className="border border-slate-200 bg-white px-5 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 transition rounded-none">
-                                Cancel
+                        {/* CỤM NÚT ĐIỀU HƯỚNG CỦA MODAL */}
+                        <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
+                            <button
+                                type="button"
+                                onClick={() => setModalOpen(false)}
+                                className="rounded-xl border border-slate-200 bg-white px-5 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
+                            >
+                                Hủy bỏ
                             </button>
                             <button 
                                 type="button" 
                                 onClick={handleConfirmBlockEnforcement} 
                                 disabled={isProcessing || !adminNote.trim() || blockReasons.length === 0} 
-                                className="border border-black px-5 py-2 text-xs font-black uppercase tracking-wider text-white transition disabled:opacity-40 rounded-none bg-rose-600 hover:bg-rose-700"
+                                className="rounded-xl px-5 py-2 text-xs font-bold text-white shadow-sm transition bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed"
                             >
-                                {isProcessing ? "Enforcing..." : "Confirm Block"}
+                                {isProcessing ? "Đang xử lý..." : "Xác nhận khóa"}
                             </button>
                         </div>
                     </div>

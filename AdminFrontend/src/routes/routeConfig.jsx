@@ -18,6 +18,8 @@ import ArtistRequestsListPage from "../pages/artistRequests/ArtistRequestsListPa
 import ArtistRequestDetailPage from "../pages/artistRequests/ArtistRequestDetailPage";
 import SystemArtistsListPage from "../pages/artist/SystemArtistsListPage";
 import SystemArtistDetailPage from "../pages/artist/ArtistDetailPage";
+import SystemTracksModerationPage from "../pages/systemTracks/SystemTracksModerationPage";
+import AdminListPage from "../pages/users/AdminListPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import RoleRoute from "./RoleRoute";
@@ -69,8 +71,16 @@ export const appRoutes = [
                 element: <UserDetailPage />,
               },
               {
+                path: "users/admins",
+                element: <AdminListPage />,
+              },
+              {
                 path: "system-tracks",
                 element: <SystemTracksListPage />,
+              },
+              {
+                path: "system-tracks/moderation",
+                element: <SystemTracksModerationPage />,
               },
               {
                 path: "artist-requests",
@@ -88,7 +98,7 @@ export const appRoutes = [
                 path: "system-artists/:id",
                 element: <SystemArtistDetailPage />,
               },
-              { 
+              {
                 path: "system-tracks/:id",
                 element: <TrackDetailPage />,
               },
