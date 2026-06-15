@@ -16,6 +16,7 @@ dayjs.extend(timezone);
 const {
     Artist,
     ArtistDailyStat,
+    Interaction,
     ListenEvent,
     Track,
     User,
@@ -41,6 +42,9 @@ const ANALYTICS_TIMEZONE = getAnalyticsTimezone();
 const DEVICE_MARKER = "seed-artist-performance-overview";
 const ARTIST_EMAIL = "artist.overview.seed@example.com";
 const ARTIST_PASSWORD = "ArtistOverview@123";
+const LISTEN_SOURCES = ["artist_profile", "search", "playlist", "album", "track_detail"];
+const LISTEN_DEVICES = ["mobile", "desktop", "tablet", DEVICE_MARKER];
+const LISTEN_HOURS = [8, 12, 18, 21];
 
 const LISTENER_DEFINITIONS = [
     {
@@ -158,8 +162,15 @@ const connectDatabase = async () => {
 };
 
 const createAnalyticsDate = (dateKey, streamIndex) => {
-    const base = dayjs.tz(`${dateKey} 09:00`, "YYYY-MM-DD HH:mm", ANALYTICS_TIMEZONE);
-    return base.add(streamIndex * 17, "minute").toDate();
+    const baseHour = LISTEN_HOURS[streamIndex % LISTEN_HOURS.length];
+    const minute = (streamIndex * 17) % 60;
+    return dayjs
+        .tz(
+            `${dateKey} ${String(baseHour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
+            "YYYY-MM-DD HH:mm",
+            ANALYTICS_TIMEZONE
+        )
+        .toDate();
 };
 
 const buildArtistUser = async () => ({
@@ -267,12 +278,12 @@ const buildListenEvents = () => {
                 listenPercent,
                 dailyListenOrder: streamIndex + 1,
                 requiredPercent: 50,
-                source: streamIndex % 2 === 0 ? "artist_profile" : "search",
+                source: LISTEN_SOURCES[streamIndex % LISTEN_SOURCES.length],
                 isValidStream: true,
                 duration: listenedDuration,
                 completed,
                 skipped: !completed,
-                device: DEVICE_MARKER,
+                device: LISTEN_DEVICES[(blueprint.track + streamIndex) % LISTEN_DEVICES.length],
                 country: listener.eventCountry,
             });
         }
@@ -280,6 +291,37 @@ const buildListenEvents = () => {
 
     return events;
 };
+
+const buildInteractions = () => [
+    {
+        userId: ids.listenerTeen,
+        targetType: "Artist",
+        targetId: ids.artistProfile,
+        action: "follow",
+        createdAt: createAnalyticsDate("2026-06-13", 1),
+    },
+    {
+        userId: ids.listenerYoungAdult,
+        targetType: "Track",
+        targetId: ids.trackLeadSingle,
+        action: "like",
+        createdAt: createAnalyticsDate("2026-06-14", 2),
+    },
+    {
+        userId: ids.listenerAdult,
+        targetType: "Track",
+        targetId: ids.trackNightDrive,
+        action: "like",
+        createdAt: createAnalyticsDate("2026-06-15", 3),
+    },
+    {
+        userId: ids.listenerMidCareer,
+        targetType: "Artist",
+        targetId: ids.artistProfile,
+        action: "follow",
+        createdAt: createAnalyticsDate("2026-05-09", 1),
+    },
+];
 
 const cleanupSeedData = async () => {
     await ArtistDailyStat.deleteMany({ artistId: ids.artistProfile });
@@ -291,6 +333,20 @@ const cleanupSeedData = async () => {
     });
     await Track.deleteMany({
         _id: { $in: [ids.trackLeadSingle, ids.trackNightDrive] },
+    });
+    await Interaction.deleteMany({
+        $or: [
+            { targetType: "Artist", targetId: ids.artistProfile },
+            {
+                targetType: "Track",
+                targetId: { $in: [ids.trackLeadSingle, ids.trackNightDrive] },
+            },
+            {
+                userId: {
+                    $in: LISTENER_DEFINITIONS.map((listener) => listener._id),
+                },
+            },
+        ],
     });
     await Artist.deleteMany({ _id: ids.artistProfile });
     await User.deleteMany({
@@ -377,7 +433,9 @@ const main = async () => {
         await Track.insertMany(buildTracks());
 
         const events = buildListenEvents();
+        const interactions = buildInteractions();
         await ListenEvent.insertMany(events);
+        await Interaction.insertMany(interactions);
         const syncedDateKeys = await syncHistoricalSnapshots(events);
         await updateTrackAndArtistTotals();
 
@@ -387,6 +445,7 @@ const main = async () => {
         console.log(`  Tracks seeded: ${TRACK_DEFINITIONS.length}`);
         console.log(`  Listener users seeded: ${LISTENER_DEFINITIONS.length}`);
         console.log(`  Listen events seeded: ${events.length}`);
+        console.log(`  Interactions seeded: ${interactions.length}`);
         console.log(`  Historical daily snapshots synced: ${syncedDateKeys.length}`);
         console.log(`  Analytics timezone: ${ANALYTICS_TIMEZONE}`);
     } catch (error) {

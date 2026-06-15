@@ -13,6 +13,12 @@ router.get(
 );
 
 router.get(
+    "/overview/listener-behavior",
+    requireArtist,
+    artistTrackAnalyticsController.getArtistListenerBehaviorInsightsController
+);
+
+router.get(
     "/tracks/:trackId/analytics",
     requireArtist,
     validate(trackValidation.trackAnalyticsTrackIdParamSchema, "params"),
