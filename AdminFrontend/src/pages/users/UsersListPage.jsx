@@ -156,7 +156,7 @@ const UserListPage = () => {
 
   return (
     <section className="space-y-6 max-w-[1400px] mx-auto p-6 bg-slate-50/50 min-h-screen text-slate-800 font-sans antialiased">
-      
+
       {/* Khung 1: Header Dashboard tích hợp khối thông số dồn phải kèm nút chuyển đổi Admin */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
@@ -170,10 +170,10 @@ const UserListPage = () => {
             <HeaderStat label="Hiển thị" value={users.length} />
             <HeaderStat label="Trang" value={pageLabel} />
           </div>
-          
+
           {/* NÚT BẤM ĐIỀU HƯỚNG SANG TRANG ADMIN DANH SÁCH MỚI */}
-          <Link 
-            to={routePaths.adminList || "/admins"} 
+          <Link
+            to={routePaths.adminList || "/admins"}
             className="bg-slate-950 hover:bg-slate-800 text-white px-5 py-3 text-sm font-semibold rounded-xl shadow-sm transition whitespace-nowrap inline-block text-center h-[44px] flex items-center"
           >
             Danh sách Admin →
@@ -185,11 +185,11 @@ const UserListPage = () => {
       <form onSubmit={handleSearchSubmit} className="grid gap-3 rounded-2xl bg-white p-4 shadow-[0_12px_32px_rgba(15,23,42,0.06)] grid-cols-1 sm:grid-cols-2 md:grid-cols-[1.5fr_1fr_1fr_100px_100px]">
         <label className="relative block">
           <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input 
-            value={searchTerm} 
-            onChange={(e) => setSearchTerm(e.target.value)} 
-            placeholder="Tìm theo tên hoặc địa chỉ email..." 
-            className="w-full rounded-lg bg-slate-100 py-3 pl-11 pr-4 text-sm text-slate-900 outline-none transition focus:bg-sky-50" 
+          <input
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Tìm theo tên hoặc địa chỉ email..."
+            className="w-full rounded-lg bg-slate-100 py-3 pl-11 pr-4 text-sm text-slate-900 outline-none transition focus:bg-sky-50"
           />
         </label>
 
@@ -238,13 +238,27 @@ const UserListPage = () => {
             ) : (
               users.slice((query.page - 1) * query.limit, query.page * query.limit).map((user) => (
                 <article key={user._id} className="relative grid grid-cols-[minmax(0,1.5fr)_minmax(0,1.2fr)_120px_160px_180px_120px] gap-4 px-6 py-4 transition hover:bg-slate-50/60 items-center">
-                  
+
                   {/* Vạch màu chỉ thị rìa trái đồng bộ trạng thái */}
                   <div className={`absolute inset-y-2 left-0 w-1 rounded-r ${getAccentClasses(user.activeStatus)}`} />
-                  
+
                   <div className="flex min-w-0 items-center gap-3 pl-2">
                     <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-slate-900 text-[10px] font-black text-white uppercase tracking-wider shadow-sm">
-                      USER
+                      {user.avatar ? (
+                        <img
+                          src={user.avatar}
+                          alt={user.profile?.fullName || user.email}
+                          className="h-9 w-9 rounded-xl object-cover"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = "/default-avatar.png";
+                          }}
+                        />
+                      ) : (
+                        <span className="text-[9px] font-black">
+                          {user.profile?.fullName?.charAt(0) || "U"}
+                        </span>
+                      )}
                     </div>
                     <span className="truncate text-sm font-semibold text-slate-950">{user.email}</span>
                   </div>
@@ -253,10 +267,10 @@ const UserListPage = () => {
                   <div>{getRoleBadge(user.role)}</div>
                   <div>{getStatusBadge(user.activeStatus)}</div>
                   <span className="text-xs font-mono font-medium text-slate-400">{formatDate(user.createdAt)}</span>
-                  
+
                   <div className="flex justify-end pr-2">
-                    <Link 
-                      to={routePaths.userDetail(user._id)} 
+                    <Link
+                      to={routePaths.userDetail(user._id)}
                       className="inline-flex items-center gap-1 rounded-xl bg-slate-900 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800 shadow-sm"
                     >
                       Chi tiết <ArrowUpRight size={14} />
@@ -277,23 +291,23 @@ const UserListPage = () => {
             <span className="mx-2 text-slate-300">|</span>
             Tổng cộng: {pagination.total} bản ghi
           </p>
-          <ReactPaginate 
-            breakLabel="..." 
-            nextLabel=">" 
-            previousLabel="<" 
-            forcePage={Math.max(pagination.page - 1, 0)} 
-            onPageChange={handlePageChange} 
-            pageRangeDisplayed={3} 
-            marginPagesDisplayed={1} 
-            pageCount={pagination.totalPages} 
-            renderOnZeroPageCount={null} 
-            containerClassName="flex flex-wrap items-center gap-2" 
-            pageLinkClassName="flex h-10 min-w-10 items-center justify-center rounded-xl bg-slate-100 px-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-200" 
-            previousLinkClassName="flex h-10 min-w-10 items-center justify-center rounded-xl bg-slate-100 px-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-200" 
-            nextLinkClassName="flex h-10 min-w-10 items-center justify-center rounded-xl bg-slate-100 px-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-200" 
-            breakLinkClassName="flex h-10 min-w-10 items-center justify-center rounded-xl bg-slate-100 px-3 text-sm font-semibold text-slate-500" 
-            activeLinkClassName="bg-blue-600 text-white hover:bg-blue-600" 
-            disabledLinkClassName="cursor-not-allowed opacity-40 hover:bg-slate-100" 
+          <ReactPaginate
+            breakLabel="..."
+            nextLabel=">"
+            previousLabel="<"
+            forcePage={Math.max(pagination.page - 1, 0)}
+            onPageChange={handlePageChange}
+            pageRangeDisplayed={3}
+            marginPagesDisplayed={1}
+            pageCount={pagination.totalPages}
+            renderOnZeroPageCount={null}
+            containerClassName="flex flex-wrap items-center gap-2"
+            pageLinkClassName="flex h-10 min-w-10 items-center justify-center rounded-xl bg-slate-100 px-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-200"
+            previousLinkClassName="flex h-10 min-w-10 items-center justify-center rounded-xl bg-slate-100 px-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-200"
+            nextLinkClassName="flex h-10 min-w-10 items-center justify-center rounded-xl bg-slate-100 px-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-200"
+            breakLinkClassName="flex h-10 min-w-10 items-center justify-center rounded-xl bg-slate-100 px-3 text-sm font-semibold text-slate-500"
+            activeLinkClassName="bg-blue-600 text-white hover:bg-blue-600"
+            disabledLinkClassName="cursor-not-allowed opacity-40 hover:bg-slate-100"
           />
         </div>
       )}
