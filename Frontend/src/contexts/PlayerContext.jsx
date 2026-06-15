@@ -20,6 +20,7 @@ const FREE_SKIP_LIMIT = 6;
 const FREE_SKIP_WINDOW_MS = 5 * 60 * 60 * 1000;
 const FREE_SKIP_STORAGE_KEY = "capstone.player.free_skip_window";
 const MAX_NATURAL_LISTEN_DELTA_SECONDS = 2;
+const REPEAT_MODE_SEQUENCE = ["off", "all", "one"];
 
 const getTrackId = (track, fallbackId = null) =>
   track?.id || track?._id || track?.trackId || fallbackId;
@@ -63,28 +64,129 @@ const getTrackImage = (track, fallbackImage = "") => {
   );
 };
 
+const getQueueItemId = (track, fallbackId = "") =>
+  track?.queueItemId ||
+  track?.playbackTrackId ||
+  track?.id ||
+  getTrackId(track?.raw || track, fallbackId) ||
+  fallbackId;
+
+const findQueueTrackIndex = (tracks = [], queueItemId = "") =>
+  tracks.findIndex((track) => getQueueItemId(track) === queueItemId);
+
+const shuffleTracks = (tracks = []) => {
+  const nextTracks = [...tracks];
+
+  for (let index = nextTracks.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [nextTracks[index], nextTracks[randomIndex]] = [
+      nextTracks[randomIndex],
+      nextTracks[index],
+    ];
+  }
+
+  return nextTracks;
+};
+
+const buildShuffledQueue = (
+  orderedQueue = [],
+  { currentQueueItemId = "", preserveHistory = false } = {}
+) => {
+  if (orderedQueue.length === 0) {
+    return {
+      queue: [],
+      currentIndex: -1,
+    };
+  }
+
+  const activeTrackIndex = currentQueueItemId
+    ? findQueueTrackIndex(orderedQueue, currentQueueItemId)
+    : -1;
+
+  if (activeTrackIndex < 0) {
+    return {
+      queue: shuffleTracks(orderedQueue),
+      currentIndex: 0,
+    };
+  }
+
+  const activeTrack = orderedQueue[activeTrackIndex];
+
+  if (!preserveHistory) {
+    const remainingTracks = orderedQueue.filter(
+      (_, index) => index !== activeTrackIndex
+    );
+
+    return {
+      queue: [activeTrack, ...shuffleTracks(remainingTracks)],
+      currentIndex: 0,
+    };
+  }
+
+  const playedTracks = orderedQueue.slice(0, activeTrackIndex);
+  const upcomingTracks = orderedQueue.slice(activeTrackIndex + 1);
+
+  return {
+    queue: [...playedTracks, activeTrack, ...shuffleTracks(upcomingTracks)],
+    currentIndex: playedTracks.length,
+  };
+};
+
+const replaceQueueTrack = (tracks = [], queueItemId = "", nextTrack = null) => {
+  let hasReplaced = false;
+
+  return tracks.map((track) => {
+    if (!hasReplaced && getQueueItemId(track) === queueItemId && nextTrack) {
+      hasReplaced = true;
+      return nextTrack;
+    }
+
+    return track;
+  });
+};
+
+const removeQueueTrack = (tracks = [], queueItemId = "") => {
+  let hasRemoved = false;
+
+  return tracks.filter((track) => {
+    if (!hasRemoved && getQueueItemId(track) === queueItemId) {
+      hasRemoved = true;
+      return false;
+    }
+
+    return true;
+  });
+};
+
 const normalizeQueueTrack = (item, options = {}) => {
   const track = item?.track ?? item ?? {};
   const normalizedTrackId = getTrackId(
     track,
     `${options.collectionId || options.collectionType || "track"}-${options.index || 0}`
   );
+  const queueItemId =
+    item?.queueItemId ||
+    track?.queueItemId ||
+    `${options.collectionId || options.collectionType || "track"}:${
+      options.index || 0
+    }:${normalizedTrackId}`;
 
   return {
+    queueItemId,
     id: normalizedTrackId,
-    title: track?.title || "Untitled track",
+    title: track?.title || item?.title || "Untitled track",
     artist: track?.artist || null,
-    artistName: getArtistName(track, options.artistName),
-    duration: Number(track?.duration) || 0,
-    image: getTrackImage(track, options.image),
-    playbackTrackId: getTrackId(track),
-    streamUrl: resolveTrackMediaUrl(track),
-    lyricsSyncUrl: resolveTrackLyricsSyncUrl(track),
+    artistName: track?.artistName || getArtistName(track, options.artistName),
+    duration: Number(track?.duration) || Number(item?.duration) || 0,
+    image: track?.image || getTrackImage(track, options.image),
+    playbackTrackId: getTrackId(track, item?.playbackTrackId || null),
+    streamUrl: track?.streamUrl || resolveTrackMediaUrl(track),
+    lyricsSyncUrl: track?.lyricsSyncUrl || resolveTrackLyricsSyncUrl(track),
     listenSource: resolveListenSource(
       track?.listenSource || options.listenSource || options.collectionType
     ),
     playback: track?.playback || null,
-    raw: track,
+    raw: track?.raw || track,
   };
 };
 
@@ -243,11 +345,14 @@ export const PlayerProvider = ({ children }) => {
   const [lyricsErrorMessage, setLyricsErrorMessage] = useState("");
   const [availableAudioQualities, setAvailableAudioQualities] = useState([]);
   const [selectedQualityLabel, setSelectedQualityLabel] = useState("");
+  const [isShuffleEnabled, setIsShuffleEnabled] = useState(false);
+  const [repeatMode, setRepeatMode] = useState("off");
   const [freeSkipWindow, setFreeSkipWindow] = useState(() =>
     loadStoredFreeSkipWindow()
   );
   const audioRef = useRef(null);
   const queueRef = useRef([]);
+  const orderedQueueRef = useRef([]);
   const currentIndexRef = useRef(-1);
   const objectUrlRef = useRef("");
   const playbackRequestIdRef = useRef(0);
@@ -259,6 +364,8 @@ export const PlayerProvider = ({ children }) => {
   const currentLyricsThemeIndexRef = useRef(-1);
   const selectedQualityLabelRef = useRef("");
   const isPremiumRef = useRef(false);
+  const isShuffleEnabledRef = useRef(false);
+  const repeatModeRef = useRef("off");
   const freeSkipWindowRef = useRef(freeSkipWindow);
   const listenTrackRef = useRef({
     trackId: null,
@@ -275,6 +382,10 @@ export const PlayerProvider = ({ children }) => {
   const syncQueueState = (nextQueue) => {
     queueRef.current = nextQueue;
     setQueue(nextQueue);
+  };
+
+  const syncOrderedQueueState = (nextQueue) => {
+    orderedQueueRef.current = nextQueue;
   };
 
   const syncQualityState = (track, streamUrl = "") => {
@@ -308,6 +419,7 @@ export const PlayerProvider = ({ children }) => {
     resetListenProgress();
     resetLyricsState();
     syncQueueState([]);
+    syncOrderedQueueState([]);
     setCurrentIndex(-1);
     setCurrentTrack(null);
     setCurrentTime(0);
@@ -516,6 +628,14 @@ export const PlayerProvider = ({ children }) => {
   }, [selectedQualityLabel]);
 
   useEffect(() => {
+    isShuffleEnabledRef.current = isShuffleEnabled;
+  }, [isShuffleEnabled]);
+
+  useEffect(() => {
+    repeatModeRef.current = repeatMode;
+  }, [repeatMode]);
+
+  useEffect(() => {
     freeSkipWindowRef.current = freeSkipWindow;
     persistFreeSkipWindow(freeSkipWindow);
   }, [freeSkipWindow]);
@@ -587,10 +707,28 @@ export const PlayerProvider = ({ children }) => {
         await flushCurrentListenAttempt();
       }
 
+      if (
+        repeatModeRef.current === "one" &&
+        currentIndexRef.current >= 0 &&
+        currentIndexRef.current < queueRef.current.length
+      ) {
+        await playTrackByIndexRef.current?.(currentIndexRef.current, null, {
+          skipListenFlush: true,
+        });
+        return;
+      }
+
       const nextIndex = currentIndexRef.current + 1;
 
       if (nextIndex < queueRef.current.length) {
         await playTrackByIndexRef.current?.(nextIndex, null, {
+          skipListenFlush: true,
+        });
+        return;
+      }
+
+      if (repeatModeRef.current === "all" && queueRef.current.length > 0) {
+        await playTrackByIndexRef.current?.(0, null, {
           skipListenFlush: true,
         });
         return;
@@ -651,6 +789,7 @@ export const PlayerProvider = ({ children }) => {
     const workingQueue = incomingQueue || queueRef.current;
     const nextTrack = workingQueue?.[nextIndex];
     const nextTrackPlaybackId = nextTrack?.playbackTrackId || nextTrack?.id;
+    const nextQueueItemId = getQueueItemId(nextTrack);
     const isQueueSwitch =
       Array.isArray(incomingQueue) && incomingQueue !== queueRef.current;
     const shouldFlushCurrentListen =
@@ -739,6 +878,7 @@ export const PlayerProvider = ({ children }) => {
       );
       const hydratedTrack = {
         ...nextTrack,
+        queueItemId: nextQueueItemId,
         id: getTrackId(source.track, nextTrack.id),
         lyricsThemeIndex,
         title: source.track?.title || nextTrack.title,
@@ -757,8 +897,15 @@ export const PlayerProvider = ({ children }) => {
         activeQualityLabel,
       };
 
-      const hydratedQueue = workingQueue.map((track, index) =>
-        index === nextIndex ? hydratedTrack : track
+      const hydratedQueue = replaceQueueTrack(
+        workingQueue,
+        nextQueueItemId,
+        hydratedTrack
+      );
+      const hydratedOrderedQueue = replaceQueueTrack(
+        orderedQueueRef.current,
+        nextQueueItemId,
+        hydratedTrack
       );
       const shouldPreserveListenProgress =
         Boolean(options.skipListenFlush) &&
@@ -785,6 +932,7 @@ export const PlayerProvider = ({ children }) => {
       });
 
       syncQueueState(hydratedQueue);
+      syncOrderedQueueState(hydratedOrderedQueue);
       setCurrentTrack(hydratedTrack);
       syncQualityState(hydratedTrack, source.url);
       releaseCurrentObjectUrl();
@@ -837,7 +985,7 @@ export const PlayerProvider = ({ children }) => {
 
   const playCollection = async (
     tracks,
-    { startIndex = 0, collection = null } = {}
+    { startIndex = 0, collection = null, shuffle } = {}
   ) => {
     const normalizedQueue = normalizeQueue(tracks, collection);
 
@@ -848,11 +996,28 @@ export const PlayerProvider = ({ children }) => {
 
     const safeIndex =
       startIndex >= 0 && startIndex < normalizedQueue.length ? startIndex : 0;
+    const shouldShuffle =
+      typeof shuffle === "boolean" ? shuffle : isShuffleEnabledRef.current;
+    const selectedQueueItemId = getQueueItemId(normalizedQueue[safeIndex]);
+    const { queue: queueToPlay, currentIndex: playbackStartIndex } = shouldShuffle
+      ? buildShuffledQueue(normalizedQueue, {
+          currentQueueItemId: selectedQueueItemId,
+        })
+      : {
+          queue: normalizedQueue,
+          currentIndex: safeIndex,
+        };
 
     setActiveCollection(collection);
     setRestrictionMessage("");
-    syncQueueState(normalizedQueue);
-    await playTrackByIndexRef.current?.(safeIndex, normalizedQueue);
+    syncOrderedQueueState(normalizedQueue);
+    syncQueueState(queueToPlay);
+
+    if (typeof shuffle === "boolean") {
+      setIsShuffleEnabled(shuffle);
+    }
+
+    await playTrackByIndexRef.current?.(playbackStartIndex, queueToPlay);
   };
 
   const playTrack = async (track, options = {}) => {
@@ -886,11 +1051,12 @@ export const PlayerProvider = ({ children }) => {
     });
   };
 
-  const playAlbum = async (album, tracks = []) => {
+  const playAlbum = async (album, tracks = [], options = {}) => {
     const albumTracks = tracks.length > 0 ? tracks : album?.tracks ?? [];
 
     await playCollection(albumTracks, {
       startIndex: 0,
+      shuffle: options.shuffle,
       collection: {
         id: album?.id,
         type: "album",
@@ -901,11 +1067,12 @@ export const PlayerProvider = ({ children }) => {
     });
   };
 
-  const playPlaylist = async (playlist, tracks = []) => {
+  const playPlaylist = async (playlist, tracks = [], options = {}) => {
     const playlistTracks = tracks.length > 0 ? tracks : playlist?.tracks ?? [];
 
     await playCollection(playlistTracks, {
       startIndex: 0,
+      shuffle: options.shuffle,
       collection: {
         id: playlist?.id,
         type: "playlist",
@@ -942,10 +1109,14 @@ export const PlayerProvider = ({ children }) => {
   };
 
   const playNext = async () => {
-    const nextIndex = currentIndexRef.current + 1;
+    let nextIndex = currentIndexRef.current + 1;
 
     if (nextIndex >= queueRef.current.length) {
-      return;
+      if (repeatModeRef.current !== "all" || queueRef.current.length === 0) {
+        return;
+      }
+
+      nextIndex = 0;
     }
 
     if (!consumeFreeSkip()) {
@@ -972,6 +1143,15 @@ export const PlayerProvider = ({ children }) => {
     const previousIndex = currentIndexRef.current - 1;
 
     if (previousIndex < 0) {
+      if (repeatModeRef.current === "all" && queueRef.current.length > 0) {
+        if (!consumeFreeSkip()) {
+          return;
+        }
+
+        await playTrackByIndexRef.current?.(queueRef.current.length - 1);
+        return;
+      }
+
       audio.currentTime = 0;
       setCurrentTime(0);
       syncLyricsRef.current?.(0, true);
@@ -1090,7 +1270,13 @@ export const PlayerProvider = ({ children }) => {
       return;
     }
 
+    const targetTrack = queueRef.current[targetIndex];
+    const targetQueueItemId = getQueueItemId(targetTrack);
     const nextQueue = queueRef.current.filter((_, index) => index !== targetIndex);
+    const nextOrderedQueue = removeQueueTrack(
+      orderedQueueRef.current,
+      targetQueueItemId
+    );
     const activeIndex = currentIndexRef.current;
 
     if (nextQueue.length === 0) {
@@ -1103,6 +1289,7 @@ export const PlayerProvider = ({ children }) => {
     }
 
     if (activeIndex < 0 || targetIndex > activeIndex) {
+      syncOrderedQueueState(nextOrderedQueue);
       syncQueueState(nextQueue);
       return;
     }
@@ -1110,6 +1297,7 @@ export const PlayerProvider = ({ children }) => {
     if (targetIndex < activeIndex) {
       const nextIndex = activeIndex - 1;
       currentIndexRef.current = nextIndex;
+      syncOrderedQueueState(nextOrderedQueue);
       syncQueueState(nextQueue);
       setCurrentIndex(nextIndex);
       return;
@@ -1119,8 +1307,86 @@ export const PlayerProvider = ({ children }) => {
     const nextIndex =
       targetIndex < nextQueue.length ? targetIndex : nextQueue.length - 1;
 
+    syncOrderedQueueState(nextOrderedQueue);
     await playTrackByIndexRef.current?.(nextIndex, nextQueue, {
       autoplay: audio ? !audio.paused : isPlaying,
+    });
+  };
+
+  const playFromQueueIndex = async (targetIndex) => {
+    if (
+      !Number.isInteger(targetIndex) ||
+      targetIndex < 0 ||
+      targetIndex >= queueRef.current.length
+    ) {
+      return;
+    }
+
+    await playTrackByIndexRef.current?.(targetIndex);
+  };
+
+  const toggleShuffle = () => {
+    const nextShuffleEnabled = !isShuffleEnabledRef.current;
+
+    setIsShuffleEnabled(nextShuffleEnabled);
+
+    if (orderedQueueRef.current.length === 0) {
+      return;
+    }
+
+    const activeQueueItemId = getQueueItemId(
+      currentTrack || queueRef.current[currentIndexRef.current]
+    );
+
+    if (!nextShuffleEnabled) {
+      const restoredIndex = activeQueueItemId
+        ? findQueueTrackIndex(orderedQueueRef.current, activeQueueItemId)
+        : currentIndexRef.current;
+      const safeIndex =
+        restoredIndex >= 0
+          ? restoredIndex
+          : Math.min(
+              Math.max(currentIndexRef.current, 0),
+              orderedQueueRef.current.length - 1
+            );
+
+      syncQueueState(orderedQueueRef.current);
+      currentIndexRef.current = safeIndex;
+      setCurrentIndex(safeIndex);
+
+      if (safeIndex >= 0) {
+        setCurrentTrack(orderedQueueRef.current[safeIndex]);
+      }
+
+      return;
+    }
+
+    const { queue: shuffledQueue, currentIndex: shuffledIndex } = buildShuffledQueue(
+      orderedQueueRef.current,
+      {
+        currentQueueItemId: activeQueueItemId,
+        preserveHistory: true,
+      }
+    );
+
+    syncQueueState(shuffledQueue);
+    currentIndexRef.current = shuffledIndex;
+    setCurrentIndex(shuffledIndex);
+
+    if (shuffledIndex >= 0) {
+      setCurrentTrack(shuffledQueue[shuffledIndex]);
+    }
+  };
+
+  const cycleRepeatMode = () => {
+    setRepeatMode((currentValue) => {
+      const currentModeIndex = REPEAT_MODE_SEQUENCE.indexOf(currentValue);
+      const nextModeIndex =
+        currentModeIndex >= 0
+          ? (currentModeIndex + 1) % REPEAT_MODE_SEQUENCE.length
+          : 0;
+
+      return REPEAT_MODE_SEQUENCE[nextModeIndex];
     });
   };
 
@@ -1151,6 +1417,8 @@ export const PlayerProvider = ({ children }) => {
     canSeek: isPremium,
     availableAudioQualities,
     selectedQualityLabel,
+    isShuffleEnabled,
+    repeatMode,
     freeSkipsRemaining,
     freeSkipLimit: FREE_SKIP_LIMIT,
     freeSkipWindowEndsAt: activeFreeSkipWindow.startedAt + FREE_SKIP_WINDOW_MS,
@@ -1158,9 +1426,12 @@ export const PlayerProvider = ({ children }) => {
     playAlbum,
     playPlaylist,
     playCollection,
+    playFromQueueIndex,
     togglePlayPause,
     playNext,
     playPrevious,
+    toggleShuffle,
+    cycleRepeatMode,
     seekTo,
     changeAudioQuality,
     setVolumeLevel,
