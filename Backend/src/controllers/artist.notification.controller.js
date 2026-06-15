@@ -20,6 +20,25 @@ const getMyArtistNotifications = async (req, res, next) => {
     }
 };
 
+const getMyArtistNotificationDetail = async (req, res, next) => {
+    try {
+        const notification =
+            await artistNotificationService.getMyArtistNotificationDetail(
+                req.user.id,
+                req.params.id
+            );
+
+        return formatResponse.success(
+            res,
+            { notification },
+            "Artist notification detail fetched successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getMyArtistNotifications,
+    getMyArtistNotificationDetail,
 };

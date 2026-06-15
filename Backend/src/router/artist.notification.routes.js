@@ -13,4 +13,11 @@ router.get(
     artistNotificationController.getMyArtistNotifications
 );
 
+router.get(
+    "/:id",
+    requireArtist,
+    validate(artistNotificationValidation.notificationDetailParamsSchema, "params"),
+    artistNotificationController.getMyArtistNotificationDetail
+);
+
 export default router;
