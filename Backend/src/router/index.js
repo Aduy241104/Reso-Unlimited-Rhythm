@@ -24,11 +24,13 @@ import userPlaylistRoutes from "./user.playlist.routes.js"
 import adminArtistRouter from "./admin.artist.router.js";
 import adminNotificationRouter from "./admin.notification.router.js";
 import userReportRoutes from "./user.report.routes.js";
+import userNotificationRouter from "./user.notification.router.js";
 
 function route(app) {
     app.use("/api/auth", authenticationRoutes);
     app.use("/api/notifications", notificationRoutes);
     app.use("/api/artist/notifications", artistNotificationRoutes);
+    app.use("/api/user/notifications", userNotificationRouter);
     app.use("/api/genres", genreRoutes);
     app.use("/api/albums", albumRoutes);
     app.use("/api/browse/artists", artistBrowseRoutes);

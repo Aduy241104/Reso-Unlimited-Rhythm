@@ -3,6 +3,36 @@ import Notification from "../../models/Notification.js";
 import User from "../../models/User.js";
 import { AppError } from "../../utils/AppError.js"; // Thay bằng file Error handler của ông
 
+
+const attachTargetNames = async (notifications) => {
+    const isArray = Array.isArray(notifications);
+    const list = isArray ? notifications : [notifications];
+
+    const updatedList = await Promise.all(
+        list.map(async (notif) => {
+            let targetName = "";
+            if (notif.targetId && notif.targetType) {
+                try {
+                    // track -> Track, playlist -> Playlist
+                    const modelName = notif.targetType.charAt(0).toUpperCase() + notif.targetType.slice(1);
+                    const TargetModel = mongoose.models[modelName] || mongoose.model(modelName);
+
+                    if (TargetModel) {
+                        const targetDoc = await TargetModel.findById(notif.targetId).lean();
+                        targetName = targetDoc?.title || targetDoc?.name || "Nội dung đã bị xóa";
+                    }
+                } catch (error) {
+                    console.error("Lỗi lấy targetName:", error);
+                    targetName = "Không xác định";
+                }
+            }
+            return { ...notif, targetName };
+        })
+    );
+
+    return isArray ? updatedList : updatedList[0];
+};
+
 const createNotificationForAdmin = async (adminId, data) => {
     const { title, content, type, receiverType, specificUserId, groupRole, targetId, targetType } = data;
 
@@ -55,9 +85,8 @@ const createNotificationForAdmin = async (adminId, data) => {
 };
 
 const getNotificationsForAdmin = async () => {
-    return await Notification.find()
-        .sort({ createdAt: -1 }) // Sắp xếp tin mới nhất lên đầu
-        .lean();
+    const list = await Notification.find().sort({ createdAt: -1 }).lean();
+    return await attachTargetNames(list);
 };
 
 const getNotificationDetailForAdmin = async (notificationId) => {
@@ -67,14 +96,22 @@ const getNotificationDetailForAdmin = async (notificationId) => {
 
     const notification = await Notification.findById(notificationId)
         .populate({ path: "userId", select: "email profile role activeStatus" })
+        .populate({ path: "readBy", select: "email profile role" })
         .lean();
 
     if (!notification) {
         throw new AppError("Notification not found.", 404);
     }
 
-    return notification;
+    const notificationWithTarget = await attachTargetNames(notification);
+    const viewCount = Array.isArray(notification.readBy) ? notification.readBy.length : 0;
+
+    return {
+        ...notificationWithTarget,
+        viewCount
+    };
 };
+
 const updateNotificationForAdmin = async (notificationId, data) => {
     if (!mongoose.Types.ObjectId.isValid(notificationId)) {
         throw new AppError("Invalid notification id format.", 400);
@@ -93,10 +130,10 @@ const updateNotificationForAdmin = async (notificationId, data) => {
                 targetType: targetType || ""
             }
         },
-        { new: true, runValidators: true } 
+        { new: true, runValidators: true }
     )
-    .populate({ path: "userId", select: "email profile role activeStatus" })
-    .lean(); // 👈 BẮT BUỘC CÓ DÒNG NÀY ĐỂ SOCKET.IO KHÔNG BỊ LỖI SERIALIZE
+        .populate({ path: "userId", select: "email profile role activeStatus" })
+        .lean(); // 👈 BẮT BUỘC CÓ DÒNG NÀY ĐỂ SOCKET.IO KHÔNG BỊ LỖI SERIALIZE
 
     if (!notification) {
         throw new AppError("Notification not found or already deleted.", 404);
