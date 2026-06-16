@@ -27,7 +27,7 @@ const ResetPasswordPage = () => {
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token")?.trim() || "";
   const [apiError, setApiError] = useState(
-    token ? "" : "Reset password link is invalid."
+    token ? "" : "Liên kết đặt lại mật khẩu không hợp lệ."
   );
 
   const form = useForm({
@@ -42,7 +42,7 @@ const ResetPasswordPage = () => {
 
   const handleResetPassword = async ({ password, confirmPassword }) => {
     if (!token) {
-      setApiError("Reset password link is invalid.");
+      setApiError("Liên kết đặt lại mật khẩu không hợp lệ.");
       return;
     }
 
@@ -72,7 +72,7 @@ const ResetPasswordPage = () => {
 
         form.setError(detail.field, {
           type: "server",
-          message: detail.message || "Invalid value.",
+          message: detail.message || "Giá trị không hợp lệ.",
         });
         hasRenderableFieldError = true;
       });
@@ -95,15 +95,13 @@ const ResetPasswordPage = () => {
         <section>
           <div className="max-w-xl">
             <p className="mb-4 text-sm font-semibold uppercase tracking-[0.35em] text-[#f5b66f]">
-              Reset Password
+              Đặt lại mật khẩu
             </p>
             <h2 className="text-4xl font-semibold leading-tight text-white sm:text-5xl">
-              Set a new password from the reset link in your email.
+              Tạo mật khẩu mới từ liên kết trong email của bạn.
             </h2>
             <p className="mt-5 max-w-lg text-base leading-7 text-[#d9d5cf]">
-              This page reads the token from the reset URL and submits it to the
-              backend reset-password endpoint without adding extra client-side
-              fallback flow.
+              Trang này đọc token từ liên kết đặt lại và gửi trực tiếp đến API của hệ thống.
             </p>
           </div>
         </section>
@@ -111,13 +109,13 @@ const ResetPasswordPage = () => {
         <div>
           <AuthCard
             theme="dark"
-            title="Create new password"
-            subtitle="Choose a new password that matches the backend password rules."
+            title="Tạo mật khẩu mới"
+            subtitle="Chọn mật khẩu mới phù hợp với quy tắc của hệ thống."
             footer={
               <span>
-                Back to{" "}
+                Quay lại{" "}
                 <Link className="font-semibold text-[#f5b66f]" to={routePaths.login}>
-                  login
+                  đăng nhập
                 </Link>
               </span>
             }
@@ -134,21 +132,21 @@ const ResetPasswordPage = () => {
               onSubmit={handleSubmit(handleResetPassword)}
             >
               <AuthField
-                label="New password"
+                label="Mật khẩu mới"
                 theme="dark"
                 type="password"
-                placeholder="Enter new password"
+                placeholder="Nhập mật khẩu mới"
                 autoComplete="new-password"
-                helperText="Backend requires 6 to 128 characters."
+                helperText="Mật khẩu cần từ 6 đến 128 ký tự."
                 error={errors.password?.message}
                 {...register("password")}
               />
 
               <AuthField
-                label="Confirm password"
+                label="Xác nhận mật khẩu"
                 theme="dark"
                 type="password"
-                placeholder="Re-enter new password"
+                placeholder="Nhập lại mật khẩu mới"
                 autoComplete="new-password"
                 error={errors.confirmPassword?.message}
                 {...register("confirmPassword")}
@@ -159,7 +157,7 @@ const ResetPasswordPage = () => {
                 disabled={isSubmitting || !token}
                 type="submit"
               >
-                {isSubmitting ? "Updating password..." : "Update password"}
+                {isSubmitting ? "Đang cập nhật mật khẩu..." : "Cập nhật mật khẩu"}
               </button>
             </form>
           </AuthCard>

@@ -123,7 +123,7 @@ const TrackDetailPage = () => {
         setErrorMessage(
           getApiErrorMessage(
             error,
-            "Unable to load track detail from the backend right now."
+            "Không thể tải chi tiết bài hát lúc này."
           )
         );
       } finally {
@@ -135,7 +135,7 @@ const TrackDetailPage = () => {
 
     if (!id) {
       setTrack(null);
-      setErrorMessage("Track id is missing.");
+      setErrorMessage("Thiếu mã bài hát.");
       setIsLoading(false);
       return () => {
         isMounted = false;
@@ -184,17 +184,17 @@ const TrackDetailPage = () => {
       track?.album?.coverImage ||
       track?.artist?.coverImage ||
       track?.artist?.avatar ||
-      createPlaceholderImage(track?.title || "Track", "#1db954", "#07170c"),
+      createPlaceholderImage(track?.title || "Bài hát", "#1db954", "#07170c"),
     [track]
   );
   const artistAvatar = useMemo(
     () =>
       track?.artist?.avatar ||
-      createPlaceholderImage(track?.artist?.name || "Artist", "#334155", "#0f172a"),
+      createPlaceholderImage(track?.artist?.name || "Nghệ sĩ", "#334155", "#0f172a"),
     [track]
   );
-  const artistName = track?.artist?.name || "Unknown artist";
-  const albumTitle = track?.album?.title || "Unknown album";
+  const artistName = track?.artist?.name || "Nghệ sĩ không xác định";
+  const albumTitle = track?.album?.title || "Album không xác định";
   const releaseYear = formatReleaseYear(track?.releaseDate);
   const duration = formatTrackDuration(track?.duration);
   const listensLabel = formatListenCount(track?.stats?.playCount);
@@ -264,7 +264,7 @@ const TrackDetailPage = () => {
       collection: {
         id: track?.album?.id || track?.id,
         type: track?.album?.id ? "album" : "track",
-        title: track?.album?.title || track?.title || "Track",
+        title: track?.album?.title || track?.title || "Bài hát",
         image: trackImage,
         artistName,
         listenSource: "track_detail",
@@ -406,7 +406,7 @@ const TrackDetailPage = () => {
     return (
       <section className="rounded-[10px]">
         <div className="rounded-[24px] bg-[#121212] px-6 py-20 text-sm text-white/82">
-          Loading track detail...
+          Đang tải chi tiết bài hát...
         </div>
       </section>
     );
@@ -427,7 +427,7 @@ const TrackDetailPage = () => {
       <div className="space-y-5 sm:space-y-6">
         <TrackDetailHero
           image={ trackImage }
-          title={ track?.title || "Untitled track" }
+          title={ track?.title || "Bài hát chưa có tên" }
           artistName={ artistName }
           artistAvatar={ artistAvatar }
           albumTitle={ albumTitle }
@@ -441,7 +441,7 @@ const TrackDetailPage = () => {
           <button
             type="button"
             onClick={ handlePlay }
-            aria-label="Play track"
+            aria-label="Phát bài hát"
             className="
               inline-flex h-14 w-14 items-center justify-center self-start rounded-full bg-gradient-to-br from-[#ff8a3d] via-[#ff4fd8] to-[#7b61ff]
               text-black shadow-[0_18px_38px_rgba(30,215,96,0.28)] transition
@@ -453,19 +453,19 @@ const TrackDetailPage = () => {
 
           <button type="button" onClick={ handleAddToLibrary } className={ secondaryActionClassName }>
             <CirclePlus className="h-4.5 w-4.5" />
-            Add to Library
+            Thêm vào thư viện
           </button>
 
           <button type="button" onClick={ handleDownload } className={ secondaryActionClassName }>
             <Download className="h-4.5 w-4.5" />
-            Download
+            Tải xuống
           </button>
 
           <div ref={ moreMenuRef } className="relative self-start">
             <button
               type="button"
               onClick={ handleTogglePlaylistMenu }
-              aria-label="More options"
+              aria-label="Tùy chọn khác"
               aria-haspopup="menu"
               aria-expanded={ isPlaylistMenuOpen }
               className={ iconActionClassName }
@@ -566,7 +566,7 @@ const TrackDetailPage = () => {
         <TrackDetailLyrics lyrics={ lyrics } />
 
         <TrackDetailLikeSection
-          title={ track?.title || "Untitled track" }
+          title={ track?.title || "Bài hát chưa có tên" }
           artistName={ artistName }
           image={ trackImage }
           isLiked={ isLiked }

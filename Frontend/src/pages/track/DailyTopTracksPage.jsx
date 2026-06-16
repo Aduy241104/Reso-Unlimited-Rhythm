@@ -27,10 +27,10 @@ const metaPillClassName = `
 `;
 
 const dailyChartHeaderColumns = [
-  { label: "Rank" },
-  { label: "Title" },
-  { label: "Growth", className: "text-right" },
-  { label: "Time", className: "text-right" },
+  { label: "Hạng" },
+  { label: "Tiêu đề" },
+  { label: "Tăng trưởng", className: "text-right" },
+  { label: "Thời lượng", className: "text-right" },
   { label: "" },
 ];
 
@@ -52,7 +52,7 @@ const getPreviousDateValue = () => {
 
 const formatChartDate = (dateValue) => {
   if (!dateValue) {
-    return "Unknown day";
+    return "Chưa rõ ngày";
   }
 
   const date = new Date(`${dateValue}T00:00:00`);
@@ -61,7 +61,7 @@ const formatChartDate = (dateValue) => {
     return dateValue;
   }
 
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("vi-VN", {
     weekday: "long",
     year: "numeric",
     month: "long",
@@ -69,7 +69,7 @@ const formatChartDate = (dateValue) => {
   }).format(date);
 };
 
-const formatNumber = (value) => new Intl.NumberFormat("en-US").format(Number(value) || 0);
+const formatNumber = (value) => new Intl.NumberFormat("vi-VN").format(Number(value) || 0);
 
 const getRankChangeAmount = (item) => {
   const currentRank = Number(item?.rank) || 0;
@@ -90,28 +90,28 @@ const getRankTrendPresentation = (item) => {
     case "up":
       return {
         icon: ArrowUp,
-        badgeLabel: rankChangeAmount > 0 ? `+${rankChangeAmount}` : "Up",
+        badgeLabel: rankChangeAmount > 0 ? `+${rankChangeAmount}` : "Tăng",
         badgeClassName:
           "border-emerald-400/20 bg-emerald-500/10 text-emerald-300",
       };
     case "down":
       return {
         icon: ArrowDown,
-        badgeLabel: rankChangeAmount > 0 ? `-${rankChangeAmount}` : "Down",
+        badgeLabel: rankChangeAmount > 0 ? `-${rankChangeAmount}` : "Giảm",
         badgeClassName:
           "border-rose-400/20 bg-rose-500/10 text-rose-300",
       };
     case "new":
       return {
         icon: null,
-        badgeLabel: "NEW",
+        badgeLabel: "MỚI",
         badgeClassName:
           "border-violet-400/20 bg-violet-500/10 text-violet-300",
       };
     default:
       return {
         icon: null,
-        badgeLabel: "UNCH",
+        badgeLabel: "GIỮ",
         badgeClassName:
           "border-white/[0.08] bg-white/[0.06] text-white/55",
       };
@@ -124,8 +124,8 @@ const renderGrowthContent = (playCount, totalPlay, isMobile = false) => {
   const primaryLabel = `+${formatNumber(safePlayCount)}`;
   const secondaryLabel =
     safeTotalPlay > 0
-      ? `to ${formatNumber(safeTotalPlay)} total`
-      : "plays";
+      ? `lên ${formatNumber(safeTotalPlay)} lượt phát`
+      : "lượt phát";
 
   return (
     <span className={ [
@@ -218,7 +218,7 @@ const DailyTopTracksPage = () => {
         setErrorMessage(
           getApiErrorMessage(
             error,
-            "Unable to load daily top tracks from the backend right now."
+            "Không thể tải bảng xếp hạng bài hát theo ngày lúc này."
           )
         );
       } finally {
@@ -260,9 +260,9 @@ const DailyTopTracksPage = () => {
   const collectionMeta = {
     id: `daily-top-${selectedDate}`,
     type: "daily-top",
-    title: `Daily Top Tracks - ${selectedDate}`,
+    title: `Top bài hát ngày - ${selectedDate}`,
     image: heroImage,
-    artistName: "Reso Music",
+    artistName: "Reso",
   };
 
   const handlePlayChart = async () => {
@@ -321,13 +321,13 @@ const DailyTopTracksPage = () => {
           <button
             type="button"
             onClick={ () => handlePlayTrack(track, index) }
-            aria-label={ `${isPlaybackActive && isPlaying ? "Pause" : "Play"} ${track?.title || "track"}` }
+            aria-label={ `${isPlaybackActive && isPlaying ? "Tạm dừng" : "Phát"} ${track?.title || "bài hát"}` }
             className="relative h-9 w-9 shrink-0 overflow-hidden rounded-[10px] bg-white/6 shadow-[0_10px_20px_rgba(0,0,0,0.24)] sm:h-10 sm:w-10"
           >
             { image ? (
               <img
                 src={ image }
-                alt={ track?.title || "Track cover" }
+                alt={ track?.title || "Ảnh bìa bài hát" }
                 className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04] group-hover:brightness-[0.4]"
               />
             ) : (
@@ -352,14 +352,14 @@ const DailyTopTracksPage = () => {
                   isPlaybackActive ? "text-emerald-300" : "text-white",
                 ].join(" ") }
               >
-                { track?.title || "Untitled track" }
+                { track?.title || "Bài hát chưa có tên" }
               </Link>
             ) : (
               <p className={ [
                 "truncate text-[13px] font-semibold sm:text-sm",
                 isPlaybackActive ? "text-emerald-300" : "text-white",
               ].join(" ") }>
-                { track?.title || "Untitled track" }
+                { track?.title || "Bài hát chưa có tên" }
               </p>
             ) }
 
@@ -369,10 +369,10 @@ const DailyTopTracksPage = () => {
                   to={ `/artists/${track.artist.id}` }
                   className="truncate transition hover:text-white/72 hover:underline"
                 >
-                  { track?.artist?.name || "Unknown artist" }
+                  { track?.artist?.name || "Nghệ sĩ không xác định" }
                 </Link>
               ) : (
-                <span className="truncate">{ track?.artist?.name || "Unknown artist" }</span>
+                <span className="truncate">{ track?.artist?.name || "Nghệ sĩ không xác định" }</span>
               ) }
               <span className="sm:hidden">{ durationLabel }</span>
               <span className="sm:hidden">
@@ -429,7 +429,7 @@ const DailyTopTracksPage = () => {
 
           { isLoading ? (
             <div className="relative z-10 flex min-h-[20rem] items-end">
-              <p className="text-sm text-white/82">Loading daily top tracks...</p>
+              <p className="text-sm text-white/82">Đang tải bảng xếp hạng ngày...</p>
             </div>
           ) : errorMessage ? (
             <div className="relative z-10 flex min-h-[20rem] items-end">
@@ -439,7 +439,7 @@ const DailyTopTracksPage = () => {
             <div className="relative z-10 flex min-h-[20rem] flex-col items-center justify-end gap-5 text-center md:flex-row md:items-end md:justify-start md:text-left">
               <img
                 src={ heroImage }
-                alt="Daily top tracks cover"
+                alt="Ảnh bìa top bài hát ngày"
                 className="
                   h-32 w-32 rounded-[18px] object-cover
                   shadow-[0_22px_52px_rgba(15,23,42,0.38)]
@@ -452,21 +452,21 @@ const DailyTopTracksPage = () => {
                 style={ { textShadow: "0 2px 18px rgba(0,0,0,0.32)" } }
               >
                 <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/82">
-                  Daily chart
+                  Bảng xếp hạng ngày
                 </p>
                 <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:mt-3 sm:text-5xl lg:text-6xl">
-                  Daily Top Tracks
+                  Top bài hát theo ngày
                 </h1>
                 <p className="mt-3 text-sm leading-6 text-white/88 sm:mt-4 sm:text-base">
-                  The top { DAILY_TOP_TRACK_LIMIT } most-played tracks for { chartDateLabel }.
+                  { DAILY_TOP_TRACK_LIMIT } bài hát được phát nhiều nhất vào { chartDateLabel }.
                 </p>
                 <div className="mt-4 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
                   <span className={ `${metaPillClassName} font-medium text-white` }>
                     Top { DAILY_TOP_TRACK_LIMIT }
                   </span>
-                  <span className={ metaPillClassName }>{ formatNumber(totalPlayCount) } plays</span>
+                  <span className={ metaPillClassName }>{ formatNumber(totalPlayCount) } lượt phát</span>
                   <span className={ metaPillClassName }>
-                    { formatNumber(totalListeners) } listeners
+                    { formatNumber(totalListeners) } người nghe
                   </span>
                   <span className={ metaPillClassName }>{ chartDateLabel }</span>
                 </div>
@@ -487,11 +487,11 @@ const DailyTopTracksPage = () => {
           <TrackListSection
             isLoading={ isLoading }
             errorMessage={ errorMessage }
-            loadingMessage="Loading tracks..."
-            mobileLabel="Track chart"
+            loadingMessage="Đang tải bài hát..."
+            mobileLabel="Bảng xếp hạng"
             headerColumns={ dailyChartHeaderColumns }
             headerGridClassName={ dailyChartHeaderGridClassName }
-            emptyMessage="No daily top tracks are available for this date yet."
+            emptyMessage="Chưa có dữ liệu top bài hát cho ngày này."
             hasItems={ dailyTopTracks.length > 0 }
             loadingClassName="rounded-[24px] border-white/[0.06] bg-transparent text-white/58"
             containerClassName="overflow-hidden rounded-[24px] border-white/[0.06] bg-transparent !p-0 shadow-none sm:!p-0"

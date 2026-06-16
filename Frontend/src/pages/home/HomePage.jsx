@@ -3,7 +3,6 @@ import DailyTopArtistsSection from "../../components/home/DailyTopArtistsSection
 import TrackChartSection from "../../components/home/TrackChartSection";
 import { useContentPlayback } from "../../hooks/useContentPlayback";
 import { useHomePageData } from "../../hooks/useHomePageData";
-import { routePaths } from "../../routes/routePaths";
 import { mapDailyTopTracksToContentCards } from "../../utils/dailyTopTracks";
 import {
   mapAlbumsToContentCards,
@@ -50,7 +49,7 @@ const HomePage = () => {
   } = useContentPlayback();
 
   return (
-    <section className="space-y-8 sm:space-y-10">
+    <section className="space-y-6 sm:space-y-8 lg:space-y-10">
       { albumsError ? (
         <div
           className="
@@ -109,7 +108,6 @@ const HomePage = () => {
       <TrackChartSection
         label="Bảng xếp hạng"
         title="Top nhạc nổi bật"
-        description="Theo dõi nhanh các bảng xếp hạng theo ngày, theo tháng và nghệ sĩ đang dẫn đầu."
         items={ [
           ...(!dailyTopTracksError
             ? mapDailyTopTracksToContentCards({
@@ -159,7 +157,6 @@ const HomePage = () => {
 
       <ContentCardSection
         title="Playlist hệ thống"
-        description="Khám phá các playlist được tuyển chọn để phù hợp với từng khoảnh khắc nghe nhạc của bạn."
         items={ mapSystemPlaylistsToContentCards(systemPlaylists) }
         isLoading={ isLoadingSystemPlaylists }
         emptyMessage="Hiện chưa có dữ liệu playlist hệ thống."
@@ -167,9 +164,7 @@ const HomePage = () => {
       />
 
       <ContentCardSection
-        label="Album"
         title="Album nổi bật"
-        description="Khám phá các album nổi bật và tuyển tập âm nhạc phù hợp với mọi tâm trạng."
         items={ mapAlbumsToContentCards(albums) }
         isLoading={ isLoadingAlbums }
         emptyMessage="Hiện chưa có dữ liệu album."
@@ -178,7 +173,6 @@ const HomePage = () => {
 
       <DailyTopArtistsSection
         title="Top nghệ sĩ theo ngày"
-        description="Những nghệ sĩ được nghe nhiều nhất hôm nay."
         items={ dailyTopArtists }
         isLoading={ isLoadingDailyTopArtists }
         errorMessage={ dailyTopArtistsError }

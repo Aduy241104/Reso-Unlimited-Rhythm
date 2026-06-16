@@ -2,10 +2,10 @@ import { ArrowLeft, CalendarDays } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const COUNTDOWN_SEGMENTS = [
-  { key: "days", label: "Days" },
-  { key: "hours", label: "Hours" },
-  { key: "minutes", label: "Minutes" },
-  { key: "seconds", label: "Seconds" },
+  { key: "days", label: "Ngày" },
+  { key: "hours", label: "Giờ" },
+  { key: "minutes", label: "Phút" },
+  { key: "seconds", label: "Giây" },
 ];
 
 const createCountdownState = (scheduledAt) => {
@@ -37,10 +37,10 @@ const formatScheduledLabel = (scheduledAt) => {
   const releaseDate = new Date(scheduledAt);
 
   if (Number.isNaN(releaseDate.getTime())) {
-    return "Release schedule pending";
+    return "Lịch phát hành đang chờ cập nhật";
   }
 
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("vi-VN", {
     weekday: "short",
     month: "long",
     day: "numeric",
@@ -51,12 +51,12 @@ const formatScheduledLabel = (scheduledAt) => {
 };
 
 const buildDescription = ({ artistName, releaseTitle, releaseType }) =>
-  `${artistName || "This artist"} is counting down to the ${String(releaseType).toLowerCase()} release of ${releaseTitle}.`;
+  `${artistName || "Nghệ sĩ này"} đang đếm ngược đến thời điểm phát hành ${String(releaseType).toLowerCase()} ${releaseTitle}.`;
 
 const ComingSoonCountdownOverlay = ({
   isVisible = false,
   comingRelease = null,
-  artistName = "Artist",
+  artistName = "Nghệ sĩ",
   overlayBounds = null,
   onBack,
 }) => {
@@ -82,8 +82,8 @@ const ComingSoonCountdownOverlay = ({
     };
   }, [comingRelease?.scheduledAt, isVisible]);
 
-  const releaseTitle = comingRelease?.title || `${artistName} next release`;
-  const releaseType = comingRelease?.type || "Release";
+  const releaseTitle = comingRelease?.title || `${artistName} sắp phát hành`;
+  const releaseType = comingRelease?.type || "Phát hành";
   const scheduleLabel = formatScheduledLabel(comingRelease?.scheduledAt);
   const hasScheduledRelease = Boolean(comingRelease?.scheduledAt);
   const backgroundImage = comingRelease?.image || "";
@@ -167,7 +167,7 @@ const ComingSoonCountdownOverlay = ({
             <div className="relative space-y-3 text-left">
               <div className="inline-flex w-fit items-center gap-2.5 rounded-full border border-[#1DB954]/24 bg-black/30 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#e7fff0] backdrop-blur-xl">
                 <span className="h-2 w-2 rounded-full bg-[#1DB954] shadow-[0_0_14px_rgba(29,185,84,0.8)]" />
-                Coming Release
+                Sắp phát hành
               </div>
 
               <div className="space-y-3">
@@ -213,7 +213,7 @@ const ComingSoonCountdownOverlay = ({
 
               { !hasScheduledRelease ? (
                 <div className="rounded-[1.2rem] border border-dashed border-white/12 bg-black/28 px-4 py-4 text-sm text-white/58">
-                  No scheduled coming release is available from the backend yet.
+                  Hiện chưa có lịch phát hành sắp tới từ hệ thống.
                 </div>
               ) : null }
 
@@ -228,7 +228,7 @@ const ComingSoonCountdownOverlay = ({
                 "
               >
                 <ArrowLeft className="h-4 w-4" />
-                Back To Artist Page
+                Quay lại trang nghệ sĩ
               </button>
             </div>
           </div>

@@ -76,7 +76,7 @@ const AlbumDetailPage = () => {
         setErrorMessage(
           getApiErrorMessage(
             error,
-            "Unable to load album detail from the backend right now."
+            "Không thể tải chi tiết album lúc này."
           )
         );
       } finally {
@@ -88,7 +88,7 @@ const AlbumDetailPage = () => {
 
     if (!id) {
       setAlbum(null);
-      setErrorMessage("Album id is missing.");
+      setErrorMessage("Thiếu mã album.");
       setIsLoading(false);
       return () => {
         isMounted = false;
@@ -106,7 +106,7 @@ const AlbumDetailPage = () => {
     album?.coverImage || createPlaceholderImage(album?.title);
 
   const trackItems = album?.tracks ?? [];
-  const albumArtistName = album?.artist?.name || "Unknown artist";
+  const albumArtistName = album?.artist?.name || "Nghệ sĩ không xác định";
   const releaseYear = formatReleaseYear(album?.releaseDate);
   const totalTracks = album?.trackCount ?? trackItems.length;
   const totalDuration = formatAlbumDuration(trackItems);
@@ -171,7 +171,7 @@ const AlbumDetailPage = () => {
           
           { isLoading ? (
             <div className="flex min-h-[20rem] items-end">
-              <p className="text-sm text-white/82">Loading album detail...</p>
+              <p className="text-sm text-white/82">Đang tải chi tiết album...</p>
             </div>
           ) : errorMessage ? (
             <div className="flex min-h-[20rem] items-end">
@@ -181,7 +181,7 @@ const AlbumDetailPage = () => {
             <div className="flex flex-col items-center gap-5 text-center md:flex-row md:items-end md:text-left">
               <img
                 src={ albumCoverImage }
-                alt={ album?.title || "Album cover" }
+                alt={ album?.title || "Ảnh bìa album" }
                 className="
                   h-32 w-32 rounded-[16px] object-cover shadow-[0_24px_60px_rgba(0,0,0,0.28)]
                   min-[420px]:h-36 min-[420px]:w-36
@@ -194,14 +194,14 @@ const AlbumDetailPage = () => {
                   Album
                 </p>
                 <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:mt-3 sm:text-5xl lg:text-6xl">
-                  { album?.title || "Untitled album" }
+                  { album?.title || "Album chưa có tên" }
                 </h1>
                 <div className="mt-4 flex flex-wrap items-center justify-center gap-2 md:justify-start">
                   <span className={ `${metaPillClassName} font-medium text-white` }>
                     { albumArtistName }
                   </span>
                   <span className={ metaPillClassName }>{ releaseYear }</span>
-                  <span className={ metaPillClassName }>{ totalTracks } tracks</span>
+                  <span className={ metaPillClassName }>{ totalTracks } bài hát</span>
                   <span className={ metaPillClassName }>{ totalDuration }</span>
                 </div>
               </div>
@@ -222,18 +222,18 @@ const AlbumDetailPage = () => {
                   ? "border-[#f5b66f]/70 bg-[#f5b66f] text-[#111111] hover:bg-[#f8c27f]"
                   : "",
               ].join(" ") }
-              aria-label="Shuffle album"
+              aria-label="Phát ngẫu nhiên album"
             >
               <Shuffle className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
-              <span>Shuffle Play</span>
+              <span>Phát ngẫu nhiên</span>
             </button>
-            <button type="button" className={ actionButtonClassName } aria-label="Add album">
+            <button type="button" className={ actionButtonClassName } aria-label="Thêm album">
               <CirclePlus className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </button>
-            <button type="button" className={ actionButtonClassName } aria-label="Download album">
+            <button type="button" className={ actionButtonClassName } aria-label="Tải album">
               <Download className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </button>
-            <button type="button" className={ actionButtonClassName } aria-label="More options">
+            <button type="button" className={ actionButtonClassName } aria-label="Tùy chọn khác">
               <MoreHorizontal className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </button>
           </div>
@@ -241,9 +241,9 @@ const AlbumDetailPage = () => {
           <TrackListSection
             isLoading={ isLoading }
             errorMessage={ errorMessage }
-            loadingMessage="Loading tracks..."
-            mobileLabel="Track list"
-            emptyMessage="No tracks available for this album yet."
+            loadingMessage="Đang tải bài hát..."
+            mobileLabel="Danh sách bài hát"
+            emptyMessage="Album này chưa có bài hát nào."
             hasItems={ trackItems.length > 0 }
           >
             { trackItems.map((trackItem, index) => {
@@ -258,7 +258,7 @@ const AlbumDetailPage = () => {
                     track?.artist?.avatar ||
                     albumCoverImage
                   }
-                  title={ track?.title || "Untitled track" }
+                  title={ track?.title || "Bài hát chưa có tên" }
                   artist={ track?.artist?.name || albumArtistName }
                   duration={ formatTrackDuration(track?.duration) }
                   explicit={ false }

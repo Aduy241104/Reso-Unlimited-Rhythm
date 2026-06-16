@@ -40,7 +40,7 @@ const getPlaylistTitle = (playlist) => {
     return playlist.name.trim();
   }
 
-  return "Untitled Playlist";
+  return "Playlist chưa đặt tên";
 };
 
 const getPlaylistCoverImage = (playlist) => {
@@ -66,7 +66,7 @@ const getPlaylistOwnerName = (playlist) => {
     return playlist.owner.fullName.trim();
   }
 
-  return "Unknown User";
+  return "Người dùng không xác định";
 };
 
 const tabButtonClassName = (isActive) =>
@@ -242,8 +242,8 @@ const Sidebar = ({
             type="button"
             onClick={ onToggleDesktop }
             className="hidden h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/70 transition hover:bg-white/5 hover:text-white lg:inline-flex"
-            aria-label={ isCollapsed ? "Open sidebar" : "Collapse sidebar" }
-            title={ isCollapsed ? "Open sidebar" : "Collapse sidebar" }
+            aria-label={ isCollapsed ? "Mở thanh bên" : "Thu gọn thanh bên" }
+            title={ isCollapsed ? "Mở thanh bên" : "Thu gọn thanh bên" }
           >
             <DesktopToggleIcon className="h-5 w-5" />
           </button>
@@ -253,7 +253,7 @@ const Sidebar = ({
               type="button"
               onClick={ onClose }
               className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/70 transition hover:bg-white/5 hover:text-white lg:hidden"
-              aria-label="Close sidebar"
+              aria-label="Đóng thanh bên"
             >
               <X className="h-5 w-5" />
             </button>
@@ -316,7 +316,7 @@ const Sidebar = ({
                   </div>
                 ) : playlists.length === 0 ? (
                   <div className="px-3 py-3 text-sm text-[#b8b0aa]">
-                    Chua co playlist nao
+                    Chưa có nghệ sĩ nào
                   </div>
                 ) : (
                   playlists.map((playlist, index) => {
@@ -373,7 +373,7 @@ const Sidebar = ({
                     const artistName =
                       typeof artist?.name === "string" && artist.name.trim()
                         ? artist.name.trim()
-                        : "Unknown Artist";
+                        : "Nghệ sĩ không xác định";
 
                     const avatar =
                       typeof artist?.avatar === "string" && artist.avatar.trim()
@@ -439,7 +439,7 @@ const Sidebar = ({
                     const title =
                       typeof album?.title === "string" && album.title.trim()
                         ? album.title.trim()
-                        : "Untitled Album";
+                        : "Album chưa đặt tên";
 
                     const coverImage =
                       typeof album?.coverImage === "string" &&
@@ -451,7 +451,7 @@ const Sidebar = ({
                       typeof album?.artistName === "string" &&
                         album.artistName.trim()
                         ? album.artistName.trim()
-                        : "Unknown Artist";
+                        : "Nghệ sĩ không xác định";
 
                     return (
                       <Link

@@ -74,7 +74,7 @@ const TrackCard = ({
   const resolvedMobileMetaItems = mobileMetaItems.filter(Boolean);
   const primaryAction = onPlaybackAction || onPlay;
   const PlaybackIcon = isPlaybackActive && isPlaying ? Pause : Play;
-  const playbackLabel = isPlaybackActive && isPlaying ? "Pause" : "Play";
+  const playbackLabel = isPlaybackActive && isPlaying ? "Tạm dừng" : "Phát";
 
   const handlePlay = (event) => {
     event.stopPropagation();
@@ -216,7 +216,7 @@ const TrackCard = ({
             <button
               type="button"
               onClick={ handleLike }
-              aria-label={ `Unlike ${title}` }
+              aria-label={ `Bỏ lưu ${title}` }
               className="hidden h-8 w-8 items-center justify-center text-[#1ed760] sm:inline-flex"
             >
               <CheckCircle2 className="h-4.5 w-4.5 fill-current" />
@@ -225,7 +225,7 @@ const TrackCard = ({
             <button
               type="button"
               onClick={ handleLike }
-              aria-label={ `Like ${title}` }
+              aria-label={ `Lưu ${title}` }
               className="
                 hidden h-8 w-8 items-center justify-center text-[#71717a]
                 transition sm:inline-flex sm:opacity-0 sm:group-hover:opacity-100 dark:text-[#a1a1aa]

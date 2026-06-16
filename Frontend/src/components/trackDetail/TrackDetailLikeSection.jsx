@@ -19,9 +19,6 @@ const formatLikeCount = (value) => {
 };
 
 const TrackDetailLikeSection = ({
-  title,
-  artistName,
-  image,
   isLiked,
   likeCount,
   onToggleLike,
@@ -59,7 +56,7 @@ const TrackDetailLikeSection = ({
           ].join(" ") }
         >
           <Heart className={ `h-4.5 w-4.5 ${isLiked ? "fill-current" : ""}` } />
-          { isLiked ? "Liked" : "Like track" }
+          { isLiked ? "Đã thích" : "Thích bài hát" }
         </button>
       </div>
     </div>

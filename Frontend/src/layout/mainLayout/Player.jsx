@@ -40,11 +40,11 @@ const desktopModeButtonSizeClassName = "h-9 w-9 sm:h-10 sm:w-10";
 const desktopModeIconSizeClassName = "h-4 w-4 sm:h-[18px] sm:w-[18px]";
 
 const QUALITY_LABELS = {
-  original: "Original",
-  high: "High",
-  medium: "Medium",
-  low: "Low",
-  lowest: "Lowest",
+  original: "Gốc",
+  high: "Cao",
+  medium: "Trung bình",
+  low: "Thấp",
+  lowest: "Thấp nhất",
 };
 
 const formatQualityLabel = (value = "") => {
@@ -52,7 +52,7 @@ const formatQualityLabel = (value = "") => {
     typeof value === "string" ? value.trim().toLowerCase() : "";
 
   if (!normalizedValue) {
-    return "Auto";
+    return "Tự động";
   }
 
   return QUALITY_LABELS[normalizedValue] || normalizedValue.toUpperCase();
@@ -148,8 +148,8 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
   const queueLabel = activeCollection?.title
     ? `${activeCollection.type === "playlist" ? "Playlist" : "Album"}: ${activeCollection.title}`
     : queue.length > 0
-      ? `Queue: ${currentIndex + 1}/${queue.length}`
-      : "Choose a track to start streaming";
+      ? `Hàng chờ: ${currentIndex + 1}/${queue.length}`
+      : "Chọn bài hát để bắt đầu phát";
 
   const progressMax = duration > 0 ? duration : 0;
   const progressValue = duration > 0 ? Math.min(currentTime, duration) : 0;
@@ -178,10 +178,10 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
     : formatQualityLabel(selectedQualityLabel);
   const repeatButtonLabel =
     repeatMode === "one"
-      ? "Repeat one track"
+      ? "Lặp lại một bài"
       : repeatMode === "all"
-        ? "Repeat queue"
-        : "Repeat off";
+        ? "Lặp lại hàng chờ"
+        : "Tắt lặp lại";
 
   const handleOpenLyrics = () => {
     setIsMobileMenuOpen(false);
@@ -305,8 +305,8 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
           type="button"
           onClick={ handleToggleDesktopQuality }
           className={ utilityButtonClassName }
-          aria-label="Open audio quality menu"
-          title={ `Audio quality: ${selectedQualityText}` }
+          aria-label="Mở menu chất lượng âm thanh"
+          title={ `Chất lượng âm thanh: ${selectedQualityText}` }
           aria-expanded={ isDesktopQualityOpen }
           aria-haspopup="menu"
         >
@@ -349,7 +349,7 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
           aria-haspopup="menu"
         >
           <Settings2 className="h-4 w-4" />
-          <span>Quality</span>
+          <span>Chất lượng</span>
           <span className="ml-auto inline-flex items-center gap-1 text-[11px] text-[#b8b0aa]">
             <span className="truncate">{ selectedQualityText }</span>
             { isChangingQuality ? (
@@ -386,8 +386,8 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
           type="button"
           onClick={ handleToggleDesktopQueue }
           className={ utilityButtonClassName }
-          aria-label="Open queue"
-          title="Open queue"
+          aria-label="Mở hàng chờ"
+          title="Mở hàng chờ"
           aria-expanded={ isDesktopQueueOpen }
         >
           <ListMusic className="h-[18px] w-[18px]" />
@@ -413,8 +413,8 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
         onClick={ handleOpenLyrics }
         disabled={ queue.length === 0 }
         className={ utilityButtonClassName }
-        aria-label="Open lyrics page"
-        title="Open lyrics page"
+        aria-label="Mở trang lời bài hát"
+        title="Mở trang lời bài hát"
       >
         <Mic2 className="h-[18px] w-[18px]" />
       </button>
@@ -460,7 +460,7 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
 
         <div className="min-w-0 flex-1">
           <p className="truncate text-[13px] font-medium leading-4 text-[#fff7ef]">
-            { currentTrack?.title || "No track selected" }
+            { currentTrack?.title || "Chưa chọn bài hát" }
           </p>
           <p className="truncate text-[10px] leading-4 text-[#d7c9bc]">
             { currentTrack?.artistName || queueLabel }
@@ -473,7 +473,7 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
             onClick={ playPrevious }
             disabled={ queue.length === 0 }
             className={ `${controlButtonClassName} h-6 w-6` }
-            aria-label="Previous track"
+            aria-label="Bài trước"
           >
             <SkipBack className="h-3 w-3 fill-current text-white" />
           </button>
@@ -483,7 +483,7 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
             onClick={ togglePlayPause }
             disabled={ queue.length === 0 }
             className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white text-black transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
-            aria-label={ isPlaying ? "Pause playback" : "Play playback" }
+            aria-label={ isPlaying ? "Tạm dừng phát" : "Phát nhạc" }
           >
             { isBuffering ? (
               <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
@@ -499,7 +499,7 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
             onClick={ playNext }
             disabled={ !canPlayNext }
             className={ `${controlButtonClassName} h-6 w-6` }
-            aria-label="Next track"
+            aria-label="Bài tiếp theo"
           >
             <SkipForward className="h-3 w-3 fill-current text-white" />
           </button>
@@ -510,8 +510,8 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
             type="button"
             onClick={ handleToggleMobileMenu }
             className="inline-flex h-6 w-6 items-center justify-center rounded-md text-[#fff7ef] transition hover:bg-[#2b252f]"
-            aria-label="Open player menu"
-            title="Player menu"
+            aria-label="Mở menu trình phát"
+            title="Menu trình phát"
             aria-expanded={ isMobileMenuOpen }
           >
             <MoreHorizontal className="h-3.5 w-3.5" />
@@ -526,7 +526,7 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
                 aria-expanded={ isMobileQueueOpen }
               >
                 <ListMusic className="h-4 w-4" />
-                <span>Queue</span>
+                <span>Hàng chờ</span>
                 <span className="ml-auto inline-flex items-center gap-1 text-[11px] text-[#b8b0aa]">
                   { queue.length }
                   { isMobileQueueOpen ? (
@@ -558,7 +558,7 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
                 className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-[#f7f1ea] transition hover:bg-[#241f28] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Mic2 className="h-4 w-4" />
-                <span>Lyrics</span>
+                <span>Lời bài hát</span>
               </button>
 
               <button
@@ -568,9 +568,9 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
                 aria-pressed={ isShuffleEnabled }
               >
                 <Shuffle className={ `h-4 w-4 ${isShuffleEnabled ? "text-[#f5b66f]" : ""}` } />
-                <span>Shuffle</span>
+                <span>Phát ngẫu nhiên</span>
                 <span className="ml-auto text-[11px] text-[#b8b0aa]">
-                  { isShuffleEnabled ? "On" : "Off" }
+                  { isShuffleEnabled ? "Bật" : "Tắt" }
                 </span>
               </button>
 
@@ -587,13 +587,13 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
                     className={ `h-4 w-4 ${repeatMode === "all" ? "text-[#f5b66f]" : ""}` }
                   />
                 ) }
-                <span>Repeat</span>
+                <span>Lặp lại</span>
                 <span className="ml-auto text-[11px] text-[#b8b0aa]">
                   { repeatMode === "one"
-                    ? "One"
+                    ? "Một bài"
                     : repeatMode === "all"
-                      ? "All"
-                      : "Off" }
+                      ? "Tất cả"
+                      : "Tắt" }
                 </span>
               </button>
 
@@ -616,7 +616,7 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
           value={ progressValue }
           disabled={ progressDisabled }
           onChange={ (event) => seekTo(event.target.value) }
-          title={ canSeek ? "Seek playback position" : "Premium required to seek" }
+          title={ canSeek ? "Tua đến vị trí phát" : "Cần Premium để tua" }
           style={ {
             "--progress": `${progressPercent}%`,
             "--range-color": "#f5b66f",
@@ -655,14 +655,14 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
 
           <div className="min-w-0 flex-1 text-left">
             <p className="truncate text-[13px] font-semibold leading-4 text-[#fff7ef]">
-              { currentTrack?.title || "No track selected" }
+              { currentTrack?.title || "Chưa chọn bài hát" }
             </p>
             <p className="truncate text-[11px] leading-4 text-[#d7c9bc]">
               { currentTrack?.artistName || queueLabel }
             </p>
             <p className="mt-0.5 truncate text-[10px] text-[#b8ab9e]">
               { queue.length > 0
-                ? `${currentIndex + 1}/${queue.length} in queue`
+                ? `${currentIndex + 1}/${queue.length} trong hàng chờ`
                 : queueLabel }
             </p>
             { restrictionMessage ? (
@@ -681,9 +681,9 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
             type="button"
             onClick={ toggleShuffle }
             className={ `${modeButtonClassName(isShuffleEnabled)} ${desktopModeButtonSizeClassName}` }
-            aria-label="Toggle shuffle"
+            aria-label="Bật/tắt phát ngẫu nhiên"
             aria-pressed={ isShuffleEnabled }
-            title={ isShuffleEnabled ? "Shuffle is on" : "Shuffle is off" }
+            title={ isShuffleEnabled ? "Đang bật phát ngẫu nhiên" : "Đang tắt phát ngẫu nhiên" }
           >
             <Shuffle className={ desktopModeIconSizeClassName } />
           </button>
@@ -693,7 +693,7 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
             onClick={ playPrevious }
             disabled={ queue.length === 0 }
             className={ `${controlButtonClassName} h-7 w-7 sm:h-8 sm:w-8` }
-            aria-label="Previous track"
+            aria-label="Bài trước"
           >
             <SkipBack className="h-[14px] w-[14px] fill-current text-white" />
           </button>
@@ -703,7 +703,7 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
             onClick={ togglePlayPause }
             disabled={ queue.length === 0 }
             className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-black transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50 sm:h-9 sm:w-9"
-            aria-label={ isPlaying ? "Pause playback" : "Play playback" }
+            aria-label={ isPlaying ? "Tạm dừng phát" : "Phát nhạc" }
           >
             { isBuffering ? (
               <LoaderCircle className="h-4 w-4 animate-spin" />
@@ -719,7 +719,7 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
             onClick={ playNext }
             disabled={ !canPlayNext }
             className={ `${controlButtonClassName} h-7 w-7 sm:h-8 sm:w-8` }
-            aria-label="Next track"
+            aria-label="Bài tiếp theo"
           >
             <SkipForward className="h-[14px] w-[14px] fill-current text-white" />
           </button>
@@ -752,7 +752,7 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
             value={ progressValue }
             disabled={ progressDisabled }
             onChange={ (event) => seekTo(event.target.value) }
-            title={ canSeek ? "Seek playback position" : "Premium required to seek" }
+            title={ canSeek ? "Tua đến vị trí phát" : "Cần Premium để tua" }
             style={ {
               "--progress": `${progressPercent}%`,
               "--range-color": "#f5b66f",

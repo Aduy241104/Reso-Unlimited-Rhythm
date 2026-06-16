@@ -38,7 +38,7 @@ const Header = ({ onToggleSidebar }) => {
 
         <Link
           to={ routePaths.home }
-          className="flex min-w-0 items-center gap-2 sm:gap-3"
+          className="hidden min-w-0 items-center gap-2 sm:flex sm:gap-3"
           aria-label="Về trang chủ"
         >
           <img

@@ -23,16 +23,16 @@ const RegisterDetailsStep = ({
   return (
     <AuthCard
       theme="dark"
-      title="Account details"
-      subtitle="Enter your core information and we will send a verification code to your email."
+      title="Thông tin tài khoản"
+      subtitle="Nhập thông tin cơ bản và chúng tôi sẽ gửi mã xác thực đến email của bạn."
       className="w-full rounded-[28px] border-white/8 bg-[#11161d]/90"
       headerClassName="mb-6"
       footerClassName="mt-6"
       footer={
         <span>
-          Already have an account?{" "}
+          Đã có tài khoản?{" "}
           <Link className="font-semibold text-[#f5b66f]" to="/login">
-            Sign in
+            Đăng nhập
           </Link>
         </span>
       }
@@ -63,7 +63,7 @@ const RegisterDetailsStep = ({
 
         <AuthField
           theme="dark"
-          label="Full name"
+          label="Họ và tên"
           placeholder="Nguyen Van A"
           autoComplete="name"
           error={errors.fullName?.message}
@@ -85,21 +85,21 @@ const RegisterDetailsStep = ({
         <AuthField
           as="select"
           theme="dark"
-          label="Gender"
+          label="Giới tính"
           error={errors.gender?.message}
           inputClassName="min-h-[50px] rounded-2xl border-white/10 bg-[#f7f4ef] shadow-none"
           {...register("gender")}
         >
-          <option value="prefer_not_to_say">Prefer not to say</option>
-          <option value="male">Male</option>
-          <option value="female">Female</option>
-          <option value="other">Other</option>
+          <option value="prefer_not_to_say">Không muốn tiết lộ</option>
+          <option value="male">Nam</option>
+          <option value="female">Nữ</option>
+          <option value="other">Khác</option>
         </AuthField>
 
         <AuthField
           theme="dark"
           className="sm:col-span-2"
-          label="Date of birth"
+          label="Ngày sinh"
           type="date"
           error={errors.dateOfBirth?.message}
           inputClassName="min-h-[50px] rounded-2xl border-white/10 bg-[#f7f4ef] shadow-none"
@@ -111,9 +111,9 @@ const RegisterDetailsStep = ({
 
         <AuthField
           theme="dark"
-          label="Password"
+          label="Mật khẩu"
           type="password"
-          placeholder="Create a password"
+          placeholder="Tạo mật khẩu"
           autoComplete="new-password"
           error={errors.password?.message}
           inputClassName="min-h-[50px] rounded-2xl border-white/10 bg-[#f7f4ef] shadow-none"
@@ -122,9 +122,9 @@ const RegisterDetailsStep = ({
 
         <AuthField
           theme="dark"
-          label="Confirm password"
+          label="Xác nhận mật khẩu"
           type="password"
-          placeholder="Re-enter your password"
+          placeholder="Nhập lại mật khẩu"
           autoComplete="new-password"
           error={errors.confirmPassword?.message}
           inputClassName="min-h-[50px] rounded-2xl border-white/10 bg-[#f7f4ef] shadow-none"
@@ -136,7 +136,7 @@ const RegisterDetailsStep = ({
           disabled={isSubmitting}
           type="submit"
         >
-          {isSubmitting ? "Sending code..." : "Continue"}
+          {isSubmitting ? "Đang gửi mã..." : "Tiếp tục"}
         </button>
       </form>
     </AuthCard>
