@@ -60,7 +60,24 @@ const getNotificationsForAdmin = async () => {
         .lean();
 };
 
+const getNotificationDetailForAdmin = async (notificationId) => {
+    if (!mongoose.Types.ObjectId.isValid(notificationId)) {
+        throw new AppError("Invalid notification id format.", 400);
+    }
+
+    const notification = await Notification.findById(notificationId)
+        .populate({ path: "userId", select: "email profile role activeStatus" })
+        .lean();
+
+    if (!notification) {
+        throw new AppError("Notification not found.", 404);
+    }
+
+    return notification;
+};
+
 export default {
     createNotificationForAdmin,
-    getNotificationsForAdmin
+    getNotificationsForAdmin,
+    getNotificationDetailForAdmin
 };

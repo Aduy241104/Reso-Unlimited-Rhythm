@@ -19,4 +19,9 @@ router.get(
     adminNotificationController.getNotificationsForAdmin
 );
 
+router.get(
+    "/:id", 
+    adminNotificationController.getNotificationDetailForAdmin
+);
+
 export default router;
