@@ -70,17 +70,15 @@ const CreateNotificationPage = () => {
 
                     results = (res || []).map(u => ({
                         id: u.id || u._id,
-                        // 👇 SỬA DÒNG NÀY: Chèn profile?.fullName vào đầu tiên để bốc trúng DB của ông
                         name: u.profile?.fullName || u.name || u.username || "Chưa đặt tên",
                         subText: u.email || "",
                         avatar: u.avatar || "",
                     }));
                 } else {
-                    // Kịch bản 2: Tìm theo hồ sơ Nghệ sĩ (Bổ sung mới)
                     const res = await searchAdminArtistsService({ q: userSearchQuery, limit: 5 });
+
                     results = (res?.artists || []).map(a => ({
-                        // 🚨 LƯU Ý: Gán id bằng ID tài khoản User của Artist (a.userId hoặc a.id tùy thuộc DB của ông nhé)
-                        id: a.userId || a.id || a._id,
+                        id: a.userId,
                         name: a.name,
                         subText: "Nghệ sĩ hệ thống",
                         avatar: a.avatar || "",

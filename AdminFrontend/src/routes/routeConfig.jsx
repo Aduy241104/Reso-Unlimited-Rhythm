@@ -21,6 +21,7 @@ import SystemArtistDetailPage from "../pages/artist/ArtistDetailPage";
 import SystemTracksModerationPage from "../pages/systemTracks/SystemTracksModerationPage";
 import CreateNotificationPage from "../pages/notification/CreateNotificationPage";
 import AdminListPage from "../pages/users/AdminListPage";
+import NotificationsListPage from "../pages/notification/NotificationListPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import RoleRoute from "./RoleRoute";
@@ -73,7 +74,11 @@ export const appRoutes = [
               },
               {
                 path: "notifications",
-                element: <CreateNotificationPage />,
+                element: <NotificationsListPage />, // Đổi thành List trang chủ thông báo
+              },
+              {
+                path: "notifications/new",
+                element: <CreateNotificationPage />, // Đổi thành /notifications/new để khớp với routePaths.createNotification
               },
               {
                 path: "users/admins",
