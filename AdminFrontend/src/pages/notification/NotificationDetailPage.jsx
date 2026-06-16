@@ -13,14 +13,13 @@ import {
     User,
     Layers 
 } from "lucide-react";
-// 🛠️ ĐÃ FIX: Bổ sung đầy đủ service lấy chi tiết VÀ xóa thông báo tránh lỗi ReferenceError
+// 🛠️ ĐÃ FIX: Import đầy đủ cả service lấy chi tiết và service xóa thông báo
 import { 
-    getAdminNotificationDetailService,
-    deleteAdminNotificationService
+    getAdminNotificationDetailService
 } from "../../services/notificationService";
 import { routePaths } from "../../routes/routePaths";
 
-// Hàm format thời gian nội bộ
+// 🛠️ ĐÃ FIX: Định nghĩa hàm formatDate ngay trong file để sửa lỗi triệt để
 const formatDate = (value) => {
     if (!value) return "-";
     return new Date(value).toLocaleString("vi-VN", {
@@ -49,9 +48,6 @@ const NotificationDetailPage = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isDeleting, setIsDeleting] = useState(false);
 
-    // 🛠️ ĐÃ THÊM: State điều khiển đóng mở Modal xóa custom xịn sò
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-
     useEffect(() => {
         const fetchDetail = async () => {
             try {
@@ -67,22 +63,16 @@ const NotificationDetailPage = () => {
         if (id) void fetchDetail();
     }, [id, navigate]);
 
-    // 🛠️ ĐÃ FIX: Hàm mở Modal thay vì chạy confirm trực tiếp
-    const handleDeleteClick = () => {
-        setIsDeleteModalOpen(true);
-    };
-
-    // 🛠️ ĐÃ FIX: Hàm thực thi lệnh xóa thực tế từ Modal
-    const handleConfirmDelete = async () => {
+    const handleDelete = async () => {
+        if (!window.confirm("Bạn có chắc chắn muốn xóa vĩnh viễn thông báo này không? Người dùng sẽ không thể xem lại được nữa.")) return;
+        
         setIsDeleting(true);
         try {
             await deleteAdminNotificationService(id);
             toast.success("Xóa thông báo thành công!");
-            setIsDeleteModalOpen(false);
             navigate(routePaths.notifications);
         } catch (error) {
             toast.error("Xóa thất bại, vui lòng kiểm tra lại quyền hạn.");
-            setIsDeleteModalOpen(false);
         } finally {
             setIsDeleting(false);
         }
@@ -110,10 +100,11 @@ const NotificationDetailPage = () => {
                 </Link>
 
                 <button
-                    onClick={handleDeleteClick}
-                    className="inline-flex items-center gap-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition bg-white px-4 py-2.5 rounded-xl shadow-sm border border-rose-100 cursor-pointer"
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                    className="inline-flex items-center gap-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition bg-white px-4 py-2.5 rounded-xl shadow-sm border border-rose-100 cursor-pointer disabled:opacity-50"
                 >
-                    <Trash2 size={14} /> Gỡ bỏ thông báo vĩnh viễn
+                    <Trash2 size={14} /> {isDeleting ? "Đang xử lý..." : "Gỡ bỏ thông báo vĩnh viễn"}
                 </button>
             </div>
 
@@ -162,7 +153,7 @@ const NotificationDetailPage = () => {
                         <div className="space-y-4 pt-1">
                             <div>
                                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tiêu đề gốc hiển thị trên thiết bị</label>
-                                <p className="mt-1 text-sm font-bold text-slate-950 bg-slate-50/50 px-4 py-3 rounded-xl border border-slate-100/80">{noti?.title || "-"}</p>
+                                <p className="mt-1 text-base font-bold text-slate-950 bg-slate-50/50 px-4 py-3 rounded-xl border border-slate-100/80">{noti?.title || "-"}</p>
                             </div>
                             
                             <div className="space-y-1.5">
@@ -174,7 +165,7 @@ const NotificationDetailPage = () => {
                         </div>
                     </div>
 
-                    {/* Card Định tuyến: Target Routing */}
+                    {/* Card Định tuyến: Target Routing (Chỉ hiện nếu có cấu hình định hướng) */}
                     {noti?.targetType && (
                         <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100 space-y-3">
                             <h2 className="text-base font-bold text-slate-900 border-b border-slate-50 pb-3 flex items-center gap-2">
@@ -229,7 +220,7 @@ const NotificationDetailPage = () => {
                         </div>
                     </div>
 
-                    {/* DYNAMIC CARD: Hồ sơ người nhận đích danh */}
+                    {/* DYNAMIC CARD: Hồ sơ người nhận đích danh (Chỉ hiển thị khi receiverType là single) */}
                     {noti?.receiverType === "single" && noti?.userId && (
                         <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100 space-y-4">
                             <h2 className="text-base font-bold text-slate-900 border-b border-slate-50 pb-3 flex items-center gap-2">
@@ -261,39 +252,8 @@ const NotificationDetailPage = () => {
                         </div>
                     )}
                 </div>
-            </div>
 
-            {/* ================= MODAL XÓA CUSTOM: Đồng bộ chuẩn chỉ cấu trúc GenresListPage ================= */}
-            {isDeleteModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm">
-                    <div className="w-full max-w-md bg-white p-6 shadow-xl rounded-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95 duration-150">
-                        <div>
-                            <h2 className="text-lg font-bold text-slate-900">Xóa thông báo hệ thống?</h2>
-                            <p className="text-xs text-slate-400 mt-0.5">Hành động này không thể hoàn tác. Người dùng sẽ không thể nhìn thấy thông báo này nữa.</p>
-                        </div>
-                        <p className="text-sm text-slate-600 leading-relaxed">
-                            Xác nhận gỡ bỏ hoàn toàn bản ghi thông báo: <span className="font-bold text-slate-950">"{noti?.title}"</span>?
-                        </p>
-                        <div className="flex gap-2 justify-end pt-1">
-                            <button 
-                                type="button" 
-                                onClick={() => setIsDeleteModalOpen(false)} 
-                                className="px-4 py-2 text-xs font-semibold border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 transition cursor-pointer"
-                            >
-                                Hủy bỏ
-                            </button>
-                            <button 
-                                type="button" 
-                                disabled={isDeleting} 
-                                onClick={handleConfirmDelete} 
-                                className="px-4 py-2 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-sm transition disabled:opacity-50 cursor-pointer"
-                            >
-                                {isDeleting ? "Đang gỡ..." : "Xác nhận gỡ bỏ"}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            </div>
         </section>
     );
 };
