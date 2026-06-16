@@ -12,6 +12,7 @@ const navigationItems = [
   { to: routePaths.genres, label: "Thể loại", end: false },
   { to: routePaths.users, label: "Người dùng", end: false },
   { to: routePaths.notifications, label: "Danh sách thông báo", end: false },
+  { to: routePaths.reports, label: "Báo cáo", end: false },
 ];
 
 const AdminLayout = () => {

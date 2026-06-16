@@ -15,9 +15,11 @@ import ArtistCreateAlbumPage from "../pages/artist/ArtistCreateAlbumPage";
 import ArtistCreateReleaseSchedulePage from "../pages/artist/ArtistCreateReleaseSchedulePage";
 import ArtistEditAlbumPage from "../pages/artist/ArtistEditAlbumPage";
 import ArtistReleaseScheduleDetailPage from "../pages/artist/ArtistReleaseScheduleDetailPage";
+import ArtistListenerBehaviorPage from "../pages/artist/ArtistListenerBehaviorPage";
+import ArtistNotificationDetailPage from "../pages/artist/ArtistNotificationDetailPage";
+import ArtistNotificationsPage from "../pages/artist/ArtistNotificationsPage";
 import ArtistTrackInsightsPage from "../pages/artist/ArtistTrackInsightsPage";
 import {
-  FansPage,
   MyMusicPage,
   ReleasesPage,
   RoyaltiesPage,
@@ -34,6 +36,9 @@ import MonthlyTopTracksPage from "../pages/track/MonthlyTopTracksPage";
 import ArtistProfilePageView from "../pages/profile/ArtistProfilePage";
 import ArtistRegistrationRequestPage from "../pages/artistRegistrationRequest/ArtistRegistrationRequestPage";
 import PlaylistDetailPage from "../pages/playlist/PlaylistDetailPage";
+import PremiumPaymentFailedPage from "../pages/premium/PremiumPaymentFailedPage";
+import PremiumPaymentSuccessPage from "../pages/premium/PremiumPaymentSuccessPage";
+import PremiumPage from "../pages/premium/PremiumPage";
 import TrackDetailPage from "../pages/track/TrackDetailPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
@@ -43,6 +48,7 @@ import { routePaths } from "./routePaths";
 import { userPlaylistRoutes } from "./userPlaylistRoutes";
 import { userProfileRoutes } from "./userProfileRoutes";
 import { myArtistRegistrationRequestRoutes } from "./myArtistRegistrationRequestRoutes";
+import { userReportRoutes } from "./userReportRoutes";
 
 const publicArtistProfilePath = routePaths.artistBrowseProfile();
 const featuredArtistProfilePath = routePaths.artistBrowseProfile("featured");
@@ -80,6 +86,14 @@ export const appRoutes = [
         element: <TrackDetailPage />,
       },
       {
+        path: routePaths.premiumPaymentSuccess,
+        element: <PremiumPaymentSuccessPage />,
+      },
+      {
+        path: routePaths.premiumPaymentFailed,
+        element: <PremiumPaymentFailedPage />,
+      },
+      {
         path: publicArtistProfilePath,
         element: <ArtistProfilePageView />,
       },
@@ -97,6 +111,15 @@ export const appRoutes = [
     element: <ProtectedRoute />,
     children: [
       {
+        path: routePaths.premium,
+        element: <PremiumPage />,
+      },
+    ],
+  },
+  {
+    element: <ProtectedRoute />,
+    children: [
+      {
         path: routePaths.artistRegistrationRequest,
         element: <ArtistRegistrationRequestPage />,
       },
@@ -105,6 +128,10 @@ export const appRoutes = [
   {
     element: <ProtectedRoute />,
     children: myArtistRegistrationRequestRoutes,
+  },
+  {
+    element: <ProtectedRoute />,
+    children: userReportRoutes,
   },
   {
     element: <ProtectedRoute />,
@@ -181,8 +208,16 @@ export const appRoutes = [
                 element: <ArtistTrackInsightsPage />,
               },
               {
+                path: routePaths.artistNotifications,
+                element: <ArtistNotificationsPage />,
+              },
+              {
+                path: routePaths.artistNotificationDetail(),
+                element: <ArtistNotificationDetailPage />,
+              },
+              {
                 path: routePaths.artistFans,
-                element: <FansPage />,
+                element: <ArtistListenerBehaviorPage />,
               },
               {
                 path: routePaths.artistRoyalties,

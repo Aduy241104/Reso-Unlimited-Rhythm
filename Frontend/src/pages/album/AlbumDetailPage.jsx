@@ -3,10 +3,12 @@ import {
   CirclePlus,
   Download,
   MoreHorizontal,
+  ShieldAlert,
   Shuffle,
 } from "lucide-react";
 import PlayButton from "../../components/common/PlayButton";
-import { useParams } from "react-router-dom";
+import CreateReportModal from "../../components/report/CreateReportModal";
+import { useNavigate, useParams } from "react-router-dom";
 import TrackCard from "../../components/TrackCard";
 import TrackListSection from "../../components/trackList/TrackListSection";
 import { usePlayer } from "../../hooks/usePlayer";
@@ -26,6 +28,12 @@ const actionButtonClassName = `
   dark:border-white/10 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/[0.12] sm:h-11 sm:w-11
 `;
 
+const shufflePlayButtonClassName = `
+  inline-flex h-10 items-center gap-2 rounded-full border border-black/8 px-4
+  bg-white/70 text-sm font-semibold text-[#18181b] transition hover:scale-[1.03] hover:bg-white
+  dark:border-white/10 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/[0.12] sm:h-11 sm:px-5
+`;
+
 const metaPillClassName = `
   inline-flex items-center rounded-full border border-white/14 bg-white/10
   px-3 py-1.5 text-xs text-white/88 backdrop-blur-sm sm:text-sm
@@ -33,12 +41,16 @@ const metaPillClassName = `
 
 const AlbumDetailPage = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [album, setAlbum] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const {
     currentTrack,
     isPlaying,
+    isShuffleEnabled,
+    activeCollection,
     playAlbum,
     playTrack,
     togglePlayPause,
@@ -110,9 +122,17 @@ const AlbumDetailPage = () => {
     image: albumCoverImage,
     artistName: albumArtistName,
   };
+  const isAlbumShuffleActive =
+    isShuffleEnabled &&
+    activeCollection?.type === "album" &&
+    String(activeCollection?.id || "") === String(collectionMeta.id || "");
 
   const handlePlayAlbum = async () => {
     await playAlbum(album, trackItems);
+  };
+
+  const handleShuffleAlbum = async () => {
+    await playAlbum(album, trackItems, { shuffle: true });
   };
 
   const handlePlayTrack = async (track, index) => {
@@ -134,6 +154,14 @@ const AlbumDetailPage = () => {
 
   const handleLikeTrack = (track) => {
     console.log("Toggle like track:", track?.title);
+  };
+
+  const handleReportAlbum = () => {
+    if (!album?.id) {
+      return;
+    }
+
+    setIsReportModalOpen(true);
   };
 
   return (
@@ -197,14 +225,33 @@ const AlbumDetailPage = () => {
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <PlayButton onClick={ handlePlayAlbum } size="compact" />
 
-            <button type="button" className={ actionButtonClassName } aria-label="Shuffle album">
+            <button
+              type="button"
+              onClick={ handleShuffleAlbum }
+              className={ [
+                shufflePlayButtonClassName,
+                isAlbumShuffleActive
+                  ? "border-[#f5b66f]/70 bg-[#f5b66f] text-[#111111] hover:bg-[#f8c27f]"
+                  : "",
+              ].join(" ") }
+              aria-label="Shuffle album"
+            >
               <Shuffle className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
+              <span>Shuffle Play</span>
             </button>
             <button type="button" className={ actionButtonClassName } aria-label="Add album">
               <CirclePlus className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </button>
             <button type="button" className={ actionButtonClassName } aria-label="Download album">
               <Download className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
+            </button>
+            <button
+              type="button"
+              className={ actionButtonClassName }
+              aria-label="Report album"
+              onClick={ handleReportAlbum }
+            >
+              <ShieldAlert className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </button>
             <button type="button" className={ actionButtonClassName } aria-label="More options">
               <MoreHorizontal className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
@@ -232,6 +279,7 @@ const AlbumDetailPage = () => {
                     albumCoverImage
                   }
                   title={ track?.title || "Untitled track" }
+                  trackId={track?.id}
                   artist={ track?.artist?.name || albumArtistName }
                   duration={ formatTrackDuration(track?.duration) }
                   explicit={ false }
@@ -247,6 +295,13 @@ const AlbumDetailPage = () => {
           </TrackListSection>
         </div>
       </div>
+
+      <CreateReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        targetId={album?.id}
+        targetType="album"
+      />
     </section>
   );
 };

@@ -24,4 +24,6 @@ export const routePaths = {
   createNotification: "/notifications/new",
   notificationDetail: (notificationId = ":id") => `/notifications/${notificationId}`,
   notificationEdit: (notificationId = ":id") => `/notifications/${notificationId}/edit`,
+  reports: "/reports",
+  reportDetail: (reportId = ":reportId") => `/reports/${reportId}`,
 };

@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ChevronRight,
   CircleMinus,
   CirclePlus,
   Download,
@@ -39,6 +40,12 @@ const actionButtonClassName = `
   dark:border-white/10 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/[0.12] sm:h-11 sm:w-11
 `;
 
+const shufflePlayButtonClassName = `
+  inline-flex h-10 items-center gap-2 rounded-full border border-black/8 px-4
+  bg-white/70 text-sm font-semibold text-[#18181b] transition hover:scale-[1.03] hover:bg-white
+  dark:border-white/10 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/[0.12] sm:h-11 sm:px-5
+`;
+
 const metaPillClassName = `
   inline-flex items-center rounded-full border border-white/14 bg-white/10
   px-3 py-1.5 text-xs text-white/88 backdrop-blur-sm sm:text-sm
@@ -57,6 +64,7 @@ const trackListHeaderColumns = [
   { label: "Time", className: "text-right" },
   { label: "" },
 ];
+
 
 const getPlaylistTitle = (playlist) => {
   if (typeof playlist?.title === "string" && playlist.title.trim()) {
@@ -202,6 +210,8 @@ const UserPlaylistDetailPage = () => {
   const {
     currentTrack,
     isPlaying,
+    isShuffleEnabled,
+    activeCollection,
     playPlaylist,
     playTrack,
     togglePlayPause,
@@ -392,6 +402,11 @@ const UserPlaylistDetailPage = () => {
       playlistOwnerLabel,
     ]
   );
+  const isPlaylistShuffleActive =
+    isShuffleEnabled &&
+    activeCollection?.type === "playlist" &&
+    String(activeCollection?.id || "") ===
+      String(collectionMeta.id || "");
 
   const handlePlayPlaylist = async () => {
     if (!playlist) {
@@ -409,6 +424,26 @@ const UserPlaylistDetailPage = () => {
         },
       },
       trackItems
+    );
+  };
+
+  const handleShufflePlaylist = async () => {
+    if (!playlist) {
+      return;
+    }
+
+    await playPlaylist(
+      {
+        ...playlist,
+        id: playlist?.playlistId || playlist?.id,
+        title: playlistTitle,
+        owner: {
+          ...(playlist?.owner || {}),
+          name: playlistOwnerLabel,
+        },
+      },
+      trackItems,
+      { shuffle: true }
     );
   };
 
@@ -678,26 +713,26 @@ const UserPlaylistDetailPage = () => {
             sm:px-8 sm:pb-8 sm:pt-10
           "
         >
-          { isLoading ? (
+          {isLoading ? (
             <div className="flex min-h-[20rem] items-end">
               <p className="text-sm text-white/82">Loading playlist detail...</p>
             </div>
           ) : errorMessage ? (
             <div className="flex min-h-[20rem] items-end">
-              <p className="max-w-xl text-sm text-white/88">{ errorMessage }</p>
+              <p className="max-w-xl text-sm text-white/88">{errorMessage}</p>
             </div>
           ) : (
             <div className="flex flex-col items-center gap-5 text-center md:flex-row md:items-end md:text-left">
               <button
                 type="button"
-                onClick={ handleOpenEditModal }
+                onClick={handleOpenEditModal}
                 className="group relative overflow-hidden rounded-[16px] focus:outline-none"
                 aria-label="Edit playlist image"
               >
-                { playlistCoverImage ? (
+                {playlistCoverImage ? (
                   <img
-                    src={ playlistCoverImage }
-                    alt={ playlistTitle || "Playlist cover" }
+                    src={playlistCoverImage}
+                    alt={playlistTitle || "Playlist cover"}
                     className="
                       h-32 w-32 rounded-[16px] object-cover shadow-[0_24px_60px_rgba(0,0,0,0.28)]
                       transition duration-300 group-hover:brightness-75
@@ -716,7 +751,7 @@ const UserPlaylistDetailPage = () => {
                   >
                     No cover image
                   </div>
-                ) }
+                )}
 
                 <span className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-[16px] bg-black/0 text-sm font-semibold text-white opacity-0 transition duration-300 group-hover:bg-black/30 group-hover:opacity-100">
                   Edit details
@@ -729,62 +764,73 @@ const UserPlaylistDetailPage = () => {
                 </p>
                 <button
                   type="button"
-                  onClick={ handleOpenEditModal }
+                  onClick={handleOpenEditModal}
                   className="mt-2 text-left text-2xl font-semibold tracking-tight text-white transition hover:text-white/80 sm:mt-3 sm:text-5xl lg:text-6xl"
                 >
-                  { playlistTitle }
+                  {playlistTitle}
                 </button>
-                { playlistDescription ? (
+                {playlistDescription ? (
                   <p className="mt-3 line-clamp-3 max-w-3xl text-sm leading-6 text-white/88 sm:mt-4 sm:line-clamp-none sm:text-base">
-                    { playlistDescription }
+                    {playlistDescription}
                   </p>
-                ) : null }
-                { metaItems.length > 0 ? (
+                ) : null}
+                {metaItems.length > 0 ? (
                   <div className="mt-4 flex flex-wrap items-center justify-center gap-2 md:justify-start">
-                    { metaItems.map((item, index) => (
+                    {metaItems.map((item, index) => (
                       <div
-                        key={ `${item}-${index}` }
-                        className={ [
+                        key={`${item}-${index}`}
+                        className={[
                           metaPillClassName,
                           index === 0 ? "font-medium text-white" : "",
-                        ].join(" ") }
+                        ].join(" ")}
                       >
-                        { item }
+                        {item}
                       </div>
-                    )) }
+                    ))}
                   </div>
-                ) : null }
+                ) : null}
               </div>
             </div>
-          ) }
+          )}
         </div>
 
         <div className="space-y-4 px-0 pb-4 pt-4 sm:space-y-5 sm:px-8 sm:pb-8 sm:pt-5">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <PlayButton onClick={ handlePlayPlaylist } size="compact" />
+            <PlayButton onClick={handlePlayPlaylist} size="compact" />
 
-            <button type="button" className={ actionButtonClassName } aria-label="Shuffle playlist">
+            <button
+              type="button"
+              onClick={ handleShufflePlaylist }
+              className={ [
+                shufflePlayButtonClassName,
+                isPlaylistShuffleActive
+                  ? "border-[#f5b66f]/70 bg-[#f5b66f] text-[#111111] hover:bg-[#f8c27f]"
+                  : "",
+              ].join(" ") }
+              aria-label="Shuffle playlist"
+            >
               <Shuffle className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
+              <span>Shuffle Play</span>
             </button>
-            <button type="button" className={ actionButtonClassName } aria-label="Add playlist">
+            <button type="button" className={actionButtonClassName} aria-label="Add playlist">
               <CirclePlus className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </button>
-            <button type="button" className={ actionButtonClassName } aria-label="Download playlist">
+            <button type="button" className={actionButtonClassName} aria-label="Download playlist">
               <Download className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </button>
-            <div ref={ actionMenuRef } className="relative">
+            <div ref={actionMenuRef} className="relative">
               <button
                 type="button"
-                onClick={ () => setIsActionMenuOpen((current) => !current) }
+                onClick={() => setIsActionMenuOpen((current) => !current)}
                 className="inline-flex h-10 items-center justify-center rounded-full px-2 text-white/76 transition hover:text-white sm:h-11"
                 aria-label="More options"
                 aria-haspopup="menu"
-                aria-expanded={ isActionMenuOpen }
+                aria-expanded={isActionMenuOpen}
               >
                 <MoreHorizontal className="h-6 w-6 sm:h-7 sm:w-7" />
               </button>
 
-              { isActionMenuOpen ? (
+              {isActionMenuOpen ? (
                 <div
                   className="
                     absolute left-0 top-full z-20 mt-2 min-w-[230px] overflow-hidden rounded-2xl
@@ -795,7 +841,7 @@ const UserPlaylistDetailPage = () => {
                 >
                   <button
                     type="button"
-                    onClick={ handleOpenEditModal }
+                    onClick={handleOpenEditModal}
                     className="flex w-full items-center gap-3 px-4 py-3 text-left text-base font-medium text-white transition hover:bg-white/8"
                     role="menuitem"
                   >
@@ -804,7 +850,7 @@ const UserPlaylistDetailPage = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={ handleOpenDeleteModal }
+                    onClick={handleOpenDeleteModal}
                     className="flex w-full items-center gap-3 px-4 py-3 text-left text-base font-medium text-white transition hover:bg-white/8"
                     role="menuitem"
                   >
@@ -812,21 +858,21 @@ const UserPlaylistDetailPage = () => {
                     Xóa
                   </button>
                 </div>
-              ) : null }
+              ) : null}
             </div>
           </div>
 
           <TrackListSection
-            isLoading={ isLoading }
-            errorMessage={ errorMessage }
+            isLoading={isLoading}
+            errorMessage={errorMessage}
             loadingMessage="Loading tracks..."
             mobileLabel="Track list"
-            headerColumns={ trackListHeaderColumns }
-            headerGridClassName={ trackListHeaderGridClassName }
+            headerColumns={trackListHeaderColumns}
+            headerGridClassName={trackListHeaderGridClassName}
             emptyMessage="No tracks available for this playlist yet."
-            hasItems={ trackItems.length > 0 }
+            hasItems={trackItems.length > 0}
           >
-            { trackItems.map((trackItem, index) => {
+            {trackItems.map((trackItem, index) => {
               const track = getTrackEntity(trackItem);
               const trackId = getTrackId(track);
               const trackActionKey = trackId || `${trackItem?.trackId || "track"}-${index}`;
@@ -834,203 +880,226 @@ const UserPlaylistDetailPage = () => {
 
               return (
                 <TrackCard
-                  key={ trackActionKey }
-                  index={ trackItem?.order || index + 1 }
-                  image={ getTrackImage(track, playlistCoverImage) }
-                  title={ track?.title || track?.name || "" }
-                  artist={ getTrackArtistName(track, playlistOwnerLabel) }
-                  artistId={ getTrackArtistId(track) }
-                  duration={ formatTrackDuration(track?.duration) }
-                  explicit={ false }
-                  liked={ false }
-                  href={ trackId ? routePaths.trackDetail(trackId) : undefined }
-                  isPlaybackActive={ currentTrack?.id === trackId }
-                  isPlaying={ isPlaying }
-                  onPlaybackAction={ () => handlePlayTrack(track, index) }
-                  onLike={ () => handleLikeTrack(track) }
+                  key={trackActionKey}
+                  index={trackItem?.order || index + 1}
+                  image={getTrackImage(track, playlistCoverImage)}
+                  title={track?.title || track?.name || ""}
+                  artist={getTrackArtistName(track, playlistOwnerLabel)}
+                  artistId={getTrackArtistId(track)}
+                  duration={formatTrackDuration(track?.duration)}
+                  explicit={false}
+                  liked={false}
+                  href={trackId ? routePaths.trackDetail(trackId) : undefined}
+                  isPlaybackActive={currentTrack?.id === trackId}
+                  isPlaying={isPlaying}
+                  onPlaybackAction={() => handlePlayTrack(track, index)}
+                  onLike={() => handleLikeTrack(track)}
                   mobileLayoutClassName="grid-cols-[2rem_minmax(0,1fr)_auto_auto]"
                   desktopLayoutClassName="sm:grid-cols-[2.5rem_minmax(0,1fr)_2.75rem_3.25rem_2.75rem]"
-                  desktopMetaColumns={ [
+                  desktopMetaColumns={[
                     {
                       content: formatTrackDuration(track?.duration),
                     },
                     {
                       content: (
                         <div
-                          ref={ isTrackMenuOpen ? trackMenuRef : null }
+                          ref={isTrackMenuOpen ? trackMenuRef : null}
                           className="relative flex items-center justify-end"
                         >
                           <button
                             type="button"
-                            onClick={ (event) => {
+                            onClick={(event) => {
                               event.stopPropagation();
                               handleToggleTrackMenu(trackActionKey);
-                            } }
+                            }}
                             className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[#71717a] transition hover:bg-black/[0.06] hover:text-[#111111] dark:text-[#a1a1aa] dark:hover:bg-white/[0.08] dark:hover:text-white"
-                            aria-label={ `Track options for ${track?.title || track?.name || "track"}` }
+                            aria-label={`Track options for ${track?.title || track?.name || "track"}`}
                             aria-haspopup="menu"
-                            aria-expanded={ isTrackMenuOpen }
+                            aria-expanded={isTrackMenuOpen}
                           >
                             <MoreHorizontal className="h-4.5 w-4.5" />
                           </button>
 
-                          { isTrackMenuOpen ? (
+                          {isTrackMenuOpen ? (
                             <div
                               className="
-                                absolute bottom-full right-0 z-30 mb-2 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-[20px]
-                                border border-white/10 bg-[#2f2f2f] p-3 text-left shadow-[0_24px_60px_rgba(0,0,0,0.45)]
-                              "
+      absolute bottom-full right-0 z-30 mb-2 w-[18rem]
+      overflow-visible rounded-[12px]
+      border border-white/10 bg-[#282828] py-1 text-left
+      shadow-[0_24px_60px_rgba(0,0,0,0.45)]
+    "
                               role="menu"
                               aria-label="Track actions"
-                              onClick={ (event) => event.stopPropagation() }
+                              onClick={(event) => event.stopPropagation()}
                             >
-                              <label className="flex items-center gap-3 rounded-xl bg-white/8 px-3 py-3 text-white/72">
-                                <Search className="h-4.5 w-4.5 shrink-0" />
-                                <input
-                                  type="text"
-                                  value={ trackMenuSearchValue }
-                                  onChange={ (event) => setTrackMenuSearchValue(event.target.value) }
-                                  placeholder="Tìm playlist khác"
-                                  className="w-full bg-transparent text-sm text-white placeholder:text-white/55 focus:outline-none"
-                                />
-                              </label>
+                              <div className="group relative">
+                                <button
+                                  type="button"
+                                  className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold text-white transition hover:bg-[#3e3e3e]"
+                                  role="menuitem"
+                                >
+                                  <span className="flex items-center gap-3">
+                                    <Plus className="h-4.5 w-4.5 shrink-0 text-white/72" />
+                                    Thêm vào playlist khác
+                                  </span>
 
-                              <div className="mt-3 space-y-1 border-b border-white/10 pb-3">
-                                <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-white/48">
-                                  Thêm vào playlist khác
-                                </p>
+                                  <ChevronRight className="h-4 w-4 shrink-0 text-white/72" />
+                                </button>
 
-                                { filteredTargetPlaylists.length > 0 ? (
-                                  filteredTargetPlaylists.map((targetPlaylist) => {
-                                    const targetPlaylistId = getPlaylistIdValue(targetPlaylist);
-                                    const isSubmitting =
-                                      submittingTrackActionId ===
-                                      `${trackId}:${targetPlaylistId}`;
+                                <div
+                                  className="
+          invisible absolute bottom-0 right-full z-40 mr-1 w-[20rem]
+          rounded-[12px] border border-white/10 bg-[#282828] p-2
+          opacity-0 shadow-[0_24px_60px_rgba(0,0,0,0.45)]
+          transition
+          group-hover:visible group-hover:opacity-100
+        "
+                                >
+                                  <label className="mb-2 flex items-center gap-3 rounded-md bg-[#3a3a3a] px-3 py-2 text-white/72">
+                                    <Search className="h-4 w-4 shrink-0" />
+                                    <input
+                                      type="text"
+                                      value={trackMenuSearchValue}
+                                      onChange={(event) => setTrackMenuSearchValue(event.target.value)}
+                                      placeholder="Tìm playlist khác"
+                                      className="w-full bg-transparent text-sm text-white placeholder:text-white/55 focus:outline-none"
+                                    />
+                                  </label>
 
-                                    return (
-                                      <button
-                                        key={ targetPlaylistId }
-                                        type="button"
-                                        onClick={ () =>
-                                          handleAddTrackToAnotherPlaylist(targetPlaylist, track)
-                                        }
-                                        className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-white transition hover:bg-white/8 disabled:cursor-not-allowed disabled:opacity-60"
-                                        role="menuitem"
-                                        disabled={ Boolean(submittingTrackActionId) }
-                                      >
-                                        <span className="truncate">
-                                          { getPlaylistTitle(targetPlaylist) }
-                                        </span>
-                                        { isSubmitting ? (
-                                          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-white/72" />
-                                        ) : (
-                                          <Plus className="h-4 w-4 shrink-0 text-white/72" />
-                                        ) }
-                                      </button>
-                                    );
-                                  })
-                                ) : (
-                                  <div className="px-3 py-3 text-sm text-white/55">
-                                    Không có playlist khác phù hợp.
+                                  <div className="max-h-64 overflow-y-auto">
+                                    {filteredTargetPlaylists.length > 0 ? (
+                                      filteredTargetPlaylists.map((targetPlaylist) => {
+                                        const targetPlaylistId = getPlaylistIdValue(targetPlaylist);
+                                        const isSubmitting =
+                                          submittingTrackActionId === `${trackId}:${targetPlaylistId}`;
+
+                                        return (
+                                          <button
+                                            key={targetPlaylistId}
+                                            type="button"
+                                            onClick={() =>
+                                              handleAddTrackToAnotherPlaylist(targetPlaylist, track)
+                                            }
+                                            disabled={Boolean(submittingTrackActionId)}
+                                            className="flex w-full items-center justify-between gap-3 rounded-md px-3 py-3 text-left text-sm font-semibold text-white transition hover:bg-[#3e3e3e] disabled:cursor-not-allowed disabled:opacity-60"
+                                            role="menuitem"
+                                          >
+                                            <span className="truncate">
+                                              {getPlaylistTitle(targetPlaylist)}
+                                            </span>
+
+                                            {isSubmitting ? (
+                                              <Loader2 className="h-4 w-4 shrink-0 animate-spin text-white/72" />
+                                            ) : (
+                                              <Plus className="h-4 w-4 shrink-0 text-white/72" />
+                                            )}
+                                          </button>
+                                        );
+                                      })
+                                    ) : (
+                                      <div className="px-3 py-3 text-sm text-white/55">
+                                        Không có playlist khác phù hợp.
+                                      </div>
+                                    )}
                                   </div>
-                                ) }
+                                </div>
                               </div>
 
                               <button
                                 type="button"
-                                onClick={ () => handleOpenRemoveTrackModal(track) }
-                                className="mt-3 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-white transition hover:bg-white/8"
+                                onClick={() => handleOpenRemoveTrackModal(track)}
+                                className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-white transition hover:bg-[#3e3e3e]"
                                 role="menuitem"
                               >
                                 <Trash2 className="h-4.5 w-4.5 shrink-0 text-white/72" />
                                 Xóa khỏi playlist hiện tại
                               </button>
 
-                              { trackActionErrorMessage ? (
-                                <div className="mt-3 rounded-2xl border border-[#ef4444]/20 bg-[#ef4444]/10 px-3 py-2 text-sm text-[#fecaca]">
-                                  { trackActionErrorMessage }
+                              {trackActionErrorMessage ? (
+                                <div className="mx-2 my-2 rounded-md border border-[#ef4444]/20 bg-[#ef4444]/10 px-3 py-2 text-sm text-[#fecaca]">
+                                  {trackActionErrorMessage}
                                 </div>
-                              ) : null }
+                              ) : null}
                             </div>
-                          ) : null }
+                          ) : null}
                         </div>
                       ),
                       className: "flex items-center justify-end",
                     },
-                  ] }
+                  ]}
                 />
               );
-            }) }
+            })}
           </TrackListSection>
         </div>
       </div>
 
       <EditPlaylistModal
-        isOpen={ isEditModalOpen }
-        onClose={ () => setIsEditModalOpen(false) }
-        onUpdated={ handlePlaylistUpdated }
-        playlist={ playlist }
-        existingPlaylists={ existingPlaylists }
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onUpdated={handlePlaylistUpdated}
+        playlist={playlist}
+        existingPlaylists={existingPlaylists}
       />
 
       <DeletePlaylistConfirmModal
-        isOpen={ isDeleteModalOpen }
-        playlistTitle={ playlistTitle }
-        isDeleting={ isDeletingPlaylist }
-        errorMessage={ deleteErrorMessage }
-        onClose={ () => {
+        isOpen={isDeleteModalOpen}
+        playlistTitle={playlistTitle}
+        isDeleting={isDeletingPlaylist}
+        errorMessage={deleteErrorMessage}
+        onClose={() => {
           if (!isDeletingPlaylist) {
             setDeleteErrorMessage("");
             setIsDeleteModalOpen(false);
           }
-        } }
-        onConfirm={ handleDeletePlaylist }
+        }}
+        onConfirm={handleDeletePlaylist}
       />
 
       <DeletePlaylistConfirmModal
-        isOpen={ Boolean(pendingTrackRemoval) }
-        playlistTitle={ pendingTrackRemoval?.title || "" }
+        isOpen={Boolean(pendingTrackRemoval)}
+        playlistTitle={pendingTrackRemoval?.title || ""}
         title="Xóa khỏi playlist?"
         message={
           pendingTrackRemoval
             ? `Thao tác này sẽ xóa ${pendingTrackRemoval.title} khỏi ${playlistTitle}.`
             : ""
         }
-        isDeleting={ isRemovingTrack }
-        errorMessage={ removeTrackErrorMessage }
-        onClose={ () => {
+        isDeleting={isRemovingTrack}
+        errorMessage={removeTrackErrorMessage}
+        onClose={() => {
           if (!isRemovingTrack) {
             setRemoveTrackErrorMessage("");
             setPendingTrackRemoval(null);
           }
-        } }
-        onConfirm={ handleRemoveTrackFromCurrentPlaylist }
+        }}
+        onConfirm={handleRemoveTrackFromCurrentPlaylist}
       />
 
-      { trackActionFeedback?.message ? (
+      {trackActionFeedback?.message ? (
         trackActionFeedback.tone === "success" ? (
           <div className="pointer-events-none fixed left-1/2 top-5 z-[70] w-[min(calc(100vw-2rem),26rem)] -translate-x-1/2">
             <div className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3 text-[#111111] shadow-[0_24px_60px_rgba(0,0,0,0.35)]">
-              { trackActionFeedback.image ? (
+              {trackActionFeedback.image ? (
                 <img
-                  src={ trackActionFeedback.image }
+                  src={trackActionFeedback.image}
                   alt=""
                   className="h-10 w-10 shrink-0 rounded-[10px] object-cover"
                 />
               ) : (
                 <div className="h-10 w-10 shrink-0 rounded-[10px] bg-[#e5e7eb]" />
-              ) }
+              )}
               <p className="truncate text-[1.05rem] font-medium text-[#111111]">
-                { trackActionFeedback.message }
+                {trackActionFeedback.message}
               </p>
             </div>
           </div>
         ) : (
           <div className="rounded-2xl border border-[#ef4444]/20 bg-[#ef4444]/10 px-4 py-3 text-sm text-[#fecaca]">
-            { trackActionFeedback.message }
+            {trackActionFeedback.message}
           </div>
         )
-      ) : null }
+      ) : null}
     </section>
   );
 };

@@ -24,6 +24,8 @@ import AdminListPage from "../pages/users/AdminListPage";
 import NotificationsListPage from "../pages/notification/NotificationListPage";
 import NotificationDetailPage from "../pages/notification/NotificationDetailPage";
 import NotificationEditPage from "../pages/notification/NotificationUpdatePage";
+import ReportsListPage from "../pages/reports/ReportsListPage";
+import ReportDetailPage from "../pages/reports/ReportDetailPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import RoleRoute from "./RoleRoute";
@@ -133,6 +135,14 @@ export const appRoutes = [
               {
                 path: "genres/:genreId/edit",
                 element: <EditGenrePage />,
+              },
+              {
+                path: "reports",
+                element: <ReportsListPage />,
+              },
+              {
+                path: "reports/:reportId",
+                element: <ReportDetailPage />,
               },
             ],
           },

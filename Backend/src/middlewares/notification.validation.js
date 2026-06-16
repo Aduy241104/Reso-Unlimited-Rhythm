@@ -9,6 +9,11 @@ const notificationListQuerySchema = Joi.object({
     isRead: Joi.boolean().optional(),
 });
 
+const notificationDetailParamsSchema = Joi.object({
+    id: Joi.string().trim().required(),
+});
+
 export default {
     notificationListQuerySchema,
+    notificationDetailParamsSchema,
 };
