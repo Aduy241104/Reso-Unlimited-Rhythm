@@ -21,10 +21,8 @@ const ThemeToggle = ({ variant = "default" }) => {
       className={
         isMenuVariant
           ? [
-              "flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-medium transition sm:text-sm",
-              isDark
-                ? "text-[#f7f1ea] hover:bg-[#241f28] hover:text-[#f5b66f]"
-                : "text-[#111111] hover:bg-[#f9fafb] hover:text-[#111111]",
+              "flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[11px] font-normal transition sm:text-xs",
+              isDark ? "text-[#f7f1ea]" : "text-[#111111]",
             ].join(" ")
           : [
               "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-medium transition sm:w-auto sm:gap-2 sm:px-3",

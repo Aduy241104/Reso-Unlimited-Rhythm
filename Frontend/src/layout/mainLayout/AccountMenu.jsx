@@ -1,12 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faDoorClosed } from "@fortawesome/free-solid-svg-icons";
 import { ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ThemeToggle from "../../components/common/ThemeToggle";
 import { useTheme } from "../../hooks/useTheme";
 import { routePaths } from "../../routes/routePaths";
-import { testAccessTokenService } from "../../services/authService";
 import { hasPremiumAccess } from "../../utils/premiumAccess";
 
 const ROLE_LABELS = {
@@ -27,7 +24,6 @@ const AccountMenu = ({ user, onLogout }) => {
 
   const menuItems = useMemo(
     () => [
-      { label: "Trang chủ", to: routePaths.home },
       { label: "Hồ sơ cá nhân", to: routePaths.userProfile },
       ...(userRole === "user"
         ? [
@@ -73,15 +69,6 @@ const AccountMenu = ({ user, onLogout }) => {
     await onLogout({ redirectTo: "/login" });
   };
 
-  const handleTestAccessToken = async () => {
-    try {
-      const response = await testAccessTokenService();
-      console.log("Access token is valid:", response);
-    } catch (error) {
-      console.error("Access token is invalid:", error);
-    }
-  };
-
   return (
     <div className="relative shrink-0" ref={ menuRef }>
       <button
@@ -106,29 +93,21 @@ const AccountMenu = ({ user, onLogout }) => {
       { isOpen ? (
         <div
           className={[
-            "absolute right-0 top-full z-[120] mt-2 w-56 rounded-2xl border p-2 backdrop-blur-xl sm:w-64",
+            "absolute right-0 top-full z-[120] mt-2 w-48 border p-1.5 backdrop-blur-xl sm:w-52",
             isDark
-              ? "border-[#f5b66f]/10 bg-[#151218]/95 shadow-[0_20px_60px_rgba(245,158,66,0.15)]"
-              : "border-[#e5e7eb] bg-white shadow-[0_20px_60px_rgba(15,23,42,0.12)]",
+              ? "border-white/10 bg-[#151218]/95"
+              : "border-white bg-white",
           ].join(" ") }
         >
           <div
             className={[
-              "border-b px-3 py-2",
+              "border-b px-2.5 py-1.5",
               isDark ? "border-[#f5b66f]/10" : "border-[#f3f4f6]",
             ].join(" ") }
           >
             <p
               className={[
-                "truncate text-xs font-medium sm:text-sm",
-                isDark ? "text-[#f7f1ea]" : "text-[#111111]",
-              ].join(" ") }
-            >
-              { displayName }
-            </p>
-            <p
-              className={[
-                "mt-1 text-xs uppercase tracking-[0.2em]",
+                "mt-1 text-[10px] font-normal uppercase tracking-[0.18em]",
                 isDark ? "text-[#b8b0aa]" : "text-[#6b7280]",
               ].join(" ") }
             >
@@ -136,17 +115,15 @@ const AccountMenu = ({ user, onLogout }) => {
             </p>
           </div>
 
-          <div className="py-2">
+          <div className="py-1.5">
             { menuItems.map((item) => (
               <button
                 key={ item.to }
                 type="button"
                 onClick={ () => handleNavigate(item.to) }
                 className={[
-                  "flex w-full rounded-xl px-3 py-2 text-left text-xs transition sm:text-sm",
-                  isDark
-                    ? "text-[#f7f1ea] hover:bg-[#241f28] hover:text-[#f5b66f]"
-                    : "text-[#111111] hover:bg-[#f9fafb] hover:text-[#111111]",
+                  "flex w-full px-2.5 py-1.5 text-left text-[11px] font-normal transition sm:text-xs",
+                  isDark ? "text-[#f7f1ea]" : "text-[#111111]",
                 ].join(" ") }
               >
                 { item.label }
@@ -156,28 +133,16 @@ const AccountMenu = ({ user, onLogout }) => {
 
           <div
             className={[
-              "border-t py-2",
+              "border-t py-1.5",
               isDark ? "border-[#f5b66f]/10" : "border-[#f3f4f6]",
             ].join(" ") }
           >
             <ThemeToggle variant="menu" />
-            <button
-              type="button"
-              onClick={ handleTestAccessToken }
-              className={[
-                "mt-1 flex w-full rounded-xl px-3 py-2 text-left text-xs transition sm:text-sm",
-                isDark
-                  ? "text-[#f7f1ea] hover:bg-[#241f28] hover:text-[#f5b66f]"
-                  : "text-[#111111] hover:bg-[#f9fafb] hover:text-[#111111]",
-              ].join(" ") }
-            >
-              Kiểm tra phiên đăng nhập
-            </button>
           </div>
 
           <div
             className={[
-              "border-t pt-2",
+              "border-t pt-1.5",
               isDark ? "border-[#f5b66f]/10" : "border-[#f3f4f6]",
             ].join(" ") }
           >
@@ -185,13 +150,10 @@ const AccountMenu = ({ user, onLogout }) => {
               type="button"
               onClick={ handleLogout }
               className={[
-                "flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs transition sm:text-sm",
-                isDark
-                  ? "text-[#f7f1ea] hover:bg-[#241f28] hover:text-[#f5b66f]"
-                  : "text-[#111111] hover:bg-[#f9fafb] hover:text-[#111111]",
+                "flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[11px] font-normal transition sm:text-xs",
+                isDark ? "text-[#f7f1ea]" : "text-[#111111]",
               ].join(" ") }
             >
-              <FontAwesomeIcon icon={ faDoorClosed } className="text-xs sm:text-sm" />
               Đăng xuất
             </button>
           </div>
