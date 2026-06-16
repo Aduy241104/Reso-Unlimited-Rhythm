@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
 import ReactPaginate from "react-paginate";
-import { Search, AlertTriangle, CheckCircle, XCircle, Clock, Eye } from "lucide-react";
-import { getReportsService, updateReportStatusService } from "../../services/reportService";
+import { Link } from "react-router-dom";
+import { Search, AlertTriangle, CheckCircle, XCircle, Eye, ArrowRight, Flag } from "lucide-react";
+import { getReportsService } from "../../services/reportService";
 import { routePaths } from "../../routes/routePaths";
-import toast from "react-hot-toast";
 
 const statusFilters = [
     { value: "", label: "Tất cả trạng thái" },
-    { value: "pending", label: "Đang chờ" },
     { value: "reviewing", label: "Đang xem xét" },
     { value: "resolved", label: "Đã xử lý" },
     { value: "rejected", label: "Từ chối" },
@@ -34,14 +33,6 @@ const reasonLabels = {
 const getStatusConfig = (status) => {
     switch (status) {
         case "pending":
-            return {
-                label: "Đang chờ",
-                icon: Clock,
-                bg: "bg-amber-50",
-                text: "text-amber-600",
-                border: "border-amber-100",
-                dot: "bg-amber-500",
-            };
         case "reviewing":
             return {
                 label: "Đang xem xét",
@@ -71,12 +62,12 @@ const getStatusConfig = (status) => {
             };
         default:
             return {
-                label: status,
-                icon: AlertTriangle,
-                bg: "bg-slate-50",
-                text: "text-slate-600",
-                border: "border-slate-200",
-                dot: "bg-slate-400",
+                label: "Đang xem xét",
+                icon: Eye,
+                bg: "bg-blue-50",
+                text: "text-blue-600",
+                border: "border-blue-100",
+                dot: "bg-blue-500",
             };
     }
 };
@@ -110,7 +101,6 @@ const ReportsListPage = () => {
     const [pagination, setPagination] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState("");
-    const [updatingId, setUpdatingId] = useState(null);
 
     const loadReports = async (params = query) => {
         setIsLoading(true);
@@ -163,20 +153,6 @@ const ReportsListPage = () => {
 
     const handlePageChange = ({ selected }) => {
         setQuery((prev) => ({ ...prev, page: selected + 1 }));
-    };
-
-    const handleQuickAction = async (reportId, newStatus) => {
-        setUpdatingId(reportId);
-        try {
-            await updateReportStatusService(reportId, { status: newStatus });
-            toast.success("Cập nhật trạng thái thành công");
-            void loadReports(query);
-        } catch (error) {
-            toast.error("Cập nhật trạng thái thất bại");
-            console.error(error);
-        } finally {
-            setUpdatingId(null);
-        }
     };
 
     const total = pagination?.total ?? 0;
@@ -257,9 +233,10 @@ const ReportsListPage = () => {
 
             {/* Reports List */}
             <div className="overflow-hidden rounded-2xl bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
-                <div className="grid min-w-[1000px] grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_120px_120px_180px_200px_140px] gap-4 border-b border-slate-200 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+                <div className="grid min-w-[1100px] grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.2fr)_100px_110px_140px_180px_130px] gap-4 border-b border-slate-200 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
                     <span>Người báo cáo</span>
                     <span>Nội dung báo cáo</span>
+                    <span>Nội dung bị báo cáo</span>
                     <span>Loại</span>
                     <span>Lý do</span>
                     <span>Trạng thái</span>
@@ -297,7 +274,7 @@ const ReportsListPage = () => {
                                     <div
                                         key={report._id}
                                         className="group grid items-center gap-4 px-6 py-4 transition hover:bg-slate-50"
-                                        style={{ gridTemplateColumns: "minmax(0,1.5fr) minmax(0,1fr) 120px 120px 180px 200px 140px" }}
+                                        style={{ gridTemplateColumns: "minmax(0,1.2fr) minmax(0,1fr) minmax(0,1.2fr) 100px 110px 140px 180px 130px" }}
                                     >
                                         {/* Reporter */}
                                         <div>
@@ -312,6 +289,38 @@ const ReportsListPage = () => {
                                                 <p className="mt-1 text-xs text-slate-400">
                                                     {report.images.length} hình ảnh đính kèm
                                                 </p>
+                                            )}
+                                        </div>
+
+                                        {/* Target Content */}
+                                        <div>
+                                            {report.targetInfo ? (
+                                                <div className="flex items-center gap-2">
+                                                    {report.targetInfo.avatar && (
+                                                        <img
+                                                            src={report.targetInfo.avatar}
+                                                            alt=""
+                                                            className="h-8 w-8 rounded-lg object-cover"
+                                                        />
+                                                    )}
+                                                    <div className="min-w-0">
+                                                        <p className="truncate text-sm font-medium text-slate-900">
+                                                            {report.targetInfo.title || report.targetInfo.name}
+                                                        </p>
+                                                        {report.targetInfo.artist_artistId?.name && (
+                                                            <p className="truncate text-xs text-slate-400">
+                                                                {report.targetInfo.artist_artistId.name}
+                                                            </p>
+                                                        )}
+                                                        {report.targetInfo.artistId?.name && (
+                                                            <p className="truncate text-xs text-slate-400">
+                                                                {report.targetInfo.artistId.name}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <span className="text-xs text-slate-400">—</span>
                                             )}
                                         </div>
 
@@ -339,36 +348,13 @@ const ReportsListPage = () => {
 
                                         {/* Actions */}
                                         <div className="flex items-center justify-end gap-2">
-                                            {report.status === "pending" && (
-                                                <button
-                                                    onClick={() => void handleQuickAction(report._id, "reviewing")}
-                                                    disabled={updatingId === report._id}
-                                                    className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-600 transition hover:bg-blue-100 disabled:opacity-50"
-                                                >
-                                                    Xem xét
-                                                </button>
-                                            )}
-                                            {report.status === "reviewing" && (
-                                                <>
-                                                    <button
-                                                        onClick={() => void handleQuickAction(report._id, "resolved")}
-                                                        disabled={updatingId === report._id}
-                                                        className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-600 transition hover:bg-emerald-100 disabled:opacity-50"
-                                                    >
-                                                        Xử lý
-                                                    </button>
-                                                    <button
-                                                        onClick={() => void handleQuickAction(report._id, "rejected")}
-                                                        disabled={updatingId === report._id}
-                                                        className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-100 disabled:opacity-50"
-                                                    >
-                                                        Từ chối
-                                                    </button>
-                                                </>
-                                            )}
-                                            {(report.status === "resolved" || report.status === "rejected") && (
-                                                <span className="text-xs text-slate-400">Đã xử lý</span>
-                                            )}
+                                            <Link
+                                                to={routePaths.reportDetail(report._id)}
+                                                className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+                                            >
+                                                <ArrowRight size={12} />
+                                                Chi tiết
+                                            </Link>
                                         </div>
                                     </div>
                                 );

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
     AlertCircle,
     AlertTriangle,
+    ArrowLeft,
     CheckCircle,
     Clock,
     Disc3,
@@ -40,12 +41,6 @@ const TARGET_TYPE_CONFIG = {
 };
 
 const STATUS_CONFIG = {
-    pending: {
-        label: "Đang chờ",
-        icon: Clock,
-        badgeClass: "bg-amber-50 text-amber-700 border-amber-200",
-        iconClass: "text-amber-500",
-    },
     reviewing: {
         label: "Đang xem xét",
         icon: FileSearch,
@@ -67,10 +62,6 @@ const STATUS_CONFIG = {
 };
 
 const EMPTY_STATES = {
-    pending: {
-        title: "Chưa có báo cáo nào đang chờ",
-        description: "Không có báo cáo nào đang trong trạng thái chờ xử lý.",
-    },
     reviewing: {
         title: "Chưa có báo cáo đang xem xét",
         description: "Không có báo cáo nào đang được xem xét.",
@@ -101,7 +92,7 @@ const formatDate = (dateString) => {
 };
 
 const StatusBadge = ({ status }) => {
-    const config = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
+    const config = STATUS_CONFIG[status] || STATUS_CONFIG.reviewing;
     const Icon = config.icon;
 
     return (
@@ -128,7 +119,7 @@ const TargetTypeBadge = ({ targetType }) => {
     );
 };
 
-const EmptyState = ({ statusFilter, onNavigateToReport }) => (
+const EmptyState = ({ statusFilter }) => (
     <div className="flex flex-col items-center justify-center py-20 text-center">
         <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/30">
             <Search className="h-7 w-7" aria-hidden />
@@ -139,15 +130,6 @@ const EmptyState = ({ statusFilter, onNavigateToReport }) => (
         <p className="mt-2 max-w-sm text-sm text-white/45">
             {EMPTY_STATES[statusFilter]?.description || EMPTY_STATES.all.description}
         </p>
-        {!statusFilter && (
-            <button
-                onClick={onNavigateToReport}
-                className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-[#f5b66f] px-5 py-2.5 text-sm font-semibold text-[#15181d] transition hover:bg-[#f7c789]"
-            >
-                <AlertTriangle className="h-4 w-4" aria-hidden />
-                Gửi báo cáo mới
-            </button>
-        )}
     </div>
 );
 
@@ -217,40 +199,36 @@ const CustomerReportListPage = () => {
         navigate(routePaths.userReportDetail(reportId));
     };
 
-    const handleCreateReport = () => {
-        navigate(routePaths.userCreateReport);
-    };
-
     return (
         <main className="min-h-full bg-[#0e0e12] px-4 py-8 text-white sm:px-6 lg:px-8">
             <div className="mx-auto max-w-5xl space-y-6">
                 {/* Page Header */}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#f5b66f]">
-                            Tài khoản
-                        </p>
-                        <h1 className="mt-1 text-3xl font-semibold tracking-tight">
-                            Báo cáo của tôi
-                        </h1>
-                        <p className="mt-1 text-sm text-white/55">
-                            Theo dõi trạng thái các báo cáo đã gửi.
-                        </p>
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={() => navigate(routePaths.home)}
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-white/60 transition hover:border-white/20 hover:bg-white/[0.07] hover:text-white"
+                        >
+                            <ArrowLeft className="h-4.5 w-4.5" aria-hidden />
+                        </button>
+                        <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#f5b66f]">
+                                Tài khoản
+                            </p>
+                            <h1 className="mt-1 text-3xl font-semibold tracking-tight">
+                                Báo cáo của tôi
+                            </h1>
+                            <p className="mt-1 text-sm text-white/55">
+                                Theo dõi trạng thái các báo cáo đã gửi.
+                            </p>
+                        </div>
                     </div>
-                    <button
-                        onClick={handleCreateReport}
-                        className="inline-flex items-center gap-2 rounded-2xl bg-[#f5b66f] px-5 py-2.5 text-sm font-semibold text-[#15181d] transition hover:bg-[#f7c789]"
-                    >
-                        <AlertTriangle className="h-4 w-4" aria-hidden />
-                        Gửi báo cáo mới
-                    </button>
                 </div>
 
                 {/* Filter Tabs */}
                 <div className="flex flex-wrap gap-2">
                     {[
                         { value: "", label: "Tất cả" },
-                        { value: "pending", label: "Đang chờ" },
                         { value: "reviewing", label: "Đang xem xét" },
                         { value: "resolved", label: "Đã xử lý" },
                         { value: "rejected", label: "Bị từ chối" },
@@ -307,7 +285,6 @@ const CustomerReportListPage = () => {
                     {!loading && !errorMessage && reports.length === 0 && (
                         <EmptyState
                             statusFilter={statusFilter}
-                            onNavigateToReport={handleCreateReport}
                         />
                     )}
 

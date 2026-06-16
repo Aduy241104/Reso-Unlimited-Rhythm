@@ -21,6 +21,7 @@ import SystemArtistDetailPage from "../pages/artist/ArtistDetailPage";
 import SystemTracksModerationPage from "../pages/systemTracks/SystemTracksModerationPage";
 import AdminListPage from "../pages/users/AdminListPage";
 import ReportsListPage from "../pages/reports/ReportsListPage";
+import ReportDetailPage from "../pages/reports/ReportDetailPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import RoleRoute from "./RoleRoute";
@@ -118,6 +119,10 @@ export const appRoutes = [
               {
                 path: "reports",
                 element: <ReportsListPage />,
+              },
+              {
+                path: "reports/:reportId",
+                element: <ReportDetailPage />,
               },
             ],
           },

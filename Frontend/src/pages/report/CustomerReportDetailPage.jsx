@@ -49,12 +49,6 @@ const TARGET_TYPE_CONFIG = {
 };
 
 const STATUS_CONFIG = {
-    pending: {
-        label: "Đang chờ",
-        icon: Clock,
-        badgeClass: "border-amber-300/18 bg-amber-300/10 text-amber-100",
-        iconClass: "text-amber-200",
-    },
     reviewing: {
         label: "Đang xem xét",
         icon: FileSearch,
@@ -153,10 +147,8 @@ const StatusTimeline = ({ status }) => {
     const isResolved = status === "resolved";
     const isRejected = status === "rejected";
     const isReviewing = status === "reviewing";
-    const isPending = status === "pending";
 
     const steps = [
-        { key: "pending", label: "Gửi báo cáo", done: true },
         { key: "reviewing", label: "Đang xem xét", done: isReviewing || isResolved || isRejected },
         {
             key: "final",
@@ -222,7 +214,7 @@ const CustomerReportDetailPage = () => {
         fetchReport();
     }, [id]);
 
-    const statusConfig = STATUS_CONFIG[report?.status] || STATUS_CONFIG.pending;
+    const statusConfig = STATUS_CONFIG[report?.status] || STATUS_CONFIG.reviewing;
     const StatusIcon = statusConfig.icon;
     const targetConfig = TARGET_TYPE_CONFIG[report?.targetType] || TARGET_TYPE_CONFIG.track;
     const TargetIcon = targetConfig.icon;
@@ -275,18 +267,41 @@ const CustomerReportDetailPage = () => {
                 {/* Content */}
                 {!loading && !errorMessage && report && (
                     <div className="space-y-5">
-                        {/* Status Card */}
-                        <SectionCard title="Trạng thái" icon={AlertTriangle} subtitle="Theo dõi tiến trình xử lý báo cáo">
-                            <div className="mb-5 flex flex-wrap items-center gap-3">
-                                <span
-                                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold ${statusConfig.badgeClass}`}
-                                >
-                                    <StatusIcon className={`h-4 w-4 ${statusConfig.iconClass}`} aria-hidden />
-                                    {statusConfig.label}
-                                </span>
+                        {/* Resolution - Prominent Banner */}
+                        {(report.status === "resolved" || report.status === "rejected") && (
+                            <div className={`rounded-[28px] p-5 shadow-2xl ${
+                                report.status === "resolved" 
+                                    ? "bg-gradient-to-br from-emerald-900/60 via-emerald-800/40 to-emerald-900/60 border border-emerald-500/30" 
+                                    : "bg-gradient-to-br from-rose-900/60 via-rose-800/40 to-rose-900/60 border border-rose-500/30"
+                            }`}>
+                                <div className="flex items-center gap-3 mb-3">
+                                    {report.status === "resolved" ? (
+                                        <CheckCircle className="h-6 w-6 text-emerald-300" />
+                                    ) : (
+                                        <XCircle className="h-6 w-6 text-rose-300" />
+                                    )}
+                                    <h3 className={`text-lg font-semibold ${report.status === "resolved" ? "text-emerald-100" : "text-rose-100"}`}>
+                                        {report.status === "resolved" ? "Kết quả xử lý" : "Lý do từ chối"}
+                                    </h3>
+                                </div>
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm text-white/60">Hình thức xử lý</span>
+                                        <span className={`text-sm font-semibold ${report.status === "resolved" ? "text-emerald-200" : "text-rose-200"}`}>
+                                            {report.resolution || "—"}
+                                        </span>
+                                    </div>
+                                    {report.resolutionNote && (
+                                        <div className="pt-2 border-t border-white/10">
+                                            <span className="text-sm text-white/60">Ghi chú từ quản trị viên</span>
+                                            <p className="mt-1 text-sm text-white/90 whitespace-pre-wrap">
+                                                {report.resolutionNote}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                            <StatusTimeline status={report.status} />
-                        </SectionCard>
+                        )}
 
                         {/* Report Info */}
                         <SectionCard title="Nội dung báo cáo" icon={AlertCircle}>
@@ -308,20 +323,6 @@ const CustomerReportDetailPage = () => {
                         {report.images && report.images.length > 0 && (
                             <SectionCard title="Hình ảnh minh chứng" icon={ImageIcon} subtitle={`${report.images.length} hình ảnh`}>
                                 <ImageGallery images={report.images} />
-                            </SectionCard>
-                        )}
-
-                        {/* Resolution */}
-                        {(report.status === "resolved" || report.status === "rejected") && (
-                            <SectionCard
-                                title={report.status === "resolved" ? "Kết quả xử lý" : "Lý do từ chối"}
-                                icon={report.status === "resolved" ? CheckCircle : XCircle}
-                            >
-                                <InfoRow label="Hình thức xử lý" value={RESOLUTION_LABELS[report.resolution] || report.resolution} />
-                                <InfoRow label="Ghi chú từ quản trị viên" value={report.resolutionNote} />
-                                {report.handledAt && (
-                                    <InfoRow label="Thời gian xử lý" value={formatDate(report.handledAt)} />
-                                )}
                             </SectionCard>
                         )}
 
