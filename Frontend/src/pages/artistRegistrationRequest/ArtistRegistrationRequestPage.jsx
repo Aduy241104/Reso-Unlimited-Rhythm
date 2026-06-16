@@ -1,15 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   CheckCircle2,
-  ChevronRight,
   FileCheck2,
+  FileText,
   Loader2,
   Music4,
   Plus,
   ShieldCheck,
   Sparkles,
   Trash2,
+  X,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { routePaths } from "../../routes/routePaths";
@@ -72,6 +73,106 @@ const SOCIAL_PLATFORM_FIELDS = [
   },
   { key: "website", label: "Website", placeholder: "https://..." },
 ];
+
+const TERMS_CONTENT = {
+  acceptedTerms: {
+    title: "Điều khoản dành cho nghệ sĩ",
+    intro:
+      "Vui lòng đọc kỹ toàn bộ điều khoản dưới đây trước khi đồng ý. Bạn cần cuộn xuống cuối và nhấn nút \"Đã đọc và đồng ý\" để có thể tích chọn cam kết này.",
+    sections: [
+      {
+        heading: "1. Quyền và nghĩa vụ của nghệ sĩ",
+        body: "Khi được phê duyệt trở thành nghệ sĩ trên nền tảng, bạn được phép đăng tải, phân phối và quảng bá các sản phẩm âm nhạc của mình thông qua hệ thống. Bạn có quyền quản lý hồ sơ, cập nhật thông tin cá nhân, cấu hình trang nghệ sĩ và theo dõi số liệu thống kê nghe/xem. Đồng thời, bạn có nghĩa vụ tuân thủ các quy tắc cộng đồng, không đăng tải nội dung vi phạm pháp luật, không spam hoặc lợi dụng nền tảng để thực hiện các hành vi gian lận.",
+      },
+      {
+        heading: "2. Quy định về nội dung",
+        body: "Mọi sản phẩm âm nhạc bạn cung cấp phải tuân thủ quy định pháp luật về bản quyền, quyền liên quan và quyền của người biểu diễn. Nội dung không được chứa ngôn từ kích động, bạo lực, phân biệt đối xử, khiêu dâm hoặc xâm phạm thuần phong mỹ tục. Nền tảng có quyền gỡ bỏ nội dung vi phạm mà không cần báo trước và có thể tạm khóa tài khoản nếu vi phạm nghiêm trọng.",
+      },
+      {
+        heading: "3. Chính sách thanh toán và doanh thu",
+        body: "Doanh thu từ việc phát nhạc, nghe nhạc và các hoạt động thương mại khác sẽ được phân chia theo tỷ lệ thỏa thuận trong hợp đồng riêng giữa nghệ sĩ và nền tảng. Việc thanh toán sẽ được thực hiện theo chu kỳ và phương thức đã đăng ký. Nền tảng có quyền khấu trừ các khoản thuế, phí theo quy định pháp luật hiện hành trước khi chi trả cho nghệ sĩ.",
+      },
+      {
+        heading: "4. Quyền riêng tư và bảo mật thông tin",
+        body: "Nền tảng cam kết bảo mật thông tin cá nhân của nghệ sĩ theo chính sách quyền riêng tư. Thông tin giấy tờ tùy thân chỉ được sử dụng cho mục đích xác minh danh tính và lưu trữ nội bộ, không chia sẻ cho bên thứ ba khi chưa có sự đồng ý bằng văn bản của nghệ sĩ, trừ trường hợp pháp luật yêu cầu.",
+      },
+      {
+        heading: "5. Điều khoản chấm dứt",
+        body: "Nghệ sĩ có quyền yêu cầu chấm dứt tài khoản nghệ sĩ bất kỳ lúc nào bằng cách gửi yêu cầu hỗ trợ. Nền tảng có quyền đình chỉ hoặc chấm dứt quyền nghệ sĩ nếu phát hiện vi phạm điều khoản, gian lận hoặc có hành vi gây tổn hại đến uy tín nền tảng và cộng đồng. Khi chấm dứt, các sản phẩm âm nhạc có thể được gỡ bỏ hoặc giữ lại tùy theo thỏa thuận.",
+      },
+      {
+        heading: "6. Thay đổi điều khoản",
+        body: "Nền tảng có quyền cập nhật và điều chỉnh các điều khoản này theo từng thời điểm. Mọi thay đổi sẽ được thông báo trước ít nhất 7 ngày qua email hoặc thông báo trong hệ thống. Việc bạn tiếp tục sử dụng dịch vụ sau khi điều khoản có hiệu lực đồng nghĩa với việc bạn chấp nhận các điều chỉnh đó.",
+      },
+      {
+        heading: "7. Điều khoản chung",
+        body: "Các điều khoản này được điều chỉnh bởi pháp luật Việt Nam. Mọi tranh chấp phát sinh sẽ được ưu tiên giải quyết bằng thương lượng; nếu không đạt được thỏa thuận, tranh chấp sẽ được đưa ra giải quyết tại tòa án có thẩm quyền. Nếu có bất kỳ câu hỏi nào, vui lòng liên hệ bộ phận hỗ trợ nghệ sĩ qua email hoặc trung tâm hỗ trợ trực tuyến.",
+      },
+    ],
+  },
+  copyrightCommitment: {
+    title: "Cam kết trách nhiệm bản quyền",
+    intro:
+      "Điều khoản này giải thích trách nhiệm của bạn đối với quyền sở hữu trí tuệ của các sản phẩm âm nhạc. Vui lòng đọc đến cuối trước khi xác nhận.",
+    sections: [
+      {
+        heading: "1. Xác nhận quyền sở hữu",
+        body: "Bạn cam kết rằng tất cả các sản phẩm âm nhạc (bài hát, beat, lời, hình ảnh, MV) mà bạn tải lên nền tảng hoặc cung cấp qua đường link đều thuộc quyền sở hữu hợp pháp của bạn, hoặc bạn đã được cấp phép đầy đủ bằng văn bản từ chủ sở hữu bản quyền để sử dụng, phân phối và đại diện cho các sản phẩm đó trên nền tảng.",
+      },
+      {
+        heading: "2. Không sử dụng trái phép",
+        body: "Bạn không được phép sử dụng beat, sample, melody, lời bài hát hoặc bất kỳ tác phẩm nào của người khác khi chưa có sự đồng ý bằng văn bản hoặc giấy phép hợp lệ. Bạn hiểu rằng việc sử dụng tác phẩm không được phép có thể cấu thành hành vi xâm phạm bản quyền theo Luật Sở hữu trí tuệ Việt Nam và các điều ước quốc tế mà Việt Nam tham gia.",
+      },
+      {
+        heading: "3. Trách nhiệm khi phát sinh khiếu nại",
+        body: "Bạn chịu hoàn toàn trách nhiệm pháp lý và tài chính nếu có khiếu nại về bản quyền từ bên thứ ba đối với các sản phẩm bạn cung cấp. Trong trường hợp này, bạn đồng ý bồi thường cho nền tảng mọi chi phí phát sinh bao gồm nhưng không giới hạn: phí tư vấn pháp lý, thiệt hại doanh thu, chi phí giải quyết tranh chấp và các khoản phạt theo quy định.",
+      },
+      {
+        heading: "4. Quy trình xử lý vi phạm bản quyền",
+        body: "Khi nhận được khiếu nại bản quyền hợp lệ, nền tảng có quyền tạm ẩn nội dung bị khiếu nại trong vòng 24 giờ để xác minh. Nếu xác nhận vi phạm, nội dung sẽ bị gỡ bỏ vĩnh viễn và tài khoản nghệ sĩ có thể bị đình chỉ vĩnh viễn. Trường hợp nghi ngờ gian lận hoặc tái phạm nhiều lần, nền tảng có quyền chuyển thông tin cho cơ quan chức năng có thẩm quyền.",
+      },
+      {
+        heading: "5. Quyền cấp phép cho nền tảng",
+        body: "Bằng việc tải nội dung lên, bạn cấp cho nền tảng một giấy phép không độc quyền, có thể chuyển nhượng, miễn phí bản quyền để sử dụng, tái sản xuất, phân phối, trình diễn công khai và chỉnh sửa nội dung cho mục đích vận hành, quảng bá và cung cấp dịch vụ của nền tảng. Giấy phép này tự động chấm dứt khi bạn gỡ nội dung, trừ khi nội dung đã được lưu trữ bởi người dùng khác theo quy định.",
+      },
+      {
+        heading: "6. Cam kết khi hợp tác với bên thứ ba",
+        body: "Nếu bạn hợp tác với nhà sản xuất, beatmaker, nghệ sĩ khác hoặc bất kỳ bên thứ ba nào trong quá trình tạo sản phẩm, bạn cam kết đã có thỏa thuận rõ ràng về quyền sở hữu và quyền sử dụng, đồng thời bạn có quyền đại diện cho toàn bộ sản phẩm trên nền tảng. Mọi tranh chấp nội bộ về quyền sở hữu giữa các bên là ngoài phạm vi trách nhiệm của nền tảng.",
+      },
+    ],
+  },
+  truthfulInformationCommitment: {
+    title: "Cam kết thông tin trung thực",
+    intro:
+      "Bạn cần đọc đến cuối điều khoản này để xác nhận rằng toàn bộ thông tin cung cấp là trung thực và chính xác.",
+    sections: [
+      {
+        heading: "1. Tính chính xác của thông tin cá nhân",
+        body: "Bạn cam kết rằng tất cả thông tin cá nhân cung cấp trong hồ sơ đăng ký nghệ sĩ bao gồm: họ và tên thật, số CCCD/CMND, ngày sinh, ảnh giấy tờ tùy thân, số điện thoại, email và các thông tin liên hệ khác đều là chính xác, trung thực và thuộc về bạn hoặc đơn vị bạn được ủy quyền hợp pháp.",
+      },
+      {
+        heading: "2. Ảnh giấy tờ tùy thân",
+        body: "Ảnh chụp mặt trước và mặt sau giấy tờ tùy thân phải là ảnh gốc, rõ nét, không bị chỉnh sửa, cắt ghép hoặc làm mờ. Bạn không được sử dụng giấy tờ của người khác, giấy tờ hết hạn, giấy tờ giả mạo hoặc bất kỳ tài liệu nào không phải do cơ quan có thẩm quyền cấp. Mọi hành vi gian lận về giấy tờ sẽ bị xử lý theo quy định pháp luật.",
+      },
+      {
+        heading: "3. Nghệ danh và đại diện",
+        body: "Nghệ danh bạn đăng ký phải là tên mà bạn thực sự sử dụng trong hoạt động âm nhạc. Nếu bạn đăng ký thay mặt cho ban nhóm, công ty giải trí hoặc tổ chức, bạn cần có giấy ủy quyền hợp lệ và nền tảng có quyền yêu cầu cung cấp bằng chứng xác minh.",
+      },
+      {
+        heading: "4. Trách nhiệm khi thông tin thay đổi",
+        body: "Bạn có nghĩa vụ cập nhật kịp thời bất kỳ thay đổi nào về thông tin cá nhân, giấy tờ tùy thân hoặc tình trạng pháp lý trong vòng 30 ngày kể từ ngày phát sinh thay đổi. Việc cố tình giấu thông tin hoặc cung cấp thông tin sai lệch sau khi đã trở thành nghệ sĩ có thể dẫn đến đình chỉ tài khoản.",
+      },
+      {
+        heading: "5. Xử lý vi phạm và gian lận",
+        body: "Nếu phát hiện bất kỳ thông tin nào bạn cung cấp là sai sự thật, không chính xác hoặc có dấu hiệu gian lận, nền tảng có quyền từ chối phê duyệt hồ sơ, thu hồi quyền nghệ sĩ đã cấp, gỡ bỏ toàn bộ nội dung đã đăng tải và khóa tài khoản vĩnh viễn mà không hoàn lại bất kỳ khoản phí nào (nếu có). Ngoài ra, bạn có thể phải chịu trách nhiệm trước pháp luật.",
+      },
+      {
+        heading: "6. Cam kết không mạo danh",
+        body: "Bạn cam kết không mạo danh bất kỳ nghệ sĩ, cá nhân, tổ chức hay thương hiệu nào khác. Nếu hồ sơ của bạn có dấu hiệu mạo danh nghệ sĩ đã có trên nền tảng hoặc ngoài thực tế, hồ sơ sẽ bị từ chối ngay lập tức và tài khoản có thể bị khóa để điều tra thêm.",
+      },
+    ],
+  },
+};
 
 const pageShellClassName =
   "min-h-full overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(255,159,67,0.22),_transparent_20%),radial-gradient(circle_at_top_right,_rgba(255,255,255,0.06),_transparent_18%),radial-gradient(circle_at_bottom_right,_rgba(155,108,255,0.12),_transparent_24%),linear-gradient(135deg,_#050505_0%,_#0c0c0f_40%,_#111114_100%)] px-4 py-8 text-white sm:px-6 lg:px-8";
@@ -279,6 +380,230 @@ const UrlListEditor = ({
     ) : null}
   </div>
 );
+
+const SCROLL_THRESHOLD = 8;
+
+const TermsModal = ({ isOpen, termKey, onClose, onAccept }) => {
+  const content = TERMS_CONTENT[termKey];
+  const scrollRef = useRef(null);
+  const [hasScrolledToEnd, setHasScrolledToEnd] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    setHasScrolledToEnd(false);
+    setProgress(0);
+  }, [termKey, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return undefined;
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen, onClose]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return undefined;
+    }
+
+    const frame = requestAnimationFrame(() => {
+      const node = scrollRef.current;
+      if (!node) {
+        return;
+      }
+      if (node.scrollHeight <= node.clientHeight + SCROLL_THRESHOLD) {
+        setHasScrolledToEnd(true);
+        setProgress(100);
+      }
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [isOpen, termKey]);
+
+  const handleScroll = (event) => {
+    const node = event.currentTarget;
+    const maxScroll = node.scrollHeight - node.clientHeight;
+    if (maxScroll <= SCROLL_THRESHOLD) {
+      setHasScrolledToEnd(true);
+      setProgress(100);
+      return;
+    }
+    const currentProgress = Math.min(
+      100,
+      Math.max(0, (node.scrollTop / maxScroll) * 100)
+    );
+    setProgress(currentProgress);
+    if (node.scrollTop + node.clientHeight >= node.scrollHeight - SCROLL_THRESHOLD) {
+      setHasScrolledToEnd(true);
+    }
+  };
+
+  if (!isOpen || !content) {
+    return null;
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={`terms-title-${termKey}`}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-[linear-gradient(160deg,rgba(20,20,24,0.98),rgba(10,10,14,0.98))] shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
+        <div className="flex items-start justify-between gap-3 border-b border-white/10 px-6 py-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[#f5b66f]/25 bg-[#f5b66f]/10 text-[#f5b66f]">
+              <FileText className="h-5 w-5" aria-hidden />
+            </div>
+            <div>
+              <h2
+                id={`terms-title-${termKey}`}
+                className="text-base font-semibold text-white sm:text-lg"
+              >
+                {content.title}
+              </h2>
+              <p className="mt-1 text-xs text-white/55">
+                {hasScrolledToEnd
+                  ? "Bạn đã đọc đến cuối nội dung."
+                  : "Vui lòng cuộn xuống cuối để tiếp tục."}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl p-2 text-white/55 transition hover:bg-white/5 hover:text-white"
+            aria-label="Đóng"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="h-1 w-full bg-white/5">
+          <div
+            className="h-full bg-[#f5b66f] transition-[width] duration-200"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="flex-1 overflow-y-auto px-6 py-5"
+        >
+          <p className="mb-5 rounded-2xl border border-[#f5b66f]/15 bg-[#f5b66f]/5 px-4 py-3 text-sm leading-6 text-white/70">
+            {content.intro}
+          </p>
+          <div className="space-y-5">
+            {content.sections.map((section) => (
+              <section key={section.heading}>
+                <h3 className="mb-2 text-sm font-semibold uppercase tracking-[0.18em] text-[#f5b66f]">
+                  {section.heading}
+                </h3>
+                <p className="text-sm leading-7 text-white/75">{section.body}</p>
+              </section>
+            ))}
+          </div>
+          <div className="mt-6 flex items-center justify-center gap-2 rounded-2xl border border-emerald-400/20 bg-emerald-400/5 px-4 py-3 text-xs font-medium text-emerald-300">
+            <CheckCircle2 className="h-4 w-4" aria-hidden />
+            Bạn đã đọc đến cuối điều khoản.
+          </div>
+        </div>
+
+        <div className="flex flex-col-reverse gap-2 border-t border-white/10 bg-black/20 px-6 py-4 sm:flex-row sm:items-center sm:justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-5 text-sm font-medium text-white/75 transition hover:border-white/20 hover:bg-white/[0.07]"
+          >
+            Đóng
+          </button>
+          <button
+            type="button"
+            disabled={!hasScrolledToEnd}
+            onClick={() => {
+              onAccept(termKey);
+              onClose();
+            }}
+            className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-[#f5b66f] px-5 text-sm font-semibold text-[#15181d] transition hover:bg-[#f7c789] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <CheckCircle2 className="h-4 w-4" aria-hidden />
+            Đã đọc và đồng ý
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const TermsCheckboxItem = ({
+  name,
+  label,
+  checked,
+  hasRead,
+  onChange,
+  onOpenTerms,
+  error,
+  requiresTerms = true,
+}) => {
+  const isDisabled = requiresTerms && !hasRead;
+  return (
+    <div>
+      <label
+        className={[
+          "flex items-start gap-3 rounded-2xl border px-4 py-4 transition",
+          isDisabled
+            ? "cursor-not-allowed border-white/5 bg-white/[0.02] opacity-60"
+            : "cursor-pointer border-white/10 bg-white/[0.04] hover:border-white/20 hover:bg-white/[0.06]",
+          error && !isDisabled ? "border-rose-300/40" : "",
+        ].join(" ")}
+      >
+        <input
+          type="checkbox"
+          name={name}
+          checked={checked}
+          onChange={onChange}
+          disabled={isDisabled}
+          className="mt-1 h-4 w-4 rounded border-white/20 bg-transparent text-[#f5b66f] focus:ring-[#f5b66f]/40 disabled:cursor-not-allowed"
+        />
+        <span className="flex-1 text-sm leading-6 text-white/75">{label}</span>
+      </label>
+      {requiresTerms ? (
+        <div className="mt-2 flex flex-wrap items-center gap-2 px-1">
+          <button
+            type="button"
+            onClick={() => onOpenTerms(name)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[#f5b66f]/20 bg-[#f5b66f]/8 px-3 py-1.5 text-xs font-semibold text-[#f5b66f] transition hover:border-[#f5b66f]/40 hover:bg-[#f5b66f]/14"
+          >
+            <FileText className="h-3.5 w-3.5" aria-hidden />
+            {hasRead ? "Xem lại điều khoản" : "Đọc điều khoản"}
+          </button>
+          
+        </div>
+      ) : null}
+      <FieldError>{error}</FieldError>
+    </div>
+  );
+};
 
 const STATUS_VIEW_CONFIG = {
   pending: {
@@ -512,6 +837,12 @@ const ArtistRegistrationRequestPage = () => {
   const [submitError, setSubmitError] = useState("");
   const [newDemoUrl, setNewDemoUrl] = useState("");
   const [newMusicLink, setNewMusicLink] = useState("");
+  const [activeTerms, setActiveTerms] = useState(null);
+  const [readTerms, setReadTerms] = useState({
+    acceptedTerms: false,
+    copyrightCommitment: false,
+    truthfulInformationCommitment: false,
+  });
 
   useEffect(() => {
     if (
@@ -664,11 +995,16 @@ const ArtistRegistrationRequestPage = () => {
       nextErrors.backImage = "Vui lòng tải ảnh mặt sau giấy tờ.";
     }
 
-    if (!formData.acceptedTerms) {
+    if (!readTerms.acceptedTerms) {
+      nextErrors.acceptedTerms = "Bạn cần đọc hết điều khoản trước khi đồng ý.";
+    } else if (!formData.acceptedTerms) {
       nextErrors.acceptedTerms = "Bạn cần đồng ý với điều khoản nghệ sĩ.";
     }
 
-    if (!formData.copyrightCommitment) {
+    if (!readTerms.copyrightCommitment) {
+      nextErrors.copyrightCommitment =
+        "Bạn cần đọc hết cam kết bản quyền trước khi xác nhận.";
+    } else if (!formData.copyrightCommitment) {
       nextErrors.copyrightCommitment =
         "Bạn cần xác nhận trách nhiệm bản quyền.";
     }
@@ -781,7 +1117,7 @@ const ArtistRegistrationRequestPage = () => {
 
   return (
     <main className={pageShellClassName}>
-      <section className="mx-auto max-w-6xl space-y-8">
+      <section className="mx-auto max-w-4xl space-y-8">
         <div className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[linear-gradient(135deg,rgba(18,18,24,0.92),rgba(14,14,18,0.86))] shadow-[0_24px_70px_rgba(0,0,0,0.28)]">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(245,182,111,0.16),_transparent_24%),radial-gradient(circle_at_right,_rgba(155,108,255,0.1),_transparent_24%)]" />
           <div className="relative flex flex-col gap-5 px-5 py-6 sm:px-7 sm:py-7 lg:flex-row lg:items-end lg:justify-between lg:px-8">
@@ -808,92 +1144,11 @@ const ArtistRegistrationRequestPage = () => {
           </div>
         </div>
 
-        <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_330px] xl:items-start">
+        <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)] xl:items-start">
           <div className={cardClassName}>
             <div className="pointer-events-none absolute -left-20 top-8 h-40 w-40 rounded-full bg-[#ff9f43]/10 blur-3xl" />
             <div className="pointer-events-none absolute bottom-0 right-0 h-48 w-48 rounded-full bg-[#9b6cff]/10 blur-3xl" />
             <div className="relative p-6 sm:p-8 lg:p-10">
-              <div className="mb-8 overflow-hidden rounded-[28px] border border-[#f5b66f]/12 bg-[linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] shadow-[0_24px_60px_rgba(0,0,0,0.24)]">
-                <div className="relative grid gap-0 lg:grid-cols-[minmax(0,1.2fr)_320px]">
-                  <div className="pointer-events-none absolute left-[-3rem] top-[-3rem] h-32 w-32 rounded-full bg-[#ff9f43]/18 blur-3xl" />
-                  <div className="pointer-events-none absolute bottom-[-4rem] right-[-2rem] h-40 w-40 rounded-full bg-[#9b6cff]/14 blur-3xl" />
-
-                  <div className="relative px-5 py-6 sm:px-6 sm:py-7">
-                    <div className="inline-flex items-center gap-2 rounded-full border border-[#f5b66f]/20 bg-[#f5b66f]/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#f5b66f]">
-                      <Sparkles className="h-3.5 w-3.5" aria-hidden />
-                      Quy trình xét duyệt
-                    </div>
-
-                    <h2 className="mt-4 max-w-xl text-[1.55rem] font-semibold leading-tight text-white sm:text-[1.8rem]">
-                      Hoàn thiện hồ sơ để gửi yêu cầu nhanh hơn
-                    </h2>
-
-                    <p className="mt-3 max-w-2xl text-sm leading-7 text-white/62 sm:text-[15px]">
-                      Điền đầy đủ thông tin cá nhân, giấy tờ xác minh và các liên kết âm nhạc công khai để đội ngũ dễ đánh giá hơn.
-                    </p>
-
-                    <div className="mt-5 flex flex-wrap gap-3">
-                      <div className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/75">
-                        <span className="h-2 w-2 rounded-full bg-emerald-300" />
-                        Thông tin rõ ràng
-                      </div>
-                      <div className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/75">
-                        <span className="h-2 w-2 rounded-full bg-[#f5b66f]" />
-                        Giấy tờ đầy đủ
-                      </div>
-                      <div className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/75">
-                        <span className="h-2 w-2 rounded-full bg-[#9b6cff]" />
-                        Link âm nhạc công khai
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="relative border-t border-white/10 bg-black/10 px-5 py-5 sm:px-6 lg:border-l lg:border-t-0">
-                    <div className="space-y-3">
-                      {[
-                        {
-                          step: "01",
-                          title: "Điền hồ sơ",
-                          description: "Tên nghệ sĩ, mô tả và thông tin cơ bản.",
-                        },
-                        {
-                          step: "02",
-                          title: "Xác minh",
-                          description: "Bổ sung CCCD/CMND và hình ảnh giấy tờ.",
-                        },
-                        {
-                          step: "03",
-                          title: "Chờ duyệt",
-                          description: "Đội ngũ tiếp nhận và xem xét hồ sơ của bạn.",
-                        },
-                      ].map((item, index) => (
-                        <div
-                          key={item.step}
-                          className="relative rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3"
-                        >
-                          {index < 2 ? (
-                            <span className="absolute left-[1.35rem] top-full h-3 w-px bg-gradient-to-b from-[#f5b66f]/40 to-transparent" />
-                          ) : null}
-                          <div className="flex items-start gap-3">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#f5b66f]/14 text-sm font-semibold text-[#f5b66f] shadow-[0_8px_24px_rgba(245,182,111,0.12)]">
-                              {item.step}
-                            </div>
-                            <div>
-                              <p className="text-sm font-semibold text-white">
-                                {item.title}
-                              </p>
-                              <p className="mt-1 text-xs leading-5 text-white/52">
-                                {item.description}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
               {submitError ? (
                 <div className="mb-6 rounded-2xl border border-rose-300/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
                   {submitError}
@@ -1156,21 +1411,17 @@ const ArtistRegistrationRequestPage = () => {
                           "Tôi xác nhận toàn bộ thông tin gửi lên là trung thực, chính xác và thuộc về tôi hoặc đơn vị đại diện hợp pháp.",
                       },
                     ].map((item) => (
-                      <div key={item.name}>
-                        <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-4 transition hover:border-white/20 hover:bg-white/[0.06]">
-                          <input
-                            type="checkbox"
-                            name={item.name}
-                            checked={formData[item.name]}
-                            onChange={handleChange}
-                            className="mt-1 h-4 w-4 rounded border-white/20 bg-transparent text-[#f5b66f] focus:ring-[#f5b66f]/40"
-                          />
-                          <span className="text-sm leading-6 text-white/75">
-                            {item.label}
-                          </span>
-                        </label>
-                        <FieldError>{errors[item.name]}</FieldError>
-                      </div>
+                      <TermsCheckboxItem
+                        key={item.name}
+                        name={item.name}
+                        label={item.label}
+                        checked={formData[item.name]}
+                        hasRead={readTerms[item.name]}
+                        requiresTerms={item.name !== "truthfulInformationCommitment"}
+                        onChange={handleChange}
+                        onOpenTerms={(termKey) => setActiveTerms(termKey)}
+                        error={errors[item.name]}
+                      />
                     ))}
                   </div>
                 </SectionCard>
@@ -1200,51 +1451,14 @@ const ArtistRegistrationRequestPage = () => {
             </div>
           </div>
 
-          <aside className="space-y-5">
-            <div className={cardClassName}>
-              <div className="relative p-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[#f5b66f]">
-                  Hồ sơ cần có
-                </p>
-                <ul className="mt-5 space-y-3">
-                  {[
-                    "Tên nghệ sĩ và phần giới thiệu ngắn",
-                    "Thông tin xác minh danh tính rõ ràng",
-                    "Ảnh mặt trước và mặt sau giấy tờ",
-                    "Link sản phẩm âm nhạc hoặc portfolio",
-                    "Các cam kết bắt buộc trước khi gửi",
-                  ].map((item) => (
-                    <li
-                      key={item}
-                      className="flex items-start gap-3 text-sm text-white/70"
-                    >
-                      <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[#f5b66f]" />
-                      <span className="leading-6">{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-
-            <div className={cardClassName}>
-              <div className="relative p-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[#f5b66f]">
-                  Gợi ý để hồ sơ đẹp hơn
-                </p>
-                <div className="mt-4 space-y-3 text-sm leading-6 text-white/65">
-                  <p>
-                    Dùng nghệ danh rõ ràng, dễ nhận diện và phần mô tả ngắn gọn để tạo ấn tượng tốt hơn.
-                  </p>
-                  <p>
-                    Nên đính kèm link âm nhạc công khai để đội ngũ dễ kiểm tra mức độ hoạt động của bạn.
-                  </p>
-                  <p>
-                    Ảnh giấy tờ nên sáng, rõ nét và đủ 4 góc để quá trình xét duyệt diễn ra nhanh hơn.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </aside>
+          <TermsModal
+            isOpen={Boolean(activeTerms)}
+            termKey={activeTerms}
+            onClose={() => setActiveTerms(null)}
+            onAccept={(termKey) =>
+              setReadTerms((previous) => ({ ...previous, [termKey]: true }))
+            }
+          />
         </div>
       </section>
     </main>

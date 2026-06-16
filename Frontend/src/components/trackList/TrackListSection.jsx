@@ -1,5 +1,5 @@
 const defaultHeaderGridClassName = `
-  mb-2 hidden grid-cols-[2.5rem_minmax(0,1fr)_2.75rem_3.25rem] items-center gap-3
+   mb-2 hidden grid-cols-[2.5rem_minmax(0,1fr)_2.75rem_3.25rem_2.75rem] items-center gap-3
   border-b border-black/6 px-3 pb-3 text-xs font-medium uppercase tracking-[0.24em]
   text-[#71717a] dark:border-white/10 dark:text-[#a1a1aa] md:grid
 `;

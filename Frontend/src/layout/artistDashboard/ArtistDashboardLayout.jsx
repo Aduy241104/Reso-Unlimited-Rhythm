@@ -1,15 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { Bell, Menu, Search, X } from "lucide-react";
 import { getMyArtistProfileService } from "../../services/artistService";
-import {
-  artistNavigation,
-  artistProfile,
-} from "./navigation";
+import { routePaths } from "../../routes/routePaths";
+import { artistNavigation, artistProfile } from "./navigation";
 
 const SIDEBAR_WIDTH = "264px";
 
 const ArtistDashboardLayout = () => {
+  const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [sidebarArtistName, setSidebarArtistName] = useState("");
   const [sidebarArtistSubtitle, setSidebarArtistSubtitle] = useState("");
@@ -47,7 +46,6 @@ const ArtistDashboardLayout = () => {
 
   const renderSidebar = () => (
     <div className="flex h-full flex-col bg-[#2f2747] text-white">
-      {/* Header */ }
       <div className="flex items-center justify-between border-b border-white/10 px-6 py-6 lg:justify-start">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.45em] text-[#d6b48c]">
@@ -60,23 +58,22 @@ const ArtistDashboardLayout = () => {
 
         <button
           type="button"
-          onClick={ () => setIsSidebarOpen(false) }
+          onClick={() => setIsSidebarOpen(false)}
           className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 text-white/60 transition hover:bg-white/10 hover:text-white lg:hidden"
-          aria-label="Close sidebar"
+          aria-label="Đóng thanh điều hướng"
         >
           <X className="h-5 w-5" />
         </button>
       </div>
 
-      {/* Navigation */ }
       <nav className="flex-1 space-y-1 py-5 pl-3 pr-0">
-        { artistNavigation.map((item) => (
+        {artistNavigation.map((item) => (
           <NavLink
-            key={ item.to }
-            to={ item.to }
-            end={ item.to === "/artist" }
-            onClick={ () => setIsSidebarOpen(false) }
-            className={ ({ isActive }) =>
+            key={item.to}
+            to={item.to}
+            end={item.to === "/artist"}
+            onClick={() => setIsSidebarOpen(false)}
+            className={({ isActive }) =>
               [
                 "relative flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-200",
                 isActive
@@ -85,41 +82,38 @@ const ArtistDashboardLayout = () => {
               ].join(" ")
             }
           >
-            { ({ isActive }) => (
+            {({ isActive }) => (
               <>
-                { isActive && (
+                {isActive ? (
                   <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-[#d6b48c]" />
-                ) }
+                ) : null}
 
                 <item.icon
-                  className={ [
+                  className={[
                     "h-4 w-4 shrink-0 transition",
                     isActive ? "text-[#5f4fe0]" : "text-white/45",
-                  ].join(" ") }
+                  ].join(" ")}
                 />
 
-                <span className="truncate">{ item.label }</span>
+                <span className="truncate">{item.label}</span>
               </>
-            ) }
+            )}
           </NavLink>
-        )) }
+        ))}
       </nav>
 
-      {/* Artist profile */ }
       <div className="border-t border-white/10 px-6 py-5">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-sm font-semibold text-[#d6b48c] ring-1 ring-white/10">
-            { (sidebarArtistName || artistProfile.name || "A")
-              .charAt(0)
-              .toUpperCase() }
+            {(sidebarArtistName || artistProfile.name || "A").charAt(0).toUpperCase()}
           </div>
 
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-white">
-              { sidebarArtistName || artistProfile.name }
+              {sidebarArtistName || artistProfile.name}
             </p>
             <p className="mt-1 truncate text-xs text-white/50">
-              { sidebarArtistSubtitle || artistProfile.role }
+              {sidebarArtistSubtitle || artistProfile.role}
             </p>
           </div>
         </div>
@@ -168,7 +162,7 @@ const ArtistDashboardLayout = () => {
                   type="button"
                   onClick={() => setIsSidebarOpen(true)}
                   className="inline-flex h-10 w-10 items-center justify-center rounded-sm border border-neutral-200 text-[#3a2d23] transition hover:bg-neutral-50 lg:hidden"
-                  aria-label="Open sidebar"
+                  aria-label="Mở thanh điều hướng"
                 >
                   <Menu className="h-5 w-5" />
                 </button>
@@ -186,8 +180,9 @@ const ArtistDashboardLayout = () => {
 
                 <button
                   type="button"
+                  onClick={() => navigate(routePaths.artistNotifications)}
                   className="inline-flex h-10 w-10 items-center justify-center rounded-sm border border-[#ece8ff] text-[#5f4fe0] transition hover:bg-[#f8f6ff]"
-                  aria-label="Notifications"
+                  aria-label="Thông báo"
                 >
                   <Bell className="h-5 w-5" />
                 </button>
