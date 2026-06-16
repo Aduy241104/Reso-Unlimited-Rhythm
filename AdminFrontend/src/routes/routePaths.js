@@ -20,4 +20,6 @@ export const routePaths = {
     `/system-playlists/${playlistId}`,
   systemPlaylistEdit: (playlistId = ":playlistId") =>
     `/system-playlists/${playlistId}/edit`,
+  reports: "/reports",
+  reportDetail: (reportId = ":reportId") => `/reports/${reportId}`,
 };
