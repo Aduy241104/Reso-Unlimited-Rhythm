@@ -75,9 +75,40 @@ const getNotificationDetailForAdmin = async (notificationId) => {
 
     return notification;
 };
+const updateNotificationForAdmin = async (notificationId, data) => {
+    if (!mongoose.Types.ObjectId.isValid(notificationId)) {
+        throw new AppError("Invalid notification id format.", 400);
+    }
 
+    const { title, content, type, targetId, targetType } = data;
+
+    const notification = await Notification.findByIdAndUpdate(
+        notificationId,
+        {
+            $set: {
+                title: title.trim(),
+                content: content.trim(),
+                type,
+                targetId: targetId ? new mongoose.Types.ObjectId(targetId) : null,
+                targetType: targetType || ""
+            }
+        },
+        { new: true, runValidators: true } 
+    )
+    .populate({ path: "userId", select: "email profile role activeStatus" })
+    .lean(); // 👈 BẮT BUỘC CÓ DÒNG NÀY ĐỂ SOCKET.IO KHÔNG BỊ LỖI SERIALIZE
+
+    if (!notification) {
+        throw new AppError("Notification not found or already deleted.", 404);
+    }
+
+    return notification;
+};
+
+// Đừng quên cập nhật object export default ở cuối file service:
 export default {
     createNotificationForAdmin,
     getNotificationsForAdmin,
-    getNotificationDetailForAdmin
+    getNotificationDetailForAdmin,
+    updateNotificationForAdmin // <-- Thêm ông này vào
 };

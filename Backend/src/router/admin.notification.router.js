@@ -15,13 +15,15 @@ router.post(
 );
 
 router.get(
-    "/", 
+    "/",
     adminNotificationController.getNotificationsForAdmin
 );
 
 router.get(
-    "/:id", 
+    "/:id",
     adminNotificationController.getNotificationDetailForAdmin
 );
+
+router.patch("/:id", adminNotificationController.updateNotificationForAdmin);
 
 export default router;
