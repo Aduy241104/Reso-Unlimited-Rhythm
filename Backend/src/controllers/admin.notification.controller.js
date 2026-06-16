@@ -39,6 +39,21 @@ const createNotificationForAdmin = async (req, res, next) => {
     }
 };
 
+const getNotificationsForAdmin = async (req, res, next) => {
+    try {
+        const notifications = await adminNotificationService.getNotificationsForAdmin();
+        
+        return formatResponse.success(
+            res,
+            { notifications },
+            "Fetch list of admin notifications successfully."
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
-    createNotificationForAdmin
+    createNotificationForAdmin,
+    getNotificationsForAdmin
 };

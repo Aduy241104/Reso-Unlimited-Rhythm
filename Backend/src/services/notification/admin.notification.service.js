@@ -54,6 +54,13 @@ const createNotificationForAdmin = async (adminId, data) => {
     throw new AppError("Invalid receiver type execution.", 400);
 };
 
+const getNotificationsForAdmin = async () => {
+    return await Notification.find()
+        .sort({ createdAt: -1 }) // Sắp xếp tin mới nhất lên đầu
+        .lean();
+};
+
 export default {
-    createNotificationForAdmin
+    createNotificationForAdmin,
+    getNotificationsForAdmin
 };

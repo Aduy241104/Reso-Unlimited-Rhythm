@@ -6,14 +6,17 @@ import { requireAdmin } from "../middlewares/Authentication/authentication.middl
 
 const router = express.Router();
 
-// Tất cả các route bên dưới đều bắt buộc phải là Admin
 router.use(requireAdmin);
 
-// POST /api/admin/notifications - Tạo và gửi thông báo
 router.post(
     "/",
     validate(adminNotificationValidation.createNotificationSchema, "body"),
     adminNotificationController.createNotificationForAdmin
+);
+
+router.get(
+    "/", 
+    adminNotificationController.getNotificationsForAdmin
 );
 
 export default router;
