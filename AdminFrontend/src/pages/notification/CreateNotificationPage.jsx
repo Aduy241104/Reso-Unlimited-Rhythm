@@ -11,7 +11,6 @@ import { routePaths } from "../../routes/routePaths";
 const CreateNotificationPage = () => {
     const navigate = useNavigate();
 
-    // State quản lý Form chính
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
     const [type, setType] = useState("system");
@@ -19,20 +18,19 @@ const CreateNotificationPage = () => {
     const [specificUserId, setSpecificUserId] = useState("");
     const [groupRole, setGroupRole] = useState("user");
 
-    // 🔍 STATE MỚI: Quản lý Autocomplete Tìm kiếm Người nhận (User) đích danh
+    // 🔍 ĐÃ CẬP NHẬT: Quản lý Tìm kiếm Người nhận đích danh (Hỗ trợ cả User & Artist)
+    const [singleSearchType, setSingleSearchType] = useState("user"); // "user" hoặc "artist"
     const [userSearchQuery, setUserSearchQuery] = useState("");
     const [userSearchResults, setUserSearchResults] = useState([]);
     const [isSearchingUser, setIsSearchingUser] = useState(false);
     const [showUserDropdown, setShowUserDropdown] = useState(false);
-    const [selectedUser, setSelectedUser] = useState(null); // Lưu { id, name, email, avatar } khi chọn xong
+    const [selectedUser, setSelectedUser] = useState(null);
     const userDropdownRef = useRef(null);
 
-    // State quản lý Liên kết thực thể điều hướng (Target Entity)
     const [targetType, setTargetType] = useState("");
     const [targetId, setTargetId] = useState("");
     const [selectedEntity, setSelectedEntity] = useState(null);
 
-    // State phục vụ Autocomplete Tìm kiếm thực thể điều hướng
     const [searchQuery, setSearchQuery] = useState("");
     const [searchResults, setSearchResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
@@ -42,7 +40,6 @@ const CreateNotificationPage = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState("");
 
-    // Xử lý đóng các dropdown khi click chuột ra ngoài vùng tìm kiếm
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -56,7 +53,7 @@ const CreateNotificationPage = () => {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    // ⚡ DEBOUNCE EFFECT: Thực thi tìm kiếm USER Real-time (400ms)
+    // ⚡ DEBOUNCE EFFECT: Tìm kiếm Người nhận (User Hoặc Artist) Real-time
     useEffect(() => {
         if (!userSearchQuery.trim() || receiverType !== "single") {
             setUserSearchResults([]);
@@ -66,21 +63,34 @@ const CreateNotificationPage = () => {
         const delayDebounceFn = setTimeout(async () => {
             setIsSearchingUser(true);
             try {
-                // 👇 SỬA Ở ĐÂY: Truyền đúng object format { search: ... } theo hàm của ông
-                const res = await getUsersService({ search: userSearchQuery, limit: 5 });
+                let results = [];
 
-                // 👇 SỬA Ở ĐÂY: Vì res đã là mảng user trực tiếp từ service trả về rồi
-                const results = (res || []).map(u => ({
-                    id: u.id || u._id,
-                    name: u.name || u.username,
-                    email: u.email || "",
-                    avatar: u.avatar || "",
-                }));
+                if (singleSearchType === "user") {
+                    const res = await getUsersService({ search: userSearchQuery, limit: 5 });
+
+                    results = (res || []).map(u => ({
+                        id: u.id || u._id,
+                        // 👇 SỬA DÒNG NÀY: Chèn profile?.fullName vào đầu tiên để bốc trúng DB của ông
+                        name: u.profile?.fullName || u.name || u.username || "Chưa đặt tên",
+                        subText: u.email || "",
+                        avatar: u.avatar || "",
+                    }));
+                } else {
+                    // Kịch bản 2: Tìm theo hồ sơ Nghệ sĩ (Bổ sung mới)
+                    const res = await searchAdminArtistsService({ q: userSearchQuery, limit: 5 });
+                    results = (res?.artists || []).map(a => ({
+                        // 🚨 LƯU Ý: Gán id bằng ID tài khoản User của Artist (a.userId hoặc a.id tùy thuộc DB của ông nhé)
+                        id: a.userId || a.id || a._id,
+                        name: a.name,
+                        subText: "Nghệ sĩ hệ thống",
+                        avatar: a.avatar || "",
+                    }));
+                }
 
                 setUserSearchResults(results);
                 setShowUserDropdown(true);
             } catch (err) {
-                console.error("Lỗi khi fetch tìm kiếm user:", err);
+                console.error("Lỗi khi fetch tìm kiếm người nhận:", err);
                 setUserSearchResults([]);
             } finally {
                 setIsSearchingUser(false);
@@ -88,9 +98,9 @@ const CreateNotificationPage = () => {
         }, 400);
 
         return () => clearTimeout(delayDebounceFn);
-    }, [userSearchQuery, receiverType]);
+    }, [userSearchQuery, receiverType, singleSearchType]);
 
-    // Thực thi tìm kiếm THỰC THỂ ĐIỀU HƯỚNG Real-time (Debounce 400ms)
+    // Thực thi tìm kiếm THỰC THỂ ĐIỀU HƯỚNG 
     useEffect(() => {
         if (!searchQuery.trim() || !targetType) {
             setSearchResults([]);
@@ -141,7 +151,6 @@ const CreateNotificationPage = () => {
         return () => clearTimeout(delayDebounceFn);
     }, [searchQuery, targetType]);
 
-    // Các hàm xử lý chọn/gỡ bỏ USER đích danh
     const handleSelectUser = (user) => {
         setSpecificUserId(user.id);
         setSelectedUser(user);
@@ -172,6 +181,14 @@ const CreateNotificationPage = () => {
     const handleClearSelectedEntity = () => {
         setTargetId("");
         setSelectedEntity(null);
+    };
+
+    // Hàm đổi kiểu tìm kiếm user/artist (tự động clear data cũ để tránh xung đột)
+    const handleSwitchSearchType = (type) => {
+        setSingleSearchType(type);
+        handleClearSelectedUser();
+        setUserSearchQuery("");
+        setUserSearchResults([]);
     };
 
     const handleSubmit = async (e) => {
@@ -259,10 +276,30 @@ const CreateNotificationPage = () => {
                     </div>
                 </div>
 
-                {/* 👇 SỬA ĐỔI Ô CHỌN USER ĐÍCH DANH THÀNH AUTOCOMPLETE SEARCH BOX XỊN MỊN */}
+                {/* KHU VỰC GỬI ĐÍCH DANH ĐÃ ĐƯỢC NÂNG CẤP TAB TOGGLE CHỌN USER/ARTIST 👇 */}
                 {receiverType === "single" && (
-                    <div className="p-4 bg-slate-50/40 border border-slate-100 rounded-xl space-y-1.5 relative animate-fadeIn" ref={userDropdownRef}>
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Tài khoản người nhận (User Đích Danh)</label>
+                    <div className="p-4 bg-slate-50/40 border border-slate-100 rounded-xl space-y-3 relative animate-fadeIn" ref={userDropdownRef}>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Tài khoản người nhận đích danh</label>
+
+                            {/* Nút bấm chuyển đổi nhanh chế độ tìm thường / tìm nghệ sĩ */}
+                            <div className="inline-flex rounded-lg bg-slate-100 p-0.5 self-start">
+                                <button
+                                    type="button"
+                                    onClick={() => handleSwitchSearchType("user")}
+                                    className={`px-3 py-1 text-[11px] font-bold rounded-md transition ${singleSearchType === "user" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-900"}`}
+                                >
+                                    Tìm Member
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleSwitchSearchType("artist")}
+                                    className={`px-3 py-1 text-[11px] font-bold rounded-md transition ${singleSearchType === "artist" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-900"}`}
+                                >
+                                    Tìm Nghệ sĩ perfil
+                                </button>
+                            </div>
+                        </div>
 
                         {!selectedUser ? (
                             <div className="relative">
@@ -273,7 +310,7 @@ const CreateNotificationPage = () => {
                                     disabled={isLoading}
                                     onChange={(e) => setUserSearchQuery(e.target.value)}
                                     onFocus={() => userSearchQuery && setShowUserDropdown(true)}
-                                    placeholder="Nhập tên hoặc email tài khoản người dùng thực tế..."
+                                    placeholder={singleSearchType === "user" ? "Nhập tên hoặc email tài khoản thành viên..." : "Nhập nghệ danh chính thức của nghệ sĩ cần gửi tin..."}
                                     className="w-full h-[42px] rounded-xl bg-white border border-slate-200 pl-9 pr-8 py-2.5 text-xs text-slate-900 outline-none focus:border-slate-400 transition font-medium"
                                 />
                                 {isSearchingUser && (
@@ -281,19 +318,18 @@ const CreateNotificationPage = () => {
                                 )}
                             </div>
                         ) : (
-                            /* Card hiển thị user đã chọn thành công */
                             <div className="flex h-[42px] items-center justify-between gap-3 border border-slate-200 bg-white rounded-xl px-3 shadow-sm animate-fade-in">
                                 <div className="flex items-center gap-2 min-w-0">
                                     {selectedUser.avatar ? (
                                         <img src={selectedUser.avatar} alt="" className="h-5 w-5 rounded-md object-cover border border-slate-100" />
                                     ) : (
                                         <div className="h-5 w-5 rounded-md bg-slate-900 flex items-center justify-center text-white shrink-0">
-                                            <User2 size={10} />
+                                            {singleSearchType === "user" ? <User2 size={10} /> : <Music size={10} />}
                                         </div>
                                     )}
                                     <div className="min-w-0 flex items-baseline gap-2">
                                         <p className="text-xs font-bold text-slate-900 truncate">{selectedUser.name}</p>
-                                        <p className="text-[10px] text-slate-400 font-medium truncate">({selectedUser.email})</p>
+                                        <p className="text-[10px] text-slate-400 font-medium truncate">({selectedUser.subText})</p>
                                     </div>
                                 </div>
                                 <button type="button" onClick={handleClearSelectedUser} disabled={isLoading} className="p-1 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-rose-600 transition">
@@ -302,7 +338,6 @@ const CreateNotificationPage = () => {
                             </div>
                         )}
 
-                        {/* Dropdown danh sách kết quả tìm kiếm User */}
                         {showUserDropdown && userSearchResults.length > 0 && (
                             <div className="absolute z-40 left-4 right-4 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-52 overflow-y-auto divide-y divide-slate-100 overflow-hidden">
                                 {userSearchResults.map((user) => (
@@ -316,22 +351,21 @@ const CreateNotificationPage = () => {
                                             <img src={user.avatar} alt="" className="h-6 w-6 rounded-md object-cover border border-slate-100" />
                                         ) : (
                                             <div className="h-6 w-6 rounded-md bg-slate-100 flex items-center justify-center text-slate-400 shrink-0">
-                                                <User2 size={12} />
+                                                {singleSearchType === "user" ? <User2 size={12} /> : <Music size={12} />}
                                             </div>
                                         )}
                                         <div className="min-w-0 flex-1">
                                             <p className="text-xs font-bold text-slate-900 truncate">{user.name}</p>
-                                            <p className="text-[10px] text-slate-400 font-mono truncate">{user.email || user.id}</p>
+                                            <p className="text-[10px] text-slate-400 font-mono truncate">{user.subText}</p>
                                         </div>
                                     </button>
                                 ))}
                             </div>
                         )}
 
-                        {/* Trạng thái không thấy kết quả */}
                         {showUserDropdown && userSearchResults.length === 0 && userSearchQuery && !isSearchingUser && (
                             <div className="absolute z-40 left-4 right-4 top-full mt-1 bg-white border border-slate-200 rounded-xl p-3.5 text-center text-xs font-medium text-slate-400 shadow-xl">
-                                Không tìm thấy tài khoản người dùng nào khớp trong hệ thống.
+                                Không tìm thấy kết quả nào khớp trong hệ thống.
                             </div>
                         )}
                     </div>
@@ -343,8 +377,8 @@ const CreateNotificationPage = () => {
                         <div className="flex gap-4">
                             {["user", "artist"].map((role) => (
                                 <label key={role} className={`flex-1 flex items-center justify-center gap-2 border rounded-xl h-[42px] px-4 text-xs font-bold capitalize cursor-pointer transition select-none ${groupRole === role
-                                        ? "bg-slate-900 border-slate-900 text-white shadow-sm"
-                                        : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                                    ? "bg-slate-900 border-slate-900 text-white shadow-sm"
+                                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
                                     }`}>
                                     <input type="radio" name="groupRole" value={role} checked={groupRole === role} onChange={() => setGroupRole(role)} disabled={isLoading} className="hidden" />
                                     {role === "user" ? <User2 size={14} /> : <Music size={14} />}
