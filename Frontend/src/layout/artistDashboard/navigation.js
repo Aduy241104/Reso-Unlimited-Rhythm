@@ -62,7 +62,6 @@ export const artistPageTitles = {
   [routePaths.artistAlbums]: "Album của tôi",
   [routePaths.artistReleases]: "Phát hành",
   [routePaths.artistAnalytics]: "Phân tích bài hát",
-  [routePaths.artistFans]: "Hành vi người nghe",
   [routePaths.artistNotifications]: "Thông báo",
   [routePaths.artistProfile]: "Hồ sơ nghệ sĩ",
   [routePaths.artistProfileEdit]: "Chỉnh sửa hồ sơ nghệ sĩ",

@@ -6,46 +6,35 @@ import { getArtistPerformanceOverviewService } from "../../services/artistServic
 import TrackInsightsChartPanel from "./trackInsights/components/TrackInsightsChartPanel";
 import TrackInsightsSummaryGrid from "./trackInsights/components/TrackInsightsSummaryGrid";
 import TrackInsightsTopTracksPanel from "./trackInsights/components/TrackInsightsTopTracksPanel";
-import {
-  BreakdownCard,
-  DEVICE_LABEL_MAP,
-  EngagementCard,
-  formatDateLabel,
-  formatNumber,
-  formatPercent,
-  ListenerBehaviorSummaryGrid,
-  LOYALTY_LABEL_MAP,
-  localizeItems,
-  SOURCE_LABEL_MAP,
-} from "./listenerBehaviorShared";
+import { BreakdownCard, formatDateLabel, formatNumber } from "./listenerBehaviorShared";
 
 const DEFAULT_RANGE = "30d";
 const RANGE_OPTIONS = [
-  { value: "7d", label: "7 ngày" },
-  { value: "30d", label: "30 ngày" },
-  { value: "90d", label: "90 ngày" },
+  { value: "7d", label: "7 ngay" },
+  { value: "30d", label: "30 ngay" },
+  { value: "90d", label: "90 ngay" },
 ];
 
 const DAILY_METRICS = {
   streamCount: {
-    label: "Lượt stream",
+    label: "Luot stream",
     color: "#7c6cf2",
-    description: "Tổng lượt stream được ghi nhận theo từng ngày.",
+    description: "Tong luot stream duoc ghi nhan theo tung ngay.",
     formatter: (value) => formatNumber(value),
   },
   uniqueListeners: {
-    label: "Người nghe",
+    label: "Nguoi nghe",
     color: "#34caa5",
-    description: "Số người nghe duy nhất theo từng ngày.",
+    description: "So nguoi nghe duy nhat theo tung ngay.",
     formatter: (value) => formatNumber(value),
   },
 };
 
 const PERIOD_STREAM_METRICS = {
   streamCount: {
-    label: "Lượt stream",
+    label: "Luot stream",
     color: "#7c6cf2",
-    description: "Tổng lượt stream trong từng mốc thời gian.",
+    description: "Tong luot stream trong tung moc thoi gian.",
     formatter: (value) => formatNumber(value),
   },
 };
@@ -82,31 +71,31 @@ const getMetricExtremes = (items, key) => {
 const normalizeErrorMessage = (error) =>
   error?.response?.data?.message ||
   error?.message ||
-  "Không thể tải dữ liệu overview của nghệ sĩ.";
+  "Khong the tai du lieu overview cua nghe si.";
 
 const buildSummaryCards = (summary) => [
   {
-    label: "Stream trong giai đoạn",
-    value: `${formatNumber(summary?.selectedRangeStreams)} lượt`,
-    helper: "Tổng số lượt stream trong khoảng thời gian đang xem.",
+    label: "Stream trong giai doan",
+    value: `${formatNumber(summary?.selectedRangeStreams)} luot`,
+    helper: "Tong so luot stream trong khoang thoi gian dang xem.",
     icon: Headphones,
   },
   {
-    label: "Người nghe duy nhất",
-    value: `${formatNumber(summary?.selectedRangeUniqueListeners)} người`,
-    helper: "Số người nghe duy nhất phát nhạc của bạn trong giai đoạn này.",
+    label: "Nguoi nghe duy nhat",
+    value: `${formatNumber(summary?.selectedRangeUniqueListeners)} nguoi`,
+    helper: "So nguoi nghe duy nhat phat nhac cua ban trong giai doan nay.",
     icon: Users,
   },
   {
-    label: "Tổng stream tháng này",
-    value: `${formatNumber(summary?.currentMonthStreams)} lượt`,
-    helper: "Tổng số lượt stream từ đầu tháng đến hiện tại.",
+    label: "Tong stream thang nay",
+    value: `${formatNumber(summary?.currentMonthStreams)} luot`,
+    helper: "Tong so luot stream tu dau thang den hien tai.",
     icon: CalendarDays,
   },
   {
-    label: "Tổng stream năm nay",
-    value: `${formatNumber(summary?.currentYearStreams)} lượt`,
-    helper: "Tổng số lượt stream từ đầu năm đến hiện tại.",
+    label: "Tong stream nam nay",
+    value: `${formatNumber(summary?.currentYearStreams)} luot`,
+    helper: "Tong so luot stream tu dau nam den hien tai.",
     icon: BarChart3,
   },
 ];
@@ -224,24 +213,7 @@ const ArtistOverviewPage = () => {
   }, [overview?.availableYears, selectedYear]);
 
   const selectedRangeLabel =
-    RANGE_OPTIONS.find((option) => option.value === selectedRange)?.label || "30 ngày";
-
-  const localizedSources = useMemo(
-    () => localizeItems(overview?.listenerBehavior?.behavior?.sources || [], SOURCE_LABEL_MAP),
-    [overview?.listenerBehavior?.behavior?.sources]
-  );
-  const localizedDevices = useMemo(
-    () => localizeItems(overview?.listenerBehavior?.behavior?.devices || [], DEVICE_LABEL_MAP),
-    [overview?.listenerBehavior?.behavior?.devices]
-  );
-  const localizedLoyaltySegments = useMemo(
-    () =>
-      localizeItems(
-        overview?.listenerBehavior?.behavior?.loyaltySegments || [],
-        LOYALTY_LABEL_MAP
-      ),
-    [overview?.listenerBehavior?.behavior?.loyaltySegments]
-  );
+    RANGE_OPTIONS.find((option) => option.value === selectedRange)?.label || "30 ngay";
 
   const handleOpenTrackInsights = (trackId) => {
     if (!trackId) {
@@ -256,7 +228,7 @@ const ArtistOverviewPage = () => {
       <section className="rounded-[20px] border border-[#e7e1ff] bg-white p-7 text-sm text-[#6b6682] shadow-sm">
         <div className="flex items-center gap-3">
           <LoaderCircle className="h-5 w-5 animate-spin text-[#7c6cf2]" />
-          Đang tải performance overview...
+          Dang tai performance overview...
         </div>
       </section>
     );
@@ -269,11 +241,11 @@ const ArtistOverviewPage = () => {
           Artist Performance Overview
         </p>
         <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[#2f2747]">
-          {overview?.artist?.name || "Nghệ sĩ"}
+          {overview?.artist?.name || "Nghe si"}
         </h2>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-[#7c7891]">
-          Theo dõi hiệu suất phát hành theo giai đoạn, bài hát đang hoạt động tốt nhất,
-          hành vi người nghe toàn thời gian và cơ cấu khán giả của bạn.
+          Theo doi hieu suat phat hanh theo giai doan, bai hat dang hoat dong tot nhat
+          va co cau khan gia cua ban.
         </p>
 
         <div className="mt-5 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -296,7 +268,7 @@ const ArtistOverviewPage = () => {
           </div>
 
           <label className="flex items-center gap-3 text-sm text-[#645d86]">
-            <span>Năm thống kê theo tháng</span>
+            <span>Nam thong ke theo thang</span>
             <select
               value={selectedYear}
               onChange={(event) => updateFilters({ year: event.target.value })}
@@ -312,7 +284,7 @@ const ArtistOverviewPage = () => {
         </div>
 
         <div className="mt-4 rounded-[16px] border border-[#efeaff] bg-[#faf9ff] px-4 py-3 text-sm text-[#6b6682]">
-          Giai đoạn đang xem:{" "}
+          Giai doan dang xem:{" "}
           <span className="font-semibold text-[#2f2747]">
             {formatDateLabel(overview?.period?.from)} - {formatDateLabel(overview?.period?.to)}
           </span>{" "}
@@ -352,8 +324,8 @@ const ArtistOverviewPage = () => {
         metricOptions={DAILY_METRICS}
         onChangeMetric={setDailyMetric}
         sectionEyebrow="Daily Streaming"
-        sectionTitle="Thống kê stream theo ngày"
-        sectionDescription="Biểu đồ này thể hiện lượt stream và số người nghe duy nhất theo từng ngày trong khoảng bạn đang chọn."
+        sectionTitle="Thong ke stream theo ngay"
+        sectionDescription="Bieu do nay the hien luot stream va so nguoi nghe duy nhat theo tung ngay trong khoang ban dang chon."
         showTooltipListenValue={dailyMetric !== "streamCount"}
         tooltipLabelFormatter={(value) =>
           formatDateLabel(value, {
@@ -362,7 +334,7 @@ const ArtistOverviewPage = () => {
             year: "numeric",
           })
         }
-        tooltipListenLabel="lượt stream"
+        tooltipListenLabel="luot stream"
         tooltipListenValueKey="streamCount"
         xAxisLabelFormatter={(value) =>
           formatDateLabel(value, { day: "2-digit", month: "short" })
@@ -381,10 +353,10 @@ const ArtistOverviewPage = () => {
         metricOptions={PERIOD_STREAM_METRICS}
         onChangeMetric={setMonthlyMetric}
         sectionEyebrow="Monthly Totals"
-        sectionTitle={`Tổng stream theo tháng của năm ${selectedYear}`}
-        sectionDescription={`Tổng lượt stream của từng tháng trong năm ${selectedYear}. Tổng cộng năm này hiện là ${formatNumber(
+        sectionTitle={`Tong stream theo thang cua nam ${selectedYear}`}
+        sectionDescription={`Tong luot stream cua tung thang trong nam ${selectedYear}. Tong cong nam nay hien la ${formatNumber(
           overview?.summary?.selectedYearStreams
-        )} lượt.`}
+        )} luot.`}
         showTooltipListenValue={false}
         tooltipLabelFormatter={(value) => formatMonthLabel(value)}
         tooltipListenValueKey="streamCount"
@@ -405,91 +377,27 @@ const ArtistOverviewPage = () => {
         metricOptions={PERIOD_STREAM_METRICS}
         onChangeMetric={setYearlyMetric}
         sectionEyebrow="Yearly Totals"
-        sectionTitle="Tổng stream theo năm"
-        sectionDescription="So sánh tổng lượt stream của 5 năm gần nhất để nhìn xu hướng tăng trưởng dài hạn."
+        sectionTitle="Tong stream theo nam"
+        sectionDescription="So sanh tong luot stream cua 5 nam gan nhat de nhin xu huong tang truong dai han."
         showTooltipListenValue={false}
         tooltipLabelFormatter={(value) => value}
         tooltipListenValueKey="streamCount"
         xAxisLabelFormatter={(value) => value}
       />
 
-      <section className="space-y-6">
-        <section className="rounded-[20px] border border-[#e7e1ff] bg-white p-6 shadow-sm">
-          <p className="text-xs uppercase tracking-[0.3em] text-[#7c6cf2]">
-            Hành vi người nghe
-          </p>
-          <h3 className="mt-3 text-2xl font-semibold tracking-tight text-[#2f2747]">
-            Toàn thời gian
-          </h3>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-[#7c7891]">
-            Phần này được tính trên toàn bộ lịch sử dữ liệu hiện có của artist, không còn lọc theo 7, 30 hay 90 ngày.
-          </p>
-          <div className="mt-4 rounded-[16px] border border-[#efeaff] bg-[#faf9ff] px-4 py-3 text-sm text-[#6b6682]">
-            Dữ liệu hành vi:{" "}
-            <span className="font-semibold text-[#2f2747]">
-              {formatDateLabel(overview?.listenerBehavior?.period?.from)} -{" "}
-              {formatDateLabel(overview?.listenerBehavior?.period?.to)}
-            </span>{" "}
-            (toàn thời gian)
-          </div>
-        </section>
-
-        <ListenerBehaviorSummaryGrid summary={overview?.listenerBehavior?.summary || {}} />
-
-        <section className="grid gap-6 xl:grid-cols-2">
-          <BreakdownCard
-            title="Nguồn nghe nổi bật"
-            description="Những nguồn mà người nghe bắt đầu phát nhạc nhiều nhất trên toàn bộ dữ liệu."
-            items={localizedSources}
-            emptyMessage="Chưa có dữ liệu nguồn nghe."
-            maxItems={6}
-          />
-
-          <BreakdownCard
-            title="Phân bổ thiết bị"
-            description="Thiết bị mà người nghe đã sử dụng để phát nhạc của bạn."
-            items={localizedDevices}
-            emptyMessage="Chưa có dữ liệu thiết bị."
-            maxItems={6}
-          />
-        </section>
-
-        <section className="grid gap-6 xl:grid-cols-2">
-          <BreakdownCard
-            title="Khung giờ nghe cao điểm"
-            description="Những khung giờ có lượng stream mạnh nhất trên toàn bộ lịch sử dữ liệu."
-            items={overview?.listenerBehavior?.behavior?.listeningHours || []}
-            emptyMessage="Chưa có hoạt động nghe nào."
-            maxItems={6}
-          />
-
-          <BreakdownCard
-            title="Phân khúc mức độ trung thành"
-            description="Mức độ nghe sâu của người nghe dựa trên số lượt stream mỗi người."
-            items={localizedLoyaltySegments}
-            emptyMessage="Chưa có dữ liệu phân khúc người nghe."
-            valueFormatter={(item) =>
-              `${formatNumber(item.count)} người (${formatPercent(item.percentage)})`
-            }
-          />
-        </section>
-
-        <EngagementCard engagement={overview?.listenerBehavior?.behavior?.engagement || {}} />
-      </section>
-
       <section className="grid gap-6 xl:grid-cols-2">
         <BreakdownCard
-          title="Thống kê độ tuổi người nghe"
-          description={`Được tính theo người nghe duy nhất trong khoảng ${selectedRangeLabel.toLowerCase()}.`}
+          title="Thong ke do tuoi nguoi nghe"
+          description={`Duoc tinh theo nguoi nghe duy nhat trong khoang ${selectedRangeLabel.toLowerCase()}.`}
           items={overview?.audience?.ageGroups || []}
-          emptyMessage="Chưa có người nghe nào trong giai đoạn đang xem nên chưa thể phân tích độ tuổi."
+          emptyMessage="Chua co nguoi nghe nao trong giai doan dang xem nen chua the phan tich do tuoi."
         />
 
         <BreakdownCard
-          title="Thống kê khu vực người nghe"
-          description="Xếp theo số người nghe duy nhất, ưu tiên quốc gia/khu vực ghi nhận ở lần nghe gần nhất trong giai đoạn."
+          title="Thong ke khu vuc nguoi nghe"
+          description="Xep theo so nguoi nghe duy nhat, uu tien quoc gia/khu vuc ghi nhan o lan nghe gan nhat trong giai doan."
           items={overview?.audience?.regions || []}
-          emptyMessage="Chưa có dữ liệu khu vực người nghe trong giai đoạn đang xem."
+          emptyMessage="Chua co du lieu khu vuc nguoi nghe trong giai doan dang xem."
           maxItems={8}
         />
       </section>
