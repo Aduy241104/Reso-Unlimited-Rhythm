@@ -155,8 +155,6 @@ const HomePage = () => {
         }
         emptyMessage="Hiện chưa có dữ liệu bảng xếp hạng."
         showPlayButton={ false }
-        actionLabel="Xem tất cả bảng xếp hạng"
-        actionHref={ routePaths.dailyTopTracks }
       />
 
       <ContentCardSection
