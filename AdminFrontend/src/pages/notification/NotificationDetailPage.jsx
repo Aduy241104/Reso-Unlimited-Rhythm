@@ -11,16 +11,17 @@ import {
     Trash2, 
     Loader2, 
     User,
-    Layers 
+    Layers,
+    Edit2
 } from "lucide-react";
-// 🛠️ ĐÃ FIX: Bổ sung đầy đủ service lấy chi tiết VÀ xóa thông báo tránh lỗi ReferenceError
+// 🛠️ ĐÃ FIX: Đảm bảo import đầy đủ service hệ thống
 import { 
     getAdminNotificationDetailService,
     deleteAdminNotificationService
 } from "../../services/notificationService";
 import { routePaths } from "../../routes/routePaths";
 
-// Hàm format thời gian nội bộ
+// Hàm helper định dạng thời gian phát hành nội bộ
 const formatDate = (value) => {
     if (!value) return "-";
     return new Date(value).toLocaleString("vi-VN", {
@@ -49,7 +50,7 @@ const NotificationDetailPage = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isDeleting, setIsDeleting] = useState(false);
 
-    // 🛠️ ĐÃ THÊM: State điều khiển đóng mở Modal xóa custom xịn sò
+    // 🛠️ ĐÃ ĐỒNG BỘ: Cấu trúc state quản lý Modal xóa custom từ danh sách list mang sang
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
     useEffect(() => {
@@ -67,21 +68,21 @@ const NotificationDetailPage = () => {
         if (id) void fetchDetail();
     }, [id, navigate]);
 
-    // 🛠️ ĐÃ FIX: Hàm mở Modal thay vì chạy confirm trực tiếp
+    // Trình kích hoạt mở Modal xóa
     const handleDeleteClick = () => {
         setIsDeleteModalOpen(true);
     };
 
-    // 🛠️ ĐÃ FIX: Hàm thực thi lệnh xóa thực tế từ Modal
+    // Hàm thực thi gọi API xóa vĩnh viễn dữ liệu
     const handleConfirmDelete = async () => {
         setIsDeleting(true);
         try {
             await deleteAdminNotificationService(id);
             toast.success("Xóa thông báo thành công!");
             setIsDeleteModalOpen(false);
-            navigate(routePaths.notifications);
+            navigate(routePaths.notifications); // Xóa xong quay ngược về danh sách
         } catch (error) {
-            toast.error("Xóa thất bại, vui lòng kiểm tra lại quyền hạn.");
+            toast.error("Xóa thông báo thất bại, vui lòng thử lại.");
             setIsDeleteModalOpen(false);
         } finally {
             setIsDeleting(false);
@@ -109,15 +110,28 @@ const NotificationDetailPage = () => {
                     <ArrowLeft size={14} /> Quay lại danh sách
                 </Link>
 
-                <button
-                    onClick={handleDeleteClick}
-                    className="inline-flex items-center gap-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition bg-white px-4 py-2.5 rounded-xl shadow-sm border border-rose-100 cursor-pointer"
-                >
-                    <Trash2 size={14} /> Gỡ bỏ thông báo vĩnh viễn
-                </button>
+                <div className="flex items-center gap-2">
+                    {/* Nút Chỉnh sửa cấu hình */}
+                    <Link
+                        to={routePaths.notificationEdit?.(id) || `/notifications/edit/${id}`}
+                        className="inline-flex items-center gap-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition bg-white px-4 py-2.5 rounded-xl shadow-sm border border-slate-200"
+                    >
+                        <Edit2 size={14} /> Chỉnh sửa
+                    </Link>
+
+                    {/* 🛠️ ĐÃ ĐEM VÀO VÀ ĐỒNG BỘ STYLE: Nút Xóa dạng Tag có khung viền giống hệt trang List */}
+                    <button
+                        type="button"
+                        onClick={handleDeleteClick}
+                        className="inline-flex items-center gap-1 border border-rose-100 bg-rose-50/50 text-rose-600 hover:bg-rose-50 px-4 py-2.5 text-xs font-bold rounded-xl transition shadow-sm cursor-pointer"
+                        title="Xóa thông báo hệ thống"
+                    >
+                        <Trash2 size={14} /> Xóa
+                    </button>
+                </div>
             </div>
 
-            {/* HEADER BAR: Đồng bộ chuẩn cấu trúc thông tin UserDetail */}
+            {/* HEADER BAR: Khối thông tin định danh */}
             <div className="flex flex-col gap-4 rounded-2xl bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between border border-slate-100">
                 <div className="flex items-center gap-4">
                     <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-900 text-white shadow-inner">
@@ -152,8 +166,6 @@ const NotificationDetailPage = () => {
                 
                 {/* CỘT TRÁI (HIỂN THỊ NỘI DUNG VÀ DEEP LINKING) - CHIẾM 2 PHẦN */}
                 <div className="lg:col-span-2 space-y-6">
-                    
-                    {/* Card Nút thắt: Chi tiết nội dung */}
                     <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100 border-l-[4px] border-l-slate-900 space-y-4">
                         <h2 className="text-base font-bold text-slate-900 border-b border-slate-50 pb-3 flex items-center gap-2">
                             <Layers size={16} className="text-slate-400" /> Bản dịch nội dung phát hành
@@ -200,11 +212,8 @@ const NotificationDetailPage = () => {
 
                 {/* CỘT PHẢI (AUDITS VÀ THÔNG TIN ĐỐI TƯỢNG NHẬN TIN) - CHIẾM 1 PHẦN */}
                 <div className="space-y-6">
-                    
-                    {/* Card Logistics & Audits */}
                     <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100 space-y-4">
                         <h2 className="text-base font-bold text-slate-900 border-b border-slate-50 pb-3">Logistics & Audits</h2>
-                        
                         <div className="space-y-4">
                             <div>
                                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Phân loại nhãn định danh</p>
@@ -212,14 +221,12 @@ const NotificationDetailPage = () => {
                                     <Tag size={12} /> {noti?.type || "General"}
                                 </span>
                             </div>
-
                             <div>
                                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Thời gian tạo bản ghi</p>
                                 <p className="text-xs font-mono font-semibold text-slate-600 mt-1 flex items-center gap-1.5">
                                     <Calendar size={13} className="text-slate-400" /> {formatDate(noti?.createdAt)}
                                 </p>
                             </div>
-
                             <div>
                                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Mã định danh hệ thống (ID)</p>
                                 <p className="text-[11px] font-mono font-medium text-slate-400 mt-1 break-all bg-slate-50 p-2 rounded-lg border border-slate-100">
@@ -229,13 +236,12 @@ const NotificationDetailPage = () => {
                         </div>
                     </div>
 
-                    {/* DYNAMIC CARD: Hồ sơ người nhận đích danh */}
+                    {/* Đối tượng đích danh đơn lẻ */}
                     {noti?.receiverType === "single" && noti?.userId && (
                         <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100 space-y-4">
                             <h2 className="text-base font-bold text-slate-900 border-b border-slate-50 pb-3 flex items-center gap-2">
                                 <User size={16} className="text-slate-400" /> Đối tượng đích danh
                             </h2>
-                            
                             <div className="space-y-3 pt-1">
                                 <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
                                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-xs font-black text-white uppercase shadow-sm">
@@ -250,7 +256,6 @@ const NotificationDetailPage = () => {
                                         </p>
                                     </div>
                                 </div>
-                                
                                 <div className="space-y-1 pl-1">
                                     <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Tài khoản Email</p>
                                     <p className="text-xs font-semibold text-slate-700 break-all flex items-center gap-1.5">
@@ -263,7 +268,7 @@ const NotificationDetailPage = () => {
                 </div>
             </div>
 
-            {/* ================= MODAL XÓA CUSTOM: Đồng bộ chuẩn chỉ cấu trúc GenresListPage ================= */}
+            {/* ================= MODAL XÓA CUSTOM: Đồng bộ mang từ trang List sang chi tiết ================= */}
             {isDeleteModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm">
                     <div className="w-full max-w-md bg-white p-6 shadow-xl rounded-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95 duration-150">

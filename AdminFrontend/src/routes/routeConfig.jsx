@@ -23,6 +23,7 @@ import CreateNotificationPage from "../pages/notification/CreateNotificationPage
 import AdminListPage from "../pages/users/AdminListPage";
 import NotificationsListPage from "../pages/notification/NotificationListPage";
 import NotificationDetailPage from "../pages/notification/NotificationDetailPage";
+import NotificationEditPage from "../pages/notification/NotificationUpdatePage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import RoleRoute from "./RoleRoute";
@@ -84,6 +85,10 @@ export const appRoutes = [
               {
                 path: "notifications/:id",
                 element: <NotificationDetailPage />,
+              },
+              {
+                path: "notifications/:id/edit",
+                element: <NotificationEditPage />,
               },
               {
                 path: "users/admins",

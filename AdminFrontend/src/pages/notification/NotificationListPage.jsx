@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import toast from "react-hot-toast";
 import ReactPaginate from "react-paginate";
-import { Plus, Trash2, Calendar, Search, Loader2, Eye } from "lucide-react";
-// 🛠️ ĐÃ FIX: Đồng bộ dịch vụ API
-import { getAdminNotificationsService, deleteAdminNotificationService } from "../../services/notificationService";
+import { Plus, Calendar, Search, Loader2, Eye } from "lucide-react";
+// ⚙️ ĐÃ TINH CHỈNH: Chỉ giữ lại service lấy danh sách thông báo
+import { getAdminNotificationsService } from "../../services/notificationService";
 import { routePaths } from "../../routes/routePaths";
 
 const formatDate = (value) => {
@@ -88,10 +87,6 @@ const NotificationListPage = () => {
     const [pagination, setPagination] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [message, setMessage] = useState("");
-    const [isDeleting, setIsDeleting] = useState(false);
-
-    // State điều khiển đóng mở Modal xóa custom xịn
-    const [deleteModal, setDeleteModal] = useState({ isOpen: false, notiId: null, notiTitle: "" });
 
     const loadNotifications = async (params = query) => {
         setIsLoading(true);
@@ -160,27 +155,6 @@ const NotificationListPage = () => {
 
     const handlePageChange = ({ selected }) => {
         setQuery((prev) => ({ ...prev, page: selected + 1 }));
-    };
-
-    // Quản lý Modal xóa hội thoại cục bộ
-    const openDeleteModal = (id, title) => { setDeleteModal({ isOpen: true, notiId: id, notiTitle: title }); };
-    const closeDeleteModal = () => { setDeleteModal({ isOpen: false, notiId: null, notiTitle: "" }); };
-
-    const handleConfirmDelete = async () => {
-        const { notiId } = deleteModal;
-        if (!notiId) return;
-        setIsDeleting(true);
-        try {
-            await deleteAdminNotificationService(notiId);
-            toast.success("Xóa thông báo thành công!");
-            await loadNotifications(query);
-            closeDeleteModal();
-        } catch (error) {
-            toast.error("Xóa thông báo thất bại, vui lòng thử lại.");
-            closeDeleteModal();
-        } finally {
-            setIsDeleting(false);
-        }
     };
 
     const total = pagination?.total ?? 0;
@@ -266,8 +240,8 @@ const NotificationListPage = () => {
                 </div>
             ) : (
                 <div className="overflow-hidden rounded-2xl bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
-                    {/* 🛠️ ĐÃ CẬP NHẬT: Cột cuối đổi sang 160px để chứa vừa khít 2 nút bấm */}
-                    <div className="grid min-w-[1020px] grid-cols-[180px_minmax(0,2fr)_180px_160px] gap-4 border-b border-slate-200 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+                    {/* 🛠️ ĐÃ CẬP NHẬT: Định cấu hình cột cuối về 100px tinh gọn cho nút Chi tiết */}
+                    <div className="grid min-w-[1020px] grid-cols-[180px_minmax(0,2fr)_180px_100px] gap-4 border-b border-slate-200 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
                         <span>Loại & Đối tượng</span>
                         <span>Nội dung thông báo</span>
                         <span>Thời gian phát hành</span>
@@ -282,8 +256,7 @@ const NotificationListPage = () => {
                                 </div>
                             ) : (
                                 currentPageItems.map((noti) => (
-                                    /* 🛠️ ĐÃ CẬP NHẬT: Grid đồng bộ 160px với header */
-                                    <article key={noti._id} className="relative grid grid-cols-[180px_minmax(0,2fr)_180px_160px] gap-4 px-6 py-5 transition hover:bg-slate-50/60 items-center">
+                                    <article key={noti._id} className="relative grid grid-cols-[180px_minmax(0,2fr)_180px_100px] gap-4 px-6 py-5 transition hover:bg-slate-50/60 items-center">
 
                                         <div className={`absolute inset-y-2 left-0 w-1 rounded-r ${getAccentClasses(noti.type)}`} />
 
@@ -312,21 +285,14 @@ const NotificationListPage = () => {
                                             {formatDate(noti.createdAt)}
                                         </div>
 
-                                        {/* 🛠️ ĐÃ THÊM: Nút Chi tiết nằm cạnh nút Xóa chuẩn style bạn yêu cầu */}
-                                        <div className="flex items-center justify-end gap-1.5 pr-2">
+                                        {/* 🛠️ ĐÃ CẬP NHẬT: Chỉ giữ lại duy nhất nút Chi tiết cực kỳ gọn gàng */}
+                                        <div className="flex items-center justify-end pr-2">
                                             <Link 
                                                 to={routePaths.notificationDetail?.(noti._id) || `/notifications/${noti._id}`} 
                                                 className="inline-flex items-center gap-1 border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 px-3 py-1.5 text-xs font-semibold rounded-xl transition shadow-sm"
                                             >
                                                 <Eye size={12} /> Chi tiết
                                             </Link>
-                                            <button
-                                                type="button"
-                                                onClick={() => openDeleteModal(noti._id, noti.title)}
-                                                className="inline-flex items-center gap-1 border border-rose-100 bg-rose-50/50 text-rose-600 hover:bg-rose-50 px-3 py-1.5 text-xs font-semibold rounded-xl transition shadow-sm cursor-pointer"
-                                            >
-                                                <Trash2 size={12} /> Xóa
-                                            </button>
                                         </div>
                                     </article>
                                 ))
@@ -365,38 +331,6 @@ const NotificationListPage = () => {
                             disabledLinkClassName="cursor-not-allowed opacity-40 hover:bg-slate-100"
                         />
                     )}
-                </div>
-            )}
-
-            {/* ================= MODAL XÓA CUSTOM: Đồng bộ chuẩn chỉ cấu hình GenresListPage ================= */}
-            {deleteModal.isOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm">
-                    <div className="w-full max-w-md bg-white p-6 shadow-xl rounded-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95 duration-150">
-                        <div>
-                            <h2 className="text-lg font-bold text-slate-900">Xóa thông báo hệ thống?</h2>
-                            <p className="text-xs text-slate-400 mt-0.5">Hành động này không thể hoàn tác. Người dùng sẽ không thể nhìn thấy thông báo này nữa.</p>
-                        </div>
-                        <p className="text-sm text-slate-600 leading-relaxed">
-                            Xác nhận gỡ bỏ hoàn toàn bản ghi thông báo: <span className="font-bold text-slate-950">"{deleteModal.notiTitle}"</span>?
-                        </p>
-                        <div className="flex gap-2 justify-end pt-1">
-                            <button 
-                                type="button" 
-                                onClick={closeDeleteModal} 
-                                className="px-4 py-2 text-xs font-semibold border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 transition cursor-pointer"
-                            >
-                                Hủy bỏ
-                            </button>
-                            <button 
-                                type="button" 
-                                disabled={isDeleting} 
-                                onClick={handleConfirmDelete} 
-                                className="px-4 py-2 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-sm transition disabled:opacity-50 cursor-pointer"
-                            >
-                                {isDeleting ? "Đang gỡ..." : "Xác nhận gỡ bỏ"}
-                            </button>
-                        </div>
-                    </div>
                 </div>
             )}
         </section>

@@ -2,17 +2,17 @@ import { useState, useEffect, useRef } from "react";
 import { Bell, Settings, Circle, MessageSquare, Star, CreditCard, CheckCircle2, AlertTriangle } from "lucide-react";
 import { useTheme } from "../../hooks/useTheme";
 import { io } from "socket.io-client";
-import { useAuth } from "../../hooks/useAuth"; 
+import { useAuth } from "../../hooks/useAuth";
 import { getMyNotificationsService } from "../../services/notificationService";
 
 const NotificationDropdown = () => {
     const { isDark } = useTheme();
-    const { accessToken } = useAuth(); 
+    const { accessToken } = useAuth();
     const notiRef = useRef(null);
 
     const [isNotiOpen, setIsNotiOpen] = useState(false);
-    const [notifications, setNotifications] = useState([]); 
-    const [unreadCount, setUnreadCount] = useState(0);      
+    const [notifications, setNotifications] = useState([]);
+    const [unreadCount, setUnreadCount] = useState(0);
 
     useEffect(() => {
         if (!accessToken) return;
@@ -20,7 +20,7 @@ const NotificationDropdown = () => {
         console.log("🟢 [Socket] Phát hiện AccessToken hợp lệ, tiến hành thông mạch...");
 
         const socket = io("http://localhost:8080", {
-            auth: { token: accessToken } 
+            auth: { token: accessToken }
         });
 
         socket.on("connect", () => {
@@ -31,6 +31,7 @@ const NotificationDropdown = () => {
             console.error("🔴 [Socket] LỖI KẾT NỐI VÌ:", err.message);
         });
 
+        // 1. Hứng lúc TẠO MỚI
         socket.on("new_notification", (newNoti) => {
             console.log("🔥 [Socket] NHẬN ĐƯỢC TIN NHẮN REALTIME MỚI TINH:", newNoti);
             setNotifications((prev) => [
@@ -40,12 +41,32 @@ const NotificationDropdown = () => {
             setUnreadCount((prev) => prev + 1);
         });
 
+        // ==========================================
+        // 2. HỨNG LÚC CHỈNH SỬA (ĐÃ FIX ÉP KIỂU STRING BẤT BẠI)
+        // ==========================================
+        socket.on("update_notification", (updatedNoti) => {
+            console.log("✏️ [Socket] NHẬN ĐƯỢC BẢN CẬP NHẬT THÔNG BÁO:", updatedNoti);
+
+            setNotifications((prev) =>
+                prev.map((noti) => {
+                    // 👇 Ép chặt kiểu String để tránh lỗi tàng hình do JS so sánh Object
+                    const isMatch = String(noti._id || noti.id) === String(updatedNoti._id || updatedNoti.id);
+                    
+                    if (isMatch) {
+                        return { ...noti, ...updatedNoti }; 
+                    }
+                    return noti;
+                })
+            );
+        });
+
         return () => {
             socket.off("new_notification");
+            socket.off("update_notification");
             socket.disconnect();
         };
-    }, [accessToken]); 
-
+    }, [accessToken]);
+    
     const fetchInitialData = async () => {
         try {
             const data = await getMyNotificationsService({ page: 1, limit: 5 });
@@ -74,13 +95,13 @@ const NotificationDropdown = () => {
     const handleToggleDropdown = () => {
         setIsNotiOpen((prev) => {
             const nextState = !prev;
-            
+
             // Khi người dùng bấm MỞ khay thông báo ra xem
             if (nextState) {
                 setUnreadCount(0); // 1. Xóa ngay lập tức số lượng chấm đỏ trên nút chuông
-                
+
                 // 2. Tự động chuyển toàn bộ tin đang hiển thị thành "Đã đọc" trên giao diện cho đẹp
-                setNotifications((oldNotis) => 
+                setNotifications((oldNotis) =>
                     oldNotis.map((noti) => ({ ...noti, isRead: true }))
                 );
 

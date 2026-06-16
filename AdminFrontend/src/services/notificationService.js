@@ -24,6 +24,11 @@ export const deleteAdminNotificationService = async (id) => {
     return response?.data ?? response;
 }
 
+export const updateAdminNotificationService = async (id, data) => {
+    const response = await axiosClient.patch(`${ADMIN_NOTIFICATION_PREFIX}/${id}`, data);
+    return response?.data ?? response;
+}
+
 export default {
     createAdminNotificationService,
     getAdminNotificationsService,

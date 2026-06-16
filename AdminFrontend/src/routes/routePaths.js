@@ -22,5 +22,6 @@ export const routePaths = {
     `/system-playlists/${playlistId}/edit`,
   notifications: "/notifications",
   createNotification: "/notifications/new",
-  notificationDetail: (notificationId = ":id") => `/notifications/${notificationId}`
+  notificationDetail: (notificationId = ":id") => `/notifications/${notificationId}`,
+  notificationEdit: (notificationId = ":id") => `/notifications/${notificationId}/edit`,
 };
