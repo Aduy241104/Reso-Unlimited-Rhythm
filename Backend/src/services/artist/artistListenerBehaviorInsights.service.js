@@ -13,8 +13,6 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 
 const DATE_KEY_FORMAT = "YYYY-MM-DD";
-const DEFAULT_RANGE = "30d";
-const ALLOWED_RANGES = new Set(["7d", "30d", "90d"]);
 const UNKNOWN_LABEL = "Khong xac dinh";
 
 const SOURCE_LABELS = {
@@ -64,25 +62,36 @@ const resolveArtistProfile = async (userId) => {
     return artist;
 };
 
-const resolveRange = (range) => {
-    const normalizedRange = String(range || DEFAULT_RANGE).trim();
-
-    if (!ALLOWED_RANGES.has(normalizedRange)) {
-        throw new AppError("Khoang thoi gian thong ke khong hop le", StatusCodes.BAD_REQUEST);
-    }
-
-    return normalizedRange;
-};
-
-const resolveRangePeriod = (range) => {
+const resolveAllTimePeriod = async (artistId) => {
     const today = getTodayInAnalyticsTimezone();
-    const dayCount = Number.parseInt(range.replace("d", ""), 10);
-    const from = today.subtract(dayCount - 1, "day");
+    const [result] = await ListenEvent.aggregate([
+        {
+            $match: {
+                artistId,
+                listenedAt: { $exists: true, $ne: null },
+            },
+        },
+        {
+            $group: {
+                _id: null,
+                earliestListenedAt: { $min: "$listenedAt" },
+            },
+        },
+        {
+            $project: {
+                _id: 0,
+                earliestListenedAt: 1,
+            },
+        },
+    ]);
+    const earliestListenedAt = result?.earliestListenedAt;
+    const from = earliestListenedAt
+        ? dayjs(earliestListenedAt).tz(getAnalyticsTimezone()).startOf("day")
+        : today;
 
     return {
         from,
         to: today,
-        range,
         fromDateKey: from.format(DATE_KEY_FORMAT),
         toDateKey: today.format(DATE_KEY_FORMAT),
         startDate: from.toDate(),
@@ -146,115 +155,6 @@ const aggregateBehaviorSummary = async ({
         completedStreams: Number(summary?.completedStreams || 0),
         skippedStreams: Number(summary?.skippedStreams || 0),
     };
-};
-
-const aggregateDailyBehaviorStats = async ({
-    artistId,
-    startDate,
-    endDateExclusive,
-}) => {
-    const results = await ListenEvent.aggregate([
-        {
-            $match: {
-                artistId,
-                listenedAt: {
-                    $gte: startDate,
-                    $lt: endDateExclusive,
-                },
-            },
-        },
-        {
-            $group: {
-                _id: {
-                    $dateToString: {
-                        format: "%Y-%m-%d",
-                        date: "$listenedAt",
-                        timezone: getAnalyticsTimezone(),
-                    },
-                },
-                streamCount: { $sum: 1 },
-                uniqueListeners: { $addToSet: "$userId" },
-                completedStreams: {
-                    $sum: {
-                        $cond: [{ $eq: ["$completed", true] }, 1, 0],
-                    },
-                },
-                skippedStreams: {
-                    $sum: {
-                        $cond: [{ $eq: ["$skipped", true] }, 1, 0],
-                    },
-                },
-            },
-        },
-        {
-            $project: {
-                _id: 0,
-                date: "$_id",
-                streamCount: 1,
-                uniqueListeners: { $size: "$uniqueListeners" },
-                completionRate: {
-                    $cond: [
-                        { $gt: ["$streamCount", 0] },
-                        {
-                            $multiply: [
-                                { $divide: ["$completedStreams", "$streamCount"] },
-                                100,
-                            ],
-                        },
-                        0,
-                    ],
-                },
-                skipRate: {
-                    $cond: [
-                        { $gt: ["$streamCount", 0] },
-                        {
-                            $multiply: [
-                                { $divide: ["$skippedStreams", "$streamCount"] },
-                                100,
-                            ],
-                        },
-                        0,
-                    ],
-                },
-            },
-        },
-        {
-            $sort: {
-                date: 1,
-            },
-        },
-    ]);
-
-    return results.map((item) => ({
-        date: item.date,
-        streamCount: Number(item.streamCount || 0),
-        uniqueListeners: Number(item.uniqueListeners || 0),
-        completionRate: roundToTwoDecimals(item.completionRate),
-        skipRate: roundToTwoDecimals(item.skipRate),
-    }));
-};
-
-const fillMissingDailyStats = ({ stats = [], from, to }) => {
-    const statMap = new Map(stats.map((stat) => [String(stat.date), stat]));
-    const filledStats = [];
-    let cursor = from.startOf("day");
-
-    while (cursor.isBefore(to) || cursor.isSame(to, "day")) {
-        const dateKey = cursor.format(DATE_KEY_FORMAT);
-        const stat = statMap.get(dateKey);
-
-        filledStats.push({
-            date: dateKey,
-            streamCount: Number(stat?.streamCount || 0),
-            uniqueListeners: Number(stat?.uniqueListeners || 0),
-            completionRate: roundToTwoDecimals(stat?.completionRate || 0),
-            skipRate: roundToTwoDecimals(stat?.skipRate || 0),
-        });
-
-        cursor = cursor.add(1, "day");
-    }
-
-    return filledStats;
 };
 
 const aggregateListenerFrequency = async ({
@@ -553,26 +453,18 @@ const aggregateEngagement = async ({
 
 export const getArtistListenerBehaviorInsights = async ({
     userId,
-    range,
 }) => {
     const artist = await resolveArtistProfile(userId);
-    const selectedRange = resolveRange(range);
-    const period = resolveRangePeriod(selectedRange);
+    const period = await resolveAllTimePeriod(artist._id);
 
     const [
         summary,
-        dailyStats,
         listenerFrequency,
         sourceStats,
         deviceStats,
         listeningHours,
     ] = await Promise.all([
         aggregateBehaviorSummary({
-            artistId: artist._id,
-            startDate: period.startDate,
-            endDateExclusive: period.endDateExclusive,
-        }),
-        aggregateDailyBehaviorStats({
             artistId: artist._id,
             startDate: period.startDate,
             endDateExclusive: period.endDateExclusive,
@@ -616,7 +508,7 @@ export const getArtistListenerBehaviorInsights = async ({
             id: String(artist._id),
             name: artist.name || "Nghe si",
         },
-        range: selectedRange,
+        range: "all",
         period: {
             from: period.fromDateKey,
             to: period.toDateKey,
@@ -645,11 +537,6 @@ export const getArtistListenerBehaviorInsights = async ({
                     : 0,
             engagementRate: engagement.engagementRate,
         },
-        dailyStats: fillMissingDailyStats({
-            stats: dailyStats,
-            from: period.from,
-            to: period.to,
-        }),
         behavior: {
             sources: buildSourceBreakdown(sourceStats),
             devices: buildDeviceBreakdown(deviceStats),

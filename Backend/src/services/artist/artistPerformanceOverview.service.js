@@ -8,6 +8,8 @@ import ListenEvent from "../../models/ListenEvent.js";
 import User from "../../models/User.js";
 import { getAnalyticsTimezone } from "../analytics/trackStatAggregation.service.js";
 import { AppError } from "../../utils/AppError.js";
+import artistListenerBehaviorInsightsService from "./artistListenerBehaviorInsights.service.js";
+import artistTopPerformingTracksService from "./artistTopPerformingTracks.service.js";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -796,6 +798,8 @@ export const getArtistPerformanceOverview = async ({
         yearlyStats,
         availableYears,
         audienceProfiles,
+        listenerBehavior,
+        topPerformingTracks,
     ] = await Promise.all([
         aggregatePeriodSummary({
             artistId: artist._id,
@@ -839,6 +843,13 @@ export const getArtistPerformanceOverview = async ({
             artistId: artist._id,
             startDate: dailyPeriod.startDate,
             endDateExclusive: dailyPeriod.endDateExclusive,
+        }),
+        artistListenerBehaviorInsightsService.getArtistListenerBehaviorInsights({
+            userId,
+        }),
+        artistTopPerformingTracksService.getTopPerformingTracks({
+            userId,
+            range: selectedRange,
         }),
     ]);
 
@@ -891,6 +902,8 @@ export const getArtistPerformanceOverview = async ({
             ageGroups,
             regions,
         },
+        listenerBehavior,
+        topPerformingTracks,
     };
 };
 

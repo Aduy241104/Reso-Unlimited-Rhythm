@@ -60,25 +60,6 @@ const getTrackAnalyticsOverviewController = async (req, res, next) => {
     }
 };
 
-const getTopPerformingTracksController = async (req, res, next) => {
-    try {
-        const analytics = await trackAnalyticsService.getTopPerformingTracks({
-            userId: req.user.id,
-            range: req.query.range,
-            from: req.query.from,
-            to: req.query.to,
-        });
-
-        return formatResponse.success(
-            res,
-            analytics,
-            "Top performing tracks fetched successfully"
-        );
-    } catch (error) {
-        next(error);
-    }
-};
-
 const getTrackDailyAnalyticsController = async (req, res, next) => {
     try {
         const analytics = await trackAnalyticsService.getTrackDailyAnalytics({
@@ -140,7 +121,6 @@ const compareTrackPerformanceController = async (req, res, next) => {
 export default {
     getArtistPerformanceOverviewController,
     getArtistListenerBehaviorInsightsController,
-    getTopPerformingTracksController,
     getTrackAnalyticsOverviewController,
     getTrackDailyAnalyticsController,
     getTrackMonthlyAnalyticsController,

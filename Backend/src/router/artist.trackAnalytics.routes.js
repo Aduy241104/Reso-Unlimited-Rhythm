@@ -19,12 +19,6 @@ router.get(
 );
 
 router.get(
-    "/overview/top-performing-tracks",
-    requireArtist,
-    artistTrackAnalyticsController.getTopPerformingTracksController
-);
-
-router.get(
     "/tracks/:trackId/analytics",
     requireArtist,
     validate(trackValidation.trackAnalyticsTrackIdParamSchema, "params"),

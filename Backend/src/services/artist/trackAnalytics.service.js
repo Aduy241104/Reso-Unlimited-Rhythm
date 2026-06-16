@@ -4,7 +4,6 @@ import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 import { StatusCodes } from "http-status-codes";
 import Artist from "../../models/Artist.js";
-import ListenEvent from "../../models/ListenEvent.js";
 import Track from "../../models/Track.js";
 import TrackDailyStat from "../../models/TrackDailyStat.js";
 import TrackMonthlyStat from "../../models/TrackMonthlyStat.js";
@@ -193,43 +192,6 @@ const buildTrackPayload = (track) => ({
     duration: convertSecondsToMinutes(track.duration),
 });
 
-const buildTopTrackPayload = ({ track, stats, rank }) => ({
-    rank,
-    track: {
-        id: String(track._id),
-        title: track.title,
-        avatar: track.avatar || "",
-        coverImage: Array.isArray(track.coverImage) ? track.coverImage : [],
-        duration: convertSecondsToMinutes(track.duration),
-        activeStatus: track.activeStatus || "",
-        approvalStatus: track.approvalStatus || "",
-        stats: {
-            totalPlay: Number(track?.stats?.totalPlay || 0),
-        },
-    },
-    playCount: Number(stats?.playCount || 0),
-    uniqueListeners: Number(stats?.uniqueListeners || 0),
-    averageListenDuration: convertSecondsToMinutes(
-        Number(stats?.averageListenDuration || 0)
-    ),
-    skipCount: Number(stats?.skipCount || 0),
-    skipRate:
-        Number(stats?.playCount || 0) > 0
-            ? roundToTwoDecimals(
-                (Number(stats?.skipCount || 0) / Number(stats?.playCount || 0)) * 100
-            )
-            : 0,
-    completionRate:
-        Number(stats?.playCount || 0) > 0
-            ? roundToTwoDecimals(
-                (Number(stats?.completedCount || 0) / Number(stats?.playCount || 0)) * 100
-            )
-            : 0,
-    lastListenedAt: stats?.lastListenedAt
-        ? new Date(stats.lastListenedAt).toISOString()
-        : null,
-});
-
 const normalizeStatDateKey = (stat) => {
     if (stat?.dateKey) {
         return stat.dateKey;
@@ -291,67 +253,6 @@ const fetchTrackMonthlyStats = async ({ trackId, year }) => {
         .select("year month playCount uniqueListeners revenue updatedAt")
         .lean();
 };
-
-const fetchTopTrackPerformanceStats = async ({ artistId, from, to }) =>
-    ListenEvent.aggregate([
-        {
-            $match: {
-                artistId,
-                listenedAt: {
-                    $gte: parseDateKey(from).toDate(),
-                    $lt: parseDateKey(to).add(1, "day").toDate(),
-                },
-            },
-        },
-        {
-            $group: {
-                _id: "$trackId",
-                playCount: { $sum: 1 },
-                uniqueListeners: { $addToSet: "$userId" },
-                averageListenDuration: {
-                    $avg: {
-                        $ifNull: [
-                            "$listenedDuration",
-                            {
-                                $ifNull: ["$duration", 0],
-                            },
-                        ],
-                    },
-                },
-                skipCount: {
-                    $sum: {
-                        $cond: [{ $eq: ["$skipped", true] }, 1, 0],
-                    },
-                },
-                completedCount: {
-                    $sum: {
-                        $cond: [{ $eq: ["$completed", true] }, 1, 0],
-                    },
-                },
-                lastListenedAt: { $max: "$listenedAt" },
-            },
-        },
-        {
-            $project: {
-                _id: 0,
-                trackId: "$_id",
-                playCount: 1,
-                uniqueListeners: { $size: "$uniqueListeners" },
-                averageListenDuration: 1,
-                skipCount: 1,
-                completedCount: 1,
-                lastListenedAt: 1,
-            },
-        },
-        {
-            $sort: {
-                playCount: -1,
-                uniqueListeners: -1,
-                averageListenDuration: -1,
-                lastListenedAt: -1,
-            },
-        },
-    ]);
 
 const sumDailyMetric = (stats, fieldName) =>
     stats.reduce((total, stat) => total + Number(stat?.[fieldName] || 0), 0);
@@ -588,85 +489,6 @@ export const getTrackAnalyticsOverview = async ({
     };
 };
 
-export const getTopPerformingTracks = async ({
-    userId,
-    range,
-    from,
-    to,
-}) => {
-    const period = resolveOverviewPeriod({ range, from, to });
-    const artist = await resolveArtistProfile(userId);
-    const performanceStats = await fetchTopTrackPerformanceStats({
-        artistId: artist._id,
-        from: period.from,
-        to: period.to,
-    });
-
-    if (performanceStats.length === 0) {
-        return {
-            period,
-            summary: {
-                rankedTracks: 0,
-                totalPlays: 0,
-                totalUniqueListeners: 0,
-                topTrack: null,
-            },
-            topTracks: [],
-        };
-    }
-
-    const trackIds = performanceStats.map((item) => item.trackId);
-    const tracks = await Track.find({
-        _id: { $in: trackIds },
-        artist_artistId: artist._id,
-    })
-        .select(
-            "_id title avatar coverImage duration activeStatus approvalStatus stats.totalPlay"
-        )
-        .lean();
-    const trackMap = new Map(tracks.map((track) => [String(track._id), track]));
-
-    const topTracks = performanceStats
-        .map((stats, index) => {
-            const track = trackMap.get(String(stats.trackId));
-
-            if (!track) {
-                return null;
-            }
-
-            return buildTopTrackPayload({
-                track,
-                stats,
-                rank: index + 1,
-            });
-        })
-        .filter(Boolean);
-
-    return {
-        period,
-        summary: {
-            rankedTracks: topTracks.length,
-            totalPlays: topTracks.reduce(
-                (sum, item) => sum + Number(item?.playCount || 0),
-                0
-            ),
-            totalUniqueListeners: topTracks.reduce(
-                (sum, item) => sum + Number(item?.uniqueListeners || 0),
-                0
-            ),
-            topTrack:
-                topTracks.length > 0
-                    ? {
-                        rank: topTracks[0].rank,
-                        title: topTracks[0].track.title,
-                        playCount: topTracks[0].playCount,
-                    }
-                    : null,
-        },
-        topTracks,
-    };
-};
-
 export const getTrackDailyAnalytics = async ({
     userId,
     trackId,
@@ -775,7 +597,6 @@ export const compareTrackPerformance = async ({
 };
 
 export default {
-    getTopPerformingTracks,
     getTrackAnalyticsOverview,
     getTrackDailyAnalytics,
     getTrackMonthlyAnalytics,
