@@ -298,6 +298,7 @@ const PlaylistDetailPage = () => {
                 <TrackCard
                   key={ track?.id || `${trackItem?.trackId}-${index}` }
                   index={ trackItem?.order || index + 1 }
+                  trackId={track?.id}
                   image={ trackImage }
                   title={ track?.title || "" }
                   artist={ track?.artist?.name || playlistOwnerLabel || "" }

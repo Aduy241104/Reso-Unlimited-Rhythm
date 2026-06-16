@@ -259,6 +259,7 @@ const AlbumDetailPage = () => {
                     albumCoverImage
                   }
                   title={ track?.title || "Untitled track" }
+                  trackId={track?.id}
                   artist={ track?.artist?.name || albumArtistName }
                   duration={ formatTrackDuration(track?.duration) }
                   explicit={ false }
