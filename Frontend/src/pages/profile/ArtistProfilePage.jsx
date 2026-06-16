@@ -355,7 +355,13 @@ const ArtistProfileView = () => {
   const nextComingRelease = artistData.comingReleases[0] || null;
 
   return (
-    <section ref={ pageRootRef } className="space-y-8 overflow-x-hidden pb-10 text-white lg:space-y-12">
+    <section
+      ref={ pageRootRef }
+      className={ `
+        overflow-x-hidden text-white
+        ${isCountdownMounted ? "space-y-0 pb-0 lg:space-y-0" : "space-y-8 pb-10 lg:space-y-12"}
+      ` }
+    >
       <div
         aria-hidden={ isCountdownMounted }
         className={ `
