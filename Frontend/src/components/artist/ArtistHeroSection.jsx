@@ -8,6 +8,7 @@ const ArtistHeroSection = ({
   isFollowLoading = false,
   followErrorMessage = "",
   onToggleFollow,
+  onReport,
 }) => {
   const followButtonLabel = isFollowLoading
     ? isFollowing
@@ -71,6 +72,17 @@ const ArtistHeroSection = ({
                   "
                 >
                   { followButtonLabel }
+                </button>
+
+                <button
+                  type="button"
+                  onClick={ onReport }
+                  className="
+                    rounded-full border border-white/25 px-6 py-3 text-sm font-semibold uppercase tracking-[0.14em]
+                    text-white transition duration-300 hover:scale-[1.02] hover:border-white/40 hover:bg-white/[0.08]
+                  "
+                >
+                  Report
                 </button>
 
                 <button
