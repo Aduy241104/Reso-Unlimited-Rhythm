@@ -26,4 +26,7 @@ router.get(
 
 router.patch("/:id", adminNotificationController.updateNotificationForAdmin);
 
+
+router.delete("/:id", adminNotificationController.deleteNotificationForAdmin);
+
 export default router;

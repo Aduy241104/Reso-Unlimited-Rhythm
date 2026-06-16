@@ -101,10 +101,46 @@ const updateNotificationForAdmin = async (req, res, next) => {
     }
 };
 
-// Sau đó nhớ bổ sung vào object export default ở cuối file:
+const deleteNotificationForAdmin = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        // 1. Thực thi xóa Database
+        const notification = await adminNotificationService.deleteNotificationForAdmin(id);
+
+        // 2. Bắn Socket Realtime để gỡ UI bên Client
+        const io = req.app.get("io");
+        if (io) {
+            // Đóng gói ID thành cục Payload nhỏ gọn gửi đi
+            const deletePayload = { _id: notification._id.toString() };
+
+            if (notification.receiverType === "single") {
+                const targetUserId = notification.userId._id ? notification.userId._id.toString() : notification.userId.toString();
+                io.to(targetUserId).emit("delete_notification", deletePayload);
+            } 
+            else if (notification.receiverType === "group") {
+                const targetGroup = notification.targetRoles[0];
+                io.to(targetGroup).emit("delete_notification", deletePayload);
+            } 
+            else if (notification.receiverType === "all") {
+                io.emit("delete_notification", deletePayload);
+            }
+        }
+
+        return formatResponse.success(
+            res,
+            { notification },
+            "Notification deleted and broadcasted successfully."
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     createNotificationForAdmin,
     getNotificationsForAdmin,
     getNotificationDetailForAdmin,
-    updateNotificationForAdmin // <-- Thêm ông này vào
+    updateNotificationForAdmin,
+    deleteNotificationForAdmin
 };

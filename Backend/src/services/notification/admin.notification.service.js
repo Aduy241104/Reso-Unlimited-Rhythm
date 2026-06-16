@@ -105,10 +105,26 @@ const updateNotificationForAdmin = async (notificationId, data) => {
     return notification;
 };
 
+const deleteNotificationForAdmin = async (notificationId) => {
+    if (!mongoose.Types.ObjectId.isValid(notificationId)) {
+        throw new AppError("Invalid notification id format.", 400);
+    }
+
+    // Xóa khỏi DB và trả về đúng cục data vừa bị xóa
+    const notification = await Notification.findByIdAndDelete(notificationId).lean();
+
+    if (!notification) {
+        throw new AppError("Notification not found or already deleted.", 404);
+    }
+
+    return notification;
+};
+
 // Đừng quên cập nhật object export default ở cuối file service:
 export default {
     createNotificationForAdmin,
     getNotificationsForAdmin,
     getNotificationDetailForAdmin,
-    updateNotificationForAdmin // <-- Thêm ông này vào
+    updateNotificationForAdmin,
+    deleteNotificationForAdmin,
 };
