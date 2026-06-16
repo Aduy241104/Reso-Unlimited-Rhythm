@@ -3,10 +3,12 @@ import {
   CirclePlus,
   Download,
   MoreHorizontal,
+  ShieldAlert,
   Shuffle,
 } from "lucide-react";
 import PlayButton from "../../components/common/PlayButton";
-import { useParams } from "react-router-dom";
+import CreateReportModal from "../../components/report/CreateReportModal";
+import { useNavigate, useParams } from "react-router-dom";
 import TrackCard from "../../components/TrackCard";
 import TrackListSection from "../../components/trackList/TrackListSection";
 import { usePlayer } from "../../hooks/usePlayer";
@@ -39,9 +41,11 @@ const metaPillClassName = `
 
 const AlbumDetailPage = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [album, setAlbum] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const {
     currentTrack,
     isPlaying,
@@ -152,6 +156,14 @@ const AlbumDetailPage = () => {
     console.log("Toggle like track:", track?.title);
   };
 
+  const handleReportAlbum = () => {
+    if (!album?.id) {
+      return;
+    }
+
+    setIsReportModalOpen(true);
+  };
+
   return (
     <section className="space-y-4 sm:space-y-6">
       <div
@@ -233,6 +245,14 @@ const AlbumDetailPage = () => {
             <button type="button" className={ actionButtonClassName } aria-label="Download album">
               <Download className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </button>
+            <button
+              type="button"
+              className={ actionButtonClassName }
+              aria-label="Report album"
+              onClick={ handleReportAlbum }
+            >
+              <ShieldAlert className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
+            </button>
             <button type="button" className={ actionButtonClassName } aria-label="More options">
               <MoreHorizontal className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </button>
@@ -275,6 +295,13 @@ const AlbumDetailPage = () => {
           </TrackListSection>
         </div>
       </div>
+
+      <CreateReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        targetId={album?.id}
+        targetType="album"
+      />
     </section>
   );
 };

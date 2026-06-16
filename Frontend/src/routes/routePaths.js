@@ -33,6 +33,8 @@ export const routePaths = {
   artistCreateReleaseSchedule: "/artist/releases/create",
   artistReleaseScheduleDetail: (scheduleId = ":id") => `/artist/releases/${scheduleId}`,
   artistAnalytics: "/artist/analytics",
+  artistNotifications: "/artist/notifications",
+  artistNotificationDetail: (notificationId = ":id") => `/artist/notifications/${notificationId}`,
   artistFans: "/artist/fans",
   artistRoyalties: "/artist/royalties",
   artistSettings: "/artist/settings",
@@ -40,6 +42,9 @@ export const routePaths = {
   artistProfileEdit: "/artist/profile/edit",
   userPlaylist: "/user/playlist",
   userPlaylistDetail: (playlistId = ":id") => `/user/playlist/${playlistId}`,
+  userCreateReport: "/user/reports/create",
+  userReportList: "/user/reports",
+  userReportDetail: (reportId = ":id") => `/user/reports/${reportId}`,
 
   libraryFollowedArtists: "/library/followed-artists",
   libraryFollowedAlbums: "/library/followed-albums",

@@ -15,9 +15,11 @@ import ArtistCreateAlbumPage from "../pages/artist/ArtistCreateAlbumPage";
 import ArtistCreateReleaseSchedulePage from "../pages/artist/ArtistCreateReleaseSchedulePage";
 import ArtistEditAlbumPage from "../pages/artist/ArtistEditAlbumPage";
 import ArtistReleaseScheduleDetailPage from "../pages/artist/ArtistReleaseScheduleDetailPage";
+import ArtistListenerBehaviorPage from "../pages/artist/ArtistListenerBehaviorPage";
+import ArtistNotificationDetailPage from "../pages/artist/ArtistNotificationDetailPage";
+import ArtistNotificationsPage from "../pages/artist/ArtistNotificationsPage";
 import ArtistTrackInsightsPage from "../pages/artist/ArtistTrackInsightsPage";
 import {
-  FansPage,
   MyMusicPage,
   ReleasesPage,
   RoyaltiesPage,
@@ -46,6 +48,7 @@ import { routePaths } from "./routePaths";
 import { userPlaylistRoutes } from "./userPlaylistRoutes";
 import { userProfileRoutes } from "./userProfileRoutes";
 import { myArtistRegistrationRequestRoutes } from "./myArtistRegistrationRequestRoutes";
+import { userReportRoutes } from "./userReportRoutes";
 
 const publicArtistProfilePath = routePaths.artistBrowseProfile();
 const featuredArtistProfilePath = routePaths.artistBrowseProfile("featured");
@@ -128,6 +131,10 @@ export const appRoutes = [
   },
   {
     element: <ProtectedRoute />,
+    children: userReportRoutes,
+  },
+  {
+    element: <ProtectedRoute />,
     children: userPlaylistRoutes,
   },
   {
@@ -201,8 +208,16 @@ export const appRoutes = [
                 element: <ArtistTrackInsightsPage />,
               },
               {
+                path: routePaths.artistNotifications,
+                element: <ArtistNotificationsPage />,
+              },
+              {
+                path: routePaths.artistNotificationDetail(),
+                element: <ArtistNotificationDetailPage />,
+              },
+              {
                 path: routePaths.artistFans,
-                element: <FansPage />,
+                element: <ArtistListenerBehaviorPage />,
               },
               {
                 path: routePaths.artistRoyalties,
