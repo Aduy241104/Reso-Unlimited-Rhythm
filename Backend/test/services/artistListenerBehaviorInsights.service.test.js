@@ -85,26 +85,15 @@ describe("artistListenerBehaviorInsightsService", () => {
         mockListenEventModel.aggregate
             .mockResolvedValueOnce([
                 {
-                    totalStreams: 12,
-                    uniqueListeners: 3,
-                    completedStreams: 9,
-                    skippedStreams: 3,
+                    earliestListenedAt: new Date("2026-06-09T10:00:00.000Z"),
                 },
             ])
             .mockResolvedValueOnce([
                 {
-                    date: "2026-06-10",
-                    streamCount: 3,
-                    uniqueListeners: 2,
-                    completionRate: 66.67,
-                    skipRate: 33.33,
-                },
-                {
-                    date: "2026-06-15",
-                    streamCount: 4,
-                    uniqueListeners: 2,
-                    completionRate: 75,
-                    skipRate: 25,
+                    totalStreams: 12,
+                    uniqueListeners: 3,
+                    completedStreams: 9,
+                    skippedStreams: 3,
                 },
             ])
             .mockResolvedValueOnce([
@@ -180,16 +169,16 @@ describe("artistListenerBehaviorInsightsService", () => {
         const result =
             await artistListenerBehaviorInsightsService.getArtistListenerBehaviorInsights({
                 userId,
-                range: "7d",
             });
 
         expect(
-            mockListenEventModel.aggregate.mock.calls[0][0][0].$match.listenedAt.$gte
+            mockListenEventModel.aggregate.mock.calls[1][0][0].$match.listenedAt.$gte
         ).toEqual(new Date("2026-06-09T00:00:00.000Z"));
         expect(result.artist).toEqual({
             id: artistId,
             name: "Synth Horizon",
         });
+        expect(result.range).toBe("all");
         expect(result.period).toEqual({
             from: "2026-06-09",
             to: "2026-06-15",
@@ -202,21 +191,6 @@ describe("artistListenerBehaviorInsightsService", () => {
             completionRate: 75,
             skipRate: 25,
             engagementRate: 66.67,
-        });
-        expect(result.dailyStats).toHaveLength(7);
-        expect(result.dailyStats[0]).toEqual({
-            date: "2026-06-09",
-            streamCount: 0,
-            uniqueListeners: 0,
-            completionRate: 0,
-            skipRate: 0,
-        });
-        expect(result.dailyStats[1]).toEqual({
-            date: "2026-06-10",
-            streamCount: 3,
-            uniqueListeners: 2,
-            completionRate: 66.67,
-            skipRate: 33.33,
         });
         expect(result.behavior.sources[0]).toEqual({
             key: "artist_profile",
@@ -277,29 +251,5 @@ describe("artistListenerBehaviorInsightsService", () => {
             totalActions: 3,
             engagementRate: 66.67,
         });
-    });
-
-    test("throws 400 when range is invalid", async () => {
-        const { artistListenerBehaviorInsightsService } =
-            await loadArtistListenerBehaviorInsightsService();
-
-        mockArtistModel.findOne.mockReturnValue(
-            createQueryChain({
-                _id: artistId,
-                name: "Synth Horizon",
-            })
-        );
-
-        await expect(
-            artistListenerBehaviorInsightsService.getArtistListenerBehaviorInsights({
-                userId,
-                range: "365d",
-            })
-        ).rejects.toMatchObject({
-            message: "Khoang thoi gian thong ke khong hop le",
-            statusCode: 400,
-        });
-
-        expect(mockListenEventModel.aggregate).not.toHaveBeenCalled();
     });
 });

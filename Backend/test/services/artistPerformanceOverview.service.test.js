@@ -22,6 +22,14 @@ const mockUserModel = {
   find: jest.fn(),
 };
 
+const mockArtistListenerBehaviorInsightsService = {
+  getArtistListenerBehaviorInsights: jest.fn(),
+};
+
+const mockArtistTopPerformingTracksService = {
+  getTopPerformingTracks: jest.fn(),
+};
+
 const createQueryChain = (result) => ({
   select: jest.fn().mockReturnThis(),
   lean: jest.fn().mockResolvedValue(result),
@@ -42,6 +50,18 @@ const loadArtistPerformanceOverviewService = async () => {
   jest.unstable_mockModule("../../src/models/User.js", () => ({
     default: mockUserModel,
   }));
+  jest.unstable_mockModule(
+    "../../src/services/artist/artistListenerBehaviorInsights.service.js",
+    () => ({
+      default: mockArtistListenerBehaviorInsightsService,
+    })
+  );
+  jest.unstable_mockModule(
+    "../../src/services/artist/artistTopPerformingTracks.service.js",
+    () => ({
+      default: mockArtistTopPerformingTracksService,
+    })
+  );
   jest.unstable_mockModule(
     "../../src/services/analytics/trackStatAggregation.service.js",
     () => ({
@@ -66,6 +86,8 @@ describe("artistPerformanceOverviewService", () => {
     mockArtistDailyStatModel.find.mockReset();
     mockListenEventModel.aggregate.mockReset();
     mockUserModel.find.mockReset();
+    mockArtistListenerBehaviorInsightsService.getArtistListenerBehaviorInsights.mockReset();
+    mockArtistTopPerformingTracksService.getTopPerformingTracks.mockReset();
   });
 
   afterEach(() => {
@@ -225,6 +247,59 @@ describe("artistPerformanceOverviewService", () => {
       ])
     );
 
+    mockArtistListenerBehaviorInsightsService.getArtistListenerBehaviorInsights.mockResolvedValue({
+      artist: {
+        id: artistId,
+        name: "Synth Horizon",
+      },
+      range: "all",
+      period: {
+        from: "2026-01-01",
+        to: "2026-06-15",
+      },
+      summary: {
+        totalStreams: 20,
+        uniqueListeners: 3,
+        returningListeners: 2,
+        averageStreamsPerListener: 6.67,
+        completionRate: 75,
+        skipRate: 25,
+        engagementRate: 66.67,
+      },
+      behavior: {
+        sources: [],
+        devices: [],
+        listeningHours: [],
+        loyaltySegments: [],
+        engagement: {
+          engagedListeners: 2,
+          followActions: 1,
+          likeActions: 2,
+          totalActions: 3,
+          engagementRate: 66.67,
+        },
+      },
+    });
+
+    mockArtistTopPerformingTracksService.getTopPerformingTracks.mockResolvedValue({
+      period: {
+        from: "2026-06-09",
+        to: "2026-06-15",
+        range: "7d",
+      },
+      summary: {
+        rankedTracks: 1,
+        totalPlays: 12,
+        totalUniqueListeners: 3,
+        topTrack: {
+          rank: 1,
+          title: "Synth Horizon",
+          playCount: 12,
+        },
+      },
+      topTracks: [],
+    });
+
     const result =
       await artistPerformanceOverviewService.getArtistPerformanceOverview({
         userId,
@@ -251,6 +326,8 @@ describe("artistPerformanceOverviewService", () => {
       selectedYearStreams: 60,
     });
     expect(result.availableYears).toEqual([2026, 2025]);
+    expect(result.listenerBehavior.summary.totalStreams).toBe(20);
+    expect(result.topPerformingTracks.summary.rankedTracks).toBe(1);
     expect(result.dailyStats).toHaveLength(7);
     expect(result.dailyStats[1]).toEqual({
       date: "2026-06-10",

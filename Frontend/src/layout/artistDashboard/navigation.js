@@ -6,7 +6,6 @@ import {
   FileText,
   LayoutDashboard,
   Music2,
-  Users,
   Waves,
 } from "lucide-react";
 import { routePaths } from "../../routes/routePaths";
@@ -41,11 +40,6 @@ export const artistNavigation = [
     label: "Phân tích bài hát",
     to: routePaths.artistAnalytics,
     icon: BarChart3,
-  },
-  {
-    label: "Hành vi người nghe",
-    to: routePaths.artistFans,
-    icon: Users,
   },
   {
     label: "Thông báo",

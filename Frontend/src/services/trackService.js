@@ -142,21 +142,6 @@ export const trackService = {
     }
   },
 
-  getArtistTopPerformingTracks: async (params = {}) => {
-    try {
-      const response = await axiosClient.get(
-        "/api/artist/overview/top-performing-tracks",
-        {
-          params,
-        }
-      );
-
-      return response?.data?.data || null;
-    } catch (error) {
-      throw error.response?.data || error;
-    }
-  },
-
   updateArtistTrack: async (trackId, trackData) => {
     try {
       const response = await axiosClient.patch(

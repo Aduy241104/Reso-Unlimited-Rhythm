@@ -39,10 +39,6 @@ export const useArtistTrackInsights = () => {
   const [tracks, setTracks] = useState([]);
   const [isTracksLoading, setIsTracksLoading] = useState(true);
   const [tracksError, setTracksError] = useState("");
-  const [topTracks, setTopTracks] = useState([]);
-  const [topTracksSummary, setTopTracksSummary] = useState(null);
-  const [isTopTracksLoading, setIsTopTracksLoading] = useState(false);
-  const [topTracksError, setTopTracksError] = useState("");
   const [analytics, setAnalytics] = useState(null);
   const [isAnalyticsLoading, setIsAnalyticsLoading] = useState(false);
   const [analyticsError, setAnalyticsError] = useState("");
@@ -105,51 +101,6 @@ export const useArtistTrackInsights = () => {
       isMounted = false;
     };
   }, []);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadTopTracks = async () => {
-      setIsTopTracksLoading(true);
-      setTopTracksError("");
-
-      try {
-        const result = await trackService.getArtistTopPerformingTracks(
-          buildRangeParams(selectedRange)
-        );
-
-        if (!isMounted) {
-          return;
-        }
-
-        setTopTracks(Array.isArray(result?.topTracks) ? result.topTracks : []);
-        setTopTracksSummary(result?.summary || null);
-      } catch (error) {
-        if (!isMounted) {
-          return;
-        }
-
-        setTopTracks([]);
-        setTopTracksSummary(null);
-        setTopTracksError(
-          getApiErrorMessage(
-            error,
-            "Khong the tai danh sach bai hat hieu suat cao luc nay."
-          )
-        );
-      } finally {
-        if (isMounted) {
-          setIsTopTracksLoading(false);
-        }
-      }
-    };
-
-    loadTopTracks();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [selectedRange, reloadNonce]);
 
   useEffect(() => {
     if (!selectedTrackId) {
@@ -337,7 +288,6 @@ export const useArtistTrackInsights = () => {
     displayedTrack,
     handleRangeChange,
     isAnalyticsLoading,
-    isTopTracksLoading,
     isTracksLoading,
     latestMetricValue,
     latestMonthlyMetricValue,
@@ -356,9 +306,6 @@ export const useArtistTrackInsights = () => {
     setMonthlyChartMetric,
     setReloadNonce,
     summaryCards,
-    topTracks,
-    topTracksError,
-    topTracksSummary,
     tracks,
     tracksError,
     updateQuery,

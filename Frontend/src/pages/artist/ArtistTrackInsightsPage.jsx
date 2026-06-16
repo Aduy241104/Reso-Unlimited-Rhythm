@@ -13,7 +13,6 @@ import TrackInsightsDailyTable from "./trackInsights/components/TrackInsightsDai
 import TrackInsightsHero from "./trackInsights/components/TrackInsightsHero";
 import TrackInsightsSidebar from "./trackInsights/components/TrackInsightsSidebar";
 import TrackInsightsSummaryGrid from "./trackInsights/components/TrackInsightsSummaryGrid";
-import TrackInsightsTopTracksPanel from "./trackInsights/components/TrackInsightsTopTracksPanel";
 import { useArtistTrackInsights } from "./trackInsights/useArtistTrackInsights";
 
 const ArtistTrackInsightsPage = () => {
@@ -28,7 +27,6 @@ const ArtistTrackInsightsPage = () => {
     displayedTrack,
     handleRangeChange,
     isAnalyticsLoading,
-    isTopTracksLoading,
     isTracksLoading,
     latestMetricValue,
     latestMonthlyMetricValue,
@@ -46,9 +44,6 @@ const ArtistTrackInsightsPage = () => {
     setMonthlyChartMetric,
     setReloadNonce,
     summaryCards,
-    topTracks,
-    topTracksError,
-    topTracksSummary,
     tracks,
     tracksError,
     updateQuery,
@@ -124,15 +119,6 @@ const ArtistTrackInsightsPage = () => {
           ))}
         </div>
       </section>
-
-      <TrackInsightsTopTracksPanel
-        error={topTracksError}
-        isLoading={isTopTracksLoading}
-        onSelectTrack={(trackId) => updateQuery({ trackId })}
-        selectedTrackId={selectedTrackId}
-        topTracks={topTracks}
-        topTracksSummary={topTracksSummary}
-      />
 
       {!selectedTrackId ? (
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(300px,0.9fr)]">

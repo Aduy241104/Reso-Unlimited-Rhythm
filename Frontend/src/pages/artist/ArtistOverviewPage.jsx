@@ -1,9 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
 import { BarChart3, CalendarDays, Headphones, LoaderCircle, Users } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { routePaths } from "../../routes/routePaths";
+import { getArtistPerformanceOverviewService } from "../../services/artistService";
 import TrackInsightsChartPanel from "./trackInsights/components/TrackInsightsChartPanel";
 import TrackInsightsSummaryGrid from "./trackInsights/components/TrackInsightsSummaryGrid";
-import { getArtistPerformanceOverviewService } from "../../services/artistService";
+import TrackInsightsTopTracksPanel from "./trackInsights/components/TrackInsightsTopTracksPanel";
+import {
+  BreakdownCard,
+  DEVICE_LABEL_MAP,
+  EngagementCard,
+  formatDateLabel,
+  formatNumber,
+  formatPercent,
+  ListenerBehaviorSummaryGrid,
+  LOYALTY_LABEL_MAP,
+  localizeItems,
+  SOURCE_LABEL_MAP,
+} from "./listenerBehaviorShared";
 
 const DEFAULT_RANGE = "30d";
 const RANGE_OPTIONS = [
@@ -38,32 +52,6 @@ const PERIOD_STREAM_METRICS = {
 
 const resolveRange = (value) =>
   RANGE_OPTIONS.some((option) => option.value === value) ? value : DEFAULT_RANGE;
-
-const formatNumber = (value) =>
-  new Intl.NumberFormat("vi-VN").format(Number(value) || 0);
-
-const formatPercent = (value) =>
-  `${new Intl.NumberFormat("vi-VN", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(Number(value) || 0)}%`;
-
-const formatDateLabel = (
-  value,
-  options = { day: "2-digit", month: "short", year: "numeric" }
-) => {
-  if (!value) {
-    return "--";
-  }
-
-  const date = new Date(`${value}T00:00:00`);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat("vi-VN", options).format(date);
-};
 
 const formatMonthLabel = (
   value,
@@ -123,55 +111,8 @@ const buildSummaryCards = (summary) => [
   },
 ];
 
-const BreakdownCard = ({
-  title,
-  description,
-  items,
-  emptyMessage,
-  maxItems,
-}) => {
-  const visibleItems = useMemo(() => {
-    const filteredItems = (items || []).filter((item) => Number(item?.count) > 0);
-    return typeof maxItems === "number"
-      ? filteredItems.slice(0, maxItems)
-      : filteredItems;
-  }, [items, maxItems]);
-
-  return (
-    <section className="rounded-[18px] border border-[#e7e1ff] bg-white p-5 shadow-sm">
-      <h3 className="text-lg font-semibold text-[#2f2747]">{title}</h3>
-      <p className="mt-2 text-sm leading-6 text-[#7c7891]">{description}</p>
-
-      {visibleItems.length === 0 ? (
-        <div className="mt-5 rounded-[16px] border border-dashed border-neutral-200 bg-[#faf9ff] px-4 py-6 text-sm text-[#7c7891]">
-          {emptyMessage}
-        </div>
-      ) : (
-        <div className="mt-5 space-y-4">
-          {visibleItems.map((item) => (
-            <div key={item.key || item.label}>
-              <div className="flex items-center justify-between gap-3 text-sm">
-                <p className="font-medium text-[#2f2747]">{item.label}</p>
-                <p className="text-[#6b6682]">
-                  {formatNumber(item.count)} người ({formatPercent(item.percentage)})
-                </p>
-              </div>
-
-              <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#f0edff]">
-                <div
-                  className="h-full rounded-full bg-[#7c6cf2]"
-                  style={{ width: `${Math.min(Number(item.percentage) || 0, 100)}%` }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-};
-
 const ArtistOverviewPage = () => {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const currentYear = new Date().getFullYear();
   const selectedRange = resolveRange(searchParams.get("range"));
@@ -285,6 +226,31 @@ const ArtistOverviewPage = () => {
   const selectedRangeLabel =
     RANGE_OPTIONS.find((option) => option.value === selectedRange)?.label || "30 ngày";
 
+  const localizedSources = useMemo(
+    () => localizeItems(overview?.listenerBehavior?.behavior?.sources || [], SOURCE_LABEL_MAP),
+    [overview?.listenerBehavior?.behavior?.sources]
+  );
+  const localizedDevices = useMemo(
+    () => localizeItems(overview?.listenerBehavior?.behavior?.devices || [], DEVICE_LABEL_MAP),
+    [overview?.listenerBehavior?.behavior?.devices]
+  );
+  const localizedLoyaltySegments = useMemo(
+    () =>
+      localizeItems(
+        overview?.listenerBehavior?.behavior?.loyaltySegments || [],
+        LOYALTY_LABEL_MAP
+      ),
+    [overview?.listenerBehavior?.behavior?.loyaltySegments]
+  );
+
+  const handleOpenTrackInsights = (trackId) => {
+    if (!trackId) {
+      return;
+    }
+
+    navigate(`${routePaths.artistAnalytics}?trackId=${encodeURIComponent(trackId)}`);
+  };
+
   if (isLoading && !overview) {
     return (
       <section className="rounded-[20px] border border-[#e7e1ff] bg-white p-7 text-sm text-[#6b6682] shadow-sm">
@@ -306,8 +272,8 @@ const ArtistOverviewPage = () => {
           {overview?.artist?.name || "Nghệ sĩ"}
         </h2>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-[#7c7891]">
-          Theo dõi lượt stream theo ngày, tổng stream theo tháng, tổng stream theo
-          năm và cơ cấu người nghe theo độ tuổi, khu vực.
+          Theo dõi hiệu suất phát hành theo giai đoạn, bài hát đang hoạt động tốt nhất,
+          hành vi người nghe toàn thời gian và cơ cấu khán giả của bạn.
         </p>
 
         <div className="mt-5 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -363,6 +329,15 @@ const ArtistOverviewPage = () => {
       <TrackInsightsSummaryGrid
         summaryCards={summaryCards}
         className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
+      />
+
+      <TrackInsightsTopTracksPanel
+        error=""
+        isLoading={isLoading}
+        onSelectTrack={handleOpenTrackInsights}
+        selectedTrackId=""
+        topTracks={overview?.topPerformingTracks?.topTracks || []}
+        topTracksSummary={overview?.topPerformingTracks?.summary || null}
       />
 
       <TrackInsightsChartPanel
@@ -437,6 +412,70 @@ const ArtistOverviewPage = () => {
         tooltipListenValueKey="streamCount"
         xAxisLabelFormatter={(value) => value}
       />
+
+      <section className="space-y-6">
+        <section className="rounded-[20px] border border-[#e7e1ff] bg-white p-6 shadow-sm">
+          <p className="text-xs uppercase tracking-[0.3em] text-[#7c6cf2]">
+            Hành vi người nghe
+          </p>
+          <h3 className="mt-3 text-2xl font-semibold tracking-tight text-[#2f2747]">
+            Toàn thời gian
+          </h3>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-[#7c7891]">
+            Phần này được tính trên toàn bộ lịch sử dữ liệu hiện có của artist, không còn lọc theo 7, 30 hay 90 ngày.
+          </p>
+          <div className="mt-4 rounded-[16px] border border-[#efeaff] bg-[#faf9ff] px-4 py-3 text-sm text-[#6b6682]">
+            Dữ liệu hành vi:{" "}
+            <span className="font-semibold text-[#2f2747]">
+              {formatDateLabel(overview?.listenerBehavior?.period?.from)} -{" "}
+              {formatDateLabel(overview?.listenerBehavior?.period?.to)}
+            </span>{" "}
+            (toàn thời gian)
+          </div>
+        </section>
+
+        <ListenerBehaviorSummaryGrid summary={overview?.listenerBehavior?.summary || {}} />
+
+        <section className="grid gap-6 xl:grid-cols-2">
+          <BreakdownCard
+            title="Nguồn nghe nổi bật"
+            description="Những nguồn mà người nghe bắt đầu phát nhạc nhiều nhất trên toàn bộ dữ liệu."
+            items={localizedSources}
+            emptyMessage="Chưa có dữ liệu nguồn nghe."
+            maxItems={6}
+          />
+
+          <BreakdownCard
+            title="Phân bổ thiết bị"
+            description="Thiết bị mà người nghe đã sử dụng để phát nhạc của bạn."
+            items={localizedDevices}
+            emptyMessage="Chưa có dữ liệu thiết bị."
+            maxItems={6}
+          />
+        </section>
+
+        <section className="grid gap-6 xl:grid-cols-2">
+          <BreakdownCard
+            title="Khung giờ nghe cao điểm"
+            description="Những khung giờ có lượng stream mạnh nhất trên toàn bộ lịch sử dữ liệu."
+            items={overview?.listenerBehavior?.behavior?.listeningHours || []}
+            emptyMessage="Chưa có hoạt động nghe nào."
+            maxItems={6}
+          />
+
+          <BreakdownCard
+            title="Phân khúc mức độ trung thành"
+            description="Mức độ nghe sâu của người nghe dựa trên số lượt stream mỗi người."
+            items={localizedLoyaltySegments}
+            emptyMessage="Chưa có dữ liệu phân khúc người nghe."
+            valueFormatter={(item) =>
+              `${formatNumber(item.count)} người (${formatPercent(item.percentage)})`
+            }
+          />
+        </section>
+
+        <EngagementCard engagement={overview?.listenerBehavior?.behavior?.engagement || {}} />
+      </section>
 
       <section className="grid gap-6 xl:grid-cols-2">
         <BreakdownCard
