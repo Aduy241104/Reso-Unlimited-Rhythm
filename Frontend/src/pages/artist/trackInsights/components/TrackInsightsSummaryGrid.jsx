@@ -1,7 +1,10 @@
 import TrackInsightsSummaryCard from "./TrackInsightsSummaryCard";
 
-const TrackInsightsSummaryGrid = ({ summaryCards }) => (
-  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+const TrackInsightsSummaryGrid = ({
+  summaryCards,
+  className = "grid gap-4 md:grid-cols-2 xl:grid-cols-3",
+}) => (
+  <div className={className}>
     {summaryCards.map((card) => (
       <TrackInsightsSummaryCard
         key={card.label}

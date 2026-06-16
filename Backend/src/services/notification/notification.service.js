@@ -1,4 +1,7 @@
+import mongoose from "mongoose";
+import { StatusCodes } from "http-status-codes";
 import Notification from "../../models/Notification.js";
+import { AppError } from "../../utils/AppError.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
@@ -32,6 +35,14 @@ const buildNotificationFilter = (userId, query = {}) => {
     }
 
     return filter;
+};
+
+const ensureNotificationId = (notificationId) => {
+    if (!mongoose.Types.ObjectId.isValid(notificationId)) {
+        throw new AppError("Invalid request data.", StatusCodes.BAD_REQUEST);
+    }
+
+    return notificationId;
 };
 
 const getMyNotifications = async (userId, query = {}) => {
@@ -69,6 +80,41 @@ const getMyNotifications = async (userId, query = {}) => {
     };
 };
 
+const getMyNotificationDetail = async (userId, notificationId) => {
+    const normalizedNotificationId = ensureNotificationId(notificationId);
+    const filter = {
+        ...buildNotificationFilter(userId),
+        _id: normalizedNotificationId,
+    };
+
+    const notification = await Notification.findOne(filter)
+        .select("-__v -deletedAt -createdBy")
+        .lean();
+
+    if (!notification) {
+        throw new AppError("Notification not found.", StatusCodes.NOT_FOUND);
+    }
+
+    if (!notification.isRead) {
+        await Notification.updateOne(
+            { _id: normalizedNotificationId, isRead: false },
+            {
+                $set: {
+                    isRead: true,
+                },
+            }
+        );
+
+        return {
+            ...notification,
+            isRead: true,
+        };
+    }
+
+    return notification;
+};
+
 export default {
     getMyNotifications,
+    getMyNotificationDetail,
 };

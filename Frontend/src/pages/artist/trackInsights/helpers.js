@@ -163,7 +163,7 @@ export const resolveTrackId = (track) => track?._id || track?.id || "";
 export const getTrackImage = (track) =>
   track?.coverImage?.[0] ||
   track?.avatar ||
-  createPlaceholderImage(track?.title || "Bai hat", "#9b8cff", "#4f46a5");
+  createPlaceholderImage(track?.title || "Bài hát", "#9b8cff", "#4f46a5");
 
 export const getVisibleDateStep = (totalItems) => {
   if (totalItems <= 7) {
@@ -203,8 +203,7 @@ export const buildSummaryCards = (summary) => [
   {
     label: "Nghe trung bình",
     value: appendUnit(summary?.averageListenDuration, "phút"),
-    helper:
-      "Thời lượng nghe trung bình trước khi người nghe dừng hoặc chuyển bài.",
+    helper: "Thời lượng nghe trung bình trước khi người nghe dừng hoặc chuyển bài.",
     icon: Waves,
   },
   {
@@ -214,7 +213,7 @@ export const buildSummaryCards = (summary) => [
     icon: Activity,
   },
   {
-    label: "Tỉ lệ bỏ qua",
+    label: "Tỷ lệ bỏ qua",
     value: formatPercent(summary?.skipRate),
     helper: "Tỷ lệ lượt phát kết thúc bằng hành động bỏ qua.",
     icon: TrendingDown,
