@@ -9,6 +9,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { useTheme } from "../../hooks/useTheme";
 import { routePaths } from "../../routes/routePaths";
 import { testAccessTokenService } from "../../services/authService";
+import NotificationDropdown from "./NotificationDropdown";
 
 const Header = ({ onToggleSidebar }) => {
   const { isAuthenticated, isLoading, logout, user } = useAuth();
@@ -40,16 +41,16 @@ const Header = ({ onToggleSidebar }) => {
     { label: "Profile", to: routePaths.userProfile },
     ...(userRole === "user"
       ? [
-          { label: "Đăng kí nghệ sĩ", to: routePaths.artistRegistrationRequest },
-          { label: "Yêu cầu của tôi", to: routePaths.artistRegistrationRequestsList },
-        ]
+        { label: "Đăng kí nghệ sĩ", to: routePaths.artistRegistrationRequest },
+        { label: "Yêu cầu của tôi", to: routePaths.artistRegistrationRequestsList },
+      ]
       : []),
     ...(userRole === "artist"
       ? [{ label: "Yêu cầu của tôi", to: routePaths.artistRegistrationRequestsList }]
       : []),
     { label: "FollowingArtist", to: routePaths.libraryFollowedArtists },
-    { label: "FollowingAlbum", to: routePaths. libraryFollowedAlbums},
-    { label: "Playlist", to: routePaths. userPlaylist},
+    { label: "FollowingAlbum", to: routePaths.libraryFollowedAlbums },
+    { label: "Playlist", to: routePaths.userPlaylist },
     ...(userRole === "artist" ? [{ label: "Artist", to: routePaths.artistRoot }] : []),
   ];
 
@@ -76,7 +77,8 @@ const Header = ({ onToggleSidebar }) => {
   return (
     <header
       className={[
-        "flex h-full items-center justify-between gap-2 border-b px-3 backdrop-blur-xl sm:gap-3 sm:px-4 lg:px-5",
+        // 🔥 NHÉT THÊM "relative z-50" VÀO ĐẦU CHUỖI NÀY ĐỂ ĐẨY TOÀN BỘ HEADER LÊN TRÊN CÙNG
+        "relative z-50 flex h-full items-center justify-between gap-2 border-b px-3 backdrop-blur-xl sm:gap-3 sm:px-4 lg:px-5",
         isDark
           ? "border-[#f5b66f]/10 bg-black text-[#f7f1ea]"
           : "border-[#eeeeee] bg-white text-[#111111]",
@@ -85,7 +87,7 @@ const Header = ({ onToggleSidebar }) => {
       <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
         <button
           type="button"
-          onClick={ onToggleSidebar }
+          onClick={onToggleSidebar}
           className={[
             "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition lg:hidden",
             isDark
@@ -97,7 +99,7 @@ const Header = ({ onToggleSidebar }) => {
           <Menu className="h-4 w-4" />
         </button>
 
-        <img src={ brandArtwork } alt="" className="h-9 w-9 shrink-0 sm:h-10 sm:w-10 lg:h-11 lg:w-11" />
+        <img src={brandArtwork} alt="" className="h-9 w-9 shrink-0 sm:h-10 sm:w-10 lg:h-11 lg:w-11" />
         <div className="min-w-0">
           <p
             className={[
@@ -119,9 +121,9 @@ const Header = ({ onToggleSidebar }) => {
       </div>
 
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-        { isAuthenticated && (
+        {isAuthenticated && (
           <button
-            onClick={ testAccessToken }
+            onClick={testAccessToken}
             className={[
               "hidden shrink-0 rounded-full border px-2.5 py-1.5 text-xs font-medium transition md:inline-flex md:px-3",
               isDark
@@ -131,11 +133,11 @@ const Header = ({ onToggleSidebar }) => {
           >
             Test
           </button>
-        ) }
+        )}
 
         <ThemeToggle />
-
-        { isLoading ? (
+        {isAuthenticated && <NotificationDropdown />}
+        {isLoading ? (
           <div
             className={[
               "shrink-0 rounded-full border px-2 py-1.5 text-[11px] sm:px-3 sm:text-xs",
@@ -159,10 +161,10 @@ const Header = ({ onToggleSidebar }) => {
             Login
           </Link>
         ) : (
-          <div className="relative shrink-0" ref={ menuRef }>
+          <div className="relative shrink-0" ref={menuRef}>
             <button
               type="button"
-              onClick={ () => setIsOpen((value) => !value) }
+              onClick={() => setIsOpen((value) => !value)}
               className={[
                 "flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-1.5 pr-2 transition sm:max-w-none sm:gap-2 sm:px-3",
                 isDark
@@ -172,13 +174,13 @@ const Header = ({ onToggleSidebar }) => {
               aria-label="Open account menu"
             >
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-black text-[10px] font-semibold text-white sm:hidden">
-                { displayInitial }
+                {displayInitial}
               </span>
-              <span className="hidden truncate text-xs sm:block sm:max-w-36">{ displayName }</span>
+              <span className="hidden truncate text-xs sm:block sm:max-w-36">{displayName}</span>
               <ChevronDown className="hidden h-3.5 w-3.5 sm:block" />
             </button>
 
-            { isOpen ? (
+            {isOpen ? (
               <div
                 className={[
                   "absolute right-0 top-full z-[100] mt-2 w-44 rounded-2xl border p-2 backdrop-blur-xl sm:w-52",
@@ -199,7 +201,7 @@ const Header = ({ onToggleSidebar }) => {
                       isDark ? "text-[#f7f1ea]" : "text-[#111111]",
                     ].join(" ")}
                   >
-                    { displayName }
+                    {displayName}
                   </p>
                   <p
                     className={[
@@ -207,16 +209,16 @@ const Header = ({ onToggleSidebar }) => {
                       isDark ? "text-[#b8b0aa]" : "text-[#6b7280]",
                     ].join(" ")}
                   >
-                    { userRole || "member" }
+                    {userRole || "member"}
                   </p>
                 </div>
 
                 <div className="py-2">
-                  { menuItems.map((item) => (
+                  {menuItems.map((item) => (
                     <button
-                      key={ item.to }
+                      key={item.to}
                       type="button"
-                      onClick={ () => handleNavigate(item.to) }
+                      onClick={() => handleNavigate(item.to)}
                       className={[
                         "flex w-full rounded-xl px-3 py-1.5 text-left text-xs transition sm:text-sm",
                         isDark
@@ -224,9 +226,9 @@ const Header = ({ onToggleSidebar }) => {
                           : "text-[#111111] hover:bg-[#f9fafb] hover:text-[#111111]",
                       ].join(" ")}
                     >
-                      { item.label }
+                      {item.label}
                     </button>
-                  )) }
+                  ))}
                 </div>
 
                 <div
@@ -237,7 +239,7 @@ const Header = ({ onToggleSidebar }) => {
                 >
                   <button
                     type="button"
-                    onClick={ handleLogout }
+                    onClick={handleLogout}
                     className={[
                       "flex w-full items-center gap-2 rounded-xl px-3 py-1.5 text-left text-xs transition sm:text-sm",
                       isDark
@@ -245,14 +247,14 @@ const Header = ({ onToggleSidebar }) => {
                         : "text-[#111111] hover:bg-[#f9fafb] hover:text-[#111111]",
                     ].join(" ")}
                   >
-                    <FontAwesomeIcon icon={ faDoorClosed } className="text-xs sm:text-sm" />
+                    <FontAwesomeIcon icon={faDoorClosed} className="text-xs sm:text-sm" />
                     Logout
                   </button>
                 </div>
               </div>
-            ) : null }
+            ) : null}
           </div>
-        ) }
+        )}
       </div>
     </header>
   );

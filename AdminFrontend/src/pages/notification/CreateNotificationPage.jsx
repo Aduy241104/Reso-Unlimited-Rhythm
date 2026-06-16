@@ -1,14 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import { Bell, Send, Search, X, Music, Disc, User2, AlertCircle, Loader2, ArrowLeft } from "lucide-react";
 import { createAdminNotificationService } from "../../services/notificationService";
 import { searchAdminArtistsService } from "../../services/artistService";
-import { searchAdminTracksService } from "../../services/trackService"; 
-// import { searchAdminPlaylistsService } from "../../services/playlistService";
-// Đổi lại path route tương ứng của bạn nếu có thiết lập sẵn hệ thống routePaths 👇
-import { routePaths } from "../../routes/routePaths"; 
+import { searchAdminTracksService } from "../../services/trackService";
+import { getUsersService } from "../../services/userService";
+import { routePaths } from "../../routes/routePaths";
 
 const CreateNotificationPage = () => {
+    const navigate = useNavigate();
+
     // State quản lý Form chính
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
@@ -16,13 +18,21 @@ const CreateNotificationPage = () => {
     const [receiverType, setReceiverType] = useState("all");
     const [specificUserId, setSpecificUserId] = useState("");
     const [groupRole, setGroupRole] = useState("user");
-    
-    // State quản lý Liên kết thực thể (Target Entity)
+
+    // 🔍 STATE MỚI: Quản lý Autocomplete Tìm kiếm Người nhận (User) đích danh
+    const [userSearchQuery, setUserSearchQuery] = useState("");
+    const [userSearchResults, setUserSearchResults] = useState([]);
+    const [isSearchingUser, setIsSearchingUser] = useState(false);
+    const [showUserDropdown, setShowUserDropdown] = useState(false);
+    const [selectedUser, setSelectedUser] = useState(null); // Lưu { id, name, email, avatar } khi chọn xong
+    const userDropdownRef = useRef(null);
+
+    // State quản lý Liên kết thực thể điều hướng (Target Entity)
     const [targetType, setTargetType] = useState("");
     const [targetId, setTargetId] = useState("");
     const [selectedEntity, setSelectedEntity] = useState(null);
 
-    // State phục vụ Autocomplete Tìm kiếm từ xa
+    // State phục vụ Autocomplete Tìm kiếm thực thể điều hướng
     const [searchQuery, setSearchQuery] = useState("");
     const [searchResults, setSearchResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
@@ -30,20 +40,57 @@ const CreateNotificationPage = () => {
     const dropdownRef = useRef(null);
 
     const [isLoading, setIsLoading] = useState(false);
-    const [message, setMessage] = useState({ text: "", status: "" });
+    const [message, setMessage] = useState("");
 
-    // Xử lý đóng dropdown khi click chuột ra ngoài vùng tìm kiếm
+    // Xử lý đóng các dropdown khi click chuột ra ngoài vùng tìm kiếm
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
                 setShowDropdown(false);
+            }
+            if (userDropdownRef.current && !userDropdownRef.current.contains(event.target)) {
+                setShowUserDropdown(false);
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    // Thực thi tìm kiếm Real-time gọi thẳng vào API hệ thống (Debounce 400ms)
+    // ⚡ DEBOUNCE EFFECT: Thực thi tìm kiếm USER Real-time (400ms)
+    useEffect(() => {
+        if (!userSearchQuery.trim() || receiverType !== "single") {
+            setUserSearchResults([]);
+            return;
+        }
+
+        const delayDebounceFn = setTimeout(async () => {
+            setIsSearchingUser(true);
+            try {
+                // 👇 SỬA Ở ĐÂY: Truyền đúng object format { search: ... } theo hàm của ông
+                const res = await getUsersService({ search: userSearchQuery, limit: 5 });
+
+                // 👇 SỬA Ở ĐÂY: Vì res đã là mảng user trực tiếp từ service trả về rồi
+                const results = (res || []).map(u => ({
+                    id: u.id || u._id,
+                    name: u.name || u.username,
+                    email: u.email || "",
+                    avatar: u.avatar || "",
+                }));
+
+                setUserSearchResults(results);
+                setShowUserDropdown(true);
+            } catch (err) {
+                console.error("Lỗi khi fetch tìm kiếm user:", err);
+                setUserSearchResults([]);
+            } finally {
+                setIsSearchingUser(false);
+            }
+        }, 400);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [userSearchQuery, receiverType]);
+
+    // Thực thi tìm kiếm THỰC THỂ ĐIỀU HƯỚNG Real-time (Debounce 400ms)
     useEffect(() => {
         if (!searchQuery.trim() || !targetType) {
             setSearchResults([]);
@@ -67,7 +114,6 @@ const CreateNotificationPage = () => {
                             }));
                         }
                         break;
-                        
                     case "track":
                         if (typeof searchAdminTracksService === "function") {
                             const res = await searchAdminTracksService(searchParams);
@@ -78,18 +124,6 @@ const CreateNotificationPage = () => {
                             }));
                         }
                         break;
-
-                    case "playlist":
-                        if (typeof searchAdminPlaylistsService === "function") {
-                            const res = await searchAdminPlaylistsService(searchParams);
-                            results = (res?.playlists || res?.data || []).map(p => ({
-                                id: p.id || p._id,
-                                name: p.title || p.name,
-                                avatar: p.coverImage || p.thumbnail || "",
-                            }));
-                        }
-                        break;
-                        
                     default:
                         break;
                 }
@@ -107,7 +141,19 @@ const CreateNotificationPage = () => {
         return () => clearTimeout(delayDebounceFn);
     }, [searchQuery, targetType]);
 
-    // Reset sạch dữ liệu cũ khi Admin đổi loại liên kết điều hướng
+    // Các hàm xử lý chọn/gỡ bỏ USER đích danh
+    const handleSelectUser = (user) => {
+        setSpecificUserId(user.id);
+        setSelectedUser(user);
+        setShowUserDropdown(false);
+        setUserSearchQuery("");
+    };
+
+    const handleClearSelectedUser = () => {
+        setSpecificUserId("");
+        setSelectedUser(null);
+    };
+
     const handleTargetTypeChange = (e) => {
         setTargetType(e.target.value);
         setTargetId("");
@@ -116,7 +162,6 @@ const CreateNotificationPage = () => {
         setSearchResults([]);
     };
 
-    // Khi chọn thành công thực thể trong dropdown gợi ý
     const handleSelectEntity = (entity) => {
         setTargetId(entity.id);
         setSelectedEntity(entity);
@@ -132,7 +177,7 @@ const CreateNotificationPage = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
-        setMessage({ text: "", status: "" });
+        setMessage("");
 
         const payload = {
             title: title.trim(),
@@ -146,20 +191,10 @@ const CreateNotificationPage = () => {
 
         try {
             await createAdminNotificationService(payload);
-            setMessage({ text: "Tạo và phát hành thông báo thành công!", status: "success" });
-            
-            // Dọn dẹp form sau khi gửi thành công
-            setTitle("");
-            setContent("");
-            setSpecificUserId("");
-            setTargetId("");
-            setTargetType("");
-            setSelectedEntity(null);
+            toast.success("Tạo và phát hành thông báo thành công!");
+            navigate(routePaths.notifications, { replace: true });
         } catch (error) {
-            setMessage({ 
-                text: error?.response?.data?.message || error?.message || "Không thể phát hành thông báo này.", 
-                status: "error" 
-            });
+            setMessage(error?.response?.data?.message || error?.message || "Không thể phát hành thông báo này.");
         } finally {
             setIsLoading(false);
         }
@@ -167,7 +202,7 @@ const CreateNotificationPage = () => {
 
     return (
         <section className="mx-auto max-w-5xl space-y-6 p-6 bg-[#f8fafc] min-h-screen font-sans text-slate-800 antialiased">
-            
+
             {/* HEADER BAR */}
             <div className="flex flex-col gap-4 rounded-2xl bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between border border-slate-100">
                 <div>
@@ -185,15 +220,10 @@ const CreateNotificationPage = () => {
 
             {/* FORM CARD */}
             <form onSubmit={handleSubmit} className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100 space-y-5">
-                
-                {/* Alert thông báo kết quả */}
-                {message.text && (
-                    <div className={`rounded-xl border px-4 py-3 text-xs font-bold shadow-sm transition-all ${
-                        message.status === "success" 
-                            ? "border-emerald-100 bg-emerald-50/60 text-emerald-700" 
-                            : "border-rose-100 bg-rose-50 text-rose-600"
-                    }`}>
-                        <span>{message.text}</span>
+
+                {message && (
+                    <div className="rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs font-bold text-rose-600 shadow-sm animate-fade-in">
+                        <span>{message}</span>
                     </div>
                 )}
 
@@ -201,9 +231,9 @@ const CreateNotificationPage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Phân loại thông báo</label>
-                        <select 
-                            value={type} 
-                            onChange={(e) => setType(e.target.value)} 
+                        <select
+                            value={type}
+                            onChange={(e) => setType(e.target.value)}
                             disabled={isLoading}
                             className="w-full h-[42px] rounded-xl bg-slate-50/50 border border-slate-200 px-4 py-2 text-sm font-medium text-slate-900 outline-none cursor-pointer focus:border-slate-400 focus:bg-white transition"
                         >
@@ -216,9 +246,9 @@ const CreateNotificationPage = () => {
 
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Đối tượng đích nhận tin</label>
-                        <select 
-                            value={receiverType} 
-                            onChange={(e) => setReceiverType(e.target.value)} 
+                        <select
+                            value={receiverType}
+                            onChange={(e) => setReceiverType(e.target.value)}
                             disabled={isLoading}
                             className="w-full h-[42px] rounded-xl bg-slate-50/50 border border-slate-200 px-4 py-2 text-sm font-medium text-slate-900 outline-none cursor-pointer focus:border-slate-400 focus:bg-white transition"
                         >
@@ -229,19 +259,81 @@ const CreateNotificationPage = () => {
                     </div>
                 </div>
 
-                {/* Xử lý hiển thị trường tùy biến theo receiverType */}
+                {/* 👇 SỬA ĐỔI Ô CHỌN USER ĐÍCH DANH THÀNH AUTOCOMPLETE SEARCH BOX XỊN MỊN */}
                 {receiverType === "single" && (
-                    <div className="p-4 bg-slate-50/40 border border-slate-100 rounded-xl space-y-1.5 animate-fadeIn">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Mã tài khoản người nhận (User ID)</label>
-                        <input 
-                            type="text" 
-                            value={specificUserId} 
-                            onChange={(e) => setSpecificUserId(e.target.value)} 
-                            placeholder="Nhập chuỗi User ID nhận thông báo..." 
-                            required 
-                            disabled={isLoading}
-                            className="w-full h-[42px] rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-sm font-mono text-slate-900 outline-none focus:border-slate-400 transition" 
-                        />
+                    <div className="p-4 bg-slate-50/40 border border-slate-100 rounded-xl space-y-1.5 relative animate-fadeIn" ref={userDropdownRef}>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Tài khoản người nhận (User Đích Danh)</label>
+
+                        {!selectedUser ? (
+                            <div className="relative">
+                                <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                                <input
+                                    type="text"
+                                    value={userSearchQuery}
+                                    disabled={isLoading}
+                                    onChange={(e) => setUserSearchQuery(e.target.value)}
+                                    onFocus={() => userSearchQuery && setShowUserDropdown(true)}
+                                    placeholder="Nhập tên hoặc email tài khoản người dùng thực tế..."
+                                    className="w-full h-[42px] rounded-xl bg-white border border-slate-200 pl-9 pr-8 py-2.5 text-xs text-slate-900 outline-none focus:border-slate-400 transition font-medium"
+                                />
+                                {isSearchingUser && (
+                                    <Loader2 size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-900 animate-spin" />
+                                )}
+                            </div>
+                        ) : (
+                            /* Card hiển thị user đã chọn thành công */
+                            <div className="flex h-[42px] items-center justify-between gap-3 border border-slate-200 bg-white rounded-xl px-3 shadow-sm animate-fade-in">
+                                <div className="flex items-center gap-2 min-w-0">
+                                    {selectedUser.avatar ? (
+                                        <img src={selectedUser.avatar} alt="" className="h-5 w-5 rounded-md object-cover border border-slate-100" />
+                                    ) : (
+                                        <div className="h-5 w-5 rounded-md bg-slate-900 flex items-center justify-center text-white shrink-0">
+                                            <User2 size={10} />
+                                        </div>
+                                    )}
+                                    <div className="min-w-0 flex items-baseline gap-2">
+                                        <p className="text-xs font-bold text-slate-900 truncate">{selectedUser.name}</p>
+                                        <p className="text-[10px] text-slate-400 font-medium truncate">({selectedUser.email})</p>
+                                    </div>
+                                </div>
+                                <button type="button" onClick={handleClearSelectedUser} disabled={isLoading} className="p-1 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-rose-600 transition">
+                                    <X size={12} />
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Dropdown danh sách kết quả tìm kiếm User */}
+                        {showUserDropdown && userSearchResults.length > 0 && (
+                            <div className="absolute z-40 left-4 right-4 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-52 overflow-y-auto divide-y divide-slate-100 overflow-hidden">
+                                {userSearchResults.map((user) => (
+                                    <button
+                                        key={user.id}
+                                        type="button"
+                                        onClick={() => handleSelectUser(user)}
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-slate-50/80 transition cursor-pointer"
+                                    >
+                                        {user.avatar ? (
+                                            <img src={user.avatar} alt="" className="h-6 w-6 rounded-md object-cover border border-slate-100" />
+                                        ) : (
+                                            <div className="h-6 w-6 rounded-md bg-slate-100 flex items-center justify-center text-slate-400 shrink-0">
+                                                <User2 size={12} />
+                                            </div>
+                                        )}
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-xs font-bold text-slate-900 truncate">{user.name}</p>
+                                            <p className="text-[10px] text-slate-400 font-mono truncate">{user.email || user.id}</p>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Trạng thái không thấy kết quả */}
+                        {showUserDropdown && userSearchResults.length === 0 && userSearchQuery && !isSearchingUser && (
+                            <div className="absolute z-40 left-4 right-4 top-full mt-1 bg-white border border-slate-200 rounded-xl p-3.5 text-center text-xs font-medium text-slate-400 shadow-xl">
+                                Không tìm thấy tài khoản người dùng nào khớp trong hệ thống.
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -250,11 +342,10 @@ const CreateNotificationPage = () => {
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Chọn nhóm tài khoản nhận thông báo</label>
                         <div className="flex gap-4">
                             {["user", "artist"].map((role) => (
-                                <label key={role} className={`flex-1 flex items-center justify-center gap-2 border rounded-xl h-[42px] px-4 text-xs font-bold capitalize cursor-pointer transition select-none ${
-                                    groupRole === role 
-                                        ? "bg-slate-900 border-slate-900 text-white shadow-sm" 
+                                <label key={role} className={`flex-1 flex items-center justify-center gap-2 border rounded-xl h-[42px] px-4 text-xs font-bold capitalize cursor-pointer transition select-none ${groupRole === role
+                                        ? "bg-slate-900 border-slate-900 text-white shadow-sm"
                                         : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                                }`}>
+                                    }`}>
                                     <input type="radio" name="groupRole" value={role} checked={groupRole === role} onChange={() => setGroupRole(role)} disabled={isLoading} className="hidden" />
                                     {role === "user" ? <User2 size={14} /> : <Music size={14} />}
                                     Thành viên {role}
@@ -264,47 +355,45 @@ const CreateNotificationPage = () => {
                     </div>
                 )}
 
-                {/* Tiêu đề & Nội dung */}
                 <div className="space-y-1.5">
                     <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tiêu đề thông báo</label>
-                    <input 
-                        type="text" 
-                        value={title} 
-                        onChange={(e) => setTitle(e.target.value)} 
-                        placeholder="Nhập tiêu đề thông báo chính thức..." 
-                        required 
+                    <input
+                        type="text"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="Nhập tiêu đề thông báo chính thức..."
+                        required
                         disabled={isLoading}
-                        className="w-full h-[42px] rounded-xl bg-slate-50/50 border border-slate-200 px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-slate-400 focus:bg-white transition font-medium" 
+                        className="w-full h-[42px] rounded-xl bg-slate-50/50 border border-slate-200 px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-slate-400 focus:bg-white transition font-medium"
                     />
                 </div>
 
                 <div className="space-y-1.5">
                     <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Nội dung chi tiết</label>
-                    <textarea 
-                        value={content} 
-                        onChange={(e) => setContent(e.target.value)} 
-                        rows={4} 
-                        placeholder="Nhập nội dung thông tin truyền tải chi tiết đến người dùng..." 
-                        required 
+                    <textarea
+                        value={content}
+                        onChange={(e) => setContent(e.target.value)}
+                        rows={4}
+                        placeholder="Nhập nội dung thông tin truyền tải chi tiết đến người dùng..."
+                        required
                         disabled={isLoading}
-                        className="w-full rounded-xl bg-slate-50/50 border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-400 focus:bg-white transition resize-none font-medium" 
+                        className="w-full rounded-xl bg-slate-50/50 border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-400 focus:bg-white transition resize-none font-medium"
                     />
                 </div>
 
-                {/* KHU VỰC LIÊN KẾT THỰC THỂ THỰC TẾ (TARGET LINK) */}
-                <div className="p-4 bg-slate-50/50 border border-slate-100 rounded-xl space-y-3.5">
+                {/* TARGET LINK ENTITY BOX */}
+                <div className="p-4 bg-slate-50/50 border border-slate-100 rounded-xl space-y-3.5" ref={dropdownRef}>
                     <div className="flex items-center gap-1.5 text-slate-500">
                         <AlertCircle size={14} className="text-slate-400" />
                         <span className="text-[10px] font-bold uppercase tracking-wider">Hành vi điều hướng khi nhấn vào thông báo (Tùy chọn)</span>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        {/* Lựa chọn loại thực thể */}
                         <div className="space-y-1.5">
                             <label className="text-[10px] font-bold text-slate-400 uppercase block">Điều hướng đến:</label>
-                            <select 
-                                value={targetType} 
-                                onChange={handleTargetTypeChange} 
+                            <select
+                                value={targetType}
+                                onChange={handleTargetTypeChange}
                                 disabled={isLoading}
                                 className="w-full h-[38px] rounded-xl bg-white border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 outline-none cursor-pointer focus:border-slate-400 transition"
                             >
@@ -315,28 +404,26 @@ const CreateNotificationPage = () => {
                             </select>
                         </div>
 
-                        {/* Ô tìm kiếm thông minh từ xa */}
-                        <div className="sm:col-span-2 space-y-1.5 relative" ref={dropdownRef}>
+                        <div className="sm:col-span-2 space-y-1.5 relative">
                             <label className="text-[10px] font-bold text-slate-400 uppercase block">Tìm kiếm dữ liệu hệ thống:</label>
-                            
+
                             {!selectedEntity ? (
                                 <div className="relative">
                                     <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         value={searchQuery}
                                         disabled={!targetType || isLoading}
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                         onFocus={() => targetType && searchQuery && setShowDropdown(true)}
                                         placeholder={targetType ? `Nhập tên để truy vấn dữ liệu ${targetType}...` : "Chọn mục điều hướng trước để mở khóa tìm kiếm..."}
-                                        className="w-full h-[38px] rounded-xl bg-white border border-slate-200 pl-9 pr-8 py-2 text-xs text-slate-900 outline-none focus:border-slate-400 transition disabled:bg-slate-100 disabled:opacity-60 disabled:cursor-not-allowed font-medium" 
+                                        className="w-full h-[38px] rounded-xl bg-white border border-slate-200 pl-9 pr-8 py-2 text-xs text-slate-900 outline-none focus:border-slate-400 transition disabled:bg-slate-100 disabled:opacity-60 disabled:cursor-not-allowed font-medium"
                                     />
                                     {isSearching && (
                                         <Loader2 size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-900 animate-spin" />
                                     )}
                                 </div>
                             ) : (
-                                /* Thẻ hiển thị thực thể đã chọn */
                                 <div className="flex h-[38px] items-center justify-between gap-3 border border-slate-200 bg-white rounded-xl px-3 shadow-sm animate-fade-in">
                                     <div className="flex items-center gap-2 min-w-0">
                                         {selectedEntity.avatar ? (
@@ -357,12 +444,11 @@ const CreateNotificationPage = () => {
                                 </div>
                             )}
 
-                            {/* Dropdown gợi ý kết quả truy xuất */}
                             {showDropdown && searchResults.length > 0 && (
                                 <div className="absolute z-30 left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl max-h-52 overflow-y-auto divide-y divide-slate-100 overflow-hidden">
                                     {searchResults.map((entity) => (
-                                        <button 
-                                            key={entity.id} 
+                                        <button
+                                            key={entity.id}
                                             type="button"
                                             onClick={() => handleSelectEntity(entity)}
                                             className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-slate-50/80 transition cursor-pointer"
@@ -383,7 +469,6 @@ const CreateNotificationPage = () => {
                                 </div>
                             )}
 
-                            {/* Trạng thái không tìm thấy thực thể */}
                             {showDropdown && searchResults.length === 0 && searchQuery && !isSearching && (
                                 <div className="absolute z-30 left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl p-3.5 text-center text-xs font-medium text-slate-400 shadow-xl">
                                     Không tìm thấy dữ liệu phù hợp trong hệ thống.
@@ -397,7 +482,7 @@ const CreateNotificationPage = () => {
                 <div className="flex flex-wrap gap-2.5 pt-4 border-t border-slate-50">
                     <button
                         type="submit"
-                        disabled={isLoading || !title.trim() || !content.trim()}
+                        disabled={isLoading || !title.trim() || !content.trim() || (receiverType === "single" && !specificUserId)}
                         className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-5 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                     >
                         {isLoading ? (
