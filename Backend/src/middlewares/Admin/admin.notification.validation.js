@@ -6,7 +6,6 @@ const createNotificationSchema = Joi.object({
     type: Joi.string().valid("system", "new_release", "payment", "follow", "report", "subscription").required(),
     receiverType: Joi.string().valid("single", "all", "group").required(),
     
-    // Yêu cầu cụ thể dựa vào receiverType
     specificUserId: Joi.string().hex().length(24).when("receiverType", {
         is: "single",
         then: Joi.required(),

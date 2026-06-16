@@ -3,24 +3,36 @@ import formatResponse from "../utils/formatResponse.js";
 
 const createNotificationForAdmin = async (req, res, next) => {
     try {
-        // req.body lúc này đã sạch và được validate qua middleware bọc ở router
         const notificationData = req.body;
-        
-        // Giả định middleware requireAdmin gán thông tin admin vào req.user
         const adminId = req.user._id; 
 
-        // Gọi tầng Service xử lý nghiệp vụ gửi thông báo
-        const result = await adminNotificationService.createNotificationForAdmin(adminId, notificationData);
+        // 1. Tạo bản ghi duy nhất trong DB
+        const notification = await adminNotificationService.createNotificationForAdmin(adminId, notificationData);
 
-        // Chuẩn hóa câu thông báo theo cơ chế lưu trữ tập trung mới
-        const messageTarget = notificationData.receiverType === "single" 
+        // 2. Lấy cụm io để bắn Realtime phát một ăn ngay
+        const io = req.app.get("io"); 
+
+        if (io) {
+            if (notification.receiverType === "single") {
+                io.to(notification.userId.toString()).emit("new_notification", notification);
+            } 
+            else if (notification.receiverType === "group") {
+                const targetGroup = notification.targetRoles[0];
+                io.to(targetGroup).emit("new_notification", notification);
+            } 
+            else if (notification.receiverType === "all") {
+                io.emit("new_notification", notification);
+            }
+        }
+
+        const messageTarget = notification.receiverType === "single" 
             ? "1 specific user" 
-            : `the target ${notificationData.receiverType} group`;
+            : `the target ${notification.receiverType} group`;
 
         return formatResponse.success(
             res,
-            { processedRecords: result.count },
-            `Notification created and broadcasted to ${messageTarget} successfully.`
+            notification,
+            `Notification created and broadcasted via socket to ${messageTarget} successfully.`
         );
     } catch (error) {
         next(error);
