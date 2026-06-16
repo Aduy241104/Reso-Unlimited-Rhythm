@@ -2,6 +2,7 @@ import cron from "node-cron";
 import mongoose from "mongoose";
 import redisClient from "../config/redisConfig.js";
 import ListenEvent from "../models/ListenEvent.js";
+import Track from "../models/Track.js";
 import { getAnalyticsTimezone } from "../services/analytics/trackStatAggregation.service.js";
 
 const LISTEN_EVENT_SYNC_CRON_SCHEDULE =
@@ -53,6 +54,30 @@ const transformStreamEntryToDocument = (entry) => {
     };
 };
 
+const buildTrackTotalPlayBulkOperations = (documents = []) => {
+    const trackPlayCountMap = new Map();
+
+    documents.forEach((document) => {
+        if (!document?.trackId) {
+            return;
+        }
+
+        const trackId = String(document.trackId);
+        trackPlayCountMap.set(trackId, (trackPlayCountMap.get(trackId) || 0) + 1);
+    });
+
+    return Array.from(trackPlayCountMap.entries()).map(([trackId, playCount]) => ({
+        updateOne: {
+            filter: { _id: new mongoose.Types.ObjectId(trackId) },
+            update: {
+                $inc: {
+                    "stats.totalPlay": playCount,
+                },
+            },
+        },
+    }));
+};
+
 export const syncListenEventsFromRedis = async (batchSize = LISTEN_EVENT_SYNC_BATCH_SIZE) => {
     if (!redisClient?.isOpen) {
         return {
@@ -78,8 +103,14 @@ export const syncListenEventsFromRedis = async (batchSize = LISTEN_EVENT_SYNC_BA
     }
 
     const documents = streamEntries.map(transformStreamEntryToDocument);
+    const trackTotalPlayOperations = buildTrackTotalPlayBulkOperations(documents);
 
     await ListenEvent.insertMany(documents, { ordered: true });
+
+    if (trackTotalPlayOperations.length > 0) {
+        await Track.bulkWrite(trackTotalPlayOperations, { ordered: false });
+    }
+
     await redisClient.xDel(
         LISTEN_EVENT_STREAM_KEY,
         streamEntries.map((entry) => entry.id)
@@ -88,6 +119,7 @@ export const syncListenEventsFromRedis = async (batchSize = LISTEN_EVENT_SYNC_BA
     return {
         success: true,
         syncedCount: documents.length,
+        updatedTrackCount: trackTotalPlayOperations.length,
         message: "Queued listen events synced successfully.",
     };
 };
@@ -96,6 +128,8 @@ export const startListenEventSyncCron = () => {
     if (isListenEventSyncCronStarted) {
         return;
     }
+
+    const analyticsTimezone = getAnalyticsTimezone();
 
     cron.schedule(
         LISTEN_EVENT_SYNC_CRON_SCHEDULE,
@@ -110,8 +144,12 @@ export const startListenEventSyncCron = () => {
             }
         },
         {
-            timezone: getAnalyticsTimezone(),
+            timezone: analyticsTimezone,
         }
+    );
+
+    console.log(
+        `[Cron] Listen event sync scheduled with '${LISTEN_EVENT_SYNC_CRON_SCHEDULE}' (${analyticsTimezone}).`
     );
 
     isListenEventSyncCronStarted = true;
