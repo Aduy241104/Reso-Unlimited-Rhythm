@@ -1,8 +1,46 @@
 import mongoose from "mongoose";
 import Report from "../../models/Report.js";
+import Track from "../../models/Track.js";
+import Album from "../../models/Album.js";
+import Artist from "../../models/Artist.js";
 
-const VALID_STATUSES = ["pending", "reviewing", "resolved", "rejected"];
-const VALID_RESOLUTIONS = ["remove_content", "ignore", "warning", ""];
+const VALID_STATUSES = ["reviewing", "resolved", "rejected"];
+
+const populateTargetInfo = async (report) => {
+    if (!report.targetId) return report;
+
+    try {
+        let targetInfo = null;
+
+        switch (report.targetType) {
+            case "track":
+                targetInfo = await Track.findById(report.targetId)
+                    .select("title artist_artistId avatar")
+                    .populate("artist_artistId", "name avatar")
+                    .lean();
+                break;
+            case "album":
+                targetInfo = await Album.findById(report.targetId)
+                    .select("title artistId coverImage")
+                    .populate("artistId", "name avatar")
+                    .lean();
+                break;
+            case "artist":
+                targetInfo = await Artist.findById(report.targetId)
+                    .select("name avatar")
+                    .lean();
+                break;
+        }
+
+        return {
+            ...report,
+            targetInfo: targetInfo || null,
+        };
+    } catch (error) {
+        console.error("Error populating target info:", error);
+        return report;
+    }
+};
 
 const getReports = async (query) => {
     const page = Math.max(1, parseInt(query.page) || 1);
@@ -39,6 +77,10 @@ const getReports = async (query) => {
         Report.countDocuments(filter),
     ]);
 
+    const reportsWithTargets = await Promise.all(
+        reports.map(report => populateTargetInfo(report))
+    );
+
     const meta = {
         page,
         limit,
@@ -46,7 +88,7 @@ const getReports = async (query) => {
         totalPages: Math.ceil(total / limit),
     };
 
-    return { reports, meta };
+    return { reports: reportsWithTargets, meta };
 };
 
 const getReportDetail = async (id) => {
@@ -63,7 +105,7 @@ const getReportDetail = async (id) => {
         throw new Error("Report not found");
     }
 
-    return report;
+    return await populateTargetInfo(report);
 };
 
 const updateReportStatus = async (id, body, adminId) => {
@@ -82,8 +124,8 @@ const updateReportStatus = async (id, body, adminId) => {
         updates.status = status;
     }
 
-    if (resolution !== undefined && VALID_RESOLUTIONS.includes(resolution)) {
-        updates.resolution = resolution;
+    if (typeof resolution === "string" && resolution.trim() !== "") {
+        updates.resolution = resolution.trim();
     }
 
     if (typeof resolutionNote === "string") {
@@ -99,7 +141,7 @@ const updateReportStatus = async (id, body, adminId) => {
         throw new Error("Report not found");
     }
 
-    return report;
+    return await populateTargetInfo(report);
 };
 
 export default {
