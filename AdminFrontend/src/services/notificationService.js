@@ -11,11 +11,22 @@ export const createAdminNotificationService = async (data) => {
 };
 
 export const getAdminNotificationsService = async (params = {}) => {
-  const response = await axiosClient.get(ADMIN_NOTIFICATION_PREFIX, { params });
-  return response?.data?.data || response?.data;
+    const response = await axiosClient.get(ADMIN_NOTIFICATION_PREFIX, { params });
+    return response?.data?.data || response?.data;
 };
+export const getAdminNotificationDetailService = async (id) => {
+    const response = await axiosClient.get(`${ADMIN_NOTIFICATION_PREFIX}/${id}`);
+    return response?.data?.data || response?.data;
+};
+
+export const deleteAdminNotificationService = async (id) => {
+    const response = await axiosClient.delete(`${ADMIN_NOTIFICATION_PREFIX}/${id}`);
+    return response?.data ?? response;
+}
 
 export default {
     createAdminNotificationService,
-    getAdminNotificationsService
+    getAdminNotificationsService,
+    getAdminNotificationDetailService,
+    deleteAdminNotificationService
 };

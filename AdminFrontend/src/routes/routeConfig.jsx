@@ -22,6 +22,7 @@ import SystemTracksModerationPage from "../pages/systemTracks/SystemTracksModera
 import CreateNotificationPage from "../pages/notification/CreateNotificationPage";
 import AdminListPage from "../pages/users/AdminListPage";
 import NotificationsListPage from "../pages/notification/NotificationListPage";
+import NotificationDetailPage from "../pages/notification/NotificationDetailPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import RoleRoute from "./RoleRoute";
@@ -79,6 +80,10 @@ export const appRoutes = [
               {
                 path: "notifications/new",
                 element: <CreateNotificationPage />, // Đổi thành /notifications/new để khớp với routePaths.createNotification
+              },
+              {
+                path: "notifications/:id",
+                element: <NotificationDetailPage />,
               },
               {
                 path: "users/admins",
