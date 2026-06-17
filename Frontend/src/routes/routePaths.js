@@ -35,7 +35,6 @@ export const routePaths = {
   artistAnalytics: "/artist/analytics",
   artistNotifications: "/artist/notifications",
   artistNotificationDetail: (notificationId = ":id") => `/artist/notifications/${notificationId}`,
-  artistFans: "/artist/fans",
   artistRoyalties: "/artist/royalties",
   artistSettings: "/artist/settings",
   artistProfile: "/artist/profile",

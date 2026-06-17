@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Loader2, Save, Send } from "lucide-react";
 import TrackCopyrightFields from "../../components/artist/TrackCopyrightFields";
+import ConfirmActionModal from "../../components/common/ConfirmActionModal";
 import genreService from "../../services/genreService";
 import trackService from "../../services/trackService";
 import { routePaths } from "../../routes/routePaths";
@@ -56,6 +57,7 @@ const ArtistTrackEditPage = () => {
   const [lyricsPreviewText, setLyricsPreviewText] = useState("");
   const objectUrlsRef = useRef([]);
   const [genresOpen, setGenresOpen] = useState(false);
+  const [isSubmitConfirmOpen, setIsSubmitConfirmOpen] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     versionTitle: "",
@@ -175,7 +177,7 @@ const ArtistTrackEditPage = () => {
       }
 
       if (current.genreIds.length >= MAX_GENRE_IDS) {
-        setErrorMessage(`You can select at most ${MAX_GENRE_IDS} genres.`);
+        setErrorMessage(`Bạn chỉ có thể chọn tối đa ${MAX_GENRE_IDS} thể loại.`);
         return current;
       }
 
@@ -247,40 +249,40 @@ const ArtistTrackEditPage = () => {
     
     const title = formData.title.trim();
     if (!title) {
-      errors.title = "Title is required.";
+      errors.title = "Vui lòng nhập tên bài nhạc.";
     } else if (title.length > TITLE_MAX_LENGTH) {
-      errors.title = `Title cannot exceed ${TITLE_MAX_LENGTH} characters.`;
+      errors.title = `Tên bài nhạc không được vượt quá ${TITLE_MAX_LENGTH} ký tự.`;
     }
 
     if (formData.genreIds.length === 0) {
-      errors.genres = "Select at least one genre.";
+      errors.genres = "Vui lòng chọn ít nhất một thể loại.";
     }
 
     const audioFiles = Array.isArray(track?.audioFiles) ? track.audioFiles : [];
     if (audioFiles.length === 0 && !audioFile) {
-      errors.audio = "Upload at least one audio file.";
+      errors.audio = "Vui lòng tải lên ít nhất một tệp âm thanh.";
     }
 
     if (!formData.duration || formData.duration <= 0) {
-      errors.duration = "Duration must be greater than 0 seconds.";
+      errors.duration = "Thời lượng phải lớn hơn 0 giây.";
     }
 
     const hasAvatar = avatarFile || (track?.avatar && typeof track.avatar === "string" && track.avatar.trim());
     const hasCovers = coverImageFiles.length > 0 || (Array.isArray(track?.coverImage) && track.coverImage.length > 0);
     if (!hasAvatar && !hasCovers) {
-      errors.media = "Add a track avatar or at least one cover image.";
+      errors.media = "Vui lòng thêm ảnh đại diện bài nhạc hoặc ít nhất một ảnh bìa.";
     }
 
     if (!copyrightForm.copyrightOwner?.trim()) {
-      errors.copyrightOwner = "Copyright owner is required.";
+      errors.copyrightOwner = "Vui lòng nhập chủ sở hữu bản quyền.";
     }
 
     if (!copyrightForm.recordingOwner?.trim()) {
-      errors.recordingOwner = "Recording owner is required.";
+      errors.recordingOwner = "Vui lòng nhập chủ sở hữu bản ghi âm.";
     }
 
     if (!copyrightForm.declarationAccepted) {
-      errors.declarationAccepted = "Accept the copyright declaration.";
+      errors.declarationAccepted = "Vui lòng xác nhận chính sách bản quyền.";
     }
 
     return errors;
@@ -301,22 +303,17 @@ const ArtistTrackEditPage = () => {
 
     if (issues.length > 0) {
       setErrorMessage(
-        `Complete the following before submitting:\n${issues.map((item) => `• ${item}`).join("\n")}`
+        `Vui lòng hoàn tất các mục sau trước khi gửi duyệt:\n${issues
+          .map((item) => `• ${item}`)
+          .join("\n")}`
       );
-      return;
-    }
-
-    const confirmed = window.confirm(
-      "Submit this track for admin review? You will not be able to edit it while it is pending."
-    );
-
-    if (!confirmed) {
       return;
     }
 
     setSubmittingForApproval(true);
     setSuccessMessage("");
     setErrorMessage("");
+    setIsSubmitConfirmOpen(false);
 
     try {
       let uploadedMedia = null;
@@ -367,11 +364,11 @@ const ArtistTrackEditPage = () => {
 
       await trackService.submitForApproval(id);
       navigate(routePaths.artistTrackDetail(id), {
-        state: { message: "Track submitted for approval." },
+        state: { message: "Đã gửi bài nhạc lên để chờ phê duyệt." },
       });
     } catch (error) {
       setErrorMessage(
-        getApiErrorFullMessage(error, "Unable to submit this track for approval.")
+        getApiErrorFullMessage(error, "Không thể gửi bài nhạc để phê duyệt.")
       );
     } finally {
       setSubmittingForApproval(false);
@@ -382,7 +379,7 @@ const ArtistTrackEditPage = () => {
     event.preventDefault();
 
     if (!canEdit) {
-      setErrorMessage("This track cannot be edited in its current approval status.");
+      setErrorMessage("Bài nhạc này không thể chỉnh sửa ở trạng thái phê duyệt hiện tại.");
       return;
     }
 
@@ -453,7 +450,7 @@ const ArtistTrackEditPage = () => {
           : ""
       );
       setLyricsPreviewText(updatedTrack?.lyricsSyncUrl ? updatedTrack.lyricsSyncUrl.split("/").pop() : "");
-      setSuccessMessage("Track updated successfully.");
+      setSuccessMessage("Đã cập nhật bài nhạc thành công.");
 
       setTimeout(() => {
         navigate(routePaths.artistMusic);
@@ -465,7 +462,7 @@ const ArtistTrackEditPage = () => {
       setLyricsSyncFile(null);
     } catch (error) {
       setErrorMessage(
-        getApiErrorFullMessage(error, "Unable to update this track right now.")
+        getApiErrorFullMessage(error, "Không thể cập nhật bài nhạc lúc này.")
       );
     } finally {
       setIsUploadingMedia(false);
@@ -909,7 +906,11 @@ const ArtistTrackEditPage = () => {
             {canSubmit ? (
               <button
                 type="button"
-                onClick={handleSubmitForApproval}
+                onClick={() => {
+                  setSuccessMessage("");
+                  setErrorMessage("");
+                  setIsSubmitConfirmOpen(true);
+                }}
                 disabled={!canEdit || submitting || submittingForApproval || submitIssues.length > 0}
                 className="inline-flex items-center gap-2 rounded-md border border-sky-200 bg-sky-50 px-4 py-2 font-medium text-sky-900 hover:bg-sky-100 disabled:opacity-50"
               >
@@ -918,7 +919,7 @@ const ArtistTrackEditPage = () => {
                 ) : (
                   <Send className="h-4 w-4" />
                 )}
-                {submittingForApproval ? "Submitting..." : "Submit for approval"}
+                {submittingForApproval ? "Đang gửi duyệt..." : "Gửi duyệt bài nhạc"}
               </button>
             ) : null}
 
@@ -927,11 +928,22 @@ const ArtistTrackEditPage = () => {
               onClick={() => navigate(routePaths.artistTrackDetail(id))}
               className="rounded-md border border-neutral-200 px-4 py-2 font-medium text-neutral-700 transition hover:bg-neutral-50"
             >
-              Cancel
+              Hủy
             </button>
           </div>
         </form>
       </div>
+
+      <ConfirmActionModal
+        isOpen={isSubmitConfirmOpen}
+        title="Gửi duyệt bài nhạc?"
+        message="Sau khi gửi duyệt, bạn sẽ không thể chỉnh sửa bài nhạc trong thời gian chờ phê duyệt. Bạn có muốn tiếp tục không?"
+        confirmText="Xác nhận gửi duyệt"
+        cancelText="Quay lại"
+        isLoading={submittingForApproval}
+        onCancel={() => setIsSubmitConfirmOpen(false)}
+        onConfirm={handleSubmitForApproval}
+      />
     </section>
   );
 };
