@@ -11,12 +11,10 @@ const ArtistHeroSection = ({
   onReport,
 }) => {
   const followButtonLabel = isFollowLoading
-    ? isFollowing
-      ? "Following..."
-      : "Follow..."
+    ? "\u0110ang x\u1eed l\u00fd..."
     : isFollowing
-      ? "Following"
-      : "Follow";
+      ? "Đã theo dõi"
+      : "Theo dõi";
 
   return (
     <section className="relative overflow-hidden bg-[#121212]">
