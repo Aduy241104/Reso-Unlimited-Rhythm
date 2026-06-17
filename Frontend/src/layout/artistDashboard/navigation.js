@@ -6,6 +6,7 @@ import {
   FileText,
   LayoutDashboard,
   Music2,
+  Wallet,
   Waves,
 } from "lucide-react";
 import { routePaths } from "../../routes/routePaths";
@@ -42,6 +43,11 @@ export const artistNavigation = [
     icon: BarChart3,
   },
   {
+    label: "Số dư",
+    to: routePaths.artistRoyalties,
+    icon: Wallet,
+  },
+  {
     label: "Thông báo",
     to: routePaths.artistNotifications,
     icon: Bell,
@@ -62,6 +68,7 @@ export const artistPageTitles = {
   [routePaths.artistAlbums]: "Album của tôi",
   [routePaths.artistReleases]: "Phát hành",
   [routePaths.artistAnalytics]: "Phân tích bài hát",
+  [routePaths.artistRoyalties]: "Số dư khả dụng",
   [routePaths.artistNotifications]: "Thông báo",
   [routePaths.artistProfile]: "Hồ sơ nghệ sĩ",
   [routePaths.artistProfileEdit]: "Chỉnh sửa hồ sơ nghệ sĩ",

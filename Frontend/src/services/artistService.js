@@ -7,6 +7,11 @@ export const getMyArtistProfileService = async () => {
   return response?.data?.data?.artist ?? null;
 };
 
+export const getMyArtistRevenueSummaryService = async () => {
+  const response = await axiosClient.get(`${ARTIST_API_PREFIX}/me/revenue-summary`);
+  return response?.data?.data?.revenue ?? null;
+};
+
 export const getArtistPerformanceOverviewService = async (params = {}) => {
   const response = await axiosClient.get("/api/artist/overview/performance", {
     params,

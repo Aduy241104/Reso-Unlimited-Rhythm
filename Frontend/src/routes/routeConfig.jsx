@@ -9,6 +9,7 @@ import ResetPasswordPage from "../pages/auth/ResetPasswordPage";
 import ArtistOverviewPage from "../pages/artist/ArtistOverviewPage";
 import ArtistProfileEditPage from "../pages/artist/ArtistProfileEditPage";
 import ArtistProfilePage from "../pages/artist/ArtistProfilePage";
+import ArtistRoyaltiesPage from "../pages/artist/ArtistRoyaltiesPage";
 import ArtistAlbumPage from "../pages/artist/ArtistAlbumPage";
 import ArtistAlbumDetailPage from "../pages/artist/ArtistAlbumDetailPage";
 import ArtistCreateAlbumPage from "../pages/artist/ArtistCreateAlbumPage";
@@ -21,7 +22,6 @@ import ArtistTrackInsightsPage from "../pages/artist/ArtistTrackInsightsPage";
 import {
   MyMusicPage,
   ReleasesPage,
-  RoyaltiesPage,
   SettingsPage,
 } from "../pages/artist/ArtistSectionPages";
 import CreateTrackPage from "../pages/artist/CreateTrackPage";
@@ -216,7 +216,7 @@ export const appRoutes = [
               },
               {
                 path: routePaths.artistRoyalties,
-                element: <RoyaltiesPage />,
+                element: <ArtistRoyaltiesPage />,
               },
               {
                 path: routePaths.artistSettings,
