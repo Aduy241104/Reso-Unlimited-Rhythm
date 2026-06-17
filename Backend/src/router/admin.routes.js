@@ -2,6 +2,7 @@ import express from "express";
 import adminUserController from "../controllers/admin.user.controller.js";
 import adminGenreController from "../controllers/admin.genre.controller.js";
 import adminDashboardController from "../controllers/admin.dashboard.controller.js";
+import adminRevenueController from "../controllers/admin.revenue.controller.js";
 import adminArtistRequestRouter from "./adminArtistRequest.routes.js";
 import adminTrackRouter from "./admin.track.routes.js";
 import adminReportRouter from "./admin.report.routes.js";
@@ -37,6 +38,7 @@ router.get("/dashboard/overview", adminDashboardController.getOverviewStats);
 router.get("/dashboard/monthly", adminDashboardController.getMonthlyOverview);
 router.get("/dashboard/daily", adminDashboardController.getDailyStats);
 router.get("/dashboard/new-users", adminDashboardController.getNewUsersByMonth);
+router.get("/revenue/dashboard", adminRevenueController.getRevenueDashboard);
 
 // Reports
 router.use("/reports", adminReportRouter);
