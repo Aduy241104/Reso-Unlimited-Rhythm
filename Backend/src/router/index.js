@@ -3,6 +3,7 @@ import artistBrowseRoutes from "./artistBrowse.routes.js";
 import artistNotificationRoutes from "./artist.notification.routes.js";
 import artistReleaseScheduleRoutes from "./artist.releaseSchedule.routes.js";
 import artistTrackAnalyticsRoutes from "./artist.trackAnalytics.routes.js";
+import artistWithdrawalRoutes from "./artist.withdrawal.routes.js";
 import artistRoutes from "./artist.routes.js";
 import artistRegistrationRoutes from "./artist.registration.routes.js";
 import userArtistRegistrationListRoutes from "./user.artistRegistrationList.routes.js";
@@ -33,6 +34,7 @@ function route(app) {
     app.use("/api/browse/artists", artistBrowseRoutes);
     app.use("/api/artist/release-schedules", artistReleaseScheduleRoutes);
     app.use("/api/artists", artistRoutes);
+    app.use("/api/artists", artistWithdrawalRoutes);
     app.use("/api/users", artistRegistrationRoutes);
     app.use("/api/users/artist-registration-requests", userArtistRegistrationListRoutes);
     app.use("/api/artists/albums", artistAlbumRoutes);
