@@ -11,11 +11,9 @@ const ArtistHeroSection = ({
   onReport,
 }) => {
   const followButtonLabel = isFollowLoading
-    ? isFollowing
-      ? "Đang theo dõi..."
-      : "Đang theo dõi..."
+    ? "\u0110ang x\u1eed l\u00fd..."
     : isFollowing
-      ? "Đang theo dõi"
+      ? "Đã theo dõi"
       : "Theo dõi";
 
   return (
