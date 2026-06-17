@@ -7,11 +7,11 @@ const normalizeFailureReason = (value) => {
   const normalizedValue = typeof value === "string" ? value.trim() : "";
 
   if (!normalizedValue) {
-    return "Thanh toan khong thanh cong.";
+    return "Thanh toán không thành công.";
   }
 
   if (normalizedValue === "invalid_signature") {
-    return "Chu ky callback khong hop le.";
+    return "Chữ ký callback không hợp lệ.";
   }
 
   return normalizedValue;

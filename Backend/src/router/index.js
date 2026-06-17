@@ -1,5 +1,6 @@
 import albumRoutes from "./album.routes.js";
 import artistBrowseRoutes from "./artistBrowse.routes.js";
+import artistNotificationRoutes from "./artist.notification.routes.js";
 import artistReleaseScheduleRoutes from "./artist.releaseSchedule.routes.js";
 import artistTrackAnalyticsRoutes from "./artist.trackAnalytics.routes.js";
 import artistRoutes from "./artist.routes.js";
@@ -26,6 +27,7 @@ import userReportRoutes from "./user.report.routes.js";
 function route(app) {
     app.use("/api/auth", authenticationRoutes);
     app.use("/api/notifications", notificationRoutes);
+    app.use("/api/artist/notifications", artistNotificationRoutes);
     app.use("/api/genres", genreRoutes);
     app.use("/api/albums", albumRoutes);
     app.use("/api/browse/artists", artistBrowseRoutes);

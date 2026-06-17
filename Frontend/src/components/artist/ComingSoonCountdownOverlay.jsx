@@ -2,10 +2,10 @@ import { ArrowLeft, CalendarDays } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const COUNTDOWN_SEGMENTS = [
-  { key: "days", label: "Days" },
-  { key: "hours", label: "Hours" },
-  { key: "minutes", label: "Minutes" },
-  { key: "seconds", label: "Seconds" },
+  { key: "days", label: "Ngày" },
+  { key: "hours", label: "Giờ" },
+  { key: "minutes", label: "Phút" },
+  { key: "seconds", label: "Giây" },
 ];
 
 const createCountdownState = (scheduledAt) => {
@@ -37,10 +37,10 @@ const formatScheduledLabel = (scheduledAt) => {
   const releaseDate = new Date(scheduledAt);
 
   if (Number.isNaN(releaseDate.getTime())) {
-    return "Release schedule pending";
+    return "Lịch phát hành đang chờ cập nhật";
   }
 
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("vi-VN", {
     weekday: "short",
     month: "long",
     day: "numeric",
@@ -51,12 +51,12 @@ const formatScheduledLabel = (scheduledAt) => {
 };
 
 const buildDescription = ({ artistName, releaseTitle, releaseType }) =>
-  `${artistName || "This artist"} is counting down to the ${String(releaseType).toLowerCase()} release of ${releaseTitle}.`;
+  `${artistName || "Nghệ sĩ này"} đang đếm ngược đến thời điểm phát hành ${String(releaseType).toLowerCase()} ${releaseTitle}.`;
 
 const ComingSoonCountdownOverlay = ({
   isVisible = false,
   comingRelease = null,
-  artistName = "Artist",
+  artistName = "Nghệ sĩ",
   overlayBounds = null,
   onBack,
 }) => {
@@ -82,8 +82,8 @@ const ComingSoonCountdownOverlay = ({
     };
   }, [comingRelease?.scheduledAt, isVisible]);
 
-  const releaseTitle = comingRelease?.title || `${artistName} next release`;
-  const releaseType = comingRelease?.type || "Release";
+  const releaseTitle = comingRelease?.title || `${artistName} sắp phát hành`;
+  const releaseType = comingRelease?.type || "Phát hành";
   const scheduleLabel = formatScheduledLabel(comingRelease?.scheduledAt);
   const hasScheduledRelease = Boolean(comingRelease?.scheduledAt);
   const backgroundImage = comingRelease?.image || "";
@@ -92,36 +92,41 @@ const ComingSoonCountdownOverlay = ({
     releaseTitle,
     releaseType,
   });
+  const overlayPositionStyle = overlayBounds
+    ? {
+        left: overlayBounds.left,
+      }
+    : undefined;
 
   return (
     <div
-      style={ overlayBounds ?? undefined }
-      className={ `
-        fixed z-[70] overflow-hidden bg-black transition-all duration-700
+      style={overlayPositionStyle}
+      className={`
+        fixed inset-x-0 bottom-0 top-[58px] z-[70] overflow-hidden bg-black transition-all duration-700
+        lg:top-[62px]
         ease-[cubic-bezier(0.22,1,0.36,1)]
-        ${overlayBounds ? "" : "inset-0"}
         ${isVisible ? "opacity-100" : "pointer-events-none opacity-0"}
-      ` }
+      `}
     >
       <div
-        className={ `
+        className={`
           absolute inset-0 transition-transform duration-[3200ms] ease-out
           scale-100
-        ` }
+        `}
       >
-        { backgroundImage ? (
+        {backgroundImage ? (
           <div
             className="absolute inset-0 bg-center bg-no-repeat blur-[3px]"
-            style={ {
+            style={{
               backgroundImage: `url(${backgroundImage})`,
               backgroundSize: "contain",
               backgroundPosition: "center top",
               filter: "saturate(1.08) brightness(0.72)",
-            } }
+            }}
           />
         ) : (
           <div className="absolute inset-0 bg-[linear-gradient(145deg,#101010_0%,#181818_42%,#050505_100%)]" />
-        ) }
+        )}
       </div>
 
       <div className="absolute inset-0 bg-[linear-gradient(100deg,rgba(0,0,0,0.88)_0%,rgba(0,0,0,0.74)_34%,rgba(0,0,0,0.48)_60%,rgba(0,0,0,0.78)_100%)]" />
@@ -132,103 +137,103 @@ const ComingSoonCountdownOverlay = ({
       <div className="absolute inset-0 shadow-[inset_0_0_180px_rgba(0,0,0,0.98)]" />
 
       <div
-        className={ `
-          relative z-10 flex min-h-full items-center justify-center px-5 py-8 sm:px-8 lg:px-10 transition-all
+        className={`
+          relative z-10 flex h-full min-h-full w-full items-center justify-center overflow-hidden px-4 py-4 sm:px-6 sm:py-5 lg:px-8 transition-all
           duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]
           ${isVisible ? "scale-100 blur-0" : "scale-[1.02] blur-md"}
-        ` }
+        `}
       >
         <div
-          className={ `
-            w-full max-w-[620px] transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]
+          className={`
+            flex w-full max-w-[480px] justify-center overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]
             ${isVisible ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}
-          ` }
+          `}
         >
           <div
             className="
-              relative overflow-hidden rounded-[1.8rem] border border-white/10 bg-[linear-gradient(145deg,rgba(0,0,0,0.42),rgba(0,0,0,0.2))]
-              px-7 py-6 shadow-[0_0_42px_rgba(29,185,84,0.08),0_28px_110px_rgba(0,0,0,0.52)]
+              relative w-full max-w-[480px] max-h-[90vh] overflow-y-auto overflow-x-hidden rounded-[1.6rem] border border-white/10 bg-[linear-gradient(145deg,rgba(0,0,0,0.42),rgba(0,0,0,0.2))]
+              px-4 py-4 sm:px-5 sm:py-5 shadow-[0_0_42px_rgba(29,185,84,0.08),0_28px_110px_rgba(0,0,0,0.52)]
               backdrop-blur-[20px]
             "
-            style={ {
+            style={{
               animation: isVisible ? "comingSoonFloat 6s ease-in-out infinite" : "none",
-            } }
+            }}
           >
             <div className="absolute left-0 top-0 h-px w-full bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.32),transparent)]" />
             <div
               className="absolute inset-0 opacity-80"
-              style={ {
+              style={{
                 backgroundImage:
                   "linear-gradient(145deg, rgba(255,255,255,0.06), rgba(255,255,255,0.015) 34%, rgba(29,185,84,0.08) 100%)",
                 animation: isVisible ? "comingSoonPulse 4.5s ease-in-out infinite" : "none",
-              } }
+              }}
             />
 
             <div className="relative space-y-3 text-left">
               <div className="inline-flex w-fit items-center gap-2.5 rounded-full border border-[#1DB954]/24 bg-black/30 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#e7fff0] backdrop-blur-xl">
                 <span className="h-2 w-2 rounded-full bg-[#1DB954] shadow-[0_0_14px_rgba(29,185,84,0.8)]" />
-                Coming Release
+                Sắp phát hành
               </div>
 
-              <div className="space-y-3">
-                <h2 className="max-w-[14ch] font-title text-[3rem] font-black leading-[0.9] tracking-[-0.07em] text-white sm:text-[4rem]">
-                  { releaseTitle }
+              <div className="max-w-full space-y-3 overflow-hidden">
+                <h2 className="max-w-full break-words overflow-hidden font-title text-[2rem] font-black leading-[0.98] tracking-[-0.06em] text-white sm:text-[2.4rem] lg:text-[2.8rem]">
+                  {releaseTitle}
                 </h2>
 
-                <div className="flex flex-wrap items-center gap-3 text-sm text-white/62">
-                  <span className="font-semibold text-[#d8ffe6]">{ releaseType }</span>
+                <div className="flex max-w-full flex-wrap items-center gap-2 text-sm text-white/62">
+                  <span className="font-semibold text-[#d8ffe6]">{releaseType}</span>
                   <span className="text-[#1DB954]/80">/</span>
-                  <span className="inline-flex items-center gap-2">
+                  <span className="inline-flex max-w-full items-center gap-2 break-words">
                     <CalendarDays className="h-3.5 w-3.5 text-[#1DB954]" />
-                    { scheduleLabel }
+                    <span className="break-words">{scheduleLabel}</span>
                   </span>
                 </div>
 
-                <p className="max-w-[480px] text-sm leading-5 text-white/58">
-                  { description }
+                <p className="max-w-full break-words text-sm leading-5 text-white/58">
+                  {description}
                 </p>
               </div>
 
-              <div className="mt-5 grid grid-cols-4 gap-2">
-                { COUNTDOWN_SEGMENTS.map((segment) => (
+              <div className="mt-4 grid grid-cols-4 gap-2">
+                {COUNTDOWN_SEGMENTS.map((segment) => (
                   <div
-                    key={ segment.key }
+                    key={segment.key}
                     className="
-                      min-h-[82px] rounded-[1.1rem] border border-white/10
+                      min-h-[72px] overflow-hidden rounded-[1rem] border border-white/10
                       bg-[linear-gradient(160deg,rgba(255,255,255,0.05),rgba(255,255,255,0.018))]
-                      px-2 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_10px_30px_rgba(0,0,0,0.16)]
+                      px-1.5 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_10px_30px_rgba(0,0,0,0.16)]
                       backdrop-blur-md
                       flex flex-col items-center justify-center text-center
                     "
                   >
-                    <div className="font-title text-[2.3rem] font-black leading-none tracking-[-0.08em] text-white">
-                      { formatCountdownValue(countdown[segment.key]) }
+                    <div className="max-w-full overflow-hidden font-title text-[1.8rem] font-black leading-none tracking-[-0.08em] text-white sm:text-[2rem]">
+                      {formatCountdownValue(countdown[segment.key])}
                     </div>
                     <div className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/42">
-                      { segment.label }
+                      {segment.label}
                     </div>
                   </div>
-                )) }
+                ))}
               </div>
 
               { !hasScheduledRelease ? (
                 <div className="rounded-[1.2rem] border border-dashed border-white/12 bg-black/28 px-4 py-4 text-sm text-white/58">
-                  No scheduled coming release is available from the backend yet.
+                  Hiện chưa có lịch phát hành sắp tới từ hệ thống.
                 </div>
-              ) : null }
+              ) : null}
 
               <button
                 type="button"
-                onClick={ onBack }
+                onClick={onBack}
                 className="
-                  mt-5 inline-flex w-fit items-center justify-center gap-2 rounded-full border border-white/14
+                  mt-4 inline-flex max-w-full w-fit items-center justify-center gap-2 break-words rounded-full border border-white/14
                   bg-black/42 px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.16em]
                   text-white transition-all duration-300 hover:scale-[1.03] hover:border-[#1DB954]/55
                   hover:bg-black/62 hover:shadow-[0_0_24px_rgba(29,185,84,0.18)]
                 "
               >
                 <ArrowLeft className="h-4 w-4" />
-                Back To Artist Page
+                Quay lại trang nghệ sĩ
               </button>
             </div>
           </div>

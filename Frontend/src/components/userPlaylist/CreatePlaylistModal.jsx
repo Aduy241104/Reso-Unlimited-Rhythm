@@ -181,13 +181,6 @@ const CreatePlaylistModal = ({
     }
   };
 
-  const handleToggleVisibility = () => {
-    setFormData((current) => ({
-      ...current,
-      isPublic: !current.isPublic,
-    }));
-  };
-
   const handleSelectCover = () => {
     fileInputRef.current?.click();
   };

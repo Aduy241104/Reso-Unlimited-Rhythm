@@ -57,7 +57,7 @@ export const formatAlbumDuration = (tracks = []) => {
   }, 0);
 
   if (totalSeconds <= 0) {
-    return "Unknown duration";
+    return "Chưa rõ thời lượng";
   }
 
   const hours = Math.floor(totalSeconds / 3600);
@@ -65,21 +65,21 @@ export const formatAlbumDuration = (tracks = []) => {
   const seconds = totalSeconds % 60;
 
   if (hours > 0) {
-    return `${hours} hr ${minutes} min`;
+    return `${hours} giờ ${minutes} phút`;
   }
 
-  return `${minutes} min ${seconds} sec`;
+  return `${minutes} phút ${seconds} giây`;
 };
 
 export const formatReleaseYear = (releaseDate) => {
   if (!releaseDate) {
-    return "Unknown year";
+    return "Chưa rõ năm";
   }
 
   const date = new Date(releaseDate);
 
   if (Number.isNaN(date.getTime())) {
-    return "Unknown year";
+    return "Chưa rõ năm";
   }
 
   return String(date.getFullYear());

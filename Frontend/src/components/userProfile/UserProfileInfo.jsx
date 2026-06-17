@@ -19,7 +19,7 @@ import {
   useUserProfileCard,
 } from "./UserProfileCard";
 
-const FALLBACK_TEXT = "Not provided";
+const FALLBACK_TEXT = "Chưa cập nhật";
 
 const normalizeText = (value) => {
   if (typeof value !== "string") {
@@ -48,11 +48,14 @@ const formatGenderLabel = (value) => {
     return FALLBACK_TEXT;
   }
 
-  return normalizedValue
-    .split("_")
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
+  const genderLabelMap = {
+    male: "Nam",
+    female: "Nữ",
+    other: "Khác",
+    prefer_not_to_say: "Không muốn tiết lộ",
+  };
+
+  return genderLabelMap[normalizedValue] || FALLBACK_TEXT;
 };
 
 const ProfileField = ({ icon, label, value }) => {
@@ -153,7 +156,7 @@ const UserProfileInfo = ({ fullName, email, gender, country }) => {
   const profileSnapshot = mergeUserProfileSnapshot(baseProfile, profile);
   const displayFields = [
     {
-      label: "Full Name",
+      label: "Họ và tên",
       value: getPreferredText(profileSnapshot.fullName, fullName),
       icon: UserRound,
     },
@@ -163,12 +166,12 @@ const UserProfileInfo = ({ fullName, email, gender, country }) => {
       icon: Mail,
     },
     {
-      label: "Gender",
+      label: "Giới tính",
       value: formatGenderLabel(profileSnapshot.gender || gender),
       icon: VenusAndMars,
     },
     {
-      label: "Country",
+      label: "Quốc gia",
       value: getPreferredText(profileSnapshot.country, country),
       icon: MapPin,
     },
@@ -191,7 +194,7 @@ const UserProfileInfo = ({ fullName, email, gender, country }) => {
       setFormError(
         getApiErrorMessage(
           error,
-          "Unable to load your latest profile details for editing."
+          "Không thể tải thông tin hồ sơ mới nhất để chỉnh sửa."
         )
       );
     } finally {
@@ -204,7 +207,7 @@ const UserProfileInfo = ({ fullName, email, gender, country }) => {
     setIsEditing(false);
     setIsChangingPassword(false);
     setFormError("");
-    setSuccessNotice("Profile updated successfully.");
+    setSuccessNotice("Cập nhật hồ sơ thành công.");
   };
 
   const handleOpenPasswordForm = () => {
@@ -216,7 +219,7 @@ const UserProfileInfo = ({ fullName, email, gender, country }) => {
   const handlePasswordSaved = (message) => {
     setIsChangingPassword(false);
     setFormError("");
-    setSuccessNotice(message || "Password changed successfully.");
+    setSuccessNotice(message || "Đổi mật khẩu thành công.");
   };
 
   const fields = [...displayFields];
@@ -228,11 +231,11 @@ const UserProfileInfo = ({ fullName, email, gender, country }) => {
     <div className="rounded-3xl border border-white/10 bg-black/30 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.25)] backdrop-blur-md sm:p-8">
       <div>
         <p className="text-sm font-medium uppercase tracking-[0.24em] text-[#ff9f43]">
-          Profile details
+          Thông tin hồ sơ
         </p>
 
         <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-[2.6rem]">
-          Profile Details
+          Chi tiết hồ sơ
         </h2>
       </div>
 
@@ -268,7 +271,7 @@ const UserProfileInfo = ({ fullName, email, gender, country }) => {
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#ffb15c_0%,#ff8a2a_45%,#a64a00_100%)] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_38px_rgba(255,138,42,0.25)] transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_24px_55px_rgba(255,138,42,0.36)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             <KeyRound className="h-4 w-4" aria-hidden />
-            Change Password
+            Đổi mật khẩu
           </button>
         ) : null}
 
@@ -281,12 +284,12 @@ const UserProfileInfo = ({ fullName, email, gender, country }) => {
           {isPreparingForm ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-              Loading...
+              Đang tải...
             </>
           ) : (
             <>
               <PencilLine className="h-4 w-4" aria-hidden />
-              Update Profile
+              Cập nhật hồ sơ
             </>
           )}
         </button>

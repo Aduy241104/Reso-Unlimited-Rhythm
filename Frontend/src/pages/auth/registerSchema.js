@@ -6,10 +6,10 @@ const passwordSchema = z
   .string()
   .min(8, "Mật khẩu phải có ít nhất 8 ký tự.")
   .max(33, "Mật khẩu không được vượt quá 33 ký tự.")
-  .regex(/[A-Z]/, "Mật khẩu phải có ít nhất 1 chữ in hoa.")
-  .regex(/[a-z]/, "Mật khẩu phải có ít nhất 1 chữ thường.")
-  .regex(/\d/, "Mật khẩu phải có ít nhất 1 chữ số.")
-  .regex(/[^A-Za-z0-9]/, "Mật khẩu phải có ít nhất 1 ký tự đặc biệt.");
+  .regex(/[A-Z]/, "Mật khẩu phải có ít nhất một chữ cái in hoa.")
+  .regex(/[a-z]/, "Mật khẩu phải có ít nhất một chữ cái thường.")
+  .regex(/\d/, "Mật khẩu phải có ít nhất một chữ số.")
+  .regex(/[^A-Za-z0-9]/, "Mật khẩu phải có ít nhất một ký tự đặc biệt.");
 
 const dateOfBirthSchema = z
   .string()
@@ -25,7 +25,7 @@ const dateOfBirthSchema = z
 
     return selectedDate <= today;
   }, {
-    message: "Ngày sinh không được lớn hơn ngày hiện tại.",
+    message: "Ngày sinh không được ở tương lai.",
   });
 
 export const registerDetailsSchema = z
@@ -39,7 +39,7 @@ export const registerDetailsSchema = z
       .string()
       .trim()
       .min(1, "Vui lòng nhập email.")
-      .email("Định dạng email không hợp lệ."),
+      .email("Email không đúng định dạng."),
     password: passwordSchema,
     confirmPassword: z.string().min(1, "Vui lòng xác nhận mật khẩu."),
     gender: z.enum(genderOptions).default("prefer_not_to_say"),

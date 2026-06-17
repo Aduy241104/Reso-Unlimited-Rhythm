@@ -11,9 +11,9 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import systemLogo from "../../assets/images/ChatGPT Image 13_16_10 4 thg 5, 2026.png";
+import { routePaths } from "../../routes/routePaths";
 import AuthCard from "./AuthCard";
 import AuthField from "./AuthField";
-import { routePaths } from "../../routes/routePaths";
 
 const MAX_BIRTH_DATE = new Date().toISOString().split("T")[0];
 

@@ -1,9 +1,9 @@
 import { ArrowRight, RotateCcw } from "lucide-react";
 import { Link } from "react-router-dom";
 import systemLogo from "../../assets/images/ChatGPT Image 13_16_10 4 thg 5, 2026.png";
+import { routePaths } from "../../routes/routePaths";
 import AuthCard from "./AuthCard";
 import AuthField from "./AuthField";
-import { routePaths } from "../../routes/routePaths";
 
 const RegisterOtpStep = ({
   form,
@@ -93,7 +93,7 @@ const RegisterOtpStep = ({
           onClick={onEditDetails}
           type="button"
         >
-          Sửa thông tin
+          Chỉnh sửa thông tin
         </button>
 
         <button
@@ -106,7 +106,7 @@ const RegisterOtpStep = ({
           {isResending
             ? "Đang gửi lại OTP..."
             : remainingSeconds > 0
-              ? `Gửi lại sau ${remainingSeconds}s`
+              ? `Thử lại sau ${remainingSeconds}s`
               : "Gửi lại OTP"}
         </button>
       </div>

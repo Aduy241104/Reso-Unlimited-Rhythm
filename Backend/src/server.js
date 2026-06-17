@@ -10,6 +10,7 @@ import http from "http";
 import { connectRedis } from "./config/redisConfig.js";
 import { startDailyTopArtistCron } from "./jobs/dailyTopArtist.cron.js";
 import { startMonthlyTopArtistCron } from "./jobs/monthlyTopArtist.cron.js";
+import { startDailyArtistOverviewStatCron } from "./jobs/dailyArtistOverviewStat.cron.js";
 import { startDailyTrackStatCron } from "./jobs/dailyTrackStat.cron.js";
 import { startDailyTopTrackCron } from "./jobs/dailyTopTrack.cron.js";
 import { startMonthlyTrackStatCron } from "./jobs/monthlyTrackStat.cron.js";
@@ -65,6 +66,7 @@ const startServer = async () => {
         await runReleaseSchedulePublication();
         await runSubscriptionMaintenance();
         await runStartupAnalyticsCatchup();
+        startDailyArtistOverviewStatCron();
         startDailyTopArtistCron();
         startMonthlyTopArtistCron();
         startDailyTrackStatCron();

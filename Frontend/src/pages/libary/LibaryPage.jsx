@@ -91,7 +91,7 @@ const LibaryPage = () => {
     <section className="space-y-8 sm:space-y-10">
       <div className="space-y-3">
         <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[#1ed760]">
-          Your Library
+          Thư viện của bạn
         </p>
         <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
           {LIBARY_TEXT.title}

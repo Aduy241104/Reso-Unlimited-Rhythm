@@ -13,6 +13,7 @@ const mockArtistModel = {
 
 const mockTrackModel = {
     findById: jest.fn(),
+    find: jest.fn(),
 };
 
 const mockTrackDailyStatModel = {
@@ -72,6 +73,7 @@ describe("trackAnalyticsService", () => {
     beforeEach(() => {
         mockArtistModel.findOne.mockReset();
         mockTrackModel.findById.mockReset();
+        mockTrackModel.find.mockReset();
         mockTrackDailyStatModel.find.mockReset();
         mockTrackMonthlyStatModel.find.mockReset();
         jest.useFakeTimers();

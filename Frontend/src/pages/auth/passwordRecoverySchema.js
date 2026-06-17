@@ -5,7 +5,7 @@ export const forgotPasswordSchema = z.object({
     .string()
     .trim()
     .min(1, "Vui lòng nhập email.")
-    .email("Định dạng email không hợp lệ."),
+    .email("Email không đúng định dạng."),
 });
 
 export const resetPasswordSchema = z
