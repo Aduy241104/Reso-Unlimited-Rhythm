@@ -12,6 +12,8 @@ import {
 } from "../../utils/apiError";
 import { forgotPasswordSchema } from "./passwordRecoverySchema";
 
+const getCooldownDeadline = (seconds) => Date.now() + seconds * 1000;
+
 const ForgotPasswordPage = () => {
   const [apiError, setApiError] = useState("");
   const [apiMessage, setApiMessage] = useState("");
@@ -30,7 +32,6 @@ const ForgotPasswordPage = () => {
 
   useEffect(() => {
     if (!cooldownUntil) {
-      setRemainingSeconds(0);
       return undefined;
     }
 
@@ -47,8 +48,6 @@ const ForgotPasswordPage = () => {
       }
     };
 
-    updateRemainingSeconds();
-
     const intervalId = window.setInterval(updateRemainingSeconds, 1000);
 
     return () => window.clearInterval(intervalId);
@@ -61,7 +60,8 @@ const ForgotPasswordPage = () => {
       return;
     }
 
-    setCooldownUntil(Date.now() + seconds * 1000);
+    setRemainingSeconds(seconds);
+    setCooldownUntil(getCooldownDeadline(seconds));
   };
 
   const handleForgotPassword = async ({ email }) => {
@@ -108,15 +108,13 @@ const ForgotPasswordPage = () => {
         <section>
           <div className="max-w-xl">
             <p className="mb-4 text-sm font-semibold uppercase tracking-[0.35em] text-[#f5b66f]">
-              Password Recovery
+              Khôi phục mật khẩu
             </p>
             <h2 className="text-4xl font-semibold leading-tight text-white sm:text-5xl">
-              Request a reset link using the existing backend contract.
+              Yêu cầu liên kết đặt lại mật khẩu.
             </h2>
             <p className="mt-5 max-w-lg text-base leading-7 text-[#d9d5cf]">
-              This form sends your email to the backend forgot-password endpoint
-              and shows the exact response message plus the timing info returned
-              by the API.
+              Biểu mẫu này gửi email của bạn đến API quên mật khẩu và hiển thị phản hồi cùng thời gian chờ trả về từ hệ thống.
             </p>
           </div>
         </section>
@@ -124,13 +122,13 @@ const ForgotPasswordPage = () => {
         <div>
           <AuthCard
             theme="dark"
-            title="Forgot password"
-            subtitle="Enter your account email to receive a password reset link."
+            title="Quên mật khẩu"
+            subtitle="Nhập email tài khoản để nhận liên kết đặt lại mật khẩu."
             footer={
               <span>
-                Back to{" "}
+                Quay lại{" "}
                 <Link className="font-semibold text-[#f5b66f]" to={routePaths.login}>
-                  login
+                  đăng nhập
                 </Link>
               </span>
             }
@@ -142,7 +140,7 @@ const ForgotPasswordPage = () => {
                   <p className="mt-1">
                     Email: {resultInfo.email}
                     {resultInfo.expiresInMinutes
-                      ? ` | Expires in ${resultInfo.expiresInMinutes} minutes`
+                      ? ` | Hết hạn sau ${resultInfo.expiresInMinutes} phút`
                       : ""}
                   </p>
                 ) : null}
@@ -176,10 +174,10 @@ const ForgotPasswordPage = () => {
                 type="submit"
               >
                 {isSubmitting
-                  ? "Sending reset link..."
+                  ? "Đang gửi liên kết đặt lại..."
                   : remainingSeconds > 0
-                    ? `Try again in ${remainingSeconds}s`
-                    : "Send reset link"}
+                    ? `Thử lại sau ${remainingSeconds}s`
+                    : "Gửi liên kết đặt lại"}
               </button>
             </form>
           </AuthCard>

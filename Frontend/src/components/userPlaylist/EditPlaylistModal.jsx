@@ -210,15 +210,6 @@ const EditPlaylistModal = ({
     setErrorMessage("");
   };
 
-  const handleRemoveCover = () => {
-    setCoverImage(null);
-    setCoverPreview("");
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
   const validateForm = () => {
     const normalizedTitle = normalizePlaylistTitle(title);
     const currentPlaylistId = getPlaylistIdValue(playlist);

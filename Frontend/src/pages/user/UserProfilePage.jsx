@@ -15,7 +15,7 @@ const LoadingCard = () => {
           <Loader2 className="h-7 w-7 animate-spin text-[#ff9f43]" aria-hidden />
         </div>
         <p className="mt-5 text-sm font-medium tracking-[0.18em] text-white/90">
-          Loading your profile...
+          Đang tải hồ sơ của bạn...
         </p>
       </div>
     </UserProfileCard>
@@ -25,7 +25,7 @@ const LoadingCard = () => {
 const ErrorCard = ({ message }) => {
   return (
     <section className="rounded-3xl border border-red-400/20 bg-white/5 p-6 text-red-100 shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur-md sm:p-8">
-      <h1 className="text-lg font-semibold text-white">Could not load profile</h1>
+      <h1 className="text-lg font-semibold text-white">Không thể tải hồ sơ</h1>
       <p className="mt-3 text-sm leading-6 text-red-100/85">{message}</p>
     </section>
   );
@@ -63,7 +63,7 @@ const UserProfilePage = () => {
         setErrorMessage(
           getApiErrorMessage(
             error,
-            "Unable to load your profile from the backend right now."
+            "Không thể tải hồ sơ của bạn lúc này."
           )
         );
       } finally {
@@ -88,10 +88,10 @@ const UserProfilePage = () => {
         <div className="mx-auto w-full max-w-5xl">
           <div className="mb-8 space-y-3">
             <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[#ff9f43]">
-              Account &gt; Profile
+              Tài khoản &gt; Hồ sơ
             </p>
             <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-              User Profile
+              Hồ sơ người dùng
             </h1>
           </div>
           <LoadingCard />
@@ -106,13 +106,13 @@ const UserProfilePage = () => {
         <div className="mx-auto w-full max-w-5xl">
           <div className="mb-8 space-y-3">
             <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[#ff9f43]">
-              Account &gt; Profile
+              Tài khoản &gt; Hồ sơ
             </p>
             <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-              User Profile
+              Hồ sơ người dùng
             </h1>
           </div>
-          <ErrorCard message={errorMessage || "No profile data returned."} />
+          <ErrorCard message={errorMessage || "Không có dữ liệu hồ sơ."} />
         </div>
       </main>
     );
@@ -125,10 +125,10 @@ const UserProfilePage = () => {
       <section className="relative mx-auto w-full max-w-6xl space-y-8">
         <div className="space-y-3 px-1">
           <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[#ff9f43]">
-            Account &gt; Profile
+            Tài khoản &gt; Hồ sơ
           </p>
           <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-            User Profile
+            Hồ sơ người dùng
           </h1>
         </div>
 

@@ -51,7 +51,9 @@ const getOverlayBounds = (container) => {
   };
 };
 
-const FOLLOW_LOGIN_NOTICE = "Please log in to follow this artist.";
+const FOLLOW_LOGIN_NOTICE = "Vui lòng đăng nhập để theo dõi nghệ sĩ này.";
+
+const hasResolvedFollowState = (value) => typeof value === "boolean";
 
 const ArtistProfileView = () => {
   const { id } = useParams();
@@ -63,7 +65,7 @@ const ArtistProfileView = () => {
   const [activeFilter, setActiveFilter] = useState("popular");
   const [isFollowing, setIsFollowing] = useState(false);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
-  const [isFollowStatusLoading, setIsFollowStatusLoading] = useState(false);
+  const [, setIsFollowStatusLoading] = useState(false);
   const [followErrorMessage, setFollowErrorMessage] = useState("");
   const [isCountdownMounted, setIsCountdownMounted] = useState(false);
   const [isCountdownVisible, setIsCountdownVisible] = useState(false);
@@ -91,6 +93,7 @@ const ArtistProfileView = () => {
       profile: currentData.profile
         ? {
             ...currentData.profile,
+            isFollowing: Boolean(followState.isFollowing),
             followers:
               typeof followState.followers === "number"
                 ? followState.followers
@@ -125,7 +128,10 @@ const ArtistProfileView = () => {
         }
 
         setArtistData(payload);
-        setIsFollowing(Boolean(payload?.profile?.isFollowing));
+
+        if (hasResolvedFollowState(payload?.profile?.isFollowing)) {
+          setIsFollowing(payload.profile.isFollowing);
+        }
       } catch (error) {
         if (!isMounted) {
           return;
@@ -134,7 +140,7 @@ const ArtistProfileView = () => {
         setErrorMessage(
           getApiErrorMessage(
             error,
-            "Unable to load the artist profile from the backend right now."
+            "Không thể tải hồ sơ nghệ sĩ lúc này."
           )
         );
       } finally {
@@ -192,7 +198,7 @@ const ArtistProfileView = () => {
         }
 
         setFollowErrorMessage(
-          getApiErrorMessage(error, "Unable to load follow status right now.")
+          getApiErrorMessage(error, "Không thể tải trạng thái theo dõi lúc này.")
         );
       } finally {
         if (isMounted) {
@@ -297,7 +303,7 @@ const ArtistProfileView = () => {
   const handleToggleFollow = async () => {
     const artistId = artistData.profile?.id || id;
 
-    if (!artistId || isFollowLoading || isFollowStatusLoading) {
+    if (!artistId || isFollowLoading) {
       return;
     }
 
@@ -332,8 +338,8 @@ const ArtistProfileView = () => {
         getApiErrorMessage(
           error,
           isFollowing
-            ? "Unable to unfollow this artist right now."
-            : "Unable to follow this artist right now."
+            ? "Không thể bỏ theo dõi nghệ sĩ lúc này."
+            : "Không thể theo dõi nghệ sĩ lúc này."
         )
       );
     } finally {
@@ -355,7 +361,13 @@ const ArtistProfileView = () => {
   const nextComingRelease = artistData.comingReleases[0] || null;
 
   return (
-    <section ref={ pageRootRef } className="space-y-8 overflow-x-hidden pb-10 text-white lg:space-y-12">
+    <section
+      ref={ pageRootRef }
+      className={ `
+        overflow-x-hidden text-white
+        ${isCountdownMounted ? "space-y-0 pb-0 lg:space-y-0" : "space-y-8 pb-10 lg:space-y-12"}
+      ` }
+    >
       <div
         aria-hidden={ isCountdownMounted }
         className={ `
@@ -375,7 +387,7 @@ const ArtistProfileView = () => {
               <ArtistHeroSection
                 profile={ profile }
                 isFollowing={ isFollowing }
-                isFollowLoading={ isFollowLoading || isFollowStatusLoading }
+                isFollowLoading={ isFollowLoading }
                 followErrorMessage={ followErrorMessage }
                 onToggleFollow={ handleToggleFollow }
                 onReport={ handleReportArtist }

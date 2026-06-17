@@ -34,18 +34,14 @@ const TrackChartSection = ({
   };
 
   return (
-    <section className="space-y-4">
-      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <div className="space-y-1.5">
-          <p className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#8b7bff]">
-            <BarChart3 className="h-3.5 w-3.5" />
-            { label }
-          </p>
-          <h2 className="text-2xl font-semibold tracking-tight text-[#111111] dark:text-white">
+    <section className="space-y-3 sm:space-y-4">
+      <div className="flex flex-col gap-2.5 md:flex-row md:items-end md:justify-between">
+        <div className="space-y-1 sm:space-y-1.5">
+          <h2 className="text-base font-semibold tracking-tight text-[#111111] dark:text-white sm:text-2xl">
             { title }
           </h2>
           { description ? (
-            <p className="max-w-2xl text-sm text-[#52525b] dark:text-[#a1a1aa]">
+            <p className="max-w-2xl text-xs leading-5 text-[#52525b] dark:text-[#a1a1aa] sm:text-sm sm:leading-6">
               { description }
             </p>
           ) : null }
@@ -56,48 +52,48 @@ const TrackChartSection = ({
             to={ actionHref }
             className="
               inline-flex items-center gap-2 self-start rounded-full border border-black/8
-              bg-black/[0.02] px-3 py-2 text-[13px] font-medium text-[#18181b] transition
+              bg-black/[0.02] px-2.5 py-1.5 text-xs font-medium text-[#18181b] transition
               hover:bg-black/[0.04] dark:border-white/[0.08] dark:bg-white/[0.03]
-              dark:text-white/86 dark:hover:bg-white/[0.05]
+              dark:text-white/86 dark:hover:bg-white/[0.05] sm:px-3 sm:py-2 sm:text-[13px]
             "
           >
             { actionLabel }
-            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#8b7bff]/12 text-[#6d5efc] dark:text-[#c9c2ff]">
-              <ArrowRight className="h-3 w-3" />
+            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#8b7bff]/12 text-[#6d5efc] dark:text-[#c9c2ff] sm:h-6 sm:w-6">
+              <ArrowRight className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
             </span>
           </Link>
         ) : null }
       </div>
 
       { isLoading ? (
-        <div className="mt-2 flex gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="mt-1 flex gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mt-2 sm:gap-4">
           { Array.from({ length: 3 }).map((_, index) => (
             <div
               key={ index }
               className="
-                w-[10.75rem] min-w-[10.75rem] animate-pulse rounded-[18px] border border-black/5 bg-white/70 p-3
-                dark:border-white/10 dark:bg-[#181818] sm:w-[12.75rem] sm:min-w-[12.75rem]
+                w-[9rem] min-w-[9rem] animate-pulse rounded-[16px] border border-black/5 bg-white/70 p-2.5
+                dark:border-white/10 dark:bg-[#181818] sm:w-[11.25rem] sm:min-w-[11.25rem] sm:rounded-[18px] sm:p-3
               "
             >
-              <div className="relative aspect-square rounded-[14px] bg-[#e5e5e5] dark:bg-[#282828]">
-                <div className="absolute left-2.5 top-2.5 h-6 w-11 rounded-full bg-black/8 dark:bg-white/10" />
-                <div className="absolute right-2.5 top-2.5 h-6 w-16 rounded-full bg-black/8 dark:bg-white/10" />
+              <div className="relative aspect-square rounded-[12px] bg-[#e5e5e5] dark:bg-[#282828] sm:rounded-[14px]">
+                <div className="absolute left-2 top-2 h-5 w-10 rounded-full bg-black/8 dark:bg-white/10 sm:left-2.5 sm:top-2.5 sm:h-6 sm:w-11" />
+                <div className="absolute right-2 top-2 h-5 w-14 rounded-full bg-black/8 dark:bg-white/10 sm:right-2.5 sm:top-2.5 sm:h-6 sm:w-16" />
               </div>
-              <div className="mt-3 space-y-2">
-                <div className="h-4 w-4/5 rounded-full bg-[#d4d4d8] dark:bg-[#343434]" />
-                <div className="h-3 w-full rounded-full bg-[#e5e5e5] dark:bg-[#2d2d2d]" />
-                <div className="h-3 w-2/3 rounded-full bg-[#e5e5e5] dark:bg-[#2d2d2d]" />
+              <div className="mt-2.5 space-y-1.5 sm:mt-3 sm:space-y-2">
+                <div className="h-3.5 w-4/5 rounded-full bg-[#d4d4d8] dark:bg-[#343434] sm:h-4" />
+                <div className="h-2.5 w-full rounded-full bg-[#e5e5e5] dark:bg-[#2d2d2d] sm:h-3" />
+                <div className="h-2.5 w-2/3 rounded-full bg-[#e5e5e5] dark:bg-[#2d2d2d] sm:h-3" />
               </div>
-              <div className="mt-3 h-3 w-24 rounded-full bg-[#e4e4e7] dark:bg-[#242424]" />
+              <div className="mt-2.5 h-2.5 w-20 rounded-full bg-[#e4e4e7] dark:bg-[#242424] sm:mt-3 sm:h-3 sm:w-24" />
             </div>
           )) }
         </div>
       ) : items.length > 0 ? (
-        <div className="mt-2 flex gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="mt-1 flex gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mt-2 sm:gap-4">
           { items.map((item, index) => (
             <div
               key={ item.id }
-              className="w-[10.75rem] min-w-[10.75rem] sm:w-[12.75rem] sm:min-w-[12.75rem] lg:w-[13.25rem] lg:min-w-[13.25rem]"
+              className="w-[9rem] min-w-[9rem] sm:w-[11.25rem] sm:min-w-[11.25rem] lg:w-[13.25rem] lg:min-w-[13.25rem]"
             >
               <TrackChartCard
                 index={ index + 1 }

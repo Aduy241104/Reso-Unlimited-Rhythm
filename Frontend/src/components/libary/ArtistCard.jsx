@@ -10,7 +10,7 @@ const getArtistInitial = (name) => {
 
 const ArtistCard = ({ artist, onClick, subtitle = "Ngh\u1ec7 s\u0129" }) => {
   const artistName =
-    typeof artist?.name === "string" && artist.name.trim() ? artist.name.trim() : "Unknown Artist";
+    typeof artist?.name === "string" && artist.name.trim() ? artist.name.trim() : "Nghệ sĩ không xác định";
   const avatar =
     typeof artist?.avatar === "string" && artist.avatar.trim() ? artist.avatar.trim() : "";
 

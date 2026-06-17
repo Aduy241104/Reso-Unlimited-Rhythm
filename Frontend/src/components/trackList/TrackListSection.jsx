@@ -6,20 +6,19 @@ const defaultHeaderGridClassName = `
 
 const defaultHeaderColumns = [
   { label: "#" },
-  { label: "Title" },
-  { label: "Saved", className: "text-center" },
-  { label: "Time", className: "text-right" },
-  { label: "" },
+  { label: "Tiêu đề" },
+  { label: "Đã lưu", className: "text-center" },
+  { label: "Thời lượng", className: "text-right" },
 ];
 
 const TrackListSection = ({
   isLoading = false,
   errorMessage = "",
-  loadingMessage = "Loading tracks...",
-  mobileLabel = "Track list",
+  loadingMessage = "Đang tải bài hát...",
+  mobileLabel = "Danh sách bài hát",
   headerColumns = defaultHeaderColumns,
   headerGridClassName = defaultHeaderGridClassName,
-  emptyMessage = "No tracks available yet.",
+  emptyMessage = "Chưa có bài hát nào.",
   hasItems = false,
   loadingClassName = "",
   containerClassName = "",
