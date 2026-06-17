@@ -17,6 +17,13 @@ const CreateNotificationPage = () => {
     const [receiverType, setReceiverType] = useState("all");
     const [specificUserId, setSpecificUserId] = useState("");
     const [groupRole, setGroupRole] = useState("user");
+    const [artistId, setArtistId] = useState("");
+    const [artistSearchQuery, setArtistSearchQuery] = useState("");
+    const [artistSearchResults, setArtistSearchResults] = useState([]);
+    const [selectedFollowerArtist, setSelectedFollowerArtist] = useState(null);
+    const [isSearchingArtist, setIsSearchingArtist] = useState(false);
+    const [showArtistDropdown, setShowArtistDropdown] = useState(false);
+    const artistDropdownRef = useRef(null);
 
     // 🔍 ĐÃ CẬP NHẬT: Quản lý Tìm kiếm Người nhận đích danh (Hỗ trợ cả User & Artist)
     const [singleSearchType, setSingleSearchType] = useState("user"); // "user" hoặc "artist"
@@ -47,6 +54,9 @@ const CreateNotificationPage = () => {
             }
             if (userDropdownRef.current && !userDropdownRef.current.contains(event.target)) {
                 setShowUserDropdown(false);
+            }
+            if (artistDropdownRef.current && !artistDropdownRef.current.contains(event.target)) {
+                setShowArtistDropdown(false);
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
@@ -149,6 +159,36 @@ const CreateNotificationPage = () => {
         return () => clearTimeout(delayDebounceFn);
     }, [searchQuery, targetType]);
 
+    useEffect(() => {
+        if (!artistSearchQuery.trim() || receiverType !== "followers") {
+            setArtistSearchResults([]);
+            return;
+        }
+
+        const delayDebounceFn = setTimeout(async () => {
+            setIsSearchingArtist(true);
+            try {
+                const res = await searchAdminArtistsService({ q: artistSearchQuery, limit: 5 });
+                const results = (res?.artists || []).map((artist) => ({
+                    id: artist.id || artist._id,
+                    name: artist.name,
+                    avatar: artist.avatar || "",
+                    subText: "Followers của nghệ sĩ",
+                }));
+
+                setArtistSearchResults(results);
+                setShowArtistDropdown(true);
+            } catch (err) {
+                console.error("Lỗi khi fetch nghệ sĩ nhận thông báo:", err);
+                setArtistSearchResults([]);
+            } finally {
+                setIsSearchingArtist(false);
+            }
+        }, 400);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [artistSearchQuery, receiverType]);
+
     const handleSelectUser = (user) => {
         setSpecificUserId(user.id);
         setSelectedUser(user);
@@ -181,6 +221,20 @@ const CreateNotificationPage = () => {
         setSelectedEntity(null);
     };
 
+    const handleSelectFollowerArtist = (artist) => {
+        setArtistId(artist.id);
+        setSelectedFollowerArtist(artist);
+        setShowArtistDropdown(false);
+        setArtistSearchQuery("");
+    };
+
+    const handleClearFollowerArtist = () => {
+        setArtistId("");
+        setSelectedFollowerArtist(null);
+        setArtistSearchQuery("");
+        setArtistSearchResults([]);
+    };
+
     // Hàm đổi kiểu tìm kiếm user/artist (tự động clear data cũ để tránh xung đột)
     const handleSwitchSearchType = (type) => {
         setSingleSearchType(type);
@@ -194,6 +248,12 @@ const CreateNotificationPage = () => {
         setIsLoading(true);
         setMessage("");
 
+        if (receiverType === "followers" && !artistId) {
+            setMessage("Vui lòng chọn nghệ sĩ để gửi thông báo tới followers.");
+            setIsLoading(false);
+            return;
+        }
+
         const payload = {
             title: title.trim(),
             content: content.trim(),
@@ -201,6 +261,7 @@ const CreateNotificationPage = () => {
             receiverType,
             ...(receiverType === "single" && { specificUserId }),
             ...(receiverType === "group" && { groupRole }),
+            ...(receiverType === "followers" && { artistId }),
             ...(targetId && { targetId, targetType })
         };
 
@@ -270,6 +331,7 @@ const CreateNotificationPage = () => {
                             <option value="all">📢 Tất cả mọi người (Broadcast)</option>
                             <option value="group">👥 Gửi theo nhóm phân quyền (Group)</option>
                             <option value="single">🎯 Gửi đích danh một tài khoản (Single)</option>
+                            <option value="followers">Followers của nghệ sĩ</option>
                         </select>
                     </div>
                 </div>
@@ -384,6 +446,82 @@ const CreateNotificationPage = () => {
                                 </label>
                             ))}
                         </div>
+                    </div>
+                )}
+
+                {receiverType === "followers" && (
+                    <div className="p-4 bg-slate-50/40 border border-slate-100 rounded-xl space-y-3 relative animate-fadeIn" ref={artistDropdownRef}>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                            Nghệ sĩ có followers nhận thông báo
+                        </label>
+
+                        {!selectedFollowerArtist ? (
+                            <div className="relative">
+                                <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                                <input
+                                    type="text"
+                                    value={artistSearchQuery}
+                                    disabled={isLoading}
+                                    onChange={(e) => setArtistSearchQuery(e.target.value)}
+                                    onFocus={() => artistSearchQuery && setShowArtistDropdown(true)}
+                                    placeholder="Nhập tên nghệ sĩ để gửi tới followers..."
+                                    className="w-full h-[42px] rounded-xl bg-white border border-slate-200 pl-9 pr-8 py-2.5 text-xs text-slate-900 outline-none focus:border-slate-400 transition font-medium"
+                                />
+                                {isSearchingArtist && (
+                                    <Loader2 size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-900 animate-spin" />
+                                )}
+                            </div>
+                        ) : (
+                            <div className="flex h-[42px] items-center justify-between gap-3 border border-slate-200 bg-white rounded-xl px-3 shadow-sm animate-fade-in">
+                                <div className="flex items-center gap-2 min-w-0">
+                                    {selectedFollowerArtist.avatar ? (
+                                        <img src={selectedFollowerArtist.avatar} alt="" className="h-5 w-5 rounded-md object-cover border border-slate-100" />
+                                    ) : (
+                                        <div className="h-5 w-5 rounded-md bg-slate-900 flex items-center justify-center text-white shrink-0">
+                                            <Music size={10} />
+                                        </div>
+                                    )}
+                                    <div className="min-w-0 flex items-baseline gap-2">
+                                        <p className="text-xs font-bold text-slate-900 truncate">{selectedFollowerArtist.name}</p>
+                                        <p className="text-[10px] text-slate-400 font-medium truncate">(Followers)</p>
+                                    </div>
+                                </div>
+                                <button type="button" onClick={handleClearFollowerArtist} disabled={isLoading} className="p-1 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-rose-600 transition">
+                                    <X size={12} />
+                                </button>
+                            </div>
+                        )}
+
+                        {showArtistDropdown && artistSearchResults.length > 0 && (
+                            <div className="absolute z-40 left-4 right-4 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-52 overflow-y-auto divide-y divide-slate-100 overflow-hidden">
+                                {artistSearchResults.map((artist) => (
+                                    <button
+                                        key={artist.id}
+                                        type="button"
+                                        onClick={() => handleSelectFollowerArtist(artist)}
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-slate-50/80 transition cursor-pointer"
+                                    >
+                                        {artist.avatar ? (
+                                            <img src={artist.avatar} alt="" className="h-6 w-6 rounded-md object-cover border border-slate-100" />
+                                        ) : (
+                                            <div className="h-6 w-6 rounded-md bg-slate-100 flex items-center justify-center text-slate-400 shrink-0">
+                                                <Music size={12} />
+                                            </div>
+                                        )}
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-xs font-bold text-slate-900 truncate">{artist.name}</p>
+                                            <p className="text-[10px] text-slate-400 font-mono truncate">{artist.subText}</p>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
+                        {showArtistDropdown && artistSearchResults.length === 0 && artistSearchQuery && !isSearchingArtist && (
+                            <div className="absolute z-40 left-4 right-4 top-full mt-1 bg-white border border-slate-200 rounded-xl p-3.5 text-center text-xs font-medium text-slate-400 shadow-xl">
+                                Không tìm thấy nghệ sĩ phù hợp.
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -514,7 +652,7 @@ const CreateNotificationPage = () => {
                 <div className="flex flex-wrap gap-2.5 pt-4 border-t border-slate-50">
                     <button
                         type="submit"
-                        disabled={isLoading || !title.trim() || !content.trim() || (receiverType === "single" && !specificUserId)}
+                        disabled={isLoading || !title.trim() || !content.trim() || (receiverType === "single" && !specificUserId) || (receiverType === "followers" && !artistId)}
                         className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-5 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                     >
                         {isLoading ? (

@@ -20,3 +20,8 @@ export const markNotificationAsReadService = async (id) => {
     const response = await axiosClient.patch(`${NOTIFICATION_API_PREFIX}/${id}/mark-as-read`);
     return response?.data?.data?.notification;
 }
+
+export const deleteNotificationService = async (id) => {
+    const response = await axiosClient.delete(`${NOTIFICATION_API_PREFIX}/${id}`);
+    return response.data;
+};

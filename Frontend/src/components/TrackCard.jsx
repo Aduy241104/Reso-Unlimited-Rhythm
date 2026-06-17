@@ -1,5 +1,5 @@
 import { CheckCircle2, Pause, Play } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import TrackTwoLevelMenu from "./trackMenu/TrackTwoLevelMenu";
 
 const sizeClassNames = {
@@ -72,6 +72,7 @@ const TrackCard = ({
     typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches;
   const resolvedSize = sizeClassNames[size] ? size : "default";
   const resolvedClasses = sizeClassNames[resolvedSize];
+    const navigate = useNavigate();
   const resolvedDesktopMetaColumns = desktopMetaColumns.filter(Boolean);
   const resolvedMobileMetaItems = mobileMetaItems.filter(Boolean);
   const primaryAction = onPlaybackAction || onPlay;
@@ -89,6 +90,11 @@ const TrackCard = ({
   };
 
   const handleCardClick = () => {
+    if (href) {
+      navigate(href);
+      return;
+    }
+
     if (isMobileViewport) {
       primaryAction?.();
     }

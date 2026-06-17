@@ -12,7 +12,7 @@ import { testAccessTokenService } from "../../services/authService";
 import NotificationDropdown from "./NotificationDropdown";
 import { hasPremiumAccess } from "../../utils/premiumAccess";
 
-const Header = ({ onToggleSidebar }) => {
+const Header = ({ onToggleSidebar, isDesktopSidebarVisible }) => {
     const { isAuthenticated, isLoading, logout, user } = useAuth();
     const { isDark } = useTheme();
     const navigate = useNavigate();
@@ -168,7 +168,9 @@ const Header = ({ onToggleSidebar }) => {
                 )}
 
                 <ThemeToggle />
-                {isAuthenticated && <NotificationDropdown />}
+                {isAuthenticated && (
+                    <NotificationDropdown isDesktopSidebarVisible={isDesktopSidebarVisible} />
+                )}
 
                 {isLoading ? (
                     <div
