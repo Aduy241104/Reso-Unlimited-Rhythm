@@ -21,7 +21,6 @@ const ArtistEditAlbumPage = () => {
   const [formData, setFormData] = useState({
     title: "",
     releaseDate: "",
-    status: "active",
     coverImage: null,
     coverImagePreview: "",
   });
@@ -48,7 +47,6 @@ const ArtistEditAlbumPage = () => {
           releaseDate: album.releaseDate
             ? new Date(album.releaseDate).toISOString().split("T")[0]
             : "",
-          status: album.status || "active",
           coverImagePreview: album.coverImage || "",
         }));
       } catch (error) {
@@ -144,7 +142,6 @@ const ArtistEditAlbumPage = () => {
     try {
       const payload = new FormData();
       payload.append("title", formData.title.trim());
-      payload.append("status", formData.status);
 
       if (formData.releaseDate) {
         payload.append("releaseDate", new Date(formData.releaseDate).toISOString());
@@ -284,26 +281,9 @@ const ArtistEditAlbumPage = () => {
               )}
             </div>
 
-            {/* Status */}
-            <div>
-              <label htmlFor="status" className="block text-sm font-medium text-[#241b15]">
-                Status
-              </label>
-              <select
-                id="status"
-                name="status"
-                value={formData.status}
-                onChange={handleInputChange}
-                className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm focus:border-[#8b5e3c] focus:outline-none focus:ring-1 focus:ring-[#8b5e3c]"
-              >
-                <option value="draft">Draft</option>
-                <option value="active">Active</option>
-                <option value="hidden">Hidden</option>
-                <option value="blocked">Blocked</option>
-              </select>
-              <p className="mt-1 text-xs text-neutral-500">
-                Active albums are visible to the public
-              </p>
+            <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              Trạng thái phát hành của album được quản lý riêng. Album chỉ có thể công khai
+              hoặc lên lịch phát hành khi đã có ít nhất 2 bài hát.
             </div>
 
             {/* Cover Image Upload */}

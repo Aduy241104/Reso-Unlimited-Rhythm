@@ -15,7 +15,7 @@ dayjs.extend(timezone);
 
 const DATE_KEY_FORMAT = "YYYY-MM-DD";
 const DEFAULT_RANGE = "30d";
-const ALLOWED_RANGES = new Set(["7d", "30d", "90d"]);
+const ALLOWED_RANGES = new Set(["7d", "30d", "all"]);
 const YEAR_SERIES_LENGTH = 5;
 const UNKNOWN_REGION_LABEL = "Không xác định";
 const UNKNOWN_AGE_GROUP_KEY = "unknown";
@@ -74,6 +74,46 @@ const resolveYear = (year) => {
     }
 
     return normalizedYear;
+};
+
+const resolveAllTimePeriod = async (artistId) => {
+    const [result] = await ListenEvent.aggregate([
+        {
+            $match: {
+                artistId,
+                listenedAt: { $exists: true, $ne: null },
+            },
+        },
+        {
+            $group: {
+                _id: null,
+                earliestListenedAt: { $min: "$listenedAt" },
+            },
+        },
+        {
+            $project: {
+                _id: 0,
+                earliestListenedAt: 1,
+            },
+        },
+    ]);
+
+    const today = getTodayInAnalyticsTimezone();
+    const from = result?.earliestListenedAt
+        ? dayjs(result.earliestListenedAt)
+            .tz(getAnalyticsTimezone())
+            .startOf("day")
+        : today;
+
+    return {
+        from,
+        to: today,
+        range: "all",
+        fromDateKey: from.format(DATE_KEY_FORMAT),
+        toDateKey: today.format(DATE_KEY_FORMAT),
+        startDate: from.toDate(),
+        endDateExclusive: today.add(1, "day").toDate(),
+    };
 };
 
 const resolveRangePeriod = (range) => {
@@ -779,7 +819,9 @@ export const getArtistPerformanceOverview = async ({
     const artist = await resolveArtistProfile(userId);
     const selectedRange = resolveRange(range);
     const selectedYear = resolveYear(year);
-    const dailyPeriod = resolveRangePeriod(selectedRange);
+    const dailyPeriod = selectedRange === "all"
+        ? await resolveAllTimePeriod(artist._id)
+        : resolveRangePeriod(selectedRange);
     const monthlyPeriod = resolveMonthlyPeriod(selectedYear);
     const currentYear = getTodayInAnalyticsTimezone().year();
     const yearlyPeriod = resolveYearlyPeriod(currentYear);
