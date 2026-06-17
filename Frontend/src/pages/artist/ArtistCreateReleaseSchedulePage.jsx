@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   AlertCircle,
   CalendarDays,
@@ -113,7 +113,9 @@ const normalizeAlbums = (albums = []) =>
 
 const ArtistCreateReleaseSchedulePage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const dropdownRef = useRef(null);
+  const hasAppliedPrefill = useRef(false);
   const [releaseType, setReleaseType] = useState("track");
   const [tracks, setTracks] = useState([]);
   const [albums, setAlbums] = useState([]);
@@ -126,6 +128,9 @@ const ArtistCreateReleaseSchedulePage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const prefilledReleaseType =
+    location.state?.releaseType === "album" ? "album" : "track";
+  const prefilledTargetId = location.state?.targetId || "";
 
   useEffect(() => {
     let isMounted = true;
@@ -184,6 +189,14 @@ const ArtistCreateReleaseSchedulePage = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!prefilledTargetId || hasAppliedPrefill.current) {
+      return;
+    }
+
+    setReleaseType(prefilledReleaseType);
+  }, [prefilledReleaseType, prefilledTargetId]);
+
   const activeOptions = useMemo(
     () => (releaseType === "track" ? tracks : albums),
     [releaseType, tracks, albums]
@@ -195,11 +208,22 @@ const ArtistCreateReleaseSchedulePage = () => {
       return;
     }
 
+    if (
+      !hasAppliedPrefill.current &&
+      prefilledTargetId &&
+      releaseType === prefilledReleaseType &&
+      activeOptions.some((item) => item.id === prefilledTargetId)
+    ) {
+      setSelectedTargetId(prefilledTargetId);
+      hasAppliedPrefill.current = true;
+      return;
+    }
+
     const targetStillExists = activeOptions.some((item) => item.id === selectedTargetId);
     if (!targetStillExists) {
       setSelectedTargetId(activeOptions[0].id);
     }
-  }, [activeOptions, selectedTargetId]);
+  }, [activeOptions, prefilledReleaseType, prefilledTargetId, releaseType, selectedTargetId]);
 
   useEffect(() => {
     setIsDropdownOpen(false);
@@ -231,7 +255,7 @@ const ArtistCreateReleaseSchedulePage = () => {
     const hasValidContent = isTrack
       ? Number(selectedTarget?.audioFilesCount || 0) > 0 ||
         Number(selectedTarget?.duration || 0) > 0
-      : Number(selectedTarget?.trackCount || 0) > 0;
+      : Number(selectedTarget?.trackCount || 0) >= 2;
 
     return [
       {
@@ -239,7 +263,7 @@ const ArtistCreateReleaseSchedulePage = () => {
         passed: hasSelectedTarget && isApprovedTrack,
       },
       {
-        label: isTrack ? "File âm thanh hợp lệ" : "Album có ít nhất một bài hát",
+        label: isTrack ? "File âm thanh hợp lệ" : "Album có ít nhất 2 bài hát",
         passed: hasSelectedTarget && hasValidContent,
       },
       {
@@ -549,7 +573,7 @@ const ArtistCreateReleaseSchedulePage = () => {
                   <div>
                     <p className="text-sm font-medium text-[#1f1830]">Lên lịch công khai</p>
                     <p className="mt-1 text-xs leading-5 text-[#857f99]">
-                      Tùy chọn này hiện là mô phỏng giao diện, backend đang lưu mốc phát hành chính.
+                      Bản phát hành sẽ được lên lịch công khai theo đúng ngày và giờ bạn đã chọn.
                     </p>
                   </div>
                 </label>
