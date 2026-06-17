@@ -12,6 +12,7 @@ import GenresListPage from "../pages/systemGenres/GenresListPage";
 import CreateGenrePage from "../pages/systemGenres/CreateGenrePage";
 import EditGenrePage from "../pages/systemGenres/EditGenrePage";
 import HomePage from "../pages/dashboard/DashboardPage";
+import RevenueManagementPage from "../pages/revenue/RevenueManagementPage";
 import UsersListPage from "../pages/users/UsersListPage";
 import UserDetailPage from "../pages/users/UserDetailPage";
 import ArtistRequestsListPage from "../pages/artistRequests/ArtistRequestsListPage";
@@ -63,6 +64,10 @@ export const appRoutes = [
                     element: <SystemPlaylistDetailPage />,
                   },
                 ],
+              },
+              {
+                path: "revenue",
+                element: <RevenueManagementPage />,
               },
               {
                 path: "users",

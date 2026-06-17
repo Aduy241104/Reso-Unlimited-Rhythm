@@ -5,6 +5,7 @@ import { routePaths } from "../routes/routePaths";
 
 const navigationItems = [
   { to: routePaths.home, label: "Tổng quan", end: true },
+  { to: routePaths.revenue, label: "Doanh thu", end: false },
   { to: routePaths.systemTracks, label: "Kiểm duyệt track", end: false },
   { to: routePaths.artistRequests, label: "Yêu cầu artist", end: false },
   { to: routePaths.systemPlaylists, label: "Playlist hệ thống", end: false },

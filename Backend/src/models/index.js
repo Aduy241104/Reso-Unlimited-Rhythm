@@ -29,6 +29,7 @@ import Transaction from "./Transaction.js";
 import User from "./User.js";
 import VerificationToken from "./VerificationToken.js";
 import WithdrawalRequest from "./WithdrawalRequest.js";
+import RevenuePeriod from "./RevenuePeriod.js"; 
 
 export default {
     Album,
@@ -62,4 +63,5 @@ export default {
     User,
     VerificationToken,
     WithdrawalRequest,
+    RevenuePeriod,
 };
