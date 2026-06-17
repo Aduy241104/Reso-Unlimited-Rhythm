@@ -5,10 +5,10 @@ import { StatusCodes } from "http-status-codes";
 import Artist from "../../models/Artist.js";
 import ArtistDailyStat from "../../models/ArtistDailyStat.js";
 import ListenEvent from "../../models/ListenEvent.js";
+import Track from "../../models/Track.js";
 import User from "../../models/User.js";
 import { getAnalyticsTimezone } from "../analytics/trackStatAggregation.service.js";
 import { AppError } from "../../utils/AppError.js";
-import artistTopPerformingTracksService from "./artistTopPerformingTracks.service.js";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -43,7 +43,7 @@ const resolveSnapshotAndLiveBoundaries = ({ startDate, endDateExclusive }) => {
 };
 
 const resolveArtistProfile = async (userId) => {
-    const artist = await Artist.findOne({ userId }).select("_id name").lean();
+    const artist = await Artist.findOne({ userId }).select("_id name stats").lean();
 
     if (!artist) {
         throw new AppError("Artist profile not found.", StatusCodes.NOT_FOUND);
@@ -826,41 +826,14 @@ export const getArtistPerformanceOverview = async ({
     const currentYear = getTodayInAnalyticsTimezone().year();
     const yearlyPeriod = resolveYearlyPeriod(currentYear);
     const yearSeries = buildYearSeries(currentYear);
-    const currentMonthPeriod = resolveCurrentMonthPeriod();
-    const currentYearPeriod = resolveCurrentYearPeriod();
 
     const [
-        rangeSummary,
-        selectedRangeStreams,
-        currentMonthStreams,
-        currentYearStreams,
         dailyStats,
         monthlyStats,
         yearlyStats,
         availableYears,
-        audienceProfiles,
-        topPerformingTracks,
+        trackCount,
     ] = await Promise.all([
-        aggregatePeriodSummary({
-            artistId: artist._id,
-            startDate: dailyPeriod.startDate,
-            endDateExclusive: dailyPeriod.endDateExclusive,
-        }),
-        aggregatePeriodStreamCount({
-            artistId: artist._id,
-            startDate: dailyPeriod.startDate,
-            endDateExclusive: dailyPeriod.endDateExclusive,
-        }),
-        aggregatePeriodStreamCount({
-            artistId: artist._id,
-            startDate: currentMonthPeriod.startDate,
-            endDateExclusive: currentMonthPeriod.endDateExclusive,
-        }),
-        aggregatePeriodStreamCount({
-            artistId: artist._id,
-            startDate: currentYearPeriod.startDate,
-            endDateExclusive: currentYearPeriod.endDateExclusive,
-        }),
         aggregateDailyStats({
             artistId: artist._id,
             startDate: dailyPeriod.startDate,
@@ -879,14 +852,8 @@ export const getArtistPerformanceOverview = async ({
         aggregateAvailableYears({
             artistId: artist._id,
         }),
-        aggregateAudienceProfiles({
-            artistId: artist._id,
-            startDate: dailyPeriod.startDate,
-            endDateExclusive: dailyPeriod.endDateExclusive,
-        }),
-        artistTopPerformingTracksService.getTopPerformingTracks({
-            userId,
-            range: selectedRange,
+        Track.countDocuments({
+            artist_artistId: artist._id,
         }),
     ]);
 
@@ -903,14 +870,6 @@ export const getArtistPerformanceOverview = async ({
         stats: yearlyStats,
         years: yearSeries,
     });
-    const audienceReferenceDate = dailyPeriod.to.endOf("day");
-    const ageGroups = buildAgeGroupBreakdown({
-        listeners: audienceProfiles,
-        referenceDate: audienceReferenceDate,
-    });
-    const regions = buildRegionBreakdown({
-        listeners: audienceProfiles,
-    });
 
     return {
         artist: {
@@ -925,21 +884,13 @@ export const getArtistPerformanceOverview = async ({
         selectedYear,
         availableYears,
         summary: {
-            selectedRangeStreams,
-            selectedRangeUniqueListeners: rangeSummary.uniqueListeners,
-            currentMonthStreams,
-            currentYearStreams,
-            selectedYearStreams: sumStreamCount(filledMonthlyStats),
+            followers: Number(artist?.stats?.followers || 0),
+            trackCount: Number(trackCount || 0),
+            totalStreams: Number(artist?.stats?.totalStreams || 0),
         },
         dailyStats: filledDailyStats,
         monthlyStats: filledMonthlyStats,
         yearlyStats: filledYearlyStats,
-        audience: {
-            totalListeners: audienceProfiles.length,
-            ageGroups,
-            regions,
-        },
-        topPerformingTracks,
     };
 };
 

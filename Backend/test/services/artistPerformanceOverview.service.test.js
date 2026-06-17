@@ -18,12 +18,12 @@ const mockListenEventModel = {
   aggregate: jest.fn(),
 };
 
-const mockUserModel = {
-  find: jest.fn(),
+const mockTrackModel = {
+  countDocuments: jest.fn(),
 };
 
-const mockArtistTopPerformingTracksService = {
-  getTopPerformingTracks: jest.fn(),
+const mockUserModel = {
+  find: jest.fn(),
 };
 
 const createQueryChain = (result) => ({
@@ -43,15 +43,12 @@ const loadArtistPerformanceOverviewService = async () => {
   jest.unstable_mockModule("../../src/models/ListenEvent.js", () => ({
     default: mockListenEventModel,
   }));
+  jest.unstable_mockModule("../../src/models/Track.js", () => ({
+    default: mockTrackModel,
+  }));
   jest.unstable_mockModule("../../src/models/User.js", () => ({
     default: mockUserModel,
   }));
-  jest.unstable_mockModule(
-    "../../src/services/artist/artistTopPerformingTracks.service.js",
-    () => ({
-      default: mockArtistTopPerformingTracksService,
-    })
-  );
   jest.unstable_mockModule(
     "../../src/services/analytics/trackStatAggregation.service.js",
     () => ({
@@ -75,15 +72,15 @@ describe("artistPerformanceOverviewService", () => {
     mockArtistDailyStatModel.aggregate.mockReset();
     mockArtistDailyStatModel.find.mockReset();
     mockListenEventModel.aggregate.mockReset();
+    mockTrackModel.countDocuments.mockReset();
     mockUserModel.find.mockReset();
-    mockArtistTopPerformingTracksService.getTopPerformingTracks.mockReset();
   });
 
   afterEach(() => {
     jest.useRealTimers();
   });
 
-  test("builds artist performance overview with filled daily, monthly, yearly and audience breakdown data", async () => {
+  test("builds artist performance overview with all-time summary cards and filled chart data", async () => {
     const { artistPerformanceOverviewService } =
       await loadArtistPerformanceOverviewService();
 
@@ -91,25 +88,14 @@ describe("artistPerformanceOverviewService", () => {
       createQueryChain({
         _id: artistId,
         name: "Synth Horizon",
+        stats: {
+          followers: 1240,
+          totalStreams: 98765,
+        },
       })
     );
 
     mockArtistDailyStatModel.aggregate
-      .mockResolvedValueOnce([
-        {
-          streamCount: 7,
-        },
-      ])
-      .mockResolvedValueOnce([
-        {
-          streamCount: 15,
-        },
-      ])
-      .mockResolvedValueOnce([
-        {
-          streamCount: 115,
-        },
-      ])
       .mockResolvedValueOnce([
         {
           month: 1,
@@ -131,47 +117,24 @@ describe("artistPerformanceOverviewService", () => {
         },
       ]);
 
-    mockArtistDailyStatModel.find.mockReturnValue(
-      {
-        sort: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(),
-        lean: jest.fn().mockResolvedValue([
-          {
-            dateKey: "2026-06-09",
-            streamCount: 2,
-            uniqueListeners: 2,
-          },
-          {
-            dateKey: "2026-06-11",
-            streamCount: 5,
-            uniqueListeners: 3,
-          },
-        ]),
-      }
-    );
-
-    mockListenEventModel.aggregate
-      .mockResolvedValueOnce([
+    mockArtistDailyStatModel.find.mockReturnValue({
+      sort: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      lean: jest.fn().mockResolvedValue([
         {
-          streamCount: 12,
+          dateKey: "2026-06-09",
+          streamCount: 2,
+          uniqueListeners: 2,
+        },
+        {
+          dateKey: "2026-06-11",
+          streamCount: 5,
           uniqueListeners: 3,
         },
-      ])
-      .mockResolvedValueOnce([
-        {
-          streamCount: 5,
-        },
-      ])
-      .mockResolvedValueOnce([
-        {
-          streamCount: 5,
-        },
-      ])
-      .mockResolvedValueOnce([
-        {
-          streamCount: 5,
-        },
-      ])
+      ]),
+    });
+
+    mockListenEventModel.aggregate
       .mockResolvedValueOnce([
         {
           date: "2026-06-15",
@@ -194,66 +157,9 @@ describe("artistPerformanceOverviewService", () => {
       .mockResolvedValueOnce([
         { year: 2026 },
         { year: 2025 },
-      ])
-      .mockResolvedValueOnce([
-        {
-          _id: "listener-1",
-          country: "Vietnam",
-        },
-        {
-          _id: "listener-2",
-          country: "Thailand",
-        },
-        {
-          _id: "listener-3",
-          country: "",
-        },
       ]);
 
-    mockUserModel.find.mockReturnValue(
-      createQueryChain([
-        {
-          _id: "listener-1",
-          profile: {
-            dateOfBirth: new Date("2000-03-01T00:00:00.000Z"),
-            country: "Vietnam",
-          },
-        },
-        {
-          _id: "listener-2",
-          profile: {
-            dateOfBirth: new Date("1987-07-12T00:00:00.000Z"),
-            country: "Thailand",
-          },
-        },
-        {
-          _id: "listener-3",
-          profile: {
-            dateOfBirth: null,
-            country: "Cambodia",
-          },
-        },
-      ])
-    );
-
-    mockArtistTopPerformingTracksService.getTopPerformingTracks.mockResolvedValue({
-      period: {
-        from: "2026-06-09",
-        to: "2026-06-15",
-        range: "7d",
-      },
-      summary: {
-        rankedTracks: 1,
-        totalPlays: 12,
-        totalUniqueListeners: 3,
-        topTrack: {
-          rank: 1,
-          title: "Synth Horizon",
-          playCount: 12,
-        },
-      },
-      topTracks: [],
-    });
+    mockTrackModel.countDocuments.mockResolvedValue(8);
 
     const result =
       await artistPerformanceOverviewService.getArtistPerformanceOverview({
@@ -274,14 +180,11 @@ describe("artistPerformanceOverviewService", () => {
       to: "2026-06-15",
     });
     expect(result.summary).toEqual({
-      selectedRangeStreams: 12,
-      selectedRangeUniqueListeners: 3,
-      currentMonthStreams: 20,
-      currentYearStreams: 120,
-      selectedYearStreams: 60,
+      followers: 1240,
+      trackCount: 8,
+      totalStreams: 98765,
     });
     expect(result.availableYears).toEqual([2026, 2025]);
-    expect(result.topPerformingTracks.summary.rankedTracks).toBe(1);
     expect(result.dailyStats).toHaveLength(7);
     expect(result.dailyStats[1]).toEqual({
       date: "2026-06-10",
@@ -335,49 +238,8 @@ describe("artistPerformanceOverviewService", () => {
         streamCount: 120,
       },
     ]);
-    expect(result.audience.totalListeners).toBe(3);
-    expect(result.audience.ageGroups).toEqual(
-      expect.arrayContaining([
-        {
-          key: "25_34",
-          label: "25 - 34",
-          count: 1,
-          percentage: 33.33,
-        },
-        {
-          key: "35_44",
-          label: "35 - 44",
-          count: 1,
-          percentage: 33.33,
-        },
-        {
-          key: "unknown",
-          label: "Không xác định",
-          count: 1,
-          percentage: 33.33,
-        },
-      ])
-    );
-    expect(result.audience.regions).toEqual([
-      {
-        key: "Cambodia",
-        label: "Cambodia",
-        count: 1,
-        percentage: 33.33,
-      },
-      {
-        key: "Thailand",
-        label: "Thailand",
-        count: 1,
-        percentage: 33.33,
-      },
-      {
-        key: "Vietnam",
-        label: "Vietnam",
-        count: 1,
-        percentage: 33.33,
-      },
-    ]);
+    expect(result.audience).toBeUndefined();
+    expect(result.topPerformingTracks).toBeUndefined();
   });
 
   test("throws 400 when range is invalid", async () => {
@@ -388,6 +250,10 @@ describe("artistPerformanceOverviewService", () => {
       createQueryChain({
         _id: artistId,
         name: "Synth Horizon",
+        stats: {
+          followers: 0,
+          totalStreams: 0,
+        },
       })
     );
 
