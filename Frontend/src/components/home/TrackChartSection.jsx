@@ -1,4 +1,4 @@
-import { ArrowRight, BarChart3 } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import TrackChartCard from "./TrackChartCard";
 
@@ -37,6 +37,11 @@ const TrackChartSection = ({
     <section className="space-y-3 sm:space-y-4">
       <div className="flex flex-col gap-2.5 md:flex-row md:items-end md:justify-between">
         <div className="space-y-1 sm:space-y-1.5">
+          { label ? (
+            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#71717a] dark:text-[#a1a1aa] sm:text-xs sm:tracking-[0.28em]">
+              { label }
+            </p>
+          ) : null }
           <h2 className="text-base font-semibold tracking-tight text-[#111111] dark:text-white sm:text-2xl">
             { title }
           </h2>
@@ -70,21 +75,23 @@ const TrackChartSection = ({
           { Array.from({ length: 3 }).map((_, index) => (
             <div
               key={ index }
-              className="
-                w-[9rem] min-w-[9rem] animate-pulse rounded-[16px] border border-black/5 bg-white/70 p-2.5
-                dark:border-white/10 dark:bg-[#181818] sm:w-[11.25rem] sm:min-w-[11.25rem] sm:rounded-[18px] sm:p-3
-              "
+              className="w-[8.5rem] min-w-[8.5rem] sm:w-[10.75rem] sm:min-w-[10.75rem] lg:w-[12.5rem] lg:min-w-[12.5rem]"
             >
-              <div className="relative aspect-square rounded-[12px] bg-[#e5e5e5] dark:bg-[#282828] sm:rounded-[14px]">
-                <div className="absolute left-2 top-2 h-5 w-10 rounded-full bg-black/8 dark:bg-white/10 sm:left-2.5 sm:top-2.5 sm:h-6 sm:w-11" />
-                <div className="absolute right-2 top-2 h-5 w-14 rounded-full bg-black/8 dark:bg-white/10 sm:right-2.5 sm:top-2.5 sm:h-6 sm:w-16" />
+              <div
+                className="
+                  animate-pulse rounded-[12px] border border-black/5 bg-white/70 p-1
+                  dark:border-white/10 dark:bg-[#181818] sm:rounded-[9px] sm:p-2
+                "
+              >
+                <div className="relative aspect-square rounded-[9px] bg-[#e5e5e5] dark:bg-[#282828] sm:rounded-[8px]">
+                  <div className="absolute left-2 top-2 h-5 w-10 rounded-full bg-black/8 dark:bg-white/10 sm:left-2.5 sm:top-2.5 sm:h-6 sm:w-11" />
+                  <div className="absolute right-2 top-2 h-5 w-14 rounded-full bg-black/8 dark:bg-white/10 sm:right-2.5 sm:top-2.5 sm:h-6 sm:w-16" />
+                </div>
+                <div className="mt-2.5 space-y-1.5 sm:mt-3 sm:space-y-2">
+                  <div className="h-3.5 w-4/5 rounded-full bg-[#d4d4d8] dark:bg-[#343434] sm:h-4" />
+                  <div className="h-2.5 w-full rounded-full bg-[#e5e5e5] dark:bg-[#2d2d2d] sm:h-3" />
+                </div>
               </div>
-              <div className="mt-2.5 space-y-1.5 sm:mt-3 sm:space-y-2">
-                <div className="h-3.5 w-4/5 rounded-full bg-[#d4d4d8] dark:bg-[#343434] sm:h-4" />
-                <div className="h-2.5 w-full rounded-full bg-[#e5e5e5] dark:bg-[#2d2d2d] sm:h-3" />
-                <div className="h-2.5 w-2/3 rounded-full bg-[#e5e5e5] dark:bg-[#2d2d2d] sm:h-3" />
-              </div>
-              <div className="mt-2.5 h-2.5 w-20 rounded-full bg-[#e4e4e7] dark:bg-[#242424] sm:mt-3 sm:h-3 sm:w-24" />
             </div>
           )) }
         </div>
@@ -93,7 +100,7 @@ const TrackChartSection = ({
           { items.map((item, index) => (
             <div
               key={ item.id }
-              className="w-[9rem] min-w-[9rem] sm:w-[11.25rem] sm:min-w-[11.25rem] lg:w-[13.25rem] lg:min-w-[13.25rem]"
+              className="w-[8.5rem] min-w-[8.5rem] sm:w-[10.75rem] sm:min-w-[10.75rem] lg:w-[12.5rem] lg:min-w-[12.5rem]"
             >
               <TrackChartCard
                 index={ index + 1 }
