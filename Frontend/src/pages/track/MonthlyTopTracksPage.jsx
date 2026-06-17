@@ -21,10 +21,10 @@ const metaPillClassName = `
 `;
 
 const monthlyChartHeaderColumns = [
-  { label: "Rank" },
-  { label: "Title" },
-  { label: "Plays", className: "text-right" },
-  { label: "Time", className: "text-right" },
+  { label: "Hạng" },
+  { label: "Tiêu đề" },
+  { label: "Lượt phát", className: "text-right" },
+  { label: "Thời lượng", className: "text-right" },
 ];
 
 const monthlyChartHeaderGridClassName = `
@@ -33,7 +33,7 @@ const monthlyChartHeaderGridClassName = `
   text-[#71717a] dark:border-white/10 dark:text-[#a1a1aa] sm:grid
 `;
 
-const formatNumber = (value) => new Intl.NumberFormat("en-US").format(Number(value) || 0);
+const formatNumber = (value) => new Intl.NumberFormat("vi-VN").format(Number(value) || 0);
 
 const renderMonthlyPlayCount = (playCount, isMobile = false) => (
   <span
@@ -44,7 +44,7 @@ const renderMonthlyPlayCount = (playCount, isMobile = false) => (
         : "justify-end text-xs",
     ].join(" ") }
   >
-    <span className="truncate">{ formatNumber(playCount) } plays</span>
+    <span className="truncate">{ formatNumber(playCount) } lượt phát</span>
   </span>
 );
 
@@ -91,7 +91,7 @@ const MonthlyTopTracksPage = () => {
         setErrorMessage(
           getApiErrorMessage(
             error,
-            "Unable to load monthly top tracks from the backend right now."
+            "Không thể tải bảng xếp hạng bài hát theo tháng lúc này."
           )
         );
       } finally {
@@ -188,7 +188,7 @@ const MonthlyTopTracksPage = () => {
 
           { isLoading ? (
             <div className="relative z-10 flex min-h-[20rem] items-end">
-              <p className="text-sm text-white/82">Loading monthly top tracks...</p>
+              <p className="text-sm text-white/82">Đang tải bảng xếp hạng tháng...</p>
             </div>
           ) : errorMessage ? (
             <div className="relative z-10 flex min-h-[20rem] items-end">
@@ -198,7 +198,7 @@ const MonthlyTopTracksPage = () => {
             <div className="relative z-10 flex min-h-[20rem] flex-col items-center justify-end gap-5 text-center md:flex-row md:items-end md:justify-start md:text-left">
               <img
                 src={ heroImage }
-                alt="Monthly top tracks cover"
+                alt="Ảnh bìa top bài hát tháng"
                 className="
                   h-32 w-32 rounded-[18px] object-cover
                   shadow-[0_22px_52px_rgba(15,23,42,0.38)]
@@ -211,21 +211,21 @@ const MonthlyTopTracksPage = () => {
                 style={ { textShadow: "0 2px 18px rgba(0,0,0,0.32)" } }
               >
                 <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/82">
-                  Monthly chart
+                  Bảng xếp hạng tháng
                 </p>
                 <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:mt-3 sm:text-5xl lg:text-6xl">
-                  Monthly Top Tracks
+                  Top bài hát theo tháng
                 </h1>
                 <p className="mt-3 text-sm leading-6 text-white/88 sm:mt-4 sm:text-base">
-                  The top { MONTHLY_TOP_TRACK_LIMIT } most-played tracks for { chartMonthLabel }.
+                  { MONTHLY_TOP_TRACK_LIMIT } bài hát được phát nhiều nhất trong { chartMonthLabel }.
                 </p>
                 <div className="mt-4 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
                   <span className={ `${metaPillClassName} font-medium text-white` }>
                     Top { MONTHLY_TOP_TRACK_LIMIT }
                   </span>
-                  <span className={ metaPillClassName }>{ formatNumber(totalPlayCount) } plays</span>
+                  <span className={ metaPillClassName }>{ formatNumber(totalPlayCount) } lượt phát</span>
                   <span className={ metaPillClassName }>
-                    { formatNumber(totalListeners) } listeners
+                    { formatNumber(totalListeners) } người nghe
                   </span>
                   <span className={ metaPillClassName }>{ chartMonthLabel }</span>
                 </div>
@@ -246,11 +246,11 @@ const MonthlyTopTracksPage = () => {
           <TrackListSection
             isLoading={ isLoading }
             errorMessage={ errorMessage }
-            loadingMessage="Loading tracks..."
-            mobileLabel="Monthly chart"
+            loadingMessage="Đang tải bài hát..."
+            mobileLabel="Bảng xếp hạng tháng"
             headerColumns={ monthlyChartHeaderColumns }
             headerGridClassName={ monthlyChartHeaderGridClassName }
-            emptyMessage="No monthly top tracks are available for this month yet."
+            emptyMessage="Chưa có dữ liệu top bài hát cho tháng này."
             hasItems={ monthlyTopTracks.length > 0 }
           >
             { monthlyTopTracks.map((item, index) => (
@@ -264,8 +264,8 @@ const MonthlyTopTracksPage = () => {
                   item?.track?.artist?.avatar ||
                   heroImage
                 }
-                title={ item?.track?.title || "Untitled track" }
-                artist={ item?.track?.artist?.name || "Unknown artist" }
+                title={ item?.track?.title || "Bài hát chưa có tên" }
+                artist={ item?.track?.artist?.name || "Nghệ sĩ không xác định" }
                 artistId={ item?.track?.artist?.id || "" }
                 duration={ formatTrackDuration(item?.track?.duration) }
                 href={ item?.track?.id ? routePaths.trackDetail(item.track.id) : undefined }

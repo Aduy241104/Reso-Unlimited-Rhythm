@@ -22,11 +22,11 @@ const PlayerQueueMenu = ({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-white">Noi dung tiep theo</p>
+          <p className="text-sm font-semibold text-white">Nội dung tiếp theo</p>
           <p className="mt-0.5 text-[11px] leading-4 text-white/55">
             { currentIndex >= 0 && queue.length > 0
               ? `${currentIndex + 1}/${queue.length}`
-              : `${queue.length} bai hat` }
+              : `${queue.length} bài hát` }
           </p>
         </div>
 
@@ -35,7 +35,7 @@ const PlayerQueueMenu = ({
             type="button"
             onClick={ onClose }
             className="inline-flex h-5 w-5 items-center justify-center rounded-[4px] text-white/60 transition hover:bg-white/8 hover:text-white"
-            aria-label="Close queue"
+            aria-label="Đóng hàng chờ"
           >
             <X className="h-2.5 w-2.5" />
           </button>
@@ -45,9 +45,9 @@ const PlayerQueueMenu = ({
       { queue.length === 0 ? (
         <div className="mt-2.5 rounded-md bg-white/[0.04] px-4 py-5 text-center">
           <Music2 className="mx-auto h-4 w-4 text-white/45" />
-          <p className="mt-2 text-sm font-medium text-white">Queue dang trong</p>
+          <p className="mt-2 text-sm font-medium text-white">Hàng chờ đang trống</p>
           <p className="mt-1 text-xs text-white/50">
-            Chon bai hat de bat dau phat va them vao hang cho.
+            Chọn bài hát để bắt đầu phát và thêm vào hàng chờ.
           </p>
         </div>
       ) : (
@@ -84,10 +84,10 @@ const PlayerQueueMenu = ({
                   ].join(" ") }
                   aria-label={
                     isCurrentTrack && isPlaying
-                      ? `Pause ${track?.title || "track"}`
-                      : `Play ${track?.title || "track"}`
+                      ? `Tạm dừng ${track?.title || "bài hát"}`
+                      : `Phát ${track?.title || "bài hát"}`
                   }
-                  title={ isCurrentTrack && isPlaying ? "Pause" : "Play from queue" }
+                  title={ isCurrentTrack && isPlaying ? "Tạm dừng" : "Phát từ hàng chờ" }
                 >
                   { showWaveState && hoveredIndicatorIndex !== index ? (
                     <>
@@ -134,7 +134,7 @@ const PlayerQueueMenu = ({
                       isCurrentTrack ? "text-white" : "text-white/92",
                     ].join(" ") }
                   >
-                    { track?.title || "Untitled track" }
+                    { track?.title || "Bài hát chưa có tên" }
                   </p>
                   <div className="mt-0.5 flex items-center gap-1 text-[11px] text-white/58">
                     { isExplicit ? (
@@ -143,7 +143,7 @@ const PlayerQueueMenu = ({
                       </span>
                     ) : null }
                     <p className="truncate">
-                      { track?.artistName || "Unknown artist" }
+                      { track?.artistName || "Nghệ sĩ không xác định" }
                     </p>
                   </div>
                 </div>
@@ -153,8 +153,8 @@ const PlayerQueueMenu = ({
                   onClick={ () => onRemoveTrack?.(index) }
                   disabled={ isRemovingTrack }
                   className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-[4px] text-white/40 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-                  aria-label={ `Remove ${track?.title || "track"} from queue` }
-                  title="Remove from queue"
+                  aria-label={ `Xóa ${track?.title || "bài hát"} khỏi hàng chờ` }
+                  title="Xóa khỏi hàng chờ"
                 >
                   <X className="h-3 w-3" />
                 </button>

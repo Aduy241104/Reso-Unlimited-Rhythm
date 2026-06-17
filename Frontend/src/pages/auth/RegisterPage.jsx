@@ -129,7 +129,7 @@ const RegisterPage = () => {
 
       if (!hasFieldErrors) {
         setDetailsApiError(
-          getApiErrorMessage(error, "Unable to send OTP. Please try again.")
+          getApiErrorMessage(error, "Không thể gửi OTP. Vui lòng thử lại.")
         );
       }
 
@@ -161,7 +161,7 @@ const RegisterPage = () => {
       navigate("/login", {
         replace: true,
         state: {
-          authNotice: `Account ${pendingRegistration.email} was created successfully. You can sign in now.`,
+          authNotice: `Tài khoản ${pendingRegistration.email} đã được tạo thành công. Bạn có thể đăng nhập ngay.`,
         },
       });
     } catch (error) {
@@ -191,7 +191,7 @@ const RegisterPage = () => {
         setDetailsApiError(
           getApiErrorMessage(
             error,
-            "Registration details are no longer valid. Please review them."
+            "Thông tin đăng ký không còn hợp lệ. Vui lòng kiểm tra lại."
           )
         );
         setStep("details");
@@ -202,7 +202,7 @@ const RegisterPage = () => {
         setOtpApiError(
           getApiErrorMessage(
             error,
-            "Unable to complete registration. Please try again."
+            "Không thể hoàn tất đăng ký. Vui lòng thử lại."
           )
         );
       }
@@ -258,7 +258,7 @@ const RegisterPage = () => {
         setDetailsApiError(
           getApiErrorMessage(
             error,
-            "Registration details are no longer valid. Please review them."
+            "Thông tin đăng ký không còn hợp lệ. Vui lòng kiểm tra lại."
           )
         );
         setStep("details");
@@ -266,7 +266,7 @@ const RegisterPage = () => {
       }
 
       setOtpApiError(
-        getApiErrorMessage(error, "Unable to resend OTP. Please try again.")
+        getApiErrorMessage(error, "Không thể gửi lại OTP. Vui lòng thử lại.")
       );
     } finally {
       setIsResendingOtp(false);
@@ -277,7 +277,7 @@ const RegisterPage = () => {
     const firstFieldName = Object.keys(formErrors)[0];
 
     setDetailsApiError("");
-    setDetailsValidationError("Please complete the required fields before continuing.");
+    setDetailsValidationError("Vui lòng điền đầy đủ các trường bắt buộc trước khi tiếp tục.");
 
     if (firstFieldName) {
       detailsForm.setFocus(firstFieldName);
@@ -302,18 +302,18 @@ const RegisterPage = () => {
               </p>
               <div>
                 <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-                  {isDetailsStep ? "Create your account" : "Confirm your email"}
+                  {isDetailsStep ? "Tạo tài khoản" : "Xác nhận email"}
                 </h1>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-[#c9c4bd]">
                   {isDetailsStep
-                    ? "A focused, two-step registration flow with just the details needed to get you started."
-                    : "Enter the verification code we sent to finish creating your account."}
+                    ? "Quy trình đăng ký gồm 2 bước, chỉ giữ lại các thông tin cần thiết để bạn bắt đầu nhanh chóng."
+                    : "Nhập mã xác thực chúng tôi đã gửi để hoàn tất việc tạo tài khoản."}
                 </p>
               </div>
             </div>
 
             <div className="inline-flex w-fit items-center rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-xs font-medium text-[#e7e1d8] backdrop-blur">
-              {isDetailsStep ? "Step 1 of 2" : "Step 2 of 2"}
+              {isDetailsStep ? "Bước 1/2" : "Bước 2/2"}
             </div>
           </div>
 

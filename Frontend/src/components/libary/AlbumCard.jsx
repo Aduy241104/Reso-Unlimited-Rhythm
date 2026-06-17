@@ -1,4 +1,3 @@
-import { LIBARY_ALBUM_TEXT } from "../../utils/libaryDetail";
 const getAlbumInitial = (title) => {
   if (typeof title !== "string") {
     return "?";
@@ -13,7 +12,7 @@ const AlbumCard = ({ album }) => {
   const title =
     typeof album?.title === "string" && album.title.trim()
       ? album.title.trim()
-      : "Untitled Album";
+      : "Album chưa đặt tên";
 
   const coverImage =
     typeof album?.coverImage === "string" && album.coverImage.trim()
@@ -23,7 +22,7 @@ const AlbumCard = ({ album }) => {
   const artistName =
     typeof album?.artistName === "string" && album.artistName.trim()
       ? album.artistName.trim()
-      : "Unknown Artist";
+      : "Nghệ sĩ không xác định";
 
   const trackCount = Array.isArray(album?.trackList)
     ? album.trackList.length
