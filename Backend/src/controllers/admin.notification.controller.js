@@ -20,6 +20,12 @@ const createNotificationForAdmin = async (req, res, next) => {
                 const targetGroup = notification.targetRoles[0];
                 io.to(targetGroup).emit("new_notification", notification);
             }
+            else if (notification.receiverType === "followers") {
+                const followerUserIds = await adminNotificationService.getFollowerUserIdsForNotification(notification);
+                followerUserIds.forEach((userId) => {
+                    io.to(userId.toString()).emit("new_notification", notification);
+                });
+            }
             else if (notification.receiverType === "all") {
                 io.emit("new_notification", notification);
             }
@@ -86,6 +92,12 @@ const updateNotificationForAdmin = async (req, res, next) => {
                 const targetGroup = notification.targetRoles[0];
                 io.to(targetGroup).emit("update_notification", notification);
             }
+            else if (notification.receiverType === "followers") {
+                const followerUserIds = await adminNotificationService.getFollowerUserIdsForNotification(notification);
+                followerUserIds.forEach((userId) => {
+                    io.to(userId.toString()).emit("update_notification", notification);
+                });
+            }
             else if (notification.receiverType === "all") {
                 io.emit("update_notification", notification);
             }
@@ -122,6 +134,12 @@ const deleteNotificationForAdmin = async (req, res, next) => {
                 const targetGroup = notification.targetRoles[0];
                 io.to(targetGroup).emit("delete_notification", deletePayload);
             } 
+            else if (notification.receiverType === "followers") {
+                const followerUserIds = await adminNotificationService.getFollowerUserIdsForNotification(notification);
+                followerUserIds.forEach((userId) => {
+                    io.to(userId.toString()).emit("delete_notification", deletePayload);
+                });
+            }
             else if (notification.receiverType === "all") {
                 io.emit("delete_notification", deletePayload);
             }

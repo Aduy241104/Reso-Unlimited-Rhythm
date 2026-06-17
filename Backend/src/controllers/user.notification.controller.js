@@ -3,11 +3,10 @@ import formatResponse from "../utils/formatResponse.js";
 
 const getMyNotifications = async (req, res, next) => {
     try {
-        const userId = req.user?._id || req.user?.id; 
+        const userId = req.user?._id || req.user?.id;
         const userRole = req.user?.role;
         const isAdminView = userRole === 'admin';
 
-        // req.query lúc này đã được Joi validate và ép kiểu chuẩn chỉnh
         const result = await userNotificationService.getMyNotifications(
             userId,
             userRole,
@@ -15,7 +14,6 @@ const getMyNotifications = async (req, res, next) => {
             isAdminView
         );
 
-        // Trả về đúng format bọc data chuyên nghiệp của dự án
         return formatResponse.success(
             res, 
             { notifications: result.notifications, meta: result.meta }, 
@@ -54,8 +52,22 @@ const markAsRead = async (req, res, next) => {
     }
 };
 
+const deleteNotification = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user?._id || req.user?.id;
+
+        await userNotificationService.deleteNotification(id, userId);
+
+        return formatResponse.success(res, null, "Xóa thông báo thành công.");
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getMyNotifications,
     getNotificationDetail,
-    markAsRead
+    markAsRead,
+    deleteNotification
 };

@@ -30,4 +30,11 @@ router.patch(
     userNotificationController.markAsRead
 );
 
+router.delete(
+    "/:id",
+    requireUser,
+    validate(notificationValidation.notificationDetailParamsSchema, "params"),
+    userNotificationController.deleteNotification
+);
+
 export default router;
