@@ -646,7 +646,7 @@ const NotificationDropdown = ({ isDesktopSidebarVisible = true }) => {
                 createPortal(
                     <div
                         className={[
-                            "fixed bottom-[96px] left-0 right-0 top-[58px] z-40 overflow-hidden bg-black/70 backdrop-blur-sm transition-[left] duration-300 lg:top-[62px]",
+                            "fixed bottom-[80px] left-0 right-0 top-[58px] z-40 overflow-hidden bg-black/70 backdrop-blur-sm transition-[left] duration-300 lg:top-[62px]",
                             isDesktopSidebarVisible ? "lg:left-[285px]" : "lg:left-[84px]",
                         ].join(" ")}
                         onMouseDown={(event) => {
