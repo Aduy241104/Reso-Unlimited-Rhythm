@@ -22,25 +22,25 @@ const RegisterOtpStep = ({
   return (
     <AuthCard
       theme="dark"
-      title="Verify your email"
-      subtitle={`We sent a one-time code to ${email}. Enter it below to complete your registration.`}
+      title="Xác thực email"
+      subtitle={`Chúng tôi đã gửi mã xác thực một lần đến ${email}. Nhập mã bên dưới để hoàn tất đăng ký.`}
       className="rounded-[28px] border-white/8 bg-[#11161d]/90"
       headerClassName="mb-6"
       footerClassName="mt-6"
       footer={
         <span>
-          Already have an account?{" "}
+          Đã có tài khoản?{" "}
           <Link className="font-semibold text-[#f5b66f]" to="/login">
-            Sign in
+            Đăng nhập
           </Link>
         </span>
       }
     >
       <div className="mb-6 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 text-sm text-[#ddd7cf]">
-        <p className="font-medium text-white">Code sent to</p>
+        <p className="font-medium text-white">Mã đã được gửi đến</p>
         <p className="mt-1 break-all text-[#f5b66f]">{email}</p>
         <p className="mt-3 text-[#bdb6ad]">
-          The code stays valid for about {expiresInMinutes || 5} minutes.
+          Mã có hiệu lực trong khoảng {expiresInMinutes || 5} phút.
         </p>
       </div>
 
@@ -53,7 +53,7 @@ const RegisterOtpStep = ({
 
         <AuthField
           theme="dark"
-          label="OTP code"
+          label="Mã OTP"
           type="text"
           inputMode="numeric"
           maxLength={6}
@@ -69,7 +69,7 @@ const RegisterOtpStep = ({
           disabled={isSubmitting}
           type="submit"
         >
-          {isSubmitting ? "Verifying..." : "Create account"}
+          {isSubmitting ? "Đang xác thực..." : "Tạo tài khoản"}
         </button>
       </form>
 
@@ -79,7 +79,7 @@ const RegisterOtpStep = ({
           onClick={onEditDetails}
           type="button"
         >
-          Edit details
+          Chỉnh sửa thông tin
         </button>
 
         <button
@@ -89,10 +89,10 @@ const RegisterOtpStep = ({
           type="button"
         >
           {isResending
-            ? "Resending OTP..."
+            ? "Đang gửi lại OTP..."
             : remainingSeconds > 0
-              ? `Retry in ${remainingSeconds}s`
-              : "Resend OTP"}
+              ? `Thử lại sau ${remainingSeconds}s`
+              : "Gửi lại OTP"}
         </button>
       </div>
     </AuthCard>

@@ -1,19 +1,19 @@
 import { Check, LoaderCircle, Volume2, X } from "lucide-react";
 
 const QUALITY_DESCRIPTIONS = {
-  original: "Source quality",
-  high: "Best sound",
-  medium: "Balanced quality",
-  low: "Lower data use",
-  lowest: "Best for weak network",
+  original: "Chất lượng gốc",
+  high: "Âm thanh tốt nhất",
+  medium: "Cân bằng chất lượng",
+  low: "Tiết kiệm dữ liệu hơn",
+  lowest: "Phù hợp mạng yếu",
 };
 
 const QUALITY_LABELS = {
-  original: "Original",
-  high: "High",
-  medium: "Medium",
-  low: "Low",
-  lowest: "Lowest",
+  original: "Gốc",
+  high: "Cao",
+  medium: "Trung bình",
+  low: "Thấp",
+  lowest: "Thấp nhất",
 };
 
 const formatQualityLabel = (value = "") => {
@@ -21,7 +21,7 @@ const formatQualityLabel = (value = "") => {
     typeof value === "string" ? value.trim().toLowerCase() : "";
 
   if (!normalizedValue) {
-    return "Auto";
+    return "Tự động";
   }
 
   return QUALITY_LABELS[normalizedValue] || normalizedValue.toUpperCase();
@@ -46,7 +46,7 @@ const PlayerQualityMenu = ({
   const activeQualityUrl = selectedQuality?.url || "";
   const selectedQualityText = selectedQuality
     ? `${formatQualityLabel(selectedQuality.label)}${selectedQuality.bitrate ? ` - ${selectedQuality.bitrate} kbps` : ""}`
-    : "Choose stream quality";
+    : "Chọn chất lượng phát";
 
   return (
     <div
@@ -57,9 +57,9 @@ const PlayerQualityMenu = ({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-white">Audio quality</p>
+          <p className="text-sm font-semibold text-white">Chất lượng âm thanh</p>
           <p className="mt-0.5 text-[11px] leading-4 text-white/55">
-            Current: {selectedQualityText}
+            Hiện tại: {selectedQualityText}
           </p>
         </div>
 
@@ -68,7 +68,7 @@ const PlayerQualityMenu = ({
             type="button"
             onClick={onClose}
             className="inline-flex h-5 w-5 items-center justify-center rounded-[4px] text-white/60 transition hover:bg-white/8 hover:text-white"
-            aria-label="Close audio quality menu"
+            aria-label="Đóng menu chất lượng âm thanh"
           >
             <X className="h-2.5 w-2.5" />
           </button>
@@ -116,13 +116,13 @@ const PlayerQualityMenu = ({
                   {quality.bitrate ? ` - ${quality.bitrate} kbps` : ""}
                 </span>
                 <span className="mt-0.5 block truncate text-[11px] text-white/55">
-                  {QUALITY_DESCRIPTIONS[quality.label] || "Stream setting"}
+                  {QUALITY_DESCRIPTIONS[quality.label] || "Thiết lập phát"}
                 </span>
               </span>
 
               {isSelected ? (
                 <span className="shrink-0 rounded-full bg-[#f5b66f]/18 px-2 py-0.5 text-[10px] font-medium text-[#f8cf95]">
-                  Current
+                  Đang chọn
                 </span>
               ) : null}
             </button>
