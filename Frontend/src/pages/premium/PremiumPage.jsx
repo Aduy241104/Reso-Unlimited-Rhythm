@@ -27,6 +27,8 @@ const currencyFormatter = new Intl.NumberFormat("vi-VN", {
   maximumFractionDigits: 0,
 });
 
+const VAT_RATE = 0.1;
+
 const FEATURE_META = {
   NO_ADS: {
     label: "Nghe nhạc không quảng cáo",
@@ -85,6 +87,16 @@ const getFeatureMeta = (feature) =>
     label: feature,
     Icon: Check,
   };
+
+const getPlanPriceCaption = (durationDays) => {
+  const baseCaption = getPlanPeriodText(durationDays);
+
+  if (baseCaption.includes("VAT")) {
+    return baseCaption.replace(/\([^)]*VAT\)/, "(+ VAT 10%)");
+  }
+
+  return `${baseCaption} (+ VAT 10%)`;
+};
 
 const MODAL_OPEN_DELAY_MS = 260;
 
@@ -292,7 +304,7 @@ const PurchaseConfirmationModal = ({
   }
 
   const subtotal = Number(plan.price) || 0;
-  const tax = 0;
+  const tax = Math.round(subtotal * VAT_RATE);
   const total = subtotal + tax;
 
   return createPortal(
@@ -340,6 +352,10 @@ const PurchaseConfirmationModal = ({
             {formatPrice(plan.price)}
           </p>
         </div>
+
+        <p className="mt-3 text-xs text-white/58">
+          Tong thanh toan da bao gom VAT 10%.
+        </p>
 
         <div className="mt-6 h-px bg-white/10" />
 
@@ -679,7 +695,7 @@ const PremiumPage = () => {
                           {(Number(plan?.price) || 0).toLocaleString("vi-VN")}
                         </span>
                         <span className="max-w-[8.5rem] pb-1 text-[12px] font-medium leading-5 text-white/86">
-                          {getPlanPeriodText(plan?.durationDays)}
+                          {getPlanPriceCaption(plan?.durationDays)}
                         </span>
                       </div>
 

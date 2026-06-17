@@ -33,7 +33,7 @@ const getFieldErrorsFromApi = (error) => {
           {
             field: details.field,
             message:
-              responseData?.message || "Invalid value.",
+              responseData?.message || "Giá trị không hợp lệ.",
           },
         ]
       : [];
@@ -55,7 +55,7 @@ const getFieldErrorsFromApi = (error) => {
 
     return {
       ...nextErrors,
-      [fieldName]: detail?.message || "Invalid value.",
+      [fieldName]: detail?.message || "Giá trị không hợp lệ.",
     };
   }, {});
 };
@@ -105,29 +105,29 @@ const ChangePasswordForm = ({ onCancel, onSaved }) => {
     const { confirmPassword, currentPassword, newPassword } = formValues;
 
     if (!currentPassword) {
-      nextErrors.currentPassword = "Current password is required.";
+      nextErrors.currentPassword = "Vui lòng nhập mật khẩu hiện tại.";
     }
 
     if (!newPassword) {
-      nextErrors.newPassword = "New password is required.";
+      nextErrors.newPassword = "Vui lòng nhập mật khẩu mới.";
     } else if (newPassword.length < 8) {
-      nextErrors.newPassword = "New password must be at least 8 characters.";
+      nextErrors.newPassword = "Mật khẩu mới phải có ít nhất 8 ký tự.";
     } else if (!PASSWORD_UPPERCASE_PATTERN.test(newPassword)) {
-      nextErrors.newPassword = "New password must include at least 1 uppercase letter.";
+      nextErrors.newPassword = "Mật khẩu mới phải có ít nhất 1 chữ cái in hoa.";
     } else if (!PASSWORD_NUMBER_PATTERN.test(newPassword)) {
-      nextErrors.newPassword = "New password must include at least 1 number.";
+      nextErrors.newPassword = "Mật khẩu mới phải có ít nhất 1 chữ số.";
     } else if (!PASSWORD_SPECIAL_CHARACTER_PATTERN.test(newPassword)) {
       nextErrors.newPassword =
-        "New password must include at least 1 special character.";
+        "Mật khẩu mới phải có ít nhất 1 ký tự đặc biệt.";
     } else if (newPassword === currentPassword) {
       nextErrors.newPassword =
-        "New password must be different from your current password.";
+        "Mật khẩu mới phải khác mật khẩu hiện tại.";
     }
 
     if (!confirmPassword) {
-      nextErrors.confirmPassword = "Confirm password is required.";
+      nextErrors.confirmPassword = "Vui lòng xác nhận mật khẩu.";
     } else if (confirmPassword !== newPassword) {
-      nextErrors.confirmPassword = "Confirm password does not match.";
+      nextErrors.confirmPassword = "Mật khẩu xác nhận không khớp.";
     }
 
     setFieldErrors(nextErrors);
@@ -149,14 +149,14 @@ const ChangePasswordForm = ({ onCancel, onSaved }) => {
       const response = await changeCurrentUserPassword(formValues);
       setFormValues(createFormState());
       setFieldErrors({});
-      onSaved(response?.message || "Password changed successfully.");
+      onSaved(response?.message || "Đổi mật khẩu thành công.");
     } catch (error) {
       const nextFieldErrors = getFieldErrorsFromApi(error);
 
       setFieldErrors(nextFieldErrors);
       setApiError(
         Object.keys(nextFieldErrors).length === 0
-          ? getApiErrorMessage(error, "Unable to change your password.")
+          ? getApiErrorMessage(error, "Không thể đổi mật khẩu.")
           : ""
       );
     } finally {
@@ -172,14 +172,13 @@ const ChangePasswordForm = ({ onCancel, onSaved }) => {
       <div className="flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#ff9f43]">
-            Change password
+            Đổi mật khẩu
           </p>
           <h3 className="mt-2 text-2xl font-semibold tracking-tight text-white">
-            Update your account password
+            Cập nhật mật khẩu tài khoản
           </h3>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-400">
-            Enter your current password and choose a stronger password for your
-            next sign-in.
+            Nhập mật khẩu hiện tại và chọn mật khẩu mạnh hơn cho lần đăng nhập tiếp theo.
           </p>
         </div>
 
@@ -188,7 +187,7 @@ const ChangePasswordForm = ({ onCancel, onSaved }) => {
           onClick={onCancel}
           disabled={isSaving}
           className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-gray-300 transition-all duration-300 hover:border-white/20 hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
-          aria-label="Close change password form"
+          aria-label="Đóng biểu mẫu đổi mật khẩu"
         >
           <X className="h-5 w-5" aria-hidden />
         </button>
@@ -196,7 +195,7 @@ const ChangePasswordForm = ({ onCancel, onSaved }) => {
 
       <div className="mt-6 grid gap-5">
         <FormField
-          label="Current Password"
+          label="Mật khẩu hiện tại"
           icon={LockKeyhole}
           errorMessage={fieldErrors.currentPassword}
         >
@@ -204,7 +203,7 @@ const ChangePasswordForm = ({ onCancel, onSaved }) => {
             type="password"
             value={formValues.currentPassword}
             onChange={(event) => updateField("currentPassword", event.target.value)}
-            placeholder="Enter your current password"
+            placeholder="Nhập mật khẩu hiện tại"
             autoComplete="current-password"
             className={inputClassName}
             disabled={isSaving}
@@ -212,7 +211,7 @@ const ChangePasswordForm = ({ onCancel, onSaved }) => {
         </FormField>
 
         <FormField
-          label="New Password"
+          label="Mật khẩu mới"
           icon={KeyRound}
           errorMessage={fieldErrors.newPassword}
         >
@@ -220,7 +219,7 @@ const ChangePasswordForm = ({ onCancel, onSaved }) => {
             type="password"
             value={formValues.newPassword}
             onChange={(event) => updateField("newPassword", event.target.value)}
-            placeholder="Enter your new password"
+            placeholder="Nhập mật khẩu mới"
             autoComplete="new-password"
             className={inputClassName}
             disabled={isSaving}
@@ -228,7 +227,7 @@ const ChangePasswordForm = ({ onCancel, onSaved }) => {
         </FormField>
 
         <FormField
-          label="Confirm Password"
+          label="Xác nhận mật khẩu"
           icon={ShieldAlert}
           errorMessage={fieldErrors.confirmPassword}
         >
@@ -236,7 +235,7 @@ const ChangePasswordForm = ({ onCancel, onSaved }) => {
             type="password"
             value={formValues.confirmPassword}
             onChange={(event) => updateField("confirmPassword", event.target.value)}
-            placeholder="Re-enter your new password"
+            placeholder="Nhập lại mật khẩu mới"
             autoComplete="new-password"
             className={inputClassName}
             disabled={isSaving}
@@ -257,19 +256,19 @@ const ChangePasswordForm = ({ onCancel, onSaved }) => {
           disabled={isSaving}
           className={secondaryButtonClassName}
         >
-          Cancel
+          Hủy
         </button>
 
         <button type="submit" disabled={isSaving} className={primaryButtonClassName}>
           {isSaving ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-              Updating Password...
+              Đang cập nhật mật khẩu...
             </>
           ) : (
             <>
               <Save className="h-4 w-4" aria-hidden />
-              Change Password
+              Đổi mật khẩu
             </>
           )}
         </button>

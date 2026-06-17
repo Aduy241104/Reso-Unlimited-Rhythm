@@ -6,9 +6,10 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import CreatePlaylistButton from "../../components/userPlaylist/CreatePlaylistButton";
 import CreatePlaylistModal from "../../components/userPlaylist/CreatePlaylistModal";
+import { useAuth } from "../../hooks/useAuth";
 import { useTheme } from "../../hooks/useTheme";
 import { routePaths } from "../../routes/routePaths";
 import {
@@ -16,6 +17,7 @@ import {
   getFollowedArtists,
 } from "../../services/libaryService";
 import { getUserPlaylists } from "../../services/userPlaylistService";
+import GuestLibrarySidebar from "./GuestLibrarySidebar";
 
 const FOLLOWED_ITEMS_LIMIT = 20;
 
@@ -38,7 +40,7 @@ const getPlaylistTitle = (playlist) => {
     return playlist.name.trim();
   }
 
-  return "Untitled Playlist";
+  return "Playlist chưa đặt tên";
 };
 
 const getPlaylistCoverImage = (playlist) => {
@@ -64,7 +66,7 @@ const getPlaylistOwnerName = (playlist) => {
     return playlist.owner.fullName.trim();
   }
 
-  return "Unknown User";
+  return "Người dùng không xác định";
 };
 
 const tabButtonClassName = (isActive) =>
@@ -80,6 +82,8 @@ const Sidebar = ({
   onNavigate,
 }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { isAuthenticated, isLoading } = useAuth();
   const { isDark } = useTheme();
   const DesktopToggleIcon = isCollapsed ? PanelLeftOpen : PanelLeftClose;
 
@@ -95,6 +99,26 @@ const Sidebar = ({
 
   useEffect(() => {
     let isMounted = true;
+
+    if (isLoading) {
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    if (!isAuthenticated) {
+      setFollowedArtists([]);
+      setFollowedAlbums([]);
+      setPlaylists([]);
+      setIsLoadingArtists(false);
+      setIsLoadingAlbums(false);
+      setIsLoadingPlaylists(false);
+      setIsCreatePlaylistModalOpen(false);
+
+      return () => {
+        isMounted = false;
+      };
+    }
 
     const loadFollowedArtists = async () => {
       setIsLoadingArtists(true);
@@ -175,58 +199,70 @@ const Sidebar = ({
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [isAuthenticated, isLoading]);
+
+  const handleGuestAction = (path) => {
+    onNavigate?.();
+    navigate(path);
+  };
 
   return (
     <aside
-      className={[
+      className={ [
         "flex h-full flex-col overflow-hidden border-r text-[#f7f1ea]",
         isDark
           ? "border-[#f5b66f]/10 bg-[#151218]"
           : "border-[#e5e7eb] bg-[#111111]",
-      ].join(" ")}
+      ].join(" ") }
     >
       <div
-        className={[
+        className={ [
           "flex border-b",
           isCollapsed
             ? "flex-col items-center gap-4 px-3 py-5"
             : "items-start justify-between px-5 py-5",
           isDark ? "border-[#f5b66f]/10" : "border-white/10",
-        ].join(" ")}
+        ].join(" ") }
       >
-        
+
 
         <CreatePlaylistButton
-          onClick={() => setIsCreatePlaylistModalOpen(true)}
-          isCompact={isCollapsed}
+          onClick={ () => {
+            if (!isAuthenticated) {
+              handleGuestAction(routePaths.login);
+              return;
+            }
+
+            setIsCreatePlaylistModalOpen(true);
+          } }
+          isCompact={ isCollapsed }
         />
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={onToggleDesktop}
+            onClick={ onToggleDesktop }
             className="hidden h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/70 transition hover:bg-white/5 hover:text-white lg:inline-flex"
-            aria-label={isCollapsed ? "Open sidebar" : "Collapse sidebar"}
-            title={isCollapsed ? "Open sidebar" : "Collapse sidebar"}
+            aria-label={ isCollapsed ? "Mở thanh bên" : "Thu gọn thanh bên" }
+            title={ isCollapsed ? "Mở thanh bên" : "Thu gọn thanh bên" }
           >
             <DesktopToggleIcon className="h-5 w-5" />
           </button>
 
-          {showCloseButton ? (
+          { showCloseButton ? (
             <button
               type="button"
-              onClick={onClose}
+              onClick={ onClose }
               className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/70 transition hover:bg-white/5 hover:text-white lg:hidden"
-              aria-label="Close sidebar"
+              aria-label="Đóng thanh bên"
             >
               <X className="h-5 w-5" />
             </button>
-          ) : null}
+          ) : null }
         </div>
       </div>
 
       <nav
-        className={[
+        className={ [
           `
           flex-1 overflow-y-auto py-4
           [scrollbar-color:rgba(245,182,111,0.3)_#0f0f14]
@@ -236,32 +272,35 @@ const Sidebar = ({
           [&::-webkit-scrollbar]:w-2
         `,
           isCollapsed ? "px-2" : "px-3",
-        ].join(" ")}
+        ].join(" ") }
       >
-        {!isCollapsed ? (
+        { !isCollapsed ? (
+          !isAuthenticated && !isLoading ? (
+            <GuestLibrarySidebar onAction={ handleGuestAction } />
+          ) : (
           <>
             <div className="mb-4 px-3">
               <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
-                  onClick={() => setActiveTab("playlist")}
-                  className={tabButtonClassName(activeTab === "playlist")}
+                  onClick={ () => setActiveTab("playlist") }
+                  className={ tabButtonClassName(activeTab === "playlist") }
                 >
                   Playlist
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => setActiveTab("artist")}
-                  className={tabButtonClassName(activeTab === "artist")}
+                  onClick={ () => setActiveTab("artist") }
+                  className={ tabButtonClassName(activeTab === "artist") }
                 >
                   Nghệ sĩ
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => setActiveTab("album")}
-                  className={tabButtonClassName(activeTab === "album")}
+                  onClick={ () => setActiveTab("album") }
+                  className={ tabButtonClassName(activeTab === "album") }
                 >
                   Album
                 </button>
@@ -269,7 +308,7 @@ const Sidebar = ({
             </div>
 
             <div className="space-y-1">
-              {activeTab === "playlist" ? (
+              { activeTab === "playlist" ? (
                 isLoadingPlaylists ? (
                   <div className="flex items-center gap-3 px-3 py-3 text-sm text-[#b8b0aa]">
                     <Loader2 className="h-4 w-4 animate-spin text-[#f5b66f]" />
@@ -277,7 +316,7 @@ const Sidebar = ({
                   </div>
                 ) : playlists.length === 0 ? (
                   <div className="px-3 py-3 text-sm text-[#b8b0aa]">
-                    Chua co playlist nao
+                    Chưa có nghệ sĩ nào
                   </div>
                 ) : (
                   playlists.map((playlist, index) => {
@@ -287,39 +326,39 @@ const Sidebar = ({
 
                     return (
                       <Link
-                        key={playlist?.playlistId || `${title}-${index}`}
-                        to={routePaths.userPlaylistDetail(playlist?.playlistId)}
-                        onClick={onNavigate}
+                        key={ playlist?.playlistId || `${title}-${index}` }
+                        to={ routePaths.userPlaylistDetail(playlist?.playlistId) }
+                        onClick={ onNavigate }
                         className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-[#b8b0aa] transition hover:bg-[#241f28] hover:text-[#f7f1ea]"
                       >
-                        {coverImage ? (
+                        { coverImage ? (
                           <img
-                            src={coverImage}
-                            alt={title}
+                            src={ coverImage }
+                            alt={ title }
                             className="h-12 w-12 shrink-0 rounded-md object-cover"
                             loading="lazy"
                           />
                         ) : (
                           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-white/10 text-sm font-semibold text-[#f7f1ea]">
-                            {title.charAt(0).toUpperCase()}
+                            { title.charAt(0).toUpperCase() }
                           </div>
-                        )}
+                        ) }
 
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium text-inherit">
-                            {title}
+                            { title }
                           </p>
                           <p className="truncate text-xs text-[#b8b0aa]">
-                            Playlist • {userName}
+                            Playlist • { userName }
                           </p>
                         </div>
                       </Link>
                     );
                   })
                 )
-              ) : null}
+              ) : null }
 
-              {activeTab === "artist" ? (
+              { activeTab === "artist" ? (
                 isLoadingArtists ? (
                   <div className="flex items-center gap-3 px-3 py-3 text-sm text-[#b8b0aa]">
                     <Loader2 className="h-4 w-4 animate-spin text-[#f5b66f]" />
@@ -334,7 +373,7 @@ const Sidebar = ({
                     const artistName =
                       typeof artist?.name === "string" && artist.name.trim()
                         ? artist.name.trim()
-                        : "Unknown Artist";
+                        : "Nghệ sĩ không xác định";
 
                     const avatar =
                       typeof artist?.avatar === "string" && artist.avatar.trim()
@@ -348,32 +387,32 @@ const Sidebar = ({
 
                     return (
                       <Link
-                        key={artist?.artistId || `${artistName}-${index}`}
-                        to={artistPath}
-                        onClick={onNavigate}
-                        className={[
+                        key={ artist?.artistId || `${artistName}-${index}` }
+                        to={ artistPath }
+                        onClick={ onNavigate }
+                        className={ [
                           "flex items-center gap-3 rounded-2xl px-3 py-2.5 transition",
                           isArtistActive
                             ? "bg-gradient-to-r from-[#f5b66f]/20 to-transparent text-[#f7f1ea]"
                             : "text-[#b8b0aa] hover:bg-[#241f28] hover:text-[#f7f1ea]",
-                        ].join(" ")}
+                        ].join(" ") }
                       >
-                        {avatar ? (
+                        { avatar ? (
                           <img
-                            src={avatar}
-                            alt={artistName}
+                            src={ avatar }
+                            alt={ artistName }
                             className="h-12 w-12 shrink-0 rounded-full object-cover"
                             loading="lazy"
                           />
                         ) : (
                           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/10 text-sm font-semibold text-[#f7f1ea]">
-                            {getArtistInitial(artistName)}
+                            { getArtistInitial(artistName) }
                           </div>
-                        )}
+                        ) }
 
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium text-inherit">
-                            {artistName}
+                            { artistName }
                           </p>
                           <p className="truncate text-xs text-[#b8b0aa]">
                             Nghệ sĩ
@@ -383,9 +422,9 @@ const Sidebar = ({
                     );
                   })
                 )
-              ) : null}
+              ) : null }
 
-              {activeTab === "album" ? (
+              { activeTab === "album" ? (
                 isLoadingAlbums ? (
                   <div className="flex items-center gap-3 px-3 py-3 text-sm text-[#b8b0aa]">
                     <Loader2 className="h-4 w-4 animate-spin text-[#f5b66f]" />
@@ -400,7 +439,7 @@ const Sidebar = ({
                     const title =
                       typeof album?.title === "string" && album.title.trim()
                         ? album.title.trim()
-                        : "Untitled Album";
+                        : "Album chưa đặt tên";
 
                     const coverImage =
                       typeof album?.coverImage === "string" &&
@@ -412,59 +451,62 @@ const Sidebar = ({
                       typeof album?.artistName === "string" &&
                         album.artistName.trim()
                         ? album.artistName.trim()
-                        : "Unknown Artist";
+                        : "Nghệ sĩ không xác định";
 
                     return (
                       <Link
-                        key={album?.albumId || `${title}-${index}`}
-                        to={routePaths.albumDetail(album?.albumId)}
-                        onClick={onNavigate}
+                        key={ album?.albumId || `${title}-${index}` }
+                        to={ routePaths.albumDetail(album?.albumId) }
+                        onClick={ onNavigate }
                         className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-[#b8b0aa] transition hover:bg-[#241f28] hover:text-[#f7f1ea]"
                       >
-                        {coverImage ? (
+                        { coverImage ? (
                           <img
-                            src={coverImage}
-                            alt={title}
+                            src={ coverImage }
+                            alt={ title }
                             className="h-12 w-12 shrink-0 rounded-md object-cover"
                             loading="lazy"
                           />
                         ) : (
                           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-white/10 text-sm font-semibold text-[#f7f1ea]">
-                            {title.charAt(0).toUpperCase()}
+                            { title.charAt(0).toUpperCase() }
                           </div>
-                        )}
+                        ) }
 
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium text-inherit">
-                            {title}
+                            { title }
                           </p>
                           <p className="truncate text-xs text-[#b8b0aa]">
-                            Album • {artistName}
+                            Album • { artistName }
                           </p>
                         </div>
                       </Link>
                     );
                   })
                 )
-              ) : null}
+              ) : null }
             </div>
           </>
-        ) : null}
+          )
+        ) : null }
       </nav>
 
-      <CreatePlaylistModal
-        isOpen={isCreatePlaylistModalOpen}
-        onClose={() => setIsCreatePlaylistModalOpen(false)}
-        existingPlaylists={playlists}
-        onCreated={(createdPlaylist) => {
-          if (!createdPlaylist) {
-            return;
-          }
+      { isAuthenticated ? (
+        <CreatePlaylistModal
+          isOpen={ isCreatePlaylistModalOpen }
+          onClose={ () => setIsCreatePlaylistModalOpen(false) }
+          existingPlaylists={ playlists }
+          onCreated={ (createdPlaylist) => {
+            if (!createdPlaylist) {
+              return;
+            }
 
-          setActiveTab("playlist");
-          setPlaylists((current) => [createdPlaylist, ...current]);
-        }}
-      />
+            setActiveTab("playlist");
+            setPlaylists((current) => [createdPlaylist, ...current]);
+          } }
+        />
+      ) : null }
     </aside>
   );
 };
