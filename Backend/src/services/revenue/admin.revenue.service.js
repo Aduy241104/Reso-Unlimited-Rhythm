@@ -1,6 +1,5 @@
 import ArtistRevenueSummary from "../../models/ArtistRevenueSummary.js";
 import RevenuePeriod from "../../models/RevenuePeriod.js";
-import Transaction from "../../models/Transaction.js";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
@@ -20,6 +19,9 @@ const OFFICIAL_ARTIST_REVENUE_STATUSES = ["calculated", "paid"];
 const readAggregateNumber = (aggregationResult, fieldName) =>
     Number(aggregationResult?.[0]?.[fieldName] || 0);
 
+const readRevenuePeriodNumber = (revenuePeriod, fieldName) =>
+    Number(revenuePeriod?.[fieldName] || 0);
+
 const calculateArtistPool = (premiumRevenue) =>
     Math.round((Number(premiumRevenue) || 0) * (ARTIST_REVENUE_SHARE_PERCENT / 100));
 
@@ -32,44 +34,10 @@ const resolveLastUpdatedAt = (...dates) => {
     return latestTimestamp > 0 ? new Date(latestTimestamp).toISOString() : null;
 };
 
-const buildPeriodRevenueMatch = (periodStart, periodEnd) => ({
-    status: "success",
-    paidAt: { $gte: periodStart, $lt: periodEnd },
-});
-
-const aggregateRevenueMonthlyChart = async ({ year, currentMonth, timezoneName }) => {
-    const periodStart = dayjs()
-        .tz(timezoneName)
-        .year(year)
-        .month(0)
-        .startOf("month");
-    const periodEnd = dayjs()
-        .tz(timezoneName)
-        .year(year)
-        .month(currentMonth - 1)
-        .startOf("month")
-        .add(1, "month");
-
-    const monthlyStats = await Transaction.aggregate([
-        {
-            $match: buildPeriodRevenueMatch(periodStart.toDate(), periodEnd.toDate()),
-        },
-        {
-            $group: {
-                _id: {
-                    year: { $year: "$paidAt" },
-                    month: { $month: "$paidAt" },
-                },
-                premiumRevenue: { $sum: "$amount" },
-                successfulTransactions: { $sum: 1 },
-            },
-        },
-        { $sort: { "_id.year": 1, "_id.month": 1 } },
-    ]);
-
+const buildRevenueMonthlyChart = ({ year, currentMonth, timezoneName, revenuePeriods }) => {
     const monthMap = new Map(
-        monthlyStats.map((item) => [
-            `${item._id.year}-${String(item._id.month).padStart(2, "0")}`,
+        revenuePeriods.map((item) => [
+            `${item.year}-${String(item.month).padStart(2, "0")}`,
             item,
         ])
     );
@@ -77,10 +45,17 @@ const aggregateRevenueMonthlyChart = async ({ year, currentMonth, timezoneName }
     const months = [];
     for (let month = 1; month <= currentMonth; month += 1) {
         const monthKey = `${year}-${String(month).padStart(2, "0")}`;
-        const stat = monthMap.get(monthKey);
-        const premiumRevenue = readAggregateNumber([stat], "premiumRevenue");
-        const artistPool = calculateArtistPool(premiumRevenue);
-        const platformRevenue = premiumRevenue - artistPool;
+        const revenuePeriod = monthMap.get(monthKey);
+        const premiumRevenue = readRevenuePeriodNumber(
+            revenuePeriod,
+            "totalPremiumRevenue"
+        );
+        const artistPool = revenuePeriod
+            ? readRevenuePeriodNumber(revenuePeriod, "totalArtistPool")
+            : calculateArtistPool(premiumRevenue);
+        const platformRevenue = revenuePeriod
+            ? readRevenuePeriodNumber(revenuePeriod, "totalPlatformRevenue")
+            : premiumRevenue - artistPool;
 
         months.push({
             year,
@@ -93,8 +68,8 @@ const aggregateRevenueMonthlyChart = async ({ year, currentMonth, timezoneName }
             premiumRevenue,
             artistPool,
             platformRevenue,
-            successfulTransactions: readAggregateNumber(
-                [stat],
+            successfulTransactions: readRevenuePeriodNumber(
+                revenuePeriod,
                 "successfulTransactions"
             ),
         });
@@ -103,48 +78,33 @@ const aggregateRevenueMonthlyChart = async ({ year, currentMonth, timezoneName }
     return months;
 };
 
-const aggregateRevenueDailyChart = async ({ currentYear, currentMonth, currentDay, timezoneName }) => {
-    const endDay = dayjs()
-        .tz(timezoneName)
-        .year(currentYear)
-        .month(currentMonth - 1)
-        .date(currentDay)
-        .endOf("day");
-    const startDay = endDay.subtract(13, "day").startOf("day");
+const buildRevenueDailyChart = ({
+    startDay,
+    endDay,
+    timezoneName,
+    revenuePeriods,
+}) => {
+    const dayMap = new Map();
 
-    const dailyStats = await Transaction.aggregate([
-        {
-            $match: buildPeriodRevenueMatch(startDay.toDate(), endDay.add(1, "millisecond").toDate()),
-        },
-        {
-            $group: {
-                _id: {
-                    year: { $year: "$paidAt" },
-                    month: { $month: "$paidAt" },
-                    day: { $dayOfMonth: "$paidAt" },
-                },
-                premiumRevenue: { $sum: "$amount" },
-                successfulTransactions: { $sum: 1 },
-            },
-        },
-        { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 } },
-    ]);
-
-    const dayMap = new Map(
-        dailyStats.map((item) => [
-            `${item._id.year}-${String(item._id.month).padStart(2, "0")}-${String(item._id.day).padStart(2, "0")}`,
-            item,
-        ])
-    );
+    revenuePeriods.forEach((revenuePeriod) => {
+        (revenuePeriod.dailyStats || []).forEach((dailyStat) => {
+            const dayKey = dayjs(dailyStat.date).tz(timezoneName).format("YYYY-MM-DD");
+            dayMap.set(dayKey, dailyStat);
+        });
+    });
 
     const days = [];
     let cursor = startDay.clone();
     while (cursor.valueOf() <= endDay.valueOf()) {
         const dayKey = cursor.format("YYYY-MM-DD");
         const stat = dayMap.get(dayKey);
-        const premiumRevenue = readAggregateNumber([stat], "premiumRevenue");
-        const artistPool = calculateArtistPool(premiumRevenue);
-        const platformRevenue = premiumRevenue - artistPool;
+        const premiumRevenue = readRevenuePeriodNumber(stat, "premiumRevenue");
+        const artistPool = stat
+            ? readRevenuePeriodNumber(stat, "artistPool")
+            : calculateArtistPool(premiumRevenue);
+        const platformRevenue = stat
+            ? readRevenuePeriodNumber(stat, "platformRevenue")
+            : premiumRevenue - artistPool;
 
         days.push({
             date: dayKey,
@@ -152,8 +112,8 @@ const aggregateRevenueDailyChart = async ({ currentYear, currentMonth, currentDa
             premiumRevenue,
             artistPool,
             platformRevenue,
-            successfulTransactions: readAggregateNumber(
-                [stat],
+            successfulTransactions: readRevenuePeriodNumber(
+                stat,
                 "successfulTransactions"
             ),
         });
@@ -174,30 +134,29 @@ const getRevenueDashboard = async (query = {}) => {
     } = normalizeRevenueDashboardPeriod(query);
 
     const { periodStart, periodEnd } = buildRevenuePeriodRange(year, month, timezone);
+    const endDay = dayjs().tz(timezone).endOf("day");
+    const startDay = endDay.subtract(13, "day").startOf("day");
 
     const [
-        transactionSummary,
+        revenuePeriod,
+        currentYearRevenuePeriods,
+        dailyChartRevenuePeriods,
         totalArtistPoolSummary,
         distributedArtistRevenueSummary,
-        revenuePeriod,
-        latestTransaction,
+        latestRevenuePeriod,
         latestArtistRevenueSummary,
     ] = await Promise.all([
-        Transaction.aggregate([
-            {
-                $match: {
-                    status: "success",
-                    paidAt: { $gte: periodStart, $lt: periodEnd },
-                },
-            },
-            {
-                $group: {
-                    _id: null,
-                    premiumRevenue: { $sum: "$amount" },
-                    successfulTransactions: { $sum: 1 },
-                },
-            },
-        ]),
+        RevenuePeriod.findOne({ year, month }).lean(),
+        RevenuePeriod.find({
+            year: currentYear,
+            month: { $gte: 1, $lte: currentMonth },
+        })
+            .sort({ month: 1 })
+            .lean(),
+        RevenuePeriod.find({
+            periodStart: { $lt: endDay.add(1, "millisecond").toDate() },
+            periodEnd: { $gt: startDay.toDate() },
+        }).lean(),
         RevenuePeriod.aggregate([
             {
                 $group: {
@@ -219,13 +178,9 @@ const getRevenueDashboard = async (query = {}) => {
                 },
             },
         ]),
-        RevenuePeriod.findOne({ year, month }).lean(),
-        Transaction.findOne({
-            status: "success",
-            paidAt: { $gte: periodStart, $lt: periodEnd },
-        })
+        RevenuePeriod.findOne()
             .sort({ updatedAt: -1 })
-            .select("updatedAt")
+            .select("updatedAt lastAggregatedAt")
             .lean(),
         ArtistRevenueSummary.findOne({
             status: { $in: OFFICIAL_ARTIST_REVENUE_STATUSES },
@@ -235,13 +190,20 @@ const getRevenueDashboard = async (query = {}) => {
             .lean(),
     ]);
 
-    const premiumRevenue = readAggregateNumber(transactionSummary, "premiumRevenue");
-    const successfulTransactions = readAggregateNumber(
-        transactionSummary,
+    const premiumRevenue = readRevenuePeriodNumber(
+        revenuePeriod,
+        "totalPremiumRevenue"
+    );
+    const successfulTransactions = readRevenuePeriodNumber(
+        revenuePeriod,
         "successfulTransactions"
     );
-    const artistPool = calculateArtistPool(premiumRevenue);
-    const platformRevenue = premiumRevenue - artistPool;
+    const artistPool = revenuePeriod
+        ? readRevenuePeriodNumber(revenuePeriod, "totalArtistPool")
+        : calculateArtistPool(premiumRevenue);
+    const platformRevenue = revenuePeriod
+        ? readRevenuePeriodNumber(revenuePeriod, "totalPlatformRevenue")
+        : premiumRevenue - artistPool;
     const totalArtistPoolAllTime = readAggregateNumber(
         totalArtistPoolSummary,
         "totalArtistPoolAllTime"
@@ -255,16 +217,17 @@ const getRevenueDashboard = async (query = {}) => {
         0
     );
     const revenueChart = {
-        monthly: await aggregateRevenueMonthlyChart({
+        monthly: buildRevenueMonthlyChart({
             year: currentYear,
             currentMonth,
             timezoneName: timezone,
+            revenuePeriods: currentYearRevenuePeriods,
         }),
-        last14Days: await aggregateRevenueDailyChart({
-            currentYear,
-            currentMonth,
-            currentDay: dayjs().tz(timezone).date(),
+        last14Days: buildRevenueDailyChart({
+            startDay,
+            endDay,
             timezoneName: timezone,
+            revenuePeriods: dailyChartRevenuePeriods,
         }),
     };
 
@@ -296,8 +259,8 @@ const getRevenueDashboard = async (query = {}) => {
                 platform: PLATFORM_REVENUE_SHARE_PERCENT,
             },
             lastUpdatedAt: resolveLastUpdatedAt(
-                revenuePeriod?.updatedAt,
-                latestTransaction?.updatedAt,
+                revenuePeriod?.lastAggregatedAt || revenuePeriod?.updatedAt,
+                latestRevenuePeriod?.lastAggregatedAt || latestRevenuePeriod?.updatedAt,
                 latestArtistRevenueSummary?.updatedAt
             ),
         },

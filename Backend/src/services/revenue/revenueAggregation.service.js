@@ -25,6 +25,9 @@ const resolveTargetRevenueMonth = (targetDateInput) => {
 
 const roundCurrency = (value) => Math.max(0, Math.round(Number(value) || 0));
 
+const calculateArtistPool = (premiumRevenue) =>
+    roundCurrency(premiumRevenue * (ARTIST_REVENUE_SHARE_PERCENT / 100));
+
 const aggregateMonthlyPremiumRevenue = async ({ periodStart, periodEnd }) => {
     const summary = await Transaction.aggregate([
         {
@@ -46,6 +49,53 @@ const aggregateMonthlyPremiumRevenue = async ({ periodStart, periodEnd }) => {
         premiumRevenue: roundCurrency(summary[0]?.premiumRevenue || 0),
         successfulTransactions: Number(summary[0]?.successfulTransactions || 0),
     };
+};
+
+const aggregateDailyRevenueStats = async ({
+    periodStart,
+    periodEnd,
+    timezoneName,
+}) => {
+    const dailyStats = await Transaction.aggregate([
+        {
+            $match: {
+                status: "success",
+                paidAt: { $gte: periodStart, $lt: periodEnd },
+            },
+        },
+        {
+            $group: {
+                _id: {
+                    dateKey: {
+                        $dateToString: {
+                            format: "%Y-%m-%d",
+                            date: "$paidAt",
+                            timezone: timezoneName,
+                        },
+                    },
+                },
+                premiumRevenue: { $sum: "$amount" },
+                successfulTransactions: { $sum: 1 },
+            },
+        },
+        { $sort: { "_id.dateKey": 1 } },
+    ]);
+
+    return dailyStats.map((item) => {
+        const premiumRevenue = roundCurrency(item?.premiumRevenue || 0);
+        const artistPool = calculateArtistPool(premiumRevenue);
+        const platformRevenue = Math.max(premiumRevenue - artistPool, 0);
+        const date = dayjs.tz(`${item._id.dateKey}T00:00:00`, timezoneName);
+
+        return {
+            day: date.date(),
+            date: date.toDate(),
+            premiumRevenue,
+            artistPool,
+            platformRevenue,
+            successfulTransactions: Number(item?.successfulTransactions || 0),
+        };
+    });
 };
 
 const aggregateEligibleStreamCount = async ({ periodStart, periodEnd }) => {
@@ -78,6 +128,8 @@ const syncRevenuePeriod = async ({
     artistPool,
     platformRevenue,
     totalEligibleStreams,
+    successfulTransactions,
+    dailyStats,
     now,
 }) => {
     const revenuePeriod = await RevenuePeriod.findOneAndUpdate(
@@ -90,7 +142,10 @@ const syncRevenuePeriod = async ({
                 totalArtistPool: artistPool,
                 totalPlatformRevenue: platformRevenue,
                 totalEligibleStreams,
+                successfulTransactions,
+                dailyStats,
                 calculatedAt: now,
+                lastAggregatedAt: now,
             },
             $setOnInsert: {
                 status: "open",
@@ -118,15 +173,14 @@ export const syncRevenueForMonth = async (targetDateInput) => {
     );
     const now = new Date();
 
-    const [transactionSummary, totalEligibleStreams] = await Promise.all([
+    const [transactionSummary, totalEligibleStreams, dailyStats] = await Promise.all([
         aggregateMonthlyPremiumRevenue({ periodStart, periodEnd }),
         aggregateEligibleStreamCount({ periodStart, periodEnd }),
+        aggregateDailyRevenueStats({ periodStart, periodEnd, timezoneName }),
     ]);
 
     const premiumRevenue = transactionSummary.premiumRevenue;
-    const artistPool = roundCurrency(
-        premiumRevenue * (ARTIST_REVENUE_SHARE_PERCENT / 100)
-    );
+    const artistPool = calculateArtistPool(premiumRevenue);
     const platformRevenue = Math.max(premiumRevenue - artistPool, 0);
 
     const revenuePeriod = await syncRevenuePeriod({
@@ -138,6 +192,8 @@ export const syncRevenueForMonth = async (targetDateInput) => {
         artistPool,
         platformRevenue,
         totalEligibleStreams,
+        successfulTransactions: transactionSummary.successfulTransactions,
+        dailyStats,
         now,
     });
 
