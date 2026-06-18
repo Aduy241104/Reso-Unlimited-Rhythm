@@ -7,8 +7,8 @@ import { AppError } from "../utils/AppError.js";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-export const ARTIST_REVENUE_SHARE_PERCENT = 70;
-export const PLATFORM_REVENUE_SHARE_PERCENT = 30;
+export const ARTIST_REVENUE_SHARE_PERCENT = 60;
+export const PLATFORM_REVENUE_SHARE_PERCENT = 40;
 
 const MIN_REVENUE_YEAR = 2000;
 
