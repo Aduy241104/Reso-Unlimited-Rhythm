@@ -61,6 +61,7 @@ const resolveAllTimePeriod = async (artistId) => {
         {
             $match: {
                 artistId,
+                isValidStream: true,
                 listenedAt: { $exists: true, $ne: null },
             },
         },
@@ -186,15 +187,29 @@ const fetchTopTrackPerformanceStats = async ({ artistId, from, to }) =>
         {
             $group: {
                 _id: "$trackId",
-                playCount: { $sum: 1 },
-                uniqueListeners: { $addToSet: "$userId" },
-                averageListenDuration: {
-                    $avg: {
-                        $ifNull: [
-                            "$listenedDuration",
+                playCount: {
+                    $sum: {
+                        $cond: [{ $eq: ["$isValidStream", true] }, 1, 0],
+                    },
+                },
+                uniqueListeners: {
+                    $addToSet: {
+                        $cond: [{ $eq: ["$isValidStream", true] }, "$userId", null],
+                    },
+                },
+                totalListenDuration: {
+                    $sum: {
+                        $cond: [
+                            { $eq: ["$isValidStream", true] },
                             {
-                                $ifNull: ["$duration", 0],
+                                $ifNull: [
+                                    "$listenedDuration",
+                                    {
+                                        $ifNull: ["$duration", 0],
+                                    },
+                                ],
                             },
+                            0,
                         ],
                     },
                 },
@@ -216,8 +231,22 @@ const fetchTopTrackPerformanceStats = async ({ artistId, from, to }) =>
                 _id: 0,
                 trackId: "$_id",
                 playCount: 1,
-                uniqueListeners: { $size: "$uniqueListeners" },
-                averageListenDuration: 1,
+                uniqueListeners: {
+                    $size: {
+                        $filter: {
+                            input: "$uniqueListeners",
+                            as: "listenerId",
+                            cond: { $ne: ["$$listenerId", null] },
+                        },
+                    },
+                },
+                averageListenDuration: {
+                    $cond: [
+                        { $gt: ["$playCount", 0] },
+                        { $divide: ["$totalListenDuration", "$playCount"] },
+                        0,
+                    ],
+                },
                 skipCount: 1,
                 completedCount: 1,
                 lastListenedAt: 1,

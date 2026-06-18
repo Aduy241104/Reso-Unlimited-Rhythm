@@ -62,9 +62,21 @@ const buildDailyAggregationPipeline = ({ startDate, endDate, dayDate }) => ([
     {
         $group: {
             _id: "$trackId",
-            playCount: { $sum: 1 },
-            uniqueListeners: { $addToSet: "$userId" },
-            averageListenDuration: { $avg: "$duration" },
+            playCount: {
+                $sum: {
+                    $cond: [{ $eq: ["$isValidStream", true] }, 1, 0],
+                },
+            },
+            uniqueListeners: {
+                $addToSet: {
+                    $cond: [{ $eq: ["$isValidStream", true] }, "$userId", null],
+                },
+            },
+            totalListenDuration: {
+                $sum: {
+                    $cond: [{ $eq: ["$isValidStream", true] }, "$duration", 0],
+                },
+            },
             skipCount: {
                 $sum: {
                     $cond: [{ $eq: ["$skipped", true] }, 1, 0],
@@ -78,8 +90,22 @@ const buildDailyAggregationPipeline = ({ startDate, endDate, dayDate }) => ([
             trackId: "$_id",
             date: { $literal: dayDate },
             playCount: 1,
-            uniqueListeners: { $size: "$uniqueListeners" },
-            averageListenDuration: 1,
+            uniqueListeners: {
+                $size: {
+                    $filter: {
+                        input: "$uniqueListeners",
+                        as: "listenerId",
+                        cond: { $ne: ["$$listenerId", null] },
+                    },
+                },
+            },
+            averageListenDuration: {
+                $cond: [
+                    { $gt: ["$playCount", 0] },
+                    { $divide: ["$totalListenDuration", "$playCount"] },
+                    0,
+                ],
+            },
             skipCount: 1,
         },
     },
@@ -89,6 +115,7 @@ const buildMonthlyAggregationPipeline = ({ startDate, endDate }) => ([
     {
         $match: {
             trackId: { $exists: true, $ne: null },
+            isValidStream: true,
             listenedAt: { $gte: startDate, $lt: endDate },
         },
     },
@@ -191,6 +218,7 @@ const syncDailyTrackStats = async ({ date, dateKey, startDate, endDate, dailySta
 
 const buildDailyTrackRankings = (dailyStats) =>
     [...dailyStats]
+        .filter((stat) => Number(stat?.playCount || 0) > 0)
         .sort((left, right) => {
             if (right.playCount !== left.playCount) {
                 return right.playCount - left.playCount;
