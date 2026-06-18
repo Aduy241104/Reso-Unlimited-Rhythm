@@ -61,6 +61,7 @@ const ComingSoonCountdownOverlay = ({
   artistName = "Ngh\u1ec7 s\u0129",
   overlayBounds = null,
   trackId = "",
+  albumId = "",
   onBack,
 }) => {
   const navigate = useNavigate();
@@ -96,6 +97,11 @@ const ComingSoonCountdownOverlay = ({
     countdown.hours === 0 &&
     countdown.minutes === 0 &&
     countdown.seconds === 0;
+  const releaseSourceType = String(
+    comingRelease?.sourceType || comingRelease?.type || ""
+  ).toLowerCase();
+  const shouldOpenAlbum = Boolean(albumId) && releaseSourceType !== "single";
+  const hasListenNowTarget = shouldOpenAlbum ? Boolean(albumId) : Boolean(trackId);
   const backgroundImage = comingRelease?.image || "";
   const description = buildDescription({
     artistName,
@@ -109,6 +115,11 @@ const ComingSoonCountdownOverlay = ({
     : undefined;
 
   const handleListenNow = () => {
+    if (shouldOpenAlbum) {
+      navigate(routePaths.albumDetail(albumId));
+      return;
+    }
+
     if (!trackId) {
       return;
     }
@@ -259,7 +270,7 @@ const ComingSoonCountdownOverlay = ({
                   <button
                     type="button"
                     onClick={ handleListenNow }
-                    disabled={ !trackId }
+                    disabled={ !hasListenNowTarget }
                     className="
                       inline-flex items-center justify-center rounded-full
                       bg-[#1DB954] px-4 py-2.5 text-xs font-semibold uppercase

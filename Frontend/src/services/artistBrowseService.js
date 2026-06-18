@@ -310,6 +310,11 @@ const buildComingReleasesFromApi = (comingReleases = []) =>
         release?.item?.trackId ||
         release?.item?.id ||
         "",
+      albumId:
+        release?.albumId ||
+        release?.item?.albumId ||
+        release?.item?.id ||
+        "",
       type: release?.type === "single" ? "Single" : "Album",
       sourceType: release?.sourceType || release?.type || "release",
       scheduledAt: release?.scheduledAt || null,
