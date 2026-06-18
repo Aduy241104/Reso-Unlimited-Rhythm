@@ -10,47 +10,46 @@ import { MetricCard } from "./RevenueShared";
 const RevenueMetricsGrid = ({
   summary,
   previousSummary,
-  previousPeriodLabel,
   metadata,
 }) => (
-  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+  <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-4">
     <MetricCard
       label="Doanh thu premium"
       value={formatCurrency(summary?.premiumRevenue)}
       icon={<CircleDollarSign size={20} />}
-      hint={`So voi ${previousPeriodLabel}`}
+      hint="Tổng doanh thu từ người dùng premium trong kỳ đang chọn"
       delta={getDelta(summary?.premiumRevenue, previousSummary?.premiumRevenue)}
-      accent="bg-emerald-500"
+      accent="bg-violet-500"
     />
     <MetricCard
-      label="Quy nghe si"
+      label="Quỹ nghệ sĩ"
       value={formatCurrency(summary?.artistPool)}
       icon={<Coins size={20} />}
-      hint={`${metadata?.revenueSharePercent?.artist || 0}% chia cho artist`}
+      hint={`${metadata?.revenueSharePercent?.artist || 0}% doanh thu premium được phân bổ cho nghệ sĩ`}
       delta={getDelta(summary?.artistPool, previousSummary?.artistPool)}
-      accent="bg-amber-400"
+      accent="bg-fuchsia-500"
     />
     <MetricCard
-      label="Doanh thu nen tang"
+      label="Doanh thu nền tảng"
       value={formatCurrency(summary?.platformRevenue)}
       icon={<Landmark size={20} />}
-      hint={`${metadata?.revenueSharePercent?.platform || 0}% giu lai he thong`}
+      hint={`${metadata?.revenueSharePercent?.platform || 0}% doanh thu premium được giữ lại cho hệ thống`}
       delta={getDelta(
         summary?.platformRevenue,
         previousSummary?.platformRevenue
       )}
-      accent="bg-slate-950"
+      accent="bg-indigo-500"
     />
     <MetricCard
-      label="Giao dich thanh cong"
+      label="Giao dịch thành công"
       value={formatNumber(summary?.successfulTransactions)}
       icon={<TrendingUp size={20} />}
-      hint="So giao dich nap tien hoan tat"
+      hint="Số giao dịch nạp tiền hoàn tất trong kỳ doanh thu hiện tại"
       delta={getDelta(
         summary?.successfulTransactions,
         previousSummary?.successfulTransactions
       )}
-      accent="bg-sky-500"
+      accent="bg-violet-300"
     />
   </div>
 );

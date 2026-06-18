@@ -1,4 +1,4 @@
-import { getRevenueDashboardService } from "../../services/revenueService";
+import { MONTH_LABELS } from "./constants";
 
 export const formatCurrency = (value) =>
   new Intl.NumberFormat("vi-VN", {
@@ -17,12 +17,12 @@ export const formatNumber = (value) =>
   new Intl.NumberFormat("vi-VN").format(Number(value || 0));
 
 export const formatDate = (value) => {
-  if (!value) return "Chua co";
+  if (!value) return "Chưa có";
   return new Date(value).toLocaleDateString("vi-VN");
 };
 
 export const formatDateTime = (value) => {
-  if (!value) return "Chua co";
+  if (!value) return "Chưa có";
   return new Date(value).toLocaleString("vi-VN", {
     hour: "2-digit",
     minute: "2-digit",
@@ -38,6 +38,28 @@ export const getPreviousPeriod = (year, month) => {
   }
 
   return { year, month: month - 1 };
+};
+
+export const formatPeriodLabel = (year, month) =>
+  `${MONTH_LABELS[(month || 1) - 1]} ${year}`;
+
+export const buildRecentRevenuePeriods = (
+  count = 12,
+  currentYear = new Date().getFullYear(),
+  currentMonth = new Date().getMonth() + 1
+) => {
+  const periods = [];
+  let cursorYear = currentYear;
+  let cursorMonth = currentMonth;
+
+  for (let index = 0; index < count; index += 1) {
+    const previousPeriod = getPreviousPeriod(cursorYear, cursorMonth);
+    periods.push(previousPeriod);
+    cursorYear = previousPeriod.year;
+    cursorMonth = previousPeriod.month;
+  }
+
+  return periods;
 };
 
 export const getDelta = (currentValue, previousValue) => {
@@ -63,17 +85,7 @@ export const getDelta = (currentValue, previousValue) => {
 export const getErrorMessage = (error) =>
   error?.response?.data?.message ||
   error?.message ||
-  "Khong the tai du lieu doanh thu.";
-
-export const fetchRevenueSnapshots = async (year, month) => {
-  const previousPeriod = getPreviousPeriod(year, month);
-  const [currentData, previousData] = await Promise.all([
-    getRevenueDashboardService(year, month),
-    getRevenueDashboardService(previousPeriod.year, previousPeriod.month),
-  ]);
-
-  return { currentData, previousData };
-};
+  "Không thể tải dữ liệu doanh thu.";
 
 export const buildInsightItems = (dashboard) => {
   if (!dashboard) return [];
@@ -81,30 +93,42 @@ export const buildInsightItems = (dashboard) => {
   const { period, summary, metadata } = dashboard;
   const items = [
     {
-      title: "Ti le chia doanh thu",
-      description: `Artist nhan ${metadata?.revenueSharePercent?.artist || 0}% va nen tang giu ${metadata?.revenueSharePercent?.platform || 0}% doanh thu premium trong ky.`,
+      title: "Tỉ lệ chia doanh thu",
+      description: `Artist nhận ${metadata?.revenueSharePercent?.artist || 0}% và nền tảng giữ ${metadata?.revenueSharePercent?.platform || 0}% doanh thu premium trong kỳ.`,
     },
   ];
 
-  if (summary.pendingWithdrawalAmount > 0) {
+  if (summary.undistributedArtistBalance > 0) {
     items.push({
-      title: "Co yeu cau rut tien dang cho",
-      description: `Dang co ${formatCurrency(summary.pendingWithdrawalAmount)} o trang thai cho xu ly.`,
+      title: "Còn doanh thu artist chưa phân phối",
+      description: `Hiện còn ${formatCurrency(summary.undistributedArtistBalance)} chưa được phân phối hoàn tất cho artist trong kỳ này.`,
     });
   }
 
-  if (summary.artistAvailableBalance > 0) {
+  if (summary.successfulTransactions > 0) {
+    const avgRevenue =
+      Number(summary.premiumRevenue || 0) /
+      Number(summary.successfulTransactions || 1);
+
     items.push({
-      title: "So du nghe si can theo doi",
-      description: `Tong so du kha dung cua nghe si dang o muc ${formatCurrency(summary.artistAvailableBalance)}.`,
+      title: "Hiệu suất doanh thu mỗi giao dịch",
+      description: `Trung bình mỗi giao dịch premium tạo ra khoảng ${formatCurrency(avgRevenue)} doanh thu trong kỳ.`,
     });
   }
 
   if (period.status === "not_created") {
     items.push({
-      title: "Ky doanh thu chua duoc khoi tao",
+      title: "Kỳ doanh thu chưa được khởi tạo",
       description:
-        "Ky da chon chua co ban ghi revenue period tu backend, nen can kiem tra cron hoac job tong hop.",
+        "Kỳ đã chọn chưa có bản ghi revenue period từ backend, nên cần kiểm tra cron hoặc job tổng hợp.",
+    });
+  }
+
+  if (period.status === "open") {
+    items.push({
+      title: "Kỳ doanh thu vẫn đang mở",
+      description:
+        "Số liệu có thể còn tiếp tục tăng cho tới khi kỳ hiện tại được chốt và tính toán hoàn tất.",
     });
   }
 
