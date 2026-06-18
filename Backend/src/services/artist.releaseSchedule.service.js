@@ -13,6 +13,7 @@ const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
 const VALID_STATUSES = new Set(["scheduled", "released", "cancelled"]);
 const VALID_TYPES = new Set(["track", "album"]);
+const MIN_TRACKS_TO_PUBLISH_ALBUM = 2;
 
 const normalizeScope = (scope) => {
     const normalizedScope = String(scope || "").trim().toLowerCase();
@@ -66,6 +67,20 @@ const getOwnedReleaseTarget = async ({ artistId, type, targetId }) => {
     }
 
     return track;
+};
+
+const ensureAlbumCanBeScheduledForRelease = (album) => {
+    const trackCount = Array.isArray(album?.trackList) ? album.trackList.length : 0;
+
+    if (trackCount < MIN_TRACKS_TO_PUBLISH_ALBUM) {
+        throw new AppError(
+            `Album must contain at least ${MIN_TRACKS_TO_PUBLISH_ALBUM} tracks before it can be scheduled for release.`,
+            400,
+            {
+                field: "targetId",
+            }
+        );
+    }
 };
 
 const ensureNoConflictingScheduledRelease = async ({ artistId, type, targetId }) => {
@@ -169,7 +184,7 @@ const publishDueReleaseSchedules = async (extraFilter = {}) => {
         scheduledAt: { $lte: now },
         ...extraFilter,
     })
-        .select("_id scheduledAt")
+        .select("_id scheduledAt type targetId")
         .lean();
 
     if (dueSchedules.length === 0) {
@@ -178,8 +193,70 @@ const publishDueReleaseSchedules = async (extraFilter = {}) => {
         };
     }
 
+    const dueAlbumSchedules = dueSchedules.filter(
+        (schedule) => schedule.type === "album" && schedule.targetId
+    );
+    const dueTrackSchedules = dueSchedules.filter((schedule) => schedule.type !== "album");
+    const dueAlbumIds = dueAlbumSchedules.map((schedule) => schedule.targetId);
+
+    let releasableAlbumScheduleIds = [];
+
+    if (dueAlbumIds.length > 0) {
+        const dueAlbums = await Album.find({
+            _id: { $in: dueAlbumIds },
+        })
+            .select("_id status trackList")
+            .lean();
+
+        const releasableAlbumIdSet = new Set(
+            dueAlbums
+                .filter((album) => Array.isArray(album.trackList) && album.trackList.length >= MIN_TRACKS_TO_PUBLISH_ALBUM)
+                .map((album) => album._id.toString())
+        );
+
+        releasableAlbumScheduleIds = dueAlbumSchedules
+            .filter((schedule) => releasableAlbumIdSet.has(schedule.targetId.toString()))
+            .map((schedule) => schedule._id);
+
+        const albumIdsToActivate = dueAlbums
+            .filter(
+                (album) =>
+                    releasableAlbumIdSet.has(album._id.toString()) &&
+                    ["draft", "hidden"].includes(album.status)
+            )
+            .map((album) => album._id);
+
+        if (albumIdsToActivate.length > 0) {
+            await Album.updateMany(
+                {
+                    _id: { $in: albumIdsToActivate },
+                },
+                {
+                    $set: { status: "active" },
+                }
+            );
+        }
+    }
+
+    const releasableScheduleIds = [
+        ...dueTrackSchedules.map((schedule) => schedule._id),
+        ...releasableAlbumScheduleIds,
+    ];
+
+    if (releasableScheduleIds.length === 0) {
+        return {
+            updatedCount: 0,
+        };
+    }
+
     await ReleaseSchedule.bulkWrite(
-        dueSchedules.map((schedule) => ({
+        dueSchedules
+            .filter((schedule) =>
+                releasableScheduleIds.some(
+                    (scheduleId) => scheduleId.toString() === schedule._id.toString()
+                )
+            )
+            .map((schedule) => ({
             updateOne: {
                 filter: {
                     _id: schedule._id,
@@ -196,7 +273,7 @@ const publishDueReleaseSchedules = async (extraFilter = {}) => {
     );
 
     return {
-        updatedCount: dueSchedules.length,
+        updatedCount: releasableScheduleIds.length,
     };
 };
 
@@ -431,6 +508,10 @@ const createMyReleaseSchedule = async (userId, payload) => {
         type: payload.type,
         targetId: payload.targetId,
     });
+
+    if (payload.type === "album") {
+        ensureAlbumCanBeScheduledForRelease(target);
+    }
 
     await ensureNoConflictingScheduledRelease({
         artistId: artist._id,

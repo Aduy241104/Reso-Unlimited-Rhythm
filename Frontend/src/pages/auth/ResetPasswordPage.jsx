@@ -1,7 +1,9 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { ArrowRight, Eye, EyeOff, LockKeyhole } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import systemLogo from "../../assets/images/ChatGPT Image 13_16_10 4 thg 5, 2026.png";
 import AuthCard from "../../components/auth/AuthCard";
 import AuthField from "../../components/auth/AuthField";
 import { routePaths } from "../../routes/routePaths";
@@ -26,14 +28,16 @@ const ResetPasswordPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token")?.trim() || "";
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [apiError, setApiError] = useState(
     token ? "" : "Liên kết đặt lại mật khẩu không hợp lệ."
   );
 
   const form = useForm({
     resolver: zodResolver(resetPasswordSchema),
-    mode: "onBlur",
-    reValidateMode: "onChange",
+    mode: "onSubmit",
+    reValidateMode: "onSubmit",
     defaultValues: {
       password: "",
       confirmPassword: "",
@@ -90,79 +94,117 @@ const ResetPasswordPage = () => {
   } = form;
 
   return (
-    <main className="min-h-screen bg-[#0f0f14] bg-[radial-gradient(circle_at_top_left,_rgba(245,182,111,0.24),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(79,124,255,0.14),_transparent_26%),linear-gradient(135deg,_#0f0f14_0%,_#14131b_45%,_#0d1018_100%)] px-4 py-10 text-white sm:px-6 lg:px-8">
-      <div className="mx-auto grid min-h-[calc(100vh-5rem)] w-full max-w-6xl items-center gap-8 lg:grid-cols-[1.02fr_0.98fr]">
-        <section>
-          <div className="max-w-xl">
-            <p className="mb-4 text-sm font-semibold uppercase tracking-[0.35em] text-[#f5b66f]">
-              Đặt lại mật khẩu
-            </p>
-            <h2 className="text-4xl font-semibold leading-tight text-white sm:text-5xl">
-              Tạo mật khẩu mới từ liên kết trong email của bạn.
-            </h2>
-            <p className="mt-5 max-w-lg text-base leading-7 text-[#d9d5cf]">
-              Trang này đọc token từ liên kết đặt lại và gửi trực tiếp đến API của hệ thống.
-            </p>
-          </div>
-        </section>
+    <main className="relative min-h-screen overflow-hidden bg-[#0a0a0a] text-white">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,_rgba(8,8,12,0.2)_0%,_rgba(8,8,12,0.66)_36%,_rgba(8,8,12,0.9)_66%,_rgba(8,8,12,1)_100%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/10" />
+      <div className="pointer-events-none absolute left-[-7rem] top-[-8rem] h-[24rem] w-[24rem] rounded-full bg-[#ff9f43]/18 blur-[110px]" />
+      <div className="pointer-events-none absolute left-[20%] top-[10%] h-[20rem] w-[20rem] rounded-full bg-[#ffd86b]/12 blur-[120px]" />
+      <div className="pointer-events-none absolute right-[14%] top-[-5rem] h-[21rem] w-[21rem] rounded-full bg-[#ff4fb3]/12 blur-[120px]" />
+      <div className="pointer-events-none absolute right-[-6rem] top-[28%] h-[24rem] w-[24rem] rounded-full bg-[#6f5bff]/14 blur-[130px]" />
+      <div className="pointer-events-none absolute bottom-[-7rem] left-[30%] h-[20rem] w-[20rem] rounded-full bg-[#3f7cff]/10 blur-[120px]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,_rgba(255,188,102,0.16),_transparent_24%),radial-gradient(circle_at_64%_18%,_rgba(255,82,168,0.15),_transparent_22%),radial-gradient(circle_at_78%_40%,_rgba(111,91,255,0.18),_transparent_24%),radial-gradient(circle_at_46%_82%,_rgba(70,140,255,0.12),_transparent_22%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,_rgba(255,255,255,0.03)_0%,_rgba(10,10,10,0)_16%,_rgba(10,10,10,0.24)_100%)]" />
 
-        <div>
+      <section className="relative mx-auto flex min-h-screen w-full max-w-6xl items-center justify-center px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+        <div className="w-full max-w-[30rem]">
           <AuthCard
-            theme="dark"
-            title="Tạo mật khẩu mới"
-            subtitle="Chọn mật khẩu mới phù hợp với quy tắc của hệ thống."
+            title="Đặt lại mật khẩu"
+            subtitle="Tạo mật khẩu mới để tiếp tục đăng nhập vào hệ thống."
+            className="rounded-[18px] border border-white bg-white px-4 py-4 shadow-[0_24px_80px_rgba(0,0,0,0.22)] sm:px-6 sm:py-5"
+            headerClassName="mb-5 text-center [&_.auth-card-divider]:mx-auto [&_.auth-card-subtitle]:mx-auto"
+            headerContent={
+              <div className="flex justify-center">
+                <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-[14px] border border-slate-200 bg-[#f8f8fb] shadow-[0_10px_24px_rgba(15,23,42,0.08)]">
+                  <img
+                    src={systemLogo}
+                    alt="Reso Unlimited Rhythm logo"
+                    className="h-9 w-9 object-contain"
+                  />
+                </div>
+              </div>
+            }
+            footerClassName="mt-4"
             footer={
-              <span>
+              <p className="text-center text-sm text-slate-500">
                 Quay lại{" "}
-                <Link className="font-semibold text-[#f5b66f]" to={routePaths.login}>
+                <Link className="font-semibold text-slate-950" to={routePaths.login}>
                   đăng nhập
                 </Link>
-              </span>
+              </p>
             }
           >
             {apiError ? (
-              <div className="mb-5 rounded-2xl border border-rose-300/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+              <div className="mb-3.5 rounded-[14px] border border-rose-200 bg-white px-4 py-3 text-sm text-rose-700">
                 {apiError}
               </div>
             ) : null}
 
-            <form
-              className="space-y-4"
-              noValidate
-              onSubmit={handleSubmit(handleResetPassword)}
-            >
-              <AuthField
-                label="Mật khẩu mới"
-                theme="dark"
-                type="password"
-                placeholder="Nhập mật khẩu mới"
-                autoComplete="new-password"
-                helperText="Mật khẩu cần từ 6 đến 128 ký tự."
-                error={errors.password?.message}
-                {...register("password")}
-              />
+            <form noValidate onSubmit={handleSubmit(handleResetPassword)}>
+              <div className="space-y-3.5">
+                <AuthField
+                  label="Mật khẩu mới"
+                  labelClassName="text-sm font-medium normal-case tracking-normal text-slate-700"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Nhập mật khẩu mới"
+                  autoComplete="new-password"
+                  helperText="Mật khẩu cần có từ 6 đến 128 ký tự."
+                  error={errors.password?.message}
+                  startAdornment={<LockKeyhole className="h-4 w-4" />}
+                  endAdornment={
+                    <button
+                      className="rounded-full p-1 text-slate-400 transition hover:text-slate-700"
+                      onClick={() => setShowPassword((current) => !current)}
+                      type="button"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  }
+                  inputClassName="min-h-[46px] rounded-[14px] border-slate-200 bg-white shadow-none"
+                  {...register("password")}
+                />
 
-              <AuthField
-                label="Xác nhận mật khẩu"
-                theme="dark"
-                type="password"
-                placeholder="Nhập lại mật khẩu mới"
-                autoComplete="new-password"
-                error={errors.confirmPassword?.message}
-                {...register("confirmPassword")}
-              />
+                <AuthField
+                  label="Xác nhận mật khẩu"
+                  labelClassName="text-sm font-medium normal-case tracking-normal text-slate-700"
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Nhập lại mật khẩu mới"
+                  autoComplete="new-password"
+                  error={errors.confirmPassword?.message}
+                  startAdornment={<LockKeyhole className="h-4 w-4" />}
+                  endAdornment={
+                    <button
+                      className="rounded-full p-1 text-slate-400 transition hover:text-slate-700"
+                      onClick={() => setShowConfirmPassword((current) => !current)}
+                      type="button"
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  }
+                  inputClassName="min-h-[46px] rounded-[14px] border-slate-200 bg-white shadow-none"
+                  {...register("confirmPassword")}
+                />
 
-              <button
-                className="inline-flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-[#f5b66f] via-[#d98235] to-[#17131a] px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_45px_rgba(245,158,66,0.24)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_60px_rgba(245,158,66,0.22)] disabled:cursor-not-allowed disabled:opacity-70"
-                disabled={isSubmitting || !token}
-                type="submit"
-              >
-                {isSubmitting ? "Đang cập nhật mật khẩu..." : "Cập nhật mật khẩu"}
-              </button>
+                <button
+                  className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-[14px] bg-[linear-gradient(180deg,_#111827_0%,_#0f172a_100%)] px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_36px_rgba(15,23,42,0.2)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
+                  disabled={isSubmitting || !token}
+                  type="submit"
+                >
+                  {isSubmitting ? "Đang cập nhật mật khẩu..." : "Cập nhật mật khẩu"}
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
             </form>
           </AuthCard>
         </div>
-      </div>
+      </section>
     </main>
   );
 };

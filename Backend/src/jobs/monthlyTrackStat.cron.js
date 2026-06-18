@@ -4,11 +4,11 @@ import {
     syncTrackStatsForMonth,
 } from "../services/analytics/trackStatAggregation.service.js";
 
-const MONTHLY_TRACK_STAT_CRON_EXPRESSION = "0 0 * * *";
+const MONTHLY_TRACK_STAT_CRON_EXPRESSION = "0 0 1 * *";
 
 let isJobRunning = false;
 
-export const runMonthlyTrackStatAggregation = async () => {
+export const runMonthlyTrackStatAggregation = async (targetMonthInput) => {
     if (isJobRunning) {
         console.warn("[Cron] Monthly track stat aggregation is already running, skipping this tick.");
         return null;
@@ -17,7 +17,7 @@ export const runMonthlyTrackStatAggregation = async () => {
     isJobRunning = true;
 
     try {
-        const result = await syncTrackStatsForMonth();
+        const result = await syncTrackStatsForMonth(targetMonthInput);
         console.log("[Cron] Monthly track stat aggregation completed:", result);
         return result;
     } catch (error) {
@@ -42,7 +42,7 @@ export const startMonthlyTrackStatCron = () => {
     );
 
     console.log(
-        `[Cron] Monthly track stat aggregation scheduled at 00:00 every day (${analyticsTimezone}).`
+        `[Cron] Monthly track stat aggregation scheduled at 00:00 on day 1 of every month (${analyticsTimezone}).`
     );
 
     return task;

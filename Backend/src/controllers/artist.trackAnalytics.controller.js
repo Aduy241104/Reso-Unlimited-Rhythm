@@ -1,6 +1,5 @@
 import trackAnalyticsService from "../services/artist/trackAnalytics.service.js";
 import artistPerformanceOverviewService from "../services/artist/artistPerformanceOverview.service.js";
-import artistListenerBehaviorInsightsService from "../services/artist/artistListenerBehaviorInsights.service.js";
 import formatResponse from "../utils/formatResponse.js";
 
 const getArtistPerformanceOverviewController = async (req, res, next) => {
@@ -16,24 +15,6 @@ const getArtistPerformanceOverviewController = async (req, res, next) => {
             res,
             overview,
             "Artist performance overview fetched successfully"
-        );
-    } catch (error) {
-        next(error);
-    }
-};
-
-const getArtistListenerBehaviorInsightsController = async (req, res, next) => {
-    try {
-        const insights =
-            await artistListenerBehaviorInsightsService.getArtistListenerBehaviorInsights({
-                userId: req.user.id,
-                range: req.query.range,
-            });
-
-        return formatResponse.success(
-            res,
-            insights,
-            "Artist listener behavior insights fetched successfully"
         );
     } catch (error) {
         next(error);
@@ -120,7 +101,6 @@ const compareTrackPerformanceController = async (req, res, next) => {
 
 export default {
     getArtistPerformanceOverviewController,
-    getArtistListenerBehaviorInsightsController,
     getTrackAnalyticsOverviewController,
     getTrackDailyAnalyticsController,
     getTrackMonthlyAnalyticsController,

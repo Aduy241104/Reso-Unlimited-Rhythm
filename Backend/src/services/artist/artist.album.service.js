@@ -15,6 +15,22 @@ import { uploadToCloudinary, deleteCloudinaryAssetByUrl } from "../../utils/uplo
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
+const MIN_TRACKS_TO_PUBLISH_ALBUM = 2;
+
+const getAlbumTrackCount = (album) =>
+    Array.isArray(album?.trackList) ? album.trackList.length : 0;
+
+const ensureAlbumCanBePublished = (album) => {
+    if (getAlbumTrackCount(album) < MIN_TRACKS_TO_PUBLISH_ALBUM) {
+        throw new AppError(
+            `Album must contain at least ${MIN_TRACKS_TO_PUBLISH_ALBUM} tracks before it can be published.`,
+            StatusCodes.BAD_REQUEST,
+            {
+                field: "status",
+            }
+        );
+    }
+};
 
 const normalizePositiveInteger = (value, fallback) => {
     const parsedValue = Number.parseInt(value, 10);
@@ -226,7 +242,7 @@ const createAlbum = async (userId, payload, file) => {
         artistId: artist._id,
         coverImage: coverImageUrl,
         releaseDate: payload.releaseDate || null,
-        status: payload.status || "active",
+        status: "draft",
         trackList: [],
     });
 
@@ -282,6 +298,9 @@ const updateAlbum = async (userId, albumId, payload, file) => {
 
     // Update status if provided
     if (payload.status !== undefined) {
+        if (payload.status === "active") {
+            ensureAlbumCanBePublished(album);
+        }
         album.status = payload.status;
     }
 
@@ -387,6 +406,7 @@ const unhideAlbum = async (userId, albumId) => {
     }
 
     // Set album status back to active
+    ensureAlbumCanBePublished(album);
     album.status = "active";
     await album.save();
 
@@ -530,6 +550,13 @@ const removeTrackFromAlbum = async (userId, albumId, trackId) => {
     album.trackList.forEach((item, index) => {
         item.order = index + 1;
     });
+
+    if (
+        album.status === "active" &&
+        getAlbumTrackCount(album) < MIN_TRACKS_TO_PUBLISH_ALBUM
+    ) {
+        album.status = "draft";
+    }
 
     await syncAlbumTotalDuration(album);
     await album.save();
