@@ -1,5 +1,6 @@
 export const routePaths = {
   home: "/",
+  userGenres: "/genres",
   dailyTopTracks: "/charts/daily-top-tracks",
   monthlyTopTracks: "/charts/monthly-top-tracks",
   albumDetail: (albumId = ":id") => `/albums/${albumId}`,
@@ -48,3 +49,4 @@ export const routePaths = {
   libraryFollowedArtists: "/library/followed-artists",
   libraryFollowedAlbums: "/library/followed-albums",
 };
+

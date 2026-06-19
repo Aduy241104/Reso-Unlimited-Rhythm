@@ -30,6 +30,7 @@ import ArtistTrackEditPage from "../pages/artist/ArtistTrackEditPage";
 import ArtistLyricsPage from "../pages/artist/ArtistLyricsPage";
 import HomePage from "../pages/home/HomePage";
 import LyricsPage from "../pages/lyrics/LyricsPage";
+import GenreListPage from "../pages/usergenre/GenreListPage";
 import DailyTopTracksPage from "../pages/track/DailyTopTracksPage";
 import MonthlyTopTracksPage from "../pages/track/MonthlyTopTracksPage";
 import ArtistProfilePageView from "../pages/profile/ArtistProfilePage";
@@ -59,6 +60,10 @@ export const appRoutes = [
       {
         path: routePaths.home,
         element: <HomePage />,
+      },
+      {
+        path: routePaths.userGenres,
+        element: <GenreListPage />,
       },
       {
         path: routePaths.dailyTopTracks,
@@ -262,3 +267,5 @@ export const appRoutes = [
     element: <Navigate to={routePaths.home} replace />,
   },
 ];
+
+
