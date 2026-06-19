@@ -16,6 +16,7 @@ const RevenueHeroSection = ({
   summary,
   isRefreshing,
   onRefresh,
+  actionSlot,
 }) => {
   const periodLabel = `${MONTH_LABELS[(period?.month || 1) - 1]} ${
     period?.year || ""
@@ -55,6 +56,8 @@ const RevenueHeroSection = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            {actionSlot}
+
             <button
               type="button"
               onClick={() => void onRefresh()}

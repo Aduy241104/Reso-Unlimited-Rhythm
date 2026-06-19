@@ -46,8 +46,28 @@ export const getRevenuePeriodDetailService = async (periodId) => {
   return res.data?.data?.revenuePeriod ?? null;
 };
 
+export const closeRevenuePeriodService = async (periodId) => {
+  const res = await axiosClient.post(`/api/admin/revenue/periods/${periodId}/close`);
+  return res.data?.data ?? null;
+};
+
+export const calculateRevenueDistributionService = async (periodId) => {
+  const res = await axiosClient.post(
+    `/api/admin/revenue/periods/${periodId}/calculate`
+  );
+  return res.data?.data ?? null;
+};
+
+export const confirmRevenueDistributionService = async (periodId) => {
+  const res = await axiosClient.post(`/api/admin/revenue/periods/${periodId}/confirm`);
+  return res.data?.data ?? null;
+};
+
 export default {
   getRevenueDashboardService,
   getRevenuePeriodsService,
   getRevenuePeriodDetailService,
+  closeRevenuePeriodService,
+  calculateRevenueDistributionService,
+  confirmRevenueDistributionService,
 };

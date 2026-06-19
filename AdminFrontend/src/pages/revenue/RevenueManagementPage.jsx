@@ -1,10 +1,32 @@
+import { useState } from "react";
 import { AlertCircle, LoaderCircle } from "lucide-react";
 import RevenueHeroSection from "./components/RevenueHeroSection";
+import RevenuePeriodActionModal from "./components/RevenuePeriodActionModal";
+import RevenuePeriodActions from "./components/RevenuePeriodActions";
 import { DashboardCard } from "./components/RevenueShared";
 import RevenueTrendSection from "./components/RevenueTrendSection";
 import useRevenueDashboard from "./useRevenueDashboard";
+import {
+  calculateRevenueDistributionService,
+  closeRevenuePeriodService,
+  confirmRevenueDistributionService,
+} from "../../services/revenueService";
+import { getErrorMessage } from "./utils";
+
+const ACTION_EXECUTORS = {
+  close: closeRevenuePeriodService,
+  calculate: calculateRevenueDistributionService,
+  confirm: confirmRevenueDistributionService,
+};
 
 const RevenueManagementPage = () => {
+  const [actionModal, setActionModal] = useState({
+    isOpen: false,
+    actionKey: null,
+    phase: "idle",
+    result: null,
+    error: "",
+  });
   const today = new Date();
   const currentYear = today.getFullYear();
   const currentMonth = today.getMonth() + 1;
@@ -20,6 +42,65 @@ const RevenueManagementPage = () => {
     month: currentMonth,
   };
 
+  const openActionModal = (actionKey) => {
+    setActionModal({
+      isOpen: true,
+      actionKey,
+      phase: "idle",
+      result: null,
+      error: "",
+    });
+  };
+
+  const closeActionModal = () => {
+    if (actionModal.phase === "submitting") {
+      return;
+    }
+
+    setActionModal({
+      isOpen: false,
+      actionKey: null,
+      phase: "idle",
+      result: null,
+      error: "",
+    });
+  };
+
+  const handleConfirmAction = async () => {
+    const actionKey = actionModal.actionKey;
+    const executor = ACTION_EXECUTORS[actionKey];
+
+    if (!actionKey || !executor || !period?.id) {
+      return;
+    }
+
+    setActionModal((currentModal) => ({
+      ...currentModal,
+      phase: "submitting",
+      result: null,
+      error: "",
+    }));
+
+    try {
+      const result = await executor(period.id);
+      await handleRefresh();
+
+      setActionModal((currentModal) => ({
+        ...currentModal,
+        phase: "success",
+        result,
+        error: "",
+      }));
+    } catch (apiError) {
+      setActionModal((currentModal) => ({
+        ...currentModal,
+        phase: "error",
+        result: null,
+        error: getErrorMessage(apiError),
+      }));
+    }
+  };
+
   return (
     <section className="-mt-2 bg-[linear-gradient(180deg,#fdfdfe_0%,#f5f5f7_100%)] py-1 text-slate-900">
       <div className="mx-auto max-w-7xl space-y-4">
@@ -29,6 +110,13 @@ const RevenueManagementPage = () => {
           summary={summary}
           isRefreshing={isRefreshing}
           onRefresh={handleRefresh}
+          actionSlot={
+            <RevenuePeriodActions
+              period={period}
+              actionModal={actionModal}
+              onOpenAction={openActionModal}
+            />
+          }
         />
 
         {error ? (
@@ -57,6 +145,13 @@ const RevenueManagementPage = () => {
           />
         )}
       </div>
+
+      <RevenuePeriodActionModal
+        period={period}
+        modalState={actionModal}
+        onClose={closeActionModal}
+        onConfirm={handleConfirmAction}
+      />
     </section>
   );
 };
