@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { AlertCircle, LoaderCircle } from "lucide-react";
 import RevenueHeroSection from "./components/RevenueHeroSection";
-import RevenuePeriodActionModal from "./components/RevenuePeriodActionModal";
-import RevenuePeriodActions from "./components/RevenuePeriodActions";
+import RevenueWorkflowActions from "./components/RevenueWorkflowActions";
+import RevenueWorkflowModal from "./components/RevenueWorkflowModal";
+import RevenueWorkflowOverview from "./components/RevenueWorkflowOverview";
 import { DashboardCard } from "./components/RevenueShared";
 import RevenueTrendSection from "./components/RevenueTrendSection";
 import useRevenueDashboard from "./useRevenueDashboard";
@@ -111,13 +112,15 @@ const RevenueManagementPage = () => {
           isRefreshing={isRefreshing}
           onRefresh={handleRefresh}
           actionSlot={
-            <RevenuePeriodActions
+            <RevenueWorkflowActions
               period={period}
               actionModal={actionModal}
               onOpenAction={openActionModal}
             />
           }
         />
+
+        {!isLoading ? <RevenueWorkflowOverview period={period} /> : null}
 
         {error ? (
           <div className="flex items-start gap-3 rounded-[18px] border border-rose-200 bg-rose-50 px-5 py-4 text-rose-700">
@@ -146,7 +149,7 @@ const RevenueManagementPage = () => {
         )}
       </div>
 
-      <RevenuePeriodActionModal
+      <RevenueWorkflowModal
         period={period}
         modalState={actionModal}
         onClose={closeActionModal}

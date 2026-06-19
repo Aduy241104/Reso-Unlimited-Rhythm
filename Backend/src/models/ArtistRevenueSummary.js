@@ -45,6 +45,15 @@ const ArtistRevenueSummarySchema = new Schema(
             type: Date,
             default: null,
         },
+        confirmedAt: {
+            type: Date,
+            default: null,
+        },
+        confirmedBy: {
+            type: Schema.Types.ObjectId,
+            ref: "User",
+            default: null,
+        },
     },
     { timestamps: true }
 );

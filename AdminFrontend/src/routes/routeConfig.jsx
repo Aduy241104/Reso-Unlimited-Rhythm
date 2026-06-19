@@ -16,7 +16,7 @@ import RevenueManagementPage from "../pages/revenue/RevenueManagementPage";
 import RevenueHistoryPage from "../pages/revenue/RevenueHistoryPage";
 import RevenuePeriodDetailPage from "../pages/revenue/RevenuePeriodDetailPage";
 import RevenueSharingHistoryPage from "../pages/revenue/RevenueSharingHistoryPage";
-import RevenueSharingDetailPage from "../pages/revenue/RevenueSharingDetailPage";
+import RevenueSharingWorkflowDetailPage from "../pages/revenue/RevenueSharingWorkflowDetailPage";
 import UsersListPage from "../pages/users/UsersListPage";
 import UserDetailPage from "../pages/users/UserDetailPage";
 import ArtistRequestsListPage from "../pages/artistRequests/ArtistRequestsListPage";
@@ -87,7 +87,7 @@ export const appRoutes = [
               },
               {
                 path: "revenue-sharing/:periodId",
-                element: <RevenueSharingDetailPage />,
+                element: <RevenueSharingWorkflowDetailPage />,
               },
               {
                 path: "users",

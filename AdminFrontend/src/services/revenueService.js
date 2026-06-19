@@ -20,6 +20,9 @@ const normalizeRevenuePeriodsParams = (filters = {}) => {
 
   if (filters.page) params.page = filters.page;
   if (filters.limit) params.limit = filters.limit;
+  if (filters.status) params.status = filters.status;
+  if (filters.year) params.year = filters.year;
+  if (filters.month) params.month = filters.month;
 
   return params;
 };

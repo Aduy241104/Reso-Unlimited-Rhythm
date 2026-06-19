@@ -325,7 +325,7 @@ const seedArtists = async () => {
             _id: ids.artistFour,
             userId: ids.artistUserFour,
             name: "Solar Tide",
-            bio: "Artist seed de test ky co trang thai paid.",
+            bio: "Artist seed de test ky co trang thai confirmed.",
             avatar: "https://example.com/seed/solar-tide.jpg",
             coverImage: "https://example.com/seed/solar-tide-cover.jpg",
             verificationStatus: "verified",
@@ -477,7 +477,9 @@ const buildRevenueSeedData = (timezoneName) => {
             platformRevenueAmount: 1800000,
             withdrawnAmount: 700000,
             availableAmount: 2000000,
-            status: "paid",
+            status: "confirmed",
+            confirmedAt: lastMonth.monthDate.add(1, "month").date(4).hour(16).toDate(),
+            confirmedBy: ids.adminUser,
             calculatedAt: lastMonth.monthDate.add(1, "month").date(2).hour(9).toDate(),
             createdAt: lastMonth.monthDate.add(1, "month").date(2).hour(9).toDate(),
             updatedAt: lastMonth.monthDate.add(1, "month").date(4).hour(16).toDate(),
@@ -541,7 +543,9 @@ const buildRevenueSeedData = (timezoneName) => {
             platformRevenueAmount: 860000,
             withdrawnAmount: 500000,
             availableAmount: 790000,
-            status: "paid",
+            status: "confirmed",
+            confirmedAt: twoMonthsAgo.monthDate.add(1, "month").date(3).hour(15).toDate(),
+            confirmedBy: ids.adminUser,
             calculatedAt: twoMonthsAgo.monthDate.add(1, "month").date(1).hour(10).toDate(),
             createdAt: twoMonthsAgo.monthDate.add(1, "month").date(1).hour(10).toDate(),
             updatedAt: twoMonthsAgo.monthDate.add(1, "month").date(3).hour(15).toDate(),
@@ -557,7 +561,9 @@ const buildRevenueSeedData = (timezoneName) => {
             platformRevenueAmount: 800000,
             withdrawnAmount: 400000,
             availableAmount: 800000,
-            status: "paid",
+            status: "confirmed",
+            confirmedAt: twoMonthsAgo.monthDate.add(1, "month").date(3).hour(15).toDate(),
+            confirmedBy: ids.adminUser,
             calculatedAt: twoMonthsAgo.monthDate.add(1, "month").date(1).hour(10).toDate(),
             createdAt: twoMonthsAgo.monthDate.add(1, "month").date(1).hour(10).toDate(),
             updatedAt: twoMonthsAgo.monthDate.add(1, "month").date(3).hour(15).toDate(),
@@ -644,7 +650,7 @@ const main = async () => {
     console.log(
         `Official artist revenue summaries: ${
             seededRevenueData.artistRevenueSummaries.filter((item) =>
-                ["calculated", "paid"].includes(item.status)
+                ["calculated", "confirmed"].includes(item.status)
             ).length
         }`
     );

@@ -9,6 +9,7 @@
     "seed": "node src/seed.js",
     "revenue:sync": "node src/runRevenueAggregation.js",
     "seed:revenue-history": "node src/seedRevenueHistory.js",
+    "seed:revenue-flow": "node src/seedRevenueFlow.js",
     "seed:artist-overview": "node src/seedArtistPerformanceOverview.js",
     "seed:premium-user": "node src/seedPremiumUser.js",
     "seed5": "node src/seed5.js",
