@@ -22,4 +22,8 @@ export const routePaths = {
     `/system-playlists/${playlistId}/edit`,
   reports: "/reports",
   reportDetail: (reportId = ":reportId") => `/reports/${reportId}`,
+  subscriptions: "/subscriptions",
+  subscriptionDetail: (planId = ":planId") => `/subscriptions/${planId}`,
+  subscriptionEdit: (planId = ":planId") => `/subscriptions/${planId}/edit`,
+  subscriptionNew: "/subscriptions/new",
 };

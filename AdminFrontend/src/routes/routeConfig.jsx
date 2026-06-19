@@ -22,6 +22,10 @@ import SystemTracksModerationPage from "../pages/systemTracks/SystemTracksModera
 import AdminListPage from "../pages/users/AdminListPage";
 import ReportsListPage from "../pages/reports/ReportsListPage";
 import ReportDetailPage from "../pages/reports/ReportDetailPage";
+import SubscriptionPlansPage from "../pages/subscriptions/SubscriptionPlansPage";
+import SubscriptionPlanDetailPage from "../pages/subscriptions/SubscriptionPlanDetailPage";
+import CreateSubscriptionPlanPage from "../pages/subscriptions/CreateSubscriptionPlanPage";
+import EditSubscriptionPlanPage from "../pages/subscriptions/EditSubscriptionPlanPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import RoleRoute from "./RoleRoute";
@@ -123,6 +127,22 @@ export const appRoutes = [
               {
                 path: "reports/:reportId",
                 element: <ReportDetailPage />,
+              },
+              {
+                path: "subscriptions",
+                element: <SubscriptionPlansPage />,
+              },
+              {
+                path: "subscriptions/new",
+                element: <CreateSubscriptionPlanPage />,
+              },
+              {
+                path: "subscriptions/:planId",
+                element: <SubscriptionPlanDetailPage />,
+              },
+              {
+                path: "subscriptions/:planId/edit",
+                element: <EditSubscriptionPlanPage />,
               },
             ],
           },
