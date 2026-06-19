@@ -1,5 +1,6 @@
-export const routePaths = {
+﻿export const routePaths = {
   home: "/",
+  search: "/search",
   userGenres: "/genres",
   userGenreDetail: (genreId = ":id") => `/genres/${genreId}`,
   dailyTopTracks: "/charts/daily-top-tracks",
@@ -50,3 +51,5 @@ export const routePaths = {
   libraryFollowedArtists: "/library/followed-artists",
   libraryFollowedAlbums: "/library/followed-albums",
 };
+
+
