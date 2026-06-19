@@ -1,4 +1,9 @@
-import { CalendarRange, CircleDollarSign, History, RefreshCw } from "lucide-react";
+import {
+  CalendarRange,
+  CircleDollarSign,
+  History,
+  RefreshCw,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { routePaths } from "../../../routes/routePaths";
 import { MONTH_LABELS, STATUS_CONFIG } from "../constants";
@@ -12,7 +17,9 @@ const RevenueHeroSection = ({
   isRefreshing,
   onRefresh,
 }) => {
-  const periodLabel = `${MONTH_LABELS[(period?.month || 1) - 1]} ${period?.year || ""}`.trim();
+  const periodLabel = `${MONTH_LABELS[(period?.month || 1) - 1]} ${
+    period?.year || ""
+  }`.trim();
   const statusConfig = STATUS_CONFIG[period?.status] || STATUS_CONFIG.not_created;
 
   return (
@@ -30,8 +37,8 @@ const RevenueHeroSection = ({
                 {periodLabel}
               </h1>
               <p className="max-w-2xl text-sm leading-7 text-slate-600">
-                Dashboard tập trung vào dữ liệu của tháng hiện tại để admin theo dõi
-                nhanh dòng tiền, trạng thái kỳ và các khoản cần xử lý.
+                Dashboard tập trung vào dữ liệu của tháng hiện tại để admin theo
+                dõi nhanh dòng tiền, trạng thái kỳ và các khoản cần xử lý.
               </p>
             </div>
 
@@ -54,16 +61,19 @@ const RevenueHeroSection = ({
               disabled={isRefreshing}
               className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-semibold text-violet-700 transition hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <RefreshCw size={16} className={isRefreshing ? "animate-spin" : ""} />
+              <RefreshCw
+                size={16}
+                className={isRefreshing ? "animate-spin" : ""}
+              />
               Làm mới
             </button>
 
             <Link
-              to={routePaths.revenueHistory}
+              to={routePaths.revenueSharingHistory}
               className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
               <History size={16} />
-              Xem doanh thu các tháng trước
+              Xem chia doanh thu
             </Link>
           </div>
         </div>

@@ -15,6 +15,8 @@ import HomePage from "../pages/dashboard/DashboardPage";
 import RevenueManagementPage from "../pages/revenue/RevenueManagementPage";
 import RevenueHistoryPage from "../pages/revenue/RevenueHistoryPage";
 import RevenuePeriodDetailPage from "../pages/revenue/RevenuePeriodDetailPage";
+import RevenueSharingHistoryPage from "../pages/revenue/RevenueSharingHistoryPage";
+import RevenueSharingDetailPage from "../pages/revenue/RevenueSharingDetailPage";
 import UsersListPage from "../pages/users/UsersListPage";
 import UserDetailPage from "../pages/users/UserDetailPage";
 import ArtistRequestsListPage from "../pages/artistRequests/ArtistRequestsListPage";
@@ -78,6 +80,14 @@ export const appRoutes = [
               {
                 path: "revenue/history/:year/:month",
                 element: <RevenuePeriodDetailPage />,
+              },
+              {
+                path: "revenue-sharing",
+                element: <RevenueSharingHistoryPage />,
+              },
+              {
+                path: "revenue-sharing/:periodId",
+                element: <RevenueSharingDetailPage />,
               },
               {
                 path: "users",

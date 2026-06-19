@@ -26,34 +26,18 @@ const ArtistRevenueSummarySchema = new Schema(
             default: 0,
             min: 0,
         },
-        grossRevenueAmount: {
-            type: Number,
-            default: 0,
-            min: 0,
-        },
         artistRevenueAmount: {
-            type: Number,
-            default: 0,
-            min: 0,
-        },
-        platformRevenueAmount: {
-            type: Number,
-            default: 0,
-            min: 0,
-        },
-        withdrawnAmount: {
-            type: Number,
-            default: 0,
-            min: 0,
-        },
-        availableAmount: {
             type: Number,
             default: 0,
             min: 0,
         },
         status: {
             type: String,
-            enum: ["pending", "calculated", "paid"],
+            enum: [
+                "pending",
+                "calculated",
+                "confirmed"
+            ],
             default: "pending",
             index: true,
         },
