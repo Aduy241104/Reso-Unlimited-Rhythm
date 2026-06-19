@@ -25,6 +25,7 @@ import adminArtistRouter from "./admin.artist.router.js";
 import userReportRoutes from "./user.report.routes.js";
 import userGenreRoutes from "./user.genre.routes.js";
 import searchRoutes from "./search.routes.js";
+import userFavoriteRoutes from "./user.favorite.route.js";
 
 function route(app) {
     app.use("/api/auth", authenticationRoutes);
@@ -54,6 +55,7 @@ function route(app) {
     app.use("/api/admin/artists", adminArtistRouter);
     app.use("/api/browse/genres", userGenreRoutes);
     app.use("/api/search", searchRoutes);
+    app.use("/api/users/favorites", userFavoriteRoutes);
 }
 
 export default route;
