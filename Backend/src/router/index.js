@@ -23,6 +23,7 @@ import userRoutes from "./user.routes.js";
 import userPlaylistRoutes from "./user.playlist.routes.js"
 import adminArtistRouter from "./admin.artist.router.js";
 import userReportRoutes from "./user.report.routes.js";
+import userGenreRoutes from "./user.genre.routes.js";
 
 function route(app) {
     app.use("/api/auth", authenticationRoutes);
@@ -50,6 +51,7 @@ function route(app) {
     app.use("/api/users", userReportRoutes);
     app.use("/api/users/playlists", userPlaylistRoutes);
     app.use("/api/admin/artists", adminArtistRouter);
+    app.use("/api/browse/genres", userGenreRoutes);
 }
 
 export default route;
