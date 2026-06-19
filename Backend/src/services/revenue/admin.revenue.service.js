@@ -1,6 +1,10 @@
 import mongoose from "mongoose";
+import Artist from "../../models/Artist.js";
 import ArtistRevenueSummary from "../../models/ArtistRevenueSummary.js";
+import ListenEvent from "../../models/ListenEvent.js";
 import RevenuePeriod from "../../models/RevenuePeriod.js";
+import TrackMonthlyStat from "../../models/TrackMonthlyStat.js";
+import Transaction from "../../models/Transaction.js";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
@@ -9,6 +13,7 @@ import { AppError } from "../../utils/AppError.js";
 import { runRevenueAggregation } from "../../jobs/revenueAggregation.cron.js";
 import {
     ARTIST_REVENUE_SHARE_PERCENT,
+    ARTIST_REVENUE_SHARE_RATIO,
     PLATFORM_REVENUE_SHARE_PERCENT,
     buildRevenuePeriodRange,
     normalizeRevenueDashboardPeriod,
@@ -18,7 +23,7 @@ import {
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-const OFFICIAL_ARTIST_REVENUE_STATUSES = ["calculated", "paid"];
+const OFFICIAL_ARTIST_REVENUE_STATUSES = ["calculated", "confirmed", "paid"];
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
@@ -29,6 +34,8 @@ const readAggregateNumber = (aggregationResult, fieldName) =>
 const readRevenuePeriodNumber = (revenuePeriod, fieldName) =>
     Number(revenuePeriod?.[fieldName] || 0);
 
+const roundCurrency = (value) => Math.max(0, Math.round(Number(value) || 0));
+
 const toId = (value) => {
     if (!value) {
         return null;
@@ -38,7 +45,108 @@ const toId = (value) => {
 };
 
 const calculateArtistPool = (premiumRevenue) =>
-    Math.round((Number(premiumRevenue) || 0) * (ARTIST_REVENUE_SHARE_PERCENT / 100));
+    roundCurrency((Number(premiumRevenue) || 0) * ARTIST_REVENUE_SHARE_RATIO);
+
+const ensureRevenuePeriodId = (revenuePeriodId) => {
+    if (!mongoose.Types.ObjectId.isValid(revenuePeriodId)) {
+        throw new AppError("Revenue period id is invalid.", 400, { field: "id" });
+    }
+};
+
+const findRevenuePeriodById = async (revenuePeriodId, options = {}) => {
+    ensureRevenuePeriodId(revenuePeriodId);
+
+    const revenuePeriod = await RevenuePeriod.findById(revenuePeriodId, null, options);
+
+    if (!revenuePeriod) {
+        throw new AppError("Revenue period not found.", 404, { field: "id" });
+    }
+
+    return revenuePeriod;
+};
+
+const buildRevenuePeriodDateRange = (revenuePeriod) => ({
+    $gte: revenuePeriod.periodStart,
+    $lt: revenuePeriod.periodEnd,
+});
+
+const aggregateRevenuePeriodTransactions = async (revenuePeriod) => {
+    const summary = await Transaction.aggregate([
+        {
+            $match: {
+                status: "success",
+                paidAt: buildRevenuePeriodDateRange(revenuePeriod),
+            },
+        },
+        {
+            $group: {
+                _id: null,
+                totalPremiumRevenue: { $sum: "$amount" },
+                successfulTransactions: { $sum: 1 },
+            },
+        },
+    ]);
+
+    return {
+        totalPremiumRevenue: roundCurrency(summary[0]?.totalPremiumRevenue || 0),
+        successfulTransactions: Number(summary[0]?.successfulTransactions || 0),
+    };
+};
+
+const countRevenuePeriodEligibleStreams = async (revenuePeriod) => {
+    const summary = await ListenEvent.aggregate([
+        {
+            $match: {
+                listenedAt: buildRevenuePeriodDateRange(revenuePeriod),
+                isValidStream: true,
+                trackId: { $exists: true, $ne: null },
+                artistId: { $exists: true, $ne: null },
+            },
+        },
+        {
+            $group: {
+                _id: null,
+                totalEligibleStreams: { $sum: 1 },
+            },
+        },
+    ]);
+
+    return Number(summary[0]?.totalEligibleStreams || 0);
+};
+
+const aggregateEligibleStreamsByArtist = async (revenuePeriod) =>
+    ListenEvent.aggregate([
+        {
+            $match: {
+                listenedAt: buildRevenuePeriodDateRange(revenuePeriod),
+                isValidStream: true,
+                artistId: { $exists: true, $ne: null },
+            },
+        },
+        {
+            $group: {
+                _id: "$artistId",
+                totalEligibleStreams: { $sum: 1 },
+            },
+        },
+    ]);
+
+const aggregateEligibleStreamsByTrack = async (revenuePeriod) =>
+    ListenEvent.aggregate([
+        {
+            $match: {
+                listenedAt: buildRevenuePeriodDateRange(revenuePeriod),
+                isValidStream: true,
+                trackId: { $exists: true, $ne: null },
+            },
+        },
+        {
+            $group: {
+                _id: "$trackId",
+                eligibleStreams: { $sum: 1 },
+            },
+        },
+    ]);
 
 const buildRevenuePeriodLabel = (year, month) =>
     `${String(month).padStart(2, "0")}/${year}`;
@@ -327,6 +435,7 @@ const getRevenueDashboard = async (query = {}) => {
 
     return {
         period: {
+            id: toId(revenuePeriod?._id),
             year,
             month,
             periodStart: revenuePeriod?.periodStart || periodStart,
@@ -344,6 +453,10 @@ const getRevenueDashboard = async (query = {}) => {
             artistPool,
             platformRevenue,
             successfulTransactions,
+            totalEligibleStreams: readRevenuePeriodNumber(
+                revenuePeriod,
+                "totalEligibleStreams"
+            ),
             undistributedArtistBalance,
         },
         charts: revenueChart,
@@ -452,11 +565,9 @@ const getRevenuePeriods = async (query = {}) => {
 };
 
 const getRevenuePeriodDetail = async (revenuePeriodId) => {
-    if (!mongoose.Types.ObjectId.isValid(revenuePeriodId)) {
-        throw new AppError("Revenue period id is invalid.", 400, { field: "id" });
-    }
-
     const { currentYear, currentMonth } = normalizeRevenueDashboardPeriod();
+
+    ensureRevenuePeriodId(revenuePeriodId);
 
     const revenuePeriod = await RevenuePeriod.findById(revenuePeriodId)
         .populate("confirmedBy", "email profile.fullName")
@@ -549,9 +660,339 @@ const triggerRevenueAggregation = async (payload = {}) => {
     return result;
 };
 
+const closeRevenuePeriod = async (revenuePeriodId) => {
+    const revenuePeriod = await findRevenuePeriodById(revenuePeriodId);
+
+    if (revenuePeriod.status !== "open") {
+        throw new AppError("Only open revenue period can be closed.", 400, {
+            field: "status",
+        });
+    }
+
+    const now = new Date();
+    const [transactionSummary, totalEligibleStreams] = await Promise.all([
+        aggregateRevenuePeriodTransactions(revenuePeriod),
+        countRevenuePeriodEligibleStreams(revenuePeriod),
+    ]);
+    const totalPremiumRevenue = transactionSummary.totalPremiumRevenue;
+    const totalArtistPool = calculateArtistPool(totalPremiumRevenue);
+    const totalPlatformRevenue = Math.max(
+        totalPremiumRevenue - totalArtistPool,
+        0
+    );
+
+    const updatedRevenuePeriod = await RevenuePeriod.findByIdAndUpdate(
+        revenuePeriod._id,
+        {
+            $set: {
+                totalPremiumRevenue,
+                totalArtistPool,
+                totalPlatformRevenue,
+                totalEligibleStreams,
+                successfulTransactions: transactionSummary.successfulTransactions,
+                status: "closed",
+                closedAt: now,
+                lastAggregatedAt: now,
+            },
+        },
+        { new: true, lean: true }
+    );
+
+    return {
+        periodId: toId(updatedRevenuePeriod._id),
+        status: updatedRevenuePeriod.status,
+        totalPremiumRevenue,
+        totalArtistPool,
+        totalPlatformRevenue,
+        totalEligibleStreams,
+        successfulTransactions: transactionSummary.successfulTransactions,
+    };
+};
+
+const calculateRevenueDistribution = async (revenuePeriodId) => {
+    const revenuePeriod = await findRevenuePeriodById(revenuePeriodId, {
+        lean: true,
+    });
+
+    if (revenuePeriod.status === "open") {
+        throw new AppError(
+            "Revenue period must be closed before calculation.",
+            400,
+            { field: "status" }
+        );
+    }
+
+    if (revenuePeriod.status === "calculated") {
+        throw new AppError("Revenue period has already been calculated.", 400, {
+            field: "status",
+        });
+    }
+
+    if (revenuePeriod.status === "confirmed") {
+        throw new AppError(
+            "Confirmed revenue period cannot be calculated again.",
+            400,
+            { field: "status" }
+        );
+    }
+
+    if (revenuePeriod.status !== "closed") {
+        throw new AppError(
+            "Only closed revenue period can be calculated.",
+            400,
+            { field: "status" }
+        );
+    }
+
+    if (readRevenuePeriodNumber(revenuePeriod, "totalEligibleStreams") <= 0) {
+        throw new AppError(
+            "Revenue period must have eligible streams before calculation.",
+            400,
+            { field: "totalEligibleStreams" }
+        );
+    }
+
+    if (readRevenuePeriodNumber(revenuePeriod, "totalArtistPool") < 0) {
+        throw new AppError("Revenue period artist pool is invalid.", 400, {
+            field: "totalArtistPool",
+        });
+    }
+
+    const now = new Date();
+    const [artistStreamSummaries, trackStreamSummaries] = await Promise.all([
+        aggregateEligibleStreamsByArtist(revenuePeriod),
+        aggregateEligibleStreamsByTrack(revenuePeriod),
+    ]);
+
+    const artistSummaryOperations = artistStreamSummaries
+        .filter((item) => item?._id)
+        .map((item) => {
+            const totalEligibleStreams = Number(item.totalEligibleStreams || 0);
+            const artistRevenueAmount = roundCurrency(
+                revenuePeriod.totalArtistPool *
+                    (totalEligibleStreams / revenuePeriod.totalEligibleStreams)
+            );
+
+            return {
+                updateOne: {
+                    filter: {
+                        artistId: item._id,
+                        year: revenuePeriod.year,
+                        month: revenuePeriod.month,
+                    },
+                    update: {
+                        $set: {
+                            totalEligibleStreams,
+                            artistRevenueAmount,
+                            status: "calculated",
+                            calculatedAt: now,
+                        },
+                        $setOnInsert: {
+                            artistId: item._id,
+                            year: revenuePeriod.year,
+                            month: revenuePeriod.month,
+                        },
+                    },
+                    upsert: true,
+                },
+            };
+        });
+
+    const trackRevenueOperations = trackStreamSummaries
+        .filter((item) => item?._id)
+        .map((item) => {
+            const eligibleStreams = Number(item.eligibleStreams || 0);
+            const revenueAmount = roundCurrency(
+                revenuePeriod.totalArtistPool *
+                    (eligibleStreams / revenuePeriod.totalEligibleStreams)
+            );
+
+            return {
+                updateOne: {
+                    filter: {
+                        trackId: item._id,
+                        year: revenuePeriod.year,
+                        month: revenuePeriod.month,
+                    },
+                    update: {
+                        $set: {
+                            revenueAmount,
+                            "revenue.eligibleStreams": eligibleStreams,
+                            "revenue.artistRevenueAmount": revenueAmount,
+                            "revenue.calculatedAt": now,
+                        },
+                        $setOnInsert: {
+                            trackId: item._id,
+                            year: revenuePeriod.year,
+                            month: revenuePeriod.month,
+                        },
+                    },
+                    upsert: true,
+                },
+            };
+        });
+
+    if (artistSummaryOperations.length > 0) {
+        await ArtistRevenueSummary.bulkWrite(artistSummaryOperations);
+    }
+
+    if (trackRevenueOperations.length > 0) {
+        await TrackMonthlyStat.bulkWrite(trackRevenueOperations);
+    }
+
+    await RevenuePeriod.findByIdAndUpdate(revenuePeriod._id, {
+        $set: {
+            status: "calculated",
+            calculatedAt: now,
+        },
+    });
+
+    return {
+        periodId: toId(revenuePeriod._id),
+        status: "calculated",
+        artistSummaryCount: artistSummaryOperations.length,
+        trackRevenueCount: trackRevenueOperations.length,
+    };
+};
+
+const confirmRevenueDistribution = async (revenuePeriodId, adminUserId) => {
+    ensureRevenuePeriodId(revenuePeriodId);
+
+    if (!adminUserId || !mongoose.Types.ObjectId.isValid(adminUserId)) {
+        throw new AppError("Admin user id is invalid.", 400, {
+            field: "userId",
+        });
+    }
+
+    const session = await mongoose.startSession();
+
+    try {
+        let result = null;
+
+        await session.withTransaction(async () => {
+            const revenuePeriod = await RevenuePeriod.findById(
+                revenuePeriodId
+            ).session(session);
+
+            if (!revenuePeriod) {
+                throw new AppError("Revenue period not found.", 404, {
+                    field: "id",
+                });
+            }
+
+            if (revenuePeriod.status === "confirmed") {
+                throw new AppError(
+                    "Revenue period has already been confirmed.",
+                    400,
+                    { field: "status" }
+                );
+            }
+
+            if (revenuePeriod.status !== "calculated") {
+                throw new AppError(
+                    "Revenue period must be calculated before confirmation.",
+                    400,
+                    { field: "status" }
+                );
+            }
+
+            const now = new Date();
+            const artistRevenueSummaries = await ArtistRevenueSummary.find({
+                year: revenuePeriod.year,
+                month: revenuePeriod.month,
+                status: "calculated",
+            })
+                .select("_id artistId artistRevenueAmount")
+                .session(session)
+                .lean();
+
+            const artistBalanceUpdates = artistRevenueSummaries
+                .filter(
+                    (summary) =>
+                        summary?.artistId &&
+                        Number(summary.artistRevenueAmount || 0) > 0
+                )
+                .map((summary) => ({
+                    updateOne: {
+                        filter: { _id: summary.artistId },
+                        update: {
+                            $inc: {
+                                "revenue.totalEarnedAmount": Number(
+                                    summary.artistRevenueAmount || 0
+                                ),
+                                "revenue.availableAmount": Number(
+                                    summary.artistRevenueAmount || 0
+                                ),
+                            },
+                        },
+                    },
+                }));
+
+            if (artistBalanceUpdates.length > 0) {
+                await Artist.bulkWrite(artistBalanceUpdates, { session });
+            }
+
+            if (artistRevenueSummaries.length > 0) {
+                await ArtistRevenueSummary.updateMany(
+                    {
+                        _id: {
+                            $in: artistRevenueSummaries.map((summary) => summary._id),
+                        },
+                    },
+                    {
+                        $set: {
+                            status: "confirmed",
+                        },
+                    },
+                    { session }
+                );
+            }
+
+            revenuePeriod.status = "confirmed";
+            revenuePeriod.confirmedAt = now;
+            revenuePeriod.confirmedBy = adminUserId;
+            await revenuePeriod.save({ session, validateBeforeSave: false });
+
+            result = {
+                periodId: toId(revenuePeriod._id),
+                status: revenuePeriod.status,
+                confirmedArtistCount: artistRevenueSummaries.length,
+                totalConfirmedAmount: roundCurrency(
+                    artistRevenueSummaries.reduce(
+                        (totalAmount, summary) =>
+                            totalAmount + Number(summary.artistRevenueAmount || 0),
+                        0
+                    )
+                ),
+            };
+        });
+
+        return result;
+    } catch (error) {
+        if (
+            error?.message?.includes(
+                "Transaction numbers are only allowed on a replica set member or mongos"
+            ) ||
+            error?.message?.includes("Transaction support")
+        ) {
+            throw new AppError(
+                "Revenue confirmation requires MongoDB transaction support.",
+                500
+            );
+        }
+
+        throw error;
+    } finally {
+        await session.endSession();
+    }
+};
+
 export default {
     getRevenueDashboard,
     getRevenuePeriods,
     getRevenuePeriodDetail,
     triggerRevenueAggregation,
+    closeRevenuePeriod,
+    calculateRevenueDistribution,
+    confirmRevenueDistribution,
 };

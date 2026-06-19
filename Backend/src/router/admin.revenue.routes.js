@@ -24,5 +24,20 @@ router.get(
     validate(adminRevenueValidation.revenuePeriodIdParamSchema, "params"),
     adminRevenueController.getRevenuePeriodDetail
 );
+router.post(
+    "/periods/:id/close",
+    validate(adminRevenueValidation.revenuePeriodIdParamSchema, "params"),
+    adminRevenueController.closeRevenuePeriod
+);
+router.post(
+    "/periods/:id/calculate",
+    validate(adminRevenueValidation.revenuePeriodIdParamSchema, "params"),
+    adminRevenueController.calculateRevenueDistribution
+);
+router.post(
+    "/periods/:id/confirm",
+    validate(adminRevenueValidation.revenuePeriodIdParamSchema, "params"),
+    adminRevenueController.confirmRevenueDistribution
+);
 
 export default router;

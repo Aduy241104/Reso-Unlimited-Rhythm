@@ -60,9 +60,59 @@ const triggerRevenueAggregation = async (req, res, next) => {
     }
 };
 
+const closeRevenuePeriod = async (req, res, next) => {
+    try {
+        const result = await adminRevenueService.closeRevenuePeriod(req.params.id);
+
+        return formatResponse.success(
+            res,
+            result,
+            "Revenue period closed successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+const calculateRevenueDistribution = async (req, res, next) => {
+    try {
+        const result = await adminRevenueService.calculateRevenueDistribution(
+            req.params.id
+        );
+
+        return formatResponse.success(
+            res,
+            result,
+            "Revenue distribution calculated successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+const confirmRevenueDistribution = async (req, res, next) => {
+    try {
+        const result = await adminRevenueService.confirmRevenueDistribution(
+            req.params.id,
+            req.user.id
+        );
+
+        return formatResponse.success(
+            res,
+            result,
+            "Revenue distribution confirmed successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getRevenueDashboard,
     getRevenuePeriods,
     getRevenuePeriodDetail,
     triggerRevenueAggregation,
+    closeRevenuePeriod,
+    calculateRevenueDistribution,
+    confirmRevenueDistribution,
 };
