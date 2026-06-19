@@ -27,6 +27,14 @@ const ArtistSchema = new Schema(
         stats: {
             followers: { type: Number, default: 0, min: 0 },
             totalStreams: { type: Number, default: 0, min: 0 },
+            monthlyListeners: { type: Number, default: 0, min: 0 },
+        },
+
+        revenue: {
+            totalEarnedAmount: Number,
+            totalWithdrawnAmount: Number,
+            availableAmount: Number,
+            pendingPayoutAmount: Number,
         },
 
         activeStatus: {

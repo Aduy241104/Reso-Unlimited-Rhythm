@@ -48,7 +48,7 @@ const LoginPage = () => {
       await login({ email: email.trim(), password });
       navigate(from, { replace: true });
     } catch (err) {
-      setError(err?.response?.data?.message || err?.message || "Login failed.");
+      setError(err?.response?.data?.message || err?.message || "Đăng nhập thất bại.");
     } finally {
       setLoading(false);
     }
@@ -63,7 +63,7 @@ const LoginPage = () => {
       navigate(from, { replace: true });
     } catch (err) {
       setError(
-        err?.response?.data?.message || err?.message || "Google login failed."
+        err?.response?.data?.message || err?.message || "Đăng nhập Google thất bại."
       );
     } finally {
       setLoading(false);
@@ -74,7 +74,7 @@ const LoginPage = () => {
     <main className="relative min-h-screen overflow-hidden bg-[#0f0f14] text-white">
       <img
         src={ loginBg }
-        alt="Login background"
+        alt="Hình nền đăng nhập"
         className="pointer-events-none absolute inset-y-0 left-[-12rem] hidden h-full w-[46rem] max-w-none object-cover object-left opacity-30 saturate-[0.85] lg:block xl:left-[-10rem] xl:w-[54rem]"
       />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_left,_rgba(245,182,111,0.32),_transparent_34%),radial-gradient(circle_at_top_right,_rgba(79,124,255,0.08),_transparent_24%),linear-gradient(110deg,_rgba(15,15,20,0.16)_0%,_rgba(15,15,20,0.65)_36%,_rgba(15,15,20,0.92)_64%,_rgba(15,15,20,1)_100%)]" />
@@ -87,21 +87,21 @@ const LoginPage = () => {
           <div className="hidden min-h-[640px] items-center lg:flex">
             <div className="max-w-[34rem] pl-2 xl:pl-8">
               <div className="inline-flex items-center rounded-full border border-[#f5b66f]/20 bg-white/5 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.32em] text-[#f5b66f]/90 shadow-[0_10px_35px_rgba(245,182,111,0.12)] backdrop-blur-md">
-                Dark Soundscape
+                Không gian âm nhạc
               </div>
 
               <div className="mt-8 space-y-3">
                 <h1 className="font-title text-6xl font-black uppercase leading-[0.92] text-white xl:text-7xl">
-                  <span className="block">Feel The</span>
+                  <span className="block">Cảm Nhận</span>
                   <span className="block bg-gradient-to-r from-[#ff9f43] via-[#f5b66f] to-[#9b6cff] bg-clip-text text-transparent">
-                    Rhythm
+                    Nhịp Điệu
                   </span>
                 </h1>
 
                 <div className="h-px w-14 bg-gradient-to-r from-[#f5b66f] to-[#d98235]" />
 
                 <p className="max-w-md text-xl leading-relaxed text-[#ece4da]">
-                  Music is the voice of the soul.
+                  Âm nhạc là tiếng nói của tâm hồn.
                 </p>
               </div>
 
@@ -138,10 +138,10 @@ const LoginPage = () => {
                     Reso Music
                   </p>
 
-                  <h1 className="font-title text-4xl font-black text-black">Login</h1>
+                  <h1 className="font-title text-4xl font-black text-black">Đăng nhập</h1>
 
                   <p className="mt-3 text-sm leading-6 text-black">
-                    Login to continue your music journey.
+                    Đăng nhập để tiếp tục hành trình âm nhạc của bạn.
                   </p>
                 </div>
 
@@ -175,12 +175,12 @@ const LoginPage = () => {
                   <div>
                     <div className="mb-2 flex items-center justify-between gap-3">
                       <label className="block text-sm font-semibold text-black">
-                        Password
+                        Mật khẩu
                       </label>
                     </div>
                     <input
                       type="password"
-                      placeholder="Password"
+                      placeholder="Mật khẩu"
                       value={ password }
                       onChange={ (event) => setPassword(event.target.value) }
                       disabled={ loading }
@@ -193,13 +193,13 @@ const LoginPage = () => {
                     disabled={ loading }
                     className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#f5b66f] via-[#d98235] to-[#17131a] px-6 py-3.5 text-base font-semibold text-white shadow-[0_18px_45px_rgba(245,158,66,0.28)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_24px_60px_rgba(245,158,66,0.26)] disabled:cursor-not-allowed disabled:opacity-70"
                   >
-                    { loading ? "Signing in..." : "Sign In" }
+                    { loading ? "Đang đăng nhập..." : "Đăng nhập" }
                   </button>
                 </form>
 
                 <div className="my-6 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.28em] text-[#6b6573]">
                   <div className="h-px flex-1 bg-black/10" />
-                  <span>Or continue with</span>
+                  <span>Hoặc tiếp tục với</span>
                   <div className="h-px flex-1 bg-black/10" />
                 </div>
 
@@ -209,13 +209,13 @@ const LoginPage = () => {
                 />
 
                 <p className="mt-7 text-center text-sm text-[#d9d5cf]">
-                  Don&apos;t have an account?{ " " }
+                  Chưa có tài khoản?{ " " }
                   <button
                     type="button"
                     onClick={ () => navigate(routePaths.register) }
                     className="font-semibold text-black transition hover:text-[#ffd3a0]"
                   >
-                    Create one
+                    Tạo tài khoản
                   </button>
                   <br />
                   <button
@@ -223,7 +223,7 @@ const LoginPage = () => {
                     onClick={ () => navigate(routePaths.forgotPassword) }
                     className="text-xs font-semibold text-black transition hover:text-[#ffd3a0]"
                   >
-                    Forgot password?
+                    Quên mật khẩu?
                   </button>
                 </p>
               </div>

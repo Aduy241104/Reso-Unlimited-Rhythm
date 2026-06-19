@@ -35,8 +35,8 @@ const LyricsPage = () => {
 
   const hasLyrics = lyricsLines.length > 0;
   const hasLyricsSource = Boolean(currentTrack?.lyricsSyncUrl);
-  const trackTitle = currentTrack?.title || "No track selected";
-  const trackArtistName = currentTrack?.artistName || "Unknown artist";
+  const trackTitle = currentTrack?.title || "Chưa chọn bài hát";
+  const trackArtistName = currentTrack?.artistName || "Nghệ sĩ không xác định";
   const lyricTheme = getLyricsThemeByIndex(currentTrack?.lyricsThemeIndex);
 
   return (
@@ -50,7 +50,7 @@ const LyricsPage = () => {
           py-2 text-xs font-medium text-inherit sm:text-sm"
         >
           <ArrowLeft className="h-4 w-4" />
-          <span>Back</span>
+          <span>Quay lại</span>
         </Link>
       </div>
 
@@ -69,7 +69,7 @@ const LyricsPage = () => {
                 className="text-base leading-8"
                 style={{ color: lyricTheme.emptyText }}
               >
-                No track is playing right now.
+                Hiện chưa có bài hát nào đang phát.
               </p>
             ) : isLyricsLoading ? (
               <div
@@ -77,7 +77,7 @@ const LyricsPage = () => {
                 style={{ color: lyricTheme.supportText }}
               >
                 <LoaderCircle className="h-5 w-5 animate-spin" />
-                <span>Loading synced lyrics...</span>
+                <span>Đang tải lời bài hát đồng bộ...</span>
               </div>
             ) : lyricsErrorMessage ? (
               <p className="text-base leading-8 text-[#fca5a5]">{ lyricsErrorMessage }</p>
@@ -86,14 +86,14 @@ const LyricsPage = () => {
                 className="text-base leading-8"
                 style={{ color: lyricTheme.emptyText }}
               >
-                This track does not have a `lyricsSyncUrl` yet.
+                Bài hát này chưa có `lyricsSyncUrl`.
               </p>
             ) : !hasLyrics ? (
               <p
                 className="text-base leading-8"
                 style={{ color: lyricTheme.emptyText }}
               >
-                Synced lyrics were loaded, but the LRC file has no lyric lines.
+                Đã tải lời bài hát đồng bộ nhưng tệp LRC chưa có dòng lời nào.
               </p>
             ) : (
               <div className="space-y-3 pb-8 pt-2">

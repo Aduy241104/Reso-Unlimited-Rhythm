@@ -13,7 +13,7 @@ dayjs.extend(timezone);
 
 const DATE_KEY_FORMAT = "YYYY-MM-DD";
 const DEFAULT_RANGE = "30d";
-const ALLOWED_RANGES = new Set(["7d", "30d", "90d", "custom"]);
+const ALLOWED_RANGES = new Set(["7d", "30d", "all", "custom"]);
 
 const roundToTwoDecimals = (value) => Number(Number(value || 0).toFixed(2));
 const convertSecondsToMinutes = (value) => roundToTwoDecimals(Number(value || 0) / 60);
@@ -56,11 +56,56 @@ const resolveArtistProfile = async (userId) => {
     return artist;
 };
 
+const resolveAllTimePeriod = async (artistId) => {
+    const [result] = await ListenEvent.aggregate([
+        {
+            $match: {
+                artistId,
+                isValidStream: true,
+                listenedAt: { $exists: true, $ne: null },
+            },
+        },
+        {
+            $group: {
+                _id: null,
+                earliestListenedAt: { $min: "$listenedAt" },
+            },
+        },
+        {
+            $project: {
+                _id: 0,
+                earliestListenedAt: 1,
+            },
+        },
+    ]);
+
+    const today = getTodayInAnalyticsTimezone();
+    const fromDate = result?.earliestListenedAt
+        ? dayjs(result.earliestListenedAt)
+            .tz(getAnalyticsTimezone())
+            .startOf("day")
+        : today;
+
+    return {
+        from: fromDate.format(DATE_KEY_FORMAT),
+        to: today.format(DATE_KEY_FORMAT),
+        range: "all",
+    };
+};
+
 const resolveOverviewPeriod = ({ range, from, to }) => {
     const normalizedRange = String(range || DEFAULT_RANGE).trim();
 
     if (!ALLOWED_RANGES.has(normalizedRange)) {
         throw new AppError("Invalid analytics range", StatusCodes.BAD_REQUEST);
+    }
+
+    if (normalizedRange === "all") {
+        return {
+            from: null,
+            to: null,
+            range: normalizedRange,
+        };
     }
 
     if (normalizedRange === "custom") {
@@ -142,15 +187,29 @@ const fetchTopTrackPerformanceStats = async ({ artistId, from, to }) =>
         {
             $group: {
                 _id: "$trackId",
-                playCount: { $sum: 1 },
-                uniqueListeners: { $addToSet: "$userId" },
-                averageListenDuration: {
-                    $avg: {
-                        $ifNull: [
-                            "$listenedDuration",
+                playCount: {
+                    $sum: {
+                        $cond: [{ $eq: ["$isValidStream", true] }, 1, 0],
+                    },
+                },
+                uniqueListeners: {
+                    $addToSet: {
+                        $cond: [{ $eq: ["$isValidStream", true] }, "$userId", null],
+                    },
+                },
+                totalListenDuration: {
+                    $sum: {
+                        $cond: [
+                            { $eq: ["$isValidStream", true] },
                             {
-                                $ifNull: ["$duration", 0],
+                                $ifNull: [
+                                    "$listenedDuration",
+                                    {
+                                        $ifNull: ["$duration", 0],
+                                    },
+                                ],
                             },
+                            0,
                         ],
                     },
                 },
@@ -172,8 +231,22 @@ const fetchTopTrackPerformanceStats = async ({ artistId, from, to }) =>
                 _id: 0,
                 trackId: "$_id",
                 playCount: 1,
-                uniqueListeners: { $size: "$uniqueListeners" },
-                averageListenDuration: 1,
+                uniqueListeners: {
+                    $size: {
+                        $filter: {
+                            input: "$uniqueListeners",
+                            as: "listenerId",
+                            cond: { $ne: ["$$listenerId", null] },
+                        },
+                    },
+                },
+                averageListenDuration: {
+                    $cond: [
+                        { $gt: ["$playCount", 0] },
+                        { $divide: ["$totalListenDuration", "$playCount"] },
+                        0,
+                    ],
+                },
                 skipCount: 1,
                 completedCount: 1,
                 lastListenedAt: 1,
@@ -195,8 +268,11 @@ export const getTopPerformingTracks = async ({
     from,
     to,
 }) => {
-    const period = resolveOverviewPeriod({ range, from, to });
     const artist = await resolveArtistProfile(userId);
+    const basePeriod = resolveOverviewPeriod({ range, from, to });
+    const period = basePeriod.range === "all"
+        ? await resolveAllTimePeriod(artist._id)
+        : basePeriod;
     const performanceStats = await fetchTopTrackPerformanceStats({
         artistId: artist._id,
         from: period.from,

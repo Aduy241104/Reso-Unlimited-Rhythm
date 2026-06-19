@@ -5,7 +5,7 @@ import {
   useUserProfileCard,
 } from "./UserProfileCard";
 
-const FALLBACK_TEXT = "Not provided";
+const FALLBACK_TEXT = "Chưa cập nhật";
 
 const normalizeText = (value) => {
   if (typeof value !== "string") {
@@ -100,12 +100,11 @@ const UserProfileAvatar = ({ avatar, fullName, email }) => {
         </h2>
 
         <p className="mt-4 max-w-xs text-sm leading-7 text-gray-400">
-          "Your identity stays in rhythm with every session, every playlist, and
-          every discovery."
+          Hồ sơ của bạn luôn đồng hành cùng mọi phiên nghe, mọi playlist và mọi khám phá mới.
         </p>
 
         <p className="mt-6 text-xs font-medium uppercase tracking-[0.24em] text-gray-500">
-          Thank you for using our services.
+          Cảm ơn bạn đã đồng hành cùng chúng tôi.
         </p>
       </div>
     </div>

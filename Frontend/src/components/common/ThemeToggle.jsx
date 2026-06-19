@@ -2,23 +2,40 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faMoon, faSun } from "@fortawesome/free-solid-svg-icons";
 import { useTheme } from "../../hooks/useTheme";
 
-const ThemeToggle = () => {
+const ThemeToggle = ({ variant = "default" }) => {
   const { isDark, toggleTheme } = useTheme();
+  const isMenuVariant = variant === "menu";
+  const ariaLabel = isDark
+    ? "Chuyển sang giao diện sáng"
+    : "Chuyển sang giao diện tối";
+  const shortLabel = isDark ? "Sáng" : "Tối";
+  const menuLabel = isDark
+    ? "Chuyển sang giao diện sáng"
+    : "Chuyển sang giao diện tối";
 
   return (
     <button
       type="button"
-      onClick={toggleTheme}
-      aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
-      className={[
-        "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-medium transition sm:w-auto sm:gap-2 sm:px-3",
-        isDark
-          ? "border-[#f5b66f]/10 bg-[#1c1820] text-[#f7f1ea] hover:bg-[#241f28]"
-          : "border-[#e7ddd2] bg-white text-[#111111] hover:bg-[#f7f7f7]",
-      ].join(" ")}
+      onClick={ toggleTheme }
+      aria-label={ ariaLabel }
+      className={
+        isMenuVariant
+          ? [
+              "flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[11px] font-normal transition sm:text-xs",
+              isDark ? "text-[#f7f1ea]" : "text-[#111111]",
+            ].join(" ")
+          : [
+              "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-medium transition sm:w-auto sm:gap-2 sm:px-3",
+              isDark
+                ? "border-[#f5b66f]/10 bg-[#1c1820] text-[#f7f1ea] hover:bg-[#241f28]"
+                : "border-[#e7ddd2] bg-white text-[#111111] hover:bg-[#f7f7f7]",
+            ].join(" ")
+      }
     >
       <FontAwesomeIcon icon={ isDark ? faSun : faMoon } className="text-xs" />
-      <span className="hidden sm:inline">{ isDark ? "Light" : "Dark" }</span>
+      <span className={ isMenuVariant ? "inline" : "hidden sm:inline" }>
+        { isMenuVariant ? menuLabel : shortLabel }
+      </span>
     </button>
   );
 };

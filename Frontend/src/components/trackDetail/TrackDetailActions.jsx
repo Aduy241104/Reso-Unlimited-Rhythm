@@ -22,7 +22,7 @@ const TrackDetailActions = ({
     <button
       type="button"
       onClick={ onPlay }
-      aria-label="Play track"
+      aria-label="Phát bài hát"
       className="
         inline-flex h-14 w-14 items-center justify-center self-start rounded-full bg-gradient-to-br from-[#ff8a3d] via-[#ff4fd8] to-[#7b61ff]
         text-black shadow-[0_18px_38px_rgba(30,215,96,0.28)] transition
@@ -34,15 +34,15 @@ const TrackDetailActions = ({
 
     <button type="button" onClick={ onAddToLibrary } className={ secondaryActionClassName }>
       <CirclePlus className="h-4.5 w-4.5" />
-      Add to Library
+      Thêm vào thư viện
     </button>
 
     <button type="button" onClick={ onDownload } className={ secondaryActionClassName }>
       <Download className="h-4.5 w-4.5" />
-      Download
+      Tải xuống
     </button>
 
-    <button type="button" onClick={ onMore } aria-label="More options" className={ iconActionClassName }>
+    <button type="button" onClick={ onMore } aria-label="Tùy chọn khác" className={ iconActionClassName }>
       <MoreHorizontal className="h-5 w-5" />
     </button>
   </section>

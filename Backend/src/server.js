@@ -31,6 +31,7 @@ import {
     runSubscriptionMaintenance,
     startSubscriptionMaintenanceCron,
 } from "./jobs/subscriptionMaintenance.cron.js";
+import { startRevenueAggregationCron } from "./jobs/revenueAggregation.cron.js";
 
 dotenv.config();
 const app = express();
@@ -77,6 +78,7 @@ const startServer = async () => {
         startListenEventSyncCron();
         startReleaseScheduleCron();
         startSubscriptionMaintenanceCron();
+        startRevenueAggregationCron();
 
 
     } catch (error) {

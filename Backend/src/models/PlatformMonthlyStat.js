@@ -25,13 +25,13 @@ const PlatformMonthlyStatSchema = new Schema(
             totalListeningTime: { type: Number, default: 0, min: 0 },
         },
 
-        revenueStats: {
-            totalPremiumRevenue: { type: Number, default: 0, min: 0 },
-            totalArtistPool: { type: Number, default: 0, min: 0 },
-            totalPlatformRevenue: { type: Number, default: 0, min: 0 },
-            totalSuccessfulTransactions: { type: Number, default: 0, min: 0 },
-            totalRefundedAmount: { type: Number, default: 0, min: 0 },
-        },
+        // revenueStats: {
+        //     totalPremiumRevenue: { type: Number, default: 0, min: 0 },
+        //     totalArtistPool: { type: Number, default: 0, min: 0 },
+        //     totalPlatformRevenue: { type: Number, default: 0, min: 0 },
+        //     totalSuccessfulTransactions: { type: Number, default: 0, min: 0 },
+        //     totalRefundedAmount: { type: Number, default: 0, min: 0 },
+        // },
 
         dailyStats: [{
             date: { type: String, required: true },

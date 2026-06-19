@@ -1,4 +1,5 @@
 import axiosClient from "../axios/axiosClient";
+import { getFollowedArtists } from "./libaryService";
 import {
   formatCompactNumber,
   formatDuration,
@@ -19,6 +20,68 @@ const resolveArtistImage = (profile, fieldNames = []) =>
 const resolveProfileSource = (payload) =>
   payload?.artist || payload?.profile || payload?.user || payload || null;
 
+const normalizeBooleanLikeValue = (candidate) => {
+  if (typeof candidate === "boolean") {
+    return candidate;
+  }
+
+  if (typeof candidate === "number") {
+    if (candidate === 1) {
+      return true;
+    }
+
+    if (candidate === 0) {
+      return false;
+    }
+  }
+
+  if (typeof candidate === "string") {
+    const normalizedCandidate = candidate.trim().toLowerCase();
+
+    if (
+      [
+        "true",
+        "1",
+        "followed",
+        "following",
+        "active",
+        "enabled",
+      ].includes(normalizedCandidate)
+    ) {
+      return true;
+    }
+
+    if (
+      [
+        "false",
+        "0",
+        "unfollowed",
+        "not_following",
+        "not-following",
+        "inactive",
+        "disabled",
+        "none",
+      ].includes(normalizedCandidate)
+    ) {
+      return false;
+    }
+  }
+
+  return undefined;
+};
+
+const resolveIsFollowingValue = (...candidates) => {
+  for (const candidate of candidates) {
+    const normalizedCandidate = normalizeBooleanLikeValue(candidate);
+
+    if (typeof normalizedCandidate === "boolean") {
+      return normalizedCandidate;
+    }
+  }
+
+  return undefined;
+};
+
 const extractFollowPayload = (response) =>
   response?.data?.data?.follow ||
   response?.data?.data?.status ||
@@ -26,6 +89,26 @@ const extractFollowPayload = (response) =>
   response?.data?.follow ||
   response?.data ||
   null;
+
+const getArtistIdentityCandidates = (artist) =>
+  [
+    artist?.artistId,
+    artist?.id,
+    artist?._id,
+    artist?.slug,
+    artist?.artistSlug,
+  ]
+    .filter((value) => value !== null && value !== undefined && String(value).trim())
+    .map((value) => String(value).trim().toLowerCase());
+
+const isSameArtist = (artist, artistId) => {
+  if (!artistId) {
+    return false;
+  }
+
+  const normalizedArtistId = String(artistId).trim().toLowerCase();
+  return getArtistIdentityCandidates(artist).includes(normalizedArtistId);
+};
 
 const normalizeReleaseType = (item) =>
   item?.type || item?.releaseType || item?.category || item?.format || "Release";
@@ -117,11 +200,32 @@ const normalizeProfile = (payload) => {
     role: profile?.role || "artist",
     location: profile?.location || profile?.country || profile?.city || "",
     isFollowing:
-      payload?.isFollowing ??
-      payload?.follow?.isFollowing ??
-      profile?.isFollowing ??
-      profile?.follow?.isFollowing ??
-      false,
+      resolveIsFollowingValue(
+        payload?.isFollowing,
+        payload?.following,
+        payload?.followed,
+        payload?.isFollowed,
+        payload?.hasFollowed,
+        payload?.followStatus,
+        payload?.follow?.isFollowing,
+        payload?.follow?.following,
+        payload?.follow?.followed,
+        payload?.follow?.isFollowed,
+        payload?.follow?.hasFollowed,
+        payload?.follow?.followStatus,
+        profile?.isFollowing,
+        profile?.following,
+        profile?.followed,
+        profile?.isFollowed,
+        profile?.hasFollowed,
+        profile?.followStatus,
+        profile?.follow?.isFollowing,
+        profile?.follow?.following,
+        profile?.follow?.followed,
+        profile?.follow?.isFollowed,
+        profile?.follow?.hasFollowed,
+        profile?.follow?.followStatus
+      ),
   };
 };
 
@@ -129,11 +233,21 @@ const normalizeFollowState = (payload, fallback = {}) => ({
   artistId:
     payload?.artistId || payload?.id || payload?._id || fallback.artistId || "",
   isFollowing:
-    payload?.isFollowing ??
-    payload?.following ??
-    payload?.isFollowed ??
-    fallback.isFollowing ??
-    false,
+    resolveIsFollowingValue(
+      payload?.isFollowing,
+      payload?.following,
+      payload?.followed,
+      payload?.isFollowed,
+      payload?.hasFollowed,
+      payload?.followStatus,
+      payload?.follow?.isFollowing,
+      payload?.follow?.following,
+      payload?.follow?.followed,
+      payload?.follow?.isFollowed,
+      payload?.follow?.hasFollowed,
+      payload?.follow?.followStatus,
+      fallback.isFollowing
+    ),
   followers: getMetricValue(
     payload?.followers ??
       payload?.followersCount ??
@@ -191,6 +305,16 @@ const buildComingReleasesFromApi = (comingReleases = []) =>
   comingReleases
     .map((release, index) => ({
       id: release?.id || `coming-release-${index}`,
+      trackId:
+        release?.trackId ||
+        release?.item?.trackId ||
+        release?.item?.id ||
+        "",
+      albumId:
+        release?.albumId ||
+        release?.item?.albumId ||
+        release?.item?.id ||
+        "",
       type: release?.type === "single" ? "Single" : "Album",
       sourceType: release?.sourceType || release?.type || "release",
       scheduledAt: release?.scheduledAt || null,
@@ -254,6 +378,51 @@ const getPublicArtistProfileService = async (artistId) => {
   return null;
 };
 
+const getArtistFollowStateFromLibraryService = async ({ artistId } = {}) => {
+  if (!artistId) {
+    return null;
+  }
+
+  const limit = 100;
+  const maxPages = 20;
+  let page = 1;
+  let totalPages = 1;
+
+  while (page <= totalPages && page <= maxPages) {
+    const response = await getFollowedArtists({ page, limit });
+    const artists = Array.isArray(response?.artists) ? response.artists : [];
+
+    if (artists.some((artist) => isSameArtist(artist, artistId))) {
+      return {
+        artistId,
+        isFollowing: true,
+      };
+    }
+
+    const pagination = response?.pagination ?? {};
+    const resolvedTotalPages = Number(
+      pagination.totalPages ?? pagination.pages ?? pagination.totalPage ?? totalPages
+    );
+    const nextTotalPages = Number.isFinite(resolvedTotalPages)
+      ? resolvedTotalPages
+      : artists.length === limit
+        ? page + 1
+        : page;
+
+    if (!artists.length || !Number.isFinite(nextTotalPages) || nextTotalPages <= page) {
+      break;
+    }
+
+    totalPages = nextTotalPages;
+    page += 1;
+  }
+
+  return {
+    artistId,
+    isFollowing: false,
+  };
+};
+
 export const getArtistFollowStatusService = async ({ artistId } = {}) => {
   const encodedArtistId = encodeURIComponent(artistId);
   const endpoints = [
@@ -265,7 +434,13 @@ export const getArtistFollowStatusService = async ({ artistId } = {}) => {
   for (const endpoint of endpoints) {
     try {
       const response = await axiosClient.get(endpoint);
-      return normalizeFollowState(extractFollowPayload(response), { artistId });
+      const followState = normalizeFollowState(extractFollowPayload(response), {
+        artistId,
+      });
+
+      if (typeof followState.isFollowing === "boolean") {
+        return followState;
+      }
     } catch (error) {
       const status = error?.response?.status;
 
@@ -279,7 +454,7 @@ export const getArtistFollowStatusService = async ({ artistId } = {}) => {
     }
   }
 
-  return null;
+  return getArtistFollowStateFromLibraryService({ artistId });
 };
 
 export const followArtistService = async ({ artistId } = {}) => {

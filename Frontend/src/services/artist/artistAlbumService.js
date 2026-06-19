@@ -35,6 +35,19 @@ export const editAlbumService = async (albumId, payload) => {
   return response?.data?.data?.album ?? null;
 };
 
+export const publishAlbumService = async (albumId) => {
+  const payload = new FormData();
+  payload.append("status", "active");
+
+  const response = await axiosClient.patch(`${ARTIST_ALBUM_API_PREFIX}/${albumId}`, payload, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  return response?.data?.data?.album ?? null;
+};
+
 export const hideAlbumService = async (albumId) => {
   const response = await axiosClient.patch(`${ARTIST_ALBUM_API_PREFIX}/${albumId}/hide`);
   return response?.data?.data?.album ?? null;

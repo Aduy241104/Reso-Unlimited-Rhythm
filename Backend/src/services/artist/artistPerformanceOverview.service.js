@@ -5,18 +5,17 @@ import { StatusCodes } from "http-status-codes";
 import Artist from "../../models/Artist.js";
 import ArtistDailyStat from "../../models/ArtistDailyStat.js";
 import ListenEvent from "../../models/ListenEvent.js";
+import Track from "../../models/Track.js";
 import User from "../../models/User.js";
 import { getAnalyticsTimezone } from "../analytics/trackStatAggregation.service.js";
 import { AppError } from "../../utils/AppError.js";
-import artistListenerBehaviorInsightsService from "./artistListenerBehaviorInsights.service.js";
-import artistTopPerformingTracksService from "./artistTopPerformingTracks.service.js";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
 const DATE_KEY_FORMAT = "YYYY-MM-DD";
 const DEFAULT_RANGE = "30d";
-const ALLOWED_RANGES = new Set(["7d", "30d", "90d"]);
+const ALLOWED_RANGES = new Set(["7d", "30d", "all"]);
 const YEAR_SERIES_LENGTH = 5;
 const UNKNOWN_REGION_LABEL = "Không xác định";
 const UNKNOWN_AGE_GROUP_KEY = "unknown";
@@ -44,7 +43,7 @@ const resolveSnapshotAndLiveBoundaries = ({ startDate, endDateExclusive }) => {
 };
 
 const resolveArtistProfile = async (userId) => {
-    const artist = await Artist.findOne({ userId }).select("_id name").lean();
+    const artist = await Artist.findOne({ userId }).select("_id name stats").lean();
 
     if (!artist) {
         throw new AppError("Artist profile not found.", StatusCodes.NOT_FOUND);
@@ -75,6 +74,47 @@ const resolveYear = (year) => {
     }
 
     return normalizedYear;
+};
+
+const resolveAllTimePeriod = async (artistId) => {
+    const [result] = await ListenEvent.aggregate([
+        {
+            $match: {
+                artistId,
+                isValidStream: true,
+                listenedAt: { $exists: true, $ne: null },
+            },
+        },
+        {
+            $group: {
+                _id: null,
+                earliestListenedAt: { $min: "$listenedAt" },
+            },
+        },
+        {
+            $project: {
+                _id: 0,
+                earliestListenedAt: 1,
+            },
+        },
+    ]);
+
+    const today = getTodayInAnalyticsTimezone();
+    const from = result?.earliestListenedAt
+        ? dayjs(result.earliestListenedAt)
+            .tz(getAnalyticsTimezone())
+            .startOf("day")
+        : today;
+
+    return {
+        from,
+        to: today,
+        range: "all",
+        fromDateKey: from.format(DATE_KEY_FORMAT),
+        toDateKey: today.format(DATE_KEY_FORMAT),
+        startDate: from.toDate(),
+        endDateExclusive: today.add(1, "day").toDate(),
+    };
 };
 
 const resolveRangePeriod = (range) => {
@@ -145,6 +185,7 @@ const aggregatePeriodSummary = async ({ artistId, startDate, endDateExclusive })
         {
             $match: {
                 artistId,
+                isValidStream: true,
                 listenedAt: {
                     $gte: startDate,
                     $lt: endDateExclusive,
@@ -214,6 +255,7 @@ const aggregatePeriodStreamCount = async ({
                 {
                     $match: {
                         artistId,
+                        isValidStream: true,
                         listenedAt: {
                             $gte: liveStartDate,
                             $lt: endDateExclusive,
@@ -265,6 +307,7 @@ const aggregateDailyStats = async ({ artistId, startDate, endDateExclusive }) =>
                     {
                         $match: {
                             artistId,
+                            isValidStream: true,
                             listenedAt: {
                                 $gte: liveStartDate,
                                 $lt: endDateExclusive,
@@ -395,6 +438,7 @@ const aggregateMonthlyStats = async ({ artistId, startDate, endDateExclusive }) 
                     {
                         $match: {
                             artistId,
+                            isValidStream: true,
                             listenedAt: {
                                 $gte: liveStartDate,
                                 $lt: endDateExclusive,
@@ -506,6 +550,7 @@ const aggregateYearlyStats = async ({ artistId, startDate, endDateExclusive }) =
                     {
                         $match: {
                             artistId,
+                            isValidStream: true,
                             listenedAt: {
                                 $gte: liveStartDate,
                                 $lt: endDateExclusive,
@@ -569,6 +614,7 @@ const aggregateAvailableYears = async ({ artistId }) => {
         {
             $match: {
                 artistId,
+                isValidStream: true,
             },
         },
         {
@@ -727,6 +773,7 @@ const aggregateAudienceProfiles = async ({ artistId, startDate, endDateExclusive
         {
             $match: {
                 artistId,
+                isValidStream: true,
                 userId: { $exists: true, $ne: null },
                 listenedAt: {
                     $gte: startDate,
@@ -780,47 +827,21 @@ export const getArtistPerformanceOverview = async ({
     const artist = await resolveArtistProfile(userId);
     const selectedRange = resolveRange(range);
     const selectedYear = resolveYear(year);
-    const dailyPeriod = resolveRangePeriod(selectedRange);
+    const dailyPeriod = selectedRange === "all"
+        ? await resolveAllTimePeriod(artist._id)
+        : resolveRangePeriod(selectedRange);
     const monthlyPeriod = resolveMonthlyPeriod(selectedYear);
     const currentYear = getTodayInAnalyticsTimezone().year();
     const yearlyPeriod = resolveYearlyPeriod(currentYear);
     const yearSeries = buildYearSeries(currentYear);
-    const currentMonthPeriod = resolveCurrentMonthPeriod();
-    const currentYearPeriod = resolveCurrentYearPeriod();
 
     const [
-        rangeSummary,
-        selectedRangeStreams,
-        currentMonthStreams,
-        currentYearStreams,
         dailyStats,
         monthlyStats,
         yearlyStats,
         availableYears,
-        audienceProfiles,
-        listenerBehavior,
-        topPerformingTracks,
+        trackCount,
     ] = await Promise.all([
-        aggregatePeriodSummary({
-            artistId: artist._id,
-            startDate: dailyPeriod.startDate,
-            endDateExclusive: dailyPeriod.endDateExclusive,
-        }),
-        aggregatePeriodStreamCount({
-            artistId: artist._id,
-            startDate: dailyPeriod.startDate,
-            endDateExclusive: dailyPeriod.endDateExclusive,
-        }),
-        aggregatePeriodStreamCount({
-            artistId: artist._id,
-            startDate: currentMonthPeriod.startDate,
-            endDateExclusive: currentMonthPeriod.endDateExclusive,
-        }),
-        aggregatePeriodStreamCount({
-            artistId: artist._id,
-            startDate: currentYearPeriod.startDate,
-            endDateExclusive: currentYearPeriod.endDateExclusive,
-        }),
         aggregateDailyStats({
             artistId: artist._id,
             startDate: dailyPeriod.startDate,
@@ -839,17 +860,8 @@ export const getArtistPerformanceOverview = async ({
         aggregateAvailableYears({
             artistId: artist._id,
         }),
-        aggregateAudienceProfiles({
-            artistId: artist._id,
-            startDate: dailyPeriod.startDate,
-            endDateExclusive: dailyPeriod.endDateExclusive,
-        }),
-        artistListenerBehaviorInsightsService.getArtistListenerBehaviorInsights({
-            userId,
-        }),
-        artistTopPerformingTracksService.getTopPerformingTracks({
-            userId,
-            range: selectedRange,
+        Track.countDocuments({
+            artist_artistId: artist._id,
         }),
     ]);
 
@@ -866,14 +878,6 @@ export const getArtistPerformanceOverview = async ({
         stats: yearlyStats,
         years: yearSeries,
     });
-    const audienceReferenceDate = dailyPeriod.to.endOf("day");
-    const ageGroups = buildAgeGroupBreakdown({
-        listeners: audienceProfiles,
-        referenceDate: audienceReferenceDate,
-    });
-    const regions = buildRegionBreakdown({
-        listeners: audienceProfiles,
-    });
 
     return {
         artist: {
@@ -888,22 +892,13 @@ export const getArtistPerformanceOverview = async ({
         selectedYear,
         availableYears,
         summary: {
-            selectedRangeStreams,
-            selectedRangeUniqueListeners: rangeSummary.uniqueListeners,
-            currentMonthStreams,
-            currentYearStreams,
-            selectedYearStreams: sumStreamCount(filledMonthlyStats),
+            followers: Number(artist?.stats?.followers || 0),
+            trackCount: Number(trackCount || 0),
+            totalStreams: Number(artist?.stats?.totalStreams || 0),
         },
         dailyStats: filledDailyStats,
         monthlyStats: filledMonthlyStats,
         yearlyStats: filledYearlyStats,
-        audience: {
-            totalListeners: audienceProfiles.length,
-            ageGroups,
-            regions,
-        },
-        listenerBehavior,
-        topPerformingTracks,
     };
 };
 

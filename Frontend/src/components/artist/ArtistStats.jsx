@@ -3,14 +3,14 @@ import { formatCompactNumber, formatFullNumber } from "../../utils/artistProfile
 const ArtistStats = ({ monthlyListeners, followers }) => {
   const items = [
     {
-      label: "Monthly listeners",
+      label: "Người nghe hằng tháng",
       value: formatFullNumber(monthlyListeners),
-      detail: `${formatCompactNumber(monthlyListeners)} active reach`,
+      detail: `${formatCompactNumber(monthlyListeners)} lượng tiếp cận`,
     },
     {
-      label: "Followers",
+      label: "Người theo dõi",
       value: formatFullNumber(followers),
-      detail: `${formatCompactNumber(followers)} loyal audience`,
+      detail: `${formatCompactNumber(followers)} khán giả trung thành`,
     },
   ];
 

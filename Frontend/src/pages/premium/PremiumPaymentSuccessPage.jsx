@@ -136,7 +136,7 @@ const PremiumPaymentSuccessPage = () => {
         setErrorMessage(
           getApiErrorMessage(
             error,
-            "Thanh toan thanh cong nhung chua the cap nhat trang thai premium."
+            "Thanh toán thành công nhưng chưa thể cập nhật trạng thái Premium."
           )
         );
       } finally {
