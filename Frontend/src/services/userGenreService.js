@@ -12,6 +12,19 @@ export const getUserGenres = async () => {
   return response?.data;
 };
 
+export const getUserGenreTracks = async (genreId, page = 1, limit = 20) => {
+  const response = await axiosClient.get(
+    `${USER_GENRE_API_PATH}/${genreId}/tracks?page=${page}&limit=${limit}`
+  );
+
+  if (response?.data?.data) {
+    return response.data.data;
+  }
+
+  return response?.data;
+};
+
 export default {
   getUserGenres,
+  getUserGenreTracks,
 };

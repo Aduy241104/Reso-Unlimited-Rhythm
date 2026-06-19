@@ -1,3 +1,6 @@
+import { useNavigate } from "react-router-dom";
+import { routePaths } from "../../routes/routePaths";
+
 const GENRE_CARD_COLORS = [
   "#E133A1",
   "#1E3264",
@@ -10,7 +13,9 @@ const GENRE_CARD_COLORS = [
 ];
 
 const getGenreCardColor = (genre) => {
-  const source = String(genre?.genreId || genre?.id || genre?.name || "genre");
+  const source = String(
+    genre?._id || genre?.genreId || genre?.id || genre?.name || "genre"
+  );
 
   let hash = 0;
 
@@ -22,6 +27,8 @@ const getGenreCardColor = (genre) => {
 };
 
 const GenreCard = ({ genre }) => {
+  const navigate = useNavigate();
+  const genreId = genre?._id || genre?.genreId || genre?.id || "";
   const genreName =
     typeof genre?.name === "string" && genre.name.trim()
       ? genre.name.trim()
@@ -31,8 +38,17 @@ const GenreCard = ({ genre }) => {
       ? genre.image.trim()
       : "";
 
+  const handleOpenGenre = () => {
+    if (!genreId) {
+      return;
+    }
+
+    navigate(routePaths.userGenreDetail(genreId));
+  };
+
   return (
     <article
+      onClick={ handleOpenGenre }
       className="relative h-[174px] cursor-pointer overflow-hidden rounded-xl p-5 transition-transform duration-300 hover:scale-[1.02]"
       style={{ backgroundColor: getGenreCardColor(genre) }}
     >
