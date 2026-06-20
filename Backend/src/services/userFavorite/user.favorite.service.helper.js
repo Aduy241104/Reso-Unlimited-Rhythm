@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+﻿import mongoose from "mongoose";
 import Interaction from "../../models/Interaction.js";
 import Track from "../../models/Track.js";
 import { AppError } from "../../utils/AppError.js";
@@ -17,6 +17,12 @@ const buildTrackFavoriteFilter = (userId, trackId) => ({
     userId,
     targetType: "Track",
     targetId: trackId,
+    action: "like",
+});
+
+const buildFavoriteTracksFilter = (userId) => ({
+    userId,
+    targetType: "Track",
     action: "like",
 });
 
@@ -40,6 +46,7 @@ const getTrackFavoriteInteraction = async (userId, trackId) =>
 export {
     validateTrackId,
     buildTrackFavoriteFilter,
+    buildFavoriteTracksFilter,
     getTrackOrThrow,
     getTrackFavoriteInteraction,
 };
@@ -47,6 +54,7 @@ export {
 export default {
     validateTrackId,
     buildTrackFavoriteFilter,
+    buildFavoriteTracksFilter,
     getTrackOrThrow,
     getTrackFavoriteInteraction,
 };

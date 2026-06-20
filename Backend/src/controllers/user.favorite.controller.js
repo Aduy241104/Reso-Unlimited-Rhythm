@@ -1,4 +1,4 @@
-import userFavoriteService from "../services/userFavorite/user.favorite.service.js";
+﻿import userFavoriteService from "../services/userFavorite/user.favorite.service.js";
 import formatResponse from "../utils/formatResponse.js";
 
 const addTrackToFavorite = async (req, res, next) => {
@@ -49,10 +49,35 @@ const getTrackFavoriteStatus = async (req, res, next) => {
     }
 };
 
-export { addTrackToFavorite, removeTrackFromFavorite, getTrackFavoriteStatus };
+const getFavoriteTracks = async (req, res, next) => {
+    try {
+        const userId = req.user?.id || req.user?._id;
+        const { page, limit } = req.query;
+        const result = await userFavoriteService.getFavoriteTracks(userId, {
+            page,
+            limit,
+        });
+
+        return formatResponse.success(
+            res,
+            result,
+            "Favorite tracks fetched successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+export {
+    addTrackToFavorite,
+    removeTrackFromFavorite,
+    getTrackFavoriteStatus,
+    getFavoriteTracks,
+};
 
 export default {
     addTrackToFavorite,
     removeTrackFromFavorite,
     getTrackFavoriteStatus,
+    getFavoriteTracks,
 };
