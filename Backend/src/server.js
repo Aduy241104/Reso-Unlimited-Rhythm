@@ -7,6 +7,7 @@ import cors from "cors";
 import corsOptions from "./config/corsConfig.js";
 import cookieParser from "cookie-parser";
 import http from "http";
+import { initSocket } from "./config/socket.js";
 import { connectRedis } from "./config/redisConfig.js";
 import { startDailyTopArtistCron } from "./jobs/dailyTopArtist.cron.js";
 import { startMonthlyTopArtistCron } from "./jobs/monthlyTopArtist.cron.js";
@@ -36,6 +37,9 @@ import { startRevenueAggregationCron } from "./jobs/revenueAggregation.cron.js";
 dotenv.config();
 const app = express();
 const server = http.createServer(app);
+
+const io = initSocket(server);
+app.set("io", io);
 
 app.use(cors(corsOptions));
 app.use(cookieParser());

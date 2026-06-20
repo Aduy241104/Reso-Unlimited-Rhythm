@@ -185,7 +185,7 @@ const getTrackDetailForAdmin = async (trackId) => {
     return formatAdminTrackDetailItem(track);
 };
 
-const updateTrackApprovalStatus = async (trackId, payload = {}) => {
+const updateTrackApprovalStatus = async (trackId, payload = {}, io = null) => {
     assertObjectId(trackId);
 
     const track = await Track.findById(trackId);
@@ -233,6 +233,7 @@ const updateTrackApprovalStatus = async (trackId, payload = {}) => {
     }
 
     await track.save();
+
     await track.populate({ path: "artist_artistId", select: "name" });
 
     return {

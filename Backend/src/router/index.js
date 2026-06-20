@@ -22,12 +22,15 @@ import transactionRoutes from "./transaction.routes.js";
 import userRoutes from "./user.routes.js";
 import userPlaylistRoutes from "./user.playlist.routes.js"
 import adminArtistRouter from "./admin.artist.router.js";
+import adminNotificationRouter from "./admin.notification.router.js";
 import userReportRoutes from "./user.report.routes.js";
+import userNotificationRouter from "./user.notification.router.js";
 
 function route(app) {
     app.use("/api/auth", authenticationRoutes);
     app.use("/api/notifications", notificationRoutes);
     app.use("/api/artist/notifications", artistNotificationRoutes);
+    app.use("/api/user/notifications", userNotificationRouter);
     app.use("/api/genres", genreRoutes);
     app.use("/api/albums", albumRoutes);
     app.use("/api/browse/artists", artistBrowseRoutes);
@@ -50,6 +53,7 @@ function route(app) {
     app.use("/api/users", userReportRoutes);
     app.use("/api/users/playlists", userPlaylistRoutes);
     app.use("/api/admin/artists", adminArtistRouter);
+    app.use("/api/admin/notifications", adminNotificationRouter);
 }
 
 export default route;

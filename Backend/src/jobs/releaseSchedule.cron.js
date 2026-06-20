@@ -1,4 +1,5 @@
 import cron from "node-cron";
+import { getIO } from "../config/socket.js";
 import { getAnalyticsTimezone } from "../services/analytics/trackStatAggregation.service.js";
 import { publishDueReleaseSchedules } from "../services/artist.releaseSchedule.service.js";
 
@@ -18,7 +19,14 @@ export const runReleaseSchedulePublication = async () => {
     isJobRunning = true;
 
     try {
-        const result = await publishDueReleaseSchedules();
+        let io = null;
+        try {
+            io = getIO();
+        } catch (error) {
+            io = null;
+        }
+
+        const result = await publishDueReleaseSchedules({}, io);
 
         if (result.updatedCount > 0) {
             console.log(
