@@ -1,15 +1,21 @@
 import { CirclePlus, Download, Play, ShieldAlert } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import TrackTwoLevelMenu from "../../components/trackMenu/TrackTwoLevelMenu";
 import CreateReportModal from "../../components/report/CreateReportModal";
 import TrackDetailArtistCard from "../../components/trackDetail/TrackDetailArtistCard";
 import TrackDetailHero from "../../components/trackDetail/TrackDetailHero";
 import TrackDetailLikeSection from "../../components/trackDetail/TrackDetailLikeSection";
 import TrackDetailLyrics from "../../components/trackDetail/TrackDetailLyrics";
+import { useAuth } from "../../hooks/useAuth";
 import { usePlayer } from "../../hooks/usePlayer";
 import { routePaths } from "../../routes/routePaths";
 import { getTrackDetailService } from "../../services/trackService";
+import {
+  addTrackToFavorite,
+  getTrackFavoriteStatus,
+  removeTrackFromFavorite,
+} from "../../services/userFavoriteService";
 import {
   createPlaceholderImage,
   formatReleaseYear,
@@ -50,19 +56,22 @@ const getPlaylistTitle = (playlist) => {
     return playlist.name.trim();
   }
 
-  return "Danh sách phát chưa đặt tên";
+  return "Danh s\u00e1ch ph\u00e1t ch\u01b0a \u0111\u1eb7t t\u00ean";
 };
 
 const TrackDetailPage = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [track, setTrack] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
+  const [isLikeLoading, setIsLikeLoading] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [playlistFeedback, setPlaylistFeedback] = useState(null);
   const { playTrack } = usePlayer();
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
   useEffect(() => {
     let isMounted = true;
@@ -70,6 +79,7 @@ const TrackDetailPage = () => {
     const loadTrackDetail = async () => {
       setIsLoading(true);
       setErrorMessage("");
+      setIsLikeLoading(false);
 
       try {
         const trackDetail = await getTrackDetailService(id);
@@ -78,9 +88,40 @@ const TrackDetailPage = () => {
           return;
         }
 
+        const baseLikeCount = Number(trackDetail?.stats?.totalLike) || 0;
+
         setTrack(trackDetail);
-        setIsLiked(false);
-        setLikeCount(Number(trackDetail?.stats?.totalLike) || 0);
+        setLikeCount(baseLikeCount);
+
+        if (isAuthLoading || !isAuthenticated) {
+          setIsLiked(false);
+          return;
+        }
+
+        try {
+          const favoriteStatus = await getTrackFavoriteStatus(id);
+
+          if (!isMounted) {
+            return;
+          }
+
+          const nextIsLiked = Boolean(favoriteStatus?.isFavorite);
+          const detailHasFavoriteState = Boolean(trackDetail?.isFavorite);
+
+          setIsLiked(nextIsLiked);
+          setLikeCount(
+            nextIsLiked && !detailHasFavoriteState
+              ? baseLikeCount + 1
+              : baseLikeCount
+          );
+        } catch {
+          if (!isMounted) {
+            return;
+          }
+
+          setIsLiked(false);
+          setLikeCount(baseLikeCount);
+        }
       } catch (error) {
         if (!isMounted) {
           return;
@@ -89,10 +130,11 @@ const TrackDetailPage = () => {
         setTrack(null);
         setIsLiked(false);
         setLikeCount(0);
+        setIsLikeLoading(false);
         setErrorMessage(
           getApiErrorMessage(
             error,
-            "Không thể tải chi tiết bài hát lúc này."
+            "Kh\u00f4ng th\u1ec3 t\u1ea3i chi ti\u1ebft b\u00e0i h\u00e1t l\u00fac n\u00e0y."
           )
         );
       } finally {
@@ -104,7 +146,10 @@ const TrackDetailPage = () => {
 
     if (!id) {
       setTrack(null);
-      setErrorMessage("Thiếu mã bài hát.");
+      setIsLiked(false);
+      setLikeCount(0);
+      setIsLikeLoading(false);
+      setErrorMessage("Thi\u1ebfu m\u00e3 b\u00e0i h\u00e1t.");
       setIsLoading(false);
       return () => {
         isMounted = false;
@@ -116,7 +161,7 @@ const TrackDetailPage = () => {
     return () => {
       isMounted = false;
     };
-  }, [id]);
+  }, [id, isAuthenticated, isAuthLoading]);
 
   const trackImage = useMemo(
     () =>
@@ -211,23 +256,43 @@ const TrackDetailPage = () => {
     });
   };
 
-  const handleToggleLike = () => {
-    setIsLiked((currentValue) => {
-      const nextValue = !currentValue;
+  const handleToggleLike = async () => {
+    if (!track?.id || isLikeLoading || isAuthLoading) {
+      return;
+    }
 
-      setLikeCount((currentCount) =>
-        nextValue ? currentCount + 1 : Math.max(currentCount - 1, 0)
-      );
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
 
-      return nextValue;
-    });
+    const wasLiked = isLiked;
+
+    setIsLikeLoading(true);
+
+    try {
+      if (wasLiked) {
+        await removeTrackFromFavorite(track.id);
+        setIsLiked(false);
+        setLikeCount((currentCount) => Math.max(currentCount - 1, 0));
+        return;
+      }
+
+      await addTrackToFavorite(track.id);
+      setIsLiked(true);
+      setLikeCount((currentCount) => currentCount + 1);
+    } catch (error) {
+      console.error("Failed to toggle track favorite:", error);
+    } finally {
+      setIsLikeLoading(false);
+    }
   };
 
   if (isLoading) {
     return (
       <section className="rounded-[10px]">
         <div className="rounded-[24px] bg-[#121212] px-6 py-20 text-sm text-white/82">
-          \u0110ang t\u1ea3i chi ti\u1ebft b\u00e0i h\u00e1t...
+          Đang tải chi tiết bài hát
         </div>
       </section>
     );
@@ -318,6 +383,7 @@ const TrackDetailPage = () => {
           image={ trackImage }
           isLiked={ isLiked }
           likeCount={ likeCount }
+          isLikeLoading={ isLikeLoading }
           onToggleLike={ handleToggleLike }
         />
 
