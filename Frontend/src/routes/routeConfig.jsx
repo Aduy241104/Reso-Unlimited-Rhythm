@@ -15,6 +15,7 @@ import ArtistAlbumDetailPage from "../pages/artist/ArtistAlbumDetailPage";
 import ArtistCreateAlbumPage from "../pages/artist/ArtistCreateAlbumPage";
 import ArtistCreateReleaseSchedulePage from "../pages/artist/ArtistCreateReleaseSchedulePage";
 import ArtistEditAlbumPage from "../pages/artist/ArtistEditAlbumPage";
+import ArtistEditReleaseSchedulePage from "../pages/artist/ArtistEditReleaseSchedulePage";
 import ArtistReleaseScheduleDetailPage from "../pages/artist/ArtistReleaseScheduleDetailPage";
 import ArtistNotificationDetailPage from "../pages/artist/ArtistNotificationDetailPage";
 import ArtistNotificationsPage from "../pages/artist/ArtistNotificationsPage";
@@ -191,15 +192,19 @@ export const appRoutes = [
                 element: <ArtistAlbumDetailPage />,
               },
               {
-                path: routePaths.artistReleases,
+                path: "releases",
                 element: <ReleasesPage />,
               },
               {
-                path: routePaths.artistCreateReleaseSchedule,
+                path: "releases/create",
                 element: <ArtistCreateReleaseSchedulePage />,
               },
               {
-                path: routePaths.artistReleaseScheduleDetail(),
+                path: "releases/:id/edit",
+                element: <ArtistEditReleaseSchedulePage />,
+              },
+              {
+                path: "releases/:id",
                 element: <ArtistReleaseScheduleDetailPage />,
               },
               {
