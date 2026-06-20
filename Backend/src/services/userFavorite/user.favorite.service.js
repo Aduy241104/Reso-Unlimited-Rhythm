@@ -44,8 +44,45 @@ const addTrackToFavorite = async (userId, trackId) => {
     };
 };
 
-export { addTrackToFavorite };
+const removeTrackFromFavorite = async (userId, trackId) => {
+    if (!userId) {
+        throw new AppError("Unauthorized.", 401);
+    }
+
+    const normalizedTrackId = validateTrackId(trackId);
+
+    await getTrackOrThrow(normalizedTrackId);
+
+    await Interaction.deleteOne(
+        buildTrackFavoriteFilter(userId, normalizedTrackId)
+    );
+
+    return {
+        isFavorite: false,
+    };
+};
+
+const getTrackFavoriteStatus = async (userId, trackId) => {
+    if (!userId) {
+        throw new AppError("Unauthorized.", 401);
+    }
+
+    const normalizedTrackId = validateTrackId(trackId);
+
+    const existingInteraction = await getTrackFavoriteInteraction(
+        userId,
+        normalizedTrackId
+    );
+
+    return {
+        isFavorite: Boolean(existingInteraction),
+    };
+};
+
+export { addTrackToFavorite, removeTrackFromFavorite, getTrackFavoriteStatus };
 
 export default {
     addTrackToFavorite,
+    removeTrackFromFavorite,
+    getTrackFavoriteStatus,
 };

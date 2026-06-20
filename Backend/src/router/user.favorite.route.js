@@ -4,6 +4,8 @@ import authenticate from "../middlewares/Authentication/authentication.middlewar
 
 const router = express.Router();
 
-router.post("/tracks/:trackId", authenticate(),userFavoriteController.addTrackToFavorite);
+router.post("/tracks/:trackId", authenticate(), userFavoriteController.addTrackToFavorite);
+router.delete("/tracks/:trackId", authenticate(), userFavoriteController.removeTrackFromFavorite);
+router.get("/tracks/:trackId/status", authenticate(), userFavoriteController.getTrackFavoriteStatus);
 
 export default router;
