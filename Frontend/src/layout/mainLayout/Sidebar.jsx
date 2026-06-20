@@ -1,5 +1,4 @@
-import {
-  Disc3,
+﻿import {
   Loader2,
   PanelLeftClose,
   PanelLeftOpen,
@@ -7,6 +6,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import UserFavoriteLibraryItem from "../../components/userFavorite/UserFavoriteLibraryItem";
 import CreatePlaylistButton from "../../components/userPlaylist/CreatePlaylistButton";
 import CreatePlaylistModal from "../../components/userPlaylist/CreatePlaylistModal";
 import { useAuth } from "../../hooks/useAuth";
@@ -16,6 +16,7 @@ import {
   getFollowedAlbums,
   getFollowedArtists,
 } from "../../services/libaryService";
+import { getFavoriteTracks } from "../../services/userFavoriteService";
 import { getUserPlaylists } from "../../services/userPlaylistService";
 import GuestLibrarySidebar from "./GuestLibrarySidebar";
 
@@ -94,6 +95,8 @@ const Sidebar = ({
   const [isLoadingAlbums, setIsLoadingAlbums] = useState(true);
   const [playlists, setPlaylists] = useState([]);
   const [isLoadingPlaylists, setIsLoadingPlaylists] = useState(true);
+  const [favoriteTracksTotalItems, setFavoriteTracksTotalItems] = useState(0);
+  const [isLoadingFavoriteTracks, setIsLoadingFavoriteTracks] = useState(true);
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
     useState(false);
 
@@ -110,9 +113,11 @@ const Sidebar = ({
       setFollowedArtists([]);
       setFollowedAlbums([]);
       setPlaylists([]);
+      setFavoriteTracksTotalItems(0);
       setIsLoadingArtists(false);
       setIsLoadingAlbums(false);
       setIsLoadingPlaylists(false);
+      setIsLoadingFavoriteTracks(false);
       setIsCreatePlaylistModalOpen(false);
 
       return () => {
@@ -192,9 +197,36 @@ const Sidebar = ({
       }
     };
 
+    const loadFavoriteTracksSummary = async () => {
+      setIsLoadingFavoriteTracks(true);
+
+      try {
+        const response = await getFavoriteTracks({
+          page: 1,
+          limit: 1,
+        });
+        const totalItems = Number(
+          response?.pagination?.totalItems ?? response?.pagination?.total ?? response?.items?.length ?? 0
+        );
+
+        if (isMounted) {
+          setFavoriteTracksTotalItems(totalItems > 0 ? totalItems : 0);
+        }
+      } catch {
+        if (isMounted) {
+          setFavoriteTracksTotalItems(0);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingFavoriteTracks(false);
+        }
+      }
+    };
+
     void loadPlaylists();
     void loadFollowedArtists();
     void loadFollowedAlbums();
+    void loadFavoriteTracksSummary();
 
     return () => {
       isMounted = false;
@@ -205,6 +237,15 @@ const Sidebar = ({
     onNavigate?.();
     navigate(path);
   };
+
+  const handleNavigateToFavoriteTracks = () => {
+    onNavigate?.();
+    navigate(routePaths.userFavoriteTracks);
+  };
+
+  const isFavoriteTracksActive = location.pathname === routePaths.userFavoriteTracks;
+  const shouldShowFavoriteTracksItem = favoriteTracksTotalItems > 0;
+  const isLoadingPlaylistLibrary = isLoadingPlaylists || isLoadingFavoriteTracks;
 
   return (
     <aside
@@ -224,8 +265,6 @@ const Sidebar = ({
           isDark ? "border-[#f5b66f]/10" : "border-white/10",
         ].join(" ") }
       >
-
-
         <CreatePlaylistButton
           onClick={ () => {
             if (!isAuthenticated) {
@@ -278,216 +317,226 @@ const Sidebar = ({
           !isAuthenticated && !isLoading ? (
             <GuestLibrarySidebar onAction={ handleGuestAction } />
           ) : (
-          <>
-            <div className="mb-4 px-3">
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={ () => setActiveTab("playlist") }
-                  className={ tabButtonClassName(activeTab === "playlist") }
-                >
-                  Playlist
-                </button>
+            <>
+              <div className="mb-4 px-3">
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={ () => setActiveTab("playlist") }
+                    className={ tabButtonClassName(activeTab === "playlist") }
+                  >
+                    Playlist
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={ () => setActiveTab("artist") }
-                  className={ tabButtonClassName(activeTab === "artist") }
-                >
-                  Nghệ sĩ
-                </button>
+                  <button
+                    type="button"
+                    onClick={ () => setActiveTab("artist") }
+                    className={ tabButtonClassName(activeTab === "artist") }
+                  >
+                    Nghệ sĩ
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={ () => setActiveTab("album") }
-                  className={ tabButtonClassName(activeTab === "album") }
-                >
-                  Album
-                </button>
+                  <button
+                    type="button"
+                    onClick={ () => setActiveTab("album") }
+                    className={ tabButtonClassName(activeTab === "album") }
+                  >
+                    Album
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-1">
-              { activeTab === "playlist" ? (
-                isLoadingPlaylists ? (
-                  <div className="flex items-center gap-3 px-3 py-3 text-sm text-[#b8b0aa]">
-                    <Loader2 className="h-4 w-4 animate-spin text-[#f5b66f]" />
-                    <span>Dang tai playlist...</span>
-                  </div>
-                ) : playlists.length === 0 ? (
-                  <div className="px-3 py-3 text-sm text-[#b8b0aa]">
-                    Chưa có nghệ sĩ nào
-                  </div>
-                ) : (
-                  playlists.map((playlist, index) => {
-                    const title = getPlaylistTitle(playlist);
-                    const coverImage = getPlaylistCoverImage(playlist);
-                    const userName = getPlaylistOwnerName(playlist);
+              <div className="space-y-1">
+                { activeTab === "playlist" ? (
+                  isLoadingPlaylistLibrary ? (
+                    <div className="flex items-center gap-3 px-3 py-3 text-sm text-[#b8b0aa]">
+                      <Loader2 className="h-4 w-4 animate-spin text-[#f5b66f]" />
+                      <span>Dang tai playlist...</span>
+                    </div>
+                  ) : playlists.length === 0 && !shouldShowFavoriteTracksItem ? (
+                    <div className="px-3 py-3 text-sm text-[#b8b0aa]">
+                      Chưa có nghệ sĩ nào
+                    </div>
+                  ) : (
+                    <>
+                      { shouldShowFavoriteTracksItem ? (
+                        <UserFavoriteLibraryItem
+                          totalItems={ favoriteTracksTotalItems }
+                          isActive={ isFavoriteTracksActive }
+                          onClick={ handleNavigateToFavoriteTracks }
+                        />
+                      ) : null }
 
-                    return (
-                      <Link
-                        key={ playlist?.playlistId || `${title}-${index}` }
-                        to={ routePaths.userPlaylistDetail(playlist?.playlistId) }
-                        onClick={ onNavigate }
-                        className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-[#b8b0aa] transition hover:bg-[#241f28] hover:text-[#f7f1ea]"
-                      >
-                        { coverImage ? (
-                          <img
-                            src={ coverImage }
-                            alt={ title }
-                            className="h-12 w-12 shrink-0 rounded-md object-cover"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-white/10 text-sm font-semibold text-[#f7f1ea]">
-                            { title.charAt(0).toUpperCase() }
+                      { playlists.map((playlist, index) => {
+                        const title = getPlaylistTitle(playlist);
+                        const coverImage = getPlaylistCoverImage(playlist);
+                        const userName = getPlaylistOwnerName(playlist);
+
+                        return (
+                          <Link
+                            key={ playlist?.playlistId || `${title}-${index}` }
+                            to={ routePaths.userPlaylistDetail(playlist?.playlistId) }
+                            onClick={ onNavigate }
+                            className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-[#b8b0aa] transition hover:bg-[#241f28] hover:text-[#f7f1ea]"
+                          >
+                            { coverImage ? (
+                              <img
+                                src={ coverImage }
+                                alt={ title }
+                                className="h-12 w-12 shrink-0 rounded-md object-cover"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-white/10 text-sm font-semibold text-[#f7f1ea]">
+                                { title.charAt(0).toUpperCase() }
+                              </div>
+                            ) }
+
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium text-inherit">
+                                { title }
+                              </p>
+                              <p className="truncate text-xs text-[#b8b0aa]">
+                                Playlist • { userName }
+                              </p>
+                            </div>
+                          </Link>
+                        );
+                      }) }
+                    </>
+                  )
+                ) : null }
+
+                { activeTab === "artist" ? (
+                  isLoadingArtists ? (
+                    <div className="flex items-center gap-3 px-3 py-3 text-sm text-[#b8b0aa]">
+                      <Loader2 className="h-4 w-4 animate-spin text-[#f5b66f]" />
+                      <span>Dang tai nghe si...</span>
+                    </div>
+                  ) : followedArtists.length === 0 ? (
+                    <div className="px-3 py-3 text-sm text-[#b8b0aa]">
+                      Chua theo doi nghe si nao
+                    </div>
+                  ) : (
+                    followedArtists.map((artist, index) => {
+                      const artistName =
+                        typeof artist?.name === "string" && artist.name.trim()
+                          ? artist.name.trim()
+                          : "Nghệ sĩ không xác định";
+
+                      const avatar =
+                        typeof artist?.avatar === "string" && artist.avatar.trim()
+                          ? artist.avatar.trim()
+                          : "";
+
+                      const artistPath = routePaths.artistBrowseProfile(
+                        artist?.artistId
+                      );
+                      const isArtistActive = location.pathname === artistPath;
+
+                      return (
+                        <Link
+                          key={ artist?.artistId || `${artistName}-${index}` }
+                          to={ artistPath }
+                          onClick={ onNavigate }
+                          className={ [
+                            "flex items-center gap-3 rounded-2xl px-3 py-2.5 transition",
+                            isArtistActive
+                              ? "bg-gradient-to-r from-[#f5b66f]/20 to-transparent text-[#f7f1ea]"
+                              : "text-[#b8b0aa] hover:bg-[#241f28] hover:text-[#f7f1ea]",
+                          ].join(" ") }
+                        >
+                          { avatar ? (
+                            <img
+                              src={ avatar }
+                              alt={ artistName }
+                              className="h-12 w-12 shrink-0 rounded-full object-cover"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/10 text-sm font-semibold text-[#f7f1ea]">
+                              { getArtistInitial(artistName) }
+                            </div>
+                          ) }
+
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-inherit">
+                              { artistName }
+                            </p>
+                            <p className="truncate text-xs text-[#b8b0aa]">
+                              Nghệ sĩ
+                            </p>
                           </div>
-                        ) }
+                        </Link>
+                      );
+                    })
+                  )
+                ) : null }
 
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-inherit">
-                            { title }
-                          </p>
-                          <p className="truncate text-xs text-[#b8b0aa]">
-                            Playlist • { userName }
-                          </p>
-                        </div>
-                      </Link>
-                    );
-                  })
-                )
-              ) : null }
+                { activeTab === "album" ? (
+                  isLoadingAlbums ? (
+                    <div className="flex items-center gap-3 px-3 py-3 text-sm text-[#b8b0aa]">
+                      <Loader2 className="h-4 w-4 animate-spin text-[#f5b66f]" />
+                      <span>Dang tai album...</span>
+                    </div>
+                  ) : followedAlbums.length === 0 ? (
+                    <div className="px-3 py-3 text-sm text-[#b8b0aa]">
+                      Chua theo doi album nao
+                    </div>
+                  ) : (
+                    followedAlbums.map((album, index) => {
+                      const title =
+                        typeof album?.title === "string" && album.title.trim()
+                          ? album.title.trim()
+                          : "Album chưa đặt tên";
 
-              { activeTab === "artist" ? (
-                isLoadingArtists ? (
-                  <div className="flex items-center gap-3 px-3 py-3 text-sm text-[#b8b0aa]">
-                    <Loader2 className="h-4 w-4 animate-spin text-[#f5b66f]" />
-                    <span>Dang tai nghe si...</span>
-                  </div>
-                ) : followedArtists.length === 0 ? (
-                  <div className="px-3 py-3 text-sm text-[#b8b0aa]">
-                    Chua theo doi nghe si nao
-                  </div>
-                ) : (
-                  followedArtists.map((artist, index) => {
-                    const artistName =
-                      typeof artist?.name === "string" && artist.name.trim()
-                        ? artist.name.trim()
-                        : "Nghệ sĩ không xác định";
-
-                    const avatar =
-                      typeof artist?.avatar === "string" && artist.avatar.trim()
-                        ? artist.avatar.trim()
-                        : "";
-
-                    const artistPath = routePaths.artistBrowseProfile(
-                      artist?.artistId
-                    );
-                    const isArtistActive = location.pathname === artistPath;
-
-                    return (
-                      <Link
-                        key={ artist?.artistId || `${artistName}-${index}` }
-                        to={ artistPath }
-                        onClick={ onNavigate }
-                        className={ [
-                          "flex items-center gap-3 rounded-2xl px-3 py-2.5 transition",
-                          isArtistActive
-                            ? "bg-gradient-to-r from-[#f5b66f]/20 to-transparent text-[#f7f1ea]"
-                            : "text-[#b8b0aa] hover:bg-[#241f28] hover:text-[#f7f1ea]",
-                        ].join(" ") }
-                      >
-                        { avatar ? (
-                          <img
-                            src={ avatar }
-                            alt={ artistName }
-                            className="h-12 w-12 shrink-0 rounded-full object-cover"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/10 text-sm font-semibold text-[#f7f1ea]">
-                            { getArtistInitial(artistName) }
-                          </div>
-                        ) }
-
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-inherit">
-                            { artistName }
-                          </p>
-                          <p className="truncate text-xs text-[#b8b0aa]">
-                            Nghệ sĩ
-                          </p>
-                        </div>
-                      </Link>
-                    );
-                  })
-                )
-              ) : null }
-
-              { activeTab === "album" ? (
-                isLoadingAlbums ? (
-                  <div className="flex items-center gap-3 px-3 py-3 text-sm text-[#b8b0aa]">
-                    <Loader2 className="h-4 w-4 animate-spin text-[#f5b66f]" />
-                    <span>Dang tai album...</span>
-                  </div>
-                ) : followedAlbums.length === 0 ? (
-                  <div className="px-3 py-3 text-sm text-[#b8b0aa]">
-                    Chua theo doi album nao
-                  </div>
-                ) : (
-                  followedAlbums.map((album, index) => {
-                    const title =
-                      typeof album?.title === "string" && album.title.trim()
-                        ? album.title.trim()
-                        : "Album chưa đặt tên";
-
-                    const coverImage =
-                      typeof album?.coverImage === "string" &&
+                      const coverImage =
+                        typeof album?.coverImage === "string" &&
                         album.coverImage.trim()
-                        ? album.coverImage.trim()
-                        : "";
+                          ? album.coverImage.trim()
+                          : "";
 
-                    const artistName =
-                      typeof album?.artistName === "string" &&
+                      const artistName =
+                        typeof album?.artistName === "string" &&
                         album.artistName.trim()
-                        ? album.artistName.trim()
-                        : "Nghệ sĩ không xác định";
+                          ? album.artistName.trim()
+                          : "Nghệ sĩ không xác định";
 
-                    return (
-                      <Link
-                        key={ album?.albumId || `${title}-${index}` }
-                        to={ routePaths.albumDetail(album?.albumId) }
-                        onClick={ onNavigate }
-                        className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-[#b8b0aa] transition hover:bg-[#241f28] hover:text-[#f7f1ea]"
-                      >
-                        { coverImage ? (
-                          <img
-                            src={ coverImage }
-                            alt={ title }
-                            className="h-12 w-12 shrink-0 rounded-md object-cover"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-white/10 text-sm font-semibold text-[#f7f1ea]">
-                            { title.charAt(0).toUpperCase() }
+                      return (
+                        <Link
+                          key={ album?.albumId || `${title}-${index}` }
+                          to={ routePaths.albumDetail(album?.albumId) }
+                          onClick={ onNavigate }
+                          className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-[#b8b0aa] transition hover:bg-[#241f28] hover:text-[#f7f1ea]"
+                        >
+                          { coverImage ? (
+                            <img
+                              src={ coverImage }
+                              alt={ title }
+                              className="h-12 w-12 shrink-0 rounded-md object-cover"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-white/10 text-sm font-semibold text-[#f7f1ea]">
+                              { title.charAt(0).toUpperCase() }
+                            </div>
+                          ) }
+
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-inherit">
+                              { title }
+                            </p>
+                            <p className="truncate text-xs text-[#b8b0aa]">
+                              Album • { artistName }
+                            </p>
                           </div>
-                        ) }
-
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-inherit">
-                            { title }
-                          </p>
-                          <p className="truncate text-xs text-[#b8b0aa]">
-                            Album • { artistName }
-                          </p>
-                        </div>
-                      </Link>
-                    );
-                  })
-                )
-              ) : null }
-            </div>
-          </>
+                        </Link>
+                      );
+                    })
+                  )
+                ) : null }
+              </div>
+            </>
           )
         ) : null }
       </nav>
