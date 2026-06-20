@@ -83,6 +83,30 @@ const ensureAlbumCanBeScheduledForRelease = (album) => {
     }
 };
 
+const ensureTargetCanBeReleased = ({ type, target }) => {
+    if (type === "album") {
+        if (target?.status === "blocked") {
+            throw new AppError("Blocked albums cannot be released.", 409, {
+                field: "targetId",
+            });
+        }
+
+        return;
+    }
+
+    if (target?.approvalStatus !== "approved") {
+        throw new AppError("Track must be approved before it can be released.", 409, {
+            field: "targetId",
+        });
+    }
+
+    if (target?.activeStatus === "blocked") {
+        throw new AppError("Blocked tracks cannot be released.", 409, {
+            field: "targetId",
+        });
+    }
+};
+
 const ensureNoConflictingScheduledRelease = async ({ artistId, type, targetId }) => {
     const existingSchedule = await ReleaseSchedule.findOne({
         artistId,
@@ -112,6 +136,57 @@ const syncTargetReleaseDate = async ({ type, targetId, scheduledAt }) => {
         { _id: targetId },
         { $set: { releaseDate: scheduledAt } }
     );
+};
+
+const syncTargetVisibilityForRelease = async ({ type, targetId }) => {
+    if (type === "album") {
+        await Album.updateOne(
+            {
+                _id: targetId,
+                status: { $in: ["draft", "hidden"] },
+            },
+            {
+                $set: { status: "active" },
+            }
+        );
+        return;
+    }
+
+    await Track.updateOne(
+        {
+            _id: targetId,
+            activeStatus: { $in: ["draft", "hidden", "inactive"] },
+        },
+        {
+            $set: { activeStatus: "active" },
+        }
+    );
+};
+
+const ensureScheduledAtIsValid = (value) => {
+    const scheduledAt = new Date(value);
+
+    if (Number.isNaN(scheduledAt.getTime())) {
+        throw new AppError("Scheduled date is invalid.", 400, {
+            field: "scheduledAt",
+        });
+    }
+
+    return scheduledAt;
+};
+
+const ensureReleaseScheduleIsEditable = (schedule) => {
+    if (schedule.status === "cancelled") {
+        throw new AppError("Cancelled schedules cannot be edited.", 409);
+    }
+
+    if (schedule.status === "released") {
+        throw new AppError("Released schedules cannot be edited.", 409);
+    }
+
+    if (new Date(schedule.scheduledAt).getTime() <= Date.now()) {
+        throw new AppError("This release schedule can no longer be edited.", 409);
+    }
 };
 
 const syncTargetReleaseDateAfterCancellation = async ({
@@ -198,6 +273,9 @@ const publishDueReleaseSchedules = async (extraFilter = {}) => {
     );
     const dueTrackSchedules = dueSchedules.filter((schedule) => schedule.type !== "album");
     const dueAlbumIds = dueAlbumSchedules.map((schedule) => schedule.targetId);
+    const dueTrackIds = dueTrackSchedules
+        .filter((schedule) => schedule.targetId)
+        .map((schedule) => schedule.targetId);
 
     let releasableAlbumScheduleIds = [];
 
@@ -236,6 +314,18 @@ const publishDueReleaseSchedules = async (extraFilter = {}) => {
                 }
             );
         }
+    }
+
+    if (dueTrackIds.length > 0) {
+        await Track.updateMany(
+            {
+                _id: { $in: dueTrackIds },
+                activeStatus: { $in: ["draft", "hidden", "inactive"] },
+            },
+            {
+                $set: { activeStatus: "active" },
+            }
+        );
     }
 
     const releasableScheduleIds = [
@@ -495,18 +585,21 @@ const cancelMyReleaseSchedule = async (userId, scheduleId) => {
 
 const createMyReleaseSchedule = async (userId, payload) => {
     const artist = await getArtistByUserId(userId);
-    const scheduledAt = new Date(payload.scheduledAt);
-
-    if (Number.isNaN(scheduledAt.getTime())) {
-        throw new AppError("Scheduled date is invalid.", 400, {
-            field: "scheduledAt",
-        });
-    }
+    const publishMode = payload.publishMode === "immediate" ? "immediate" : "scheduled";
+    const isImmediateRelease = publishMode === "immediate";
+    const scheduledAt = isImmediateRelease
+        ? new Date()
+        : ensureScheduledAtIsValid(payload.scheduledAt);
 
     const target = await getOwnedReleaseTarget({
         artistId: artist._id,
         type: payload.type,
         targetId: payload.targetId,
+    });
+
+    ensureTargetCanBeReleased({
+        type: payload.type,
+        target,
     });
 
     if (payload.type === "album") {
@@ -524,7 +617,8 @@ const createMyReleaseSchedule = async (userId, payload) => {
         targetId: payload.targetId,
         artistId: artist._id,
         scheduledAt,
-        status: "scheduled",
+        status: isImmediateRelease ? "released" : "scheduled",
+        releasedAt: isImmediateRelease ? scheduledAt : null,
     });
 
     await syncTargetReleaseDate({
@@ -532,6 +626,13 @@ const createMyReleaseSchedule = async (userId, payload) => {
         targetId: payload.targetId,
         scheduledAt,
     });
+
+    if (isImmediateRelease) {
+        await syncTargetVisibilityForRelease({
+            type: payload.type,
+            targetId: payload.targetId,
+        });
+    }
 
     return {
         artist: {
@@ -548,11 +649,62 @@ const createMyReleaseSchedule = async (userId, payload) => {
     };
 };
 
+const updateMyReleaseSchedule = async (userId, scheduleId, payload) => {
+    const artist = await getArtistByUserId(userId);
+    await publishDueReleaseSchedules({ artistId: artist._id });
+    const schedule = await ReleaseSchedule.findOne({
+        _id: scheduleId,
+        artistId: artist._id,
+    });
+
+    if (!schedule) {
+        throw new AppError("Release schedule not found.", 404);
+    }
+
+    ensureReleaseScheduleIsEditable(schedule);
+
+    const scheduledAt = ensureScheduledAtIsValid(payload.scheduledAt);
+    const target = await getOwnedReleaseTarget({
+        artistId: artist._id,
+        type: schedule.type,
+        targetId: schedule.targetId,
+    });
+
+    schedule.scheduledAt = scheduledAt;
+    schedule.releasedAt = null;
+    await schedule.save();
+
+    await syncTargetReleaseDate({
+        type: schedule.type,
+        targetId: schedule.targetId,
+        scheduledAt,
+    });
+
+    return {
+        artist: {
+            id: artist._id.toString(),
+            name: artist.name,
+        },
+        releaseSchedule: {
+            ...formatArtistComingRelease({
+                schedule,
+                target: {
+                    ...target,
+                    releaseDate: scheduledAt,
+                },
+            }),
+            createdAt: schedule.createdAt || null,
+            updatedAt: schedule.updatedAt || null,
+        },
+    };
+};
+
 export default {
     cancelMyReleaseSchedule,
     createMyReleaseSchedule,
     getMyReleaseScheduleDetail,
     getMyReleaseSchedules,
+    updateMyReleaseSchedule,
 };
 
 export { publishDueReleaseSchedules };
