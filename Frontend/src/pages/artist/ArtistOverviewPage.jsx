@@ -1,29 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
-import { BarChart3, CalendarDays, Headphones, LoaderCircle, Users } from "lucide-react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { routePaths } from "../../routes/routePaths";
+import {
+  Disc3,
+  Headphones,
+  LoaderCircle,
+  Users,
+} from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import { getArtistPerformanceOverviewService } from "../../services/artistService";
 import TrackInsightsChartPanel from "./trackInsights/components/TrackInsightsChartPanel";
 import TrackInsightsSummaryGrid from "./trackInsights/components/TrackInsightsSummaryGrid";
-import TrackInsightsTopTracksPanel from "./trackInsights/components/TrackInsightsTopTracksPanel";
-import {
-  BreakdownCard,
-  DEVICE_LABEL_MAP,
-  EngagementCard,
-  formatDateLabel,
-  formatNumber,
-  formatPercent,
-  ListenerBehaviorSummaryGrid,
-  LOYALTY_LABEL_MAP,
-  localizeItems,
-  SOURCE_LABEL_MAP,
-} from "./listenerBehaviorShared";
+import { formatDateLabel, formatNumber } from "./listenerBehaviorShared";
 
 const DEFAULT_RANGE = "30d";
 const RANGE_OPTIONS = [
   { value: "7d", label: "7 ngày" },
   { value: "30d", label: "30 ngày" },
-  { value: "90d", label: "90 ngày" },
 ];
 
 const DAILY_METRICS = {
@@ -79,44 +70,41 @@ const getMetricExtremes = (items, key) => {
   };
 };
 
+const sumMetricValues = (items, key) =>
+  items.reduce((total, item) => total + (Number(item?.[key]) || 0), 0);
+
 const normalizeErrorMessage = (error) =>
   error?.response?.data?.message ||
   error?.message ||
-  "Không thể tải dữ liệu overview của nghệ sĩ.";
+  "Không thể tải dữ liệu tổng quan của nghệ sĩ.";
 
 const buildSummaryCards = (summary) => [
   {
-    label: "Stream trong giai đoạn",
-    value: `${formatNumber(summary?.selectedRangeStreams)} lượt`,
-    helper: "Tổng số lượt stream trong khoảng thời gian đang xem.",
-    icon: Headphones,
-  },
-  {
-    label: "Người nghe duy nhất",
-    value: `${formatNumber(summary?.selectedRangeUniqueListeners)} người`,
-    helper: "Số người nghe duy nhất phát nhạc của bạn trong giai đoạn này.",
+    label: "Follower",
+    value: `${formatNumber(summary?.followers)} người`,
+    helper: "Tổng số người đang theo dõi nghệ sĩ của bạn trên hệ thống.",
     icon: Users,
   },
   {
-    label: "Tổng stream tháng này",
-    value: `${formatNumber(summary?.currentMonthStreams)} lượt`,
-    helper: "Tổng số lượt stream từ đầu tháng đến hiện tại.",
-    icon: CalendarDays,
+    label: "Tổng bài hát",
+    value: `${formatNumber(summary?.trackCount)} bài`,
+    helper: "Tổng số track hiện thuộc về nghệ sĩ của bạn.",
+    icon: Disc3,
   },
   {
-    label: "Tổng stream năm nay",
-    value: `${formatNumber(summary?.currentYearStreams)} lượt`,
-    helper: "Tổng số lượt stream từ đầu năm đến hiện tại.",
-    icon: BarChart3,
+    label: "Tổng lượt nghe",
+    value: `${formatNumber(summary?.totalStreams)} lượt`,
+    helper: "Tổng lượt stream toàn thời gian của toàn bộ catalog nghệ sĩ.",
+    icon: Headphones,
   },
 ];
 
 const ArtistOverviewPage = () => {
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const currentYear = new Date().getFullYear();
   const selectedRange = resolveRange(searchParams.get("range"));
-  const selectedYear = Number.parseInt(searchParams.get("year") || "", 10) || currentYear;
+  const selectedYear =
+    Number.parseInt(searchParams.get("year") || "", 10) || currentYear;
 
   const [overview, setOverview] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -188,9 +176,19 @@ const ArtistOverviewPage = () => {
     [overview?.monthlyStats]
   );
   const yearlyStats = overview?.yearlyStats || [];
+
   const summaryCards = useMemo(
     () => buildSummaryCards(overview?.summary || {}),
     [overview?.summary]
+  );
+
+  const selectedRangeLabel =
+    RANGE_OPTIONS.find((option) => option.value === selectedRange)?.label ||
+    "30 ngày";
+
+  const selectedYearTotalStreams = useMemo(
+    () => sumMetricValues(monthlyStats, "streamCount"),
+    [monthlyStats]
   );
 
   const dailyExtremes = useMemo(
@@ -223,40 +221,12 @@ const ArtistOverviewPage = () => {
     return [...years].sort((left, right) => right - left);
   }, [overview?.availableYears, selectedYear]);
 
-  const selectedRangeLabel =
-    RANGE_OPTIONS.find((option) => option.value === selectedRange)?.label || "30 ngày";
-
-  const localizedSources = useMemo(
-    () => localizeItems(overview?.listenerBehavior?.behavior?.sources || [], SOURCE_LABEL_MAP),
-    [overview?.listenerBehavior?.behavior?.sources]
-  );
-  const localizedDevices = useMemo(
-    () => localizeItems(overview?.listenerBehavior?.behavior?.devices || [], DEVICE_LABEL_MAP),
-    [overview?.listenerBehavior?.behavior?.devices]
-  );
-  const localizedLoyaltySegments = useMemo(
-    () =>
-      localizeItems(
-        overview?.listenerBehavior?.behavior?.loyaltySegments || [],
-        LOYALTY_LABEL_MAP
-      ),
-    [overview?.listenerBehavior?.behavior?.loyaltySegments]
-  );
-
-  const handleOpenTrackInsights = (trackId) => {
-    if (!trackId) {
-      return;
-    }
-
-    navigate(`${routePaths.artistAnalytics}?trackId=${encodeURIComponent(trackId)}`);
-  };
-
   if (isLoading && !overview) {
     return (
       <section className="rounded-[20px] border border-[#e7e1ff] bg-white p-7 text-sm text-[#6b6682] shadow-sm">
         <div className="flex items-center gap-3">
           <LoaderCircle className="h-5 w-5 animate-spin text-[#7c6cf2]" />
-          Đang tải performance overview...
+          Đang tải tổng quan hiệu suất nghệ sĩ...
         </div>
       </section>
     );
@@ -272,52 +242,9 @@ const ArtistOverviewPage = () => {
           {overview?.artist?.name || "Nghệ sĩ"}
         </h2>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-[#7c7891]">
-          Theo dõi hiệu suất phát hành theo giai đoạn, bài hát đang hoạt động tốt nhất,
-          hành vi người nghe toàn thời gian và cơ cấu khán giả của bạn.
+          Các chỉ số tổng quan bên dưới luôn được tính theo toàn thời gian. Bộ
+          lọc 7 ngày và 30 ngày chỉ áp dụng cho biểu đồ stream theo ngày.
         </p>
-
-        <div className="mt-5 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex flex-wrap gap-2">
-            {RANGE_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => updateFilters({ range: option.value })}
-                className={[
-                  "rounded-full border px-3.5 py-2 text-sm font-medium transition",
-                  selectedRange === option.value
-                    ? "border-[#6f5cf1] bg-[#6f5cf1] text-white"
-                    : "border-[#e7e1ff] bg-[#f8f6ff] text-[#645d86] hover:border-[#b7abff] hover:text-[#2f2747]",
-                ].join(" ")}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-
-          <label className="flex items-center gap-3 text-sm text-[#645d86]">
-            <span>Năm thống kê theo tháng</span>
-            <select
-              value={selectedYear}
-              onChange={(event) => updateFilters({ year: event.target.value })}
-              className="rounded-xl border border-[#e7e1ff] bg-white px-3 py-2 text-sm font-medium text-[#2f2747] outline-none transition focus:border-[#7c6cf2]"
-            >
-              {availableYears.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-
-        <div className="mt-4 rounded-[16px] border border-[#efeaff] bg-[#faf9ff] px-4 py-3 text-sm text-[#6b6682]">
-          Giai đoạn đang xem:{" "}
-          <span className="font-semibold text-[#2f2747]">
-            {formatDateLabel(overview?.period?.from)} - {formatDateLabel(overview?.period?.to)}
-          </span>{" "}
-          ({selectedRangeLabel})
-        </div>
       </section>
 
       {errorMessage ? (
@@ -328,17 +255,40 @@ const ArtistOverviewPage = () => {
 
       <TrackInsightsSummaryGrid
         summaryCards={summaryCards}
-        className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
+        className="grid gap-4 md:grid-cols-2 xl:grid-cols-3"
       />
 
-      <TrackInsightsTopTracksPanel
-        error=""
-        isLoading={isLoading}
-        onSelectTrack={handleOpenTrackInsights}
-        selectedTrackId=""
-        topTracks={overview?.topPerformingTracks?.topTracks || []}
-        topTracksSummary={overview?.topPerformingTracks?.summary || null}
-      />
+      <section className="space-y-3">
+        <div className="rounded-[18px] border border-[#e7e1ff] bg-white px-4 py-4 shadow-sm">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-wrap gap-2">
+              {RANGE_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => updateFilters({ range: option.value })}
+                  className={[
+                    "rounded-full border px-3.5 py-2 text-sm font-medium transition",
+                    selectedRange === option.value
+                      ? "border-[#6f5cf1] bg-[#6f5cf1] text-white"
+                      : "border-[#e7e1ff] bg-[#f8f6ff] text-[#645d86] hover:border-[#b7abff] hover:text-[#2f2747]",
+                  ].join(" ")}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="text-sm text-[#6b6682]">
+              Biểu đồ ngày đang xem:{" "}
+              <span className="font-semibold text-[#2f2747]">
+                {formatDateLabel(overview?.period?.from)} -{" "}
+                {formatDateLabel(overview?.period?.to)}
+              </span>{" "}
+              ({selectedRangeLabel})
+            </div>
+          </div>
+        </div>
 
       <TrackInsightsChartPanel
         embedded={false}
@@ -353,7 +303,7 @@ const ArtistOverviewPage = () => {
         onChangeMetric={setDailyMetric}
         sectionEyebrow="Daily Streaming"
         sectionTitle="Thống kê stream theo ngày"
-        sectionDescription="Biểu đồ này thể hiện lượt stream và số người nghe duy nhất theo từng ngày trong khoảng bạn đang chọn."
+        sectionDescription={`Biểu đồ này thể hiện lượt stream và số người nghe duy nhất theo từng ngày trong ${selectedRangeLabel.toLowerCase()} gần nhất.`}
         showTooltipListenValue={dailyMetric !== "streamCount"}
         tooltipLabelFormatter={(value) =>
           formatDateLabel(value, {
@@ -368,6 +318,30 @@ const ArtistOverviewPage = () => {
           formatDateLabel(value, { day: "2-digit", month: "short" })
         }
       />
+      </section>
+
+      <section className="space-y-3">
+        <div className="rounded-[18px] border border-[#e7e1ff] bg-white px-4 py-4 shadow-sm">
+          <div className="flex flex-col gap-2 text-sm text-[#645d86] sm:flex-row sm:items-center sm:justify-between">
+            <span className="font-medium text-[#2f2747]">
+              Chọn năm cho biểu đồ theo tháng
+            </span>
+            <label className="flex items-center gap-3">
+              <span>Năm</span>
+              <select
+                value={selectedYear}
+                onChange={(event) => updateFilters({ year: event.target.value })}
+                className="rounded-xl border border-[#e7e1ff] bg-white px-3 py-2 text-sm font-medium text-[#2f2747] outline-none transition focus:border-[#7c6cf2]"
+              >
+                {availableYears.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </div>
 
       <TrackInsightsChartPanel
         embedded={false}
@@ -383,7 +357,7 @@ const ArtistOverviewPage = () => {
         sectionEyebrow="Monthly Totals"
         sectionTitle={`Tổng stream theo tháng của năm ${selectedYear}`}
         sectionDescription={`Tổng lượt stream của từng tháng trong năm ${selectedYear}. Tổng cộng năm này hiện là ${formatNumber(
-          overview?.summary?.selectedYearStreams
+          selectedYearTotalStreams
         )} lượt.`}
         showTooltipListenValue={false}
         tooltipLabelFormatter={(value) => formatMonthLabel(value)}
@@ -392,6 +366,7 @@ const ArtistOverviewPage = () => {
           formatMonthLabel(value, { month: "2-digit", year: "2-digit" })
         }
       />
+      </section>
 
       <TrackInsightsChartPanel
         embedded={false}
@@ -412,87 +387,6 @@ const ArtistOverviewPage = () => {
         tooltipListenValueKey="streamCount"
         xAxisLabelFormatter={(value) => value}
       />
-
-      <section className="space-y-6">
-        <section className="rounded-[20px] border border-[#e7e1ff] bg-white p-6 shadow-sm">
-          <p className="text-xs uppercase tracking-[0.3em] text-[#7c6cf2]">
-            Hành vi người nghe
-          </p>
-          <h3 className="mt-3 text-2xl font-semibold tracking-tight text-[#2f2747]">
-            Toàn thời gian
-          </h3>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-[#7c7891]">
-            Phần này được tính trên toàn bộ lịch sử dữ liệu hiện có của artist, không còn lọc theo 7, 30 hay 90 ngày.
-          </p>
-          <div className="mt-4 rounded-[16px] border border-[#efeaff] bg-[#faf9ff] px-4 py-3 text-sm text-[#6b6682]">
-            Dữ liệu hành vi:{" "}
-            <span className="font-semibold text-[#2f2747]">
-              {formatDateLabel(overview?.listenerBehavior?.period?.from)} -{" "}
-              {formatDateLabel(overview?.listenerBehavior?.period?.to)}
-            </span>{" "}
-            (toàn thời gian)
-          </div>
-        </section>
-
-        <ListenerBehaviorSummaryGrid summary={overview?.listenerBehavior?.summary || {}} />
-
-        <section className="grid gap-6 xl:grid-cols-2">
-          <BreakdownCard
-            title="Nguồn nghe nổi bật"
-            description="Những nguồn mà người nghe bắt đầu phát nhạc nhiều nhất trên toàn bộ dữ liệu."
-            items={localizedSources}
-            emptyMessage="Chưa có dữ liệu nguồn nghe."
-            maxItems={6}
-          />
-
-          <BreakdownCard
-            title="Phân bổ thiết bị"
-            description="Thiết bị mà người nghe đã sử dụng để phát nhạc của bạn."
-            items={localizedDevices}
-            emptyMessage="Chưa có dữ liệu thiết bị."
-            maxItems={6}
-          />
-        </section>
-
-        <section className="grid gap-6 xl:grid-cols-2">
-          <BreakdownCard
-            title="Khung giờ nghe cao điểm"
-            description="Những khung giờ có lượng stream mạnh nhất trên toàn bộ lịch sử dữ liệu."
-            items={overview?.listenerBehavior?.behavior?.listeningHours || []}
-            emptyMessage="Chưa có hoạt động nghe nào."
-            maxItems={6}
-          />
-
-          <BreakdownCard
-            title="Phân khúc mức độ trung thành"
-            description="Mức độ nghe sâu của người nghe dựa trên số lượt stream mỗi người."
-            items={localizedLoyaltySegments}
-            emptyMessage="Chưa có dữ liệu phân khúc người nghe."
-            valueFormatter={(item) =>
-              `${formatNumber(item.count)} người (${formatPercent(item.percentage)})`
-            }
-          />
-        </section>
-
-        <EngagementCard engagement={overview?.listenerBehavior?.behavior?.engagement || {}} />
-      </section>
-
-      <section className="grid gap-6 xl:grid-cols-2">
-        <BreakdownCard
-          title="Thống kê độ tuổi người nghe"
-          description={`Được tính theo người nghe duy nhất trong khoảng ${selectedRangeLabel.toLowerCase()}.`}
-          items={overview?.audience?.ageGroups || []}
-          emptyMessage="Chưa có người nghe nào trong giai đoạn đang xem nên chưa thể phân tích độ tuổi."
-        />
-
-        <BreakdownCard
-          title="Thống kê khu vực người nghe"
-          description="Xếp theo số người nghe duy nhất, ưu tiên quốc gia/khu vực ghi nhận ở lần nghe gần nhất trong giai đoạn."
-          items={overview?.audience?.regions || []}
-          emptyMessage="Chưa có dữ liệu khu vực người nghe trong giai đoạn đang xem."
-          maxItems={8}
-        />
-      </section>
     </section>
   );
 };

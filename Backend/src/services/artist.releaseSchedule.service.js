@@ -17,6 +17,7 @@ const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
 const VALID_STATUSES = new Set(["scheduled", "released", "cancelled"]);
 const VALID_TYPES = new Set(["track", "album"]);
+const MIN_TRACKS_TO_PUBLISH_ALBUM = 2;
 
 const normalizeScope = (scope) => {
     const normalizedScope = String(scope || "").trim().toLowerCase();
@@ -70,6 +71,20 @@ const getOwnedReleaseTarget = async ({ artistId, type, targetId }) => {
     }
 
     return track;
+};
+
+const ensureAlbumCanBeScheduledForRelease = (album) => {
+    const trackCount = Array.isArray(album?.trackList) ? album.trackList.length : 0;
+
+    if (trackCount < MIN_TRACKS_TO_PUBLISH_ALBUM) {
+        throw new AppError(
+            `Album must contain at least ${MIN_TRACKS_TO_PUBLISH_ALBUM} tracks before it can be scheduled for release.`,
+            400,
+            {
+                field: "targetId",
+            }
+        );
+    }
 };
 
 const ensureNoConflictingScheduledRelease = async ({ artistId, type, targetId }) => {
@@ -168,12 +183,13 @@ const syncTargetReleaseDateAfterCancellation = async ({
 
 const publishDueReleaseSchedules = async (extraFilter = {}, io = null) => {
     const now = new Date();
+
     const dueSchedules = await ReleaseSchedule.find({
         status: "scheduled",
         scheduledAt: { $lte: now },
         ...extraFilter,
     })
-        .select("_id type targetId artistId")
+        .select("_id scheduledAt type targetId artistId")
         .lean();
 
     if (dueSchedules.length === 0) {
@@ -182,42 +198,116 @@ const publishDueReleaseSchedules = async (extraFilter = {}, io = null) => {
         };
     }
 
-    let updatedCount = 0;
+    const dueAlbumSchedules = dueSchedules.filter(
+        (schedule) => schedule.type === "album" && schedule.targetId
+    );
 
-    for (const schedule of dueSchedules) {
-        const releasedSchedule = await ReleaseSchedule.findOneAndUpdate(
-            {
-                _id: schedule._id,
-                status: "scheduled",
-            },
-            {
-                $set: {
-                    status: "released",
-                    releasedAt: now,
+    const dueTrackSchedules = dueSchedules.filter(
+        (schedule) => schedule.type !== "album"
+    );
+
+    const dueAlbumIds = dueAlbumSchedules.map((schedule) => schedule.targetId);
+
+    let releasableAlbumScheduleIds = [];
+
+    if (dueAlbumIds.length > 0) {
+        const dueAlbums = await Album.find({
+            _id: { $in: dueAlbumIds },
+        })
+            .select("_id status trackList")
+            .lean();
+
+        const releasableAlbumIdSet = new Set(
+            dueAlbums
+                .filter(
+                    (album) =>
+                        Array.isArray(album.trackList) &&
+                        album.trackList.length >= MIN_TRACKS_TO_PUBLISH_ALBUM
+                )
+                .map((album) => album._id.toString())
+        );
+
+        releasableAlbumScheduleIds = dueAlbumSchedules
+            .filter((schedule) =>
+                releasableAlbumIdSet.has(schedule.targetId.toString())
+            )
+            .map((schedule) => schedule._id);
+
+        const albumIdsToActivate = dueAlbums
+            .filter(
+                (album) =>
+                    releasableAlbumIdSet.has(album._id.toString()) &&
+                    ["draft", "hidden"].includes(album.status)
+            )
+            .map((album) => album._id);
+
+        if (albumIdsToActivate.length > 0) {
+            await Album.updateMany(
+                {
+                    _id: { $in: albumIdsToActivate },
+                },
+                {
+                    $set: { status: "active" },
+                }
+            );
+        }
+    }
+
+    const releasableScheduleIds = [
+        ...dueTrackSchedules.map((schedule) => schedule._id),
+        ...releasableAlbumScheduleIds,
+    ];
+
+    if (releasableScheduleIds.length === 0) {
+        return {
+            updatedCount: 0,
+        };
+    }
+
+    const releasableScheduleIdSet = new Set(
+        releasableScheduleIds.map((id) => id.toString())
+    );
+
+    const releasableSchedules = dueSchedules.filter((schedule) =>
+        releasableScheduleIdSet.has(schedule._id.toString())
+    );
+
+    await ReleaseSchedule.bulkWrite(
+        releasableSchedules.map((schedule) => ({
+            updateOne: {
+                filter: {
+                    _id: schedule._id,
+                    status: "scheduled",
+                },
+                update: {
+                    $set: {
+                        status: "released",
+                        releasedAt: schedule.scheduledAt,
+                    },
                 },
             },
-            { new: true }
-        ).lean();
+        }))
+    );
 
-        if (!releasedSchedule) continue;
-
-        updatedCount += 1;
-
-        if (releasedSchedule.type === "track") {
+    for (const schedule of releasableSchedules) {
+        if (schedule.type === "track") {
             try {
                 await createNewReleaseNotificationForArtistFollowers({
-                    artistId: releasedSchedule.artistId,
-                    trackId: releasedSchedule.targetId,
+                    artistId: schedule.artistId,
+                    trackId: schedule.targetId,
                     io,
                 });
             } catch (error) {
-                console.error("Failed to create new release notification for released schedule:", error);
+                console.error(
+                    "Failed to create new release notification for released schedule:",
+                    error
+                );
             }
         }
     }
 
     return {
-        updatedCount,
+        updatedCount: releasableSchedules.length,
     };
 };
 
@@ -452,6 +542,10 @@ const createMyReleaseSchedule = async (userId, payload, io = null) => {
         type: payload.type,
         targetId: payload.targetId,
     });
+
+    if (payload.type === "album") {
+        ensureAlbumCanBeScheduledForRelease(target);
+    }
 
     await ensureNoConflictingScheduledRelease({
         artistId: artist._id,

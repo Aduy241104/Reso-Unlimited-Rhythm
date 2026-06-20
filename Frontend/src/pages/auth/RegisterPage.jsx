@@ -31,13 +31,12 @@ const RegisterPage = () => {
   const [otpApiError, setOtpApiError] = useState("");
   const [isResendingOtp, setIsResendingOtp] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(0);
-  const [cooldownUntil, setCooldownUntil] = useState(null);
   const [pendingRegistration, setPendingRegistration] = useState(null);
 
   const detailsForm = useForm({
     resolver: zodResolver(registerDetailsSchema),
-    mode: "onBlur",
-    reValidateMode: "onChange",
+    mode: "onSubmit",
+    reValidateMode: "onSubmit",
     defaultValues: {
       fullName: "",
       email: "",
@@ -50,47 +49,27 @@ const RegisterPage = () => {
 
   const otpForm = useForm({
     resolver: zodResolver(registerOtpSchema),
-    mode: "onBlur",
-    reValidateMode: "onChange",
+    mode: "onSubmit",
+    reValidateMode: "onSubmit",
     defaultValues: {
       otp: "",
     },
   });
 
   useEffect(() => {
-    if (!cooldownUntil) {
-      setRemainingSeconds(0);
+    if (remainingSeconds <= 0) {
       return undefined;
     }
 
-    const updateRemainingSeconds = () => {
-      const nextRemainingSeconds = Math.max(
-        0,
-        Math.ceil((cooldownUntil - Date.now()) / 1000)
-      );
-
-      setRemainingSeconds(nextRemainingSeconds);
-
-      if (nextRemainingSeconds === 0) {
-        setCooldownUntil(null);
-      }
-    };
-
-    updateRemainingSeconds();
-
-    const intervalId = window.setInterval(updateRemainingSeconds, 1000);
+    const intervalId = window.setInterval(() => {
+      setRemainingSeconds((current) => (current > 1 ? current - 1 : 0));
+    }, 1000);
 
     return () => window.clearInterval(intervalId);
-  }, [cooldownUntil]);
+  }, [remainingSeconds]);
 
   const startOtpCooldown = (seconds) => {
-    if (!seconds) {
-      setCooldownUntil(null);
-      setRemainingSeconds(0);
-      return;
-    }
-
-    setCooldownUntil(Date.now() + seconds * 1000);
+    setRemainingSeconds(seconds > 0 ? seconds : 0);
   };
 
   const handleSendOtp = async (values) => {
@@ -129,7 +108,7 @@ const RegisterPage = () => {
 
       if (!hasFieldErrors) {
         setDetailsApiError(
-          getApiErrorMessage(error, "Không thể gửi OTP. Vui lòng thử lại.")
+          getApiErrorMessage(error, "Không thể gửi mã OTP. Vui lòng thử lại.")
         );
       }
 
@@ -277,7 +256,9 @@ const RegisterPage = () => {
     const firstFieldName = Object.keys(formErrors)[0];
 
     setDetailsApiError("");
-    setDetailsValidationError("Vui lòng điền đầy đủ các trường bắt buộc trước khi tiếp tục.");
+    setDetailsValidationError(
+      "Vui lòng điền đầy đủ các trường bắt buộc trước khi tiếp tục."
+    );
 
     if (firstFieldName) {
       detailsForm.setFocus(firstFieldName);
@@ -287,57 +268,54 @@ const RegisterPage = () => {
   const isDetailsStep = step === "details";
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#0c1016] text-white">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(245,182,111,0.14),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(79,124,255,0.08),_transparent_26%),linear-gradient(180deg,_rgba(255,255,255,0.02)_0%,_rgba(12,16,22,0)_22%,_rgba(12,16,22,0.2)_100%)]" />
+    <main className="relative min-h-screen overflow-hidden bg-[#0a0a0a] text-white">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,_rgba(8,8,12,0.2)_0%,_rgba(8,8,12,0.66)_36%,_rgba(8,8,12,0.9)_66%,_rgba(8,8,12,1)_100%)]" />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/10" />
-      <div className="pointer-events-none absolute left-[-8rem] top-[-8rem] h-56 w-56 rounded-full bg-[#f5b66f]/10 blur-3xl" />
-      <div className="pointer-events-none absolute bottom-[-10rem] right-[-8rem] h-72 w-72 rounded-full bg-[#4f7cff]/8 blur-3xl" />
+      <div className="pointer-events-none absolute left-[-7rem] top-[-8rem] h-[24rem] w-[24rem] rounded-full bg-[#ff9f43]/18 blur-[110px]" />
+      <div className="pointer-events-none absolute left-[20%] top-[10%] h-[20rem] w-[20rem] rounded-full bg-[#ffd86b]/12 blur-[120px]" />
+      <div className="pointer-events-none absolute right-[14%] top-[-5rem] h-[21rem] w-[21rem] rounded-full bg-[#ff4fb3]/12 blur-[120px]" />
+      <div className="pointer-events-none absolute right-[-6rem] top-[28%] h-[24rem] w-[24rem] rounded-full bg-[#6f5bff]/14 blur-[130px]" />
+      <div className="pointer-events-none absolute bottom-[-7rem] left-[30%] h-[20rem] w-[20rem] rounded-full bg-[#3f7cff]/10 blur-[120px]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,_rgba(255,188,102,0.16),_transparent_24%),radial-gradient(circle_at_64%_18%,_rgba(255,82,168,0.15),_transparent_22%),radial-gradient(circle_at_78%_40%,_rgba(111,91,255,0.18),_transparent_24%),radial-gradient(circle_at_46%_82%,_rgba(70,140,255,0.12),_transparent_22%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,_rgba(255,255,255,0.03)_0%,_rgba(10,10,10,0)_16%,_rgba(10,10,10,0.24)_100%)]" />
 
-      <section className="relative mx-auto flex min-h-screen w-full max-w-6xl items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
-        <div className={`w-full ${isDetailsStep ? "max-w-3xl" : "max-w-lg"}`}>
-          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div className="space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[#f5b66f]">
-                Reso Music
+      <section className="relative mx-auto flex min-h-screen w-full max-w-6xl items-center justify-center px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+        <div className={`w-full ${isDetailsStep ? "max-w-[34rem]" : "max-w-[30rem]"}`}>
+          {!isDetailsStep ? (
+            <div className="mb-6 text-center">
+              <p className="text-xs font-semibold uppercase tracking-[0.32em] text-white/50">
+                Reso Unlimited Rhythm
               </p>
-              <div>
-                <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-                  {isDetailsStep ? "Tạo tài khoản" : "Xác nhận email"}
-                </h1>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-[#c9c4bd]">
-                  {isDetailsStep
-                    ? "Quy trình đăng ký gồm 2 bước, chỉ giữ lại các thông tin cần thiết để bạn bắt đầu nhanh chóng."
-                    : "Nhập mã xác thực chúng tôi đã gửi để hoàn tất việc tạo tài khoản."}
-                </p>
-              </div>
+              <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+                Xác nhận email của bạn
+              </h1>
+              <p className="mt-2 text-sm leading-6 text-white/65">
+                Nhập mã xác thực đã gửi để hoàn tất việc tạo tài khoản.
+              </p>
             </div>
+          ) : null}
 
-            <div className="inline-flex w-fit items-center rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-xs font-medium text-[#e7e1d8] backdrop-blur">
-              {isDetailsStep ? "Bước 1/2" : "Bước 2/2"}
-            </div>
-          </div>
-
-          { isDetailsStep ? (
+          {isDetailsStep ? (
             <RegisterDetailsStep
-              apiError={ detailsApiError }
-              validationError={ detailsValidationError }
-              form={ detailsForm }
-              onInvalidSubmit={ handleInvalidDetailsSubmit }
-              onSubmit={ handleSendOtp }
+              apiError={detailsApiError}
+              validationError={detailsValidationError}
+              form={detailsForm}
+              onInvalidSubmit={handleInvalidDetailsSubmit}
+              onSubmit={handleSendOtp}
             />
           ) : (
             <RegisterOtpStep
-              apiError={ otpApiError }
-              email={ pendingRegistration?.email || "" }
-              expiresInMinutes={ pendingRegistration?.expiresInMinutes }
-              form={ otpForm }
-              isResending={ isResendingOtp }
-              onEditDetails={ () => setStep("details") }
-              onResendOtp={ handleResendOtp }
-              onSubmit={ handleRegister }
-              remainingSeconds={ remainingSeconds }
+              apiError={otpApiError}
+              email={pendingRegistration?.email || ""}
+              expiresInMinutes={pendingRegistration?.expiresInMinutes}
+              form={otpForm}
+              isResending={isResendingOtp}
+              onEditDetails={() => setStep("details")}
+              onResendOtp={handleResendOtp}
+              onSubmit={handleRegister}
+              remainingSeconds={remainingSeconds}
             />
-          ) }
+          )}
         </div>
       </section>
     </main>

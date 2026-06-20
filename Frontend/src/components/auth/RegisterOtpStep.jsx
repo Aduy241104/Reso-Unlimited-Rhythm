@@ -1,4 +1,7 @@
+import { ArrowRight, RotateCcw } from "lucide-react";
 import { Link } from "react-router-dom";
+import systemLogo from "../../assets/images/ChatGPT Image 13_16_10 4 thg 5, 2026.png";
+import { routePaths } from "../../routes/routePaths";
 import AuthCard from "./AuthCard";
 import AuthField from "./AuthField";
 
@@ -21,61 +24,72 @@ const RegisterOtpStep = ({
 
   return (
     <AuthCard
-      theme="dark"
       title="Xác thực email"
-      subtitle={`Chúng tôi đã gửi mã xác thực một lần đến ${email}. Nhập mã bên dưới để hoàn tất đăng ký.`}
-      className="rounded-[28px] border-white/8 bg-[#11161d]/90"
-      headerClassName="mb-6"
-      footerClassName="mt-6"
+      subtitle={`Chúng tôi đã gửi mã xác thực đến ${email}. Nhập mã bên dưới để hoàn tất đăng ký.`}
+      className="rounded-[18px] border border-white bg-white px-4 py-4 shadow-[0_24px_80px_rgba(0,0,0,0.22)] sm:px-6 sm:py-5"
+      headerClassName="mb-5 text-center [&_.auth-card-divider]:mx-auto [&_.auth-card-subtitle]:mx-auto"
+      headerContent={
+        <div className="flex justify-center">
+          <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-[14px] border border-slate-200 bg-[#f8f8fb] shadow-[0_10px_24px_rgba(15,23,42,0.08)]">
+            <img
+              src={systemLogo}
+              alt="Reso Unlimited Rhythm logo"
+              className="h-9 w-9 object-contain"
+            />
+          </div>
+        </div>
+      }
+      footerClassName="mt-4"
       footer={
-        <span>
+        <p className="text-center text-sm text-slate-500">
           Đã có tài khoản?{" "}
-          <Link className="font-semibold text-[#f5b66f]" to="/login">
+          <Link className="font-semibold text-slate-950" to={routePaths.login}>
             Đăng nhập
           </Link>
-        </span>
+        </p>
       }
     >
-      <div className="mb-6 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 text-sm text-[#ddd7cf]">
-        <p className="font-medium text-white">Mã đã được gửi đến</p>
-        <p className="mt-1 break-all text-[#f5b66f]">{email}</p>
-        <p className="mt-3 text-[#bdb6ad]">
+      <div className="mb-4 rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+        <p className="font-medium text-slate-950">Mã đã được gửi tới</p>
+        <p className="mt-1 break-all font-medium text-slate-950">{email}</p>
+        <p className="mt-3 text-slate-500">
           Mã có hiệu lực trong khoảng {expiresInMinutes || 5} phút.
         </p>
       </div>
 
       <form className="space-y-4" noValidate onSubmit={handleSubmit(onSubmit)}>
         {apiError ? (
-          <div className="rounded-2xl border border-rose-300/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+          <div className="rounded-[14px] border border-rose-200 bg-white px-4 py-3 text-sm text-rose-700">
             {apiError}
           </div>
         ) : null}
 
         <AuthField
-          theme="dark"
           label="Mã OTP"
+          labelClassName="text-sm font-medium normal-case tracking-normal text-slate-700"
           type="text"
           inputMode="numeric"
           maxLength={6}
           autoComplete="one-time-code"
           placeholder="123456"
           error={errors.otp?.message}
-          inputClassName="min-h-[56px] rounded-2xl border-white/10 bg-[#f7f4ef] text-center text-lg font-semibold tracking-[0.35em] shadow-none"
+          inputClassName="min-h-[46px] rounded-[14px] border-slate-200 bg-white text-center text-base font-semibold tracking-[0.3em] shadow-none"
           {...register("otp")}
         />
 
         <button
-          className="inline-flex min-h-[52px] w-full items-center justify-center rounded-2xl bg-[#f5b66f] px-4 py-3 text-sm font-semibold text-[#15181d] transition hover:bg-[#f7c789] disabled:cursor-not-allowed disabled:opacity-70"
+          className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-[14px] bg-[linear-gradient(180deg,_#111827_0%,_#0f172a_100%)] px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_36px_rgba(15,23,42,0.2)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
           disabled={isSubmitting}
           type="submit"
         >
           {isSubmitting ? "Đang xác thực..." : "Tạo tài khoản"}
+          <ArrowRight className="h-4 w-4" />
         </button>
       </form>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <button
-          className="inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-medium text-[#efe7dc] transition hover:border-white/20 hover:bg-white/[0.06]"
+          className="inline-flex min-h-[42px] items-center justify-center rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 transition hover:bg-slate-50"
           onClick={onEditDetails}
           type="button"
         >
@@ -83,11 +97,12 @@ const RegisterOtpStep = ({
         </button>
 
         <button
-          className="inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-[#f5b66f]/25 bg-[#f5b66f]/8 px-4 py-3 text-sm font-medium text-[#f5b66f] transition hover:bg-[#f5b66f]/14 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/[0.03] disabled:text-[#7c7680]"
+          className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400"
           disabled={isResending || remainingSeconds > 0}
           onClick={onResendOtp}
           type="button"
         >
+          <RotateCcw className="h-4 w-4" />
           {isResending
             ? "Đang gửi lại OTP..."
             : remainingSeconds > 0

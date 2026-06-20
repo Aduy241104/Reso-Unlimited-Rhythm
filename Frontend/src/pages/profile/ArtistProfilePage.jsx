@@ -53,6 +53,8 @@ const getOverlayBounds = (container) => {
 
 const FOLLOW_LOGIN_NOTICE = "Vui lòng đăng nhập để theo dõi nghệ sĩ này.";
 
+const hasResolvedFollowState = (value) => typeof value === "boolean";
+
 const ArtistProfileView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -63,7 +65,7 @@ const ArtistProfileView = () => {
   const [activeFilter, setActiveFilter] = useState("popular");
   const [isFollowing, setIsFollowing] = useState(false);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
-  const [isFollowStatusLoading, setIsFollowStatusLoading] = useState(false);
+  const [, setIsFollowStatusLoading] = useState(false);
   const [followErrorMessage, setFollowErrorMessage] = useState("");
   const [isCountdownMounted, setIsCountdownMounted] = useState(false);
   const [isCountdownVisible, setIsCountdownVisible] = useState(false);
@@ -91,6 +93,7 @@ const ArtistProfileView = () => {
       profile: currentData.profile
         ? {
             ...currentData.profile,
+            isFollowing: Boolean(followState.isFollowing),
             followers:
               typeof followState.followers === "number"
                 ? followState.followers
@@ -125,7 +128,10 @@ const ArtistProfileView = () => {
         }
 
         setArtistData(payload);
-        setIsFollowing(Boolean(payload?.profile?.isFollowing));
+
+        if (hasResolvedFollowState(payload?.profile?.isFollowing)) {
+          setIsFollowing(payload.profile.isFollowing);
+        }
       } catch (error) {
         if (!isMounted) {
           return;
@@ -297,7 +303,7 @@ const ArtistProfileView = () => {
   const handleToggleFollow = async () => {
     const artistId = artistData.profile?.id || id;
 
-    if (!artistId || isFollowLoading || isFollowStatusLoading) {
+    if (!artistId || isFollowLoading) {
       return;
     }
 
@@ -381,7 +387,7 @@ const ArtistProfileView = () => {
               <ArtistHeroSection
                 profile={ profile }
                 isFollowing={ isFollowing }
-                isFollowLoading={ isFollowLoading || isFollowStatusLoading }
+                isFollowLoading={ isFollowLoading }
                 followErrorMessage={ followErrorMessage }
                 onToggleFollow={ handleToggleFollow }
                 onReport={ handleReportArtist }
@@ -439,6 +445,8 @@ const ArtistProfileView = () => {
           comingRelease={ nextComingRelease }
           artistName={ profile?.name }
           overlayBounds={ overlayBounds }
+          trackId={ nextComingRelease?.trackId || nextComingRelease?.id }
+          albumId={ nextComingRelease?.albumId || nextComingRelease?.id }
           onBack={ closeComingSoonExperience }
         />
       ) : null }
