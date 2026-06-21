@@ -16,6 +16,7 @@ import { getMyArtistNotificationDetailService } from "../../services/artist.noti
 const TYPE_LABELS = {
   system: "Hệ thống",
   new_release: "Phát hành mới",
+  artist_update: "Cập nhật nghệ sĩ",
   payment: "Thanh toán",
   follow: "Theo dõi",
   report: "Báo cáo",
@@ -81,7 +82,9 @@ const MetaCard = ({ icon, label, value, helper }) => (
         {icon}
       </div>
       <div className="min-w-0">
-        <p className="text-xs uppercase tracking-[0.24em] text-[#928aad]">{label}</p>
+        <p className="text-xs uppercase tracking-[0.24em] text-[#928aad]">
+          {label}
+        </p>
         <p className="mt-2 break-words text-sm font-semibold text-[#2f2747]">
           {value || "--"}
         </p>
@@ -124,6 +127,7 @@ const ArtistNotificationDetailPage = () => {
         }
 
         setNotification(result || null);
+        window.dispatchEvent(new CustomEvent("artist-notifications:refresh"));
       } catch (error) {
         if (!isMounted) {
           return;
@@ -174,8 +178,12 @@ const ArtistNotificationDetailPage = () => {
         </button>
 
         <div className="rounded-[24px] border border-rose-200 bg-rose-50 px-6 py-6 text-rose-900">
-          <h1 className="text-lg font-semibold">Không thể tải chi tiết thông báo</h1>
-          <p className="mt-2 text-sm">{errorMessage || "Dữ liệu không tồn tại."}</p>
+          <h1 className="text-lg font-semibold">
+            Không thể tải chi tiết thông báo
+          </h1>
+          <p className="mt-2 text-sm">
+            {errorMessage || "Dữ liệu không tồn tại."}
+          </p>
         </div>
       </section>
     );
@@ -270,7 +278,9 @@ const ArtistNotificationDetailPage = () => {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_360px]">
         <section className="rounded-[28px] border border-[#e7e1ff] bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-[#2f2747]">Thông tin kỹ thuật</h2>
+          <h2 className="text-lg font-semibold text-[#2f2747]">
+            Thông tin kỹ thuật
+          </h2>
 
           <div className="mt-5 divide-y divide-[#f0ecff]">
             <div className="grid gap-2 py-3 sm:grid-cols-[180px_minmax(0,1fr)]">
@@ -314,7 +324,11 @@ const ArtistNotificationDetailPage = () => {
           <MetaCard
             icon={<Globe className="h-5 w-5" />}
             label="Phạm vi gửi"
-            value={notification?.isGlobal ? "Thông báo toàn hệ thống" : "Thông báo cá nhân"}
+            value={
+              notification?.isGlobal
+                ? "Thông báo toàn hệ thống"
+                : "Thông báo cá nhân"
+            }
             helper="Dùng để phân biệt thông báo broadcast và thông báo gắn với riêng artist."
           />
           <MetaCard

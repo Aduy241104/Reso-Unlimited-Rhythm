@@ -1,17 +1,38 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { Bell, Menu, Search, X } from "lucide-react";
+import { useAuth } from "../../hooks/useAuth";
+import { useSocket } from "../../hooks/useSocket";
+import { getMyArtistNotificationsService } from "../../services/artist.notification.service";
 import { getMyArtistProfileService } from "../../services/artistService";
 import { routePaths } from "../../routes/routePaths";
 import { artistNavigation, artistProfile } from "./navigation";
 
 const SIDEBAR_WIDTH = "264px";
+const ARTIST_NOTIFICATIONS_PATH = routePaths.artistNotifications;
 
 const ArtistDashboardLayout = () => {
   const navigate = useNavigate();
+  const { accessToken } = useAuth();
+  const socket = useSocket(accessToken);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [sidebarArtistName, setSidebarArtistName] = useState("");
   const [sidebarArtistSubtitle, setSidebarArtistSubtitle] = useState("");
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchUnreadCount = useCallback(async () => {
+    try {
+      const result = await getMyArtistNotificationsService({
+        page: 1,
+        limit: 1,
+        isRead: false,
+      });
+
+      setUnreadCount(Number(result?.meta?.unreadCount || 0));
+    } catch (error) {
+      console.error("Unable to load artist notification unread count:", error);
+    }
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -43,6 +64,58 @@ const ArtistDashboardLayout = () => {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    fetchUnreadCount();
+  }, [fetchUnreadCount]);
+
+  useEffect(() => {
+    if (!socket) {
+      return undefined;
+    }
+
+    const handleNewNotification = () => {
+      setUnreadCount((previousCount) => previousCount + 1);
+    };
+
+    const handleNotificationRefresh = () => {
+      fetchUnreadCount();
+    };
+
+    socket.on("new_notification", handleNewNotification);
+    socket.on("update_notification", handleNotificationRefresh);
+    socket.on("delete_notification", handleNotificationRefresh);
+
+    return () => {
+      socket.off("new_notification", handleNewNotification);
+      socket.off("update_notification", handleNotificationRefresh);
+      socket.off("delete_notification", handleNotificationRefresh);
+    };
+  }, [fetchUnreadCount, socket]);
+
+  useEffect(() => {
+    const handleUnreadDelta = (event) => {
+      const delta = Number(event.detail?.delta || 0);
+
+      if (!delta) {
+        return;
+      }
+
+      setUnreadCount((previousCount) => Math.max(0, previousCount + delta));
+    };
+
+    const handleNotificationRefresh = () => {
+      fetchUnreadCount();
+    };
+
+    window.addEventListener("artist-notifications:unread-delta", handleUnreadDelta);
+    window.addEventListener("artist-notifications:refresh", handleNotificationRefresh);
+
+    return () => {
+      window.removeEventListener("artist-notifications:unread-delta", handleUnreadDelta);
+      window.removeEventListener("artist-notifications:refresh", handleNotificationRefresh);
+    };
+  }, [fetchUnreadCount]);
 
   const renderSidebar = () => (
     <div className="flex h-full flex-col bg-[#2f2747] text-white">
@@ -96,6 +169,12 @@ const ArtistDashboardLayout = () => {
                 />
 
                 <span className="truncate">{item.label}</span>
+
+                {item.to === ARTIST_NOTIFICATIONS_PATH && unreadCount > 0 ? (
+                  <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-[#d6b48c] px-1.5 py-0.5 text-[11px] font-semibold leading-none text-[#2f2747]">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                ) : null}
               </>
             )}
           </NavLink>
@@ -181,10 +260,15 @@ const ArtistDashboardLayout = () => {
                 <button
                   type="button"
                   onClick={() => navigate(routePaths.artistNotifications)}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-sm border border-[#ece8ff] text-[#5f4fe0] transition hover:bg-[#f8f6ff]"
+                  className="relative inline-flex h-10 w-10 items-center justify-center rounded-sm border border-[#ece8ff] text-[#5f4fe0] transition hover:bg-[#f8f6ff]"
                   aria-label="Thông báo"
                 >
                   <Bell className="h-5 w-5" />
+                  {unreadCount > 0 ? (
+                    <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-[#5f4fe0] px-1.5 py-0.5 text-[11px] font-semibold leading-none text-white">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  ) : null}
                 </button>
               </div>
             </div>
