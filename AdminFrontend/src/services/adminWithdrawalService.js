@@ -24,6 +24,15 @@ export const approveWithdrawalRequestService = async (id) => {
   return response?.data?.data?.withdrawalRequest ?? null;
 };
 
+export const rejectWithdrawalRequestService = async (id, payload = {}) => {
+  const response = await axiosClient.patch(
+    `${ADMIN_WITHDRAWAL_REQUEST_API_PREFIX}/${id}/reject`,
+    payload
+  );
+
+  return response?.data?.data?.withdrawalRequest ?? null;
+};
+
 export const getWithdrawalRequestDetailService = async (id) => {
   const response = await axiosClient.get(
     `${ADMIN_WITHDRAWAL_REQUEST_API_PREFIX}/${id}`
@@ -35,5 +44,6 @@ export const getWithdrawalRequestDetailService = async (id) => {
 export default {
   getAdminWithdrawalRequests,
   approveWithdrawalRequestService,
+  rejectWithdrawalRequestService,
   getWithdrawalRequestDetailService,
 };

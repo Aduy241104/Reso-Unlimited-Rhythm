@@ -8,12 +8,14 @@ import {
   Clock3,
   CreditCard,
   Loader2,
+  XCircle,
   UserRound,
   WalletCards,
 } from "lucide-react";
 import {
   approveWithdrawalRequestService,
   getWithdrawalRequestDetailService,
+  rejectWithdrawalRequestService,
 } from "../../services/adminWithdrawalService";
 import { routePaths } from "../../routes/routePaths";
 
@@ -146,6 +148,9 @@ const WithdrawalRequestDetailPage = () => {
   const [successMessage, setSuccessMessage] = useState("");
   const [isApproveConfirmOpen, setIsApproveConfirmOpen] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
+  const [isRejectConfirmOpen, setIsRejectConfirmOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [isRejecting, setIsRejecting] = useState(false);
 
   useEffect(() => {
     const loadDetail = async () => {
@@ -203,6 +208,42 @@ const WithdrawalRequestDetailPage = () => {
       setError(getErrorMessage(err, "Không thể approve yêu cầu rút tiền."));
     } finally {
       setIsApproving(false);
+    }
+  };
+
+  const handleRejectWithdrawalRequest = async () => {
+    const withdrawalId = withdrawal?._id || withdrawal?.id || id;
+    const normalizedRejectReason = rejectReason.trim();
+
+    if (!withdrawalId || !canApprove || isRejecting) return;
+
+    if (!normalizedRejectReason) {
+      setError("Reject reason is required.");
+      return;
+    }
+
+    setIsRejecting(true);
+    setError("");
+    setSuccessMessage("");
+
+    try {
+      const updatedWithdrawal = await rejectWithdrawalRequestService(withdrawalId, {
+        rejectReason: normalizedRejectReason,
+      });
+      setWithdrawal(updatedWithdrawal || {
+        ...withdrawal,
+        status: "rejected",
+        rejectedAt: new Date().toISOString(),
+        rejectReason: normalizedRejectReason,
+      });
+      setSuccessMessage("Withdrawal request rejected successfully");
+      setRejectReason("");
+      setIsRejectConfirmOpen(false);
+    } catch (err) {
+      console.error(err);
+      setError(getErrorMessage(err, "Không thể reject yêu cầu rút tiền."));
+    } finally {
+      setIsRejecting(false);
     }
   };
 
@@ -302,6 +343,26 @@ const WithdrawalRequestDetailPage = () => {
                       <CheckCircle2 size={15} />
                     )}
                     Approve
+                  </button>
+                ) : null}
+                {canApprove ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setError("");
+                      setSuccessMessage("");
+                      setRejectReason("");
+                      setIsRejectConfirmOpen(true);
+                    }}
+                    disabled={isRejecting}
+                    className="inline-flex items-center gap-2 rounded-full bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isRejecting ? (
+                      <Loader2 size={15} className="animate-spin" />
+                    ) : (
+                      <XCircle size={15} />
+                    )}
+                    Reject
                   </button>
                 ) : null}
               </div>
@@ -458,6 +519,74 @@ const WithdrawalRequestDetailPage = () => {
                   <CheckCircle2 size={16} />
                 )}
                 Confirm approve
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isRejectConfirmOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-[0_24px_80px_rgba(15,23,42,0.25)]">
+            <div className="flex items-start gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
+                <XCircle size={22} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-lg font-semibold text-slate-950">
+                  Reject withdrawal request?
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                  Request của {getArtistName(withdrawal)} sẽ bị từ chối và số tiền
+                  sẽ được hoàn lại vào availableAmount của artist revenue summary.
+                </p>
+                <label className="mt-5 block">
+                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    Reject reason
+                  </span>
+                  <textarea
+                    value={rejectReason}
+                    onChange={(event) => {
+                      setRejectReason(event.target.value);
+                      if (error === "Reject reason is required.") setError("");
+                    }}
+                    rows={4}
+                    placeholder="Nhập lý do từ chối..."
+                    className="mt-2 w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-rose-200 focus:bg-white focus:ring-4 focus:ring-rose-50"
+                  />
+                </label>
+                {error ? (
+                  <div className="mt-3 rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-600">
+                    {error}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsRejectConfirmOpen(false);
+                  setRejectReason("");
+                }}
+                disabled={isRejecting}
+                className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleRejectWithdrawalRequest}
+                disabled={isRejecting || !rejectReason.trim()}
+                className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isRejecting ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <XCircle size={16} />
+                )}
+                Confirm reject
               </button>
             </div>
           </div>
