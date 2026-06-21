@@ -49,8 +49,27 @@ const getWithdrawalRequestDetail = async (req, res, next) => {
     }
 };
 
+const rejectWithdrawalRequest = async (req, res, next) => {
+    try {
+        const withdrawalRequest = await adminWithdrawalService.rejectWithdrawalRequest(
+            req.params.id,
+            { rejectReason: req.body.rejectReason },
+            req.user?.id || req.user?._id
+        );
+
+        return formatResponse.success(
+            res,
+            { withdrawalRequest },
+            "Withdrawal request rejected successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getWithdrawalRequests,
     approveWithdrawalRequest,
+    rejectWithdrawalRequest,
     getWithdrawalRequestDetail,
 };

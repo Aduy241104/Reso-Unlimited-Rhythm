@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import Artist from "../../models/Artist.js";
+import ArtistRevenueSummary from "../../models/ArtistRevenueSummary.js";
 import User from "../../models/User.js";
 import WithdrawalRequest from "../../models/WithdrawalRequest.js";
 import { AppError } from "../../utils/AppError.js";
@@ -164,6 +165,78 @@ const approveWithdrawalRequest = async (withdrawalRequestId, adminUserId) => {
     ).lean();
 };
 
+const rejectWithdrawalRequest = async (
+    withdrawalRequestId,
+    { rejectReason },
+    adminUserId
+) => {
+    const normalizedRejectReason = String(rejectReason || "").trim();
+
+    if (!normalizedRejectReason) {
+        throw new AppError("Reject reason is required.", 400);
+    }
+
+    const session = await mongoose.startSession();
+
+    try {
+        let rejectedWithdrawalRequest;
+
+        await session.withTransaction(async () => {
+            const withdrawalRequest = await WithdrawalRequest.findById(withdrawalRequestId)
+                .session(session);
+
+            if (!withdrawalRequest) {
+                throw new AppError("Withdrawal request not found.", 404);
+            }
+
+            if (withdrawalRequest.status !== "pending") {
+                throw new AppError("Only pending withdrawal requests can be rejected.", 400);
+            }
+
+            const rejectedAt = new Date();
+
+            withdrawalRequest.status = "rejected";
+            withdrawalRequest.rejectedAt = rejectedAt;
+            withdrawalRequest.processedAt = rejectedAt;
+            withdrawalRequest.rejectReason = normalizedRejectReason;
+
+            if (adminUserId) {
+                withdrawalRequest.processedBy = adminUserId;
+            }
+
+            await withdrawalRequest.save({ session });
+
+            const requestedAt = withdrawalRequest.requestedAt || withdrawalRequest.createdAt || new Date();
+            const revenuePeriod = {
+                year: requestedAt.getFullYear(),
+                month: requestedAt.getMonth() + 1,
+            };
+
+            const summaryUpdateResult = await ArtistRevenueSummary.updateOne(
+                {
+                    artistId: withdrawalRequest.artistId,
+                    year: revenuePeriod.year,
+                    month: revenuePeriod.month,
+                },
+                { $inc: { availableAmount: withdrawalRequest.amount } },
+                { session }
+            );
+
+            if (summaryUpdateResult.matchedCount === 0) {
+                throw new AppError("Artist revenue summary for this withdrawal period was not found.", 404);
+            }
+
+            rejectedWithdrawalRequest = withdrawalRequest;
+        });
+
+        return populateWithdrawalRequestForAdmin(
+            WithdrawalRequest.findById(rejectedWithdrawalRequest._id)
+        ).lean();
+    } finally {
+        await session.endSession();
+    }
+};
+
 const getWithdrawalRequestDetailForAdmin = async (withdrawalRequestId) => {
     const withdrawalRequest = await populateWithdrawalRequestForAdmin(
         WithdrawalRequest.findById(withdrawalRequestId)
@@ -179,5 +252,6 @@ const getWithdrawalRequestDetailForAdmin = async (withdrawalRequestId) => {
 export default {
     getWithdrawalRequestsForAdmin,
     approveWithdrawalRequest,
+    rejectWithdrawalRequest,
     getWithdrawalRequestDetailForAdmin,
 };

@@ -18,6 +18,13 @@ withdrawalRequestRouter.patch(
     adminWithdrawalController.approveWithdrawalRequest
 );
 
+withdrawalRequestRouter.patch(
+    "/:id/reject",
+    validate(adminWithdrawalValidation.withdrawalRequestIdParamSchema, "params"),
+    validate(adminWithdrawalValidation.rejectWithdrawalRequestBodySchema, "body"),
+    adminWithdrawalController.rejectWithdrawalRequest
+);
+
 withdrawalRequestRouter.get(
     "/:id",
     validate(adminWithdrawalValidation.withdrawalRequestIdParamSchema, "params"),

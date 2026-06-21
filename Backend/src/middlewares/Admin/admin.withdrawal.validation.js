@@ -23,7 +23,12 @@ const withdrawalRequestIdParamSchema = Joi.object({
     id: objectIdSchema,
 });
 
+const rejectWithdrawalRequestBodySchema = Joi.object({
+    rejectReason: Joi.string().trim().min(1).max(1000).required(),
+});
+
 export default {
     listWithdrawalRequestsQuerySchema,
     withdrawalRequestIdParamSchema,
+    rejectWithdrawalRequestBodySchema,
 };
