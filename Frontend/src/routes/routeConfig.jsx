@@ -1,4 +1,4 @@
-import { Navigate } from "react-router-dom";
+﻿import { Navigate } from "react-router-dom";
 import ArtistDashboardLayout from "../layout/artistDashboard/ArtistDashboardLayout";
 import MainLayout from "../layout/mainLayout/MainLayout";
 import AlbumDetailPage from "../pages/album/AlbumDetailPage";
@@ -6,6 +6,7 @@ import ForgotPasswordPage from "../pages/auth/ForgotPasswordPage";
 import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
 import ResetPasswordPage from "../pages/auth/ResetPasswordPage";
+import SearchResultPage from "../pages/search/SearchResultPage";
 import ArtistOverviewPage from "../pages/artist/ArtistOverviewPage";
 import ArtistProfileEditPage from "../pages/artist/ArtistProfileEditPage";
 import ArtistProfilePage from "../pages/artist/ArtistProfilePage";
@@ -30,6 +31,8 @@ import ArtistTrackEditPage from "../pages/artist/ArtistTrackEditPage";
 import ArtistLyricsPage from "../pages/artist/ArtistLyricsPage";
 import HomePage from "../pages/home/HomePage";
 import LyricsPage from "../pages/lyrics/LyricsPage";
+import GenreListPage from "../pages/usergenre/GenreListPage";
+import GenreDetailPage from "../pages/usergenre/GenreDetailPage";
 import DailyTopTracksPage from "../pages/track/DailyTopTracksPage";
 import MonthlyTopTracksPage from "../pages/track/MonthlyTopTracksPage";
 import NotificationsPage from "../pages/notifications/NotificationsPage";
@@ -40,6 +43,7 @@ import PremiumPaymentFailedPage from "../pages/premium/PremiumPaymentFailedPage"
 import PremiumPaymentSuccessPage from "../pages/premium/PremiumPaymentSuccessPage";
 import PremiumPage from "../pages/premium/PremiumPage";
 import TrackDetailPage from "../pages/track/TrackDetailPage";
+import UserFavoriteTracksPage from "../pages/userFavorite/UserFavoriteTracksPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import RoleRoute from "./RoleRoute";
@@ -60,6 +64,18 @@ export const appRoutes = [
       {
         path: routePaths.home,
         element: <HomePage />,
+      },
+      {
+        path: routePaths.search,
+        element: <SearchResultPage />,
+      },
+      {
+        path: routePaths.userGenres,
+        element: <GenreListPage />,
+      },
+      {
+        path: routePaths.userGenreDetail(),
+        element: <GenreDetailPage />,
       },
       {
         path: routePaths.dailyTopTracks,
@@ -115,6 +131,20 @@ export const appRoutes = [
   {
     element: <ProtectedRoute />,
     children: userProfileRoutes,
+  },
+  {
+    element: <ProtectedRoute />,
+    children: [
+      {
+        element: <MainLayout />,
+        children: [
+          {
+            path: routePaths.userFavoriteTracks,
+            element: <UserFavoriteTracksPage />,
+          },
+        ],
+      },
+    ],
   },
   {
     element: <ProtectedRoute />,
