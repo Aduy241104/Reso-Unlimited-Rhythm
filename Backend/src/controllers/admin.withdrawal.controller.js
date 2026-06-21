@@ -16,6 +16,41 @@ const getWithdrawalRequests = async (req, res, next) => {
     }
 };
 
+const approveWithdrawalRequest = async (req, res, next) => {
+    try {
+        const withdrawalRequest = await adminWithdrawalService.approveWithdrawalRequest(
+            req.params.id,
+            req.user?.id || req.user?._id
+        );
+
+        return formatResponse.success(
+            res,
+            { withdrawalRequest },
+            "Withdrawal request approved successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+const getWithdrawalRequestDetail = async (req, res, next) => {
+    try {
+        const withdrawalRequest = await adminWithdrawalService.getWithdrawalRequestDetailForAdmin(
+            req.params.id
+        );
+
+        return formatResponse.success(
+            res,
+            { withdrawalRequest },
+            "Withdrawal request detail fetched successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getWithdrawalRequests,
+    approveWithdrawalRequest,
+    getWithdrawalRequestDetail,
 };

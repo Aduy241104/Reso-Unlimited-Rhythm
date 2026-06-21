@@ -58,6 +58,10 @@ const WithdrawalRequestSchema = new Schema(
             type: Date,
             default: null,
         },
+        approvedAt: {
+            type: Date,
+            default: null,
+        },
         adminNote: {
             type: String,
             default: "",

@@ -1,5 +1,12 @@
 import Joi from "joi";
 
+const objectIdSchema = Joi.string()
+    .pattern(/^[0-9a-fA-F]{24}$/)
+    .required()
+    .messages({
+        "string.pattern.base": "id must be a valid ObjectId string",
+    });
+
 const listWithdrawalRequestsQuerySchema = Joi.object({
     page: Joi.number().integer().min(1).optional(),
     limit: Joi.number().integer().min(1).max(100).optional(),
@@ -12,6 +19,11 @@ const listWithdrawalRequestsQuerySchema = Joi.object({
     q: Joi.string().trim().max(200).allow("").optional(),
 });
 
+const withdrawalRequestIdParamSchema = Joi.object({
+    id: objectIdSchema,
+});
+
 export default {
     listWithdrawalRequestsQuerySchema,
+    withdrawalRequestIdParamSchema,
 };

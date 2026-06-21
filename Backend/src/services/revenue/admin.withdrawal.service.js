@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Artist from "../../models/Artist.js";
 import User from "../../models/User.js";
 import WithdrawalRequest from "../../models/WithdrawalRequest.js";
+import { AppError } from "../../utils/AppError.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
@@ -121,6 +122,62 @@ const getWithdrawalRequestsForAdmin = async (query = {}) => {
     };
 };
 
+const populateWithdrawalRequestForAdmin = (query) => query
+    .populate({
+        path: "artistId",
+        select: "name avatar userId verificationStatus activeStatus revenue",
+        populate: {
+            path: "userId",
+            select: "email avatar profile role activeStatus",
+        },
+    })
+    .populate({
+        path: "processedBy",
+        select: "email avatar profile role activeStatus",
+    });
+
+const approveWithdrawalRequest = async (withdrawalRequestId, adminUserId) => {
+    const withdrawalRequest = await WithdrawalRequest.findById(withdrawalRequestId);
+
+    if (!withdrawalRequest) {
+        throw new AppError("Withdrawal request not found.", 404);
+    }
+
+    if (withdrawalRequest.status !== "pending") {
+        throw new AppError("Only pending withdrawal requests can be approved.", 400);
+    }
+
+    const approvedAt = new Date();
+
+    withdrawalRequest.status = "approved";
+    withdrawalRequest.approvedAt = approvedAt;
+    withdrawalRequest.processedAt = approvedAt;
+
+    if (adminUserId) {
+        withdrawalRequest.processedBy = adminUserId;
+    }
+
+    await withdrawalRequest.save();
+
+    return populateWithdrawalRequestForAdmin(
+        WithdrawalRequest.findById(withdrawalRequest._id)
+    ).lean();
+};
+
+const getWithdrawalRequestDetailForAdmin = async (withdrawalRequestId) => {
+    const withdrawalRequest = await populateWithdrawalRequestForAdmin(
+        WithdrawalRequest.findById(withdrawalRequestId)
+    ).lean();
+
+    if (!withdrawalRequest) {
+        throw new AppError("Withdrawal request not found.", 404);
+    }
+
+    return withdrawalRequest;
+};
+
 export default {
     getWithdrawalRequestsForAdmin,
+    approveWithdrawalRequest,
+    getWithdrawalRequestDetailForAdmin,
 };

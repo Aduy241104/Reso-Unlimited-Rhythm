@@ -4,6 +4,7 @@ import adminWithdrawalValidation from "../middlewares/Admin/admin.withdrawal.val
 import validate from "../middlewares/validate.middleware.js";
 
 const router = express.Router();
+const withdrawalRequestRouter = express.Router();
 
 router.get(
     "/",
@@ -11,4 +12,17 @@ router.get(
     adminWithdrawalController.getWithdrawalRequests
 );
 
+withdrawalRequestRouter.patch(
+    "/:id/approve",
+    validate(adminWithdrawalValidation.withdrawalRequestIdParamSchema, "params"),
+    adminWithdrawalController.approveWithdrawalRequest
+);
+
+withdrawalRequestRouter.get(
+    "/:id",
+    validate(adminWithdrawalValidation.withdrawalRequestIdParamSchema, "params"),
+    adminWithdrawalController.getWithdrawalRequestDetail
+);
+
+export { withdrawalRequestRouter };
 export default router;
