@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import ReactPaginate from "react-paginate";
+import { Link } from "react-router-dom";
 import {
   AlertCircle,
+  ArrowUpRight,
   Banknote,
   Clock3,
   CreditCard,
@@ -11,6 +13,7 @@ import {
   WalletCards,
 } from "lucide-react";
 import { getAdminWithdrawalRequests } from "../../services/adminWithdrawalService";
+import { routePaths } from "../../routes/routePaths";
 
 const statusFilters = [
   { value: "", label: "Tất cả trạng thái" },
@@ -58,15 +61,11 @@ const statusConfig = {
   },
 };
 
-const formatCurrency = (value) => {
-  const amount = Number(value || 0);
-
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    maximumFractionDigits: 0,
-  }).format(amount);
-};
+const formatCurrency = (value) => new Intl.NumberFormat("vi-VN", {
+  style: "currency",
+  currency: "VND",
+  maximumFractionDigits: 0,
+}).format(Number(value || 0));
 
 const formatDateTime = (value) => {
   if (!value) return "—";
@@ -111,47 +110,12 @@ const getDisplayName = (withdrawal) => {
 
 const getUserSubtitle = (withdrawal) => {
   const { user, artist } = getArtistUser(withdrawal);
-
   return user?.email || user?.profile?.fullName || artist?._id || "—";
 };
 
 const getAvatar = (withdrawal) => {
   const { artist, user } = getArtistUser(withdrawal);
   return artist?.avatar || user?.avatar || "";
-};
-
-const getProcessedBy = (processedBy) => {
-  if (!processedBy || typeof processedBy !== "object") return "—";
-  return (
-    processedBy?.profile?.fullName ||
-    processedBy?.fullName ||
-    processedBy?.username ||
-    processedBy?.email ||
-    "Admin"
-  );
-};
-
-const getAccountInfoText = (withdrawal) => {
-  const accountInfo = withdrawal?.accountInfo || {};
-
-  if (withdrawal?.method === "momo") {
-    return (
-      accountInfo.phoneNumber ||
-      accountInfo.phone ||
-      accountInfo.accountNumber ||
-      withdrawal?.momoPhone ||
-      "Momo"
-    );
-  }
-
-  const bankName = accountInfo.bankName || withdrawal?.bankName;
-  const accountNumber = accountInfo.accountNumber || withdrawal?.accountNumber;
-  const accountHolderName =
-    accountInfo.accountHolderName || withdrawal?.accountHolderName;
-
-  return [bankName, accountNumber, accountHolderName]
-    .filter(Boolean)
-    .join(" • ") || "—";
 };
 
 const getStatusBadge = (status) => {
@@ -282,7 +246,7 @@ const AdminWithdrawalRequestsPage = () => {
   const pageLabel = `${page}/${totalPages}`;
 
   return (
-    <section className="mx-auto min-h-screen max-w-[1500px] space-y-6 bg-slate-50/50 p-6 text-slate-800 antialiased">
+    <section className="mx-auto min-h-screen max-w-[1400px] space-y-6 bg-slate-50/50 p-6 text-slate-800 antialiased">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
@@ -292,8 +256,7 @@ const AdminWithdrawalRequestsPage = () => {
             Withdrawal Requests
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-slate-500">
-            Xem danh sách yêu cầu rút tiền của artist, lọc theo trạng thái,
-            phương thức và tìm kiếm theo artist hoặc user.
+            Danh sách tổng quan. Bấm View Detail để xem đầy đủ thông tin và xử lý ở bước sau.
           </p>
         </div>
 
@@ -381,19 +344,17 @@ const AdminWithdrawalRequestsPage = () => {
       ) : null}
 
       <div className="overflow-hidden rounded-2xl bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
-        <div className="grid min-w-[1280px] grid-cols-[minmax(0,1.6fr)_140px_120px_130px_minmax(0,1.5fr)_170px_170px_160px] gap-4 border-b border-slate-200 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-          <span>Artist / User</span>
+        <div className="grid min-w-[960px] grid-cols-[minmax(0,1.8fr)_160px_130px_140px_180px_130px] gap-4 border-b border-slate-200 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+          <span>Artist</span>
           <span>Amount</span>
           <span>Method</span>
           <span>Status</span>
-          <span>Bank / Momo info</span>
-          <span>Requested At</span>
-          <span>Processed By</span>
-          <span>Updated At</span>
+          <span>Created At</span>
+          <span className="text-right pr-2">Action</span>
         </div>
 
         <div className="overflow-x-auto">
-          <div className="min-w-[1280px] divide-y divide-slate-100">
+          <div className="min-w-[960px] divide-y divide-slate-100">
             {isLoading ? (
               <div className="flex items-center justify-center gap-3 p-12 text-xs font-bold uppercase tracking-wider text-slate-400">
                 <RefreshCcw size={16} className="animate-spin" />
@@ -415,11 +376,12 @@ const AdminWithdrawalRequestsPage = () => {
               withdrawals.map((withdrawal) => {
                 const config = statusConfig[withdrawal.status] || {};
                 const avatar = getAvatar(withdrawal);
+                const withdrawalId = withdrawal._id || withdrawal.id;
 
                 return (
                   <article
-                    key={withdrawal._id}
-                    className="relative grid grid-cols-[minmax(0,1.6fr)_140px_120px_130px_minmax(0,1.5fr)_170px_170px_160px] items-center gap-4 px-6 py-4 transition hover:bg-slate-50/70"
+                    key={withdrawalId}
+                    className="relative grid grid-cols-[minmax(0,1.8fr)_160px_130px_140px_180px_130px] items-center gap-4 px-6 py-4 transition hover:bg-slate-50/70"
                   >
                     <div className={`absolute inset-y-2 left-0 w-1 rounded-r ${config.accent || "bg-slate-300"}`} />
 
@@ -453,22 +415,20 @@ const AdminWithdrawalRequestsPage = () => {
 
                     <div>{getStatusBadge(withdrawal.status)}</div>
 
-                    <p className="line-clamp-2 text-sm font-medium text-slate-600">
-                      {getAccountInfoText(withdrawal)}
-                    </p>
-
                     <div className="flex items-start gap-2 text-xs text-slate-500">
                       <Clock3 size={14} className="mt-0.5 shrink-0 text-slate-300" />
-                      <span>{formatDateTime(withdrawal.requestedAt)}</span>
+                      <span>{formatDateTime(withdrawal.createdAt || withdrawal.requestedAt)}</span>
                     </div>
 
-                    <p className="truncate text-sm font-medium text-slate-600">
-                      {getProcessedBy(withdrawal.processedBy)}
-                    </p>
-
-                    <p className="text-xs text-slate-400">
-                      {formatDateTime(withdrawal.updatedAt || withdrawal.createdAt)}
-                    </p>
+                    <div className="flex justify-end pr-2">
+                      <Link
+                        to={routePaths.withdrawalRequestDetail(withdrawalId)}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800"
+                      >
+                        View Detail
+                        <ArrowUpRight size={14} />
+                      </Link>
+                    </div>
                   </article>
                 );
               })

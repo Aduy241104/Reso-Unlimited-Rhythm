@@ -1,6 +1,7 @@
 import axiosClient from "../axios/axiosClient";
 
 const ADMIN_WITHDRAWAL_API_PREFIX = "/api/admin/withdrawals";
+const ADMIN_WITHDRAWAL_REQUEST_API_PREFIX = "/api/admin/withdrawal-requests";
 
 export const getAdminWithdrawalRequests = async (params = {}) => {
   const response = await axiosClient.get(ADMIN_WITHDRAWAL_API_PREFIX, {
@@ -15,6 +16,24 @@ export const getAdminWithdrawalRequests = async (params = {}) => {
   };
 };
 
+export const approveWithdrawalRequestService = async (id) => {
+  const response = await axiosClient.patch(
+    `${ADMIN_WITHDRAWAL_REQUEST_API_PREFIX}/${id}/approve`
+  );
+
+  return response?.data?.data?.withdrawalRequest ?? null;
+};
+
+export const getWithdrawalRequestDetailService = async (id) => {
+  const response = await axiosClient.get(
+    `${ADMIN_WITHDRAWAL_REQUEST_API_PREFIX}/${id}`
+  );
+
+  return response?.data?.data?.withdrawalRequest ?? null;
+};
+
 export default {
   getAdminWithdrawalRequests,
+  approveWithdrawalRequestService,
+  getWithdrawalRequestDetailService,
 };

@@ -16,6 +16,7 @@ import RevenueManagementPage from "../pages/revenue/RevenueManagementPage";
 import RevenueHistoryPage from "../pages/revenue/RevenueHistoryPage";
 import RevenuePeriodDetailPage from "../pages/revenue/RevenuePeriodDetailPage";
 import AdminWithdrawalRequestsPage from "../pages/withdrawals/AdminWithdrawalRequestsPage";
+import WithdrawalRequestDetailPage from "../pages/withdrawals/WithdrawalRequestDetailPage";
 import UsersListPage from "../pages/users/UsersListPage";
 import UserDetailPage from "../pages/users/UserDetailPage";
 import ArtistRequestsListPage from "../pages/artistRequests/ArtistRequestsListPage";
@@ -87,6 +88,10 @@ export const appRoutes = [
               {
                 path: "withdrawals",
                 element: <AdminWithdrawalRequestsPage />,
+              },
+              {
+                path: "withdrawal-requests/:id",
+                element: <WithdrawalRequestDetailPage />,
               },
               {
                 path: "users",
