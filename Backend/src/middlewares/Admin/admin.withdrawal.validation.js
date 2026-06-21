@@ -27,8 +27,25 @@ const rejectWithdrawalRequestBodySchema = Joi.object({
     rejectReason: Joi.string().trim().min(1).max(1000).required(),
 });
 
+const markWithdrawalRequestAsPaidBodySchema = Joi.object({
+    paymentReference: Joi.string().trim().max(200).allow("").optional(),
+    paymentNote: Joi.string().trim().max(1000).allow("").optional(),
+}).custom((value, helpers) => {
+    const paymentReference = String(value.paymentReference || "").trim();
+    const paymentNote = String(value.paymentNote || "").trim();
+
+    if (!paymentReference && !paymentNote) {
+        return helpers.error("any.custom");
+    }
+
+    return value;
+}, "payment proof validation").messages({
+    "any.custom": "paymentReference or paymentNote is required",
+});
+
 export default {
     listWithdrawalRequestsQuerySchema,
     withdrawalRequestIdParamSchema,
     rejectWithdrawalRequestBodySchema,
+    markWithdrawalRequestAsPaidBodySchema,
 };

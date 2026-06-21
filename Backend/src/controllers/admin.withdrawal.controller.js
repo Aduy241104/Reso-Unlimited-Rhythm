@@ -67,9 +67,31 @@ const rejectWithdrawalRequest = async (req, res, next) => {
     }
 };
 
+const markWithdrawalRequestAsPaid = async (req, res, next) => {
+    try {
+        const withdrawalRequest = await adminWithdrawalService.markWithdrawalRequestAsPaid(
+            req.params.id,
+            {
+                paymentReference: req.body.paymentReference,
+                paymentNote: req.body.paymentNote,
+            },
+            req.user?.id || req.user?._id
+        );
+
+        return formatResponse.success(
+            res,
+            { withdrawalRequest },
+            "Withdrawal request marked as paid successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getWithdrawalRequests,
     approveWithdrawalRequest,
     rejectWithdrawalRequest,
+    markWithdrawalRequestAsPaid,
     getWithdrawalRequestDetail,
 };

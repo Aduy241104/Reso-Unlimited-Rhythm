@@ -66,6 +66,25 @@ const WithdrawalRequestSchema = new Schema(
             type: Date,
             default: null,
         },
+        paidAt: {
+            type: Date,
+            default: null,
+        },
+        paidBy: {
+            type: Schema.Types.ObjectId,
+            ref: "User",
+            default: null,
+        },
+        paymentReference: {
+            type: String,
+            trim: true,
+            default: "",
+        },
+        paymentNote: {
+            type: String,
+            trim: true,
+            default: "",
+        },
         adminNote: {
             type: String,
             default: "",

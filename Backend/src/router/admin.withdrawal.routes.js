@@ -25,6 +25,13 @@ withdrawalRequestRouter.patch(
     adminWithdrawalController.rejectWithdrawalRequest
 );
 
+withdrawalRequestRouter.patch(
+    "/:id/paid",
+    validate(adminWithdrawalValidation.withdrawalRequestIdParamSchema, "params"),
+    validate(adminWithdrawalValidation.markWithdrawalRequestAsPaidBodySchema, "body"),
+    adminWithdrawalController.markWithdrawalRequestAsPaid
+);
+
 withdrawalRequestRouter.get(
     "/:id",
     validate(adminWithdrawalValidation.withdrawalRequestIdParamSchema, "params"),
