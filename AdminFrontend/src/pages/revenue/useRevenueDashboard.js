@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { fetchRevenueSnapshots, getErrorMessage } from "./utils";
+import { getRevenueDashboardService } from "../../services/revenueService";
+import { getErrorMessage } from "./utils";
 
 export const useRevenueDashboard = (selectedYear, selectedMonth) => {
   const [dashboard, setDashboard] = useState(null);
-  const [previousDashboard, setPreviousDashboard] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState("");
@@ -16,15 +16,14 @@ export const useRevenueDashboard = (selectedYear, selectedMonth) => {
       setError("");
 
       try {
-        const { currentData, previousData } = await fetchRevenueSnapshots(
-          selectedYear,
-          selectedMonth
-        );
+        const currentData = await getRevenueDashboardService({
+          year: selectedYear,
+          month: selectedMonth,
+        });
 
         if (!isActive) return;
 
         setDashboard(currentData);
-        setPreviousDashboard(previousData);
       } catch (apiError) {
         if (!isActive) return;
         setError(getErrorMessage(apiError));
@@ -48,13 +47,12 @@ export const useRevenueDashboard = (selectedYear, selectedMonth) => {
         setIsRefreshing(true);
 
         try {
-          const { currentData, previousData } = await fetchRevenueSnapshots(
-            selectedYear,
-            selectedMonth
-          );
+          const currentData = await getRevenueDashboardService({
+            year: selectedYear,
+            month: selectedMonth,
+          });
 
           setDashboard(currentData);
-          setPreviousDashboard(previousData);
         } catch {
           // Keep existing data on background refresh failure.
         } finally {
@@ -71,13 +69,12 @@ export const useRevenueDashboard = (selectedYear, selectedMonth) => {
     setError("");
 
     try {
-      const { currentData, previousData } = await fetchRevenueSnapshots(
-        selectedYear,
-        selectedMonth
-      );
+      const currentData = await getRevenueDashboardService({
+        year: selectedYear,
+        month: selectedMonth,
+      });
 
       setDashboard(currentData);
-      setPreviousDashboard(previousData);
     } catch (apiError) {
       setError(getErrorMessage(apiError));
     } finally {
@@ -87,7 +84,6 @@ export const useRevenueDashboard = (selectedYear, selectedMonth) => {
 
   return {
     dashboard,
-    previousDashboard,
     isLoading,
     isRefreshing,
     error,

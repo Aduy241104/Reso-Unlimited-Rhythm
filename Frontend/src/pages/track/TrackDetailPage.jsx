@@ -1,19 +1,21 @@
-import { CirclePlus, Download, Loader2, MoreHorizontal, Play, Plus, Search, ShieldAlert } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { CirclePlus, Download, Play, ShieldAlert } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import TrackTwoLevelMenu from "../../components/trackMenu/TrackTwoLevelMenu";
+import CreateReportModal from "../../components/report/CreateReportModal";
 import TrackDetailArtistCard from "../../components/trackDetail/TrackDetailArtistCard";
 import TrackDetailHero from "../../components/trackDetail/TrackDetailHero";
 import TrackDetailLikeSection from "../../components/trackDetail/TrackDetailLikeSection";
 import TrackDetailLyrics from "../../components/trackDetail/TrackDetailLyrics";
-import CreatePlaylistModal from "../../components/userPlaylist/CreatePlaylistModal";
-import CreateReportModal from "../../components/report/CreateReportModal";
+import { useAuth } from "../../hooks/useAuth";
 import { usePlayer } from "../../hooks/usePlayer";
 import { routePaths } from "../../routes/routePaths";
 import { getTrackDetailService } from "../../services/trackService";
 import {
-  addTrackToUserPlaylist,
-  getUserPlaylists,
-} from "../../services/userPlaylistService";
+  addTrackToFavorite,
+  getTrackFavoriteStatus,
+  removeTrackFromFavorite,
+} from "../../services/userFavoriteService";
 import {
   createPlaceholderImage,
   formatReleaseYear,
@@ -24,12 +26,6 @@ import { getApiErrorMessage } from "../../utils/apiError";
 const secondaryActionClassName = `
   inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border border-black/8 bg-white/80 px-4
   text-sm font-medium text-[#18181b] transition hover:bg-white sm:w-auto
-  dark:border-white/10 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/[0.12]
-`;
-
-const iconActionClassName = `
-  inline-flex h-11 w-11 items-center justify-center rounded-full border border-black/8
-  bg-white/80 text-[#18181b] transition hover:bg-white
   dark:border-white/10 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/[0.12]
 `;
 
@@ -51,20 +47,6 @@ const formatListenCount = (value) => {
   return `${new Intl.NumberFormat("vi-VN").format(listenCount)} l\u01b0\u1ee3t nghe`;
 };
 
-const normalizePlaylists = (payload) => {
-  if (Array.isArray(payload)) {
-    return payload;
-  }
-
-  if (Array.isArray(payload?.playlists)) {
-    return payload.playlists;
-  }
-
-  return [];
-};
-
-const getPlaylistId = (playlist) => playlist?.playlistId || playlist?.id || "";
-
 const getPlaylistTitle = (playlist) => {
   if (typeof playlist?.title === "string" && playlist.title.trim()) {
     return playlist.title.trim();
@@ -74,7 +56,7 @@ const getPlaylistTitle = (playlist) => {
     return playlist.name.trim();
   }
 
-  return "Danh sách phát chưa đặt tên";
+  return "Danh s\u00e1ch ph\u00e1t ch\u01b0a \u0111\u1eb7t t\u00ean";
 };
 
 const TrackDetailPage = () => {
@@ -85,18 +67,11 @@ const TrackDetailPage = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
-  const [playlists, setPlaylists] = useState([]);
-  const [isLoadingPlaylists, setIsLoadingPlaylists] = useState(false);
-  const [hasLoadedPlaylists, setHasLoadedPlaylists] = useState(false);
-  const [isPlaylistMenuOpen, setIsPlaylistMenuOpen] = useState(false);
-  const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] = useState(false);
+  const [isLikeLoading, setIsLikeLoading] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const [playlistSearchValue, setPlaylistSearchValue] = useState("");
-  const [playlistMenuError, setPlaylistMenuError] = useState("");
   const [playlistFeedback, setPlaylistFeedback] = useState(null);
-  const [submittingPlaylistId, setSubmittingPlaylistId] = useState("");
-  const moreMenuRef = useRef(null);
   const { playTrack } = usePlayer();
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
   useEffect(() => {
     let isMounted = true;
@@ -104,6 +79,7 @@ const TrackDetailPage = () => {
     const loadTrackDetail = async () => {
       setIsLoading(true);
       setErrorMessage("");
+      setIsLikeLoading(false);
 
       try {
         const trackDetail = await getTrackDetailService(id);
@@ -112,9 +88,40 @@ const TrackDetailPage = () => {
           return;
         }
 
+        const baseLikeCount = Number(trackDetail?.stats?.totalLike) || 0;
+
         setTrack(trackDetail);
-        setIsLiked(false);
-        setLikeCount(Number(trackDetail?.stats?.totalLike) || 0);
+        setLikeCount(baseLikeCount);
+
+        if (isAuthLoading || !isAuthenticated) {
+          setIsLiked(false);
+          return;
+        }
+
+        try {
+          const favoriteStatus = await getTrackFavoriteStatus(id);
+
+          if (!isMounted) {
+            return;
+          }
+
+          const nextIsLiked = Boolean(favoriteStatus?.isFavorite);
+          const detailHasFavoriteState = Boolean(trackDetail?.isFavorite);
+
+          setIsLiked(nextIsLiked);
+          setLikeCount(
+            nextIsLiked && !detailHasFavoriteState
+              ? baseLikeCount + 1
+              : baseLikeCount
+          );
+        } catch {
+          if (!isMounted) {
+            return;
+          }
+
+          setIsLiked(false);
+          setLikeCount(baseLikeCount);
+        }
       } catch (error) {
         if (!isMounted) {
           return;
@@ -123,10 +130,11 @@ const TrackDetailPage = () => {
         setTrack(null);
         setIsLiked(false);
         setLikeCount(0);
+        setIsLikeLoading(false);
         setErrorMessage(
           getApiErrorMessage(
             error,
-            "Không thể tải chi tiết bài hát lúc này."
+            "Kh\u00f4ng th\u1ec3 t\u1ea3i chi ti\u1ebft b\u00e0i h\u00e1t l\u00fac n\u00e0y."
           )
         );
       } finally {
@@ -138,7 +146,10 @@ const TrackDetailPage = () => {
 
     if (!id) {
       setTrack(null);
-      setErrorMessage("Thiếu mã bài hát.");
+      setIsLiked(false);
+      setLikeCount(0);
+      setIsLikeLoading(false);
+      setErrorMessage("Thi\u1ebfu m\u00e3 b\u00e0i h\u00e1t.");
       setIsLoading(false);
       return () => {
         isMounted = false;
@@ -150,35 +161,7 @@ const TrackDetailPage = () => {
     return () => {
       isMounted = false;
     };
-  }, [id]);
-
-  useEffect(() => {
-    if (!isPlaylistMenuOpen) {
-      return undefined;
-    }
-
-    const handlePointerDown = (event) => {
-      if (!moreMenuRef.current?.contains(event.target)) {
-        setIsPlaylistMenuOpen(false);
-      }
-    };
-
-    const handleKeyDown = (event) => {
-      if (event.key === "Escape") {
-        setIsPlaylistMenuOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handlePointerDown);
-    document.addEventListener("touchstart", handlePointerDown);
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-      document.removeEventListener("touchstart", handlePointerDown);
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isPlaylistMenuOpen]);
+  }, [id, isAuthenticated, isAuthLoading]);
 
   const trackImage = useMemo(
     () =>
@@ -187,23 +170,24 @@ const TrackDetailPage = () => {
       track?.album?.coverImage ||
       track?.artist?.coverImage ||
       track?.artist?.avatar ||
-      createPlaceholderImage(track?.title || "Bài hát", "#1db954", "#07170c"),
+      createPlaceholderImage(track?.title || "B\u00e0i h\u00e1t", "#1db954", "#07170c"),
     [track]
   );
   const artistAvatar = useMemo(
     () =>
       track?.artist?.avatar ||
-      createPlaceholderImage(track?.artist?.name || "Nghệ sĩ", "#334155", "#0f172a"),
+      createPlaceholderImage(track?.artist?.name || "Ngh\u1ec7 s\u0129", "#334155", "#0f172a"),
     [track]
   );
-  const artistName = track?.artist?.name || "Nghệ sĩ không xác định";
-  const albumTitle = track?.album?.title || "Album không xác định";
+  const artistName = track?.artist?.name || "Ngh\u1ec7 s\u0129 kh\u00f4ng x\u00e1c \u0111\u1ecbnh";
+  const albumTitle = track?.album?.title || "Album kh\u00f4ng x\u00e1c \u0111\u1ecbnh";
   const releaseYear = formatReleaseYear(track?.releaseDate);
   const duration = formatTrackDuration(track?.duration);
   const listensLabel = formatListenCount(track?.stats?.playCount);
   const lyrics = track?.lyrics?.static?.trim?.() || "";
   const artistRole = track?.artist?.role || "Ngh\u1ec7 s\u0129";
   const albumHref = track?.album?.id ? routePaths.albumDetail(track.album.id) : undefined;
+  const trackId = track?.id;
 
   const playbackQueue = useMemo(() => {
     if (Array.isArray(track?.album?.tracks) && track.album.tracks.length > 0) {
@@ -226,36 +210,6 @@ const TrackDetailPage = () => {
     return matchedIndex >= 0 ? matchedIndex : 0;
   }, [playbackQueue, track]);
 
-  const filteredPlaylists = useMemo(() => {
-    const normalizedQuery = playlistSearchValue.trim().toLocaleLowerCase();
-
-    if (!normalizedQuery) {
-      return playlists;
-    }
-
-    return playlists.filter((playlist) =>
-      getPlaylistTitle(playlist).toLocaleLowerCase().includes(normalizedQuery)
-    );
-  }, [playlistSearchValue, playlists]);
-
-  const loadUserPlaylistOptions = async () => {
-    setIsLoadingPlaylists(true);
-    setPlaylistMenuError("");
-
-    try {
-      const payload = await getUserPlaylists();
-      setPlaylists(normalizePlaylists(payload));
-      setHasLoadedPlaylists(true);
-    } catch (error) {
-      setPlaylists([]);
-      setPlaylistMenuError(
-        getApiErrorMessage(error, "Không thể tải danh sách phát lúc này.")
-      );
-    } finally {
-      setIsLoadingPlaylists(false);
-    }
-  };
-
   const handlePlay = async () => {
     if (!track) {
       return;
@@ -267,7 +221,7 @@ const TrackDetailPage = () => {
       collection: {
         id: track?.album?.id || track?.id,
         type: track?.album?.id ? "album" : "track",
-        title: track?.album?.title || track?.title || "Bài hát",
+        title: track?.album?.title || track?.title || "B\u00e0i h\u00e1t",
         image: trackImage,
         artistName,
         listenSource: "track_detail",
@@ -291,133 +245,54 @@ const TrackDetailPage = () => {
     setIsReportModalOpen(true);
   };
 
-  const handleTogglePlaylistMenu = () => {
-    setPlaylistFeedback(null);
-    setPlaylistMenuError("");
-    setIsPlaylistMenuOpen((current) => {
-      const nextValue = !current;
+  const handleAddTrackToPlaylist = (playlist) => {
+    if (!playlist) {
+      return;
+    }
 
-      if (nextValue && !hasLoadedPlaylists && !isLoadingPlaylists) {
-        void loadUserPlaylistOptions();
+    setPlaylistFeedback({
+      tone: "success",
+      message: `\u0110\u00e3 th\u00eam v\u00e0o ${getPlaylistTitle(playlist)}.`,
+    });
+  };
+
+  const handleToggleLike = async () => {
+    if (!track?.id || isLikeLoading || isAuthLoading) {
+      return;
+    }
+
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+
+    const wasLiked = isLiked;
+
+    setIsLikeLoading(true);
+
+    try {
+      if (wasLiked) {
+        await removeTrackFromFavorite(track.id);
+        setIsLiked(false);
+        setLikeCount((currentCount) => Math.max(currentCount - 1, 0));
+        return;
       }
 
-      return nextValue;
-    });
-  };
-
-  const handleAddTrackToPlaylist = async (playlist) => {
-    const playlistId = getPlaylistId(playlist);
-    const trackId = track?.id;
-
-    if (!playlistId || !trackId || submittingPlaylistId) {
-      return;
-    }
-
-    setSubmittingPlaylistId(playlistId);
-    setPlaylistMenuError("");
-    setPlaylistFeedback(null);
-
-    try {
-      const updatedPlaylist = await addTrackToUserPlaylist(playlistId, trackId);
-      const resolvedPlaylist = updatedPlaylist || playlist;
-      const resolvedPlaylistId = getPlaylistId(resolvedPlaylist);
-
-      setPlaylists((current) =>
-        current.map((item) =>
-          getPlaylistId(item) === resolvedPlaylistId
-            ? {
-                ...item,
-                ...resolvedPlaylist,
-              }
-            : item
-        )
-      );
-      setPlaylistFeedback({
-        tone: "success",
-        message: `Đã thêm vào ${getPlaylistTitle(resolvedPlaylist)}.`,
-      });
-      setIsPlaylistMenuOpen(false);
-      setPlaylistSearchValue("");
+      await addTrackToFavorite(track.id);
+      setIsLiked(true);
+      setLikeCount((currentCount) => currentCount + 1);
     } catch (error) {
-      setPlaylistMenuError(
-        getApiErrorMessage(error, "Không thể thêm bài hát vào danh sách phát.")
-      );
+      console.error("Failed to toggle track favorite:", error);
     } finally {
-      setSubmittingPlaylistId("");
+      setIsLikeLoading(false);
     }
-  };
-
-  const handlePlaylistCreated = async (createdPlaylist) => {
-    if (!createdPlaylist) {
-      return;
-    }
-
-    setPlaylists((current) => [createdPlaylist, ...current]);
-    setHasLoadedPlaylists(true);
-    setPlaylistSearchValue("");
-    setPlaylistFeedback(null);
-
-    if (!track?.id) {
-      return;
-    }
-
-    const createdPlaylistId = getPlaylistId(createdPlaylist);
-
-    if (!createdPlaylistId) {
-      return;
-    }
-
-    setSubmittingPlaylistId(createdPlaylistId);
-
-    try {
-      const updatedPlaylist = await addTrackToUserPlaylist(createdPlaylistId, track.id);
-      const resolvedPlaylist = updatedPlaylist || createdPlaylist;
-      const resolvedPlaylistId = getPlaylistId(resolvedPlaylist);
-
-      setPlaylists((current) =>
-        current.map((item) =>
-          getPlaylistId(item) === resolvedPlaylistId
-            ? {
-                ...item,
-                ...resolvedPlaylist,
-              }
-            : item
-        )
-      );
-      setPlaylistFeedback({
-        tone: "success",
-        message: `Đã tạo playlist và thêm vào ${getPlaylistTitle(resolvedPlaylist)}.`,
-      });
-    } catch (error) {
-      setPlaylistFeedback({
-        tone: "error",
-        message: getApiErrorMessage(
-          error,
-          "Đã tạo playlist nhưng chưa thể thêm bài hát vào đó."
-        ),
-      });
-    } finally {
-      setSubmittingPlaylistId("");
-    }
-  };
-
-  const handleToggleLike = () => {
-    setIsLiked((currentValue) => {
-      const nextValue = !currentValue;
-
-      setLikeCount((currentCount) =>
-        nextValue ? currentCount + 1 : Math.max(currentCount - 1, 0)
-      );
-
-      return nextValue;
-    });
   };
 
   if (isLoading) {
     return (
       <section className="rounded-[10px]">
         <div className="rounded-[24px] bg-[#121212] px-6 py-20 text-sm text-white/82">
-          Đang tải chi tiết bài hát...
+          Đang tải chi tiết bài hát
         </div>
       </section>
     );
@@ -438,7 +313,7 @@ const TrackDetailPage = () => {
       <div className="space-y-5 sm:space-y-6">
         <TrackDetailHero
           image={ trackImage }
-          title={ track?.title || "Bài hát chưa có tên" }
+          title={ track?.title || "B\u00e0i h\u00e1t ch\u01b0a c\u00f3 t\u00ean" }
           artistName={ artistName }
           artistAvatar={ artistAvatar }
           albumTitle={ albumTitle }
@@ -452,7 +327,7 @@ const TrackDetailPage = () => {
           <button
             type="button"
             onClick={ handlePlay }
-            aria-label="Phát bài hát"
+            aria-label="Ph\u00e1t b\u00e0i h\u00e1t"
             className="
               inline-flex h-14 w-14 items-center justify-center self-start rounded-full bg-gradient-to-br from-[#ff8a3d] via-[#ff4fd8] to-[#7b61ff]
               text-black shadow-[0_18px_38px_rgba(30,215,96,0.28)] transition
@@ -474,96 +349,17 @@ const TrackDetailPage = () => {
 
           <button type="button" onClick={ handleReportTrack } className={ secondaryActionClassName }>
             <ShieldAlert className="h-4.5 w-4.5" />
-            Report
+            Báo cáo
           </button>
 
-          <div ref={ moreMenuRef } className="relative self-start">
-            <button
-              type="button"
-              onClick={ handleTogglePlaylistMenu }
-              aria-label="Tùy chọn khác"
-              aria-haspopup="menu"
-              aria-expanded={ isPlaylistMenuOpen }
-              className={ iconActionClassName }
-            >
-              <MoreHorizontal className="h-5 w-5" />
-            </button>
-
-            { isPlaylistMenuOpen ? (
-              <div
-                className="
-                  absolute right-0 top-full z-30 mt-3 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-[22px]
-                  border border-white/10 bg-[#2c2c2c] p-3 shadow-[0_28px_80px_rgba(0,0,0,0.48)]
-                "
-                role="menu"
-                aria-label="Thêm vào danh sách phát"
-              >
-                <label className="flex items-center gap-3 rounded-xl bg-white/8 px-3 py-3 text-white/72">
-                  <Search className="h-4.5 w-4.5 shrink-0" />
-                  <input
-                    type="text"
-                    value={ playlistSearchValue }
-                    onChange={ (event) => setPlaylistSearchValue(event.target.value) }
-                    placeholder="Tìm một danh sách phát"
-                    className="w-full bg-transparent text-sm text-white placeholder:text-white/55 focus:outline-none"
-                  />
-                </label>
-
-                <button
-                  type="button"
-                  onClick={ () => {
-                    setIsPlaylistMenuOpen(false);
-                    setIsCreatePlaylistModalOpen(true);
-                  } }
-                  className="mt-3 flex w-full items-center gap-3 border-b border-white/10 px-3 py-3 text-left text-base font-semibold text-white transition hover:bg-white/8"
-                  role="menuitem"
-                >
-                  <Plus className="h-5 w-5 shrink-0 text-white/78" />
-                  Danh sách phát mới
-                </button>
-
-                { playlistMenuError ? (
-                  <div className="mt-3 rounded-2xl border border-[#ef4444]/20 bg-[#ef4444]/10 px-3 py-2 text-sm text-[#fecaca]">
-                    { playlistMenuError }
-                  </div>
-                ) : null }
-
-                <div className="mt-2 max-h-72 space-y-1 overflow-y-auto pr-1">
-                  { isLoadingPlaylists ? (
-                    <div className="flex items-center gap-2 px-3 py-4 text-sm text-white/72">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Đang tải danh sách phát...
-                    </div>
-                  ) : filteredPlaylists.length > 0 ? (
-                    filteredPlaylists.map((playlist) => {
-                      const playlistId = getPlaylistId(playlist);
-                      const isSubmitting = submittingPlaylistId === playlistId;
-
-                      return (
-                        <button
-                          key={ playlistId || getPlaylistTitle(playlist) }
-                          type="button"
-                          onClick={ () => handleAddTrackToPlaylist(playlist) }
-                          className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-3 text-left text-base font-semibold text-white transition hover:bg-white/8 disabled:cursor-not-allowed disabled:opacity-60"
-                          role="menuitem"
-                          disabled={ isSubmitting || Boolean(submittingPlaylistId) }
-                        >
-                          <span className="truncate">{ getPlaylistTitle(playlist) }</span>
-                          { isSubmitting ? (
-                            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-white/72" />
-                          ) : null }
-                        </button>
-                      );
-                    })
-                  ) : (
-                    <div className="px-3 py-4 text-sm text-white/64">
-                      Không tìm thấy danh sách phát phù hợp.
-                    </div>
-                  ) }
-                </div>
-              </div>
-            ) : null }
-          </div>
+          <TrackTwoLevelMenu
+            trackId={ trackId }
+            onTrackAdded={ (updatedPlaylist, playlist) => {
+              if (typeof handleAddTrackToPlaylist === "function") {
+                handleAddTrackToPlaylist(updatedPlaylist || playlist);
+              }
+            } }
+          />
         </section>
 
         { playlistFeedback?.message ? (
@@ -582,31 +378,21 @@ const TrackDetailPage = () => {
         <TrackDetailLyrics lyrics={ lyrics } />
 
         <TrackDetailLikeSection
-          title={ track?.title || "Bài hát chưa có tên" }
+          title={ track?.title || "B\u00e0i h\u00e1t ch\u01b0a c\u00f3 t\u00ean" }
           artistName={ artistName }
           image={ trackImage }
           isLiked={ isLiked }
           likeCount={ likeCount }
+          isLikeLoading={ isLikeLoading }
           onToggleLike={ handleToggleLike }
         />
-        
+
         <TrackDetailArtistCard
           avatar={ artistAvatar }
           name={ artistName }
           role={ artistRole }
         />
-
       </div>
-
-      <CreatePlaylistModal
-        isOpen={ isCreatePlaylistModalOpen }
-        onClose={ () => setIsCreatePlaylistModalOpen(false) }
-        existingPlaylists={ playlists }
-        onCreated={ (createdPlaylist) => {
-          setIsCreatePlaylistModalOpen(false);
-          void handlePlaylistCreated(createdPlaylist);
-        } }
-      />
 
       <CreateReportModal
         isOpen={ isReportModalOpen }

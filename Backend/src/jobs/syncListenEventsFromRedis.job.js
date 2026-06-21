@@ -58,7 +58,7 @@ const buildTrackTotalPlayBulkOperations = (documents = []) => {
     const trackPlayCountMap = new Map();
 
     documents.forEach((document) => {
-        if (!document?.trackId) {
+        if (!document?.trackId || document.isValidStream !== true) {
             return;
         }
 

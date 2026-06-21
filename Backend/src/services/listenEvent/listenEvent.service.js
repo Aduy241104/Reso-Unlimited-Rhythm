@@ -12,6 +12,7 @@ dayjs.extend(timezone);
 export const VALID_STREAM_COUNT_KEY_PREFIX = "valid_stream_count";
 export const VALID_STREAM_EVENT_STREAM_KEY = "listen_event_stream";
 export const VALID_STREAM_COUNT_TTL_SECONDS = 48 * 60 * 60;
+export const SKIP_LISTEN_PERCENT_THRESHOLD = 15;
 
 const MAX_LISTEN_DURATION_BUFFER_SECONDS = 30;
 const MIN_LISTEN_DURATION_BUFFER_SECONDS = 5;
@@ -65,29 +66,79 @@ const buildQueuedEventPayload = ({
     trackDuration,
     listenedDuration,
     listenPercent,
+    completed,
+    skipped,
+    isValidStream,
     dailyListenOrder,
     requiredPercent,
     device,
     country,
     source,
-}) => ({
-    userId: String(userId),
-    trackId: String(trackId),
-    artistId: String(artistId),
-    listenedAt: listenedAt.toISOString(),
-    trackDuration: String(trackDuration),
-    listenedDuration: String(listenedDuration),
-    listenPercent: String(listenPercent),
-    dailyListenOrder: String(dailyListenOrder),
-    requiredPercent: String(requiredPercent),
-    duration: String(listenedDuration),
-    completed: "true",
-    skipped: "false",
-    isValidStream: "true",
-    device: device || "",
-    country: country || "",
-    source: source || "unknown",
-});
+}) => {
+    const payload = {
+        userId: String(userId),
+        trackId: String(trackId),
+        artistId: String(artistId),
+        listenedAt: listenedAt.toISOString(),
+        trackDuration: String(trackDuration),
+        listenedDuration: String(listenedDuration),
+        listenPercent: String(listenPercent),
+        duration: String(listenedDuration),
+        completed: String(Boolean(completed)),
+        skipped: String(Boolean(skipped)),
+        isValidStream: String(Boolean(isValidStream)),
+        device: device || "",
+        country: country || "",
+        source: source || "unknown",
+    };
+
+    if (Number.isFinite(dailyListenOrder) && dailyListenOrder > 0) {
+        payload.dailyListenOrder = String(dailyListenOrder);
+    }
+
+    if (Number.isFinite(requiredPercent) && requiredPercent >= 0) {
+        payload.requiredPercent = String(requiredPercent);
+    }
+
+    return payload;
+};
+
+const queueListenEventInRedis = async (payload) => {
+    ensureRedisReady();
+
+    await redisClient.xAdd(VALID_STREAM_EVENT_STREAM_KEY, "*", payload);
+};
+
+const queueSkippedListenInRedis = async ({
+    userId,
+    trackId,
+    artistId,
+    listenedAt,
+    trackDuration,
+    listenedDuration,
+    listenPercent,
+    device,
+    country,
+    source,
+}) => {
+    const queuedEventPayload = buildQueuedEventPayload({
+        userId,
+        trackId,
+        artistId,
+        listenedAt,
+        trackDuration,
+        listenedDuration,
+        listenPercent,
+        completed: false,
+        skipped: true,
+        isValidStream: false,
+        device,
+        country,
+        source,
+    });
+
+    await queueListenEventInRedis(queuedEventPayload);
+};
 
 const queueValidStreamInRedis = async ({
     countKey,
@@ -132,6 +183,9 @@ const queueValidStreamInRedis = async ({
                 trackDuration,
                 listenedDuration,
                 listenPercent,
+                completed: true,
+                skipped: false,
+                isValidStream: true,
                 dailyListenOrder,
                 requiredPercent,
                 device,
@@ -215,6 +269,30 @@ export const recordCompletedListenAttempt = async ({
     const clampedListenedDuration = Math.min(normalizedListenedDuration, trackDuration);
     const listenPercent = roundToTwoDecimals((clampedListenedDuration / trackDuration) * 100);
     const listenedAt = new Date();
+
+    if (listenPercent <= SKIP_LISTEN_PERCENT_THRESHOLD) {
+        await queueSkippedListenInRedis({
+            userId,
+            trackId,
+            artistId,
+            listenedAt,
+            trackDuration,
+            listenedDuration: clampedListenedDuration,
+            listenPercent,
+            device,
+            country,
+            source,
+        });
+
+        return {
+            success: true,
+            isValidStream: false,
+            isSkipped: true,
+            listenPercent,
+            message: `Listen counted as a skip because it stayed at or below ${SKIP_LISTEN_PERCENT_THRESHOLD}% of the track.`,
+        };
+    }
+
     const dateKey = buildAnalyticsDateKey(listenedAt);
     const countKey = buildValidStreamCountKey({
         dateKey,
@@ -240,6 +318,7 @@ export const recordCompletedListenAttempt = async ({
         return {
             success: true,
             isValidStream: false,
+            isSkipped: false,
             listenPercent,
             requiredPercent: queueResult.requiredPercent,
             dailyListenOrder: queueResult.dailyListenOrder,
@@ -250,6 +329,7 @@ export const recordCompletedListenAttempt = async ({
     return {
         success: true,
         isValidStream: true,
+        isSkipped: false,
         listenPercent,
         requiredPercent: queueResult.requiredPercent,
         dailyListenOrder: queueResult.dailyListenOrder,
@@ -262,4 +342,5 @@ export default {
     buildAnalyticsDateKey,
     buildValidStreamCountKey,
     resolveRequiredPercent,
+    SKIP_LISTEN_PERCENT_THRESHOLD,
 };

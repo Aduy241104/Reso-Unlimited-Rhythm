@@ -23,12 +23,18 @@ import transactionRoutes from "./transaction.routes.js";
 import userRoutes from "./user.routes.js";
 import userPlaylistRoutes from "./user.playlist.routes.js"
 import adminArtistRouter from "./admin.artist.router.js";
+import adminNotificationRouter from "./admin.notification.router.js";
 import userReportRoutes from "./user.report.routes.js";
+import userGenreRoutes from "./user.genre.routes.js";
+import searchRoutes from "./search.routes.js";
+import userFavoriteRoutes from "./user.favorite.route.js";
+import userNotificationRouter from "./user.notification.router.js";
 
 function route(app) {
     app.use("/api/auth", authenticationRoutes);
     app.use("/api/notifications", notificationRoutes);
     app.use("/api/artist/notifications", artistNotificationRoutes);
+    app.use("/api/user/notifications", userNotificationRouter);
     app.use("/api/genres", genreRoutes);
     app.use("/api/albums", albumRoutes);
     app.use("/api/browse/artists", artistBrowseRoutes);
@@ -52,6 +58,10 @@ function route(app) {
     app.use("/api/users", userReportRoutes);
     app.use("/api/users/playlists", userPlaylistRoutes);
     app.use("/api/admin/artists", adminArtistRouter);
+    app.use("/api/browse/genres", userGenreRoutes);
+    app.use("/api/search", searchRoutes);
+    app.use("/api/users/favorites", userFavoriteRoutes);
+    app.use("/api/admin/notifications", adminNotificationRouter);
 }
 
 export default route;

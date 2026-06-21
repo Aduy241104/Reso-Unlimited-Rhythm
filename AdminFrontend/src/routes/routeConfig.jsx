@@ -13,6 +13,8 @@ import CreateGenrePage from "../pages/systemGenres/CreateGenrePage";
 import EditGenrePage from "../pages/systemGenres/EditGenrePage";
 import HomePage from "../pages/dashboard/DashboardPage";
 import RevenueManagementPage from "../pages/revenue/RevenueManagementPage";
+import RevenueHistoryPage from "../pages/revenue/RevenueHistoryPage";
+import RevenuePeriodDetailPage from "../pages/revenue/RevenuePeriodDetailPage";
 import UsersListPage from "../pages/users/UsersListPage";
 import UserDetailPage from "../pages/users/UserDetailPage";
 import ArtistRequestsListPage from "../pages/artistRequests/ArtistRequestsListPage";
@@ -20,7 +22,11 @@ import ArtistRequestDetailPage from "../pages/artistRequests/ArtistRequestDetail
 import SystemArtistsListPage from "../pages/artist/SystemArtistsListPage";
 import SystemArtistDetailPage from "../pages/artist/ArtistDetailPage";
 import SystemTracksModerationPage from "../pages/systemTracks/SystemTracksModerationPage";
+import CreateNotificationPage from "../pages/notification/CreateNotificationPage";
 import AdminListPage from "../pages/users/AdminListPage";
+import NotificationsListPage from "../pages/notification/NotificationListPage";
+import NotificationDetailPage from "../pages/notification/NotificationDetailPage";
+import NotificationEditPage from "../pages/notification/NotificationUpdatePage";
 import ReportsListPage from "../pages/reports/ReportsListPage";
 import ReportDetailPage from "../pages/reports/ReportDetailPage";
 import ProtectedRoute from "./ProtectedRoute";
@@ -70,12 +76,36 @@ export const appRoutes = [
                 element: <RevenueManagementPage />,
               },
               {
+                path: "revenue/history",
+                element: <RevenueHistoryPage />,
+              },
+              {
+                path: "revenue/history/:year/:month",
+                element: <RevenuePeriodDetailPage />,
+              },
+              {
                 path: "users",
                 element: <UsersListPage />,
               },
               {
                 path: "users/:userId",
                 element: <UserDetailPage />,
+              },
+              {
+                path: "notifications",
+                element: <NotificationsListPage />, // Đổi thành List trang chủ thông báo
+              },
+              {
+                path: "notifications/new",
+                element: <CreateNotificationPage />, // Đổi thành /notifications/new để khớp với routePaths.createNotification
+              },
+              {
+                path: "notifications/:id",
+                element: <NotificationDetailPage />,
+              },
+              {
+                path: "notifications/:id/edit",
+                element: <NotificationEditPage />,
               },
               {
                 path: "users/admins",

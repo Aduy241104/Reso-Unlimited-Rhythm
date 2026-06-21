@@ -1,5 +1,8 @@
-export const routePaths = {
+﻿export const routePaths = {
   home: "/",
+  search: "/search",
+  userGenres: "/genres",
+  userGenreDetail: (genreId = ":id") => `/genres/${genreId}`,
   dailyTopTracks: "/charts/daily-top-tracks",
   monthlyTopTracks: "/charts/monthly-top-tracks",
   albumDetail: (albumId = ":id") => `/albums/${albumId}`,
@@ -23,6 +26,7 @@ export const routePaths = {
   artistBrowseProfile: (artistId = ":id") => `/artists/${artistId}`,
   legacyArtistProfile: "/artist-profile",
   userProfile: "/profile",
+  notifications: "/notifications",
   artistRegistrationRequest: "/artist-registration-request",
   artistRegistrationRequestsList: "/my-artist-registration-requests",
   artistRegistrationRequestsDetail: (requestId = ":id") => `/my-artist-registration-requests/${requestId}`,
@@ -42,6 +46,7 @@ export const routePaths = {
   artistProfileEdit: "/artist/profile/edit",
   userPlaylist: "/user/playlist",
   userPlaylistDetail: (playlistId = ":id") => `/user/playlist/${playlistId}`,
+  userFavoriteTracks: "/user/favorite-tracks",
   userCreateReport: "/user/reports/create",
   userReportList: "/user/reports",
   userReportDetail: (reportId = ":id") => `/user/reports/${reportId}`,

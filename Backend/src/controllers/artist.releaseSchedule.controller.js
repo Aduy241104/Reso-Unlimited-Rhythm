@@ -86,9 +86,11 @@ const updateMyReleaseSchedule = async (req, res, next) => {
 
 const createMyReleaseSchedule = async (req, res, next) => {
     try {
+        const io = req.app.get("io");
         const result = await artistReleaseScheduleService.createMyReleaseSchedule(
             req.user.id,
-            req.body
+            req.body,
+            io
         );
 
         return formatResponse.success(

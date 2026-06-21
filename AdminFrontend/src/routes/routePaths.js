@@ -20,7 +20,14 @@ export const routePaths = {
     `/system-playlists/${playlistId}`,
   systemPlaylistEdit: (playlistId = ":playlistId") =>
     `/system-playlists/${playlistId}/edit`,
+  notifications: "/notifications",
+  createNotification: "/notifications/new",
+  notificationDetail: (notificationId = ":id") => `/notifications/${notificationId}`,
+  notificationEdit: (notificationId = ":id") => `/notifications/${notificationId}/edit`,
   revenue: "/revenue",
+  revenueHistory: "/revenue/history",
+  revenuePeriodDetail: (year = ":year", month = ":month") =>
+    `/revenue/history/${year}/${month}`,
   reports: "/reports",
   reportDetail: (reportId = ":reportId") => `/reports/${reportId}`,
 };

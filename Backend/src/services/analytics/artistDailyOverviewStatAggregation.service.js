@@ -32,6 +32,7 @@ const buildDailyArtistStatAggregationPipeline = ({ startDate, endDate, dayDate }
     {
         $match: {
             artistId: { $exists: true, $ne: null },
+            isValidStream: true,
             listenedAt: { $gte: startDate, $lt: endDate },
         },
     },

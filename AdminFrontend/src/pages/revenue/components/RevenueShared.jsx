@@ -3,30 +3,35 @@ import { STATUS_CONFIG } from "../constants";
 
 export const DashboardCard = ({ className = "", children }) => (
   <div
-    className={`rounded-[28px] border border-slate-200/80 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.06)] ${className}`}
+    className={ `overflow-hidden rounded-2xl border border-slate-200 bg-white ${className}` }
   >
-    {children}
+    { children }
   </div>
 );
 
 export const SectionHeader = ({ eyebrow, title, description, action }) => (
-  <div className="flex flex-col gap-4 border-b border-slate-200/80 px-5 py-5 lg:flex-row lg:items-start lg:justify-between">
-    <div className="space-y-2">
-      {eyebrow ? (
-        <p className="text-xs font-semibold uppercase tracking-[0.26em] text-slate-400">
-          {eyebrow}
+  <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 lg:flex-row lg:items-start lg:justify-between">
+    <div className="space-y-1">
+      { eyebrow ? (
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-violet-500">
+          { eyebrow }
         </p>
-      ) : null}
+      ) : null }
+
       <div>
-        <h2 className="text-xl font-semibold tracking-tight text-slate-950">
-          {title}
+        <h2 className="text-base font-semibold tracking-tight text-slate-900">
+          { title }
         </h2>
-        {description ? (
-          <p className="mt-1 text-sm leading-6 text-slate-500">{description}</p>
-        ) : null}
+
+        { description ? (
+          <p className="mt-1 text-sm leading-6 text-slate-500">
+            { description }
+          </p>
+        ) : null }
       </div>
     </div>
-    {action}
+
+    { action }
   </div>
 );
 
@@ -35,14 +40,52 @@ export const StatusBadge = ({ status }) => {
 
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${config.tone}`}
+      className={ `inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${config.tone}` }
     >
-      {config.label}
+      { config.label }
     </span>
   );
 };
 
-export const MetricCard = ({ label, value, icon, hint, delta, accent }) => {
+export const StatCard = ({
+  label,
+  value,
+  helper,
+  icon,
+  className = "",
+}) => (
+  <DashboardCard className={ className }>
+    <div className="p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-violet-500">
+            { label }
+          </p>
+
+          <p className="text-[1.65rem] font-bold leading-tight tracking-[-0.03em] text-slate-900">
+            { value }
+          </p>
+        </div>
+
+        { icon ? (
+          <div className="shrink-0 text-violet-500">
+            { icon }
+          </div>
+        ) : null }
+      </div>
+
+      { helper ? (
+        <div className="mt-4 border-t border-slate-100 pt-4">
+          <p className="text-[13px] leading-6 text-slate-500">
+            { helper }
+          </p>
+        </div>
+      ) : null }
+    </div>
+  </DashboardCard>
+);
+
+export const MetricDeltaPill = ({ delta }) => {
   const toneClass =
     delta?.trend === "up"
       ? "bg-emerald-50 text-emerald-700"
@@ -51,36 +94,15 @@ export const MetricCard = ({ label, value, icon, hint, delta, accent }) => {
         : "bg-slate-100 text-slate-600";
 
   return (
-    <DashboardCard className="overflow-hidden">
-      <div className={`h-1.5 ${accent}`} />
-      <div className="space-y-4 p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
-              {label}
-            </p>
-            <p className="text-2xl font-semibold tracking-tight text-slate-950">
-              {value}
-            </p>
-          </div>
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-white">
-            {icon}
-          </div>
-        </div>
+    <span
+      className={ `inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${toneClass}` }
+    >
+      { delta?.trend === "up" ? <ArrowUpRight size={ 12 } /> : null }
+      { delta?.trend === "down" ? <ArrowDownRight size={ 12 } /> : null }
 
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-sm text-slate-500">{hint}</p>
-          <span
-            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${toneClass}`}
-          >
-            {delta?.trend === "up" ? <ArrowUpRight size={14} /> : null}
-            {delta?.trend === "down" ? <ArrowDownRight size={14} /> : null}
-            {delta?.diff === 0
-              ? "Khong doi"
-              : `${delta?.percent > 0 ? "+" : ""}${delta?.percent?.toFixed(1)}%`}
-          </span>
-        </div>
-      </div>
-    </DashboardCard>
+      { delta?.diff === 0
+        ? "Không đổi"
+        : `${delta?.percent > 0 ? "+" : ""}${delta?.percent?.toFixed(1)}%` }
+    </span>
   );
 };

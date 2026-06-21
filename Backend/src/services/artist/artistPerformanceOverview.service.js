@@ -81,6 +81,7 @@ const resolveAllTimePeriod = async (artistId) => {
         {
             $match: {
                 artistId,
+                isValidStream: true,
                 listenedAt: { $exists: true, $ne: null },
             },
         },
@@ -184,6 +185,7 @@ const aggregatePeriodSummary = async ({ artistId, startDate, endDateExclusive })
         {
             $match: {
                 artistId,
+                isValidStream: true,
                 listenedAt: {
                     $gte: startDate,
                     $lt: endDateExclusive,
@@ -253,6 +255,7 @@ const aggregatePeriodStreamCount = async ({
                 {
                     $match: {
                         artistId,
+                        isValidStream: true,
                         listenedAt: {
                             $gte: liveStartDate,
                             $lt: endDateExclusive,
@@ -304,6 +307,7 @@ const aggregateDailyStats = async ({ artistId, startDate, endDateExclusive }) =>
                     {
                         $match: {
                             artistId,
+                            isValidStream: true,
                             listenedAt: {
                                 $gte: liveStartDate,
                                 $lt: endDateExclusive,
@@ -434,6 +438,7 @@ const aggregateMonthlyStats = async ({ artistId, startDate, endDateExclusive }) 
                     {
                         $match: {
                             artistId,
+                            isValidStream: true,
                             listenedAt: {
                                 $gte: liveStartDate,
                                 $lt: endDateExclusive,
@@ -545,6 +550,7 @@ const aggregateYearlyStats = async ({ artistId, startDate, endDateExclusive }) =
                     {
                         $match: {
                             artistId,
+                            isValidStream: true,
                             listenedAt: {
                                 $gte: liveStartDate,
                                 $lt: endDateExclusive,
@@ -608,6 +614,7 @@ const aggregateAvailableYears = async ({ artistId }) => {
         {
             $match: {
                 artistId,
+                isValidStream: true,
             },
         },
         {
@@ -766,6 +773,7 @@ const aggregateAudienceProfiles = async ({ artistId, startDate, endDateExclusive
         {
             $match: {
                 artistId,
+                isValidStream: true,
                 userId: { $exists: true, $ne: null },
                 listenedAt: {
                     $gte: startDate,
