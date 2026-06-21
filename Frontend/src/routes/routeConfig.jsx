@@ -32,6 +32,7 @@ import HomePage from "../pages/home/HomePage";
 import LyricsPage from "../pages/lyrics/LyricsPage";
 import DailyTopTracksPage from "../pages/track/DailyTopTracksPage";
 import MonthlyTopTracksPage from "../pages/track/MonthlyTopTracksPage";
+import NotificationsPage from "../pages/notifications/NotificationsPage";
 import ArtistProfilePageView from "../pages/profile/ArtistProfilePage";
 import ArtistRegistrationRequestPage from "../pages/artistRegistrationRequest/ArtistRegistrationRequestPage";
 import PlaylistDetailPage from "../pages/playlist/PlaylistDetailPage";
@@ -83,6 +84,15 @@ export const appRoutes = [
       {
         path: routePaths.trackDetail(),
         element: <TrackDetailPage />,
+      },
+      {
+        element: <ProtectedRoute />,
+        children: [
+          {
+            path: routePaths.notifications,
+            element: <NotificationsPage />,
+          },
+        ],
       },
       {
         path: routePaths.premiumPaymentSuccess,
