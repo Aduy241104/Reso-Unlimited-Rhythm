@@ -28,6 +28,7 @@ export const routePaths = {
   revenueHistory: "/revenue/history",
   revenuePeriodDetail: (year = ":year", month = ":month") =>
     `/revenue/history/${year}/${month}`,
+  withdrawals: "/withdrawals",
   reports: "/reports",
   reportDetail: (reportId = ":reportId") => `/reports/${reportId}`,
 };

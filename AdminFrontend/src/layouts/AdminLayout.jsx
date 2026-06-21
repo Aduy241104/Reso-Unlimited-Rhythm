@@ -4,6 +4,7 @@ import { useAuth } from "../hooks/useAuth";
 import { routePaths } from "../routes/routePaths";
 import {
   LayoutDashboard,
+  Banknote,
   CircleDollarSign,
   Music2,
   UserCheck,
@@ -26,6 +27,12 @@ const navigationItems = [
     to: routePaths.revenue,
     label: "Doanh thu",
     icon: CircleDollarSign,
+    end: false,
+  },
+  {
+    to: routePaths.withdrawals,
+    label: "Withdrawal Requests",
+    icon: Banknote,
     end: false,
   },
   {
