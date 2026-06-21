@@ -26,6 +26,7 @@
   artistBrowseProfile: (artistId = ":id") => `/artists/${artistId}`,
   legacyArtistProfile: "/artist-profile",
   userProfile: "/profile",
+  notifications: "/notifications",
   artistRegistrationRequest: "/artist-registration-request",
   artistRegistrationRequestsList: "/my-artist-registration-requests",
   artistRegistrationRequestsDetail: (requestId = ":id") => `/my-artist-registration-requests/${requestId}`,
