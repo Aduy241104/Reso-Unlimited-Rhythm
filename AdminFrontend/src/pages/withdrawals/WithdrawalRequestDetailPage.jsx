@@ -15,6 +15,7 @@ import {
 import {
   approveWithdrawalRequestService,
   getWithdrawalRequestDetailService,
+  markWithdrawalRequestAsPaidService,
   rejectWithdrawalRequestService,
 } from "../../services/adminWithdrawalService";
 import { routePaths } from "../../routes/routePaths";
@@ -151,6 +152,10 @@ const WithdrawalRequestDetailPage = () => {
   const [isRejectConfirmOpen, setIsRejectConfirmOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [isRejecting, setIsRejecting] = useState(false);
+  const [isPaidConfirmOpen, setIsPaidConfirmOpen] = useState(false);
+  const [paymentReference, setPaymentReference] = useState("");
+  const [paymentNote, setPaymentNote] = useState("");
+  const [isMarkingPaid, setIsMarkingPaid] = useState(false);
 
   useEffect(() => {
     const loadDetail = async () => {
@@ -184,6 +189,7 @@ const WithdrawalRequestDetailPage = () => {
   const MethodIcon = isMomo ? WalletCards : CreditCard;
   const avatar = getArtistAvatar(withdrawal);
   const canApprove = withdrawal?.status === "pending";
+  const canMarkPaid = withdrawal?.status === "approved";
 
   const handleApproveWithdrawalRequest = async () => {
     const withdrawalId = withdrawal?._id || withdrawal?.id || id;
@@ -244,6 +250,46 @@ const WithdrawalRequestDetailPage = () => {
       setError(getErrorMessage(err, "Không thể reject yêu cầu rút tiền."));
     } finally {
       setIsRejecting(false);
+    }
+  };
+
+  const handleMarkWithdrawalRequestAsPaid = async () => {
+    const withdrawalId = withdrawal?._id || withdrawal?.id || id;
+    const normalizedPaymentReference = paymentReference.trim();
+    const normalizedPaymentNote = paymentNote.trim();
+
+    if (!withdrawalId || !canMarkPaid || isMarkingPaid) return;
+
+    if (!normalizedPaymentReference && !normalizedPaymentNote) {
+      setError("Payment reference or payment note is required.");
+      return;
+    }
+
+    setIsMarkingPaid(true);
+    setError("");
+    setSuccessMessage("");
+
+    try {
+      const updatedWithdrawal = await markWithdrawalRequestAsPaidService(withdrawalId, {
+        paymentReference: normalizedPaymentReference,
+        paymentNote: normalizedPaymentNote,
+      });
+      setWithdrawal(updatedWithdrawal || {
+        ...withdrawal,
+        status: "paid",
+        paidAt: new Date().toISOString(),
+        paymentReference: normalizedPaymentReference,
+        paymentNote: normalizedPaymentNote,
+      });
+      setSuccessMessage("Withdrawal request marked as paid successfully");
+      setPaymentReference("");
+      setPaymentNote("");
+      setIsPaidConfirmOpen(false);
+    } catch (err) {
+      console.error(err);
+      setError(getErrorMessage(err, "Không thể mark withdrawal request as paid."));
+    } finally {
+      setIsMarkingPaid(false);
     }
   };
 
@@ -365,6 +411,27 @@ const WithdrawalRequestDetailPage = () => {
                     Reject
                   </button>
                 ) : null}
+                {canMarkPaid ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setError("");
+                      setSuccessMessage("");
+                      setPaymentReference("");
+                      setPaymentNote("");
+                      setIsPaidConfirmOpen(true);
+                    }}
+                    disabled={isMarkingPaid}
+                    className="inline-flex items-center gap-2 rounded-full bg-sky-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isMarkingPaid ? (
+                      <Loader2 size={15} className="animate-spin" />
+                    ) : (
+                      <Banknote size={15} />
+                    )}
+                    Mark as Paid
+                  </button>
+                ) : null}
               </div>
             </div>
 
@@ -455,6 +522,8 @@ const WithdrawalRequestDetailPage = () => {
             <DetailCard title="Admin notes">
               <InfoRow label="Reject reason" value={withdrawal.rejectReason} />
               <InfoRow label="Admin note" value={withdrawal.adminNote} />
+              <InfoRow label="Payment reference" value={withdrawal.paymentReference} />
+              <InfoRow label="Payment note" value={withdrawal.paymentNote} />
               <InfoRow label="Processed At" value={formatDateTime(withdrawal.processedAt)} />
               <InfoRow
                 label="Processed By"
@@ -464,6 +533,7 @@ const WithdrawalRequestDetailPage = () => {
                   "—"
                 }
               />
+              <InfoRow label="Paid By" value={withdrawal.paidBy?.profile?.fullName || withdrawal.paidBy?.email} />
             </DetailCard>
           </div>
         </>
@@ -587,6 +657,93 @@ const WithdrawalRequestDetailPage = () => {
                   <XCircle size={16} />
                 )}
                 Confirm reject
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isPaidConfirmOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-[0_24px_80px_rgba(15,23,42,0.25)]">
+            <div className="flex items-start gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sky-50 text-sky-600">
+                <Banknote size={22} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-lg font-semibold text-slate-950">
+                  Mark withdrawal as paid?
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                  Chỉ bấm paid sau khi admin hoặc bộ phận tài chính đã chuyển tiền
+                  thủ công ngoài hệ thống cho artist. Hành động này chỉ ghi nhận
+                  thanh toán trong hệ thống.
+                </p>
+
+                <label className="mt-5 block">
+                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    Payment reference
+                  </span>
+                  <input
+                    value={paymentReference}
+                    onChange={(event) => {
+                      setPaymentReference(event.target.value);
+                      if (error === "Payment reference or payment note is required.") setError("");
+                    }}
+                    placeholder="BANK-TXN-123456"
+                    className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-200 focus:bg-white focus:ring-4 focus:ring-sky-50"
+                  />
+                </label>
+
+                <label className="mt-4 block">
+                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    Payment note
+                  </span>
+                  <textarea
+                    value={paymentNote}
+                    onChange={(event) => {
+                      setPaymentNote(event.target.value);
+                      if (error === "Payment reference or payment note is required.") setError("");
+                    }}
+                    rows={4}
+                    placeholder="Transferred to artist bank account manually..."
+                    className="mt-2 w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-200 focus:bg-white focus:ring-4 focus:ring-sky-50"
+                  />
+                </label>
+
+                {error ? (
+                  <div className="mt-3 rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-600">
+                    {error}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsPaidConfirmOpen(false);
+                  setPaymentReference("");
+                  setPaymentNote("");
+                }}
+                disabled={isMarkingPaid}
+                className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleMarkWithdrawalRequestAsPaid}
+                disabled={isMarkingPaid || (!paymentReference.trim() && !paymentNote.trim())}
+                className="inline-flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isMarkingPaid ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Banknote size={16} />
+                )}
+                Confirm paid
               </button>
             </div>
           </div>

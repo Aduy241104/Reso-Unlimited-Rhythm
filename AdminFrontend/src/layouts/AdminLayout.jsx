@@ -34,6 +34,8 @@ const navigationItems = [
     label: "Withdrawal Requests",
     icon: Banknote,
     end: false,
+    matchPrefix: true,
+    activePaths: [routePaths.withdrawals, "/withdrawal-requests"],
   },
   {
     to: routePaths.systemTracks,
