@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Track from "../../../models/Track.js";
 import Artist from "../../../models/Artist.js";
+import Notification from "../../../models/Notification.js";
 import { normalizePositiveInteger } from "../../Playlist/playlist.helper.js";
 import { AppError } from "../../../utils/AppError.js";
 
@@ -113,6 +114,128 @@ const assertObjectId = (trackId) => {
     }
 };
 
+const getTrackThumbnail = (track) => {
+    if (Array.isArray(track?.coverImage) && track.coverImage.length > 0) {
+        return track.coverImage[0] || "";
+    }
+
+    return track?.avatar || "";
+};
+
+const createTrackModerationNotification = async ({
+    track,
+    artist,
+    status,
+    note,
+    adminUserId,
+    io,
+}) => {
+    if (!artist?.userId) {
+        return null;
+    }
+
+    const normalizedStatus = status === "approved" ? "approved" : "rejected";
+    const title =
+        normalizedStatus === "approved"
+            ? `Track "${track.title}" đã được phê duyệt`
+            : `Track "${track.title}" đã bị từ chối`;
+    const content =
+        normalizedStatus === "approved"
+            ? "Admin đã phê duyệt track của bạn. Bạn có thể tiếp tục phát hành và quản lý track trong khu vực artist."
+            : `Admin đã từ chối track của bạn.${note ? ` Lý do: ${note}` : ""}`;
+
+    const notification = await Notification.create({
+        userId: artist.userId,
+        type: "system",
+        title,
+        content,
+        isRead: false,
+        actorId: adminUserId || null,
+        actorType: "admin",
+        artistId: artist._id,
+        targetId: track._id,
+        targetType: "track",
+        targetName: track.title || "",
+        thumbnail: getTrackThumbnail(track),
+        sourceType: "admin_manual",
+        receiverType: "single",
+        isGlobal: false,
+        readBy: [],
+        deletedBy: [],
+        createdBy: adminUserId || null,
+    });
+
+    if (io) {
+        try {
+            io.to(String(artist.userId)).emit("new_notification", notification.toObject());
+        } catch (error) {
+            console.error("Failed to emit track moderation notification:", error);
+        }
+    }
+
+    return notification;
+};
+
+const createTrackVisibilityNotification = async ({
+    track,
+    artist,
+    action,
+    reason,
+    adminUserId,
+    io,
+}) => {
+    if (!artist?.userId) {
+        return null;
+    }
+
+    let title = "";
+    let content = "";
+
+    if (action === "hide") {
+        title = `Track "${track.title}" đã bị ẩn`;
+        content = `Admin đã tạm ẩn track của bạn khỏi nền tảng.${reason ? ` Lý do: ${reason}` : ""}`;
+    } else if (action === "block") {
+        title = `Track "${track.title}" đã bị khóa`;
+        content = `Admin đã khóa track của bạn.${reason ? ` Lý do: ${reason}` : ""}`;
+    } else if (action === "unhide") {
+        title = `Track "${track.title}" đã được hiển thị lại`;
+        content = "Admin đã mở lại hiển thị cho track của bạn trên nền tảng.";
+    } else {
+        return null;
+    }
+
+    const notification = await Notification.create({
+        userId: artist.userId,
+        type: "system",
+        title,
+        content,
+        isRead: false,
+        actorId: adminUserId || null,
+        actorType: "admin",
+        artistId: artist._id,
+        targetId: track._id,
+        targetType: "track",
+        targetName: track.title || "",
+        thumbnail: getTrackThumbnail(track),
+        sourceType: "admin_manual",
+        receiverType: "single",
+        isGlobal: false,
+        readBy: [],
+        deletedBy: [],
+        createdBy: adminUserId || null,
+    });
+
+    if (io) {
+        try {
+            io.to(String(artist.userId)).emit("new_notification", notification.toObject());
+        } catch (error) {
+            console.error("Failed to emit track visibility notification:", error);
+        }
+    }
+
+    return notification;
+};
+
 const listTracksForAdmin = async (query = {}) => {
     const page = normalizePositiveInteger(query.page, DEFAULT_PAGE);
     const requestedLimit = normalizePositiveInteger(query.limit, DEFAULT_LIMIT);
@@ -185,7 +308,12 @@ const getTrackDetailForAdmin = async (trackId) => {
     return formatAdminTrackDetailItem(track);
 };
 
-const updateTrackApprovalStatus = async (trackId, payload = {}, io = null) => {
+const updateTrackApprovalStatus = async (
+    trackId,
+    payload = {},
+    adminUserId = null,
+    io = null
+) => {
     assertObjectId(trackId);
 
     const track = await Track.findById(trackId);
@@ -209,6 +337,7 @@ const updateTrackApprovalStatus = async (trackId, payload = {}, io = null) => {
 
         track.moderation = {
             submittedAt: track.moderation?.submittedAt || track.createdAt || new Date(),
+            reviewedBy: adminUserId,
             reviewedAt: new Date(),
             adminNote: note,
             violationFlags: []
@@ -224,6 +353,7 @@ const updateTrackApprovalStatus = async (trackId, payload = {}, io = null) => {
 
         track.moderation = {
             submittedAt: track.moderation?.submittedAt || track.createdAt || new Date(),
+            reviewedBy: adminUserId,
             reviewedAt: new Date(),
             adminNote: note,
             violationFlags: flags
@@ -236,6 +366,21 @@ const updateTrackApprovalStatus = async (trackId, payload = {}, io = null) => {
 
     await track.populate({ path: "artist_artistId", select: "name" });
 
+    const artistId = track.artist_artistId?._id || track.artist_artistId;
+
+    const artist = await Artist.findById(artistId)
+        .select("_id userId name")
+        .lean();
+
+    await createTrackModerationNotification({
+        track,
+        artist,
+        status: payload.status,
+        note: payload.status === "approved" ? note : track.rejectReason,
+        adminUserId,
+        io,
+    });
+
     return {
         ...formatAdminTrackListItem(track.toObject()),
         rejectReason: track.rejectReason,
@@ -243,7 +388,12 @@ const updateTrackApprovalStatus = async (trackId, payload = {}, io = null) => {
     };
 };
 
-const updateTrackVisibility = async (trackId, payload = {}) => {
+const updateTrackVisibility = async (
+    trackId,
+    payload = {},
+    adminUserId = null,
+    io = null
+) => {
     assertObjectId(trackId);
 
     const track = await Track.findById(trackId);
@@ -254,10 +404,17 @@ const updateTrackVisibility = async (trackId, payload = {}) => {
     if (payload.action === "hide") {
         track.activeStatus = "hidden";
         track.hiddenReason = (payload.hiddenReason || payload.adminNote || "Hidden by administrator.").trim();
+        track.blockedReason = "";
         track.hiddenAt = new Date();
+    } else if (payload.action === "block") {
+        track.activeStatus = "blocked";
+        track.blockedReason = (payload.blockedReason || payload.adminNote || "Blocked by administrator.").trim();
+        track.hiddenReason = "";
+        track.hiddenAt = null;
     } else if (payload.action === "unhide") {
         track.activeStatus = "active";
         track.hiddenReason = "";
+        track.blockedReason = "";
         track.hiddenAt = null;
     } else {
         throw new AppError("Invalid action.", 400, { field: "action" });
@@ -265,6 +422,25 @@ const updateTrackVisibility = async (trackId, payload = {}) => {
 
     await track.save();
     await track.populate({ path: "artist_artistId", select: "name" });
+
+    const artistId = track.artist_artistId?._id || track.artist_artistId;
+    const artist = await Artist.findById(artistId)
+        .select("_id userId name")
+        .lean();
+
+    await createTrackVisibilityNotification({
+        track,
+        artist,
+        action: payload.action,
+        reason:
+            payload.action === "hide"
+                ? track.hiddenReason
+                : payload.action === "block"
+                ? track.blockedReason
+                : "",
+        adminUserId,
+        io,
+    });
 
     return formatAdminTrackListItem(track.toObject());
 };
