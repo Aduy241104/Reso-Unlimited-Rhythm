@@ -28,9 +28,6 @@ const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
 
-const readAggregateNumber = (aggregationResult, fieldName) =>
-    Number(aggregationResult?.[0]?.[fieldName] || 0);
-
 const readRevenuePeriodNumber = (revenuePeriod, fieldName) =>
     Number(revenuePeriod?.[fieldName] || 0);
 
@@ -231,6 +228,20 @@ const buildRevenuePeriodActions = (status) => ({
     canConfirm: status === "calculated",
 });
 
+const buildRevenuePeriodAvailableActions = (status) => {
+    switch (status) {
+        case "open":
+            return ["close"];
+        case "closed":
+            return ["calculate"];
+        case "calculated":
+            return ["confirm"];
+        case "confirmed":
+        default:
+            return [];
+    }
+};
+
 const buildRevenuePeriodWorkflow = (revenuePeriod) => {
     const status = revenuePeriod?.status || "open";
     const reminder = buildRevenuePeriodReminder(status);
@@ -241,6 +252,15 @@ const buildRevenuePeriodWorkflow = (revenuePeriod) => {
         actions: buildRevenuePeriodActions(status),
     };
 };
+
+const formatRevenuePeriodConfirmedBy = (confirmedBy) =>
+    confirmedBy
+        ? {
+            id: toId(confirmedBy._id),
+            email: confirmedBy.email || "",
+            fullName: confirmedBy.profile?.fullName || "",
+        }
+        : null;
 
 const formatRevenuePeriodListItem = (revenuePeriod, distributionStats = {}) => ({
     id: toId(revenuePeriod._id),
@@ -257,6 +277,7 @@ const formatRevenuePeriodListItem = (revenuePeriod, distributionStats = {}) => (
             distributionStats.distributedArtistRevenueAmount || 0
         ),
     },
+    availableActions: buildRevenuePeriodAvailableActions(revenuePeriod.status),
     workflow: buildRevenuePeriodWorkflow(revenuePeriod),
     timestamps: formatRevenuePeriodTimestamps(revenuePeriod),
 });
@@ -282,6 +303,78 @@ const formatDistributedArtistItem = (artistRevenueSummary) => ({
     status: artistRevenueSummary.status,
     calculatedAt: artistRevenueSummary.calculatedAt || null,
 });
+
+const shouldIncludeRevenueDistribution = (status) =>
+    ["calculated", "confirmed"].includes(status);
+
+const buildRevenuePeriodDistribution = (distributedArtists = []) => ({
+    distributedArtistCount: distributedArtists.length,
+    distributedArtistRevenueAmount: roundCurrency(
+        distributedArtists.reduce(
+            (totalAmount, artist) => totalAmount + artist.artistRevenueAmount,
+            0
+        )
+    ),
+    totalWithdrawnAmount: roundCurrency(
+        distributedArtists.reduce(
+            (totalAmount, artist) => totalAmount + artist.withdrawnAmount,
+            0
+        )
+    ),
+    totalAvailableAmount: roundCurrency(
+        distributedArtists.reduce(
+            (totalAmount, artist) => totalAmount + artist.availableAmount,
+            0
+        )
+    ),
+    artists: distributedArtists,
+});
+
+const findDistributedArtistsByRevenuePeriod = async (revenuePeriod) => {
+    if (!shouldIncludeRevenueDistribution(revenuePeriod?.status)) {
+        return [];
+    }
+
+    const artistRevenueSummaries = await ArtistRevenueSummary.find({
+        year: revenuePeriod.year,
+        month: revenuePeriod.month,
+        artistRevenueAmount: { $gt: 0 },
+        status: { $in: OFFICIAL_ARTIST_REVENUE_STATUSES },
+    })
+        .populate(
+            "artistId",
+            "name avatar verificationStatus activeStatus"
+        )
+        .sort({ artistRevenueAmount: -1, totalEligibleStreams: -1, _id: 1 })
+        .lean();
+
+    return artistRevenueSummaries.map(formatDistributedArtistItem);
+};
+
+const buildRevenuePeriodResponse = async (revenuePeriod) => {
+    const distributedArtists = await findDistributedArtistsByRevenuePeriod(
+        revenuePeriod
+    );
+
+    return {
+        period: {
+            id: toId(revenuePeriod?._id),
+            year: revenuePeriod.year,
+            month: revenuePeriod.month,
+            label: buildRevenuePeriodLabel(revenuePeriod.year, revenuePeriod.month),
+            status: revenuePeriod.status,
+            periodStart: revenuePeriod.periodStart,
+            periodEnd: revenuePeriod.periodEnd,
+        },
+        summary: formatRevenuePeriodSummary(revenuePeriod),
+        lifecycleTimestamps: formatRevenuePeriodTimestamps(revenuePeriod),
+        distribution: shouldIncludeRevenueDistribution(revenuePeriod.status)
+            ? buildRevenuePeriodDistribution(distributedArtists)
+            : null,
+        availableActions: buildRevenuePeriodAvailableActions(revenuePeriod.status),
+        confirmedBy: formatRevenuePeriodConfirmedBy(revenuePeriod.confirmedBy),
+    };
+};
 
 const buildRevenueMonthlyChart = ({ year, currentMonth, timezoneName, revenuePeriods }) => {
     const monthMap = new Map(
@@ -373,29 +466,18 @@ const buildRevenueDailyChart = ({
     return days;
 };
 
-const getRevenueDashboard = async (query = {}) => {
-    const {
-        year,
-        month,
-        currentYear,
-        currentMonth,
-        timezone,
-    } = normalizeRevenueDashboardPeriod(query);
-
-    const { periodStart, periodEnd } = buildRevenuePeriodRange(year, month, timezone);
+const getRevenueCharts = async (query = {}) => {
+    const { currentYear, currentMonth, timezone } =
+        normalizeRevenueDashboardPeriod(query);
     const endDay = dayjs().tz(timezone).endOf("day");
     const startDay = endDay.subtract(13, "day").startOf("day");
 
     const [
-        revenuePeriod,
         currentYearRevenuePeriods,
         dailyChartRevenuePeriods,
-        totalArtistPoolSummary,
-        distributedArtistRevenueSummary,
         latestRevenuePeriod,
         latestArtistRevenueSummary,
     ] = await Promise.all([
-        RevenuePeriod.findOne({ year, month }).lean(),
         RevenuePeriod.find({
             year: currentYear,
             month: { $gte: 1, $lte: currentMonth },
@@ -439,86 +521,77 @@ const getRevenueDashboard = async (query = {}) => {
             .lean(),
     ]);
 
-    const premiumRevenue = readRevenuePeriodNumber(
-        revenuePeriod,
-        "totalPremiumRevenue"
-    );
-    const successfulTransactions = readRevenuePeriodNumber(
-        revenuePeriod,
-        "successfulTransactions"
-    );
-    const artistPool = revenuePeriod
-        ? readRevenuePeriodNumber(revenuePeriod, "totalArtistPool")
-        : calculateArtistPool(premiumRevenue);
-    const platformRevenue = revenuePeriod
-        ? readRevenuePeriodNumber(revenuePeriod, "totalPlatformRevenue")
-        : premiumRevenue - artistPool;
-    const totalArtistPoolAllTime = readAggregateNumber(
-        totalArtistPoolSummary,
-        "totalArtistPoolAllTime"
-    );
-    const distributedArtistRevenueAmount = readAggregateNumber(
-        distributedArtistRevenueSummary,
-        "distributedArtistRevenueAmount"
-    );
-    const undistributedArtistBalance = Math.max(
-        totalArtistPoolAllTime - distributedArtistRevenueAmount,
-        0
-    );
-    const revenueChart = {
-        monthly: buildRevenueMonthlyChart({
-            year: currentYear,
-            currentMonth,
-            timezoneName: timezone,
-            revenuePeriods: currentYearRevenuePeriods,
-        }),
-        last14Days: buildRevenueDailyChart({
-            startDay,
-            endDay,
-            timezoneName: timezone,
-            revenuePeriods: dailyChartRevenuePeriods,
-        }),
-    };
-
     return {
-        period: {
-            id: toId(revenuePeriod?._id),
-            year,
-            month,
-            periodStart: revenuePeriod?.periodStart || periodStart,
-            periodEnd: revenuePeriod?.periodEnd || periodEnd,
-            status: resolveRevenuePeriodStatus({
-                revenuePeriodStatus: revenuePeriod?.status,
-                selectedYear: year,
-                selectedMonth: month,
-                currentYear,
+        charts: {
+            monthly: buildRevenueMonthlyChart({
+                year: currentYear,
                 currentMonth,
+                timezoneName: timezone,
+                revenuePeriods: currentYearRevenuePeriods,
+            }),
+            last14Days: buildRevenueDailyChart({
+                startDay,
+                endDay,
+                timezoneName: timezone,
+                revenuePeriods: dailyChartRevenuePeriods,
             }),
         },
-        summary: {
-            premiumRevenue,
-            artistPool,
-            platformRevenue,
-            successfulTransactions,
-            totalEligibleStreams: readRevenuePeriodNumber(
-                revenuePeriod,
-                "totalEligibleStreams"
-            ),
-            undistributedArtistBalance,
-        },
-        charts: revenueChart,
         metadata: {
             revenueSharePercent: {
                 artist: ARTIST_REVENUE_SHARE_PERCENT,
                 platform: PLATFORM_REVENUE_SHARE_PERCENT,
             },
             lastUpdatedAt: resolveLastUpdatedAt(
-                revenuePeriod?.lastAggregatedAt || revenuePeriod?.updatedAt,
                 latestRevenuePeriod?.lastAggregatedAt || latestRevenuePeriod?.updatedAt,
                 latestArtistRevenueSummary?.updatedAt
             ),
         },
     };
+};
+
+const getCurrentRevenuePeriod = async () => {
+    const { currentYear, currentMonth, timezone } =
+        normalizeRevenueDashboardPeriod();
+    const { periodStart, periodEnd } = buildRevenuePeriodRange(
+        currentYear,
+        currentMonth,
+        timezone
+    );
+
+    const revenuePeriod = await RevenuePeriod.findOne({
+        year: currentYear,
+        month: currentMonth,
+    })
+        .populate("confirmedBy", "email profile.fullName")
+        .lean();
+
+    const currentRevenuePeriod = revenuePeriod || {
+        year: currentYear,
+        month: currentMonth,
+        status: resolveRevenuePeriodStatus({
+            revenuePeriodStatus: null,
+            selectedYear: currentYear,
+            selectedMonth: currentMonth,
+            currentYear,
+            currentMonth,
+        }),
+        periodStart,
+        periodEnd,
+        totalPremiumRevenue: 0,
+        totalArtistPool: 0,
+        totalPlatformRevenue: 0,
+        totalEligibleStreams: 0,
+        successfulTransactions: 0,
+        lastAggregatedAt: null,
+        closedAt: null,
+        calculatedAt: null,
+        confirmedAt: null,
+        confirmedBy: null,
+        createdAt: null,
+        updatedAt: null,
+    };
+
+    return buildRevenuePeriodResponse(currentRevenuePeriod);
 };
 
 const getRevenuePeriods = async (query = {}) => {
@@ -639,56 +712,7 @@ const getRevenuePeriodDetail = async (revenuePeriodId) => {
         );
     }
 
-    const artistRevenueSummaries = await ArtistRevenueSummary.find({
-        year: revenuePeriod.year,
-        month: revenuePeriod.month,
-        artistRevenueAmount: { $gt: 0 },
-        status: { $in: OFFICIAL_ARTIST_REVENUE_STATUSES },
-    })
-        .populate(
-            "artistId",
-            "name avatar verificationStatus activeStatus"
-        )
-        .sort({ artistRevenueAmount: -1, totalEligibleStreams: -1, _id: 1 })
-        .lean();
-
-    const distributedArtists = artistRevenueSummaries.map(formatDistributedArtistItem);
-
-    return {
-        id: toId(revenuePeriod._id),
-        year: revenuePeriod.year,
-        month: revenuePeriod.month,
-        label: buildRevenuePeriodLabel(revenuePeriod.year, revenuePeriod.month),
-        status: revenuePeriod.status,
-        periodStart: revenuePeriod.periodStart,
-        periodEnd: revenuePeriod.periodEnd,
-        summary: formatRevenuePeriodSummary(revenuePeriod),
-        distribution: {
-            distributedArtistCount: distributedArtists.length,
-            distributedArtistRevenueAmount: distributedArtists.reduce(
-                (totalAmount, artist) => totalAmount + artist.artistRevenueAmount,
-                0
-            ),
-            totalWithdrawnAmount: distributedArtists.reduce(
-                (totalAmount, artist) => totalAmount + artist.withdrawnAmount,
-                0
-            ),
-            totalAvailableAmount: distributedArtists.reduce(
-                (totalAmount, artist) => totalAmount + artist.availableAmount,
-                0
-            ),
-        },
-        workflow: buildRevenuePeriodWorkflow(revenuePeriod),
-        artists: distributedArtists,
-        confirmedBy: revenuePeriod.confirmedBy
-            ? {
-                id: toId(revenuePeriod.confirmedBy._id),
-                email: revenuePeriod.confirmedBy.email || "",
-                fullName: revenuePeriod.confirmedBy.profile?.fullName || "",
-            }
-            : null,
-        timestamps: formatRevenuePeriodTimestamps(revenuePeriod),
-    };
+    return buildRevenuePeriodResponse(revenuePeriod);
 };
 
 const triggerRevenueAggregation = async (payload = {}) => {
@@ -1071,7 +1095,8 @@ const confirmRevenueDistribution = async (revenuePeriodId, adminUserId) => {
 };
 
 export default {
-    getRevenueDashboard,
+    getCurrentRevenuePeriod,
+    getRevenueCharts,
     getRevenuePeriods,
     getRevenuePeriodDetail,
     triggerRevenueAggregation,

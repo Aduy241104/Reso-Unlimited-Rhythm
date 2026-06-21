@@ -2,44 +2,70 @@ import {
   AlertCircle,
   Calculator,
   CheckCircle2,
+  ChevronRight,
+  Circle,
+  Clock3,
   CircleDollarSign,
   LoaderCircle,
   Lock,
   Music2,
+  ShieldCheck,
+  Sparkles,
   Wallet,
   X,
 } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { routePaths } from "../../../routes/routePaths";
 import { StatusBadge } from "./RevenueShared";
 import { formatCurrency, formatNumber, formatPeriodLabel } from "../utils";
-import { getRevenueActionLabel, resolveRevenueWorkflow } from "../workflow";
+import {
+  getRevenueActionLabel,
+  getRevenueWorkflowSteps,
+  isRevenueActionEnabled,
+} from "../workflow";
 
 const ACTION_CONFIG = {
   close: {
-    title: "Chot ky doanh thu",
+    title: "Chốt kỳ doanh thu",
     icon: Lock,
-    idleDescription:
-      "Sau khi chot ky, he thong se khoa so lieu doanh thu cua ky nay de chuan bi cho buoc tinh doanh thu.",
     loadingDescription:
-      "He thong dang khoa ky, tong hop premium revenue va dem stream hop le.",
-    successTitle: "Chot ky thanh cong",
+      "Hệ thống đang khóa kỳ, tổng hợp doanh thu premium và đếm stream hợp lệ.",
+    successTitle: "Chốt kỳ thành công",
   },
   calculate: {
-    title: "Tinh doanh thu",
+    title: "Tính doanh thu",
     icon: Calculator,
-    idleDescription:
-      "He thong se phan bo artist pool theo tong stream hop le cua artist va track trong ky nay.",
     loadingDescription:
-      "He thong dang tinh doanh thu cho artist va cap nhat revenue theo track.",
-    successTitle: "Tinh doanh thu thanh cong",
+      "Hệ thống đang tính doanh thu cho nghệ sĩ và cập nhật doanh thu theo bài hát.",
+    successTitle: "Tính doanh thu thành công",
   },
   confirm: {
-    title: "Xac nhan phan phoi",
+    title: "Xác nhận phân phối",
     icon: CheckCircle2,
-    idleDescription:
-      "Sau khi xac nhan, doanh thu da tinh se duoc cong vao so du cua artist va khong the xac nhan lai.",
     loadingDescription:
-      "He thong dang cong tien vao so du artist va khoa buoc xac nhan cua ky nay.",
-    successTitle: "Xac nhan phan phoi thanh cong",
+      "Hệ thống đang cộng tiền vào số dư nghệ sĩ và khóa bước xác nhận của kỳ này.",
+    successTitle: "Xác nhận phân phối thành công",
+  },
+};
+
+const STEP_TONE = {
+  completed: {
+    icon: "bg-blue-600 text-white border-blue-600",
+    text: "text-slate-900",
+    pill: "border-blue-200 bg-blue-50 text-blue-700",
+    label: "Đã hoàn tất",
+  },
+  active: {
+    icon: "bg-blue-600 text-white border-blue-600",
+    text: "text-blue-700",
+    pill: "border-blue-200 bg-blue-50 text-blue-700",
+    label: "Đang xử lý",
+  },
+  pending: {
+    icon: "bg-white text-slate-400 border-slate-200",
+    text: "text-slate-500",
+    pill: "border-slate-200 bg-slate-50 text-slate-500",
+    label: "Chưa sẵn sàng",
   },
 };
 
@@ -59,19 +85,19 @@ const buildResultItems = (actionKey, result) => {
         },
         {
           key: "artistPool",
-          label: "Quy nghe si",
+          label: "Quỹ nghệ sĩ",
           value: formatCurrency(result.totalArtistPool),
           icon: Wallet,
         },
         {
           key: "platform",
-          label: "Doanh thu nen tang",
+          label: "Doanh thu nền tảng",
           value: formatCurrency(result.totalPlatformRevenue),
           icon: CircleDollarSign,
         },
         {
           key: "streams",
-          label: "Eligible streams",
+          label: "Lượt stream hợp lệ",
           value: formatNumber(result.totalEligibleStreams),
           icon: Music2,
         },
@@ -80,13 +106,13 @@ const buildResultItems = (actionKey, result) => {
       return [
         {
           key: "artistSummaryCount",
-          label: "Artist summary da cap nhat",
+          label: "Bản ghi nghệ sĩ đã cập nhật",
           value: formatNumber(result.artistSummaryCount),
           icon: Wallet,
         },
         {
           key: "trackRevenueCount",
-          label: "Track revenue da cap nhat",
+          label: "Bản ghi doanh thu bài hát đã cập nhật",
           value: formatNumber(result.trackRevenueCount),
           icon: Music2,
         },
@@ -95,13 +121,13 @@ const buildResultItems = (actionKey, result) => {
       return [
         {
           key: "confirmedArtistCount",
-          label: "Artist da cong tien",
+          label: "Nghệ sĩ đã được cộng tiền",
           value: formatNumber(result.confirmedArtistCount),
           icon: Wallet,
         },
         {
           key: "totalConfirmedAmount",
-          label: "Tong tien da xac nhan",
+          label: "Tổng tiền đã xác nhận",
           value: formatCurrency(result.totalConfirmedAmount),
           icon: CircleDollarSign,
         },
@@ -111,60 +137,65 @@ const buildResultItems = (actionKey, result) => {
   }
 };
 
-const RevenueWorkflowModal = ({ period, modalState, onClose, onConfirm }) => {
-  if (!modalState?.isOpen || !modalState?.actionKey) {
+const RevenueWorkflowModal = ({
+  period,
+  modalState,
+  onClose,
+  onConfirm,
+  onSelectAction,
+}) => {
+  const location = useLocation();
+
+  if (!modalState?.isOpen) {
     return null;
   }
 
-  const actionConfig = ACTION_CONFIG[modalState.actionKey];
-
-  if (!actionConfig) {
-    return null;
-  }
-
-  const Icon = actionConfig.icon;
   const phase = modalState.phase || "idle";
-  const workflow = resolveRevenueWorkflow(period);
-  const reminder = workflow.reminder;
-  const resultItems = buildResultItems(modalState.actionKey, modalState.result);
+  const steps = getRevenueWorkflowSteps(period);
   const isSubmitting = phase === "submitting";
   const isSuccess = phase === "success";
   const isError = phase === "error";
-  const actionLabel = getRevenueActionLabel(period, modalState.actionKey);
-  const actionTitle =
-    modalState.actionKey === "calculate" && workflow.actions?.canRecalculate
-      ? "Tinh lai doanh thu"
-      : actionConfig.title;
+  const selectedActionKey = modalState.actionKey;
+  const selectedActionConfig = selectedActionKey
+    ? ACTION_CONFIG[selectedActionKey]
+    : null;
+  const Icon = selectedActionConfig?.icon ?? Sparkles;
+  const resultItems = buildResultItems(selectedActionKey, modalState.result);
+  const completedCount = steps.filter((step) => step.state === "completed").length;
+  const activeStep =
+    steps.find((step) => step.state === "active") ||
+    steps[completedCount] ||
+    null;
+  const actionLabel = selectedActionKey
+    ? getRevenueActionLabel(period, selectedActionKey)
+    : "";
+  const isDetailPage =
+    location.pathname === routePaths.revenueSharingDetail(period?.id);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm">
-      <div className="w-full max-w-2xl overflow-hidden rounded-[28px] border border-violet-200 bg-white shadow-[0_28px_80px_rgba(15,23,42,0.28)]">
-        <div className="border-b border-violet-100 bg-[linear-gradient(135deg,#ffffff_0%,#fcfbff_60%,#f6f2ff_100%)] px-6 py-5">
+      <div className="w-full max-w-xl overflow-hidden rounded-[24px] border border-blue-100 bg-[linear-gradient(180deg,#ffffff_0%,#f9fbff_100%)] shadow-[0_24px_60px_rgba(37,99,235,0.16)]">
+        <div className="border-b border-blue-100 bg-[linear-gradient(135deg,#ffffff_0%,#f5f9ff_100%)] px-6 py-5">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 shadow-[inset_0_0_0_1px_rgba(191,219,254,0.8)]">
                 {isSubmitting ? (
                   <LoaderCircle size={22} className="animate-spin" />
                 ) : (
-                  <Icon size={22} />
+                  <Sparkles size={22} />
                 )}
               </div>
 
-              <div className="space-y-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-500">
-                    Revenue Action
-                  </p>
-                  <StatusBadge status={period?.status} />
-                </div>
-
+              <div className="space-y-1.5">
                 <div>
                   <h2 className="text-xl font-semibold tracking-tight text-slate-950">
-                    {isSuccess ? actionConfig.successTitle : actionTitle}
+                    Phân phối doanh thu
                   </h2>
-                  <p className="mt-1 text-sm leading-6 text-slate-600">
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
                     {formatPeriodLabel(period?.year, period?.month)}
-                  </p>
+                    <span className="text-slate-300">•</span>
+                    <StatusBadge status={period?.status} />
+                  </div>
                 </div>
               </div>
             </div>
@@ -173,44 +204,135 @@ const RevenueWorkflowModal = ({ period, modalState, onClose, onConfirm }) => {
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="rounded-full border border-slate-200 p-2 text-slate-400 transition hover:border-slate-300 hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-full border border-blue-100 bg-white p-2 text-slate-400 transition hover:border-blue-200 hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <X size={16} />
             </button>
           </div>
         </div>
 
-        <div className="space-y-5 px-6 py-6">
-          {phase === "idle" ? (
-            <p className="text-sm leading-7 text-slate-600">
-              {actionConfig.idleDescription}
-            </p>
-          ) : null}
+        <div className="space-y-4 px-5 py-5">
+          <div className="rounded-2xl border border-blue-100 bg-white px-4 py-4 shadow-[0_8px_24px_rgba(59,130,246,0.06)]">
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-semibold text-slate-950">
+                  Tiến trình xử lý
+                </p>
 
-          {phase === "idle" && reminder ? (
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
-              <p className="text-sm font-semibold text-slate-900">
-                Trang thai hien tai
-              </p>
-              <p className="mt-1 text-sm leading-6 text-slate-600">
-                {reminder.message}
-              </p>
+                <span className="rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                  {completedCount}/{steps.length} hoàn tất
+                </span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 pt-2">
+                {steps.map((step, index) => {
+                  const tone = STEP_TONE[step.state] || STEP_TONE.pending;
+                  const nextStep = steps[index + 1];
+                  const connectorFilled =
+                    step.state === "completed" &&
+                    (nextStep?.state === "completed" || nextStep?.state === "active");
+
+                  return (
+                    <div key={step.key} className="relative flex flex-col items-center text-center">
+                      <div className="flex w-full items-center justify-center">
+                        <div
+                          className={`relative z-10 flex h-9 w-9 items-center justify-center rounded-full border ${tone.icon}`}
+                        >
+                          {step.state === "pending" ? (
+                            <span className="text-xs font-semibold">{index + 1}</span>
+                          ) : (
+                            <CheckCircle2 size={16} />
+                          )}
+                        </div>
+
+                        {index < steps.length - 1 ? (
+                          <div
+                            className={`absolute left-[calc(50%+1.25rem)] right-[-50%] top-4 h-[3px] rounded-full ${
+                              connectorFilled ? "bg-blue-600" : "bg-blue-100"
+                            }`}
+                          />
+                        ) : null}
+                      </div>
+
+                      <p className={`mt-2.5 text-[13px] font-semibold ${tone.text}`}>
+                        {step.label}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          ) : null}
+          </div>
+
+          <div className="rounded-2xl border border-blue-100 bg-white px-4 py-4 shadow-[0_8px_24px_rgba(59,130,246,0.06)]">
+            <p className="text-sm font-semibold text-slate-950">Thao tác</p>
+
+            <div className="mt-3 grid gap-2.5">
+              {steps.map((step) => {
+                const isEnabled = isRevenueActionEnabled(period, step.key);
+                const isSelected = selectedActionKey === step.key;
+                const tone = STEP_TONE[step.state] || STEP_TONE.pending;
+                const StepIcon = ACTION_CONFIG[step.key]?.icon ?? Sparkles;
+
+                return (
+                  <div
+                    key={step.key}
+                    className={`rounded-2xl border bg-white px-4 py-4 transition ${
+                      isSelected
+                        ? "border-blue-300 ring-2 ring-blue-100"
+                        : "border-blue-100"
+                    }`}
+                  >
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                          <StepIcon size={17} />
+                        </div>
+
+                        <p className="text-sm font-semibold text-slate-950">
+                          {step.label}
+                        </p>
+
+                        <span
+                          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${tone.pill}`}
+                        >
+                          {tone.label}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => onSelectAction?.(step.key)}
+                        disabled={!isEnabled || isSubmitting}
+                        className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                          isEnabled
+                            ? "border border-blue-200 bg-white text-blue-700 hover:bg-blue-50"
+                            : "cursor-not-allowed border border-slate-200 bg-slate-50 text-slate-400"
+                        }`}
+                      >
+                        <ChevronRight size={16} />
+                        {getRevenueActionLabel(period, step.key)}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
 
           {isSubmitting ? (
-            <div className="rounded-2xl border border-violet-200 bg-violet-50 px-5 py-4">
+            <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-4">
               <div className="flex items-start gap-3">
                 <LoaderCircle
                   size={18}
-                  className="mt-0.5 shrink-0 animate-spin text-violet-600"
+                  className="mt-0.5 shrink-0 animate-spin text-blue-600"
                 />
                 <div>
-                  <p className="text-sm font-semibold text-violet-900">
-                    Dang xu ly yeu cau
+                  <p className="text-sm font-semibold text-blue-900">
+                    Đang xử lý yêu cầu
                   </p>
-                  <p className="mt-1 text-sm leading-6 text-violet-700">
-                    {actionConfig.loadingDescription}
+                  <p className="mt-1 text-sm leading-6 text-blue-700">
+                    {selectedActionConfig?.loadingDescription}
                   </p>
                 </div>
               </div>
@@ -223,7 +345,7 @@ const RevenueWorkflowModal = ({ period, modalState, onClose, onConfirm }) => {
                 <AlertCircle size={18} className="mt-0.5 shrink-0 text-rose-600" />
                 <div>
                   <p className="text-sm font-semibold text-rose-900">
-                    Khong the hoan tat thao tac
+                    Không thể hoàn tất thao tác
                   </p>
                   <p className="mt-1 text-sm leading-6 text-rose-700">
                     {modalState.error}
@@ -234,8 +356,8 @@ const RevenueWorkflowModal = ({ period, modalState, onClose, onConfirm }) => {
           ) : null}
 
           {isSuccess ? (
-            <div className="space-y-4">
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4">
+            <div className="space-y-3">
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4">
                 <div className="flex items-start gap-3">
                   <CheckCircle2
                     size={18}
@@ -243,18 +365,18 @@ const RevenueWorkflowModal = ({ period, modalState, onClose, onConfirm }) => {
                   />
                   <div>
                     <p className="text-sm font-semibold text-emerald-900">
-                      Thao tac da hoan tat
+                      Thao tác đã hoàn tất
                     </p>
                     <p className="mt-1 text-sm leading-6 text-emerald-700">
-                      Du lieu doanh thu da duoc cap nhat va dashboard se duoc lam moi
-                      sau thao tac nay.
+                      Dữ liệu doanh thu đã được cập nhật và dashboard sẽ được làm mới
+                      sau thao tác này.
                     </p>
                   </div>
                 </div>
               </div>
 
               {resultItems.length > 0 ? (
-                <div className="grid gap-3 md:grid-cols-2">
+                <div className="grid gap-2.5 md:grid-cols-2">
                   {resultItems.map((item) => {
                     const ResultIcon = item.icon;
 
@@ -273,7 +395,7 @@ const RevenueWorkflowModal = ({ period, modalState, onClose, onConfirm }) => {
                             </p>
                           </div>
 
-                          <div className="rounded-2xl bg-white p-2 text-violet-600">
+                          <div className="rounded-2xl bg-white p-2 text-blue-600">
                             <ResultIcon size={16} />
                           </div>
                         </div>
@@ -286,25 +408,33 @@ const RevenueWorkflowModal = ({ period, modalState, onClose, onConfirm }) => {
           ) : null}
         </div>
 
-        <div className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
+        <div className="flex flex-wrap items-center justify-end gap-3 border-t border-blue-100 bg-[linear-gradient(180deg,#ffffff_0%,#f7faff_100%)] px-6 py-4">
           <button
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isSuccess ? "Dong" : "Huy"}
+            Đóng
           </button>
 
-          {phase === "idle" ? (
+          {phase === "idle" && selectedActionConfig ? (
             <button
               type="button"
               onClick={() => void onConfirm()}
-              className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
             >
               <Icon size={16} />
               {actionLabel}
             </button>
+          ) : !isDetailPage && period?.id ? (
+            <Link
+              to={routePaths.revenueSharingDetail(period.id)}
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+            >
+              <CircleDollarSign size={16} />
+              Xem chi tiết phân phối
+            </Link>
           ) : null}
         </div>
       </div>

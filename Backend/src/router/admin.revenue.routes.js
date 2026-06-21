@@ -8,7 +8,9 @@ const router = express.Router();
 
 router.use(requireAdmin);
 
-router.get("/dashboard", adminRevenueController.getRevenueDashboard);
+router.get("/dashboard/charts", adminRevenueController.getRevenueCharts);
+router.get("/dashboard", adminRevenueController.getCurrentRevenuePeriod);
+router.get("/current", adminRevenueController.getCurrentRevenuePeriod);
 router.post(
     "/aggregate",
     validate(adminRevenueValidation.runRevenueAggregationBodySchema, "body"),

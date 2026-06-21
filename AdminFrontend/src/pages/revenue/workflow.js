@@ -13,7 +13,7 @@ export const buildFallbackRevenueWorkflow = (status) => {
           code: "open_period_ready_to_close",
           severity: "warning",
           message:
-            "Ky doanh thu nay van dang mo. Admin can chot ky truoc khi tinh doanh thu cho artist.",
+            "Kỳ doanh thu này vẫn đang mở. Admin cần chốt kỳ trước khi tính doanh thu cho nghệ sĩ.",
         },
         actions: {
           canClose: true,
@@ -29,7 +29,7 @@ export const buildFallbackRevenueWorkflow = (status) => {
           code: "closed_period_ready_to_calculate",
           severity: "warning",
           message:
-            "Ky da duoc chot. Buoc tiep theo la tinh doanh thu de chia artist pool theo stream hop le.",
+            "Kỳ đã được chốt. Bước tiếp theo là tính doanh thu để phân bổ artist pool theo stream hợp lệ.",
         },
         actions: {
           canClose: false,
@@ -45,7 +45,7 @@ export const buildFallbackRevenueWorkflow = (status) => {
           code: "calculated_period_ready_to_confirm",
           severity: "info",
           message:
-            "Ky nay da tinh doanh thu. Ban co the tinh lai neu so lieu thay doi hoac xac nhan de cong tien vao vi artist.",
+            "Kỳ này đã tính doanh thu. Bạn có thể tính lại nếu số liệu thay đổi hoặc xác nhận để cộng tiền vào ví nghệ sĩ.",
         },
         actions: {
           canClose: false,
@@ -61,7 +61,7 @@ export const buildFallbackRevenueWorkflow = (status) => {
           code: "confirmed_period_completed",
           severity: "success",
           message:
-            "Ky doanh thu nay da hoan tat xac nhan va doanh thu da duoc cong vao so du artist.",
+            "Kỳ doanh thu này đã hoàn tất xác nhận và doanh thu đã được cộng vào số dư nghệ sĩ.",
         },
         actions: {
           canClose: false,
@@ -77,7 +77,7 @@ export const buildFallbackRevenueWorkflow = (status) => {
           code: "period_not_created",
           severity: "muted",
           message:
-            "Backend chua tao revenue period cho thang nay, nen hien tai chua the chot ky hoac tinh doanh thu.",
+            "Backend chưa tạo revenue period cho tháng này, nên hiện tại chưa thể chốt kỳ hoặc tính doanh thu.",
         },
         actions: {
           canClose: false,
@@ -137,16 +137,16 @@ export const getRevenueActionLabel = (period, actionKey) => {
     actionKey === "calculate" &&
     resolveRevenueWorkflow(period).actions?.canRecalculate
   ) {
-    return "Tinh lai doanh thu";
+    return "Tính lại doanh thu";
   }
 
   switch (actionKey) {
     case "close":
-      return "Chot ky";
+      return "Chốt kỳ";
     case "calculate":
-      return "Tinh doanh thu";
+      return "Tính doanh thu";
     case "confirm":
-      return "Xac nhan phan phoi";
+      return "Xác nhận phân phối";
     default:
       return "";
   }
@@ -180,20 +180,20 @@ export const getRevenueWorkflowSteps = (period) => {
   return [
     {
       key: "close",
-      label: "Chot ky",
-      description: "Khoa du lieu premium revenue va stream hop le cua ky.",
+      label: "Chốt kỳ",
+      description: "Khóa dữ liệu doanh thu premium và stream hợp lệ của kỳ.",
       state: resolveStepState("close"),
     },
     {
       key: "calculate",
-      label: "Tinh doanh thu",
-      description: "Phan bo artist pool cho artist va track theo stream hop le.",
+      label: "Tính doanh thu",
+      description: "Phân bổ artist pool cho nghệ sĩ và bài hát theo stream hợp lệ.",
       state: resolveStepState("calculate"),
     },
     {
       key: "confirm",
-      label: "Xac nhan",
-      description: "Cong tien vao so du artist va danh dau ky da hoan tat.",
+      label: "Xác nhận",
+      description: "Cộng tiền vào số dư nghệ sĩ và đánh dấu kỳ đã hoàn tất.",
       state: resolveStepState("confirm"),
     },
   ];

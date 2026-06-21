@@ -1,14 +1,28 @@
 import adminRevenueService from "../services/revenue/admin.revenue.service.js";
 import formatResponse from "../utils/formatResponse.js";
 
-const getRevenueDashboard = async (req, res, next) => {
+const getCurrentRevenuePeriod = async (req, res, next) => {
     try {
-        const dashboard = await adminRevenueService.getRevenueDashboard(req.query);
+        const revenuePeriod = await adminRevenueService.getCurrentRevenuePeriod();
 
         return formatResponse.success(
             res,
-            dashboard,
-            "Revenue dashboard fetched successfully"
+            revenuePeriod,
+            "Current revenue period fetched successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+const getRevenueCharts = async (req, res, next) => {
+    try {
+        const revenueCharts = await adminRevenueService.getRevenueCharts(req.query);
+
+        return formatResponse.success(
+            res,
+            revenueCharts,
+            "Revenue charts fetched successfully"
         );
     } catch (error) {
         next(error);
@@ -38,7 +52,7 @@ const getRevenuePeriodDetail = async (req, res, next) => {
 
         return formatResponse.success(
             res,
-            { revenuePeriod },
+            revenuePeriod,
             "Revenue period fetched successfully"
         );
     } catch (error) {
@@ -108,7 +122,8 @@ const confirmRevenueDistribution = async (req, res, next) => {
 };
 
 export default {
-    getRevenueDashboard,
+    getCurrentRevenuePeriod,
+    getRevenueCharts,
     getRevenuePeriods,
     getRevenuePeriodDetail,
     triggerRevenueAggregation,

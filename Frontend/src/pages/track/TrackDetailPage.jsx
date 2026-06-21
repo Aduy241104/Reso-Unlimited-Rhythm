@@ -200,7 +200,7 @@ const TrackDetailPage = () => {
   const albumTitle = track?.album?.title || "Album không xác định";
   const releaseYear = formatReleaseYear(track?.releaseDate);
   const duration = formatTrackDuration(track?.duration);
-  const listensLabel = formatListenCount(track?.stats?.playCount);
+  const listensLabel = formatListenCount(track?.stats?.totalPlay);
   const lyrics = track?.lyrics?.static?.trim?.() || "";
   const artistRole = track?.artist?.role || "Ngh\u1ec7 s\u0129";
   const albumHref = track?.album?.id ? routePaths.albumDetail(track.album.id) : undefined;

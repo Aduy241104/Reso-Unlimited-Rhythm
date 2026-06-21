@@ -5,9 +5,9 @@ const RevenueTrendSection = ({ charts }) => {
   return (
     <DashboardCard>
       <SectionHeader
-        eyebrow="Revenue Trend"
+        eyebrow="Tong quan doanh thu"
         title="Bieu do doanh thu"
-        description="Line chart + fill duoc ve truc tiep tu du lieu monthly va last 14 days cua API moi."
+        description="Theo doi xu huong doanh thu theo thang va bien dong 14 ngay gan nhat duoc dong bo tu he thong."
       />
 
       <div className="p-5">

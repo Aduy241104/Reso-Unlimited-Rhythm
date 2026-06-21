@@ -107,7 +107,7 @@ const RevenueSharingWorkflowDetailPage = () => {
 
     const loadDetail = async () => {
       if (!periodId) {
-        setError("Khong tim thay ky doanh thu.");
+        setError("Không tìm thấy kỳ doanh thu.");
         setIsLoading(false);
         return;
       }
@@ -155,7 +155,7 @@ const RevenueSharingWorkflowDetailPage = () => {
     }
   };
 
-  const openActionModal = (actionKey) => {
+  const openActionModal = (actionKey = null) => {
     setActionModal({
       isOpen: true,
       actionKey,
@@ -219,7 +219,7 @@ const RevenueSharingWorkflowDetailPage = () => {
   const timestamps = period?.timestamps ?? {};
   const artists = period?.artists ?? [];
   const confirmedBy = period?.confirmedBy ?? {};
-  const confirmedByName = confirmedBy?.fullName || "Chua co";
+  const confirmedByName = confirmedBy?.fullName || "Chưa có";
   const workflow = resolveRevenueWorkflow(period);
   const reminder = workflow.reminder;
   const reminderTone = getRevenueReminderTone(reminder?.severity);
@@ -235,12 +235,12 @@ const RevenueSharingWorkflowDetailPage = () => {
                 className="inline-flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-700"
               >
                 <ArrowLeft size={13} />
-                Quay lai
+                Quay lại
               </Link>
 
               <div className="space-y-2">
                 <h1 className="text-[1.7rem] font-semibold tracking-tight text-slate-950">
-                  Chi tiet chia doanh thu {period?.label || ""}
+                  Chi tiết chia doanh thu {period?.label || ""}
                 </h1>
 
                 <div className="flex flex-wrap items-center gap-2.5 text-[13px] text-slate-600">
@@ -278,7 +278,7 @@ const RevenueSharingWorkflowDetailPage = () => {
                   size={15}
                   className={isRefreshing ? "animate-spin" : undefined}
                 />
-                Lam moi
+                Làm mới
               </button>
             </div>
           </div>
@@ -297,7 +297,7 @@ const RevenueSharingWorkflowDetailPage = () => {
               <div className="flex items-start gap-3">
                 <AlertCircle size={18} className="mt-0.5 shrink-0" />
                 <div>
-                  <p className="text-sm font-semibold">Workflow hien tai</p>
+                  <p className="text-sm font-semibold">Trạng thái workflow hiện tại</p>
                   <p className={`mt-1 text-sm leading-6 ${reminderTone.text}`}>
                     {reminder.message}
                   </p>
@@ -313,7 +313,7 @@ const RevenueSharingWorkflowDetailPage = () => {
               <div className="flex items-center gap-3 text-slate-500">
                 <LoaderCircle size={20} className="animate-spin" />
                 <span className="text-[13px] font-medium">
-                  Dang tai chi tiet chia doanh thu...
+                  Đang tải chi tiết chia doanh thu...
                 </span>
               </div>
             </div>
@@ -324,49 +324,49 @@ const RevenueSharingWorkflowDetailPage = () => {
               <CompactStatCard
                 label="Doanh thu premium"
                 value={formatCurrency(summary.premiumRevenue)}
-                helper="Tong doanh thu premium trong ky."
+                helper="Tổng doanh thu premium trong kỳ."
                 icon={<CircleDollarSign size={20} />}
               />
               <CompactStatCard
-                label="Quy nghe si"
+                label="Quỹ nghệ sĩ"
                 value={formatCurrency(summary.artistPool)}
-                helper="Tong quy mang di phan bo."
+                helper="Tổng quỹ mang đi phân bổ."
                 icon={<Coins size={20} />}
               />
               <CompactStatCard
-                label="Doanh thu nen tang"
+                label="Doanh thu nền tảng"
                 value={formatCurrency(summary.platformRevenue)}
-                helper="Phan doanh thu con lai cua nen tang."
+                helper="Phần doanh thu còn lại của nền tảng."
                 icon={<Building2 size={20} />}
               />
               <CompactStatCard
-                label="Nghe si duoc chia"
+                label="Nghệ sĩ được chia"
                 value={formatNumber(distribution.distributedArtistCount)}
-                helper="So nghe si co phan bo trong ky."
+                helper="Số nghệ sĩ có phân bổ trong kỳ."
                 icon={<UsersRound size={20} />}
               />
               <CompactStatCard
-                label="Stream hop le"
+                label="Stream hợp lệ"
                 value={formatNumber(summary.totalEligibleStreams)}
-                helper="Tong luot stream du dieu kien."
+                helper="Tổng lượt stream đủ điều kiện."
                 icon={<Radio size={20} />}
               />
               <CompactStatCard
-                label="Giao dich thanh cong"
+                label="Giao dịch thành công"
                 value={formatNumber(summary.successfulTransactions)}
-                helper="So giao dich premium thanh cong."
+                helper="Số giao dịch premium thành công."
                 icon={<ReceiptText size={20} />}
               />
               <CompactStatCard
-                label="Da rut"
+                label="Đã rút"
                 value={formatCurrency(distribution.totalWithdrawnAmount)}
-                helper="Tong doanh thu nghe si da rut."
+                helper="Tổng doanh thu nghệ sĩ đã rút."
                 icon={<Wallet size={20} />}
               />
               <CompactStatCard
-                label="Con kha dung"
+                label="Còn khả dụng"
                 value={formatCurrency(distribution.totalAvailableAmount)}
-                helper="Tong doanh thu nghe si con co the rut."
+                helper="Tổng doanh thu nghệ sĩ còn có thể rút."
                 icon={<Wallet size={20} />}
               />
             </div>
@@ -375,32 +375,32 @@ const RevenueSharingWorkflowDetailPage = () => {
               <DashboardCard className="border-slate-200">
                 <div className="border-b border-slate-200 px-5 py-4">
                   <h2 className="text-sm font-semibold text-slate-950">
-                    Thong tin ky doanh thu
+                    Thông tin kỳ doanh thu
                   </h2>
                 </div>
 
                 <div className="px-5 py-4">
                   <InfoRow
-                    label="Thoi gian ap dung"
+                    label="Thời gian áp dụng"
                     value={`${formatDate(period.periodStart)} - ${formatDate(period.periodEnd)}`}
                   />
                   <InfoRow
-                    label="Tong phan bo"
+                    label="Tổng phân bổ"
                     value={formatCurrency(
                       distribution.distributedArtistRevenueAmount
                     )}
                   />
                   <InfoRow
-                    label="Tong hop gan nhat"
+                    label="Tổng hợp gần nhất"
                     value={formatDateTime(timestamps.lastAggregatedAt)}
                   />
-                  <InfoRow label="Dong ky" value={formatDateTime(timestamps.closedAt)} />
+                  <InfoRow label="Đóng kỳ" value={formatDateTime(timestamps.closedAt)} />
                   <InfoRow
-                    label="Tinh toan"
+                    label="Tính toán"
                     value={formatDateTime(timestamps.calculatedAt)}
                   />
                   <InfoRow
-                    label="Xac nhan"
+                    label="Xác nhận"
                     value={formatDateTime(timestamps.confirmedAt)}
                   />
                 </div>
@@ -409,26 +409,26 @@ const RevenueSharingWorkflowDetailPage = () => {
               <DashboardCard className="border-slate-200">
                 <div className="border-b border-slate-200 px-5 py-4">
                   <h2 className="text-sm font-semibold text-slate-950">
-                    Tom tat ky chia
+                    Tóm tắt kỳ chia
                   </h2>
                 </div>
 
                 <div className="space-y-4 px-5 py-4">
                   <div className="rounded-2xl bg-slate-50 p-4">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                      Nguoi xac nhan
+                      Người xác nhận
                     </p>
                     <p className="mt-1.5 text-base font-semibold text-slate-950">
                       {confirmedByName}
                     </p>
                     <p className="mt-1 text-[13px] text-slate-500">
-                      {confirmedBy.email || "Chua co email"}
+                      {confirmedBy.email || "Chưa có email"}
                     </p>
                   </div>
 
                   <div className="rounded-2xl border border-slate-200 bg-white p-4">
                     <p className="text-[13px] leading-6 text-slate-600">
-                      Ky nay da phan bo{" "}
+                      Kỳ này đã phân bổ{" "}
                       <span className="font-semibold text-slate-950">
                         {formatCurrency(
                           distribution.distributedArtistRevenueAmount
@@ -438,11 +438,11 @@ const RevenueSharingWorkflowDetailPage = () => {
                       <span className="font-semibold text-slate-950">
                         {formatNumber(distribution.distributedArtistCount)}
                       </span>{" "}
-                      nghe si. Hien da rut{" "}
+                      nghệ sĩ. Hiện đã rút{" "}
                       <span className="font-semibold text-slate-950">
                         {formatCurrency(distribution.totalWithdrawnAmount)}
                       </span>{" "}
-                      va con kha dung{" "}
+                      và còn khả dụng{" "}
                       <span className="font-semibold text-slate-950">
                         {formatCurrency(distribution.totalAvailableAmount)}
                       </span>
@@ -456,18 +456,18 @@ const RevenueSharingWorkflowDetailPage = () => {
             <DashboardCard className="border-slate-200">
               <div className="border-b border-slate-200 px-5 py-4">
                 <h2 className="text-sm font-semibold text-slate-950">
-                  Nghe si duoc chia doanh thu
+                  Nghệ sĩ được chia doanh thu
                 </h2>
                 <p className="mt-1 text-[13px] text-slate-500">
-                  Hien thi ten, stream hop le, doanh thu nhan, da rut va con kha
-                  dung.
+                  Hiển thị tên, stream hợp lệ, doanh thu nhận, đã rút và còn khả
+                  dụng.
                 </p>
               </div>
 
               {artists.length === 0 ? (
                 <div className="px-5 py-14 text-center">
                   <p className="text-[13px] font-medium text-slate-600">
-                    Ky nay chua co nghe si nao duoc phan bo doanh thu.
+                    Kỳ này chưa có nghệ sĩ nào được phân bổ doanh thu.
                   </p>
                 </div>
               ) : (
@@ -488,7 +488,7 @@ const RevenueSharingWorkflowDetailPage = () => {
 
                           <div className="min-w-0">
                             <p className="truncate text-[13px] font-semibold text-slate-950">
-                              {artist.name || "Chua co ten"}
+                              {artist.name || "Chưa có tên"}
                             </p>
                             <p className="truncate text-xs text-slate-500">
                               ID: {artistItem.artistId}
@@ -498,7 +498,7 @@ const RevenueSharingWorkflowDetailPage = () => {
 
                         <div>
                           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                            Stream hop le
+                            Stream hợp lệ
                           </p>
                           <p className="mt-1.5 text-[13px] font-semibold text-slate-950">
                             {formatNumber(artistItem.totalEligibleStreams)}
@@ -507,7 +507,7 @@ const RevenueSharingWorkflowDetailPage = () => {
 
                         <div>
                           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                            Doanh thu nhan
+                            Doanh thu nhận
                           </p>
                           <p className="mt-1.5 text-[13px] font-semibold text-slate-950">
                             {formatCurrency(artistItem.artistRevenueAmount)}
@@ -516,7 +516,7 @@ const RevenueSharingWorkflowDetailPage = () => {
 
                         <div>
                           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                            Da rut
+                            Đã rút
                           </p>
                           <p className="mt-1.5 text-[13px] font-semibold text-slate-950">
                             {formatCurrency(artistItem.withdrawnAmount)}
@@ -525,7 +525,7 @@ const RevenueSharingWorkflowDetailPage = () => {
 
                         <div>
                           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                            Con kha dung
+                            Còn khả dụng
                           </p>
                           <p className="mt-1.5 text-[13px] font-semibold text-slate-950">
                             {formatCurrency(artistItem.availableAmount)}
@@ -545,7 +545,7 @@ const RevenueSharingWorkflowDetailPage = () => {
         ) : (
           <DashboardCard className="border-slate-200 px-5 py-14 text-center">
             <p className="text-[13px] font-medium text-slate-600">
-              Khong tim thay du lieu ky doanh thu nay.
+              Không tìm thấy dữ liệu kỳ doanh thu này.
             </p>
           </DashboardCard>
         )}
@@ -555,6 +555,7 @@ const RevenueSharingWorkflowDetailPage = () => {
         period={period}
         modalState={actionModal}
         onClose={closeActionModal}
+        onSelectAction={openActionModal}
         onConfirm={handleConfirmAction}
       />
     </section>

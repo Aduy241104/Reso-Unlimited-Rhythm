@@ -3,7 +3,6 @@ import { AlertCircle, LoaderCircle } from "lucide-react";
 import RevenueHeroSection from "./components/RevenueHeroSection";
 import RevenueWorkflowActions from "./components/RevenueWorkflowActions";
 import RevenueWorkflowModal from "./components/RevenueWorkflowModal";
-import RevenueWorkflowOverview from "./components/RevenueWorkflowOverview";
 import { DashboardCard } from "./components/RevenueShared";
 import RevenueTrendSection from "./components/RevenueTrendSection";
 import useRevenueDashboard from "./useRevenueDashboard";
@@ -43,7 +42,7 @@ const RevenueManagementPage = () => {
     month: currentMonth,
   };
 
-  const openActionModal = (actionKey) => {
+  const openActionModal = (actionKey = null) => {
     setActionModal({
       isOpen: true,
       actionKey,
@@ -120,8 +119,6 @@ const RevenueManagementPage = () => {
           }
         />
 
-        {!isLoading ? <RevenueWorkflowOverview period={period} /> : null}
-
         {error ? (
           <div className="flex items-start gap-3 rounded-[18px] border border-rose-200 bg-rose-50 px-5 py-4 text-rose-700">
             <AlertCircle size={18} className="mt-0.5 shrink-0" />
@@ -153,6 +150,7 @@ const RevenueManagementPage = () => {
         period={period}
         modalState={actionModal}
         onClose={closeActionModal}
+        onSelectAction={openActionModal}
         onConfirm={handleConfirmAction}
       />
     </section>
