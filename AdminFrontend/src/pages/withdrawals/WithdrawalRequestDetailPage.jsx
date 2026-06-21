@@ -4,13 +4,17 @@ import {
   AlertCircle,
   ArrowLeft,
   Banknote,
+  CheckCircle2,
   Clock3,
   CreditCard,
   Loader2,
   UserRound,
   WalletCards,
 } from "lucide-react";
-import { getWithdrawalRequestDetailService } from "../../services/adminWithdrawalService";
+import {
+  approveWithdrawalRequestService,
+  getWithdrawalRequestDetailService,
+} from "../../services/adminWithdrawalService";
 import { routePaths } from "../../routes/routePaths";
 
 const statusConfig = {
@@ -106,6 +110,13 @@ const getStatusBadge = (status) => {
   );
 };
 
+const getErrorMessage = (error, fallback) => (
+  error?.response?.data?.message ||
+  error?.response?.data?.error ||
+  error?.message ||
+  fallback
+);
+
 const DetailCard = ({ title, children }) => (
   <div className="rounded-2xl bg-white p-6 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
     <h2 className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-400">
@@ -132,6 +143,9 @@ const WithdrawalRequestDetailPage = () => {
   const [withdrawal, setWithdrawal] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [isApproveConfirmOpen, setIsApproveConfirmOpen] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
 
   useEffect(() => {
     const loadDetail = async () => {
@@ -143,17 +157,14 @@ const WithdrawalRequestDetailPage = () => {
 
       setIsLoading(true);
       setError("");
+      setSuccessMessage("");
 
       try {
         const result = await getWithdrawalRequestDetailService(id);
         setWithdrawal(result);
       } catch (err) {
         console.error(err);
-        setError(
-          err?.response?.data?.message ||
-          err?.message ||
-          "Không thể tải chi tiết yêu cầu rút tiền."
-        );
+        setError(getErrorMessage(err, "Không thể tải chi tiết yêu cầu rút tiền."));
       } finally {
         setIsLoading(false);
       }
@@ -167,6 +178,33 @@ const WithdrawalRequestDetailPage = () => {
   const isMomo = method === "momo";
   const MethodIcon = isMomo ? WalletCards : CreditCard;
   const avatar = getArtistAvatar(withdrawal);
+  const canApprove = withdrawal?.status === "pending";
+
+  const handleApproveWithdrawalRequest = async () => {
+    const withdrawalId = withdrawal?._id || withdrawal?.id || id;
+
+    if (!withdrawalId || !canApprove || isApproving) return;
+
+    setIsApproving(true);
+    setError("");
+    setSuccessMessage("");
+
+    try {
+      const updatedWithdrawal = await approveWithdrawalRequestService(withdrawalId);
+      setWithdrawal(updatedWithdrawal || {
+        ...withdrawal,
+        status: "approved",
+        approvedAt: new Date().toISOString(),
+      });
+      setSuccessMessage("Withdrawal request approved successfully");
+      setIsApproveConfirmOpen(false);
+    } catch (err) {
+      console.error(err);
+      setError(getErrorMessage(err, "Không thể approve yêu cầu rút tiền."));
+    } finally {
+      setIsApproving(false);
+    }
+  };
 
   return (
     <section className="mx-auto min-h-screen max-w-6xl space-y-6 bg-slate-50/50 p-6 text-slate-800 antialiased">
@@ -195,6 +233,13 @@ const WithdrawalRequestDetailPage = () => {
           Back to list
         </Link>
       </div>
+
+      {successMessage ? (
+        <div className="flex items-start gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 px-5 py-4 text-emerald-600">
+          <CheckCircle2 size={18} className="mt-0.5 shrink-0" />
+          <p className="text-sm leading-6">{successMessage}</p>
+        </div>
+      ) : null}
 
       {isLoading ? (
         <div className="flex min-h-[360px] items-center justify-center rounded-2xl bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
@@ -240,6 +285,25 @@ const WithdrawalRequestDetailPage = () => {
                   <MethodIcon size={14} />
                   {method}
                 </span>
+                {canApprove ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setError("");
+                      setSuccessMessage("");
+                      setIsApproveConfirmOpen(true);
+                    }}
+                    disabled={isApproving}
+                    className="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isApproving ? (
+                      <Loader2 size={15} className="animate-spin" />
+                    ) : (
+                      <CheckCircle2 size={15} />
+                    )}
+                    Approve
+                  </button>
+                ) : null}
               </div>
             </div>
 
@@ -350,6 +414,55 @@ const WithdrawalRequestDetailPage = () => {
           </p>
         </div>
       )}
+
+      {isApproveConfirmOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-[0_24px_80px_rgba(15,23,42,0.25)]">
+            <div className="flex items-start gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                <CheckCircle2 size={22} />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-slate-950">
+                  Approve withdrawal request?
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                  Request của {getArtistName(withdrawal)} sẽ chuyển từ pending
+                  sang approved. Hành động này chưa đánh dấu đã chuyển tiền và
+                  không cập nhật doanh thu artist.
+                </p>
+                <p className="mt-3 font-mono text-base font-semibold text-slate-900">
+                  {formatCurrency(withdrawal?.amount)}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setIsApproveConfirmOpen(false)}
+                disabled={isApproving}
+                className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleApproveWithdrawalRequest}
+                disabled={isApproving}
+                className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isApproving ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <CheckCircle2 size={16} />
+                )}
+                Confirm approve
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 };
