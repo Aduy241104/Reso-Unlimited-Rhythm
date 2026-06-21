@@ -5,6 +5,7 @@ import {
   useNavigate,
   useSearchParams,
 } from "react-router-dom";
+import useDebouncedValue from "../../hooks/useDebouncedValue";
 import { routePaths } from "../../routes/routePaths";
 import {
   normalizeSearchAllPayload,
@@ -18,6 +19,8 @@ const EMPTY_RESULTS = {
   albums: [],
 };
 
+const SEARCH_DEBOUNCE_DELAY = 700;
+
 const SearchBar = ({
   className = "",
   value,
@@ -25,7 +28,7 @@ const SearchBar = ({
   onChange,
   onSubmit,
   onKeyDown,
-  placeholder = "Bạn muốn phát nội dung gì?",
+  placeholder = "B\u1EA1n mu\u1ED1n ph\u00E1t n\u1ED9i dung g\u00EC?",
   name = "search",
   disabled = false,
   ...inputProps
@@ -42,6 +45,7 @@ const SearchBar = ({
   const [loading, setLoading] = useState(false);
   const currentValue = isControlled ? value ?? "" : internalValue;
   const normalizedKeyword = currentValue.trim();
+  const debouncedKeyword = useDebouncedValue(normalizedKeyword, SEARCH_DEBOUNCE_DELAY);
 
   useEffect(() => {
     if (location.pathname !== routePaths.search) {
@@ -86,7 +90,7 @@ const SearchBar = ({
   }, []);
 
   useEffect(() => {
-    if (!isDropdownOpen || !normalizedKeyword) {
+    if (!isDropdownOpen || !debouncedKeyword) {
       if (!normalizedKeyword) {
         setSuggestions(EMPTY_RESULTS);
       }
@@ -96,11 +100,12 @@ const SearchBar = ({
     }
 
     let isActive = true;
-    const timeoutId = window.setTimeout(async () => {
+
+    const loadSuggestions = async () => {
       setLoading(true);
 
       try {
-        const payload = await searchAll(normalizedKeyword);
+        const payload = await searchAll(debouncedKeyword);
 
         if (!isActive) {
           return;
@@ -116,13 +121,14 @@ const SearchBar = ({
           setLoading(false);
         }
       }
-    }, 300);
+    };
+
+    void loadSuggestions();
 
     return () => {
       isActive = false;
-      window.clearTimeout(timeoutId);
     };
-  }, [isDropdownOpen, normalizedKeyword]);
+  }, [debouncedKeyword, isDropdownOpen, normalizedKeyword]);
 
   const handleSubmit = (event) => {
     if (typeof onSubmit === "function") {
@@ -265,7 +271,7 @@ const SearchBar = ({
           <button
             type="button"
             onClick={handleClear}
-            aria-label="Xóa tìm kiếm"
+            aria-label="X\u00F3a t\u00ECm ki\u1EBFm"
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#b3b3b3] transition hover:bg-[#3a3a3a] hover:text-white"
           >
             <X className="h-4 w-4" />
@@ -285,8 +291,8 @@ const SearchBar = ({
 
         <button
           type="button"
-          title="Duyệt thể loại"
-          aria-label="Duyệt thể loại"
+          title="Duy\u1EC7t th\u1EC3 lo\u1EA1i"
+          aria-label="Duy\u1EC7t th\u1EC3 lo\u1EA1i"
           onClick={handleBrowseGenres}
           className="
             flex
