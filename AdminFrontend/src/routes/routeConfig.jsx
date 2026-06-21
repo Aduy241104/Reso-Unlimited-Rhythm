@@ -12,7 +12,7 @@ import GenresListPage from "../pages/systemGenres/GenresListPage";
 import CreateGenrePage from "../pages/systemGenres/CreateGenrePage";
 import EditGenrePage from "../pages/systemGenres/EditGenrePage";
 import HomePage from "../pages/dashboard/DashboardPage";
-import RevenueManagementPage from "../pages/revenue/RevenueManagementPage";
+import RevenueManagementUnifiedPage from "../pages/revenue/RevenueManagementUnifiedPage";
 import RevenueHistoryPage from "../pages/revenue/RevenueHistoryPage";
 import RevenuePeriodDetailPage from "../pages/revenue/RevenuePeriodDetailPage";
 import RevenueSharingHistoryPage from "../pages/revenue/RevenueSharingHistoryPage";
@@ -71,7 +71,7 @@ export const appRoutes = [
               },
               {
                 path: "revenue",
-                element: <RevenueManagementPage />,
+                element: <RevenueManagementUnifiedPage />,
               },
               {
                 path: "revenue/history",

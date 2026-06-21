@@ -27,11 +27,57 @@ const normalizeRevenuePeriodsParams = (filters = {}) => {
   return params;
 };
 
+const normalizeRevenueOverview = (data) => ({
+  period: data?.period ?? null,
+  summary: data?.summary ?? {},
+  lifecycleTimestamps: data?.lifecycleTimestamps ?? {},
+  distribution: data?.distribution ?? null,
+  availableActions: Array.isArray(data?.availableActions)
+    ? data.availableActions
+    : [],
+  confirmedBy: data?.confirmedBy ?? null,
+});
+
+const normalizeRevenueCharts = (data) => ({
+  charts: {
+    monthly: Array.isArray(data?.charts?.monthly) ? data.charts.monthly : [],
+    last14Days: Array.isArray(data?.charts?.last14Days)
+      ? data.charts.last14Days
+      : [],
+  },
+  metadata: {
+    revenueSharePercent: {
+      artist: Number(data?.metadata?.revenueSharePercent?.artist || 0),
+      platform: Number(data?.metadata?.revenueSharePercent?.platform || 0),
+    },
+    lastUpdatedAt: data?.metadata?.lastUpdatedAt ?? null,
+  },
+});
+
 export const getRevenueDashboardService = async (yearOrParams, month) => {
   const params = normalizeRevenueDashboardParams(yearOrParams, month);
 
   const res = await axiosClient.get("/api/admin/revenue/dashboard", { params });
   return res.data?.data ?? null;
+};
+
+export const getCurrentRevenueOverviewService = async () => {
+  try {
+    const res = await axiosClient.get("/api/admin/revenue/dashboard");
+    return normalizeRevenueOverview(res.data?.data);
+  } catch (error) {
+    if (error?.response?.status !== 404) {
+      throw error;
+    }
+
+    const fallbackResponse = await axiosClient.get("/api/admin/revenue/current");
+    return normalizeRevenueOverview(fallbackResponse.data?.data);
+  }
+};
+
+export const getRevenueDashboardChartsService = async () => {
+  const res = await axiosClient.get("/api/admin/revenue/dashboard/charts");
+  return normalizeRevenueCharts(res.data?.data);
 };
 
 export const getRevenuePeriodsService = async (filters = {}) => {
@@ -68,6 +114,8 @@ export const confirmRevenueDistributionService = async (periodId) => {
 
 export default {
   getRevenueDashboardService,
+  getCurrentRevenueOverviewService,
+  getRevenueDashboardChartsService,
   getRevenuePeriodsService,
   getRevenuePeriodDetailService,
   closeRevenuePeriodService,
