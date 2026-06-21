@@ -60,7 +60,7 @@ const TrackDetailLyrics = ({ lyrics }) => {
           onClick={ () => setIsExpanded((currentValue) => !currentValue) }
           className="mt-4 text-sm font-semibold text-[#111111] transition hover:opacity-80 dark:text-white"
         >
-          { isExpanded ? "Thu g\u1ecdn" : "Xem th\u00eam" }
+          { isExpanded ? "Thu gọn" : "Xem thêm" }
         </button>
       ) : null }
     </section>

@@ -1,11 +1,10 @@
-import { Menu } from "lucide-react";
+﻿import { Menu } from "lucide-react";
 import { Link } from "react-router-dom";
-
+import SearchBar from "../../components/search/SearchBar";
 import brandArtwork from "../../assets/images/ChatGPT Image 13_16_10 4 thg 5, 2026.png";
 import { useAuth } from "../../hooks/useAuth";
 import { useTheme } from "../../hooks/useTheme";
 import { routePaths } from "../../routes/routePaths";
-import { testAccessTokenService } from "../../services/authService";
 import { hasPremiumAccess } from "../../utils/premiumAccess";
 
 import AccountMenu from "./AccountMenu";
@@ -16,25 +15,16 @@ const Header = ({ onToggleSidebar, isDesktopSidebarVisible }) => {
     const { isDark } = useTheme();
     const isPremiumUser = hasPremiumAccess(user);
 
-    const testAccessToken = async () => {
-        try {
-            const response = await testAccessTokenService();
-            console.log("Access token is valid:", response);
-        } catch (error) {
-            console.error("Access token is invalid:", error);
-        }
-    };
-
     return (
         <header
             className={[
-                "relative z-50 flex h-full items-center justify-between gap-2 border-b px-3 backdrop-blur-xl sm:gap-3 sm:px-4 lg:px-5",
+                "relative z-50 flex h-full items-center gap-2 border-b px-3 backdrop-blur-xl sm:gap-3 sm:px-4 lg:px-5",
                 isDark
                     ? "border-[#f5b66f]/10 bg-black text-[#f7f1ea]"
                     : "border-[#eeeeee] bg-white text-[#111111]",
             ].join(" ")}
         >
-            <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+            <div className="flex min-w-0 items-center gap-2 sm:gap-3">
                 <button
                     type="button"
                     onClick={onToggleSidebar}
@@ -86,6 +76,10 @@ const Header = ({ onToggleSidebar, isDesktopSidebarVisible }) => {
                 </Link>
             </div>
 
+            <div className="flex min-w-0 flex-1 items-center justify-center">
+                <SearchBar className="w-full max-w-[680px]" />
+            </div>
+
             <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
                 {isAuthenticated && !isPremiumUser ? (
                     <Link
@@ -102,22 +96,9 @@ const Header = ({ onToggleSidebar, isDesktopSidebarVisible }) => {
                 ) : null}
 
                 {isAuthenticated ? (
-                    <button
-                        type="button"
-                        onClick={testAccessToken}
-                        className={[
-                            "hidden shrink-0 rounded-full border px-2.5 py-1.5 text-xs font-medium transition md:inline-flex md:px-3",
-                            isDark
-                                ? "border-[#f5b66f]/10 bg-[#1c1820] text-[#f7f1ea] hover:bg-[#241f28]"
-                                : "border-[#e5e7eb] bg-white text-[#111111] hover:bg-[#f9fafb]",
-                        ].join(" ")}
-                    >
-                        Test
-                    </button>
-                ) : null}
-
-                {isAuthenticated ? (
-                    <NotificationDropdown isDesktopSidebarVisible={isDesktopSidebarVisible} />
+                    <NotificationDropdown
+                        isDesktopSidebarVisible={isDesktopSidebarVisible}
+                    />
                 ) : null}
 
                 {isLoading ? (
