@@ -78,7 +78,7 @@ export const appRoutes = [
                 element: <RevenueHistoryPage />,
               },
               {
-                path: "revenue/history/:year/:month",
+                path: "revenue/history/:periodId",
                 element: <RevenuePeriodDetailPage />,
               },
               {

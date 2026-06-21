@@ -22,8 +22,7 @@ export const routePaths = {
     `/system-playlists/${playlistId}/edit`,
   revenue: "/revenue",
   revenueHistory: "/revenue/history",
-  revenuePeriodDetail: (year = ":year", month = ":month") =>
-    `/revenue/history/${year}/${month}`,
+  revenuePeriodDetail: (periodId = ":periodId") => `/revenue/history/${periodId}`,
   revenueSharingHistory: "/revenue-sharing",
   revenueSharingDetail: (periodId = ":periodId") =>
     `/revenue-sharing/${periodId}`,

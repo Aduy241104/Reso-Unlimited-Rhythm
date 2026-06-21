@@ -54,6 +54,51 @@ const normalizeRevenueCharts = (data) => ({
   },
 });
 
+const normalizeRevenuePeriodDetail = (data) => {
+  const rawDetail = data?.revenuePeriod ?? data ?? null;
+
+  if (!rawDetail) {
+    return null;
+  }
+
+  const period =
+    rawDetail?.period && typeof rawDetail.period === "object"
+      ? rawDetail.period
+      : {
+          id: rawDetail?.id ?? null,
+          year: rawDetail?.year ?? null,
+          month: rawDetail?.month ?? null,
+          label: rawDetail?.label ?? null,
+          status: rawDetail?.status ?? null,
+          periodStart: rawDetail?.periodStart ?? null,
+          periodEnd: rawDetail?.periodEnd ?? null,
+        };
+
+  const lifecycleTimestamps =
+    rawDetail?.lifecycleTimestamps ?? rawDetail?.timestamps ?? {};
+  const distribution = rawDetail?.distribution ?? null;
+  const artists = Array.isArray(distribution?.artists)
+    ? distribution.artists
+    : Array.isArray(rawDetail?.artists)
+      ? rawDetail.artists
+      : [];
+
+  return {
+    ...rawDetail,
+    ...period,
+    period,
+    summary: rawDetail?.summary ?? {},
+    lifecycleTimestamps,
+    timestamps: lifecycleTimestamps,
+    distribution,
+    availableActions: Array.isArray(rawDetail?.availableActions)
+      ? rawDetail.availableActions
+      : [],
+    confirmedBy: rawDetail?.confirmedBy ?? null,
+    artists,
+  };
+};
+
 export const getRevenueDashboardService = async (yearOrParams, month) => {
   const params = normalizeRevenueDashboardParams(yearOrParams, month);
 
@@ -86,13 +131,13 @@ export const getRevenuePeriodsService = async (filters = {}) => {
 
   return {
     periods: res.data?.data?.revenuePeriods ?? [],
-    meta: res.data?.meta ?? null,
+    meta: res.data?.meta ?? res.data?.data?.meta ?? null,
   };
 };
 
 export const getRevenuePeriodDetailService = async (periodId) => {
   const res = await axiosClient.get(`/api/admin/revenue/periods/${periodId}`);
-  return res.data?.data?.revenuePeriod ?? null;
+  return normalizeRevenuePeriodDetail(res.data?.data);
 };
 
 export const closeRevenuePeriodService = async (periodId) => {

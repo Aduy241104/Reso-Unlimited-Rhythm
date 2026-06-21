@@ -1,4 +1,4 @@
-import { Clock3, X } from "lucide-react";
+﻿import { Clock3, X } from "lucide-react";
 import { StatusBadge } from "./RevenueShared";
 import {
   formatLifecycleValue,

@@ -1,4 +1,9 @@
-import { formatCurrency, formatDateTime, formatNumber, formatPeriodLabel } from "./utils";
+﻿import {
+  formatCurrency,
+  formatDateTime,
+  formatNumber,
+  formatPeriodLabel,
+} from "./utils";
 
 export const REVENUE_ACTIONS = {
   close: {

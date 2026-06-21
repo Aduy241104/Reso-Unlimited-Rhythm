@@ -1,4 +1,4 @@
-export const STATUS_CONFIG = {
+﻿export const STATUS_CONFIG = {
   open: {
     label: "Kỳ đang mở",
     tone: "bg-violet-50 text-violet-700 border-violet-200",
