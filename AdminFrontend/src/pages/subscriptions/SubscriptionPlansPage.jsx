@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react";
+import { Edit2, Eye, Plus, Search, Trash2 } from "lucide-react";
 import ReactPaginate from "react-paginate";
 import { Link } from "react-router-dom";
-import { Search, Plus, Trash2, Edit2, Eye, Check, X, CreditCard, TrendingUp } from "lucide-react";
-import { getPlansService, getSubscriptionStatsService, deletePlanService } from "../../services/subscriptionService";
+import SubscriptionManagementStatsSection from "./SubscriptionManagementStatsSection";
+import SubscriptionPlanStatisticsTab from "./SubscriptionPlanStatisticsTab";
+import {
+    deletePlanService,
+    getPlansService,
+    getSubscriptionStatsService,
+} from "../../services/subscriptionService";
 import { routePaths } from "../../routes/routePaths";
 
 const PLAN_FEATURES = {
@@ -44,7 +50,7 @@ const getStatusConfig = (status) => {
             };
         case "inactive":
             return {
-                label: "Tạm khóa",
+                label: "Ẩn",
                 bg: "bg-slate-50",
                 text: "text-slate-500",
                 border: "border-slate-200",
@@ -61,17 +67,8 @@ const getStatusConfig = (status) => {
     }
 };
 
-const HeaderStat = ({ label, value, icon: Icon }) => (
-    <div className="rounded-xl bg-slate-100 px-4 py-2.5 min-w-[120px] text-center sm:text-left flex items-center gap-2">
-        {Icon && <Icon size={18} className="text-slate-400" />}
-        <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">{label}</p>
-            <p className="mt-0.5 text-base font-bold text-slate-900">{value}</p>
-        </div>
-    </div>
-);
-
 const SubscriptionPlansPage = () => {
+    const [activeTab, setActiveTab] = useState("plans");
     const [plans, setPlans] = useState([]);
     const [stats, setStats] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
@@ -86,6 +83,7 @@ const SubscriptionPlansPage = () => {
     const loadPlans = async (params = query) => {
         setIsLoading(true);
         setMessage("");
+
         try {
             const result = await getPlansService({
                 search: params.search,
@@ -120,8 +118,8 @@ const SubscriptionPlansPage = () => {
         void loadStats();
     }, []);
 
-    const handleSearchSubmit = (e) => {
-        e.preventDefault();
+    const handleSearchSubmit = (event) => {
+        event.preventDefault();
         setQuery((prev) => ({
             ...prev,
             search: searchTerm.trim(),
@@ -151,17 +149,20 @@ const SubscriptionPlansPage = () => {
     const handleConfirmDelete = async () => {
         const { planId } = deleteModal;
         if (!planId) return;
+
         setIsDeleting(true);
+
         try {
             await deletePlanService(planId);
             await loadPlans(query);
             void loadStats();
             closeDeleteModal();
         } catch (error) {
-            const message = error?.response?.data?.message
-                || error?.message
-                || "Xóa gói subscription thất bại.";
-            setMessage(message);
+            const nextMessage =
+                error?.response?.data?.message ||
+                error?.message ||
+                "Xóa gói subscription thất bại.";
+            setMessage(nextMessage);
         } finally {
             setIsDeleting(false);
         }
@@ -172,247 +173,262 @@ const SubscriptionPlansPage = () => {
     const currentPage = total === 0 ? 0 : (pagination?.page ?? 1);
 
     return (
-        <section className="space-y-5 p-3 lg:p-5 bg-slate-50/50 min-h-screen text-slate-800 font-sans antialiased">
-            {/* Header */}
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between px-1">
+        <section className="min-h-screen space-y-5 bg-slate-50/50 p-3 font-sans text-slate-800 antialiased lg:p-5">
+            <div className="flex flex-col gap-4 px-1 lg:flex-row lg:items-end lg:justify-between">
                 <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
-                        Quản lý Subscription
+                        Quản lý gói đăng ký
                     </p>
                     <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
-                        Subscription Plans
+                        Gói đăng ký
                     </h1>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-4 self-start lg:self-auto">
-                    <div className="grid gap-2 grid-cols-2 sm:grid-cols-4">
-                        <HeaderStat label="Tổng gói" value={stats?.totalSubscriptions ?? 0} icon={CreditCard} />
-                        <HeaderStat label="Đang hoạt động" value={stats?.byStatus?.active ?? 0} icon={Check} />
-                        <HeaderStat label="Đã hết hạn" value={stats?.byStatus?.expired ?? 0} icon={X} />
-                        <HeaderStat label="Đang chờ" value={stats?.byStatus?.pending ?? 0} icon={TrendingUp} />
-                    </div>
+                    <SubscriptionManagementStatsSection stats={stats} />
                     <Link
                         to={routePaths.subscriptionNew}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 text-sm font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5 whitespace-nowrap"
+                        className="flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
                     >
                         <Plus size={16} /> Thêm gói mới
                     </Link>
                 </div>
             </div>
 
-            {/* Filters */}
-            <form
-                onSubmit={handleSearchSubmit}
-                className="grid gap-3 rounded-2xl bg-white p-4 shadow-[0_12px_32px_rgba(15,23,42,0.06)] grid-cols-1 sm:grid-cols-[1.5fr_1fr_100px_100px]"
-            >
-                <label className="relative block">
-                    <Search
-                        size={18}
-                        className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-                    />
-                    <input
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="Tìm kiếm theo tên gói..."
-                        className="w-full rounded-lg bg-slate-100 py-3 pl-11 pr-4 text-sm text-slate-900 outline-none transition focus:bg-sky-50"
-                    />
-                </label>
-
-                <select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                    className="rounded-lg bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition focus:bg-sky-50 cursor-pointer"
-                >
-                    <option value="">Tất cả trạng thái</option>
-                    <option value="active">Hoạt động</option>
-                    <option value="inactive">Tạm khóa</option>
-                </select>
-
+            <div className="inline-flex rounded-2xl bg-white p-1 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
                 <button
                     type="button"
-                    onClick={handleResetFilters}
-                    className="rounded-lg border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition py-3"
+                    onClick={() => setActiveTab("plans")}
+                    className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                        activeTab === "plans"
+                            ? "bg-slate-900 text-white"
+                            : "text-slate-600 hover:bg-slate-100"
+                    }`}
                 >
-                    Đặt lại
+                    Danh sách gói đăng ký
                 </button>
-
                 <button
-                    type="submit"
-                    className="rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 shadow-sm"
+                    type="button"
+                    onClick={() => setActiveTab("statistics")}
+                    className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                        activeTab === "statistics"
+                            ? "bg-slate-900 text-white"
+                            : "text-slate-600 hover:bg-slate-100"
+                    }`}
                 >
-                    Tìm kiếm
+                    Thống kê lượng đăng ký
                 </button>
-            </form>
-
-            {message && (
-                <div className="border border-red-100 bg-red-50/50 px-4 py-3 text-sm rounded-xl text-red-600">
-                    {message}
-                </div>
-            )}
-
-            {/* Plans List */}
-            <div className="overflow-hidden rounded-2xl bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
-                <div className="grid min-w-[1200px] grid-cols-[minmax(0,1.5fr)_120px_100px_140px_minmax(0,2fr)_180px_180px_140px] gap-4 border-b border-slate-200 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-                    <span>Tên gói</span>
-                    <span>Giá</span>
-                    <span>Thời hạn</span>
-                    <span>Trạng thái</span>
-                    <span>Tính năng</span>
-                    <span>Ngày tạo</span>
-                    <span>Cập nhật</span>
-                    <span className="text-right pr-4">Hành động</span>
-                </div>
-
-                <div className="overflow-x-auto">
-                    <div className="min-w-[1200px] divide-y divide-slate-100">
-                        {isLoading ? (
-                            <div className="p-12 text-center text-xs font-bold text-slate-400 uppercase tracking-wider">
-                                Đang tải danh sách gói subscription...
-                            </div>
-                        ) : plans.length === 0 ? (
-                            <div className="p-12 text-center text-slate-400 italic">
-                                Không tìm thấy gói subscription nào phù hợp.
-                            </div>
-                        ) : (
-                            plans.map((plan) => {
-                                const statusConfig = getStatusConfig(plan.status);
-                                return (
-                                    <div
-                                        key={plan._id}
-                                        className="group grid items-center gap-4 px-6 py-4 transition hover:bg-slate-50"
-                                        style={{
-                                            gridTemplateColumns:
-                                                "minmax(0,1.5fr) 120px 100px 140px minmax(0,2fr) 180px 180px 140px",
-                                        }}
-                                    >
-                                        {/* Name */}
-                                        <div>
-                                            <p className="text-sm font-bold text-slate-900">{plan.name}</p>
-                                            {plan.description && (
-                                                <p className="truncate text-xs text-slate-400 mt-0.5">
-                                                    {plan.description}
-                                                </p>
-                                            )}
-                                        </div>
-
-                                        {/* Price */}
-                                        <div className="text-sm font-semibold text-slate-900">
-                                            {formatCurrency(plan.price)}
-                                        </div>
-
-                                        {/* Duration */}
-                                        <div className="text-sm text-slate-600">{plan.durationDays} ngày</div>
-
-                                        {/* Status */}
-                                        <div>
-                                            <span
-                                                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${statusConfig.bg} ${statusConfig.text} ${statusConfig.border}`}
-                                            >
-                                                <span className={`h-1.5 w-1.5 rounded-full ${statusConfig.dot}`}></span>
-                                                {statusConfig.label}
-                                            </span>
-                                        </div>
-
-                                        {/* Features */}
-                                        <div className="flex flex-wrap gap-1">
-                                            {plan.features?.slice(0, 4).map((feature) => (
-                                                <span
-                                                    key={feature}
-                                                    className="inline-flex items-center rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-medium text-violet-600"
-                                                >
-                                                    {PLAN_FEATURES[feature] || feature}
-                                                </span>
-                                            ))}
-                                            {plan.features?.length > 4 && (
-                                                <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
-                                                    +{plan.features.length - 4} khác
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        {/* Created */}
-                                        <div className="text-xs text-slate-400">{formatDate(plan.createdAt)}</div>
-
-                                        {/* Updated */}
-                                        <div className="text-xs text-slate-400">{formatDate(plan.updatedAt)}</div>
-
-                                        {/* Actions */}
-                                        <div className="flex items-center justify-end gap-1.5 pr-2">
-                                            <Link
-                                                to={routePaths.subscriptionDetail(plan._id)}
-                                                className="inline-flex items-center gap-1 border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 px-3 py-1.5 text-xs font-semibold rounded-xl transition shadow-sm"
-                                            >
-                                                <Eye size={12} /> Xem
-                                            </Link>
-                                            <Link
-                                                to={routePaths.subscriptionEdit(plan._id)}
-                                                className="inline-flex items-center gap-1 border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 px-3 py-1.5 text-xs font-semibold rounded-xl transition shadow-sm"
-                                            >
-                                                <Edit2 size={12} /> Sửa
-                                            </Link>
-                                            <button
-                                                type="button"
-                                                onClick={() => openDeleteModal(plan._id, plan.name)}
-                                                className="inline-flex items-center gap-1 border border-rose-100 bg-rose-50/50 text-rose-600 hover:bg-rose-50 px-3 py-1.5 text-xs font-semibold rounded-xl transition shadow-sm"
-                                            >
-                                                <Trash2 size={12} /> Xóa
-                                            </button>
-                                        </div>
-                                    </div>
-                                );
-                            })
-                        )}
-                    </div>
-                </div>
             </div>
 
-            {/* Pagination */}
-            {pagination && (
-                <div className="flex flex-col gap-4 rounded-2xl bg-white px-6 py-5 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
-                    <p className="text-sm text-slate-500 font-medium">
-                        Trang {currentPage} / {totalPages}
-                        <span className="mx-2 text-slate-300">|</span>
-                        Tổng cộng: {total} bản ghi
-                    </p>
+            {activeTab === "statistics" ? <SubscriptionPlanStatisticsTab /> : null}
 
-                    {totalPages > 1 && (
-                        <ReactPaginate
-                            previousLabel="←"
-                            nextLabel="→"
-                            pageCount={totalPages}
-                            onPageChange={handlePageChange}
-                            forcePage={pagination.page - 1}
-                            containerClassName="flex items-center gap-1"
-                            pageClassName="flex items-center justify-center w-9 h-9 text-sm font-semibold rounded-lg transition hover:bg-slate-100"
-                            previousClassName="flex items-center justify-center w-9 h-9 text-sm font-semibold rounded-lg transition hover:bg-slate-100"
-                            nextClassName="flex items-center justify-center w-9 h-9 text-sm font-semibold rounded-lg transition hover:bg-slate-100"
-                            activeClassName="bg-blue-600 text-white hover:bg-blue-700"
-                            disabledClassName="opacity-40 cursor-not-allowed"
-                        />
-                    )}
-                </div>
-            )}
+            {activeTab === "plans" ? (
+                <>
+                    <form
+                        onSubmit={handleSearchSubmit}
+                        className="grid grid-cols-1 gap-3 rounded-2xl bg-white p-4 shadow-[0_12px_32px_rgba(15,23,42,0.06)] sm:grid-cols-[1.5fr_1fr_100px_100px]"
+                    >
+                        <label className="relative block">
+                            <Search
+                                size={18}
+                                className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                            />
+                            <input
+                                value={searchTerm}
+                                onChange={(event) => setSearchTerm(event.target.value)}
+                                placeholder="Tìm kiếm theo tên gói..."
+                                className="w-full rounded-lg bg-slate-100 py-3 pl-11 pr-4 text-sm text-slate-900 outline-none transition focus:bg-sky-50"
+                            />
+                        </label>
 
-            {/* Delete Modal */}
-            {deleteModal.isOpen && (
+                        <select
+                            value={filterStatus}
+                            onChange={(event) => setFilterStatus(event.target.value)}
+                            className="cursor-pointer rounded-lg bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition focus:bg-sky-50"
+                        >
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="active">Hoạt động</option>
+                            <option value="inactive">Ẩn</option>
+                        </select>
+
+                        <button
+                            type="button"
+                            onClick={handleResetFilters}
+                            className="rounded-lg border border-slate-200 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+                        >
+                            Đặt lại
+                        </button>
+
+                        <button
+                            type="submit"
+                            className="rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+                        >
+                            Tìm kiếm
+                        </button>
+                    </form>
+
+                    {message ? (
+                        <div className="rounded-xl border border-red-100 bg-red-50/50 px-4 py-3 text-sm text-red-600">
+                            {message}
+                        </div>
+                    ) : null}
+
+                    <div className="overflow-hidden rounded-2xl bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+                        <div className="grid min-w-[1200px] grid-cols-[minmax(0,1.5fr)_120px_100px_140px_minmax(0,2fr)_180px_180px_140px] gap-4 border-b border-slate-200 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+                            <span>Tên gói</span>
+                            <span>Giá</span>
+                            <span>Thời hạn</span>
+                            <span>Trạng thái</span>
+                            <span>Tính năng</span>
+                            <span>Ngày tạo</span>
+                            <span>Cập nhật</span>
+                            <span className="pr-4 text-right">Hành động</span>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                            <div className="min-w-[1200px] divide-y divide-slate-100">
+                                {isLoading ? (
+                                    <div className="p-12 text-center text-xs font-bold uppercase tracking-wider text-slate-400">
+                                        Đang tải danh sách gói subscription...
+                                    </div>
+                                ) : null}
+
+                                {!isLoading && plans.length === 0 ? (
+                                    <div className="p-12 text-center italic text-slate-400">
+                                        Không tìm thấy gói subscription nào phù hợp.
+                                    </div>
+                                ) : null}
+
+                                {!isLoading
+                                    ? plans.map((plan) => {
+                                          const statusConfig = getStatusConfig(plan.status);
+
+                                          return (
+                                              <div
+                                                  key={plan._id}
+                                                  className="group grid items-center gap-4 px-6 py-4 transition hover:bg-slate-50"
+                                                  style={{
+                                                      gridTemplateColumns:
+                                                          "minmax(0,1.5fr) 120px 100px 140px minmax(0,2fr) 180px 180px 140px",
+                                                  }}
+                                              >
+                                                  <div>
+                                                      <p className="text-sm font-bold text-slate-900">{plan.name}</p>
+                                                      {plan.description ? (
+                                                          <p className="mt-0.5 truncate text-xs text-slate-400">
+                                                              {plan.description}
+                                                          </p>
+                                                      ) : null}
+                                                  </div>
+
+                                                  <div className="text-sm font-semibold text-slate-900">
+                                                      {formatCurrency(plan.price)}
+                                                  </div>
+
+                                                  <div className="text-sm text-slate-600">{plan.durationDays} ngày</div>
+
+                                                  <div>
+                                                      <span
+                                                          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${statusConfig.bg} ${statusConfig.text} ${statusConfig.border}`}
+                                                      >
+                                                          <span className={`h-1.5 w-1.5 rounded-full ${statusConfig.dot}`}></span>
+                                                          {statusConfig.label}
+                                                      </span>
+                                                  </div>
+
+                                                  <div className="flex flex-wrap gap-1">
+                                                      {plan.features?.slice(0, 4).map((feature) => (
+                                                          <span
+                                                              key={feature}
+                                                              className="inline-flex items-center rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-medium text-violet-600"
+                                                          >
+                                                              {PLAN_FEATURES[feature] || feature}
+                                                          </span>
+                                                      ))}
+                                                      {plan.features?.length > 4 ? (
+                                                          <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                                                              +{plan.features.length - 4} khác
+                                                          </span>
+                                                      ) : null}
+                                                  </div>
+
+                                                  <div className="text-xs text-slate-400">{formatDate(plan.createdAt)}</div>
+                                                  <div className="text-xs text-slate-400">{formatDate(plan.updatedAt)}</div>
+
+                                                  <div className="flex items-center justify-end gap-1.5 pr-2">
+                                                      <Link
+                                                          to={routePaths.subscriptionDetail(plan._id)}
+                                                          className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+                                                      >
+                                                          <Eye size={12} /> Xem
+                                                      </Link>
+                                                      <Link
+                                                          to={routePaths.subscriptionEdit(plan._id)}
+                                                          className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+                                                      >
+                                                          <Edit2 size={12} /> Sửa
+                                                      </Link>
+                                                      <button
+                                                          type="button"
+                                                          onClick={() => openDeleteModal(plan._id, plan.name)}
+                                                          className="inline-flex items-center gap-1 rounded-xl border border-rose-100 bg-rose-50/50 px-3 py-1.5 text-xs font-semibold text-rose-600 shadow-sm transition hover:bg-rose-50"
+                                                      >
+                                                          <Trash2 size={12} /> Xóa
+                                                      </button>
+                                                  </div>
+                                              </div>
+                                          );
+                                      })
+                                    : null}
+                            </div>
+                        </div>
+                    </div>
+
+                    {pagination ? (
+                        <div className="flex flex-col gap-4 rounded-2xl bg-white px-6 py-5 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+                            <p className="text-sm font-medium text-slate-500">
+                                Trang {currentPage} / {totalPages}
+                                <span className="mx-2 text-slate-300">|</span>
+                                Tổng cộng: {total} bản ghi
+                            </p>
+
+                            {totalPages > 1 ? (
+                                <ReactPaginate
+                                    previousLabel="<"
+                                    nextLabel=">"
+                                    pageCount={totalPages}
+                                    onPageChange={handlePageChange}
+                                    forcePage={pagination.page - 1}
+                                    containerClassName="flex items-center gap-1"
+                                    pageClassName="flex h-9 w-9 items-center justify-center rounded-lg text-sm font-semibold transition hover:bg-slate-100"
+                                    previousClassName="flex h-9 w-9 items-center justify-center rounded-lg text-sm font-semibold transition hover:bg-slate-100"
+                                    nextClassName="flex h-9 w-9 items-center justify-center rounded-lg text-sm font-semibold transition hover:bg-slate-100"
+                                    activeClassName="bg-blue-600 text-white hover:bg-blue-700"
+                                    disabledClassName="cursor-not-allowed opacity-40"
+                                />
+                            ) : null}
+                        </div>
+                    ) : null}
+                </>
+            ) : null}
+
+            {deleteModal.isOpen ? (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm">
-                    <div className="w-full max-w-md bg-white p-6 shadow-xl rounded-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="w-full max-w-md space-y-4 rounded-2xl border border-slate-100 bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-150">
                         <div>
                             <h2 className="text-lg font-bold text-slate-900">Xóa gói subscription?</h2>
-                            <p className="text-xs text-slate-400 mt-0.5">
-                                Hành động này không thể hoàn tác. Dữ liệu subscription của người dùng có thể bị
-                                ảnh hưởng.
+                            <p className="mt-0.5 text-xs text-slate-400">
+                                Hành động này không thể hoàn tác. Dữ liệu subscription của người dùng có thể bị ảnh hưởng.
                             </p>
                         </div>
-                        <p className="text-sm text-slate-600 leading-relaxed">
-                            Xác nhận xóa gói{" "}
-                            <span className="font-bold text-slate-950">"{deleteModal.planName}"</span>?
+                        <p className="text-sm leading-relaxed text-slate-600">
+                            Xác nhận xóa gói <span className="font-bold text-slate-950">"{deleteModal.planName}"</span>?
                         </p>
-                        <div className="flex gap-2 justify-end pt-1">
+                        <div className="flex justify-end gap-2 pt-1">
                             <button
                                 type="button"
                                 onClick={closeDeleteModal}
-                                className="px-4 py-2 text-xs font-semibold border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 transition"
+                                className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
                             >
                                 Hủy bỏ
                             </button>
@@ -420,14 +436,14 @@ const SubscriptionPlansPage = () => {
                                 type="button"
                                 disabled={isDeleting}
                                 onClick={handleConfirmDelete}
-                                className="px-4 py-2 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-sm transition disabled:opacity-50"
+                                className="rounded-xl bg-rose-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-rose-700 disabled:opacity-50"
                             >
                                 {isDeleting ? "Đang xóa..." : "Xác nhận xóa"}
                             </button>
                         </div>
                     </div>
                 </div>
-            )}
+            ) : null}
         </section>
     );
 };

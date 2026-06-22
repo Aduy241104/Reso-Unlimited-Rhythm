@@ -178,6 +178,80 @@ const getSubscriptionStats = async (query) => {
     };
 };
 
+const getPlanSubscriptionStats = async () => {
+    const plans = await Plan.find({})
+        .sort({ createdAt: -1 })
+        .lean();
+
+    const subscriptionStats = await Subscription.aggregate([
+        {
+            $group: {
+                _id: {
+                    planId: "$planId",
+                    status: "$status",
+                },
+                count: { $sum: 1 },
+            },
+        },
+    ]);
+
+    const statsByPlanId = new Map();
+
+    subscriptionStats.forEach((item) => {
+        const planId = String(item._id?.planId);
+        const status = item._id?.status;
+
+        if (!statsByPlanId.has(planId)) {
+            statsByPlanId.set(planId, {
+                totalSubscriptions: 0,
+                activeSubscriptions: 0,
+                expiredSubscriptions: 0,
+                pendingSubscriptions: 0,
+                cancelledSubscriptions: 0,
+            });
+        }
+
+        const planStats = statsByPlanId.get(planId);
+        planStats.totalSubscriptions += item.count;
+
+        if (status === "active") {
+            planStats.activeSubscriptions = item.count;
+        }
+
+        if (status === "expired") {
+            planStats.expiredSubscriptions = item.count;
+        }
+
+        if (status === "pending") {
+            planStats.pendingSubscriptions = item.count;
+        }
+
+        if (status === "cancelled") {
+            planStats.cancelledSubscriptions = item.count;
+        }
+    });
+
+    return plans.map((plan) => {
+        const planId = String(plan._id);
+        const stats = statsByPlanId.get(planId) || {
+            totalSubscriptions: 0,
+            activeSubscriptions: 0,
+            expiredSubscriptions: 0,
+            pendingSubscriptions: 0,
+            cancelledSubscriptions: 0,
+        };
+
+        return {
+            planId: plan._id,
+            planName: plan.name,
+            planPrice: plan.price,
+            planDurationDays: plan.durationDays,
+            planStatus: plan.status,
+            ...stats,
+        };
+    });
+};
+
 export default {
     getPlans,
     getPlanDetail,
@@ -185,4 +259,5 @@ export default {
     updatePlan,
     deletePlan,
     getSubscriptionStats,
+    getPlanSubscriptionStats,
 };

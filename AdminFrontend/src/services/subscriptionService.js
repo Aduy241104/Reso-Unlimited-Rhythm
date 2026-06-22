@@ -46,6 +46,11 @@ export const getSubscriptionStatsService = async (filters = {}) => {
     return res.data?.data?.stats ?? {};
 };
 
+export const getPlanSubscriptionStatsService = async () => {
+    const res = await axiosClient.get("/api/admin/subscriptions/plan-stats");
+    return res.data?.data?.plans ?? [];
+};
+
 export default {
     getPlansService,
     getPlanDetailService,
@@ -53,4 +58,5 @@ export default {
     updatePlanService,
     deletePlanService,
     getSubscriptionStatsService,
+    getPlanSubscriptionStatsService,
 };

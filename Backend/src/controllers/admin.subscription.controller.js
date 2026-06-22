@@ -88,6 +88,20 @@ const getSubscriptionStats = async (req, res, next) => {
     }
 };
 
+const getPlanSubscriptionStats = async (req, res, next) => {
+    try {
+        const plans = await adminSubscriptionService.getPlanSubscriptionStats();
+
+        return formatResponse.success(
+            res,
+            { plans },
+            "Plan subscription statistics fetched successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getPlans,
     getPlanDetail,
@@ -95,4 +109,5 @@ export default {
     updatePlan,
     deletePlan,
     getSubscriptionStats,
+    getPlanSubscriptionStats,
 };

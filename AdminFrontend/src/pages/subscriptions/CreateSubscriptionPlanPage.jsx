@@ -49,7 +49,7 @@ const CreateSubscriptionPlanPage = () => {
         }
 
         const price = Number(formData.price);
-        if (!formData.price || isNaN(price)) {
+        if (!formData.price || Number.isNaN(price)) {
             newErrors.price = "Giá là bắt buộc";
         } else if (price < 0) {
             newErrors.price = "Giá không được âm";
@@ -67,8 +67,8 @@ const CreateSubscriptionPlanPage = () => {
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
+    const handleChange = (event) => {
+        const { name, value } = event.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
         if (errors[name]) {
             setErrors((prev) => ({ ...prev, [name]: undefined }));
@@ -79,7 +79,7 @@ const CreateSubscriptionPlanPage = () => {
         setFormData((prev) => ({
             ...prev,
             features: prev.features.includes(featureValue)
-                ? prev.features.filter((f) => f !== featureValue)
+                ? prev.features.filter((feature) => feature !== featureValue)
                 : [...prev.features, featureValue],
         }));
         if (errors.features) {
@@ -87,8 +87,8 @@ const CreateSubscriptionPlanPage = () => {
         }
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const handleSubmit = async (event) => {
+        event.preventDefault();
         if (!validate()) return;
 
         setIsSubmitting(true);
@@ -104,46 +104,45 @@ const CreateSubscriptionPlanPage = () => {
                 status: formData.status,
             });
 
-            setMessage({ type: "success", text: "Tạo gói subscription thành công!" });
+            setMessage({ type: "success", text: "Tạo gói đăng ký thành công!" });
             setTimeout(() => navigate(routePaths.subscriptions), 1500);
         } catch (error) {
-            const errorMsg = error?.response?.data?.message
-                || error?.message
-                || "Tạo gói subscription thất bại.";
-            setMessage({ type: "error", text: errorMsg });
+            const errorMessage =
+                error?.response?.data?.message ||
+                error?.message ||
+                "Tạo gói subscription thất bại.";
+            setMessage({ type: "error", text: errorMessage });
         } finally {
             setIsSubmitting(false);
         }
     };
 
     return (
-        <section className="space-y-6 p-3 lg:p-5 bg-slate-50/50 min-h-screen text-slate-800 font-sans antialiased">
-            {/* Header */}
+        <section className="min-h-screen space-y-6 bg-slate-50/50 p-3 font-sans text-slate-800 antialiased lg:p-5">
             <div className="flex items-center gap-4">
                 <button
                     onClick={() => navigate(routePaths.subscriptions)}
-                    className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition"
+                    className="flex items-center gap-2 text-slate-600 transition hover:text-slate-900"
                 >
                     <ArrowLeft size={20} />
                     <span className="text-sm font-medium">Quay lại</span>
                 </button>
             </div>
 
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between px-1">
+            <div className="flex flex-col gap-4 px-1 lg:flex-row lg:items-end lg:justify-between">
                 <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
-                        Quản lý Subscription
+                        Quản lý gói đăng ký
                     </p>
                     <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
-                        Tạo gói Subscription mới
+                        Tạo gói đăng ký mới
                     </h1>
                 </div>
             </div>
 
-            {/* Message */}
-            {message.text && (
+            {message.text ? (
                 <div
-                    className={`border px-4 py-3 text-sm rounded-xl ${
+                    className={`rounded-xl border px-4 py-3 text-sm ${
                         message.type === "success"
                             ? "border-emerald-100 bg-emerald-50 text-emerald-600"
                             : "border-red-100 bg-red-50 text-red-600"
@@ -151,14 +150,12 @@ const CreateSubscriptionPlanPage = () => {
                 >
                     {message.text}
                 </div>
-            )}
+            ) : null}
 
-            {/* Form */}
             <form
                 onSubmit={handleSubmit}
-                className="max-w-3xl rounded-2xl bg-white p-6 shadow-[0_12px_32px_rgba(15,23,42,0.06)] space-y-6"
+                className="max-w-3xl space-y-6 rounded-2xl bg-white p-6 shadow-[0_12px_32px_rgba(15,23,42,0.06)]"
             >
-                {/* Name */}
                 <div className="space-y-2">
                     <label className="block text-sm font-semibold text-slate-700">
                         Tên gói <span className="text-red-500">*</span>
@@ -175,10 +172,9 @@ const CreateSubscriptionPlanPage = () => {
                                 : "border-slate-200 focus:border-blue-500"
                         }`}
                     />
-                    {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
+                    {errors.name ? <p className="text-xs text-red-500">{errors.name}</p> : null}
                 </div>
 
-                {/* Price & Duration */}
                 <div className="grid gap-6 sm:grid-cols-2">
                     <div className="space-y-2">
                         <label className="block text-sm font-semibold text-slate-700">
@@ -197,7 +193,7 @@ const CreateSubscriptionPlanPage = () => {
                                     : "border-slate-200 focus:border-blue-500"
                             }`}
                         />
-                        {errors.price && <p className="text-xs text-red-500">{errors.price}</p>}
+                        {errors.price ? <p className="text-xs text-red-500">{errors.price}</p> : null}
                     </div>
 
                     <div className="space-y-2">
@@ -214,19 +210,18 @@ const CreateSubscriptionPlanPage = () => {
                                     : "border-slate-200 focus:border-blue-500"
                             }`}
                         >
-                            {DURATIONS.map((d) => (
-                                <option key={d.value} value={d.value}>
-                                    {d.label}
+                            {DURATIONS.map((duration) => (
+                                <option key={duration.value} value={duration.value}>
+                                    {duration.label}
                                 </option>
                             ))}
                         </select>
-                        {errors.durationDays && (
+                        {errors.durationDays ? (
                             <p className="text-xs text-red-500">{errors.durationDays}</p>
-                        )}
+                        ) : null}
                     </div>
                 </div>
 
-                {/* Description */}
                 <div className="space-y-2">
                     <label className="block text-sm font-semibold text-slate-700">Mô tả</label>
                     <textarea
@@ -235,11 +230,10 @@ const CreateSubscriptionPlanPage = () => {
                         onChange={handleChange}
                         placeholder="Mô tả ngắn về gói subscription..."
                         rows={3}
-                        className="w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-500 resize-none"
+                        className="w-full resize-none rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-500"
                     />
                 </div>
 
-                {/* Features */}
                 <div className="space-y-3">
                     <label className="block text-sm font-semibold text-slate-700">
                         Tính năng <span className="text-red-500">*</span>
@@ -248,7 +242,7 @@ const CreateSubscriptionPlanPage = () => {
                         {PLAN_FEATURES.map((feature) => (
                             <label
                                 key={feature.value}
-                                className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition ${
+                                className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition ${
                                     formData.features.includes(feature.value)
                                         ? "border-blue-300 bg-blue-50"
                                         : "border-slate-200 hover:border-slate-300"
@@ -264,10 +258,9 @@ const CreateSubscriptionPlanPage = () => {
                             </label>
                         ))}
                     </div>
-                    {errors.features && <p className="text-xs text-red-500">{errors.features}</p>}
+                    {errors.features ? <p className="text-xs text-red-500">{errors.features}</p> : null}
                 </div>
 
-                {/* Status */}
                 <div className="space-y-2">
                     <label className="block text-sm font-semibold text-slate-700">Trạng thái</label>
                     <select
@@ -277,16 +270,15 @@ const CreateSubscriptionPlanPage = () => {
                         className="w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-500"
                     >
                         <option value="active">Hoạt động</option>
-                        <option value="inactive">Tạm khóa</option>
+                        <option value="inactive">Ẩn</option>
                     </select>
                 </div>
 
-                {/* Actions */}
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
                     <button
                         type="button"
                         onClick={() => navigate(routePaths.subscriptions)}
-                        className="flex items-center gap-2 rounded-lg border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition"
+                        className="flex items-center gap-2 rounded-lg border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
                     >
                         <X size={16} />
                         Hủy
@@ -294,7 +286,7 @@ const CreateSubscriptionPlanPage = () => {
                     <button
                         type="submit"
                         disabled={isSubmitting}
-                        className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition disabled:opacity-50"
+                        className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
                     >
                         <Save size={16} />
                         {isSubmitting ? "Đang lưu..." : "Tạo gói"}

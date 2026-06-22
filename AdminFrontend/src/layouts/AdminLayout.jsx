@@ -1,32 +1,19 @@
 import { Outlet } from "react-router-dom";
+import {
+  CircleDollarSign,
+  CreditCard,
+  Flag,
+  LayoutDashboard,
+  ListMusic,
+  Mic2,
+  Music2,
+  Tags,
+  UserCheck,
+  Users,
+} from "lucide-react";
 import AdminSidebar from "../components/layout/AdminSidebar";
 import { useAuth } from "../hooks/useAuth";
 import { routePaths } from "../routes/routePaths";
-
-
-const navigationItems = [
-  { to: routePaths.home, label: "Tổng quan", end: true },
-  { to: routePaths.systemTracks, label: "Kiểm duyệt track", end: false },
-  { to: routePaths.artistRequests, label: "Yêu cầu artist", end: false },
-  { to: routePaths.systemPlaylists, label: "Playlist hệ thống", end: false },
-  { to: routePaths.systemArtists, label: "Artist hệ thống", end: false },
-  { to: routePaths.genres, label: "Thể loại", end: false },
-  { to: routePaths.users, label: "Người dùng", end: false },
-  { to: routePaths.reports, label: "Báo cáo", end: false },
-  { to: routePaths.subscriptions, label: "Subscriptions", end: false },
-];
-
-import {
-  LayoutDashboard,
-  CircleDollarSign,
-  Music2,
-  UserCheck,
-  ListMusic,
-  Mic2,
-  Tags,
-  Users,
-  Flag,
-} from "lucide-react";
 
 const navigationItems = [
   {
@@ -83,7 +70,14 @@ const navigationItems = [
     icon: Flag,
     end: false,
   },
+  {
+    to: routePaths.subscriptions,
+    label: "Gói đăng ký",
+    icon: CreditCard,
+    end: false,
+  },
 ];
+
 const AdminLayout = () => {
   const { logout, user } = useAuth();
 

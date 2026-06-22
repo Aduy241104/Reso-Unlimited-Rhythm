@@ -8,6 +8,7 @@ router.use(requireAdmin);
 
 router.get("/", adminSubscriptionController.getPlans);
 router.get("/stats", adminSubscriptionController.getSubscriptionStats);
+router.get("/plan-stats", adminSubscriptionController.getPlanSubscriptionStats);
 router.get("/:id", adminSubscriptionController.getPlanDetail);
 router.post("/", adminSubscriptionController.createPlan);
 router.patch("/:id", adminSubscriptionController.updatePlan);
