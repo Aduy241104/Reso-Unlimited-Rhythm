@@ -41,6 +41,7 @@
   artistNotifications: "/artist/notifications",
   artistNotificationDetail: (notificationId = ":id") => `/artist/notifications/${notificationId}`,
   artistRoyalties: "/artist/royalties",
+  artistWithdrawalRequests: "/artist/withdrawal-requests",
   artistSettings: "/artist/settings",
   artistProfile: "/artist/profile",
   artistProfileEdit: "/artist/profile/edit",

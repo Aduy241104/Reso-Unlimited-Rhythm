@@ -11,6 +11,7 @@ import ArtistOverviewPage from "../pages/artist/ArtistOverviewPage";
 import ArtistProfileEditPage from "../pages/artist/ArtistProfileEditPage";
 import ArtistProfilePage from "../pages/artist/ArtistProfilePage";
 import ArtistRoyaltiesPage from "../pages/artist/ArtistRoyaltiesPage";
+import ArtistWithdrawalRequestsPage from "../pages/artist/ArtistWithdrawalRequestsPage";
 import ArtistAlbumPage from "../pages/artist/ArtistAlbumPage";
 import ArtistAlbumDetailPage from "../pages/artist/ArtistAlbumDetailPage";
 import ArtistCreateAlbumPage from "../pages/artist/ArtistCreateAlbumPage";
@@ -262,6 +263,10 @@ export const appRoutes = [
               {
                 path: routePaths.artistRoyalties,
                 element: <ArtistRoyaltiesPage />,
+              },
+              {
+                path: routePaths.artistWithdrawalRequests,
+                element: <ArtistWithdrawalRequestsPage />,
               },
               {
                 path: routePaths.artistSettings,

@@ -12,6 +12,36 @@ export const getMyArtistRevenueSummaryService = async () => {
   return response?.data?.data?.revenue ?? null;
 };
 
+export const createMyArtistWithdrawalRequestService = async (payload) => {
+  const response = await axiosClient.post(
+    `${ARTIST_API_PREFIX}/me/withdrawal-requests`,
+    payload
+  );
+
+  return response?.data?.data?.withdrawalRequest ?? null;
+};
+
+export const createMyArtistPayoutAccountService = async (payload) => {
+  const response = await axiosClient.post(
+    `${ARTIST_API_PREFIX}/me/payout-accounts`,
+    payload
+  );
+
+  return response?.data?.data ?? null;
+};
+
+export const getMyArtistWithdrawalRequestsService = async (params = {}) => {
+  const response = await axiosClient.get(
+    `${ARTIST_API_PREFIX}/me/withdrawal-requests`,
+    { params }
+  );
+
+  return {
+    items: response?.data?.data?.withdrawalRequests ?? [],
+    meta: response?.data?.meta ?? null,
+  };
+};
+
 export const getArtistPerformanceOverviewService = async (params = {}) => {
   const response = await axiosClient.get("/api/artist/overview/performance", {
     params,
