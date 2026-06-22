@@ -2,7 +2,6 @@ import { Outlet } from "react-router-dom";
 import AdminSidebar from "../components/layout/AdminSidebar";
 import { useAuth } from "../hooks/useAuth";
 import { routePaths } from "../routes/routePaths";
-
 import {
   LayoutDashboard,
   CircleDollarSign,
@@ -12,6 +11,7 @@ import {
   Mic2,
   Tags,
   Users,
+  Bell,
   Flag,
 } from "lucide-react";
 
@@ -65,12 +65,19 @@ const navigationItems = [
     end: false,
   },
   {
+    to: routePaths.notifications,
+    label: "Danh sách thông báo",
+    icon: Bell,
+    end: false,
+  },
+  {
     to: routePaths.reports,
     label: "Báo cáo",
     icon: Flag,
     end: false,
   },
 ];
+
 const AdminLayout = () => {
   const { logout, user } = useAuth();
 

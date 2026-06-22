@@ -1,11 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import {
+    CheckCircle2,
     ChevronRight,
+    Heart,
     Loader2,
     MoreHorizontal,
     Plus,
     Search,
 } from "lucide-react";
+import {
+    addTrackToFavorite,
+    getTrackFavoriteStatus,
+    removeTrackFromFavorite,
+} from "../../services/userFavoriteService";
 import {
     addTrackToUserPlaylist,
     getUserPlaylists,
@@ -27,45 +34,52 @@ const getPlaylistTitle = (playlist) => {
 };
 
 const normalizePlaylists = (payload) => {
-    if (Array.isArray(payload)) {
-        return payload;
-    }
-
-    if (Array.isArray(payload?.playlists)) {
-        return payload.playlists;
-    }
-
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.playlists)) return payload.playlists;
     return [];
 };
 
-const TrackTwoLevelMenu = ({ trackId, onTrackAdded }) => {
+const TrackTwoLevelMenu = ({
+    trackId,
+    onTrackAdded,
+    isFavorite,
+    onFavoriteChanged,
+}) => {
     const menuRef = useRef(null);
+    const submenuAnchorRef = useRef(null);
+    const hasFavoriteProp = typeof isFavorite === "boolean";
 
     const [isOpen, setIsOpen] = useState(false);
     const [isPlaylistSubmenuOpen, setIsPlaylistSubmenuOpen] = useState(false);
     const [playlists, setPlaylists] = useState([]);
     const [searchValue, setSearchValue] = useState("");
     const [submittingPlaylistId, setSubmittingPlaylistId] = useState("");
+    const [isSubmittingFavorite, setIsSubmittingFavorite] = useState(false);
+    const [favoriteState, setFavoriteState] = useState(false);
+    const [isFavoriteStatusLoading, setIsFavoriteStatusLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
+    const [submenuPlacement, setSubmenuPlacement] = useState("right");
+
+    const resolvedIsFavorite = hasFavoriteProp ? isFavorite : favoriteState;
 
     useEffect(() => {
-        if (!isOpen) {
-            return undefined;
-        }
+        if (!isOpen) return undefined;
+
+        const closeMenu = () => {
+            setIsOpen(false);
+            setIsPlaylistSubmenuOpen(false);
+            setSearchValue("");
+        };
 
         const handlePointerDown = (event) => {
             if (!menuRef.current?.contains(event.target)) {
-                setIsOpen(false);
-                setIsPlaylistSubmenuOpen(false);
-                setSearchValue("");
+                closeMenu();
             }
         };
 
         const handleKeyDown = (event) => {
             if (event.key === "Escape") {
-                setIsOpen(false);
-                setIsPlaylistSubmenuOpen(false);
-                setSearchValue("");
+                closeMenu();
             }
         };
 
@@ -81,9 +95,7 @@ const TrackTwoLevelMenu = ({ trackId, onTrackAdded }) => {
     }, [isOpen]);
 
     useEffect(() => {
-        if (!isOpen) {
-            return undefined;
-        }
+        if (!isOpen) return undefined;
 
         let isMounted = true;
 
@@ -108,12 +120,86 @@ const TrackTwoLevelMenu = ({ trackId, onTrackAdded }) => {
         };
     }, [isOpen]);
 
+    useEffect(() => {
+        if (!isOpen || !isPlaylistSubmenuOpen) return undefined;
+
+        const updateSubmenuPlacement = () => {
+            const anchorBounds = submenuAnchorRef.current?.getBoundingClientRect();
+
+            if (!anchorBounds) return;
+
+            const submenuWidth = 352;
+            const gap = 8;
+            const viewportWidth = window.innerWidth;
+            const spaceOnRight = viewportWidth - anchorBounds.right;
+            const spaceOnLeft = anchorBounds.left;
+
+            if (spaceOnRight >= submenuWidth + gap) {
+                setSubmenuPlacement("right");
+                return;
+            }
+
+            if (spaceOnLeft >= submenuWidth + gap) {
+                setSubmenuPlacement("left");
+                return;
+            }
+
+            setSubmenuPlacement("stacked");
+        };
+
+        updateSubmenuPlacement();
+        window.addEventListener("resize", updateSubmenuPlacement);
+
+        return () => {
+            window.removeEventListener("resize", updateSubmenuPlacement);
+        };
+    }, [isOpen, isPlaylistSubmenuOpen]);
+
+    useEffect(() => {
+        if (!isOpen || hasFavoriteProp || !trackId) return undefined;
+
+        let isMounted = true;
+
+        const loadFavoriteStatus = async () => {
+            setIsFavoriteStatusLoading(true);
+
+            try {
+                const result = await getTrackFavoriteStatus(trackId);
+
+                if (isMounted) {
+                    setFavoriteState(Boolean(result?.isFavorite));
+                }
+            } catch {
+                if (isMounted) {
+                    setFavoriteState(false);
+                }
+            } finally {
+                if (isMounted) {
+                    setIsFavoriteStatusLoading(false);
+                }
+            }
+        };
+
+        void loadFavoriteStatus();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [hasFavoriteProp, isOpen, trackId]);
+
+    const submenuClassName = `
+        absolute z-[10000] w-[min(22rem,calc(100vw-2rem))]
+        rounded-md border border-[#525252] bg-[#202020] p-1
+        shadow-[0_10px_30px_rgba(0,0,0,0.35)]
+        ${submenuPlacement === "left" ? "bottom-0 right-full mr-1.5" : ""}
+        ${submenuPlacement === "right" ? "bottom-0 left-full ml-1.5" : ""}
+        ${submenuPlacement === "stacked" ? "right-0 top-full mt-2" : ""}
+    `;
+
     const filteredPlaylists = useMemo(() => {
         const keyword = searchValue.trim().toLowerCase();
 
-        if (!keyword) {
-            return playlists;
-        }
+        if (!keyword) return playlists;
 
         return playlists.filter((playlist) =>
             getPlaylistTitle(playlist).toLowerCase().includes(keyword)
@@ -132,9 +218,7 @@ const TrackTwoLevelMenu = ({ trackId, onTrackAdded }) => {
     const handleAddTrackToPlaylist = async (playlist) => {
         const playlistId = getPlaylistId(playlist);
 
-        if (!trackId || !playlistId || submittingPlaylistId) {
-            return;
-        }
+        if (!trackId || !playlistId || submittingPlaylistId) return;
 
         setSubmittingPlaylistId(playlistId);
         setErrorMessage("");
@@ -156,19 +240,58 @@ const TrackTwoLevelMenu = ({ trackId, onTrackAdded }) => {
         }
     };
 
+    const handleToggleFavorite = async () => {
+        if (!trackId || isSubmittingFavorite || isFavoriteStatusLoading) return;
+
+        const nextIsFavorite = !resolvedIsFavorite;
+
+        setIsSubmittingFavorite(true);
+        setErrorMessage("");
+
+        try {
+            const payload = nextIsFavorite
+                ? await addTrackToFavorite(trackId)
+                : await removeTrackFromFavorite(trackId);
+
+            if (!hasFavoriteProp) {
+                setFavoriteState(nextIsFavorite);
+            }
+
+            onFavoriteChanged?.(nextIsFavorite, payload);
+
+            setIsOpen(false);
+            setIsPlaylistSubmenuOpen(false);
+            setSearchValue("");
+        } catch (error) {
+            setErrorMessage(
+                getApiErrorMessage(
+                    error,
+                    nextIsFavorite
+                        ? "Không thể thích bài hát lúc này."
+                        : "Không thể xóa bài hát khỏi yêu thích lúc này."
+                )
+            );
+        } finally {
+            setIsSubmittingFavorite(false);
+        }
+    };
+
+    const favoriteLabel = resolvedIsFavorite
+        ? "Xóa khỏi Bài hát đã thích"
+        : "Thích bài hát";
+
     return (
         <div ref={ menuRef } className="relative flex items-center justify-end">
             <button
                 type="button"
                 onClick={ handleToggleMenu }
                 className="
-            inline-flex h-8 w-8 items-center justify-center
-            rounded-md
-            text-[#8a8a8a]
-            transition-colors
-            hover:bg-[#2d2d2d]
-            hover:text-white
-        "
+                    inline-flex h-8 w-8 items-center justify-center
+                    rounded-md text-[#8a8a8a]
+                    transition-colors
+                    hover:bg-[#2d2d2d]
+                    hover:text-white
+                "
             >
                 <MoreHorizontal className="h-4 w-4" />
             </button>
@@ -176,31 +299,62 @@ const TrackTwoLevelMenu = ({ trackId, onTrackAdded }) => {
             { isOpen && (
                 <div
                     className="
-                absolute bottom-full right-0 z-[9999] mb-1.5
-                w-56 overflow-visible rounded-md
-                border border-[#3d3c3c]
-                bg-[#202020]
-                p-1 text-[12px]
-                shadow-[0_10px_30px_rgba(0,0,0,0.35)]
-            "
-                    onClick={ (e) => e.stopPropagation() }
+                        absolute bottom-full right-0 z-[9999] mb-1.5
+                        w-56 overflow-visible rounded-md
+                        border border-[#3d3c3c]
+                        bg-[#202020]
+                        p-1 text-[12px]
+                        shadow-[0_10px_30px_rgba(0,0,0,0.35)]
+                    "
+                    onClick={ (event) => event.stopPropagation() }
                 >
-                    <div className="relative">
+                    <button
+                        type="button"
+                        onClick={ handleToggleFavorite }
+                        disabled={
+                            isSubmittingFavorite ||
+                            isFavoriteStatusLoading ||
+                            !trackId
+                        }
+                        className="
+                            flex w-full items-center gap-2
+                            rounded-[6px] px-3 py-2
+                            text-left text-[12px] font-normal
+                            text-[#f3f4f6]
+                            transition-all duration-150
+                            hover:bg-[#313131]
+                            disabled:cursor-not-allowed
+                            disabled:opacity-60
+                        "
+                    >
+                        { isSubmittingFavorite || isFavoriteStatusLoading ? (
+                            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[#9ca3af]" />
+                        ) : resolvedIsFavorite ? (
+                            <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-[#22c55e]" />
+                        ) : (
+                            <Heart className="h-3.5 w-3.5 shrink-0 text-[#9ca3af]" />
+                        ) }
+
+                        <span className="truncate">{ favoriteLabel }</span>
+                    </button>
+
+                    <div ref={ submenuAnchorRef } className="relative">
                         <button
                             type="button"
-                            onClick={ (e) => {
-                                e.stopPropagation();
-                                setIsPlaylistSubmenuOpen((v) => !v);
+                            onClick={ (event) => {
+                                event.stopPropagation();
+                                setIsPlaylistSubmenuOpen((current) => !current);
+                                setErrorMessage("");
                             } }
                             className="
-                        flex w-full items-center justify-between
-                        rounded-[6px]
-                        px-3 py-2
-                        text-left text-[12px] font-normal
-                        text-[#f3f4f6]
-                        transition-all duration-150
-                        hover:bg-[#313131]
-                    "
+                                flex w-full items-center justify-between
+                                rounded-[6px]
+                                px-3 py-2
+                                text-left text-[12px] font-normal
+                                text-[#f3f4f6]
+                                transition-all duration-150
+                                hover:bg-[#313131]
+                            "
                         >
                             <span className="flex min-w-0 items-center gap-2">
                                 <Plus className="h-3.5 w-3.5 shrink-0 text-[#9ca3af]" />
@@ -211,39 +365,32 @@ const TrackTwoLevelMenu = ({ trackId, onTrackAdded }) => {
                         </button>
 
                         { isPlaylistSubmenuOpen && (
-                            <div
-                                className="
-                            absolute bottom-0 right-full z-[10000] mr-1.5
-                            w-72 overflow-hidden rounded-md
-                            border border-[#525252]
-                            bg-[#202020]
-                            p-1
-                            shadow-[0_10px_30px_rgba(0,0,0,0.35)]
-                        "
-                            >
+                            <div className={ submenuClassName }>
                                 <label
                                     className="
-                                mb-1 flex items-center gap-2
-                                rounded-[6px]
-                                border border-[#4a4a4a]
-                                bg-[#2a2a2a]
-                                px-2.5 py-2
-                                text-[#9ca3af]
-                            "
+                                        mb-1 flex items-center gap-2
+                                        rounded-[6px]
+                                        border border-[#4a4a4a]
+                                        bg-[#2a2a2a]
+                                        px-2.5 py-2
+                                        text-[#9ca3af]
+                                    "
                                 >
                                     <Search className="h-3.5 w-3.5 shrink-0" />
 
                                     <input
                                         type="text"
                                         value={ searchValue }
-                                        onChange={ (e) => setSearchValue(e.target.value) }
+                                        onChange={ (event) =>
+                                            setSearchValue(event.target.value)
+                                        }
                                         placeholder="Tìm playlist..."
                                         className="
-                                    w-full bg-transparent
-                                    text-[12px] text-[#f3f4f6]
-                                    placeholder:text-[#8a8a8a]
-                                    outline-none
-                                "
+                                            w-full bg-transparent
+                                            text-[12px] text-[#f3f4f6]
+                                            placeholder:text-[#8a8a8a]
+                                            outline-none
+                                        "
                                     />
                                 </label>
 
@@ -259,20 +406,24 @@ const TrackTwoLevelMenu = ({ trackId, onTrackAdded }) => {
                                                     key={ playlistId }
                                                     type="button"
                                                     onClick={ () =>
-                                                        handleAddTrackToPlaylist(playlist)
+                                                        handleAddTrackToPlaylist(
+                                                            playlist
+                                                        )
                                                     }
-                                                    disabled={ Boolean(submittingPlaylistId) }
+                                                    disabled={ Boolean(
+                                                        submittingPlaylistId
+                                                    ) }
                                                     className="
-                                                flex w-full items-center justify-between
-                                                rounded-[6px]
-                                                px-3 py-2
-                                                text-left text-[12px] font-normal
-                                                text-[#f3f4f6]
-                                                transition-all duration-150
-                                                hover:bg-[#525252]
-                                                disabled:pointer-events-none
-                                                disabled:opacity-50
-                                            "
+                                                        flex w-full items-center justify-between
+                                                        rounded-[6px]
+                                                        px-3 py-2
+                                                        text-left text-[12px] font-normal
+                                                        text-[#f3f4f6]
+                                                        transition-all duration-150
+                                                        hover:bg-[#525252]
+                                                        disabled:pointer-events-none
+                                                        disabled:opacity-50
+                                                    "
                                                 >
                                                     <span className="truncate">
                                                         { getPlaylistTitle(playlist) }
@@ -299,13 +450,13 @@ const TrackTwoLevelMenu = ({ trackId, onTrackAdded }) => {
                     { errorMessage && (
                         <div
                             className="
-                        mt-1 rounded-[6px]
-                        border border-red-500/20
-                        bg-red-500/10
-                        px-3 py-2
-                        text-[11px] leading-4
-                        text-red-300
-                    "
+                                mt-1 rounded-[6px]
+                                border border-red-500/20
+                                bg-red-500/10
+                                px-3 py-2
+                                text-[11px] leading-4
+                                text-red-300
+                            "
                         >
                             { errorMessage }
                         </div>

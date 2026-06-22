@@ -3,6 +3,11 @@ import adminTrackValidation from "../middlewares/Admin/admin.track.validation.js
 import formatResponse from "../utils/formatResponse.js";
 import { AppError } from "../utils/AppError.js";
 
+import Track from "../models/Track.js";
+import Artist from "../models/Artist.js";
+import Interaction from "../models/Interaction.js";
+import Notification from "../models/Notification.js";
+
 const listTracksForAdmin = async (req, res, next) => {
     try {
         const { error, value } = adminTrackValidation.listTracksQuerySchema.validate(
@@ -55,12 +60,16 @@ const updateTrackApprovalStatus = async (req, res, next) => {
         // Bốc đầu đầy đủ tất cả các trường kiểm duyệt nâng cao gửi từ FE lên
         const { status, adminNote, violationFlags, rejectReason } = req.body;
 
-        const updatedTrack = await adminTrackService.updateTrackApprovalStatus(id, {
-            status,
-            adminNote,
-            violationFlags,
-            rejectReason,
-        });
+        const updatedTrack = await adminTrackService.updateTrackApprovalStatus(
+            id,
+            {
+                status,
+                adminNote,
+                violationFlags,
+                rejectReason,
+            },
+            req.app.get("io")
+        );
 
         return formatResponse.success(
             res,

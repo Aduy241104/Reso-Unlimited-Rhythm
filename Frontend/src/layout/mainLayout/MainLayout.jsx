@@ -105,8 +105,8 @@ const MainLayout = () => {
         style={{ width: desktopSidebarWidth }}
       >
         <Sidebar
-          isCollapsed={ !isDesktopSidebarVisible }
-          onToggleDesktop={ handleSidebarToggle }
+          isCollapsed={!isDesktopSidebarVisible}
+          onToggleDesktop={handleSidebarToggle}
         />
       </aside>
 
@@ -117,7 +117,7 @@ const MainLayout = () => {
             ? "pointer-events-auto opacity-100"
             : "pointer-events-none opacity-0",
         ].join(" ")}
-        onClick={ () => setIsMobileSidebarOpen(false) }
+        onClick={() => setIsMobileSidebarOpen(false)}
         aria-hidden="true"
       />
 
@@ -129,8 +129,8 @@ const MainLayout = () => {
       >
         <Sidebar
           showCloseButton
-          onClose={ () => setIsMobileSidebarOpen(false) }
-          onNavigate={ () => setIsMobileSidebarOpen(false) }
+          onClose={() => setIsMobileSidebarOpen(false)}
+          onNavigate={() => setIsMobileSidebarOpen(false)}
         />
       </aside>
 
@@ -142,7 +142,8 @@ const MainLayout = () => {
         ].join(" ")}
       >
         <Header
-          onToggleSidebar={ handleSidebarToggle }
+          onToggleSidebar={handleSidebarToggle}
+          isDesktopSidebarVisible={isDesktopSidebarVisible}
         />
 
         <main
@@ -157,7 +158,7 @@ const MainLayout = () => {
         </main>
       </div>
 
-      <Player isDesktopSidebarVisible={ isDesktopSidebarVisible } />
+      <Player isDesktopSidebarVisible={isDesktopSidebarVisible} />
     </div>
   );
 };
