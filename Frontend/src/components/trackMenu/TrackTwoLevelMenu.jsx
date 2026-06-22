@@ -1,11 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import {
+    CheckCircle2,
     ChevronRight,
+    Heart,
     Loader2,
     MoreHorizontal,
     Plus,
     Search,
 } from "lucide-react";
+import {
+    addTrackToFavorite,
+    getTrackFavoriteStatus,
+    removeTrackFromFavorite,
+} from "../../services/userFavoriteService";
 import {
     addTrackToUserPlaylist,
     getUserPlaylists,
@@ -38,17 +45,28 @@ const normalizePlaylists = (payload) => {
     return [];
 };
 
-const TrackTwoLevelMenu = ({ trackId, onTrackAdded }) => {
+const TrackTwoLevelMenu = ({
+    trackId,
+    onTrackAdded,
+    isFavorite,
+    onFavoriteChanged,
+}) => {
     const menuRef = useRef(null);
     const submenuAnchorRef = useRef(null);
+    const hasFavoriteProp = typeof isFavorite === "boolean";
 
     const [isOpen, setIsOpen] = useState(false);
     const [isPlaylistSubmenuOpen, setIsPlaylistSubmenuOpen] = useState(false);
     const [playlists, setPlaylists] = useState([]);
     const [searchValue, setSearchValue] = useState("");
     const [submittingPlaylistId, setSubmittingPlaylistId] = useState("");
+    const [isSubmittingFavorite, setIsSubmittingFavorite] = useState(false);
+    const [favoriteState, setFavoriteState] = useState(false);
+    const [isFavoriteStatusLoading, setIsFavoriteStatusLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
     const [submenuPlacement, setSubmenuPlacement] = useState("right");
+
+    const resolvedIsFavorite = hasFavoriteProp ? isFavorite : favoriteState;
 
     useEffect(() => {
         if (!isOpen) {
@@ -109,6 +127,7 @@ const TrackTwoLevelMenu = ({ trackId, onTrackAdded }) => {
             isMounted = false;
         };
     }, [isOpen]);
+
 
     useEffect(() => {
         if (!isOpen || !isPlaylistSubmenuOpen) {
@@ -205,6 +224,80 @@ const TrackTwoLevelMenu = ({ trackId, onTrackAdded }) => {
             setSubmittingPlaylistId("");
         }
     };
+    
+    useEffect(() => {
+        if (!isOpen || hasFavoriteProp || !trackId) {
+            return undefined;
+        }
+
+        let isMounted = true;
+
+        const loadFavoriteStatus = async () => {
+            setIsFavoriteStatusLoading(true);
+
+            try {
+                const result = await getTrackFavoriteStatus(trackId);
+
+                if (isMounted) {
+                    setFavoriteState(Boolean(result?.isFavorite));
+                }
+            } catch {
+                if (isMounted) {
+                    setFavoriteState(false);
+                }
+            } finally {
+                if (isMounted) {
+                    setIsFavoriteStatusLoading(false);
+                }
+            }
+        };
+
+        void loadFavoriteStatus();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [hasFavoriteProp, isOpen, trackId]);
+
+    const handleToggleFavorite = async () => {
+        if (!trackId || isSubmittingFavorite || isFavoriteStatusLoading) {
+            return;
+        }
+
+        const nextIsFavorite = !resolvedIsFavorite;
+        setIsSubmittingFavorite(true);
+        setErrorMessage("");
+
+        try {
+            const payload = nextIsFavorite
+                ? await addTrackToFavorite(trackId)
+                : await removeTrackFromFavorite(trackId);
+
+            if (!hasFavoriteProp) {
+                setFavoriteState(nextIsFavorite);
+            }
+
+            onFavoriteChanged?.(nextIsFavorite, payload);
+            setIsOpen(false);
+            setIsPlaylistSubmenuOpen(false);
+            setSearchValue("");
+        } catch (error) {
+            setErrorMessage(
+                getApiErrorMessage(
+                    error,
+                    nextIsFavorite
+                        ? "Không thể thích bài hát lúc này."
+                        : "Không thể xóa bài hát khỏi yêu thích lúc này."
+                )
+            );
+        } finally {
+            setIsSubmittingFavorite(false);
+        }
+    };
+
+    const favoriteLabel = resolvedIsFavorite
+        ? "Xóa khỏi Bài hát đã thích của bạn"
+        : "Thích bài hát";
 
     return (
         <div ref={menuRef} className="relative flex items-center justify-end">
@@ -231,6 +324,23 @@ const TrackTwoLevelMenu = ({ trackId, onTrackAdded }) => {
                     aria-label="Track actions"
                     onClick={(event) => event.stopPropagation()}
                 >
+                    <button
+                        type="button"
+                        onClick={handleToggleFavorite}
+                        disabled={isSubmittingFavorite || isFavoriteStatusLoading || !trackId}
+                        className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-white transition hover:bg-[#3e3e3e] disabled:cursor-not-allowed disabled:opacity-60"
+                        role="menuitem"
+                    >
+                        {isSubmittingFavorite || isFavoriteStatusLoading ? (
+                            <Loader2 className="h-4.5 w-4.5 shrink-0 animate-spin text-white/72" />
+                        ) : resolvedIsFavorite ? (
+                            <CheckCircle2 className="h-4.5 w-4.5 shrink-0 text-[#22c55e]" />
+                        ) : (
+                            <Heart className="h-4.5 w-4.5 shrink-0 text-white/72" />
+                        )}
+                        {favoriteLabel}
+                    </button>
+
                     <div ref={submenuAnchorRef} className="relative">
                         <button
                             type="button"

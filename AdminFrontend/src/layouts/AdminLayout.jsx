@@ -14,6 +14,18 @@ import {
 import AdminSidebar from "../components/layout/AdminSidebar";
 import { useAuth } from "../hooks/useAuth";
 import { routePaths } from "../routes/routePaths";
+import {
+  LayoutDashboard,
+  CircleDollarSign,
+  Music2,
+  UserCheck,
+  ListMusic,
+  Mic2,
+  Tags,
+  Users,
+  Bell,
+  Flag,
+} from "lucide-react";
 
 const navigationItems = [
   {
@@ -62,6 +74,12 @@ const navigationItems = [
     to: routePaths.users,
     label: "Người dùng",
     icon: Users,
+    end: false,
+  },
+  {
+    to: routePaths.notifications,
+    label: "Danh sách thông báo",
+    icon: Bell,
     end: false,
   },
   {

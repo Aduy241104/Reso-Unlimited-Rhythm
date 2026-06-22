@@ -7,6 +7,10 @@ import {
     formatArtistComingRelease,
     normalizePositiveInteger,
 } from "./artistBrowse/artistBrowse.helper.js";
+import {
+    createNewReleaseNotificationForArtistFollowers,
+    createUpcomingReleaseNotificationForArtistFollowers,
+} from "./notification/notificationAuto.service.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
@@ -177,14 +181,15 @@ const syncTargetReleaseDateAfterCancellation = async ({
     return null;
 };
 
-const publishDueReleaseSchedules = async (extraFilter = {}) => {
+const publishDueReleaseSchedules = async (extraFilter = {}, io = null) => {
     const now = new Date();
+
     const dueSchedules = await ReleaseSchedule.find({
         status: "scheduled",
         scheduledAt: { $lte: now },
         ...extraFilter,
     })
-        .select("_id scheduledAt type targetId")
+        .select("_id scheduledAt type targetId artistId")
         .lean();
 
     if (dueSchedules.length === 0) {
@@ -196,7 +201,11 @@ const publishDueReleaseSchedules = async (extraFilter = {}) => {
     const dueAlbumSchedules = dueSchedules.filter(
         (schedule) => schedule.type === "album" && schedule.targetId
     );
-    const dueTrackSchedules = dueSchedules.filter((schedule) => schedule.type !== "album");
+
+    const dueTrackSchedules = dueSchedules.filter(
+        (schedule) => schedule.type !== "album"
+    );
+
     const dueAlbumIds = dueAlbumSchedules.map((schedule) => schedule.targetId);
 
     let releasableAlbumScheduleIds = [];
@@ -210,12 +219,18 @@ const publishDueReleaseSchedules = async (extraFilter = {}) => {
 
         const releasableAlbumIdSet = new Set(
             dueAlbums
-                .filter((album) => Array.isArray(album.trackList) && album.trackList.length >= MIN_TRACKS_TO_PUBLISH_ALBUM)
+                .filter(
+                    (album) =>
+                        Array.isArray(album.trackList) &&
+                        album.trackList.length >= MIN_TRACKS_TO_PUBLISH_ALBUM
+                )
                 .map((album) => album._id.toString())
         );
 
         releasableAlbumScheduleIds = dueAlbumSchedules
-            .filter((schedule) => releasableAlbumIdSet.has(schedule.targetId.toString()))
+            .filter((schedule) =>
+                releasableAlbumIdSet.has(schedule.targetId.toString())
+            )
             .map((schedule) => schedule._id);
 
         const albumIdsToActivate = dueAlbums
@@ -249,14 +264,16 @@ const publishDueReleaseSchedules = async (extraFilter = {}) => {
         };
     }
 
+    const releasableScheduleIdSet = new Set(
+        releasableScheduleIds.map((id) => id.toString())
+    );
+
+    const releasableSchedules = dueSchedules.filter((schedule) =>
+        releasableScheduleIdSet.has(schedule._id.toString())
+    );
+
     await ReleaseSchedule.bulkWrite(
-        dueSchedules
-            .filter((schedule) =>
-                releasableScheduleIds.some(
-                    (scheduleId) => scheduleId.toString() === schedule._id.toString()
-                )
-            )
-            .map((schedule) => ({
+        releasableSchedules.map((schedule) => ({
             updateOne: {
                 filter: {
                     _id: schedule._id,
@@ -272,8 +289,25 @@ const publishDueReleaseSchedules = async (extraFilter = {}) => {
         }))
     );
 
+    for (const schedule of releasableSchedules) {
+        if (schedule.type === "track") {
+            try {
+                await createNewReleaseNotificationForArtistFollowers({
+                    artistId: schedule.artistId,
+                    trackId: schedule.targetId,
+                    io,
+                });
+            } catch (error) {
+                console.error(
+                    "Failed to create new release notification for released schedule:",
+                    error
+                );
+            }
+        }
+    }
+
     return {
-        updatedCount: releasableScheduleIds.length,
+        updatedCount: releasableSchedules.length,
     };
 };
 
@@ -493,7 +527,7 @@ const cancelMyReleaseSchedule = async (userId, scheduleId) => {
     };
 };
 
-const createMyReleaseSchedule = async (userId, payload) => {
+const createMyReleaseSchedule = async (userId, payload, io = null) => {
     const artist = await getArtistByUserId(userId);
     const scheduledAt = new Date(payload.scheduledAt);
 
@@ -532,6 +566,18 @@ const createMyReleaseSchedule = async (userId, payload) => {
         targetId: payload.targetId,
         scheduledAt,
     });
+
+    if (payload.type === "track") {
+        try {
+            await createUpcomingReleaseNotificationForArtistFollowers({
+                artistId: artist._id,
+                trackId: payload.targetId,
+                io,
+            });
+        } catch (error) {
+            console.error("Failed to create upcoming release notification:", error);
+        }
+    }
 
     return {
         artist: {

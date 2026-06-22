@@ -1,6 +1,9 @@
 import artistAlbumService from "../services/artist/artist.album.service.js";
 import formatResponse from "../utils/formatResponse.js";
 
+import Interaction from "../models/Interaction.js";
+import Notification from "../models/Notification.js";
+
 const getMyAlbums = async (req, res, next) => {
     try {
         const result = await artistAlbumService.getMyAlbums(req.user.id, req.query);
@@ -33,6 +36,46 @@ const getMyAlbumDetail = async (req, res, next) => {
 const createAlbum = async (req, res, next) => {
     try {
         const album = await artistAlbumService.createAlbum(req.user.id, req.body, req.file);
+
+        // Nếu album được phát hành ở trạng thái active => tạo thông báo cho follower
+        if (album && album.status === "active") {
+            (async () => {
+                try {
+                    const artistId = album.artistId?._id || album.artistId;
+                    const artistName = album.artistId?.name || "Nghệ sĩ";
+
+                    const followers = await Interaction.find({ targetType: "Artist", targetId: artistId, action: "follow" }).select("userId").lean();
+                    if (!followers || followers.length === 0) return;
+
+                    const notifications = followers.map((f) => ({
+                        userId: f.userId,
+                        type: "new_release",
+                        title: `${artistName} vừa phát hành album mới`,
+                        content: `${artistName} vừa phát hành album "${album.title || ''}" — khám phá ngay!`,
+                        isRead: false,
+                        actorId: req.user.id || null,
+                        actorType: "artist",
+                        targetId: album._id,
+                        targetType: "album",
+                        receiverType: "single",
+                        isGlobal: false,
+                        readBy: [],
+                        deletedBy: [],
+                        createdBy: req.user.id || null,
+                    }));
+
+                    const inserted = await Notification.insertMany(notifications);
+                    const io = req.app.get("io");
+                    if (io && Array.isArray(inserted) && inserted.length > 0) {
+                        inserted.forEach((n) => {
+                            try { io.to(String(n.userId)).emit("new_notification", n); } catch (e) {}
+                        });
+                    }
+                } catch (err) {
+                    console.error("Error creating album follower notifications:", err);
+                }
+            })();
+        }
 
         return formatResponse.success(
             res,
@@ -75,6 +118,46 @@ const hideAlbum = async (req, res, next) => {
 const unhideAlbum = async (req, res, next) => {
     try {
         const album = await artistAlbumService.unhideAlbum(req.user.id, req.params.id);
+
+        // Nếu album vừa được unhide => gửi thông báo tới follower
+        if (album && album.status === "active") {
+            (async () => {
+                try {
+                    const artistId = album.artistId?._id || album.artistId;
+                    const artistName = album.artistId?.name || "Nghệ sĩ";
+
+                    const followers = await Interaction.find({ targetType: "Artist", targetId: artistId, action: "follow" }).select("userId").lean();
+                    if (!followers || followers.length === 0) return;
+
+                    const notifications = followers.map((f) => ({
+                        userId: f.userId,
+                        type: "new_release",
+                        title: `${artistName} vừa phát hành album mới`,
+                        content: `${artistName} vừa phát hành album "${album.title || ''}" — khám phá ngay!`,
+                        isRead: false,
+                        actorId: req.user.id || null,
+                        actorType: "artist",
+                        targetId: album._id,
+                        targetType: "album",
+                        receiverType: "single",
+                        isGlobal: false,
+                        readBy: [],
+                        deletedBy: [],
+                        createdBy: req.user.id || null,
+                    }));
+
+                    const inserted = await Notification.insertMany(notifications);
+                    const io = req.app.get("io");
+                    if (io && Array.isArray(inserted) && inserted.length > 0) {
+                        inserted.forEach((n) => {
+                            try { io.to(String(n.userId)).emit("new_notification", n); } catch (e) {}
+                        });
+                    }
+                } catch (err) {
+                    console.error("Error creating album follower notifications:", err);
+                }
+            })();
+        }
 
         return formatResponse.success(
             res,

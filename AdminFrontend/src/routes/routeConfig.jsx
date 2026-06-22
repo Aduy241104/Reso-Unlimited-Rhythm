@@ -22,7 +22,11 @@ import ArtistRequestDetailPage from "../pages/artistRequests/ArtistRequestDetail
 import SystemArtistsListPage from "../pages/artist/SystemArtistsListPage";
 import SystemArtistDetailPage from "../pages/artist/ArtistDetailPage";
 import SystemTracksModerationPage from "../pages/systemTracks/SystemTracksModerationPage";
+import CreateNotificationPage from "../pages/notification/CreateNotificationPage";
 import AdminListPage from "../pages/users/AdminListPage";
+import NotificationsListPage from "../pages/notification/NotificationListPage";
+import NotificationDetailPage from "../pages/notification/NotificationDetailPage";
+import NotificationEditPage from "../pages/notification/NotificationUpdatePage";
 import ReportsListPage from "../pages/reports/ReportsListPage";
 import ReportDetailPage from "../pages/reports/ReportDetailPage";
 import SubscriptionPlansPage from "../pages/subscriptions/SubscriptionPlansPage";
@@ -90,6 +94,22 @@ export const appRoutes = [
               {
                 path: "users/:userId",
                 element: <UserDetailPage />,
+              },
+              {
+                path: "notifications",
+                element: <NotificationsListPage />, // Đổi thành List trang chủ thông báo
+              },
+              {
+                path: "notifications/new",
+                element: <CreateNotificationPage />, // Đổi thành /notifications/new để khớp với routePaths.createNotification
+              },
+              {
+                path: "notifications/:id",
+                element: <NotificationDetailPage />,
+              },
+              {
+                path: "notifications/:id/edit",
+                element: <NotificationEditPage />,
               },
               {
                 path: "users/admins",
