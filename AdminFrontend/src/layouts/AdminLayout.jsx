@@ -1,5 +1,6 @@
 import { Outlet } from "react-router-dom";
 import {
+  Bell,
   CircleDollarSign,
   CreditCard,
   Flag,
@@ -14,18 +15,6 @@ import {
 import AdminSidebar from "../components/layout/AdminSidebar";
 import { useAuth } from "../hooks/useAuth";
 import { routePaths } from "../routes/routePaths";
-import {
-  LayoutDashboard,
-  CircleDollarSign,
-  Music2,
-  UserCheck,
-  ListMusic,
-  Mic2,
-  Tags,
-  Users,
-  Bell,
-  Flag,
-} from "lucide-react";
 
 const navigationItems = [
   {
