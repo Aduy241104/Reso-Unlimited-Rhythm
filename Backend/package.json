@@ -6,15 +6,11 @@
   "scripts": {
     "start": "nodemon --inspect src/server.js",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand",
-    "seed": "node src/seed.js",
     "listen:sync": "node src/runListenEventSync.js",
     "revenue:sync": "node src/runRevenueAggregation.js",
     "seed:revenue-history": "node src/seedRevenueHistory.js",
     "seed:revenue-flow": "node src/seedRevenueFlow.js",
-    "seed:artist-overview": "node src/seedArtistPerformanceOverview.js",
-    "seed:premium-user": "node src/seedPremiumUser.js",
-    "seed5": "node src/seed5.js",
-    "seed7": "node src/seed7.js"
+    "seed:artist-overview": "node src/seedArtistPerformanceOverview.js"
   },
   "author": "",
   "license": "ISC",

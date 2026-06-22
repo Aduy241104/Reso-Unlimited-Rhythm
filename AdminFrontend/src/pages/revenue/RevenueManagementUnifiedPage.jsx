@@ -11,7 +11,6 @@ import {
   ReceiptText,
   ShieldCheck,
   Sparkles,
-  UsersRound,
   Wallet,
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -28,7 +27,6 @@ import RevenueActionConfirmModal from "./components/RevenueActionConfirmModal";
 import RevenueLifecycleModal from "./components/RevenueLifecycleModal";
 import { DashboardCard, StatusBadge } from "./components/RevenueShared";
 import {
-  REVENUE_ACTIONS,
   buildLifecycleItems,
   buildWorkflowSteps,
   getActiveStatusLabel,
@@ -48,6 +46,8 @@ import {
   formatNumber,
   getErrorMessage,
 } from "./utils";
+import RevenueDistributionPreview from "./components/RevenueDistributionPreview";
+import RevenueWorkflowPanel from "./components/RevenueWorkflowPanel";
 
 const ACTION_EXECUTORS = {
   close: closeRevenuePeriodService,
@@ -77,16 +77,16 @@ const SummaryCard = ({ icon, label, value, helper }) => (
     <div className="flex items-start justify-between gap-3 p-5">
       <div className="min-w-0">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-          {label}
+          { label }
         </p>
         <p className="mt-2 text-[1.6rem] font-semibold tracking-tight text-slate-950">
-          {value}
+          { value }
         </p>
-        <p className="mt-2 text-sm leading-6 text-slate-500">{helper}</p>
+        <p className="mt-2 text-sm leading-6 text-slate-500">{ helper }</p>
       </div>
 
       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
-        {icon}
+        { icon }
       </div>
     </div>
   </DashboardCard>
@@ -98,8 +98,8 @@ const ArtistAvatar = ({ name, avatar }) => {
   if (avatar) {
     return (
       <img
-        src={avatar}
-        alt={name}
+        src={ avatar }
+        alt={ name }
         className="h-11 w-11 rounded-2xl object-cover"
       />
     );
@@ -107,11 +107,157 @@ const ArtistAvatar = ({ name, avatar }) => {
 
   return (
     <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-sm font-semibold text-white">
-      {initial}
+      { initial }
     </div>
   );
 };
 
+const RevenueDistributionModal = ({ isOpen, onClose, artists = [] }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/50 px-4 py-6">
+      <div className="max-h-[88vh] w-full max-w-6xl overflow-hidden rounded-[28px] bg-white shadow-2xl">
+        <div className="flex flex-col gap-4 border-b border-slate-200 px-6 py-5 md:flex-row md:items-start md:justify-between">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+              Phân bổ nghệ sĩ
+            </p>
+            <h2 className="mt-1 text-lg font-semibold text-slate-950">
+              Danh sách nghệ sĩ nhận doanh thu
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-slate-500">
+              Chi tiết stream hợp lệ, doanh thu gộp, phần nghệ sĩ nhận và phần nền tảng giữ lại.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={ onClose }
+            className="inline-flex shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            Đóng
+          </button>
+        </div>
+
+        { artists.length === 0 ? (
+          <div className="px-6 py-14 text-center">
+            <p className="text-sm font-medium text-slate-600">
+              Kỳ này chưa có nghệ sĩ nào được phân bổ doanh thu.
+            </p>
+          </div>
+        ) : (
+          <div className="max-h-[66vh] overflow-auto">
+            <table className="min-w-[1180px] w-full">
+              <thead className="sticky top-0 z-10">
+                <tr className="border-b border-slate-200 bg-slate-50 text-left">
+                  <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    Nghệ sĩ
+                  </th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    Stream hợp lệ
+                  </th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    Doanh thu gộp
+                  </th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    Nghệ sĩ nhận
+                  </th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    Nền tảng giữ
+                  </th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    Trạng thái
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                { artists.map((artistItem) => {
+                  const artist = artistItem.artist ?? {};
+
+                  return (
+                    <tr
+                      key={ artistItem.artistId }
+                      className="border-b border-slate-100 last:border-b-0"
+                    >
+                      <td className="px-5 py-4">
+                        <div className="flex items-start gap-3">
+                          <ArtistAvatar
+                            name={ artist?.name }
+                            avatar={ artist?.avatar }
+                          />
+
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-slate-950">
+                              { artist?.name || "Chưa có tên nghệ sĩ" }
+                            </p>
+
+                            <p className="mt-1 text-sm text-slate-500">
+                              ID: { artistItem.artistId }
+                            </p>
+
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600">
+                                { getVerificationStatusLabel(
+                                  artist?.verificationStatus
+                                ) }
+                              </span>
+
+                              <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600">
+                                { getActiveStatusLabel(artist?.activeStatus) }
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="px-4 py-4 text-sm font-medium text-slate-900">
+                        { formatNumber(artistItem.totalEligibleStreams) }
+                      </td>
+
+                      <td className="px-4 py-4 text-sm font-medium text-slate-900">
+                        { formatCurrency(artistItem.grossRevenueAmount) }
+                      </td>
+
+                      <td className="px-4 py-4 text-sm font-medium text-slate-900">
+                        { formatCurrency(artistItem.artistRevenueAmount) }
+                      </td>
+
+                      <td className="px-4 py-4 text-sm font-medium text-slate-900">
+                        { formatCurrency(artistItem.platformRevenueAmount) }
+                      </td>
+
+                      <td className="px-4 py-4">
+                        <div className="space-y-2">
+                          <span
+                            className={ `inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${getArtistBadgeTone(
+                              artistItem.status
+                            )}` }
+                          >
+                            { getArtistStatusLabel(artistItem.status) }
+                          </span>
+
+                          <p className="text-xs text-slate-500">
+                            { artistItem.calculatedAt
+                              ? `Tính lúc ${formatDateTime(
+                                artistItem.calculatedAt
+                              )}`
+                              : "Chưa có thời điểm tính." }
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                }) }
+              </tbody>
+            </table>
+          </div>
+        ) }
+      </div>
+    </div>
+  );
+};
 const RevenueManagementUnifiedPage = () => {
   const [pageData, setPageData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -119,6 +265,7 @@ const RevenueManagementUnifiedPage = () => {
   const [error, setError] = useState("");
   const [actionModal, setActionModal] = useState(createInitialActionModalState);
   const [isLifecycleModalOpen, setIsLifecycleModalOpen] = useState(false);
+  const [isDistributionModalOpen, setIsDistributionModalOpen] = useState(false);
 
   useEffect(() => {
     let isActive = true;
@@ -130,15 +277,11 @@ const RevenueManagementUnifiedPage = () => {
       try {
         const result = await fetchRevenueOverviewPageData();
 
-        if (!isActive) {
-          return;
-        }
+        if (!isActive) return;
 
         setPageData(result);
       } catch (apiError) {
-        if (!isActive) {
-          return;
-        }
+        if (!isActive) return;
 
         setError(getErrorMessage(apiError));
         setPageData(null);
@@ -196,9 +339,7 @@ const RevenueManagementUnifiedPage = () => {
   };
 
   const closeActionModal = () => {
-    if (actionModal.phase === "submitting") {
-      return;
-    }
+    if (actionModal.phase === "submitting") return;
 
     setActionModal(createInitialActionModalState());
   };
@@ -208,9 +349,7 @@ const RevenueManagementUnifiedPage = () => {
     const executor = ACTION_EXECUTORS[actionKey];
     const periodId = pageData?.period?.id;
 
-    if (!actionKey || !executor || !periodId) {
-      return;
-    }
+    if (!actionKey || !executor || !periodId) return;
 
     setActionModal((currentState) => ({
       ...currentState,
@@ -251,12 +390,15 @@ const RevenueManagementUnifiedPage = () => {
     revenueSharePercent: { artist: 0, platform: 0 },
     lastUpdatedAt: null,
   };
+
   const workflowSteps = buildWorkflowSteps(lifecycleTimestamps, availableActions);
   const lifecycleItems = buildLifecycleItems(lifecycleTimestamps, confirmedBy);
   const distributionSummary = getDistributionSummary(distribution);
   const artists = Array.isArray(distribution?.artists) ? distribution.artists : [];
+
   const shouldShowTimeline = period?.status && period.status !== "open";
   const shouldShowEligibleStreams = period?.status && period.status !== "open";
+
   const workflowCards = workflowSteps.map((step, index) => {
     const tone = getWorkflowStateTone(step.state);
     const isAvailable = isActionAvailable(availableActions, step.key);
@@ -277,7 +419,7 @@ const RevenueManagementUnifiedPage = () => {
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-3">
               <div className="inline-flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600">
-                <Sparkles size={14} />
+                <Sparkles size={ 14 } />
                 Doanh thu hiện tại
               </div>
 
@@ -294,55 +436,55 @@ const RevenueManagementUnifiedPage = () => {
 
               <div className="flex flex-wrap items-center gap-2.5 text-[13px] text-slate-600">
                 <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1">
-                  <CalendarRange size={14} />
-                  {getRevenuePeriodLabel(period)}
+                  <CalendarRange size={ 14 } />
+                  { getRevenuePeriodLabel(period) }
                 </span>
 
                 <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1">
-                  <CalendarRange size={14} />
-                  {formatDate(period?.periodStart)} - {formatDate(period?.periodEnd)}
+                  <CalendarRange size={ 14 } />
+                  { formatDate(period?.periodStart) } - { formatDate(period?.periodEnd) }
                 </span>
 
-                <StatusBadge status={period?.status} />
+                <StatusBadge status={ period?.status } />
 
                 <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1">
-                  <RefreshCw size={14} />
-                  Cập nhật:{" "}
-                  {formatDateTime(
+                  <RefreshCw size={ 14 } />
+                  Cập nhật:{ " " }
+                  { formatDateTime(
                     metadata?.lastUpdatedAt || lifecycleTimestamps?.updatedAt
-                  )}
+                  ) }
                 </span>
               </div>
             </div>
 
             <div className="flex flex-wrap items-center justify-end gap-3">
-              {shouldShowTimeline ? (
+              { shouldShowTimeline ? (
                 <button
                   type="button"
-                  onClick={() => setIsLifecycleModalOpen(true)}
+                  onClick={ () => setIsLifecycleModalOpen(true) }
                   className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                 >
                   Xem lịch sử xử lý
                 </button>
-              ) : null}
+              ) : null }
 
               <Link
-                to={routePaths.revenueHistory}
+                to={ routePaths.revenueHistory }
                 className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
               >
                 Xem lịch sử kỳ
-                <ArrowRight size={16} />
+                <ArrowRight size={ 16 } />
               </Link>
 
               <button
                 type="button"
-                onClick={() => void handleRefresh()}
-                disabled={isRefreshing}
+                onClick={ () => void handleRefresh() }
+                disabled={ isRefreshing }
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <RefreshCw
-                  size={15}
-                  className={isRefreshing ? "animate-spin" : undefined}
+                  size={ 15 }
+                  className={ isRefreshing ? "animate-spin" : undefined }
                 />
                 Làm mới dữ liệu
               </button>
@@ -350,18 +492,18 @@ const RevenueManagementUnifiedPage = () => {
           </div>
         </DashboardCard>
 
-        {error ? (
+        { error ? (
           <div className="flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3.5 text-rose-700">
-            <AlertCircle size={17} className="mt-0.5 shrink-0" />
-            <p className="text-sm leading-6">{error}</p>
+            <AlertCircle size={ 17 } className="mt-0.5 shrink-0" />
+            <p className="text-sm leading-6">{ error }</p>
           </div>
-        ) : null}
+        ) : null }
 
-        {isLoading ? (
+        { isLoading ? (
           <DashboardCard className="border-slate-200 p-10">
             <div className="flex min-h-[320px] items-center justify-center">
               <div className="flex items-center gap-3 text-slate-500">
-                <LoaderCircle size={22} className="animate-spin" />
+                <LoaderCircle size={ 22 } className="animate-spin" />
                 <span className="text-sm font-medium">
                   Đang tải trang quản lý doanh thu...
                 </span>
@@ -371,286 +513,96 @@ const RevenueManagementUnifiedPage = () => {
         ) : period ? (
           <>
             <div
-              className={`grid gap-4 md:grid-cols-2 ${
-                shouldShowEligibleStreams ? "xl:grid-cols-5" : "xl:grid-cols-4"
-              }`}
+              className={ `grid gap-4 md:grid-cols-2 ${shouldShowEligibleStreams ? "xl:grid-cols-5" : "xl:grid-cols-4"
+                }` }
             >
               <SummaryCard
-                icon={<CircleDollarSign size={20} />}
+                icon={ <CircleDollarSign size={ 20 } /> }
                 label="Doanh thu premium"
-                value={formatCurrency(summary?.premiumRevenue)}
+                value={ formatCurrency(summary?.premiumRevenue) }
                 helper="Tổng doanh thu premium ghi nhận trong kỳ."
               />
+
               <SummaryCard
-                icon={<Coins size={20} />}
+                icon={ <Coins size={ 20 } /> }
                 label="Quỹ nghệ sĩ"
-                value={formatCurrency(summary?.artistPool)}
+                value={ formatCurrency(summary?.artistPool) }
                 helper="Khoản doanh thu dành để phân bổ cho nghệ sĩ."
               />
+
               <SummaryCard
-                icon={<Wallet size={20} />}
+                icon={ <Wallet size={ 20 } /> }
                 label="Doanh thu nền tảng"
-                value={formatCurrency(summary?.platformRevenue)}
+                value={ formatCurrency(summary?.platformRevenue) }
                 helper="Phần doanh thu nền tảng được giữ lại."
               />
-              {shouldShowEligibleStreams ? (
+
+              { shouldShowEligibleStreams ? (
                 <SummaryCard
-                  icon={<Radio size={20} />}
+                  icon={ <Radio size={ 20 } /> }
                   label="Stream hợp lệ"
-                  value={formatNumber(summary?.totalEligibleStreams)}
+                  value={ formatNumber(summary?.totalEligibleStreams) }
                   helper="Số lượt stream được tính vào phân bổ doanh thu."
                 />
-              ) : null}
+              ) : null }
+
               <SummaryCard
-                icon={<ReceiptText size={20} />}
+                icon={ <ReceiptText size={ 20 } /> }
                 label="Giao dịch thành công"
-                value={formatNumber(summary?.successfulTransactions)}
+                value={ formatNumber(summary?.successfulTransactions) }
                 helper="Số giao dịch premium thành công trong kỳ."
               />
             </div>
 
-            <div className="grid gap-4">
-              <DashboardCard className="border-slate-200">
-                <div className="border-b border-slate-200 px-5 py-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                    Workflow xử lý
-                  </p>
-                  <h2 className="mt-1 text-lg font-semibold text-slate-950">
-                    Chốt kỳ và phân phối ngay trên trang revenue
-                  </h2>
-                </div>
+            <DashboardCard className="border-slate-200">
+                <RevenueWorkflowPanel
+                  workflowCards={ workflowCards }
+                  onActionClick={ openActionModal }
+                />
+            </DashboardCard>
 
-                <div className="space-y-4 p-5">
-                  <div className="grid gap-3 lg:grid-cols-[repeat(3,minmax(0,1fr))]">
-                    {workflowCards.map((step) => {
-                      return (
-                        <div key={step.key} className="relative">
-                          <div className="rounded-[24px] border border-slate-200 bg-white p-4 transition">
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="flex items-center gap-3">
-                                <div
-                                  className={`flex h-10 w-10 items-center justify-center rounded-full border ${step.tone.ring}`}
-                                >
-                                  <div className={`h-3 w-3 rounded-full ${step.tone.dot}`} />
-                                </div>
+            <RevenueOverviewCharts charts={ charts } />
 
-                                <h3 className="text-base font-semibold text-slate-950">
-                                  {step.title}
-                                </h3>
-                              </div>
-
-                              <span
-                                className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${step.tone.badge}`}
-                              >
-                                {step.tone.label}
-                              </span>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() => openActionModal(step.key)}
-                              disabled={!step.isAvailable}
-                              className={`mt-4 inline-flex w-full items-center justify-center rounded-2xl px-4 py-2.5 text-sm font-semibold transition ${
-                                step.isAvailable
-                                  ? "bg-slate-950 text-white hover:bg-slate-800"
-                                  : "cursor-not-allowed bg-slate-100 text-slate-400"
-                              }`}
-                            >
-                              {REVENUE_ACTIONS[step.key].buttonLabel}
-                            </button>
-                          </div>
-
-                          {!step.isLastStep ? (
-                            <div className="pointer-events-none absolute left-[calc(50%+1.25rem)] right-[-1.05rem] top-9 hidden h-[2px] lg:block">
-                              <div
-                                className={`h-full w-full rounded-full ${
-                                  step.state === "completed" ? "bg-emerald-300" : "bg-slate-200"
-                                }`}
-                              />
-                            </div>
-                          ) : null}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </DashboardCard>
-            </div>
-
-            <RevenueOverviewCharts charts={charts} />
-
-            {distribution ? (
+            { distribution ? (
               <>
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                  {distributionSummary.map((item) => (
-                    <SummaryCard
-                      key={item.key}
-                      icon={<UsersRound size={20} />}
-                      label={item.label}
-                      value={item.value}
-                      helper={item.helper}
-                    />
-                  ))}
-                </div>
-
-                <DashboardCard className="border-slate-200">
-                  <div className="border-b border-slate-200 px-5 py-4">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                      Phân bổ nghệ sĩ
-                    </p>
-                    <h2 className="mt-1 text-lg font-semibold text-slate-950">
-                      Danh sách nghệ sĩ nhận doanh thu
-                    </h2>
-                    <p className="mt-1 text-sm leading-6 text-slate-500">
-                      Dữ liệu được render trực tiếp từ `distribution.artists` của API
-                      hiện tại.
-                    </p>
-                  </div>
-
-                  {artists.length === 0 ? (
-                    <div className="px-5 py-12 text-center">
-                      <p className="text-sm font-medium text-slate-600">
-                        Kỳ này chưa có nghệ sĩ nào được phân bổ doanh thu.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="min-w-[1180px] w-full">
-                        <thead>
-                          <tr className="border-b border-slate-200 bg-slate-50 text-left">
-                            <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                              Nghệ sĩ
-                            </th>
-                            <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                              Stream hợp lệ
-                            </th>
-                            <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                              Doanh thu gộp
-                            </th>
-                            <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                              Nghệ sĩ nhận
-                            </th>
-                            <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                              Nền tảng giữ
-                            </th>
-                            <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                              Đã rút
-                            </th>
-                            <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                              Còn khả dụng
-                            </th>
-                            <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                              Trạng thái
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {artists.map((artistItem) => {
-                            const artist = artistItem.artist ?? {};
-
-                            return (
-                              <tr
-                                key={artistItem.artistId}
-                                className="border-b border-slate-100 last:border-b-0"
-                              >
-                                <td className="px-5 py-4">
-                                  <div className="flex items-start gap-3">
-                                    <ArtistAvatar
-                                      name={artist?.name}
-                                      avatar={artist?.avatar}
-                                    />
-
-                                    <div className="min-w-0">
-                                      <p className="truncate text-sm font-semibold text-slate-950">
-                                        {artist?.name || "Chưa có tên nghệ sĩ"}
-                                      </p>
-                                      <p className="mt-1 text-sm text-slate-500">
-                                        ID: {artistItem.artistId}
-                                      </p>
-                                      <div className="mt-2 flex flex-wrap gap-2">
-                                        <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600">
-                                          {getVerificationStatusLabel(
-                                            artist?.verificationStatus
-                                          )}
-                                        </span>
-                                        <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600">
-                                          {getActiveStatusLabel(artist?.activeStatus)}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="px-4 py-4 text-sm font-medium text-slate-900">
-                                  {formatNumber(artistItem.totalEligibleStreams)}
-                                </td>
-                                <td className="px-4 py-4 text-sm font-medium text-slate-900">
-                                  {formatCurrency(artistItem.grossRevenueAmount)}
-                                </td>
-                                <td className="px-4 py-4 text-sm font-medium text-slate-900">
-                                  {formatCurrency(artistItem.artistRevenueAmount)}
-                                </td>
-                                <td className="px-4 py-4 text-sm font-medium text-slate-900">
-                                  {formatCurrency(artistItem.platformRevenueAmount)}
-                                </td>
-                                <td className="px-4 py-4 text-sm font-medium text-slate-900">
-                                  {formatCurrency(artistItem.withdrawnAmount)}
-                                </td>
-                                <td className="px-4 py-4 text-sm font-medium text-slate-900">
-                                  {formatCurrency(artistItem.availableAmount)}
-                                </td>
-                                <td className="px-4 py-4">
-                                  <div className="space-y-2">
-                                    <span
-                                      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${getArtistBadgeTone(
-                                        artistItem.status
-                                      )}`}
-                                    >
-                                      {getArtistStatusLabel(artistItem.status)}
-                                    </span>
-                                    <p className="text-xs text-slate-500">
-                                      {artistItem.calculatedAt
-                                        ? `Tính lúc ${formatDateTime(
-                                            artistItem.calculatedAt
-                                          )}`
-                                        : "Chưa có thời điểm tính."}
-                                    </p>
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </DashboardCard>
+                 <RevenueDistributionPreview
+                   artists={ artists }
+                   summary={ summary }
+                   onOpen={ () => setIsDistributionModalOpen(true) }
+                 />
               </>
-            ) : null}
+            ) : null }
           </>
         ) : (
           <DashboardCard className="border-slate-200 px-5 py-14 text-center">
             <div className="mx-auto max-w-xl">
-              <ShieldCheck size={28} className="mx-auto text-slate-400" />
+              <ShieldCheck size={ 28 } className="mx-auto text-slate-400" />
               <p className="mt-4 text-sm font-medium text-slate-700">
                 Không tìm thấy dữ liệu kỳ doanh thu hiện tại.
               </p>
             </div>
           </DashboardCard>
-        )}
+        ) }
       </div>
 
       <RevenueActionConfirmModal
-        period={period}
-        modalState={actionModal}
-        onClose={closeActionModal}
-        onConfirm={handleRunAction}
+        period={ period }
+        modalState={ actionModal }
+        onClose={ closeActionModal }
+        onConfirm={ handleRunAction }
       />
 
       <RevenueLifecycleModal
-        isOpen={isLifecycleModalOpen}
-        onClose={() => setIsLifecycleModalOpen(false)}
-        period={period}
-        lifecycleItems={lifecycleItems}
+        isOpen={ isLifecycleModalOpen }
+        onClose={ () => setIsLifecycleModalOpen(false) }
+        period={ period }
+        lifecycleItems={ lifecycleItems }
+      />
+
+      <RevenueDistributionModal
+        isOpen={ isDistributionModalOpen }
+        onClose={ () => setIsDistributionModalOpen(false) }
+        artists={ artists }
       />
     </section>
   );

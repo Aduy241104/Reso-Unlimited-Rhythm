@@ -61,11 +61,19 @@ const normalizeRevenuePeriodDetail = (data) => {
     return null;
   }
 
+  const fallbackPeriodId = rawDetail?.id ?? rawDetail?.periodId ?? null;
+
   const period =
     rawDetail?.period && typeof rawDetail.period === "object"
-      ? rawDetail.period
+      ? {
+          ...rawDetail.period,
+          id: rawDetail.period.id ?? fallbackPeriodId,
+          periodId:
+            rawDetail.period.periodId ?? rawDetail?.periodId ?? fallbackPeriodId,
+        }
       : {
-          id: rawDetail?.id ?? null,
+          id: fallbackPeriodId,
+          periodId: rawDetail?.periodId ?? fallbackPeriodId,
           year: rawDetail?.year ?? null,
           month: rawDetail?.month ?? null,
           label: rawDetail?.label ?? null,
@@ -85,6 +93,8 @@ const normalizeRevenuePeriodDetail = (data) => {
 
   return {
     ...rawDetail,
+    id: fallbackPeriodId,
+    periodId: rawDetail?.periodId ?? fallbackPeriodId,
     ...period,
     period,
     summary: rawDetail?.summary ?? {},

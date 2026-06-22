@@ -317,19 +317,7 @@ export const getDistributionSummary = (distribution) => [
     label: "Tổng doanh thu chia cho nghệ sĩ",
     value: formatCurrency(distribution?.distributedArtistRevenueAmount),
     helper: "Tổng số tiền đã được phân bổ cho toàn bộ nghệ sĩ.",
-  },
-  {
-    key: "totalWithdrawnAmount",
-    label: "Đã rút",
-    value: formatCurrency(distribution?.totalWithdrawnAmount),
-    helper: "Số tiền nghệ sĩ đã rút khỏi phần doanh thu khả dụng.",
-  },
-  {
-    key: "totalAvailableAmount",
-    label: "Còn khả dụng",
-    value: formatCurrency(distribution?.totalAvailableAmount),
-    helper: "Số tiền nghệ sĩ còn có thể rút sau khi xác nhận.",
-  },
+  }
 ];
 
 export const getOverviewHeadline = (summary, distribution, metadata) => {

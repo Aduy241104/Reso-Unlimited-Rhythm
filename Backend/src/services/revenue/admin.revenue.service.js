@@ -157,17 +157,17 @@ const resolveLastUpdatedAt = (...dates) => {
     return latestTimestamp > 0 ? new Date(latestTimestamp).toISOString() : null;
 };
 
-const isPastRevenuePeriod = ({
+const isFutureRevenuePeriod = ({
     year,
     month,
     currentYear,
     currentMonth,
 }) => {
-    if (year < currentYear) {
+    if (year > currentYear) {
         return true;
     }
 
-    return year === currentYear && month < currentMonth;
+    return year === currentYear && month > currentMonth;
 };
 
 const formatRevenuePeriodSummary = (revenuePeriod) => ({
@@ -282,6 +282,72 @@ const formatRevenuePeriodListItem = (revenuePeriod, distributionStats = {}) => (
     timestamps: formatRevenuePeriodTimestamps(revenuePeriod),
 });
 
+const buildVirtualRevenuePeriod = ({
+    year,
+    month,
+    currentYear,
+    currentMonth,
+    timezone,
+}) => {
+    const { periodStart, periodEnd } = buildRevenuePeriodRange(
+        year,
+        month,
+        timezone
+    );
+
+    return {
+        year,
+        month,
+        status: resolveRevenuePeriodStatus({
+            revenuePeriodStatus: null,
+            selectedYear: year,
+            selectedMonth: month,
+            currentYear,
+            currentMonth,
+        }),
+        periodStart,
+        periodEnd,
+        totalPremiumRevenue: 0,
+        totalArtistPool: 0,
+        totalPlatformRevenue: 0,
+        totalEligibleStreams: 0,
+        successfulTransactions: 0,
+        lastAggregatedAt: null,
+        closedAt: null,
+        calculatedAt: null,
+        confirmedAt: null,
+        confirmedBy: null,
+        createdAt: null,
+        updatedAt: null,
+    };
+};
+
+const matchesCurrentRevenuePeriodQuery = ({
+    query,
+    currentYear,
+    currentMonth,
+}) => {
+    if (query.status && query.status !== "open") {
+        return false;
+    }
+
+    if (
+        typeof query.year !== "undefined" &&
+        Number(query.year) !== currentYear
+    ) {
+        return false;
+    }
+
+    if (
+        typeof query.month !== "undefined" &&
+        Number(query.month) !== currentMonth
+    ) {
+        return false;
+    }
+
+    return true;
+};
+
 const formatDistributedArtistItem = (artistRevenueSummary) => ({
     artistId: toId(artistRevenueSummary.artistId?._id || artistRevenueSummary.artistId),
     artist: artistRevenueSummary.artistId
@@ -330,16 +396,16 @@ const buildRevenuePeriodDistribution = (distributedArtists = []) => ({
     artists: distributedArtists,
 });
 
-const findDistributedArtistsByRevenuePeriod = async (revenuePeriod) => {
-    if (!shouldIncludeRevenueDistribution(revenuePeriod?.status)) {
-        return [];
-    }
-
+const findDistributedArtistSummaries = async ({
+    year,
+    month,
+    statuses = OFFICIAL_ARTIST_REVENUE_STATUSES,
+}) => {
     const artistRevenueSummaries = await ArtistRevenueSummary.find({
-        year: revenuePeriod.year,
-        month: revenuePeriod.month,
+        year,
+        month,
         artistRevenueAmount: { $gt: 0 },
-        status: { $in: OFFICIAL_ARTIST_REVENUE_STATUSES },
+        status: { $in: statuses },
     })
         .populate(
             "artistId",
@@ -349,6 +415,17 @@ const findDistributedArtistsByRevenuePeriod = async (revenuePeriod) => {
         .lean();
 
     return artistRevenueSummaries.map(formatDistributedArtistItem);
+};
+
+const findDistributedArtistsByRevenuePeriod = async (revenuePeriod) => {
+    if (!shouldIncludeRevenueDistribution(revenuePeriod?.status)) {
+        return [];
+    }
+
+    return findDistributedArtistSummaries({
+        year: revenuePeriod.year,
+        month: revenuePeriod.month,
+    });
 };
 
 const buildRevenuePeriodResponse = async (revenuePeriod) => {
@@ -552,11 +629,6 @@ const getRevenueCharts = async (query = {}) => {
 const getCurrentRevenuePeriod = async () => {
     const { currentYear, currentMonth, timezone } =
         normalizeRevenueDashboardPeriod();
-    const { periodStart, periodEnd } = buildRevenuePeriodRange(
-        currentYear,
-        currentMonth,
-        timezone
-    );
 
     const revenuePeriod = await RevenuePeriod.findOne({
         year: currentYear,
@@ -565,31 +637,15 @@ const getCurrentRevenuePeriod = async () => {
         .populate("confirmedBy", "email profile.fullName")
         .lean();
 
-    const currentRevenuePeriod = revenuePeriod || {
-        year: currentYear,
-        month: currentMonth,
-        status: resolveRevenuePeriodStatus({
-            revenuePeriodStatus: null,
-            selectedYear: currentYear,
-            selectedMonth: currentMonth,
+    const currentRevenuePeriod =
+        revenuePeriod ||
+        buildVirtualRevenuePeriod({
+            year: currentYear,
+            month: currentMonth,
             currentYear,
             currentMonth,
-        }),
-        periodStart,
-        periodEnd,
-        totalPremiumRevenue: 0,
-        totalArtistPool: 0,
-        totalPlatformRevenue: 0,
-        totalEligibleStreams: 0,
-        successfulTransactions: 0,
-        lastAggregatedAt: null,
-        closedAt: null,
-        calculatedAt: null,
-        confirmedAt: null,
-        confirmedBy: null,
-        createdAt: null,
-        updatedAt: null,
-    };
+            timezone,
+        });
 
     return buildRevenuePeriodResponse(currentRevenuePeriod);
 };
@@ -599,12 +655,13 @@ const getRevenuePeriods = async (query = {}) => {
     const requestedLimit = normalizePositiveInteger(query.limit, DEFAULT_LIMIT);
     const limit = Math.min(requestedLimit, MAX_LIMIT);
     const skip = (page - 1) * limit;
-    const { currentYear, currentMonth } = normalizeRevenueDashboardPeriod();
+    const { currentYear, currentMonth, timezone } =
+        normalizeRevenueDashboardPeriod();
 
     const filter = {
         $or: [
             { year: { $lt: currentYear } },
-            { year: currentYear, month: { $lt: currentMonth } },
+            { year: currentYear, month: { $lte: currentMonth } },
         ],
     };
 
@@ -620,14 +677,52 @@ const getRevenuePeriods = async (query = {}) => {
         filter.month = Number(query.month);
     }
 
-    const [revenuePeriods, total] = await Promise.all([
-        RevenuePeriod.find(filter)
-            .sort({ year: -1, month: -1, _id: 1 })
-            .skip(skip)
-            .limit(limit)
-            .lean(),
+    const [persistedCurrentRevenuePeriod, persistedTotal] = await Promise.all([
+        RevenuePeriod.exists({
+            year: currentYear,
+            month: currentMonth,
+        }),
         RevenuePeriod.countDocuments(filter),
     ]);
+
+    const shouldIncludeVirtualCurrentPeriod =
+        !persistedCurrentRevenuePeriod &&
+        matchesCurrentRevenuePeriodQuery({
+            query,
+            currentYear,
+            currentMonth,
+        });
+
+    const total = persistedTotal + (shouldIncludeVirtualCurrentPeriod ? 1 : 0);
+    const persistedSkip = shouldIncludeVirtualCurrentPeriod
+        ? Math.max(skip - 1, 0)
+        : skip;
+    const persistedLimit = shouldIncludeVirtualCurrentPeriod
+        ? Math.max(limit - (skip === 0 ? 1 : 0), 0)
+        : limit;
+
+    const persistedRevenuePeriods =
+        persistedLimit > 0
+            ? await RevenuePeriod.find(filter)
+                .sort({ year: -1, month: -1, _id: 1 })
+                .skip(persistedSkip)
+                .limit(persistedLimit)
+                .lean()
+            : [];
+
+    const revenuePeriods =
+        shouldIncludeVirtualCurrentPeriod && skip === 0
+            ? [
+                buildVirtualRevenuePeriod({
+                    year: currentYear,
+                    month: currentMonth,
+                    currentYear,
+                    currentMonth,
+                    timezone,
+                }),
+                ...persistedRevenuePeriods,
+            ]
+            : persistedRevenuePeriods;
 
     const periodFilters = revenuePeriods.map((revenuePeriod) => ({
         year: revenuePeriod.year,
@@ -685,6 +780,10 @@ const getRevenuePeriods = async (query = {}) => {
 };
 
 const getRevenuePeriodDetail = async (revenuePeriodId) => {
+    if (revenuePeriodId === "current") {
+        return getCurrentRevenuePeriod();
+    }
+
     const { currentYear, currentMonth } = normalizeRevenueDashboardPeriod();
 
     ensureRevenuePeriodId(revenuePeriodId);
@@ -698,7 +797,7 @@ const getRevenuePeriodDetail = async (revenuePeriodId) => {
     }
 
     if (
-        !isPastRevenuePeriod({
+        isFutureRevenuePeriod({
             year: revenuePeriod.year,
             month: revenuePeriod.month,
             currentYear,
@@ -706,7 +805,7 @@ const getRevenuePeriodDetail = async (revenuePeriodId) => {
         })
     ) {
         throw new AppError(
-            "This endpoint only supports past revenue periods.",
+            "This endpoint only supports current or past revenue periods.",
             400,
             { field: "id" }
         );
@@ -936,12 +1035,19 @@ const calculateRevenueDistribution = async (revenuePeriodId) => {
         },
     });
 
+    const distributedArtists = await findDistributedArtistSummaries({
+        year: revenuePeriod.year,
+        month: revenuePeriod.month,
+        statuses: ["calculated"],
+    });
+
     return {
         periodId: toId(revenuePeriod._id),
         status: "calculated",
         isRecalculation,
         artistSummaryCount: artistSummaryOperations.length,
         trackRevenueCount: trackRevenueOperations.length,
+        distribution: buildRevenuePeriodDistribution(distributedArtists),
     };
 };
 
@@ -1080,6 +1186,12 @@ const confirmRevenueDistribution = async (revenuePeriodId, adminUserId) => {
         )) ||
         (await RevenuePeriod.findById(revenuePeriod._id));
 
+    const distributedArtists = await findDistributedArtistSummaries({
+        year: revenuePeriod.year,
+        month: revenuePeriod.month,
+        statuses: ["confirmed"],
+    });
+
     return {
         periodId: toId(updatedRevenuePeriod?._id || revenuePeriod._id),
         status: updatedRevenuePeriod?.status || "confirmed",
@@ -1091,6 +1203,7 @@ const confirmRevenueDistribution = async (revenuePeriodId, adminUserId) => {
                 0
             )
         ),
+        distribution: buildRevenuePeriodDistribution(distributedArtists),
     };
 };
 

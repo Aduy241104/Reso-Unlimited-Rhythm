@@ -11,7 +11,18 @@ const listRevenuePeriodsQuerySchema = Joi.object({
 });
 
 const revenuePeriodIdParamSchema = Joi.object({
-    id: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required(),
+    id: Joi.string()
+        .pattern(/^[0-9a-fA-F]{24}$/)
+        .required(),
+});
+
+const revenuePeriodDetailParamSchema = Joi.object({
+    id: Joi.alternatives()
+        .try(
+            Joi.string().pattern(/^[0-9a-fA-F]{24}$/),
+            Joi.string().valid("current")
+        )
+        .required(),
 });
 
 const runRevenueAggregationBodySchema = Joi.object({
@@ -23,5 +34,6 @@ const runRevenueAggregationBodySchema = Joi.object({
 export default {
     listRevenuePeriodsQuerySchema,
     revenuePeriodIdParamSchema,
+    revenuePeriodDetailParamSchema,
     runRevenueAggregationBodySchema,
 };

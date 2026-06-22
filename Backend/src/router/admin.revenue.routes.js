@@ -23,7 +23,7 @@ router.get(
 );
 router.get(
     "/periods/:id",
-    validate(adminRevenueValidation.revenuePeriodIdParamSchema, "params"),
+    validate(adminRevenueValidation.revenuePeriodDetailParamSchema, "params"),
     adminRevenueController.getRevenuePeriodDetail
 );
 router.post(
