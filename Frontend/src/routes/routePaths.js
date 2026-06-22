@@ -1,4 +1,4 @@
-﻿export const routePaths = {
+export const routePaths = {
   home: "/",
   search: "/search",
   userGenres: "/genres",
@@ -44,6 +44,7 @@
   artistProfile: "/artist/profile",
   artistProfileEdit: "/artist/profile/edit",
   userPlaylist: "/user/playlist",
+  userPaymentHistory: "/payment-history",
   userPlaylistDetail: (playlistId = ":id") => `/user/playlist/${playlistId}`,
   userFavoriteTracks: "/user/favorite-tracks",
   userCreateReport: "/user/reports/create",
@@ -53,3 +54,4 @@
   libraryFollowedArtists: "/library/followed-artists",
   libraryFollowedAlbums: "/library/followed-albums",
 };
+

@@ -42,6 +42,7 @@ import PlaylistDetailPage from "../pages/playlist/PlaylistDetailPage";
 import PremiumPaymentFailedPage from "../pages/premium/PremiumPaymentFailedPage";
 import PremiumPaymentSuccessPage from "../pages/premium/PremiumPaymentSuccessPage";
 import PremiumPage from "../pages/premium/PremiumPage";
+import PaymentHistoryPage from "../pages/userPayment/PaymentHistoryPage";
 import TrackDetailPage from "../pages/track/TrackDetailPage";
 import UserFavoriteTracksPage from "../pages/userFavorite/UserFavoriteTracksPage";
 import ProtectedRoute from "./ProtectedRoute";
@@ -143,6 +144,15 @@ export const appRoutes = [
             element: <UserFavoriteTracksPage />,
           },
         ],
+      },
+    ],
+  },
+  {
+    element: <ProtectedRoute />,
+    children: [
+      {
+        path: routePaths.userPaymentHistory,
+        element: <PaymentHistoryPage />,
       },
     ],
   },
