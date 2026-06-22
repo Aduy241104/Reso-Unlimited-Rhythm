@@ -7,8 +7,34 @@ import { AppError } from "../utils/AppError.js";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-export const ARTIST_REVENUE_SHARE_PERCENT = 60;
-export const PLATFORM_REVENUE_SHARE_PERCENT = 40;
+const DEFAULT_ARTIST_REVENUE_SHARE_PERCENT = 60;
+const normalizeRevenueSharePercent = (rawValue) => {
+    const parsedValue = Number(rawValue);
+
+    if (!Number.isFinite(parsedValue) || parsedValue < 0) {
+        return DEFAULT_ARTIST_REVENUE_SHARE_PERCENT;
+    }
+
+    if (parsedValue <= 1) {
+        return parsedValue * 100;
+    }
+
+    if (parsedValue <= 100) {
+        return parsedValue;
+    }
+
+    return DEFAULT_ARTIST_REVENUE_SHARE_PERCENT;
+};
+
+export const ARTIST_REVENUE_SHARE_PERCENT = Number(
+    normalizeRevenueSharePercent(
+        process.env.ARTIST_REVENUE_SHARE_PERCENT
+    ).toFixed(2)
+);
+export const ARTIST_REVENUE_SHARE_RATIO = ARTIST_REVENUE_SHARE_PERCENT / 100;
+export const PLATFORM_REVENUE_SHARE_PERCENT = Number(
+    Math.max(100 - ARTIST_REVENUE_SHARE_PERCENT, 0).toFixed(2)
+);
 
 const MIN_REVENUE_YEAR = 2000;
 

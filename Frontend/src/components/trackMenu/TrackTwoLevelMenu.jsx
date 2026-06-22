@@ -34,14 +34,8 @@ const getPlaylistTitle = (playlist) => {
 };
 
 const normalizePlaylists = (payload) => {
-    if (Array.isArray(payload)) {
-        return payload;
-    }
-
-    if (Array.isArray(payload?.playlists)) {
-        return payload.playlists;
-    }
-
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.playlists)) return payload.playlists;
     return [];
 };
 
@@ -69,23 +63,23 @@ const TrackTwoLevelMenu = ({
     const resolvedIsFavorite = hasFavoriteProp ? isFavorite : favoriteState;
 
     useEffect(() => {
-        if (!isOpen) {
-            return undefined;
-        }
+        if (!isOpen) return undefined;
+
+        const closeMenu = () => {
+            setIsOpen(false);
+            setIsPlaylistSubmenuOpen(false);
+            setSearchValue("");
+        };
 
         const handlePointerDown = (event) => {
             if (!menuRef.current?.contains(event.target)) {
-                setIsOpen(false);
-                setIsPlaylistSubmenuOpen(false);
-                setSearchValue("");
+                closeMenu();
             }
         };
 
         const handleKeyDown = (event) => {
             if (event.key === "Escape") {
-                setIsOpen(false);
-                setIsPlaylistSubmenuOpen(false);
-                setSearchValue("");
+                closeMenu();
             }
         };
 
@@ -101,9 +95,7 @@ const TrackTwoLevelMenu = ({
     }, [isOpen]);
 
     useEffect(() => {
-        if (!isOpen) {
-            return undefined;
-        }
+        if (!isOpen) return undefined;
 
         let isMounted = true;
 
@@ -128,18 +120,13 @@ const TrackTwoLevelMenu = ({
         };
     }, [isOpen]);
 
-
     useEffect(() => {
-        if (!isOpen || !isPlaylistSubmenuOpen) {
-            return undefined;
-        }
+        if (!isOpen || !isPlaylistSubmenuOpen) return undefined;
 
         const updateSubmenuPlacement = () => {
             const anchorBounds = submenuAnchorRef.current?.getBoundingClientRect();
 
-            if (!anchorBounds) {
-                return;
-            }
+            if (!anchorBounds) return;
 
             const submenuWidth = 352;
             const gap = 8;
@@ -168,67 +155,8 @@ const TrackTwoLevelMenu = ({
         };
     }, [isOpen, isPlaylistSubmenuOpen]);
 
-    const submenuClassName = `
-      absolute z-40 w-[min(22rem,calc(100vw-2rem))]
-      rounded-[12px] border border-white/10 bg-[#282828] p-2
-      shadow-[0_24px_60px_rgba(0,0,0,0.45)]
-      ${submenuPlacement === "left" ? "bottom-0 right-full mr-1" : ""}
-      ${submenuPlacement === "right" ? "bottom-0 left-full ml-1" : ""}
-      ${submenuPlacement === "stacked" ? "right-0 top-full mt-2" : ""}
-    `;
-
-    const filteredPlaylists = useMemo(() => {
-        const keyword = searchValue.trim().toLowerCase();
-
-        if (!keyword) {
-            return playlists;
-        }
-
-        return playlists.filter((playlist) =>
-            getPlaylistTitle(playlist).toLowerCase().includes(keyword)
-        );
-    }, [playlists, searchValue]);
-
-    const handleToggleMenu = (event) => {
-        event.stopPropagation();
-
-        setIsOpen((current) => !current);
-        setIsPlaylistSubmenuOpen(false);
-        setSearchValue("");
-        setErrorMessage("");
-    };
-
-    const handleAddTrackToPlaylist = async (playlist) => {
-        const playlistId = getPlaylistId(playlist);
-
-        if (!trackId || !playlistId || submittingPlaylistId) {
-            return;
-        }
-
-        setSubmittingPlaylistId(playlistId);
-        setErrorMessage("");
-
-        try {
-            const updatedPlaylist = await addTrackToUserPlaylist(playlistId, trackId);
-
-            onTrackAdded?.(updatedPlaylist, playlist);
-
-            setIsOpen(false);
-            setIsPlaylistSubmenuOpen(false);
-            setSearchValue("");
-        } catch (error) {
-            setErrorMessage(
-                getApiErrorMessage(error, "Không thể thêm bài hát vào playlist.")
-            );
-        } finally {
-            setSubmittingPlaylistId("");
-        }
-    };
-    
     useEffect(() => {
-        if (!isOpen || hasFavoriteProp || !trackId) {
-            return undefined;
-        }
+        if (!isOpen || hasFavoriteProp || !trackId) return undefined;
 
         let isMounted = true;
 
@@ -259,12 +187,64 @@ const TrackTwoLevelMenu = ({
         };
     }, [hasFavoriteProp, isOpen, trackId]);
 
-    const handleToggleFavorite = async () => {
-        if (!trackId || isSubmittingFavorite || isFavoriteStatusLoading) {
-            return;
+    const submenuClassName = `
+        absolute z-[10000] w-[min(22rem,calc(100vw-2rem))]
+        rounded-md border border-[#525252] bg-[#202020] p-1
+        shadow-[0_10px_30px_rgba(0,0,0,0.35)]
+        ${submenuPlacement === "left" ? "bottom-0 right-full mr-1.5" : ""}
+        ${submenuPlacement === "right" ? "bottom-0 left-full ml-1.5" : ""}
+        ${submenuPlacement === "stacked" ? "right-0 top-full mt-2" : ""}
+    `;
+
+    const filteredPlaylists = useMemo(() => {
+        const keyword = searchValue.trim().toLowerCase();
+
+        if (!keyword) return playlists;
+
+        return playlists.filter((playlist) =>
+            getPlaylistTitle(playlist).toLowerCase().includes(keyword)
+        );
+    }, [playlists, searchValue]);
+
+    const handleToggleMenu = (event) => {
+        event.stopPropagation();
+
+        setIsOpen((current) => !current);
+        setIsPlaylistSubmenuOpen(false);
+        setSearchValue("");
+        setErrorMessage("");
+    };
+
+    const handleAddTrackToPlaylist = async (playlist) => {
+        const playlistId = getPlaylistId(playlist);
+
+        if (!trackId || !playlistId || submittingPlaylistId) return;
+
+        setSubmittingPlaylistId(playlistId);
+        setErrorMessage("");
+
+        try {
+            const updatedPlaylist = await addTrackToUserPlaylist(playlistId, trackId);
+
+            onTrackAdded?.(updatedPlaylist, playlist);
+
+            setIsOpen(false);
+            setIsPlaylistSubmenuOpen(false);
+            setSearchValue("");
+        } catch (error) {
+            setErrorMessage(
+                getApiErrorMessage(error, "Không thể thêm bài hát vào playlist.")
+            );
+        } finally {
+            setSubmittingPlaylistId("");
         }
+    };
+
+    const handleToggleFavorite = async () => {
+        if (!trackId || isSubmittingFavorite || isFavoriteStatusLoading) return;
 
         const nextIsFavorite = !resolvedIsFavorite;
+
         setIsSubmittingFavorite(true);
         setErrorMessage("");
 
@@ -278,6 +258,7 @@ const TrackTwoLevelMenu = ({
             }
 
             onFavoriteChanged?.(nextIsFavorite, payload);
+
             setIsOpen(false);
             setIsPlaylistSubmenuOpen(false);
             setSearchValue("");
@@ -296,127 +277,192 @@ const TrackTwoLevelMenu = ({
     };
 
     const favoriteLabel = resolvedIsFavorite
-        ? "Xóa khỏi Bài hát đã thích của bạn"
+        ? "Xóa khỏi Bài hát đã thích"
         : "Thích bài hát";
 
     return (
-        <div ref={menuRef} className="relative flex items-center justify-end">
+        <div ref={ menuRef } className="relative flex items-center justify-end">
             <button
                 type="button"
-                onClick={handleToggleMenu}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[#71717a] transition hover:bg-black/[0.06] hover:text-[#111111] dark:text-[#a1a1aa] dark:hover:bg-white/[0.08] dark:hover:text-white"
-                aria-label="Track options"
-                aria-haspopup="menu"
-                aria-expanded={isOpen}
+                onClick={ handleToggleMenu }
+                className="
+                    inline-flex h-8 w-8 items-center justify-center
+                    rounded-md text-[#8a8a8a]
+                    transition-colors
+                    hover:bg-[#2d2d2d]
+                    hover:text-white
+                "
             >
-                <MoreHorizontal className="h-4.5 w-4.5" />
+                <MoreHorizontal className="h-4 w-4" />
             </button>
 
-            {isOpen ? (
+            { isOpen && (
                 <div
                     className="
-            absolute bottom-full right-0 z-30 mb-2 w-[18rem]
-            overflow-visible rounded-[12px]
-            border border-white/10 bg-[#282828] py-1 text-left
-            shadow-[0_24px_60px_rgba(0,0,0,0.45)]
-          "
-                    role="menu"
-                    aria-label="Track actions"
-                    onClick={(event) => event.stopPropagation()}
+                        absolute bottom-full right-0 z-[9999] mb-1.5
+                        w-56 overflow-visible rounded-md
+                        border border-[#3d3c3c]
+                        bg-[#202020]
+                        p-1 text-[12px]
+                        shadow-[0_10px_30px_rgba(0,0,0,0.35)]
+                    "
+                    onClick={ (event) => event.stopPropagation() }
                 >
                     <button
                         type="button"
-                        onClick={handleToggleFavorite}
-                        disabled={isSubmittingFavorite || isFavoriteStatusLoading || !trackId}
-                        className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-white transition hover:bg-[#3e3e3e] disabled:cursor-not-allowed disabled:opacity-60"
-                        role="menuitem"
+                        onClick={ handleToggleFavorite }
+                        disabled={
+                            isSubmittingFavorite ||
+                            isFavoriteStatusLoading ||
+                            !trackId
+                        }
+                        className="
+                            flex w-full items-center gap-2
+                            rounded-[6px] px-3 py-2
+                            text-left text-[12px] font-normal
+                            text-[#f3f4f6]
+                            transition-all duration-150
+                            hover:bg-[#313131]
+                            disabled:cursor-not-allowed
+                            disabled:opacity-60
+                        "
                     >
-                        {isSubmittingFavorite || isFavoriteStatusLoading ? (
-                            <Loader2 className="h-4.5 w-4.5 shrink-0 animate-spin text-white/72" />
+                        { isSubmittingFavorite || isFavoriteStatusLoading ? (
+                            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[#9ca3af]" />
                         ) : resolvedIsFavorite ? (
-                            <CheckCircle2 className="h-4.5 w-4.5 shrink-0 text-[#22c55e]" />
+                            <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-[#22c55e]" />
                         ) : (
-                            <Heart className="h-4.5 w-4.5 shrink-0 text-white/72" />
-                        )}
-                        {favoriteLabel}
+                            <Heart className="h-3.5 w-3.5 shrink-0 text-[#9ca3af]" />
+                        ) }
+
+                        <span className="truncate">{ favoriteLabel }</span>
                     </button>
 
-                    <div ref={submenuAnchorRef} className="relative">
+                    <div ref={ submenuAnchorRef } className="relative">
                         <button
                             type="button"
-                            onClick={(event) => {
+                            onClick={ (event) => {
                                 event.stopPropagation();
                                 setIsPlaylistSubmenuOpen((current) => !current);
-                            }}
-                            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold text-white transition hover:bg-[#3e3e3e]"
-                            role="menuitem"
+                                setErrorMessage("");
+                            } }
+                            className="
+                                flex w-full items-center justify-between
+                                rounded-[6px]
+                                px-3 py-2
+                                text-left text-[12px] font-normal
+                                text-[#f3f4f6]
+                                transition-all duration-150
+                                hover:bg-[#313131]
+                            "
                         >
-                            <span className="flex items-center gap-3">
-                                <Plus className="h-4.5 w-4.5 shrink-0 text-white/72" />
-                                Thêm vào playlist
+                            <span className="flex min-w-0 items-center gap-2">
+                                <Plus className="h-3.5 w-3.5 shrink-0 text-[#9ca3af]" />
+                                <span className="truncate">Thêm vào playlist</span>
                             </span>
 
-                            <ChevronRight className="h-4 w-4 shrink-0 text-white/72" />
+                            <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[#9ca3af]" />
                         </button>
 
-                        {isPlaylistSubmenuOpen ? (
-                            <div className={submenuClassName}>
-                                <label className="mb-2 flex items-center gap-3 rounded-md bg-[#3a3a3a] px-3 py-2 text-white/72">
-                                    <Search className="h-4 w-4 shrink-0" />
+                        { isPlaylistSubmenuOpen && (
+                            <div className={ submenuClassName }>
+                                <label
+                                    className="
+                                        mb-1 flex items-center gap-2
+                                        rounded-[6px]
+                                        border border-[#4a4a4a]
+                                        bg-[#2a2a2a]
+                                        px-2.5 py-2
+                                        text-[#9ca3af]
+                                    "
+                                >
+                                    <Search className="h-3.5 w-3.5 shrink-0" />
 
                                     <input
                                         type="text"
-                                        value={searchValue}
-                                        onChange={(event) => setSearchValue(event.target.value)}
-                                        placeholder="Tìm playlist"
-                                        className="w-full bg-transparent text-sm text-white placeholder:text-white/55 focus:outline-none"
+                                        value={ searchValue }
+                                        onChange={ (event) =>
+                                            setSearchValue(event.target.value)
+                                        }
+                                        placeholder="Tìm playlist..."
+                                        className="
+                                            w-full bg-transparent
+                                            text-[12px] text-[#f3f4f6]
+                                            placeholder:text-[#8a8a8a]
+                                            outline-none
+                                        "
                                     />
                                 </label>
 
-                                <div className="max-h-64 overflow-y-auto">
-                                    {filteredPlaylists.length > 0 ? (
+                                <div className="max-h-60 space-y-0.5 overflow-y-auto pr-0.5">
+                                    { filteredPlaylists.length > 0 ? (
                                         filteredPlaylists.map((playlist) => {
                                             const playlistId = getPlaylistId(playlist);
-                                            const isSubmitting = submittingPlaylistId === playlistId;
+                                            const isSubmitting =
+                                                submittingPlaylistId === playlistId;
 
                                             return (
                                                 <button
-                                                    key={playlistId}
+                                                    key={ playlistId }
                                                     type="button"
-                                                    onClick={() => handleAddTrackToPlaylist(playlist)}
-                                                    disabled={Boolean(submittingPlaylistId)}
-                                                    className="flex w-full items-center justify-between gap-3 rounded-md px-3 py-3 text-left text-sm font-semibold text-white transition hover:bg-[#3e3e3e] disabled:cursor-not-allowed disabled:opacity-60"
-                                                    role="menuitem"
+                                                    onClick={ () =>
+                                                        handleAddTrackToPlaylist(
+                                                            playlist
+                                                        )
+                                                    }
+                                                    disabled={ Boolean(
+                                                        submittingPlaylistId
+                                                    ) }
+                                                    className="
+                                                        flex w-full items-center justify-between
+                                                        rounded-[6px]
+                                                        px-3 py-2
+                                                        text-left text-[12px] font-normal
+                                                        text-[#f3f4f6]
+                                                        transition-all duration-150
+                                                        hover:bg-[#525252]
+                                                        disabled:pointer-events-none
+                                                        disabled:opacity-50
+                                                    "
                                                 >
                                                     <span className="truncate">
-                                                        {getPlaylistTitle(playlist)}
+                                                        { getPlaylistTitle(playlist) }
                                                     </span>
 
-                                                    {isSubmitting ? (
-                                                        <Loader2 className="h-4 w-4 shrink-0 animate-spin text-white/72" />
+                                                    { isSubmitting ? (
+                                                        <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[#9ca3af]" />
                                                     ) : (
-                                                        <Plus className="h-4 w-4 shrink-0 text-white/72" />
-                                                    )}
+                                                        <Plus className="h-3.5 w-3.5 shrink-0 text-[#9ca3af]" />
+                                                    ) }
                                                 </button>
                                             );
                                         })
                                     ) : (
-                                        <div className="px-3 py-3 text-sm text-white/55">
+                                        <div className="px-3 py-2 text-[12px] text-[#9ca3af]">
                                             Không có playlist phù hợp.
                                         </div>
-                                    )}
+                                    ) }
                                 </div>
                             </div>
-                        ) : null}
+                        ) }
                     </div>
 
-                    {errorMessage ? (
-                        <div className="mx-2 my-2 rounded-md border border-[#ef4444]/20 bg-[#ef4444]/10 px-3 py-2 text-sm text-[#fecaca]">
-                            {errorMessage}
+                    { errorMessage && (
+                        <div
+                            className="
+                                mt-1 rounded-[6px]
+                                border border-red-500/20
+                                bg-red-500/10
+                                px-3 py-2
+                                text-[11px] leading-4
+                                text-red-300
+                            "
+                        >
+                            { errorMessage }
                         </div>
-                    ) : null}
+                    ) }
                 </div>
-            ) : null}
+            ) }
         </div>
     );
 };

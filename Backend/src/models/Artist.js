@@ -35,6 +35,12 @@ const ArtistSchema = new Schema(
             totalWithdrawnAmount: Number,
             availableAmount: Number,
             pendingPayoutAmount: Number,
+            confirmedRevenueSummaryIds: [
+                {
+                    type: Schema.Types.ObjectId,
+                    ref: "ArtistRevenueSummary",
+                },
+            ],
         },
 
         activeStatus: {
