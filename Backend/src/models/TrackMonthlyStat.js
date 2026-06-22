@@ -9,6 +9,7 @@ const TrackMonthlyStatSchema = new Schema(
         month: { type: Number, required: true, min: 1, max: 12 },
         playCount: { type: Number, default: 0, min: 0 },
         uniqueListeners: { type: Number, default: 0, min: 0 },
+        revenueAmount: { type: Number, default: 0, min: 0 },
         revenue: {
             eligibleStreams: { type: Number, default: 0, min: 0 },
             grossRevenueAmount: { type: Number, default: 0, min: 0 },

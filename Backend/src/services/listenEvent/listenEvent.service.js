@@ -10,9 +10,17 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 
 export const VALID_STREAM_COUNT_KEY_PREFIX = "valid_stream_count";
-export const VALID_STREAM_EVENT_STREAM_KEY = "listen_event_stream";
+export const VALID_STREAM_EVENT_QUEUE_KEY = "listen_event_queue";
 export const VALID_STREAM_COUNT_TTL_SECONDS = 48 * 60 * 60;
 export const SKIP_LISTEN_PERCENT_THRESHOLD = 15;
+export const LISTEN_EVENT_SOURCE_ENUM = [
+    "track_detail",
+    "album",
+    "playlist",
+    "search",
+    "artist_profile",
+    "unknown",
+];
 
 const MAX_LISTEN_DURATION_BUFFER_SECONDS = 30;
 const MIN_LISTEN_DURATION_BUFFER_SECONDS = 5;
@@ -58,6 +66,13 @@ const parsePositiveInteger = (value, fallback = 0) => {
     return Number.isFinite(parsedValue) && parsedValue >= 0 ? parsedValue : fallback;
 };
 
+export const normalizeListenEventSource = (value) => {
+    const normalizedValue = typeof value === "string" ? value.trim() : "";
+    return LISTEN_EVENT_SOURCE_ENUM.includes(normalizedValue)
+        ? normalizedValue
+        : "unknown";
+};
+
 const buildQueuedEventPayload = ({
     userId,
     trackId,
@@ -89,7 +104,7 @@ const buildQueuedEventPayload = ({
         isValidStream: String(Boolean(isValidStream)),
         device: device || "",
         country: country || "",
-        source: source || "unknown",
+        source: normalizeListenEventSource(source),
     };
 
     if (Number.isFinite(dailyListenOrder) && dailyListenOrder > 0) {
@@ -106,7 +121,10 @@ const buildQueuedEventPayload = ({
 const queueListenEventInRedis = async (payload) => {
     ensureRedisReady();
 
-    await redisClient.xAdd(VALID_STREAM_EVENT_STREAM_KEY, "*", payload);
+    await redisClient.rPush(
+        VALID_STREAM_EVENT_QUEUE_KEY,
+        JSON.stringify(payload)
+    );
 };
 
 const queueSkippedListenInRedis = async ({
@@ -195,7 +213,10 @@ const queueValidStreamInRedis = async ({
 
             const transactionResult = await isolatedClient
                 .multi()
-                .xAdd(VALID_STREAM_EVENT_STREAM_KEY, "*", queuedEventPayload)
+                .rPush(
+                    VALID_STREAM_EVENT_QUEUE_KEY,
+                    JSON.stringify(queuedEventPayload)
+                )
                 .incr(countKey)
                 .expire(countKey, VALID_STREAM_COUNT_TTL_SECONDS)
                 .exec();
@@ -205,7 +226,7 @@ const queueValidStreamInRedis = async ({
                     isValidStream: true,
                     dailyListenOrder,
                     requiredPercent,
-                    streamEntryId: transactionResult[0],
+                    queuedCount: transactionResult[0],
                 };
             }
         }
@@ -343,4 +364,6 @@ export default {
     buildValidStreamCountKey,
     resolveRequiredPercent,
     SKIP_LISTEN_PERCENT_THRESHOLD,
+    VALID_STREAM_EVENT_QUEUE_KEY,
+    normalizeListenEventSource,
 };

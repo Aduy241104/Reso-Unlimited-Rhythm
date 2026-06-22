@@ -250,7 +250,7 @@ const fetchTrackMonthlyStats = async ({ trackId, year }) => {
 
     return TrackMonthlyStat.find(query)
         .sort({ year: 1, month: 1, _id: 1 })
-        .select("year month playCount uniqueListeners revenue updatedAt")
+        .select("year month playCount uniqueListeners revenue revenueAmount updatedAt")
         .lean();
 };
 
@@ -366,15 +366,15 @@ export const fillMissingMonthlyStats = (stats = [], year) => {
         const month = index + 1;
         const stat = statMap.get(month);
         const revenue = stat?.revenue || {};
+        const artistRevenueAmount =
+            revenue.artistRevenueAmount || stat?.revenueAmount || 0;
 
         return {
             month,
             playCount: Number(stat?.playCount || 0),
             uniqueListeners: Number(stat?.uniqueListeners || 0),
             eligibleStreams: Number(revenue.eligibleStreams || 0),
-            artistRevenueAmount: roundToTwoDecimals(
-                Number(revenue.artistRevenueAmount || 0)
-            ),
+            artistRevenueAmount: roundToTwoDecimals(Number(artistRevenueAmount)),
             year,
         };
     }).map(({ year: _year, ...rest }) => rest);
@@ -397,6 +397,8 @@ export const fillRecentMonthlyChartStats = (stats = [], maxMonths = 12) => {
         const monthKey = `${year}-${String(month).padStart(2, "0")}`;
         const stat = statMap.get(monthKey);
         const revenue = stat?.revenue || {};
+        const artistRevenueAmount =
+            revenue.artistRevenueAmount || stat?.revenueAmount || 0;
 
         filledStats.push({
             month: monthKey,
@@ -405,9 +407,7 @@ export const fillRecentMonthlyChartStats = (stats = [], maxMonths = 12) => {
             playCount: Number(stat?.playCount || 0),
             uniqueListeners: Number(stat?.uniqueListeners || 0),
             eligibleStreams: Number(revenue.eligibleStreams || 0),
-            artistRevenueAmount: roundToTwoDecimals(
-                Number(revenue.artistRevenueAmount || 0)
-            ),
+            artistRevenueAmount: roundToTwoDecimals(Number(artistRevenueAmount)),
         });
 
         currentMonth = currentMonth.add(1, "month");

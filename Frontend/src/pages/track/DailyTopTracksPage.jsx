@@ -18,6 +18,7 @@ import {
   formatTrackDuration,
 } from "../../utils/albumDetail";
 import { getApiErrorMessage } from "../../utils/apiError";
+import TrackTwoLevelMenu from "../../components/trackMenu/TrackTwoLevelMenu";
 
 const DAILY_TOP_TRACK_LIMIT = 30;
 
@@ -390,8 +391,8 @@ const DailyTopTracksPage = () => {
           { durationLabel }
         </div>
 
-        <div className="hidden items-center justify-end text-white/46 sm:flex">
-          <MoreHorizontal className="h-3.5 w-3.5" />
+        <div className="hidden items-center justify-end sm:flex">
+          { track.id ? <TrackTwoLevelMenu trackId={ track.id } /> : null }
         </div>
       </div>
     );
@@ -494,7 +495,7 @@ const DailyTopTracksPage = () => {
             emptyMessage="Chưa có dữ liệu top bài hát cho ngày này."
             hasItems={ dailyTopTracks.length > 0 }
             loadingClassName="rounded-[24px] border-white/[0.06] bg-transparent text-white/58"
-            containerClassName="overflow-hidden rounded-[24px] border-white/[0.06] bg-transparent !p-0 shadow-none sm:!p-0"
+            containerClassName="overflow-visible rounded-[24px] border-white/[0.06] bg-transparent !p-0 shadow-none sm:!p-0"
             mobileLabelClassName="px-4 pt-4 text-white/36"
             emptyMessageClassName="px-4 py-6 text-white/52"
           >

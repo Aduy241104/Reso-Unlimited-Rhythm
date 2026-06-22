@@ -31,6 +31,10 @@ export const routePaths = {
   withdrawals: "/withdrawals",
   withdrawalRequestDetail: (withdrawalRequestId = ":id") =>
     `/withdrawal-requests/${withdrawalRequestId}`,
+  revenuePeriodDetail: (periodId = ":periodId") => `/revenue/history/${periodId}`,
+  revenueSharingHistory: "/revenue-sharing",
+  revenueSharingDetail: (periodId = ":periodId") =>
+    `/revenue-sharing/${periodId}`,
   reports: "/reports",
   reportDetail: (reportId = ":reportId") => `/reports/${reportId}`,
 };

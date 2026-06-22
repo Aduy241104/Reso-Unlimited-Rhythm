@@ -1,13 +1,23 @@
-export const STATUS_CONFIG = {
+﻿export const STATUS_CONFIG = {
   open: {
     label: "Kỳ đang mở",
     tone: "bg-violet-50 text-violet-700 border-violet-200",
     helper: "Doanh thu vẫn đang phát sinh trong kỳ này.",
   },
+  closed: {
+    label: "Đã đóng kỳ",
+    tone: "bg-amber-50 text-amber-700 border-amber-200",
+    helper: "Kỳ doanh thu đã đóng và chờ bước tính toán tiếp theo.",
+  },
   calculated: {
     label: "Đã tính doanh thu",
     tone: "bg-violet-50 text-violet-700 border-violet-200",
     helper: "Số liệu đã được tổng hợp và có thể đối soát.",
+  },
+  confirmed: {
+    label: "Đã xác nhận",
+    tone: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    helper: "Kỳ doanh thu đã được xác nhận.",
   },
   paid: {
     label: "Đã chi trả",
