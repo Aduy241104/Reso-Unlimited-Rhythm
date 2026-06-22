@@ -106,3 +106,5 @@ export const MetricDeltaPill = ({ delta }) => {
     </span>
   );
 };
+
+export default DashboardCard;
