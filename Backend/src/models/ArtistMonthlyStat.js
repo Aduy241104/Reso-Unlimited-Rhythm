@@ -10,6 +10,11 @@ const ArtistMonthlyStatSchema = new Schema(
         newFollowers: { type: Number, default: 0, min: 0 },
         totalFollowers: { type: Number, default: 0, min: 0 },
         totalStreams: { type: Number, default: 0, min: 0 },
+        revenueAmount: {
+            type: Number,
+            default: 0,
+            min: 0,
+        }
     },
     { timestamps: true }
 );

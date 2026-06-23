@@ -416,6 +416,11 @@ const updateTrackVisibility = async (
         track.hiddenReason = "";
         track.blockedReason = "";
         track.hiddenAt = null;
+    } else if (payload.action === "block") {
+        track.activeStatus = "blocked";
+        track.blockedReason = (payload.blockedReason || payload.adminNote || "Blocked by administrator.").trim();
+        track.hiddenReason = "";
+        track.hiddenAt = null;
     } else {
         throw new AppError("Invalid action.", 400, { field: "action" });
     }

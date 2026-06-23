@@ -12,9 +12,13 @@ import GenresListPage from "../pages/systemGenres/GenresListPage";
 import CreateGenrePage from "../pages/systemGenres/CreateGenrePage";
 import EditGenrePage from "../pages/systemGenres/EditGenrePage";
 import HomePage from "../pages/dashboard/DashboardPage";
-import RevenueManagementPage from "../pages/revenue/RevenueManagementPage";
+import RevenueManagementUnifiedPage from "../pages/revenue/RevenueManagementUnifiedPage";
 import RevenueHistoryPage from "../pages/revenue/RevenueHistoryPage";
 import RevenuePeriodDetailPage from "../pages/revenue/RevenuePeriodDetailPage";
+import AdminWithdrawalRequestsPage from "../pages/withdrawals/AdminWithdrawalRequestsPage";
+import WithdrawalRequestDetailPage from "../pages/withdrawals/WithdrawalRequestDetailPage";
+import RevenueSharingHistoryPage from "../pages/revenue/RevenueSharingHistoryPage";
+import RevenueSharingWorkflowDetailPage from "../pages/revenue/RevenueSharingWorkflowDetailPage";
 import UsersListPage from "../pages/users/UsersListPage";
 import UserDetailPage from "../pages/users/UserDetailPage";
 import ArtistRequestsListPage from "../pages/artistRequests/ArtistRequestsListPage";
@@ -29,6 +33,10 @@ import NotificationDetailPage from "../pages/notification/NotificationDetailPage
 import NotificationEditPage from "../pages/notification/NotificationUpdatePage";
 import ReportsListPage from "../pages/reports/ReportsListPage";
 import ReportDetailPage from "../pages/reports/ReportDetailPage";
+import SubscriptionPlansPage from "../pages/subscriptions/SubscriptionPlansPage";
+import SubscriptionPlanDetailPage from "../pages/subscriptions/SubscriptionPlanDetailPage";
+import CreateSubscriptionPlanPage from "../pages/subscriptions/CreateSubscriptionPlanPage";
+import EditSubscriptionPlanPage from "../pages/subscriptions/EditSubscriptionPlanPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import RoleRoute from "./RoleRoute";
@@ -73,15 +81,29 @@ export const appRoutes = [
               },
               {
                 path: "revenue",
-                element: <RevenueManagementPage />,
+                element: <RevenueManagementUnifiedPage />,
               },
               {
                 path: "revenue/history",
                 element: <RevenueHistoryPage />,
               },
               {
-                path: "revenue/history/:year/:month",
+                path: "revenue/history/:periodId",
                 element: <RevenuePeriodDetailPage />,
+              },
+              {
+                path: "withdrawals",
+                element: <AdminWithdrawalRequestsPage />,
+              },
+              {
+                path: "withdrawal-requests/:id",
+                element: <WithdrawalRequestDetailPage />,
+                path: "revenue-sharing",
+                element: <RevenueSharingHistoryPage />,
+              },
+              {
+                path: "revenue-sharing/:periodId",
+                element: <RevenueSharingWorkflowDetailPage />,
               },
               {
                 path: "users",
@@ -158,6 +180,22 @@ export const appRoutes = [
               {
                 path: "reports/:reportId",
                 element: <ReportDetailPage />,
+              },
+              {
+                path: "subscriptions",
+                element: <SubscriptionPlansPage />,
+              },
+              {
+                path: "subscriptions/new",
+                element: <CreateSubscriptionPlanPage />,
+              },
+              {
+                path: "subscriptions/:planId",
+                element: <SubscriptionPlanDetailPage />,
+              },
+              {
+                path: "subscriptions/:planId/edit",
+                element: <EditSubscriptionPlanPage />,
               },
             ],
           },
