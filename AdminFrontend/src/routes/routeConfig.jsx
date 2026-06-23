@@ -15,6 +15,8 @@ import HomePage from "../pages/dashboard/DashboardPage";
 import RevenueManagementUnifiedPage from "../pages/revenue/RevenueManagementUnifiedPage";
 import RevenueHistoryPage from "../pages/revenue/RevenueHistoryPage";
 import RevenuePeriodDetailPage from "../pages/revenue/RevenuePeriodDetailPage";
+import AdminWithdrawalRequestsPage from "../pages/withdrawals/AdminWithdrawalRequestsPage";
+import WithdrawalRequestDetailPage from "../pages/withdrawals/WithdrawalRequestDetailPage";
 import RevenueSharingHistoryPage from "../pages/revenue/RevenueSharingHistoryPage";
 import RevenueSharingWorkflowDetailPage from "../pages/revenue/RevenueSharingWorkflowDetailPage";
 import UsersListPage from "../pages/users/UsersListPage";
@@ -90,6 +92,12 @@ export const appRoutes = [
                 element: <RevenuePeriodDetailPage />,
               },
               {
+                path: "withdrawals",
+                element: <AdminWithdrawalRequestsPage />,
+              },
+              {
+                path: "withdrawal-requests/:id",
+                element: <WithdrawalRequestDetailPage />,
                 path: "revenue-sharing",
                 element: <RevenueSharingHistoryPage />,
               },

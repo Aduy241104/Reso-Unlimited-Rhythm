@@ -26,6 +26,11 @@ export const routePaths = {
   notificationEdit: (notificationId = ":id") => `/notifications/${notificationId}/edit`,
   revenue: "/revenue",
   revenueHistory: "/revenue/history",
+  revenuePeriodDetail: (year = ":year", month = ":month") =>
+    `/revenue/history/${year}/${month}`,
+  withdrawals: "/withdrawals",
+  withdrawalRequestDetail: (withdrawalRequestId = ":id") =>
+    `/withdrawal-requests/${withdrawalRequestId}`,
   revenuePeriodDetail: (periodId = ":periodId") => `/revenue/history/${periodId}`,
   revenueSharingHistory: "/revenue-sharing",
   revenueSharingDetail: (periodId = ":periodId") =>
