@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { Bell, Menu, Search, X } from "lucide-react";
 import { getMyArtistProfileService } from "../../services/artistService";
 import { routePaths } from "../../routes/routePaths";
-import { artistNavigation, artistProfile } from "./navigation";
+import { artistNavigation, artistProfile } from "./navigationConfig";
 
 const SIDEBAR_WIDTH = "264px";
 
