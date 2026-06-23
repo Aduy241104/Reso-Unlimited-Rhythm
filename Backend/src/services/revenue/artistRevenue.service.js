@@ -7,6 +7,10 @@ import RevenuePeriod from "../../models/RevenuePeriod.js";
 import TrackMonthlyStat from "../../models/TrackMonthlyStat.js";
 import { normalizePositiveInteger } from "../Playlist/playlist.helper.js";
 import { AppError } from "../../utils/AppError.js";
+import {
+    ARTIST_REVENUE_SHARE_PERCENT,
+    ARTIST_REVENUE_SHARE_RATIO,
+} from "../../helpers/revenuePeriod.helper.js";
 
 const MONTH_CHART_LENGTH = 12;
 const DEFAULT_PAGE = 1;
@@ -25,6 +29,30 @@ const toId = (value) => {
 
 const buildPeriodLabel = (year, month) =>
     `${String(month).padStart(2, "0")}/${year}`;
+
+const resolveTrackArtistRevenueAmount = (track = {}) =>
+    roundCurrency(
+        track.artistRevenueAmount ||
+            track.revenueAmount ||
+            track.legacyRevenueAmount
+    );
+
+const resolveTrackGrossRevenueAmount = (track = {}) => {
+    const artistRevenueAmount = resolveTrackArtistRevenueAmount(track);
+
+    if (artistRevenueAmount <= 0 || ARTIST_REVENUE_SHARE_RATIO <= 0) {
+        return 0;
+    }
+
+    return roundCurrency(artistRevenueAmount / ARTIST_REVENUE_SHARE_RATIO);
+};
+
+const resolveTrackPlatformRevenueAmount = (track = {}) => {
+    const grossRevenueAmount = resolveTrackGrossRevenueAmount(track);
+    const artistRevenueAmount = resolveTrackArtistRevenueAmount(track);
+
+    return roundCurrency(grossRevenueAmount - artistRevenueAmount);
+};
 
 const resolveOwnedArtistProfile = async (userId) => {
     const artist = await Artist.findOne({ userId }).select("_id").lean();
@@ -114,16 +142,15 @@ const buildTrackRevenueAggregationPipeline = ({
         {
             $addFields: {
                 artistRevenueAmount: {
-                    $ifNull: ["$revenue.artistRevenueAmount", "$revenueAmount"],
+                    $ifNull: [
+                        "$revenue.artistRevenueAmount",
+                        {
+                            $ifNull: ["$revenue.revenueAmount", "$revenueAmount"],
+                        },
+                    ],
                 },
-                grossRevenueAmount: {
-                    $ifNull: ["$revenue.grossRevenueAmount", "$revenueAmount"],
-                },
-                platformRevenueAmount: {
-                    $ifNull: ["$revenue.platformRevenueAmount", 0],
-                },
-                revenueSharePercent: {
-                    $ifNull: ["$revenue.revenueSharePercent", 0],
+                revenueAmount: {
+                    $ifNull: ["$revenue.revenueAmount", "$revenueAmount"],
                 },
                 eligibleStreams: {
                     $ifNull: ["$revenue.eligibleStreams", 0],
@@ -169,9 +196,8 @@ const buildTrackRevenueAggregationPipeline = ({
                 activeStatus: "$track.activeStatus",
                 approvalStatus: "$track.approvalStatus",
                 artistRevenueAmount: 1,
-                grossRevenueAmount: 1,
-                platformRevenueAmount: 1,
-                revenueSharePercent: 1,
+                revenueAmount: 1,
+                legacyRevenueAmount: "$revenueAmount",
                 eligibleStreams: 1,
                 revenueCalculatedAt: 1,
                 playCount: 1,
@@ -495,10 +521,15 @@ const getArtistRevenuePeriodDetail = async (userId, artistRevenueSummaryId) => {
             releaseDate: track.releaseDate || null,
             activeStatus: track.activeStatus || null,
             approvalStatus: track.approvalStatus || null,
-            artistRevenueAmount: roundCurrency(track.artistRevenueAmount),
-            grossRevenueAmount: roundCurrency(track.grossRevenueAmount),
-            platformRevenueAmount: roundCurrency(track.platformRevenueAmount),
-            revenueSharePercent: Number(track.revenueSharePercent || 0),
+            artistRevenueAmount: resolveTrackArtistRevenueAmount(track),
+            grossRevenueAmount: resolveTrackGrossRevenueAmount(track),
+            platformRevenueAmount: resolveTrackPlatformRevenueAmount(track),
+            revenueSharePercent:
+                track.artistRevenueAmount ||
+                track.revenueAmount ||
+                track.legacyRevenueAmount
+                    ? ARTIST_REVENUE_SHARE_PERCENT
+                    : 0,
             eligibleStreams: Number(track.eligibleStreams || 0),
             playCount: Number(track.playCount || 0),
             uniqueListeners: Number(track.uniqueListeners || 0),
