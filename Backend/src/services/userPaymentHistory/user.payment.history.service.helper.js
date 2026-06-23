@@ -27,12 +27,24 @@ const countPaymentHistoryByUserId = async (filter) => {
     return await Transaction.countDocuments(filter);
 };
 
+const findPaymentDetailByUserId = async (userId, paymentId) => {
+    return await Transaction.findOne({
+        _id: paymentId,
+        userId,
+    })
+        .populate("planId", "name title price amount")
+        .populate("subscriptionId", "status startDate endDate autoRenew")
+        .lean();
+};
+
 export {
     findPaymentHistoryByUserId,
     countPaymentHistoryByUserId,
+    findPaymentDetailByUserId,
 };
 
 export default {
     findPaymentHistoryByUserId,
     countPaymentHistoryByUserId,
+    findPaymentDetailByUserId,
 };

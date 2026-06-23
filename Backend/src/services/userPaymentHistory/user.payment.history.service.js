@@ -1,6 +1,9 @@
-﻿import { AppError } from "../../utils/AppError.js";
+﻿import mongoose from "mongoose";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { AppError } from "../../utils/AppError.js";
 import {
     countPaymentHistoryByUserId,
+    findPaymentDetailByUserId,
     findPaymentHistoryByUserId,
 } from "./user.payment.history.service.helper.js";
 
@@ -41,6 +44,22 @@ const normalizeEnumFilter = (value, allowedValues, field) => {
     }
 
     return normalizedValue;
+};
+
+const formatMoney = (amount, currency = "VND") => {
+    return `${new Intl.NumberFormat("vi-VN").format(Number(amount || 0))} ${currency}`;
+};
+
+const formatDate = (dateValue) => {
+    if (!dateValue) {
+        return "--";
+    }
+
+    return new Intl.DateTimeFormat("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+    }).format(new Date(dateValue));
 };
 
 const buildPaymentHistoryFilter = (userId, query = {}) => {
@@ -129,6 +148,207 @@ const formatTransactionItem = (transaction) => {
     };
 };
 
+const formatPaymentDetail = (payment) => {
+    const plan = payment.planId;
+    const subscription = payment.subscriptionId;
+    const planName =
+        payment.planName ||
+        payment.planId?.name ||
+        payment.planId?.title ||
+        "Premium";
+
+    return {
+        id: payment._id?.toString?.() || "",
+        invoiceNumber: payment.invoiceNumber || "",
+        gatewayTransactionId: payment.gatewayTransactionId || "",
+        planName,
+        amount: Number(payment.amount || 0),
+        tax: Number(payment.tax || 0),
+        totalAmount: Number(payment.totalAmount || 0),
+        currency: payment.currency || "VND",
+        paymentMethod: payment.paymentMethod || "",
+        paymentGateway: payment.paymentGateway || "",
+        status: payment.status || "",
+        failureReason: payment.failureReason || "",
+        paidAt: payment.paidAt || null,
+        createdAt: payment.createdAt || null,
+        updatedAt: payment.updatedAt || null,
+        plan: plan
+            ? {
+                id: plan._id?.toString?.() || "",
+                name: plan.name || plan.title || "",
+                price: Number(plan.price ?? plan.amount ?? 0),
+            }
+            : null,
+        subscription: subscription
+            ? {
+                id: subscription._id?.toString?.() || "",
+                status: subscription.status || "",
+                startDate: subscription.startDate || null,
+                endDate: subscription.endDate || null,
+                autoRenew: Boolean(subscription.autoRenew),
+            }
+            : null,
+    };
+};
+
+const createPaymentReceiptPdf = async (payment) => {
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([595.28, 841.89]);
+
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+    const { width, height } = page.getSize();
+
+    page.drawText("Reso", {
+        x: 50,
+        y: height - 60,
+        size: 22,
+        font: boldFont,
+        color: rgb(0, 0, 0),
+    });
+
+    page.drawText("Payment Receipt", {
+        x: 50,
+        y: height - 110,
+        size: 30,
+        font: boldFont,
+        color: rgb(0, 0, 0),
+    });
+
+    page.drawText("Invoice number", {
+        x: 50,
+        y: height - 160,
+        size: 10,
+        font: boldFont,
+        color: rgb(0.35, 0.35, 0.35),
+    });
+
+    page.drawText(payment.invoiceNumber || "--", {
+        x: 50,
+        y: height - 178,
+        size: 12,
+        font,
+        color: rgb(0, 0, 0),
+    });
+
+    page.drawText("Date", {
+        x: 360,
+        y: height - 160,
+        size: 10,
+        font: boldFont,
+        color: rgb(0.35, 0.35, 0.35),
+    });
+
+    page.drawText(formatDate(payment.paidAt || payment.createdAt), {
+        x: 360,
+        y: height - 178,
+        size: 12,
+        font,
+        color: rgb(0, 0, 0),
+    });
+
+    page.drawRectangle({
+        x: 50,
+        y: height - 320,
+        width: width - 100,
+        height: 95,
+        color: rgb(0.94, 0.94, 0.94),
+    });
+
+    page.drawText("Item", {
+        x: 70,
+        y: height - 250,
+        size: 10,
+        font: boldFont,
+        color: rgb(0.35, 0.35, 0.35),
+    });
+
+    page.drawText(payment.planName || "Premium", {
+        x: 70,
+        y: height - 275,
+        size: 13,
+        font,
+        color: rgb(0, 0, 0),
+    });
+
+    page.drawText(formatMoney(payment.amount, payment.currency), {
+        x: 390,
+        y: height - 275,
+        size: 13,
+        font,
+        color: rgb(0, 0, 0),
+    });
+
+    page.drawText("Total including tax", {
+        x: 70,
+        y: height - 350,
+        size: 14,
+        font: boldFont,
+        color: rgb(0, 0, 0),
+    });
+
+    page.drawText(formatMoney(payment.totalAmount || payment.amount, payment.currency), {
+        x: 390,
+        y: height - 350,
+        size: 14,
+        font: boldFont,
+        color: rgb(0, 0, 0),
+    });
+
+    page.drawRectangle({
+        x: 50,
+        y: height - 470,
+        width: width - 100,
+        height: 80,
+        color: rgb(0.88, 0.88, 0.88),
+    });
+
+    page.drawText("Tax", {
+        x: 70,
+        y: height - 420,
+        size: 11,
+        font,
+        color: rgb(0, 0, 0),
+    });
+
+    page.drawText(formatMoney(payment.tax, payment.currency), {
+        x: 390,
+        y: height - 420,
+        size: 11,
+        font,
+        color: rgb(0, 0, 0),
+    });
+
+    page.drawText("Payment method", {
+        x: 70,
+        y: height - 445,
+        size: 11,
+        font,
+        color: rgb(0, 0, 0),
+    });
+
+    page.drawText(payment.paymentMethod || payment.paymentGateway || "--", {
+        x: 390,
+        y: height - 445,
+        size: 11,
+        font,
+        color: rgb(0, 0, 0),
+    });
+
+    page.drawText("This receipt was generated automatically by the system.", {
+        x: 50,
+        y: 60,
+        size: 10,
+        font,
+        color: rgb(0.35, 0.35, 0.35),
+    });
+
+    const pdfBytes = await pdfDoc.save();
+    return Buffer.from(pdfBytes);
+};
+
 const getMyPaymentHistory = async (userId, query = {}) => {
     if (!userId) {
         throw new AppError("Unauthorized.", 401);
@@ -156,8 +376,47 @@ const getMyPaymentHistory = async (userId, query = {}) => {
     };
 };
 
-export { getMyPaymentHistory };
+const getPaymentDetail = async (userId, paymentId) => {
+    if (!userId) {
+        throw new AppError("Unauthorized.", 401);
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(paymentId)) {
+        throw new AppError("Payment id is invalid.", 400);
+    }
+
+    const payment = await findPaymentDetailByUserId(userId, paymentId);
+
+    if (!payment) {
+        throw new AppError("Payment not found.", 404);
+    }
+
+    return formatPaymentDetail(payment);
+};
+
+const getPaymentReceiptPdf = async (userId, paymentId) => {
+    if (!userId) {
+        throw new AppError("Unauthorized.", 401);
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(paymentId)) {
+        throw new AppError("Payment id is invalid.", 400);
+    }
+
+    const payment = await findPaymentDetailByUserId(userId, paymentId);
+
+    if (!payment) {
+        throw new AppError("Payment not found.", 404);
+    }
+
+    const formattedPayment = formatPaymentDetail(payment);
+    return await createPaymentReceiptPdf(formattedPayment);
+};
+
+export { getMyPaymentHistory, getPaymentDetail, getPaymentReceiptPdf };
 
 export default {
     getMyPaymentHistory,
+    getPaymentDetail,
+    getPaymentReceiptPdf,
 };

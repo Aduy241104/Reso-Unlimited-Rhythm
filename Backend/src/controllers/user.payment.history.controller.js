@@ -25,8 +25,52 @@ const getMyPaymentHistory = async (req, res, next) => {
     }
 };
 
-export { getMyPaymentHistory };
+const getPaymentDetail = async (req, res, next) => {
+    try {
+        const userId = req.user?.id || req.user?._id;
+        const paymentId = req.params.paymentId;
+
+        const result = await userPaymentHistoryService.getPaymentDetail(
+            userId,
+            paymentId
+        );
+
+        return formatResponse.success(
+            res,
+            result,
+            "Get payment detail successfully."
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+const getPaymentReceiptPdf = async (req, res, next) => {
+    try {
+        const userId = req.user?.id || req.user?._id;
+        const paymentId = req.params.paymentId;
+
+        const pdfBuffer = await userPaymentHistoryService.getPaymentReceiptPdf(
+            userId,
+            paymentId
+        );
+
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader(
+            "Content-Disposition",
+            `inline; filename="receipt-${paymentId}.pdf"`
+        );
+
+        return res.send(pdfBuffer);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export { getMyPaymentHistory, getPaymentDetail, getPaymentReceiptPdf };
 
 export default {
     getMyPaymentHistory,
+    getPaymentDetail,
+    getPaymentReceiptPdf,
 };

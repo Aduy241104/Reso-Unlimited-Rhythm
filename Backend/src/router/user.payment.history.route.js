@@ -4,6 +4,16 @@ import authenticate from "../middlewares/Authentication/authentication.middlewar
 
 const router = express.Router();
 
-router.get("/",authenticate(),userPaymentHistoryController.getMyPaymentHistory);
+router.get("/", authenticate(), userPaymentHistoryController.getMyPaymentHistory);
+router.get(
+    "/:paymentId/receipt",
+    authenticate(),
+    userPaymentHistoryController.getPaymentReceiptPdf
+);
+router.get(
+    "/:paymentId",
+    authenticate(),
+    userPaymentHistoryController.getPaymentDetail
+);
 
 export default router;
