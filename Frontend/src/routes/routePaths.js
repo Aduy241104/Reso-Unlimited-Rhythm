@@ -40,6 +40,8 @@
   artistNotifications: "/artist/notifications",
   artistNotificationDetail: (notificationId = ":id") => `/artist/notifications/${notificationId}`,
   artistRoyalties: "/artist/royalties",
+  artistRevenueHistory: "/artist/royalties/history",
+  artistRevenuePeriodDetail: (periodId = ":id") => `/artist/royalties/history/${periodId}`,
   artistSettings: "/artist/settings",
   artistProfile: "/artist/profile",
   artistProfileEdit: "/artist/profile/edit",
