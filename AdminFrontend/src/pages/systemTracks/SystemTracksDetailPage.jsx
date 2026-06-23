@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
     getAdminTrackDetailService,
@@ -92,7 +92,7 @@ const TrackDetailPage = () => {
     const [error, setError] = useState("");
 
     // States quản lý Modal tác vụ điều hướng đồng bộ
-    const [modalType, setModalType] = useState(null); // 'approve' | 'reject' | 'hide' | 'block'
+    const [modalType, setModalType] = useState(null); // 'approve' | 'reject' | 'hide' | 'unhide' | 'block'
     const [isActionLoading, setIsActionLoading] = useState(false);
     const [adminNote, setAdminNote] = useState("");
     const [violationFlags, setViolationFlags] = useState([]);
@@ -153,6 +153,21 @@ const TrackDetailPage = () => {
                 });
                 if (updatedTrack) setTrack(updatedTrack);
             } 
+            else if (modalType === "unhide") {
+                const updatedTrack = await updateAdminTrackVisibilityService(id, {
+                    action: "unhide",
+                    adminNote
+                });
+                if (updatedTrack) {
+                    setTrack((current) => ({
+                        ...current,
+                        ...updatedTrack,
+                        activeStatus: "active",
+                        hiddenReason: "",
+                        hiddenAt: null
+                    }));
+                }
+            }
             else if (modalType === "block") {
                 const selectedLabels = violationFlags.map(f => VIOLATION_OPTIONS.find(o => o.value === f)?.label || f);
                 const combinedBlockedReason = selectedLabels.length > 0 
@@ -179,6 +194,13 @@ const TrackDetailPage = () => {
         setViolationFlags([]);
         setHideReasons([]);
     };
+
+    const isPendingApproval = track?.approvalStatus === "pending";
+    const isApproved = track?.approvalStatus === "approved";
+    const isRejected = track?.approvalStatus === "rejected";
+    const isActive = track?.activeStatus === "active";
+    const isHidden = track?.activeStatus === "hidden";
+    const isBlocked = track?.activeStatus === "blocked";
 
     if (isLoading) {
         return <div className="p-8 text-center text-xs font-bold font-mono text-slate-500 uppercase tracking-wider">Fetching full track context...</div>;
@@ -229,38 +251,74 @@ const TrackDetailPage = () => {
                     
                     {/* HỆ THỐNG NÚT BẤM ĐIỀU HƯỚNG SANG MODAL XỬ LÝ (BO GÓC X-LARGE) */}
                     <div className="flex flex-wrap gap-2">
-                        <button
-                            type="button"
-                            disabled={track.approvalStatus === "approved"}
-                            onClick={() => openModerationModal("approve")}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 text-xs font-semibold rounded-xl shadow-sm transition disabled:opacity-40"
-                        >
-                            Approve (Duyệt)
-                        </button>
-                        <button
-                            type="button"
-                            disabled={track.approvalStatus === "rejected"}
-                            onClick={() => openModerationModal("reject")}
-                            className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 text-xs font-semibold rounded-xl shadow-sm transition disabled:opacity-40"
-                        >
-                            Reject (Từ chối)
-                        </button>
-                        <button
-                            type="button"
-                            disabled={track.activeStatus === "hidden"}
-                            onClick={() => openModerationModal("hide")}
-                            className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 text-xs font-semibold rounded-xl shadow-sm transition disabled:opacity-40"
-                        >
-                            Hide (Tạm ẩn)
-                        </button>
-                        <button
-                            type="button"
-                            disabled={track.activeStatus === "blocked"}
-                            onClick={() => openModerationModal("block")}
-                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-xs font-semibold rounded-xl shadow-sm transition disabled:opacity-40"
-                        >
-                            Block (Khóa Gốc)
-                        </button>
+                        {isPendingApproval && (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={() => openModerationModal("approve")}
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 text-xs font-semibold rounded-xl shadow-sm transition"
+                                >
+                                    Approve (Duyệt)
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => openModerationModal("reject")}
+                                    className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 text-xs font-semibold rounded-xl shadow-sm transition"
+                                >
+                                    Reject (Từ chối)
+                                </button>
+                            </>
+                        )}
+
+                        {isApproved && isActive && (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={() => openModerationModal("hide")}
+                                    className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 text-xs font-semibold rounded-xl shadow-sm transition"
+                                >
+                                    Hide (Tạm ẩn)
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => openModerationModal("block")}
+                                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-xs font-semibold rounded-xl shadow-sm transition"
+                                >
+                                    Block (Khóa)
+                                </button>
+                            </>
+                        )}
+
+                        {isApproved && isHidden && (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={() => openModerationModal("unhide")}
+                                    className="bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 text-xs font-semibold rounded-xl shadow-sm transition"
+                                >
+                                    Unhide (Hiển thị lại)
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => openModerationModal("block")}
+                                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-xs font-semibold rounded-xl shadow-sm transition"
+                                >
+                                    Block (Khóa)
+                                </button>
+                            </>
+                        )}
+
+                        {isApproved && isBlocked && (
+                            <span className="inline-flex items-center rounded-xl border border-red-100 bg-red-50 px-4 py-2 text-xs font-semibold text-red-700">
+                                Track đã khóa
+                            </span>
+                        )}
+
+                        {isRejected && (
+                            <span className="inline-flex items-center rounded-xl border border-rose-100 bg-rose-50 px-4 py-2 text-xs font-semibold text-rose-700">
+                                Track đã bị từ chối
+                            </span>
+                        )}
                     </div>
                 </div>
 
@@ -460,7 +518,9 @@ const TrackDetailPage = () => {
                                 <h2 className="mt-1 text-xl font-bold text-slate-900">
                                     {modalType === "approve" ? "Phê duyệt phát hành tác phẩm" : 
                                      modalType === "reject" ? "Từ chối hồ sơ & Gắn cờ vi phạm" : 
-                                     modalType === "hide" ? "Tạm ẩn tác phẩm khỏi nền tảng" : "Khóa tài nguyên bài hát (Administrative Ban)"}
+                                     modalType === "hide" ? "Tạm ẩn tác phẩm khỏi nền tảng" :
+                                     modalType === "unhide" ? "Hiển thị lại tác phẩm" :
+                                     "Khóa tài nguyên bài hát"}
                                 </h2>
                             </div>
                             <button type="button" onClick={closeModal} className="text-slate-400 hover:text-slate-600 text-lg font-bold transition">✕</button>
@@ -538,7 +598,9 @@ const TrackDetailPage = () => {
                             {/* Ô nhập giải trình văn bản chi tiết */}
                             <div className="space-y-1">
                                 <label className="text-xs font-semibold text-slate-500">
-                                    {modalType === "approve" ? "Nội dung ghi chú kèm theo (Tùy chọn)" : "Nội dung giải trình chi tiết hành động (Bắt buộc)"}
+                                    {modalType === "approve" || modalType === "unhide"
+                                        ? "Nội dung ghi chú kèm theo (Tùy chọn)"
+                                        : "Nội dung giải trình chi tiết hành động (Bắt buộc)"}
                                 </label>
                                 <textarea
                                     value={adminNote}
@@ -550,7 +612,7 @@ const TrackDetailPage = () => {
                                         modalType === "hide" ? "Cung cấp giải thích cụ thể lý do tạm ẩn hành chính..." :
                                         modalType === "block" ? "Cung cấp căn cứ chi tiết để ban/gỡ bỏ vĩnh viễn..." : "Nhập nội dung ghi chú lưu vết hệ thống..."
                                     }
-                                    required={modalType !== "approve"}
+                                    required={!["approve", "unhide"].includes(modalType)}
                                 />
                             </div>
                         </div>
@@ -572,7 +634,9 @@ const TrackDetailPage = () => {
                                 className={`px-4 py-2 text-sm font-semibold text-white rounded-xl shadow-sm transition disabled:opacity-40 ${
                                     modalType === "approve" ? "bg-emerald-600 hover:bg-emerald-700" : 
                                     modalType === "reject" ? "bg-rose-600 hover:bg-rose-700" : 
-                                    modalType === "hide" ? "bg-orange-600 hover:bg-orange-700" : "bg-red-600 hover:bg-red-700"
+                                    modalType === "hide" ? "bg-orange-600 hover:bg-orange-700" :
+                                    modalType === "unhide" ? "bg-sky-600 hover:bg-sky-700" :
+                                    "bg-red-600 hover:bg-red-700"
                                 }`}
                             >
                                 {isActionLoading ? "Đang xử lý..." : "Xác nhận thực thi"}

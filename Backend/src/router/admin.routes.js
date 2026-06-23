@@ -5,6 +5,7 @@ import adminDashboardController from "../controllers/admin.dashboard.controller.
 import adminArtistRequestRouter from "./adminArtistRequest.routes.js";
 import adminTrackRouter from "./admin.track.routes.js";
 import adminReportRouter from "./admin.report.routes.js";
+import adminWithdrawalRouter, { withdrawalRequestRouter } from "./admin.withdrawal.routes.js";
 import adminRevenueRouter from "./admin.revenue.routes.js";
 import { requireAdmin } from "../middlewares/Authentication/authentication.middleware.js";
 import upload from "../middlewares/upload.middleware.js";
@@ -38,6 +39,9 @@ router.get("/dashboard/overview", adminDashboardController.getOverviewStats);
 router.get("/dashboard/monthly", adminDashboardController.getMonthlyOverview);
 router.get("/dashboard/daily", adminDashboardController.getDailyStats);
 router.get("/dashboard/new-users", adminDashboardController.getNewUsersByMonth);
+router.get("/revenue/dashboard", adminRevenueController.getRevenueDashboard);
+router.use("/withdrawals", adminWithdrawalRouter);
+router.use("/withdrawal-requests", withdrawalRequestRouter);
 router.use("/revenue", adminRevenueRouter);
 
 // Reports
