@@ -84,11 +84,12 @@ const updateTrackApprovalStatus = async (req, res, next) => {
 const updateTrackVisibilityController = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { action, hiddenReason, adminNote } = req.body;
+        const { action, hiddenReason, blockedReason, adminNote } = req.body;
 
         const track = await adminTrackService.updateTrackVisibility(id, {
             action,
             hiddenReason,
+            blockedReason,
             adminNote
         });
 

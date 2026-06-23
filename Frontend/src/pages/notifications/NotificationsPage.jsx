@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+﻿import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import {
@@ -24,15 +24,6 @@ import {
     markNotificationAsReadService,
 } from "../../services/notificationService";
 
-const tabs = [
-    { key: "all", label: "All", types: [] },
-    { key: "music", label: "Music", types: ["new_release"] },
-    { key: "artists", label: "Artists", types: ["artist_update", "new_release", "follow"] },
-    { key: "payment", label: "Payment", types: ["payment"] },
-    { key: "subscription", label: "Gói cước", types: ["subscription"] },
-    { key: "system", label: "System", types: ["system", "report"] },
-];
-
 const NOTIFICATIONS_PAGE_SIZE = 5;
 const LOAD_MORE_DELAY_MS = 600;
 
@@ -43,7 +34,6 @@ const delay = (duration) =>
 
 const getNotificationId = (notification) => notification?._id || notification?.id;
 
-const getTabByKey = (key) => tabs.find((tab) => tab.key === key) || tabs[0];
 
 const getTargetId = (notification) => {
     const targetId = notification?.targetId;
@@ -198,28 +188,6 @@ const mergeNotifications = (notificationGroups = []) => {
     });
 };
 
-const filterNotificationByTab = (notification, tabKey) => {
-    if (tabKey === "all") return true;
-
-    if (tabKey === "music") {
-        return notification.type === "new_release" && notification.targetType !== "artist";
-    }
-
-    if (tabKey === "artists") {
-        return (
-            notification.type === "artist_update" ||
-            notification.type === "follow" ||
-            notification.targetType === "artist" ||
-            (notification.type === "new_release" && notification.receiverType === "followers")
-        );
-    }
-
-    if (tabKey === "payment") return notification.type === "payment";
-    if (tabKey === "subscription") return notification.type === "subscription";
-    if (tabKey === "system") return ["system", "report"].includes(notification.type);
-
-    return true;
-};
 
 const formatNotificationDate = (value) => {
     if (!value) return "";
@@ -294,87 +262,46 @@ const NotificationsPage = () => {
     const socket = useSocket(accessToken);
     const navigate = useNavigate();
 
-    const [activeTab, setActiveTab] = useState("all");
     const [notifications, setNotifications] = useState([]);
-    const [unreadCount, setUnreadCount] = useState(0);
+    const [, setUnreadCount] = useState(0);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [detailTarget, setDetailTarget] = useState(null);
     const [deleteTarget, setDeleteTarget] = useState(null);
 
-    const fetchNotifications = useCallback(
-        async (currentPage, isLoadMore = false) => {
-            try {
-                if (isLoadMore) {
-                    setIsLoadingMore(true);
-                    await delay(LOAD_MORE_DELAY_MS);
-                }
-
-                const activeTabConfig = getTabByKey(activeTab);
-                const activeTypes = activeTabConfig.types || [];
-
-                let notificationsData = [];
-                let nextHasMore = false;
-                let nextUnreadCount = 0;
-
-                if (activeTypes.length === 0) {
-                    const data = await getMyNotificationsService({
-                        page: currentPage,
-                        limit: NOTIFICATIONS_PAGE_SIZE,
-                    });
-
-                    notificationsData = data.notifications || [];
-                    nextHasMore = currentPage < (data.meta?.totalPages || 1);
-                    nextUnreadCount = data.meta?.unreadCount || 0;
-                } else {
-                    const responses = await Promise.all(
-                        activeTypes.map((type) =>
-                            getMyNotificationsService({
-                                page: currentPage,
-                                limit: NOTIFICATIONS_PAGE_SIZE,
-                                type,
-                            }).catch((error) => {
-                                const status = error?.response?.status;
-                                if (status !== 400) {
-                                    console.error(`Không thể tải thông báo type=${type}:`, error);
-                                }
-                                return { notifications: [], meta: { totalPages: 1 } };
-                            })
-                        )
-                    );
-
-                    notificationsData = mergeNotifications(
-                        responses.map((res) => res.notifications || [])
-                    ).filter((notification) => filterNotificationByTab(notification, activeTab));
-
-                    nextHasMore = responses.some(
-                        (res) => currentPage < (res.meta?.totalPages || 1)
-                    );
-                }
-
-                setNotifications((prev) =>
-                    isLoadMore
-                        ? mergeNotifications([prev, notificationsData]).filter((notification) =>
-                            filterNotificationByTab(notification, activeTab)
-                        )
-                        : notificationsData
-                );
-
-                setPage(currentPage);
-                setHasMore(nextHasMore);
-
-                if (!isLoadMore && activeTab === "all") {
-                    setUnreadCount(nextUnreadCount);
-                }
-            } catch (error) {
-                console.error("Không thể tải thông báo:", error);
-            } finally {
-                if (isLoadMore) setIsLoadingMore(false);
+    const fetchNotifications = useCallback(async (currentPage, isLoadMore = false) => {
+        try {
+            if (isLoadMore) {
+                setIsLoadingMore(true);
+                await delay(LOAD_MORE_DELAY_MS);
             }
-        },
-        [activeTab]
-    );
+
+            const data = await getMyNotificationsService({
+                page: currentPage,
+                limit: NOTIFICATIONS_PAGE_SIZE,
+            });
+
+            const notificationsData = data.notifications || [];
+
+            setNotifications((prev) =>
+                isLoadMore
+                    ? mergeNotifications([prev, notificationsData])
+                    : notificationsData
+            );
+
+            setPage(currentPage);
+            setHasMore(currentPage < (data.meta?.totalPages || 1));
+
+            if (!isLoadMore) {
+                setUnreadCount(data.meta?.unreadCount || 0);
+            }
+        } catch (error) {
+            console.error("Không thể tải thông báo:", error);
+        } finally {
+            if (isLoadMore) setIsLoadingMore(false);
+        }
+    }, []);
 
     const loadMoreNotifications = useCallback(() => {
         if (isLoadingMore || !hasMore) return;
@@ -389,14 +316,9 @@ const NotificationsPage = () => {
         if (!socket) return;
 
         const handleNewNotification = (newNotification) => {
-            const shouldShowInCurrentTab = filterNotificationByTab(newNotification, activeTab);
-
-            if (shouldShowInCurrentTab) {
-                setNotifications((prev) =>
-                    mergeNotifications([[{ ...newNotification, isRead: false }], prev])
-                );
-            }
-
+            setNotifications((prev) =>
+                mergeNotifications([[{ ...newNotification, isRead: false }], prev])
+            );
             setUnreadCount((prev) => prev + 1);
         };
 
@@ -445,7 +367,7 @@ const NotificationsPage = () => {
             socket.off("update_notification", handleUpdateNotification);
             socket.off("delete_notification", handleDeleteNotification);
         };
-    }, [socket, activeTab]);
+    }, [socket]);
 
     const markAsRead = async (notification) => {
         const notificationId = getNotificationId(notification);
@@ -527,14 +449,6 @@ const NotificationsPage = () => {
 
         if (navigateToTarget(notification)) {
             
-        }
-    };
-
-    const handleScroll = (event) => {
-        const { scrollTop, scrollHeight, clientHeight } = event.currentTarget;
-
-        if (scrollHeight - scrollTop <= clientHeight + 80 && !isLoadingMore && hasMore) {
-            loadMoreNotifications();
         }
     };
 
@@ -646,7 +560,6 @@ const NotificationsPage = () => {
 
             <section
                 className="spotify-notification-scroll h-[calc(100vh-176px)] min-h-[520px] overflow-y-auto overflow-x-hidden rounded-3xl bg-[#121212] text-white shadow-[0_24px_80px_rgba(0,0,0,0.28)] max-sm:h-[calc(100vh-150px)] max-sm:min-h-[420px]"
-                onScroll={handleScroll}
             >
                 <div className="mx-auto flex min-h-[calc(100vh-190px)] w-full max-w-[760px] flex-col px-5 pb-12 pt-8 max-sm:px-4">
                     <header className="shrink-0 bg-[#121212] pb-6">
@@ -657,27 +570,9 @@ const NotificationsPage = () => {
                                 </h1>
 
                                 <p className="mt-2 text-[15px] font-medium leading-5 text-[#b3b3b3]">
-                                    Nội dung phát hành mới nhất từ nghệ sĩ, podcast và chương trình bạn theo dõi.
+                                    Tất cả thông báo mới nhất từ hệ thống, nghệ sĩ và hoạt động tài khoản của bạn.
                                 </p>
                             </div>
-                        </div>
-
-                        <div className="mt-5 flex flex-wrap gap-2">
-                            {tabs.map((tab) => (
-                                <button
-                                    key={tab.key}
-                                    type="button"
-                                    onClick={() => setActiveTab(tab.key)}
-                                    className={[
-                                        "rounded-full px-4 py-2 text-sm font-bold leading-none transition",
-                                        activeTab === tab.key
-                                            ? "bg-white text-black"
-                                            : "bg-[#2a2a2a] text-white hover:bg-[#333333]",
-                                    ].join(" ")}
-                                >
-                                    {tab.label}
-                                </button>
-                            ))}
                         </div>
                     </header>
 
@@ -893,3 +788,4 @@ const NotificationsPage = () => {
 };
 
 export default NotificationsPage;
+

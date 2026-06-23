@@ -4,6 +4,7 @@ import { useAuth } from "../hooks/useAuth";
 import { routePaths } from "../routes/routePaths";
 import {
   LayoutDashboard,
+  Banknote,
   CircleDollarSign,
   Music2,
   UserCheck,
@@ -27,6 +28,14 @@ const navigationItems = [
     label: "Doanh thu",
     icon: CircleDollarSign,
     end: false,
+  },
+  {
+    to: routePaths.withdrawals,
+    label: "Withdrawal Requests",
+    icon: Banknote,
+    end: false,
+    matchPrefix: true,
+    activePaths: [routePaths.withdrawals, "/withdrawal-requests"],
   },
   {
     to: routePaths.systemTracks,
