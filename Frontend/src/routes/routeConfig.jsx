@@ -43,6 +43,7 @@ import PremiumPaymentFailedPage from "../pages/premium/PremiumPaymentFailedPage"
 import PremiumPaymentSuccessPage from "../pages/premium/PremiumPaymentSuccessPage";
 import PremiumPage from "../pages/premium/PremiumPage";
 import PaymentHistoryPage from "../pages/userPayment/PaymentHistoryPage";
+import PaymentReceiptPdfPage from "../pages/userPayment/PaymentReceiptPdfPage";
 import TrackDetailPage from "../pages/track/TrackDetailPage";
 import UserFavoriteTracksPage from "../pages/userFavorite/UserFavoriteTracksPage";
 import ProtectedRoute from "./ProtectedRoute";
@@ -153,6 +154,10 @@ export const appRoutes = [
       {
         path: routePaths.userPaymentHistory,
         element: <PaymentHistoryPage />,
+      },
+      {
+        path: routePaths.userPaymentReceipt,
+        element: <PaymentReceiptPdfPage />,
       },
     ],
   },
@@ -312,3 +317,4 @@ export const appRoutes = [
     element: <Navigate to={routePaths.home} replace />,
   },
 ];
+

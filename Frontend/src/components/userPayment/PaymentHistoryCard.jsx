@@ -1,12 +1,17 @@
 ﻿import { Check, ChevronDown, Copy } from "lucide-react";
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { routePaths } from "../../routes/routePaths";
 import PaymentStatusBadge from "./PaymentStatusBadge";
 
 const PaymentHistoryCard = ({ payment, isExpanded, onToggle }) => {
+  const navigate = useNavigate();
   const [isCopied, setIsCopied] = useState(false);
+  const [isManageMenuOpen, setIsManageMenuOpen] = useState(false);
+  const mobileManageMenuRef = useRef(null);
+  const desktopManageMenuRef = useRef(null);
   const invoiceValue = payment.invoiceNumber || payment.transactionId || "";
+  const paymentId = payment.id || payment._id || "";
 
   useEffect(() => {
     if (!isCopied) {
@@ -19,6 +24,41 @@ const PaymentHistoryCard = ({ payment, isExpanded, onToggle }) => {
 
     return () => window.clearTimeout(timeoutId);
   }, [isCopied]);
+
+  useEffect(() => {
+    if (!isManageMenuOpen) {
+      return undefined;
+    }
+
+    const handlePointerDown = (event) => {
+      const isInsideMobileMenu = mobileManageMenuRef.current?.contains(event.target);
+      const isInsideDesktopMenu = desktopManageMenuRef.current?.contains(event.target);
+
+      if (!isInsideMobileMenu && !isInsideDesktopMenu) {
+        setIsManageMenuOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setIsManageMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isManageMenuOpen]);
+
+  useEffect(() => {
+    if (!isExpanded) {
+      setIsManageMenuOpen(false);
+    }
+  }, [isExpanded]);
 
   const handleCopyInvoice = async () => {
     if (!invoiceValue) {
@@ -45,6 +85,64 @@ const PaymentHistoryCard = ({ payment, isExpanded, onToggle }) => {
       setIsCopied(false);
     }
   };
+
+  const handleViewReceipt = () => {
+    if (!paymentId) {
+      return;
+    }
+
+    setIsManageMenuOpen(false);
+    navigate(routePaths.userPaymentReceipt.replace(":paymentId", payment.id || payment._id));
+  };
+
+  const renderManageMenu = ({ menuRef, wrapperClassName, buttonClassName, menuClassName }) => (
+    <div ref={menuRef} className={wrapperClassName}>
+      <button
+        type="button"
+        onClick={() => setIsManageMenuOpen((currentValue) => !currentValue)}
+        className={buttonClassName}
+        aria-expanded={isManageMenuOpen}
+        aria-haspopup="menu"
+      >
+        <span>Quản lý</span>
+        <ChevronDown
+          className={[
+            "h-4 w-4 transition duration-200",
+            isManageMenuOpen ? "rotate-180 text-white" : "rotate-0 text-white/72",
+          ].join(" ")}
+        />
+      </button>
+
+      {isManageMenuOpen ? (
+        <div
+          className={[
+            "absolute top-[calc(100%+8px)] z-20 min-w-[220px] overflow-hidden rounded-2xl border border-white/10 bg-[#161616] p-1.5 shadow-[0_18px_40px_rgba(0,0,0,0.42)]",
+            menuClassName,
+          ].join(" ")}
+          role="menu"
+        >
+          <button
+            type="button"
+            onClick={handleViewReceipt}
+            disabled={!paymentId}
+            className="flex w-full items-center rounded-[14px] px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/8 disabled:cursor-not-allowed disabled:text-white/35"
+            role="menuitem"
+          >
+            Xem biên nhận
+          </button>
+
+          <button
+            type="button"
+            disabled
+            className="flex w-full items-center rounded-[14px] px-4 py-3 text-left text-sm font-medium text-white/45"
+            role="menuitem"
+          >
+            Yêu cầu hoàn tiền
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
 
   return (
     <article className="w-full overflow-hidden bg-[#111111] shadow-[0_12px_28px_rgba(0,0,0,0.18)]">
@@ -115,12 +213,13 @@ const PaymentHistoryCard = ({ payment, isExpanded, onToggle }) => {
                   </div>
                 </div>
 
-                <Link
-                  to={routePaths.premium}
-                  className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-white/10 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/14"
-                >
-                  Quản lý
-                </Link>
+                {renderManageMenu({
+                  menuRef: mobileManageMenuRef,
+                  wrapperClassName: "relative w-full",
+                  buttonClassName:
+                    "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-white/10 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/14",
+                  menuClassName: "left-0 w-full",
+                })}
               </div>
 
               <div className="hidden sm:block">
@@ -147,12 +246,13 @@ const PaymentHistoryCard = ({ payment, isExpanded, onToggle }) => {
                   </div>
 
                   <div className="justify-self-end">
-                    <Link
-                      to={routePaths.premium}
-                      className="inline-flex min-h-10 items-center justify-center rounded-full bg-black px-4 text-sm font-medium text-white transition hover:bg-[#181818]"
-                    >
-                      Quản lý
-                    </Link>
+                    {renderManageMenu({
+                      menuRef: desktopManageMenuRef,
+                      wrapperClassName: "relative",
+                      buttonClassName:
+                        "inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-black px-4 text-sm font-medium text-white transition hover:bg-[#181818]",
+                      menuClassName: "right-0 w-[220px]",
+                    })}
                   </div>
                 </div>
               </div>
@@ -170,3 +270,4 @@ const PaymentHistoryCard = ({ payment, isExpanded, onToggle }) => {
 };
 
 export default PaymentHistoryCard;
+

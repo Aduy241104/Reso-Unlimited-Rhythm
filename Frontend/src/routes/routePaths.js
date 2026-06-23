@@ -1,4 +1,4 @@
-export const routePaths = {
+﻿export const routePaths = {
   home: "/",
   search: "/search",
   userGenres: "/genres",
@@ -45,6 +45,7 @@ export const routePaths = {
   artistProfileEdit: "/artist/profile/edit",
   userPlaylist: "/user/playlist",
   userPaymentHistory: "/payment-history",
+  userPaymentReceipt: "/payment-history/:paymentId/receipt",
   userPlaylistDetail: (playlistId = ":id") => `/user/playlist/${playlistId}`,
   userFavoriteTracks: "/user/favorite-tracks",
   userCreateReport: "/user/reports/create",

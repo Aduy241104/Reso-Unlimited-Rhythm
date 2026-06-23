@@ -1,4 +1,4 @@
-﻿import axiosClient from "../axios/axiosClient";
+﻿import api from "../axios/axiosClient";
 
 const USER_PAYMENT_HISTORY_ENDPOINT = "/api/users/payment-history";
 
@@ -41,13 +41,23 @@ const normalizePaymentHistoryPayload = (response) => {
 };
 
 export const getUserPaymentHistory = async (params = {}) => {
-  const response = await axiosClient.get(USER_PAYMENT_HISTORY_ENDPOINT, {
+  const response = await api.get(USER_PAYMENT_HISTORY_ENDPOINT, {
     params,
   });
 
   return normalizePaymentHistoryPayload(response);
 };
 
+export const getUserPaymentReceiptPdf = async (paymentId) => {
+  const endpoint = `/api/users/payments/${paymentId}/receipt`;
+  const response = await api.get(endpoint, {
+    responseType: "blob",
+  });
+
+  return response.data;
+};
+
 export default {
   getUserPaymentHistory,
+  getUserPaymentReceiptPdf,
 };
