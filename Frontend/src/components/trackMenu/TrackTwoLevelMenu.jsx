@@ -188,12 +188,12 @@ const TrackTwoLevelMenu = ({
     }, [hasFavoriteProp, isOpen, trackId]);
 
     const submenuClassName = `
-        absolute z-[10000] w-[min(22rem,calc(100vw-2rem))]
-        rounded-md border border-[#525252] bg-[#202020] p-1
+        absolute z-[10000] w-[min(15rem,calc(100vw-2rem))]
+        rounded-md border border-[#3d3c3c] bg-[#202020] p-1
         shadow-[0_10px_30px_rgba(0,0,0,0.35)]
         ${submenuPlacement === "left" ? "bottom-0 right-full mr-1.5" : ""}
         ${submenuPlacement === "right" ? "bottom-0 left-full ml-1.5" : ""}
-        ${submenuPlacement === "stacked" ? "right-0 top-full mt-2" : ""}
+        ${submenuPlacement === "stacked" ? "right-0 top-full mt-2 " : ""}
     `;
 
     const filteredPlaylists = useMemo(() => {

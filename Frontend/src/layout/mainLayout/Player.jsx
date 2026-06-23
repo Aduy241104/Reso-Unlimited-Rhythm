@@ -776,7 +776,7 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
             { volumePercent === 0 ? (
               <VolumeX className="h-3.5 w-3.5 text-[#f5b66f]" />
             ) : (
-              <Volume2 className="h-3.5 w-3.5 text-[#f5b66f]" />
+                <Volume2 className="h-3.5 w-3.5 text-white" />
             ) }
           </span>
 
@@ -789,7 +789,7 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
             onChange={ (event) => setVolumeLevel(event.target.value) }
             style={ {
               "--progress": `${volume * 100}%`,
-              "--range-color": "#f5b66f",
+              "--range-color": "#e40c7fff",
             } }
             className="
               custom-range
