@@ -21,6 +21,7 @@ import libaryRoutes from "./libary.routes.js";
 import subscriptionRoutes from "./subscription.routes.js";
 import transactionRoutes from "./transaction.routes.js";
 import userRoutes from "./user.routes.js";
+import userRecentListeningRoutes from "./user.recentListening.routes.js";
 import userPlaylistRoutes from "./user.playlist.routes.js"
 import adminArtistRouter from "./admin.artist.router.js";
 import adminNotificationRouter from "./admin.notification.router.js";
@@ -55,6 +56,7 @@ function route(app) {
     app.use("/api", subscriptionRoutes);
     app.use("/api/transactions", transactionRoutes);
     app.use("/api/users", userRoutes);
+    app.use("/api/users", userRecentListeningRoutes);
     app.use("/api/users", userReportRoutes);
     app.use("/api/users/playlists", userPlaylistRoutes);
     app.use("/api/admin/artists", adminArtistRouter);

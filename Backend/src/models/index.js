@@ -15,6 +15,7 @@ import Notification from "./Notification.js";
 import Plan from "./Plan.js";
 import Playlist from "./Playlist.js";
 import PlatformMonthlyStat from "./PlatformMonthlyStat.js";
+import RecentListeningActivity from "./user.recentListening.model.js";
 import RefreshToken from "./RefreshToken.js";
 import ReleaseSchedule from "./ReleaseSchedule.js";
 import Report from "./Report.js";
@@ -27,6 +28,7 @@ import TrackMonthlyRanking from "./TrackMonthlyRanking.js";
 import TrackMonthlyStat from "./TrackMonthlyStat.js";
 import Transaction from "./Transaction.js";
 import User from "./User.js";
+import UserListeningDailyStat from "./UserListeningDailyStat.js";
 import VerificationToken from "./VerificationToken.js";
 import WithdrawalRequest from "./WithdrawalRequest.js";
 import RevenuePeriod from "./RevenuePeriod.js"; 
@@ -49,6 +51,7 @@ export default {
     Plan,
     Playlist,
     PlatformMonthlyStat,
+    RecentListeningActivity,
     RefreshToken,
     ReleaseSchedule,
     Report,
@@ -61,6 +64,7 @@ export default {
     TrackMonthlyStat,
     Transaction,
     User,
+    UserListeningDailyStat,
     VerificationToken,
     WithdrawalRequest,
     RevenuePeriod,

@@ -5,6 +5,7 @@ import redisClient from "../../config/redisConfig.js";
 import Track from "../../models/Track.js";
 import { AppError } from "../../utils/AppError.js";
 import { getAnalyticsTimezone } from "../analytics/trackStatAggregation.service.js";
+import { storeRecentListeningActivity } from "../user/user.recentListening.service.js";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -256,7 +257,9 @@ export const recordCompletedListenAttempt = async ({
     }
 
     const track = await Track.findById(trackId)
-        .select("artist_artistId duration activeStatus approvalStatus")
+        .select("title artist_artistId album_albumId duration avatar coverImage activeStatus approvalStatus")
+        .populate({ path: "artist_artistId", select: "name avatar" })
+        .populate({ path: "album_albumId", select: "title coverImage" })
         .lean();
 
     if (!track) {
@@ -273,7 +276,8 @@ export const recordCompletedListenAttempt = async ({
         throw new AppError("Track duration is invalid for stream counting.", 400);
     }
 
-    const artistId = track.artist_artistId;
+    const artistId = track.artist_artistId?._id || track.artist_artistId;
+    const albumId = track.album_albumId?._id || track.album_albumId || null;
 
     if (!artistId) {
         throw new AppError("Track artist information is missing.", 400);
@@ -290,6 +294,21 @@ export const recordCompletedListenAttempt = async ({
     const clampedListenedDuration = Math.min(normalizedListenedDuration, trackDuration);
     const listenPercent = roundToTwoDecimals((clampedListenedDuration / trackDuration) * 100);
     const listenedAt = new Date();
+
+    try {
+        await storeRecentListeningActivity({
+            userId,
+            track,
+            artistId,
+            albumId,
+            listenedAt,
+            listenedDuration: clampedListenedDuration,
+            listenPercent,
+            source,
+        });
+    } catch (error) {
+        console.error("[RecentListeningActivity] Could not store activity:", error);
+    }
 
     if (listenPercent <= SKIP_LISTEN_PERCENT_THRESHOLD) {
         await queueSkippedListenInRedis({
