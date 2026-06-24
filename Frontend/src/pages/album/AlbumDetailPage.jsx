@@ -273,6 +273,7 @@ const AlbumDetailPage = () => {
                 <TrackCard
                   key={ track?.id || `${trackItem?.order}-${index}` }
                   index={ trackItem?.order || index + 1 }
+                  track={ track }
                   image={
                     track?.coverImage ||
                     track?.artist?.avatar ||

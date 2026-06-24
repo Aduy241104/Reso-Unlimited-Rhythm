@@ -21,6 +21,8 @@ const FREE_SKIP_WINDOW_MS = 5 * 60 * 60 * 1000;
 const FREE_SKIP_STORAGE_KEY = "capstone.player.free_skip_window";
 const MAX_NATURAL_LISTEN_DELTA_SECONDS = 2;
 const REPEAT_MODE_SEQUENCE = ["off", "all", "one"];
+const MANUAL_QUEUE_SOURCE = "manual";
+const CONTEXT_QUEUE_SOURCE = "context";
 
 const getTrackId = (track, fallbackId = null) =>
   track?.id || track?._id || track?.trackId || fallbackId;
@@ -158,6 +160,43 @@ const removeQueueTrack = (tracks = [], queueItemId = "") => {
   });
 };
 
+const insertTrackAfterActiveManualQueue = (
+  tracks = [],
+  nextTrack = null,
+  activeQueueItemId = ""
+) => {
+  if (!nextTrack) {
+    return tracks;
+  }
+
+  if (tracks.length === 0) {
+    return [nextTrack];
+  }
+
+  const activeIndex = activeQueueItemId
+    ? findQueueTrackIndex(tracks, activeQueueItemId)
+    : -1;
+
+  if (activeIndex < 0) {
+    return [...tracks, nextTrack];
+  }
+
+  let insertIndex = activeIndex + 1;
+
+  while (
+    insertIndex < tracks.length &&
+    tracks[insertIndex]?.queueSource === MANUAL_QUEUE_SOURCE
+  ) {
+    insertIndex += 1;
+  }
+
+  return [
+    ...tracks.slice(0, insertIndex),
+    nextTrack,
+    ...tracks.slice(insertIndex),
+  ];
+};
+
 const normalizeQueueTrack = (item, options = {}) => {
   const track = item?.track ?? item ?? {};
   const normalizedTrackId = getTrackId(
@@ -165,14 +204,21 @@ const normalizeQueueTrack = (item, options = {}) => {
     `${options.collectionId || options.collectionType || "track"}-${options.index || 0}`
   );
   const queueItemId =
+    options.queueItemId ||
     item?.queueItemId ||
     track?.queueItemId ||
     `${options.collectionId || options.collectionType || "track"}:${
       options.index || 0
     }:${normalizedTrackId}`;
+  const queueSource =
+    item?.queueSource ||
+    track?.queueSource ||
+    options.queueSource ||
+    CONTEXT_QUEUE_SOURCE;
 
   return {
     queueItemId,
+    queueSource,
     id: normalizedTrackId,
     title: track?.title || item?.title || "Untitled track",
     artist: track?.artist || null,
@@ -200,6 +246,7 @@ const normalizeQueue = (tracks, collection = null) =>
         collectionId: collection?.id,
         collectionType: collection?.type,
         listenSource: collection?.listenSource,
+        queueSource: CONTEXT_QUEUE_SOURCE,
       })
     )
     .filter((track) => Boolean(track?.id));
@@ -376,6 +423,7 @@ export const PlayerProvider = ({ children }) => {
   const listenedDurationRef = useRef(0);
   const lastTrackedAudioTimeRef = useRef(0);
   const ignoreNextListenDeltaRef = useRef(true);
+  const queueMutationCounterRef = useRef(0);
 
   const isPremium = useMemo(() => hasPremiumAccess(user), [user]);
 
@@ -395,6 +443,23 @@ export const PlayerProvider = ({ children }) => {
     setAvailableAudioQualities(qualityOptions);
     setSelectedQualityLabel(nextQualityLabel);
     selectedQualityLabelRef.current = nextQualityLabel;
+  };
+
+  const createManualQueueTrack = (track, options = {}) => {
+    queueMutationCounterRef.current += 1;
+    const baseTrack = track?.track ?? track ?? {};
+    const normalizedTrackId = getTrackId(
+      baseTrack,
+      `manual-track-${queueMutationCounterRef.current}`
+    );
+
+    return normalizeQueueTrack(track, {
+      ...options,
+      collectionId: options.collection?.id || "manual-queue",
+      collectionType: options.collection?.type || "queue",
+      queueSource: MANUAL_QUEUE_SOURCE,
+      queueItemId: `manual:${Date.now()}:${queueMutationCounterRef.current}:${normalizedTrackId}`,
+    });
   };
 
   const clearPlaybackState = () => {
@@ -1020,6 +1085,34 @@ export const PlayerProvider = ({ children }) => {
     await playTrackByIndexRef.current?.(playbackStartIndex, queueToPlay);
   };
 
+  const addTrackToQueue = (track, options = {}) => {
+    const baseTrack = track?.track ?? track ?? null;
+
+    if (!baseTrack || !getTrackId(baseTrack)) {
+      return;
+    }
+
+    const nextQueueTrack = createManualQueueTrack(track, options);
+    const activeQueueItemId = getQueueItemId(
+      currentTrack || queueRef.current[currentIndexRef.current]
+    );
+    const nextQueue = insertTrackAfterActiveManualQueue(
+      queueRef.current,
+      nextQueueTrack,
+      activeQueueItemId
+    );
+    const nextOrderedQueue = insertTrackAfterActiveManualQueue(
+      orderedQueueRef.current,
+      nextQueueTrack,
+      activeQueueItemId
+    );
+
+    syncQueueState(nextQueue);
+    syncOrderedQueueState(nextOrderedQueue);
+    setErrorMessage("");
+    setRestrictionMessage("");
+  };
+
   const playTrack = async (track, options = {}) => {
     const queueToPlay =
       Array.isArray(options.queue) && options.queue.length > 0
@@ -1426,6 +1519,7 @@ export const PlayerProvider = ({ children }) => {
     playAlbum,
     playPlaylist,
     playCollection,
+    addTrackToQueue,
     playFromQueueIndex,
     togglePlayPause,
     playNext,

@@ -145,10 +145,14 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
     };
   }, []);
 
+  const queuePositionLabel =
+    currentIndex >= 0 && queue.length > 0
+      ? `${currentIndex + 1}/${queue.length}`
+      : `${queue.length} bài chờ`;
   const queueLabel = activeCollection?.title
     ? `${activeCollection.type === "playlist" ? "Playlist" : "Album"}: ${activeCollection.title}`
     : queue.length > 0
-      ? `Hàng chờ: ${currentIndex + 1}/${queue.length}`
+      ? `Hàng chờ: ${queuePositionLabel}`
       : "Chọn bài hát để bắt đầu phát";
 
   const progressMax = duration > 0 ? duration : 0;
@@ -399,6 +403,7 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
               queue={ queue }
               currentIndex={ currentIndex }
               isPlaying={ isPlaying }
+              activeCollection={ activeCollection }
               onPlayTrack={ handlePlayQueueTrack }
               onRemoveTrack={ handleRemoveTrackFromQueue }
               removingTrackIndex={ removingQueueTrackIndex }
@@ -543,6 +548,7 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
                     queue={ queue }
                     currentIndex={ currentIndex }
                     isPlaying={ isPlaying }
+                    activeCollection={ activeCollection }
                     onPlayTrack={ handlePlayQueueTrack }
                     onRemoveTrack={ handleRemoveTrackFromQueue }
                     removingTrackIndex={ removingQueueTrackIndex }
@@ -662,7 +668,7 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
             </p>
             <p className="mt-0.5 truncate text-[10px] text-[#b8ab9e]">
               { queue.length > 0
-                ? `${currentIndex + 1}/${queue.length} trong hàng chờ`
+                ? `${queuePositionLabel} trong hàng chờ`
                 : queueLabel }
             </p>
             { restrictionMessage ? (

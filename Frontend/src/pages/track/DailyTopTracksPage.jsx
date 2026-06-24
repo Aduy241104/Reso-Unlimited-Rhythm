@@ -416,7 +416,7 @@ const DailyTopTracksPage = () => {
         </div>
 
         <div className="hidden items-center justify-end sm:flex">
-          { track?.id ? <TrackTwoLevelMenu trackId={ track.id } /> : null }
+          { track?.id ? <TrackTwoLevelMenu trackId={ track.id } track={ track } /> : null }
         </div>
       </div>
     );

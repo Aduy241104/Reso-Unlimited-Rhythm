@@ -9,7 +9,7 @@
     "listen:sync": "node src/runListenEventSync.js",
     "revenue:sync": "node src/runRevenueAggregation.js",
     "seed:revenue-history": "node src/seedRevenueHistory.js",
-    "seed:revenue-flow": "node src/seedRevenueFlow.js",
+    "seed:revenue-flow": "node src/seedRevenueFlowV2.js",
     "seed:artist-overview": "node src/seedArtistPerformanceOverview.js"
   },
   "author": "",
