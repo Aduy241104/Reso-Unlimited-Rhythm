@@ -98,6 +98,8 @@ export const appRoutes = [
               {
                 path: "withdrawal-requests/:id",
                 element: <WithdrawalRequestDetailPage />,
+              },
+              {
                 path: "revenue-sharing",
                 element: <RevenueSharingHistoryPage />,
               },

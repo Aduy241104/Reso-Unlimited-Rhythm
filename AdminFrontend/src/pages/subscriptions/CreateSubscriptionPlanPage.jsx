@@ -154,7 +154,7 @@ const CreateSubscriptionPlanPage = () => {
 
             <form
                 onSubmit={handleSubmit}
-                className="max-w-3xl space-y-6 rounded-2xl bg-white p-6 shadow-[0_12px_32px_rgba(15,23,42,0.06)]"
+                className="w-full space-y-6 rounded-2xl bg-white p-6 shadow-[0_12px_32px_rgba(15,23,42,0.06)]"
             >
                 <div className="space-y-2">
                     <label className="block text-sm font-semibold text-slate-700">
@@ -222,23 +222,38 @@ const CreateSubscriptionPlanPage = () => {
                     </div>
                 </div>
 
-                <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-slate-700">Mô tả</label>
-                    <textarea
-                        name="description"
-                        value={formData.description}
-                        onChange={handleChange}
-                        placeholder="Mô tả ngắn về gói subscription..."
-                        rows={3}
-                        className="w-full resize-none rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-500"
-                    />
+                <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
+                    <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-slate-700">Mô tả</label>
+                        <textarea
+                            name="description"
+                            value={formData.description}
+                            onChange={handleChange}
+                            placeholder="Mô tả ngắn về gói subscription..."
+                            rows={4}
+                            className="w-full resize-none rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-500"
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-slate-700">Trạng thái</label>
+                        <select
+                            name="status"
+                            value={formData.status}
+                            onChange={handleChange}
+                            className="w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-500"
+                        >
+                            <option value="active">Hoạt động</option>
+                            <option value="inactive">Ẩn</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div className="space-y-3">
                     <label className="block text-sm font-semibold text-slate-700">
                         Tính năng <span className="text-red-500">*</span>
                     </label>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                         {PLAN_FEATURES.map((feature) => (
                             <label
                                 key={feature.value}
@@ -261,18 +276,6 @@ const CreateSubscriptionPlanPage = () => {
                     {errors.features ? <p className="text-xs text-red-500">{errors.features}</p> : null}
                 </div>
 
-                <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-slate-700">Trạng thái</label>
-                    <select
-                        name="status"
-                        value={formData.status}
-                        onChange={handleChange}
-                        className="w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-500"
-                    >
-                        <option value="active">Hoạt động</option>
-                        <option value="inactive">Ẩn</option>
-                    </select>
-                </div>
 
                 <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
                     <button

@@ -1,23 +1,39 @@
-import { AlertCircle, ImagePlus, Loader2, Send } from "lucide-react";
+import { AlertCircle, CheckCircle, ImagePlus, Loader2, Send } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import ReportReasonSelect from "../../components/report/ReportReasonSelect";
 import { createReportService } from "../../services/report/user.report.service";
 import { routePaths } from "../../routes/routePaths";
 import { getApiErrorFullMessage } from "../../utils/apiError";
 
-const REPORT_REASON_OPTIONS = [
-  { value: "copyright_infringement", label: "Vi phạm bản quyền" },
-  { value: "harassment_or_hate", label: "Quấy rối / thù ghét" },
-  { value: "nudity_or_sexual_content", label: "Nội dung nhạy cảm" },
-  { value: "violence_or_dangerous_content", label: "Bạo lực / nguy hiểm" },
-  { value: "spam_or_scam", label: "Spam / lừa đảo" },
-  { value: "misleading_information", label: "Thông tin sai lệch" },
-  { value: "impersonation", label: "Mạo danh" },
-  { value: "wrong_metadata", label: "Thông tin bài hát không chính xác" },
-  { value: "lyrics_issue", label: "Lời bài hát không phù hợp" },
-  { value: "audio_quality", label: "Chất lượng âm thanh kém" },
-  { value: "fake_artist", label: "Nghệ sĩ giả mạo" },
-  { value: "other", label: "Khác" },
+const REPORT_REASON_GROUPS = [
+  {
+    label: "An toàn và nội dung",
+    options: [
+      { value: "harassment_or_hate", label: "Quấy rối / thù ghét" },
+      { value: "nudity_or_sexual_content", label: "Nội dung nhạy cảm" },
+      { value: "violence_or_dangerous_content", label: "Bạo lực / nguy hiểm" },
+      { value: "spam_or_scam", label: "Spam / lừa đảo" },
+    ],
+  },
+  {
+    label: "Bản quyền và danh tính",
+    options: [
+      { value: "copyright_infringement", label: "Vi phạm bản quyền" },
+      { value: "impersonation", label: "Mạo danh" },
+      { value: "fake_artist", label: "Nghệ sĩ giả mạo" },
+    ],
+  },
+  {
+    label: "Thông tin và chất lượng",
+    options: [
+      { value: "misleading_information", label: "Thông tin sai lệch" },
+      { value: "wrong_metadata", label: "Thông tin bài hát không chính xác" },
+      { value: "lyrics_issue", label: "Lời bài hát không phù hợp" },
+      { value: "audio_quality", label: "Chất lượng âm thanh kém" },
+      { value: "other", label: "Khác" },
+    ],
+  },
 ];
 
 const TARGET_TYPE_OPTIONS = [
@@ -59,7 +75,7 @@ const CustomerCreateReportPage = () => {
 
   const imageNames = useMemo(
     () => formData.images.map((file) => file?.name).filter(Boolean),
-    [formData.images]
+    [formData.images],
   );
 
   const handleChange = (event) => {
@@ -82,11 +98,24 @@ const CustomerCreateReportPage = () => {
     }));
   };
 
+  const handleReasonChange = (reason) => {
+    setFormData((previous) => ({
+      ...previous,
+      reason,
+    }));
+    setErrors((previous) => ({
+      ...previous,
+      reason: undefined,
+    }));
+    setSubmitError("");
+  };
+
   const validateForm = () => {
     const nextErrors = {};
 
     if (!formData.targetId.trim()) {
-      nextErrors.targetId = "Không xác định được nội dung cần báo cáo. Vui lòng quay lại và thử lại.";
+      nextErrors.targetId =
+        "Không xác định được nội dung cần báo cáo. Vui lòng quay lại và thử lại.";
     }
 
     if (!formData.targetType.trim()) {
@@ -120,7 +149,7 @@ const CustomerCreateReportPage = () => {
       setIsSubmitted(true);
     } catch (error) {
       setSubmitError(
-        getApiErrorFullMessage(error, "Không thể gửi báo cáo vào lúc này.")
+        getApiErrorFullMessage(error, "Không thể gửi báo cáo vào lúc này."),
       );
     } finally {
       setIsSubmitting(false);
@@ -132,11 +161,14 @@ const CustomerCreateReportPage = () => {
       <main className="min-h-full bg-[#0e0e12] px-4 py-10 text-white sm:px-6 lg:px-8">
         <section className="mx-auto max-w-2xl rounded-[28px] border border-emerald-400/20 bg-[linear-gradient(145deg,rgba(16,185,129,0.10),rgba(255,255,255,0.03))] p-8 text-center shadow-[0_24px_80px_rgba(0,0,0,0.36)]">
           <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-400/15 text-emerald-300">
-            <Send className="h-7 w-7" aria-hidden />
+            <CheckCircle className="h-7 w-7" aria-hidden />
           </div>
-          <h1 className="text-2xl font-semibold text-white">Gửi báo cáo thành công</h1>
+          <h1 className="text-2xl font-semibold text-white">
+            Gửi báo cáo thành công
+          </h1>
           <p className="mt-3 text-sm leading-6 text-white/60">
-            Cảm ơn bạn đã gửi báo cáo. Đội ngũ sẽ xem xét nội dung và xử lý trong thời gian sớm nhất.
+            Cảm ơn bạn đã gửi báo cáo. Đội ngũ sẽ xem xét nội dung và xử lý
+            trong thời gian sớm nhất.
           </p>
           <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
             <button
@@ -170,7 +202,8 @@ const CustomerCreateReportPage = () => {
             Gửi báo cáo nội dung hoặc vấn đề
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/58">
-            Sử dụng biểu mẫu này để báo cáo bài hát, album, nghệ sĩ hoặc các vấn đề liên quan đến nội dung trên nền tảng.
+            Sử dụng biểu mẫu này để báo cáo bài hát, album, nghệ sĩ hoặc các
+            vấn đề liên quan đến nội dung trên nền tảng.
           </p>
         </div>
 
@@ -196,7 +229,11 @@ const CustomerCreateReportPage = () => {
                 className={fieldClassName}
               >
                 {TARGET_TYPE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value} className="bg-[#16161d]">
+                  <option
+                    key={option.value}
+                    value={option.value}
+                    className="bg-[#16161d]"
+                  >
                     {option.label}
                   </option>
                 ))}
@@ -209,21 +246,12 @@ const CustomerCreateReportPage = () => {
 
           <div className="mt-5">
             <FieldLabel required>Lý do báo cáo</FieldLabel>
-            <select
-              name="reason"
+            <ReportReasonSelect
+              groups={REPORT_REASON_GROUPS}
               value={formData.reason}
-              onChange={handleChange}
-              className={fieldClassName}
-            >
-              <option value="" className="bg-[#16161d]">
-                Chọn lý do báo cáo
-              </option>
-              {REPORT_REASON_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value} className="bg-[#16161d]">
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              onChange={handleReasonChange}
+              disabled={isSubmitting}
+            />
             {errors.reason ? (
               <p className="mt-2 text-xs text-rose-300">{errors.reason}</p>
             ) : null}
@@ -240,7 +268,9 @@ const CustomerCreateReportPage = () => {
               className={`${fieldClassName} resize-none leading-6`}
             />
             {errors.description ? (
-              <p className="mt-2 text-xs text-rose-300">{errors.description}</p>
+              <p className="mt-2 text-xs text-rose-300">
+                {errors.description}
+              </p>
             ) : null}
           </div>
 
@@ -251,9 +281,7 @@ const CustomerCreateReportPage = () => {
                 <p className="text-sm font-medium text-white/85">
                   Tải lên tối đa 5 ảnh minh chứng
                 </p>
-                <p className="mt-1 text-xs text-white/45">
-                  PNG, JPG hoặc WEBP
-                </p>
+                <p className="mt-1 text-xs text-white/45">PNG, JPG hoặc WEBP</p>
               </div>
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f5b66f]/12 text-[#f5b66f]">
                 <ImagePlus className="h-5 w-5" aria-hidden />
