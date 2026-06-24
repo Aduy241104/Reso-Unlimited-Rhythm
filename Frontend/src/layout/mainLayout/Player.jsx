@@ -58,7 +58,13 @@ const formatQualityLabel = (value = "") => {
   return QUALITY_LABELS[normalizedValue] || normalizedValue.toUpperCase();
 };
 
-const Player = ({ isDesktopSidebarVisible = true }) => {
+const Player = ({
+  isDesktopSidebarVisible = true,
+  isDesktopViewport = false,
+  isDesktopQueueOpen = false,
+  onToggleDesktopQueue,
+  onCloseDesktopQueue,
+}) => {
   const navigate = useNavigate();
   const mobileMenuRef = useRef(null);
   const desktopQueueMenuRef = useRef(null);
@@ -66,7 +72,7 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileQueueOpen, setIsMobileQueueOpen] = useState(false);
   const [isMobileQualityOpen, setIsMobileQualityOpen] = useState(false);
-  const [isDesktopQueueOpen, setIsDesktopQueueOpen] = useState(false);
+  const [isFloatingQueueOpen, setIsFloatingQueueOpen] = useState(false);
   const [isDesktopQualityOpen, setIsDesktopQualityOpen] = useState(false);
   const [removingQueueTrackIndex, setRemovingQueueTrackIndex] = useState(-1);
   const [isChangingQuality, setIsChangingQuality] = useState(false);
@@ -113,7 +119,7 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
         desktopQueueMenuRef.current &&
         !desktopQueueMenuRef.current.contains(event.target)
       ) {
-        setIsDesktopQueueOpen(false);
+        setIsFloatingQueueOpen(false);
       }
 
       if (
@@ -132,7 +138,7 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
       setIsMobileMenuOpen(false);
       setIsMobileQueueOpen(false);
       setIsMobileQualityOpen(false);
-      setIsDesktopQueueOpen(false);
+      setIsFloatingQueueOpen(false);
       setIsDesktopQualityOpen(false);
     };
 
@@ -191,21 +197,10 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
     setIsMobileMenuOpen(false);
     setIsMobileQueueOpen(false);
     setIsMobileQualityOpen(false);
-    setIsDesktopQueueOpen(false);
+    setIsFloatingQueueOpen(false);
     setIsDesktopQualityOpen(false);
+    onCloseDesktopQueue?.();
     navigate(routePaths.lyrics);
-  };
-
-  const handleToggleDesktopQueue = () => {
-    setIsDesktopQueueOpen((currentValue) => {
-      const nextValue = !currentValue;
-
-      if (nextValue) {
-        setIsDesktopQualityOpen(false);
-      }
-
-      return nextValue;
-    });
   };
 
   const handleToggleDesktopQuality = () => {
@@ -213,7 +208,8 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
       const nextValue = !currentValue;
 
       if (nextValue) {
-        setIsDesktopQueueOpen(false);
+        setIsFloatingQueueOpen(false);
+        onCloseDesktopQueue?.();
       }
 
       return nextValue;
@@ -296,6 +292,31 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
       setIsChangingQuality(false);
       setPendingQualityUrl("");
     }
+  };
+
+  const isQueueMenuOpen = isDesktopViewport
+    ? isDesktopQueueOpen
+    : isFloatingQueueOpen;
+
+  const handleToggleQueueMenu = () => {
+    if (isDesktopViewport) {
+      if (!isDesktopQueueOpen) {
+        setIsDesktopQualityOpen(false);
+      }
+
+      onToggleDesktopQueue?.();
+      return;
+    }
+
+    setIsFloatingQueueOpen((currentValue) => {
+      const nextValue = !currentValue;
+
+      if (nextValue) {
+        setIsDesktopQualityOpen(false);
+      }
+
+      return nextValue;
+    });
   };
 
   const renderDesktopQualitySelector = () => {
@@ -388,16 +409,16 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
       <div className="relative" ref={ desktopQueueMenuRef }>
         <button
           type="button"
-          onClick={ handleToggleDesktopQueue }
+          onClick={ handleToggleQueueMenu }
           className={ utilityButtonClassName }
           aria-label="Mở hàng chờ"
           title="Mở hàng chờ"
-          aria-expanded={ isDesktopQueueOpen }
+          aria-expanded={ isQueueMenuOpen }
         >
           <ListMusic className="h-[18px] w-[18px]" />
         </button>
 
-        { isDesktopQueueOpen ? (
+        { !isDesktopViewport && isFloatingQueueOpen ? (
           <div className="absolute bottom-full right-0 z-20 mb-3 w-[min(20rem,calc(100vw-2rem))]">
             <PlayerQueueMenu
               queue={ queue }
@@ -407,7 +428,7 @@ const Player = ({ isDesktopSidebarVisible = true }) => {
               onPlayTrack={ handlePlayQueueTrack }
               onRemoveTrack={ handleRemoveTrackFromQueue }
               removingTrackIndex={ removingQueueTrackIndex }
-              onClose={ () => setIsDesktopQueueOpen(false) }
+              onClose={ () => setIsFloatingQueueOpen(false) }
             />
           </div>
         ) : null }

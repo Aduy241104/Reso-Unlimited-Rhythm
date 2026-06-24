@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
+import PlayerQueueMenu from "../../components/player/PlayerQueueMenu";
+import { usePlayer } from "../../hooks/usePlayer";
 import { useTheme } from "../../hooks/useTheme";
 import Header from "./Header";
 import Player from "./Player";
@@ -11,6 +13,8 @@ const SIDEBAR_COLLAPSED_WIDTH = "84px";
 const MainLayout = () => {
   const location = useLocation();
   const { isDark } = useTheme();
+  const [isDesktopQueueOpen, setIsDesktopQueueOpen] = useState(false);
+  const [removingQueueTrackIndex, setRemovingQueueTrackIndex] = useState(-1);
   const [isDesktopViewport, setIsDesktopViewport] = useState(() => {
     if (typeof window === "undefined") {
       return false;
@@ -20,6 +24,15 @@ const MainLayout = () => {
   });
   const [isDesktopSidebarVisible, setIsDesktopSidebarVisible] = useState(true);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const {
+    queue,
+    currentIndex,
+    isPlaying,
+    activeCollection,
+    playFromQueueIndex,
+    togglePlayPause,
+    removeTrackFromQueue,
+  } = usePlayer();
   const desktopSidebarWidth = isDesktopSidebarVisible
     ? SIDEBAR_EXPANDED_WIDTH
     : SIDEBAR_COLLAPSED_WIDTH;
@@ -59,6 +72,12 @@ const MainLayout = () => {
   }, [location.pathname]);
 
   useEffect(() => {
+    if (!isDesktopViewport) {
+      setIsDesktopQueueOpen(false);
+    }
+  }, [isDesktopViewport]);
+
+  useEffect(() => {
     const originalOverflow = document.body.style.overflow;
 
     if (!isDesktopViewport && isMobileSidebarOpen) {
@@ -74,6 +93,7 @@ const MainLayout = () => {
     const handleKeyDown = (event) => {
       if (event.key === "Escape") {
         setIsMobileSidebarOpen(false);
+        setIsDesktopQueueOpen(false);
       }
     };
 
@@ -91,6 +111,41 @@ const MainLayout = () => {
     }
 
     setIsMobileSidebarOpen((currentValue) => !currentValue);
+  };
+
+  const handleToggleDesktopQueue = () => {
+    if (!isDesktopViewport) {
+      return;
+    }
+
+    setIsDesktopQueueOpen((currentValue) => !currentValue);
+  };
+
+  const handleCloseDesktopQueue = () => {
+    setIsDesktopQueueOpen(false);
+  };
+
+  const handleRemoveTrackFromQueue = async (targetIndex) => {
+    if (removingQueueTrackIndex >= 0) {
+      return;
+    }
+
+    setRemovingQueueTrackIndex(targetIndex);
+
+    try {
+      await removeTrackFromQueue(targetIndex);
+    } finally {
+      setRemovingQueueTrackIndex(-1);
+    }
+  };
+
+  const handlePlayQueueTrack = async (targetIndex) => {
+    if (targetIndex === currentIndex) {
+      await togglePlayPause();
+      return;
+    }
+
+    await playFromQueueIndex(targetIndex);
   };
 
   return (
@@ -148,17 +203,67 @@ const MainLayout = () => {
 
         <main
           className={[
-            "relative z-0 min-h-0 overflow-y-auto px-3 py-4 pb-28 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#f5b66f]/30 [&::-webkit-scrollbar]:w-2 sm:px-4 sm:py-5 sm:pb-24 lg:px-6",
-            isDark
-              ? "bg-black text-[#f7f1ea] [scrollbar-color:rgba(245,182,111,0.3)_#0f0f14] [&::-webkit-scrollbar-track]:bg-[#0f0f14]"
-              : "bg-white text-[#111111] [scrollbar-color:rgba(209,213,219,0.9)_#ffffff] [&::-webkit-scrollbar-track]:bg-[#ffffff]",
+            "relative z-0 min-h-0 overflow-hidden",
+            isDark ? "bg-black text-[#f7f1ea]" : "bg-white text-[#111111]",
           ].join(" ")}
         >
-          <Outlet />
+          <div className="flex h-full min-w-0 pb-[81px]">
+            <div className="flex-1 p-3 sm:p-1 lg:p-1">
+              <div
+                className="
+                          h-full overflow-y-auto
+                          rounded-xl
+                          bg-[#121212]
+                          [-ms-overflow-style:none]
+                          [scrollbar-width:none]
+                          [&::-webkit-scrollbar]:hidden
+                         
+                        "
+              >
+                <Outlet />
+              </div>
+            </div>
+
+            { isDesktopQueueOpen ? (
+              <aside
+                className={ [
+                  "hidden h-full w-[240px] shrink-0 lg:flex",
+                  "p-1",
+                ].join(" ") }
+              >
+                <section
+                  className={ [
+                    "flex h-full w-full flex-col overflow-hidden rounded-xl bg-[#121212]"
+                  ].join(" ") }
+                >
+                  <div className="min-h-0 flex-1">
+                    <PlayerQueueMenu
+                      queue={ queue }
+                      currentIndex={ currentIndex }
+                      isPlaying={ isPlaying }
+                      activeCollection={ activeCollection }
+                      onPlayTrack={ handlePlayQueueTrack }
+                      onRemoveTrack={ handleRemoveTrackFromQueue }
+                      removingTrackIndex={ removingQueueTrackIndex }
+                      onClose={ handleCloseDesktopQueue }
+                      variant="sidebar"
+                      className="h-full"
+                    />
+                  </div>
+                </section>
+              </aside>
+            ) : null }
+          </div>
         </main>
       </div>
 
-      <Player isDesktopSidebarVisible={isDesktopSidebarVisible} />
+      <Player
+        isDesktopSidebarVisible={ isDesktopSidebarVisible }
+        isDesktopViewport={ isDesktopViewport }
+        isDesktopQueueOpen={ isDesktopQueueOpen }
+        onToggleDesktopQueue={ handleToggleDesktopQueue }
+        onCloseDesktopQueue={ handleCloseDesktopQueue }
+      />
     </div>
   );
 };
