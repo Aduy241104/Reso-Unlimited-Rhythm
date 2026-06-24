@@ -45,6 +45,7 @@ import PremiumPaymentFailedPage from "../pages/premium/PremiumPaymentFailedPage"
 import PremiumPaymentSuccessPage from "../pages/premium/PremiumPaymentSuccessPage";
 import PremiumPage from "../pages/premium/PremiumPage";
 import TrackDetailPage from "../pages/track/TrackDetailPage";
+import UserRecentListeningPage from "../pages/userInsign/user.recentListening.page";
 import UserFavoriteTracksPage from "../pages/userFavorite/UserFavoriteTracksPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
@@ -133,6 +134,15 @@ export const appRoutes = [
   {
     element: <ProtectedRoute />,
     children: userProfileRoutes,
+  },
+  {
+    element: <ProtectedRoute />,
+    children: [
+      {
+        path: routePaths.userRecentListeningActivity,
+        element: <UserRecentListeningPage />,
+      },
+    ],
   },
   {
     element: <ProtectedRoute />,
