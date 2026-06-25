@@ -5,7 +5,7 @@ import redisClient from "../../config/redisConfig.js";
 import Track from "../../models/Track.js";
 import { AppError } from "../../utils/AppError.js";
 import { getAnalyticsTimezone } from "../analytics/trackStatAggregation.service.js";
-import { storeRecentListeningActivity } from "../user/user.recentListening.service.js";
+import { storeRecentListeningActivity } from "../user/userListeningAnalytics.service.js";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);

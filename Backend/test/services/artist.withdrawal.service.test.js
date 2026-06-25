@@ -13,6 +13,11 @@ const mockArtistRevenueSummaryModel = {
   find: jest.fn(),
 };
 
+const mockWithdrawalRequestModel = {
+  countDocuments: jest.fn(),
+  aggregate: jest.fn(),
+};
+
 const createQueryChain = (result) => ({
   select: jest.fn().mockReturnThis(),
   lean: jest.fn().mockResolvedValue(result),
@@ -33,6 +38,9 @@ const loadArtistWithdrawalService = async () => {
   jest.unstable_mockModule("../../src/models/ArtistRevenueSummary.js", () => ({
     default: mockArtistRevenueSummaryModel,
   }));
+  jest.unstable_mockModule("../../src/models/WithdrawalRequest.js", () => ({
+    default: mockWithdrawalRequestModel,
+  }));
 
   const { default: artistWithdrawalService } = await import(
     "../../src/services/artist/artist.withdrawal.service.js"
@@ -45,6 +53,8 @@ describe("artistWithdrawalService.getMyRevenueSummaryByUserId", () => {
   beforeEach(() => {
     mockArtistModel.findOne.mockReset();
     mockArtistRevenueSummaryModel.find.mockReset();
+    mockWithdrawalRequestModel.countDocuments.mockReset();
+    mockWithdrawalRequestModel.aggregate.mockReset();
   });
 
   test("returns current available balance and monthly revenue history", async () => {
@@ -87,6 +97,13 @@ describe("artistWithdrawalService.getMyRevenueSummaryByUserId", () => {
         },
       ])
     );
+    mockWithdrawalRequestModel.countDocuments.mockResolvedValue(2);
+    mockWithdrawalRequestModel.aggregate.mockResolvedValue([
+      {
+        _id: null,
+        totalAmount: 120000,
+      },
+    ]);
 
     const result = await artistWithdrawalService.getMyRevenueSummaryByUserId(
       userId
@@ -113,6 +130,10 @@ describe("artistWithdrawalService.getMyRevenueSummaryByUserId", () => {
       summaryCount: 2,
     });
     expect(result.monthlySummaries).toHaveLength(2);
+    expect(result.withdrawalSummary).toEqual({
+      pendingAmount: 120000,
+      requestCount: 2,
+    });
     expect(result.monthlySummaries[0]).toMatchObject({
       id: "summary-2026-06",
       year: 2026,
@@ -133,6 +154,8 @@ describe("artistWithdrawalService.getMyRevenueSummaryByUserId", () => {
     );
 
     mockArtistRevenueSummaryModel.find.mockReturnValue(createFindChain([]));
+    mockWithdrawalRequestModel.countDocuments.mockResolvedValue(0);
+    mockWithdrawalRequestModel.aggregate.mockResolvedValue([]);
 
     const result = await artistWithdrawalService.getMyRevenueSummaryByUserId(
       userId

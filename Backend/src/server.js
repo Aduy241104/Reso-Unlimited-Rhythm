@@ -60,18 +60,18 @@ const PORT = process.env.PORT || 8080;
 
 const startServer = async () => {
     try {
-
-
         await connectMongose();
         await connectRedis();
 
-        server.listen(PORT, '0.0.0.0', () => {
+        server.listen(PORT, "0.0.0.0", () => {
             console.log(`🚀 Server + Socket.IO đang chạy tại port ${PORT}`);
-            console.log(`📡 Server đang mở cổng mạng nội bộ tại mọi IP`);
+            console.log("📡 Server đang mở cổng mạng nội bộ tại mọi IP");
         });
+
         await runReleaseSchedulePublication();
         await runSubscriptionMaintenance();
         await runStartupAnalyticsCatchup();
+
         startDailyArtistOverviewStatCron();
         startDailyUserListeningStatCron();
         startDailyTopArtistCron();
@@ -85,10 +85,8 @@ const startServer = async () => {
         startReleaseScheduleCron();
         startSubscriptionMaintenanceCron();
         startRevenueAggregationCron();
-
-
     } catch (error) {
-        console.error("💥¨ Failed to start server:", error);
+        console.error("💥 Failed to start server:", error);
         process.exit(1);
     }
 };

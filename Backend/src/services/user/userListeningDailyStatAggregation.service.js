@@ -2,7 +2,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 import mongoose from "mongoose";
-import RecentListeningActivity from "../../models/user.recentListening.model.js";
+import UserRecentListeningActivity from "../../models/userRecentListeningActivity.model.js";
 import UserListeningDailyStat from "../../models/UserListeningDailyStat.js";
 import { getAnalyticsTimezone } from "../analytics/trackStatAggregation.service.js";
 
@@ -40,7 +40,7 @@ export const syncUserListeningDailyStatsForDay = async (targetDateInput) => {
     const dateKey = targetDay.format("YYYY-MM-DD");
     const date = buildStoredDayDate(targetDay);
 
-    const aggregatedDailyStats = await RecentListeningActivity.aggregate([
+    const aggregatedDailyStats = await UserRecentListeningActivity.aggregate([
         {
             $match: {
                 listenedAt: {

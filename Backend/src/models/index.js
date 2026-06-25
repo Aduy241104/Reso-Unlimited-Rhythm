@@ -15,7 +15,8 @@ import Notification from "./Notification.js";
 import Plan from "./Plan.js";
 import Playlist from "./Playlist.js";
 import PlatformMonthlyStat from "./PlatformMonthlyStat.js";
-import RecentListeningActivity from "./user.recentListening.model.js";
+import UserRecentListeningActivity from "./userRecentListeningActivity.model.js";
+import UserRecentListeningInsightsCache from "./userRecentListeningInsightsCache.model.js";
 import RefreshToken from "./RefreshToken.js";
 import ReleaseSchedule from "./ReleaseSchedule.js";
 import Report from "./Report.js";
@@ -51,7 +52,10 @@ export default {
     Plan,
     Playlist,
     PlatformMonthlyStat,
-    RecentListeningActivity,
+    UserRecentListeningActivity,
+    UserRecentListeningInsightsCache,
+    RecentListeningActivity: UserRecentListeningActivity,
+    UserRecentListeningInsights: UserRecentListeningInsightsCache,
     RefreshToken,
     ReleaseSchedule,
     Report,

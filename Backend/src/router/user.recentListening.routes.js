@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.get(
     "/me/recent-listening-activity",
-    authenticate(["user", "artist"]),
+    authenticate(["user"]),
     userRecentListeningController.getMyRecentListeningActivity
 );
 

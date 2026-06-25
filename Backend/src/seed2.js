@@ -22,7 +22,7 @@ const {
     Artist,
     Album,
     Track,
-    RecentListeningActivity,
+    UserRecentListeningActivity,
     UserListeningDailyStat,
 } = models;
 
@@ -67,7 +67,7 @@ const storedDayDateDaysAgo = (days) =>
 
 const seedCollections = [
     {
-        model: RecentListeningActivity,
+        model: UserRecentListeningActivity,
         ids: [
             ids.activityOne,
             ids.activityTwo,
@@ -295,7 +295,7 @@ const seedRecentListeningActivity = async () => {
     const sharedArtistAvatar =
         "https://images.unsplash.com/photo-1516280440614-37939bbacd81";
 
-    await RecentListeningActivity.insertMany([
+    await UserRecentListeningActivity.insertMany([
         {
             _id: ids.activityOne,
             userId: ids.targetUser,

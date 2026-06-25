@@ -16,7 +16,7 @@ const mockUserListeningDailyStatModel = {
 const loadService = async () => {
     jest.resetModules();
 
-    jest.unstable_mockModule("../../src/models/user.recentListening.model.js", () => ({
+    jest.unstable_mockModule("../../src/models/userRecentListeningActivity.model.js", () => ({
         default: mockRecentListeningActivityModel,
     }));
     jest.unstable_mockModule("../../src/models/UserListeningDailyStat.js", () => ({

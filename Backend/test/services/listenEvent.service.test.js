@@ -56,7 +56,7 @@ const loadListenEventService = async () => {
         })
     );
     jest.unstable_mockModule(
-        "../../src/services/user/user.recentListening.service.js",
+        "../../src/services/user/userListeningAnalytics.service.js",
         () => ({
             storeRecentListeningActivity: mockStoreRecentListeningActivity,
         })

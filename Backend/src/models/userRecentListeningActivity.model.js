@@ -11,7 +11,7 @@ const RECENT_ACTIVITY_SOURCE_ENUM = [
     "unknown",
 ];
 
-const RecentListeningActivitySchema = new Schema(
+const UserRecentListeningActivitySchema = new Schema(
     {
         userId: {
             type: Schema.Types.ObjectId,
@@ -56,12 +56,13 @@ const RecentListeningActivitySchema = new Schema(
     { timestamps: true }
 );
 
-RecentListeningActivitySchema.index({ userId: 1, listenedAt: -1 });
-RecentListeningActivitySchema.index({ userId: 1, trackId: 1, listenedAt: -1 });
+UserRecentListeningActivitySchema.index({ userId: 1, listenedAt: -1 });
+UserRecentListeningActivitySchema.index({ userId: 1, trackId: 1, listenedAt: -1 });
 
-const RecentListeningActivity = model(
-    "RecentListeningActivity",
-    RecentListeningActivitySchema
+const UserRecentListeningActivity = model(
+    "UserRecentListeningActivity",
+    UserRecentListeningActivitySchema,
+    "recentlisteningactivities"
 );
 
-export default RecentListeningActivity;
+export default UserRecentListeningActivity;

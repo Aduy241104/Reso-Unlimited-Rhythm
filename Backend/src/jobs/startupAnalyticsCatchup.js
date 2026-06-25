@@ -6,7 +6,7 @@ import ArtistDailyStat from "../models/ArtistDailyStat.js";
 import ArtistDailyRanking from "../models/ArtistDailyRanking.js";
 import ArtistMonthlyRanking from "../models/ArtistMonthlyRanking.js";
 import ListenEvent from "../models/ListenEvent.js";
-import RecentListeningActivity from "../models/user.recentListening.model.js";
+import UserRecentListeningActivity from "../models/userRecentListeningActivity.model.js";
 import TrackDailyRanking from "../models/TrackDailyRanking.js";
 import TrackDailyStat from "../models/TrackDailyStat.js";
 import TrackMonthlyRanking from "../models/TrackMonthlyRanking.js";
@@ -48,7 +48,7 @@ const hasArtistListenEventsInRange = async (startDate, endDate) =>
 
 const hasRecentListeningActivitiesInRange = async (startDate, endDate) =>
     Boolean(
-        await RecentListeningActivity.exists({
+        await UserRecentListeningActivity.exists({
             listenedAt: { $gte: startDate, $lt: endDate },
         })
     );

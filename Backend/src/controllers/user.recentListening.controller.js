@@ -1,10 +1,10 @@
-import userRecentListeningService from "../services/user/user.recentListening.service.js";
+import userListeningAnalyticsService from "../services/user/userListeningAnalytics.service.js";
 import formatResponse from "../utils/formatResponse.js";
 
 const getMyRecentListeningActivity = async (req, res, next) => {
     try {
         const activity =
-            await userRecentListeningService.getRecentListeningActivityByUserId(
+            await userListeningAnalyticsService.getRecentListeningActivityByUserId(
                 req.user.id
             );
 

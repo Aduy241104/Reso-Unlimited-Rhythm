@@ -2,7 +2,7 @@ import cron from "node-cron";
 import userListeningDailyStatAggregationService from "../services/user/userListeningDailyStatAggregation.service.js";
 import { getAnalyticsTimezone } from "../services/analytics/trackStatAggregation.service.js";
 
-const DAILY_USER_LISTENING_STAT_CRON_EXPRESSION = "3 0 * * *";
+const DAILY_USER_LISTENING_STAT_CRON_EXPRESSION = "30 0 * * *";
 
 let isJobRunning = false;
 
@@ -43,7 +43,7 @@ export const startDailyUserListeningStatCron = () => {
     );
 
     console.log(
-        `[Cron] Daily user listening stat aggregation scheduled at 00:03 every day (${analyticsTimezone}).`
+        `[Cron] Daily user listening stat aggregation scheduled at 00:30 every day (${analyticsTimezone}).`
     );
 
     return task;
