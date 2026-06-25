@@ -216,8 +216,7 @@ const MainLayout = () => {
                           bg-[#121212]
                           [-ms-overflow-style:none]
                           [scrollbar-width:none]
-                          [&::-webkit-scrollbar]:hidden
-                         
+                          [&::-webkit-scrollbar]:hidden 
                         "
               >
                 <Outlet />
@@ -228,7 +227,7 @@ const MainLayout = () => {
               <aside
                 className={ [
                   "hidden h-full w-[240px] shrink-0 lg:flex",
-                  "p-1",
+                  "pt-1 pb-1",
                 ].join(" ") }
               >
                 <section
