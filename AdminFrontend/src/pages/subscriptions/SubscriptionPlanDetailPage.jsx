@@ -9,12 +9,10 @@ import {
   Edit2,
   Eye,
   EyeOff,
-  Trash2,
   Users,
   X,
 } from "lucide-react";
 import {
-  deletePlanService,
   getPlanDetailService,
   updatePlanService,
 } from "../../services/subscriptionService";
@@ -34,7 +32,7 @@ const PLAN_FEATURES = {
 };
 
 const formatCurrency = (value) => {
-  if (value === undefined || value === null) return "—";
+  if (value === undefined || value === null) return "-";
   return new Intl.NumberFormat("vi-VN", {
     style: "currency",
     currency: "VND",
@@ -42,7 +40,7 @@ const formatCurrency = (value) => {
 };
 
 const formatDate = (value) => {
-  if (!value) return "—";
+  if (!value) return "-";
   return new Date(value).toLocaleDateString("vi-VN", {
     year: "numeric",
     month: "long",
@@ -102,7 +100,7 @@ const SubscriptionPlanDetailPage = () => {
         setPlan(result.plan);
         setStats(result.subscriptionStats);
       } catch (err) {
-        setError("Không thể tải thông tin gói subscription.");
+        setError("Không thể tải thông tin gói đăng ký.");
         console.error(err);
       } finally {
         setIsLoading(false);
@@ -117,7 +115,7 @@ const SubscriptionPlanDetailPage = () => {
       <section className="flex min-h-[60vh] items-center justify-center">
         <div className="flex items-center gap-3 text-slate-500">
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-          <span>Đang tải thông tin gói subscription...</span>
+          <span>Đang tải thông tin gói đăng ký...</span>
         </div>
       </section>
     );
@@ -138,7 +136,7 @@ const SubscriptionPlanDetailPage = () => {
         <div className="rounded-2xl bg-white p-8 text-center shadow-[0_12px_32px_rgba(15,23,42,0.06)]">
           <AlertCircle size={48} className="mx-auto mb-4 text-red-400" />
           <p className="text-lg font-semibold text-slate-900">
-            {error || "Gói subscription không tồn tại"}
+            {error || "Gói đăng ký không tồn tại"}
           </p>
         </div>
       </section>
@@ -176,26 +174,6 @@ const SubscriptionPlanDetailPage = () => {
     }
   };
 
-  const handleDeletePlan = async () => {
-    setIsActing(true);
-    setMessage({ type: "", text: "" });
-
-    try {
-      await deletePlanService(planId);
-      navigate(routePaths.subscriptions);
-    } catch (err) {
-      setMessage({
-        type: "error",
-        text:
-          err?.response?.data?.message ||
-          err?.message ||
-          "Xóa gói đăng ký thất bại.",
-      });
-      setIsActing(false);
-      closeActionModal();
-    }
-  };
-
   return (
     <section className="min-h-screen space-y-6 bg-slate-50/50 p-3 font-sans text-slate-800 antialiased lg:p-5">
       <div className="flex items-center justify-between">
@@ -223,16 +201,7 @@ const SubscriptionPlanDetailPage = () => {
             }`}
           >
             {plan.status === "inactive" ? <Eye size={16} /> : <EyeOff size={16} />}
-            {plan.status === "inactive" ? "Show" : "Hide"}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActionModal({ type: "delete", isOpen: true })}
-            className="flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
-          >
-            <Trash2 size={16} />
-            Xóa
+            {plan.status === "inactive" ? "Hiện" : "Ẩn"}
           </button>
 
           <Link
@@ -328,12 +297,12 @@ const SubscriptionPlanDetailPage = () => {
           <div className="rounded-2xl bg-white p-6 shadow-[0_12px_32px_rgba(15,23,42,0.06)]">
             <div className="mb-4 flex items-center gap-2">
               <Users size={18} className="text-slate-400" />
-              <h3 className="text-sm font-semibold text-slate-700">Thống kê Subscription</h3>
+              <h3 className="text-sm font-semibold text-slate-700">Thống kê đăng ký</h3>
             </div>
 
             <div className="space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 py-2">
-                <span className="text-sm text-slate-500">Tổng subscription</span>
+                <span className="text-sm text-slate-500">Tổng đăng ký</span>
                 <span className="text-lg font-bold text-slate-900">{stats?.total ?? 0}</span>
               </div>
               <div className="flex items-center justify-between border-b border-slate-100 py-2">
@@ -380,27 +349,16 @@ const SubscriptionPlanDetailPage = () => {
           <div className="w-full max-w-md space-y-4 rounded-2xl border border-slate-100 bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-150">
             <div>
               <h2 className="text-lg font-bold text-slate-900">
-                {actionModal.type === "delete"
-                  ? "Xóa gói đăng ký?"
-                  : actionModal.type === "show"
-                    ? "Hiện gói đăng ký?"
-                    : "Ẩn gói đăng ký?"}
+                {actionModal.type === "show" ? "Hiện gói đăng ký?" : "Ẩn gói đăng ký?"}
               </h2>
               <p className="mt-0.5 text-xs text-slate-400">
-                {actionModal.type === "delete"
-                  ? "Hành động này không thể hoàn tác."
-                  : actionModal.type === "show"
-                    ? "Gói sẽ được chuyển sang trạng thái hoạt động."
-                    : "Gói sẽ được chuyển sang trạng thái ẩn."}
+                {actionModal.type === "show"
+                  ? "Gói sẽ được chuyển sang trạng thái hoạt động."
+                  : "Gói sẽ được chuyển sang trạng thái ẩn."}
               </p>
             </div>
             <p className="text-sm leading-relaxed text-slate-600">
-              {actionModal.type === "delete"
-                ? "Xác nhận xóa"
-                : actionModal.type === "show"
-                  ? "Xác nhận hiện"
-                  : "Xác nhận ẩn"}{" "}
-              gói{" "}
+              {actionModal.type === "show" ? "Xác nhận hiện" : "Xác nhận ẩn"} gói{" "}
               <span className="font-bold text-slate-950">"{plan.name}"</span>?
             </p>
             <div className="flex justify-end gap-2 pt-1">
@@ -414,24 +372,16 @@ const SubscriptionPlanDetailPage = () => {
               <button
                 type="button"
                 disabled={isActing}
-                onClick={actionModal.type === "delete" ? handleDeletePlan : handleHidePlan}
-                className={`rounded-xl px-4 py-2 text-xs font-semibold text-white shadow-sm transition disabled:opacity-50 ${
-                  actionModal.type === "delete"
-                    ? "bg-rose-600 hover:bg-rose-700"
-                    : "bg-amber-500 hover:bg-amber-600"
-                }`}
+                onClick={handleHidePlan}
+                className="rounded-xl bg-amber-500 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-amber-600 disabled:opacity-50"
               >
                 {isActing
-                  ? actionModal.type === "delete"
-                    ? "Đang xóa..."
-                    : actionModal.type === "show"
-                      ? "Đang hiện..."
-                      : "Đang ẩn..."
-                  : actionModal.type === "delete"
-                    ? "Xác nhận xóa"
-                    : actionModal.type === "show"
-                      ? "Xác nhận hiện"
-                      : "Xác nhận ẩn"}
+                  ? actionModal.type === "show"
+                    ? "Đang hiện..."
+                    : "Đang ẩn..."
+                  : actionModal.type === "show"
+                    ? "Xác nhận hiện"
+                    : "Xác nhận ẩn"}
               </button>
             </div>
           </div>

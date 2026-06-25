@@ -25,7 +25,7 @@ const PLAN_FEATURES = {
 };
 
 const formatCurrency = (value) => {
-  if (value === undefined || value === null) return "—";
+  if (value === undefined || value === null) return "-";
   return new Intl.NumberFormat("vi-VN", {
     style: "currency",
     currency: "VND",
@@ -33,7 +33,7 @@ const formatCurrency = (value) => {
 };
 
 const formatDate = (value) => {
-  if (!value) return "—";
+  if (!value) return "-";
   return new Date(value).toLocaleDateString("vi-VN", {
     year: "numeric",
     month: "2-digit",
@@ -102,7 +102,7 @@ const SubscriptionPlansPage = () => {
       setPlans(result.plans || []);
       setPagination(result.meta);
     } catch (error) {
-      setMessage("Không thể tải danh sách gói subscription.");
+      setMessage("Không thể tải danh sách gói đăng ký.");
       console.error(error);
     } finally {
       setIsLoading(false);
@@ -168,7 +168,7 @@ const SubscriptionPlansPage = () => {
       const nextMessage =
         error?.response?.data?.message ||
         error?.message ||
-        `${hideModal.nextStatus === "inactive" ? "Ẩn" : "Hiện"} gói subscription thất bại.`;
+        `${hideModal.nextStatus === "inactive" ? "Ẩn" : "Hiện"} gói đăng ký thất bại.`;
       setMessage(nextMessage);
     } finally {
       setIsUpdatingStatus(false);
@@ -223,7 +223,7 @@ const SubscriptionPlansPage = () => {
               : "text-slate-600 hover:bg-slate-100"
           }`}
         >
-          Thống kê lượng đăng ký
+          Thống kê lượt đăng ký
         </button>
       </div>
 
@@ -296,13 +296,13 @@ const SubscriptionPlansPage = () => {
               <div className="min-w-[1200px] divide-y divide-slate-100">
                 {isLoading ? (
                   <div className="p-12 text-center text-xs font-bold uppercase tracking-wider text-slate-400">
-                    Đang tải danh sách gói subscription...
+                    Đang tải danh sách gói đăng ký...
                   </div>
                 ) : null}
 
                 {!isLoading && plans.length === 0 ? (
                   <div className="p-12 text-center italic text-slate-400">
-                    Không tìm thấy gói subscription nào phù hợp.
+                    Không tìm thấy gói đăng ký nào phù hợp.
                   </div>
                 ) : null}
 
@@ -393,7 +393,7 @@ const SubscriptionPlansPage = () => {
                               }`}
                             >
                               {plan.status === "inactive" ? <Eye size={12} /> : <EyeOff size={12} />}
-                              {plan.status === "inactive" ? "Show" : "Hide"}
+                              {plan.status === "inactive" ? "Hiện" : "Ẩn"}
                             </button>
                           </div>
                         </div>
@@ -437,7 +437,7 @@ const SubscriptionPlansPage = () => {
           <div className="w-full max-w-md space-y-4 rounded-2xl border border-slate-100 bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-150">
             <div>
               <h2 className="text-lg font-bold text-slate-900">
-                {hideModal.nextStatus === "inactive" ? "Ẩn gói subscription?" : "Hiện gói subscription?"}
+                {hideModal.nextStatus === "inactive" ? "Ẩn gói đăng ký?" : "Hiện gói đăng ký?"}
               </h2>
               <p className="mt-0.5 text-xs text-slate-400">
                 {hideModal.nextStatus === "inactive"
