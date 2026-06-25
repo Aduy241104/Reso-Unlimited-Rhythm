@@ -22,22 +22,22 @@ import { routePaths } from "../../routes/routePaths";
 
 const statusConfig = {
   pending: {
-    label: "Pending",
+    label: "Chờ xử lý",
     className: "border-amber-100 bg-amber-50 text-amber-600",
     dot: "bg-amber-500",
   },
   approved: {
-    label: "Approved",
+    label: "Đã duyệt",
     className: "border-blue-100 bg-blue-50 text-blue-600",
     dot: "bg-blue-500",
   },
   rejected: {
-    label: "Rejected",
+    label: "Đã từ chối",
     className: "border-rose-100 bg-rose-50 text-rose-600",
     dot: "bg-rose-500",
   },
   paid: {
-    label: "Paid",
+    label: "Đã thanh toán",
     className: "border-emerald-100 bg-emerald-50 text-emerald-600",
     dot: "bg-emerald-500",
   },
@@ -84,7 +84,7 @@ const getArtistName = (withdrawal) => {
     artist?.artistName ||
     user?.profile?.fullName ||
     user?.email ||
-    "Unknown artist"
+    "Nghệ sĩ không xác định"
   );
 };
 
@@ -207,11 +207,11 @@ const WithdrawalRequestDetailPage = () => {
         status: "approved",
         approvedAt: new Date().toISOString(),
       });
-      setSuccessMessage("Withdrawal request approved successfully");
+      setSuccessMessage("Duyệt yêu cầu rút tiền thành công.");
       setIsApproveConfirmOpen(false);
     } catch (err) {
       console.error(err);
-      setError(getErrorMessage(err, "Không thể approve yêu cầu rút tiền."));
+      setError(getErrorMessage(err, "Không thể duyệt yêu cầu rút tiền."));
     } finally {
       setIsApproving(false);
     }
@@ -224,7 +224,7 @@ const WithdrawalRequestDetailPage = () => {
     if (!withdrawalId || !canApprove || isRejecting) return;
 
     if (!normalizedRejectReason) {
-      setError("Reject reason is required.");
+      setError("Vui lòng nhập lý do từ chối.");
       return;
     }
 
@@ -242,12 +242,12 @@ const WithdrawalRequestDetailPage = () => {
         rejectedAt: new Date().toISOString(),
         rejectReason: normalizedRejectReason,
       });
-      setSuccessMessage("Withdrawal request rejected successfully");
+      setSuccessMessage("Từ chối yêu cầu rút tiền thành công.");
       setRejectReason("");
       setIsRejectConfirmOpen(false);
     } catch (err) {
       console.error(err);
-      setError(getErrorMessage(err, "Không thể reject yêu cầu rút tiền."));
+      setError(getErrorMessage(err, "Không thể từ chối yêu cầu rút tiền."));
     } finally {
       setIsRejecting(false);
     }
@@ -261,7 +261,7 @@ const WithdrawalRequestDetailPage = () => {
     if (!withdrawalId || !canMarkPaid || isMarkingPaid) return;
 
     if (!normalizedPaymentReference && !normalizedPaymentNote) {
-      setError("Payment reference or payment note is required.");
+      setError("Vui lòng nhập mã giao dịch hoặc ghi chú thanh toán.");
       return;
     }
 
@@ -281,7 +281,7 @@ const WithdrawalRequestDetailPage = () => {
         paymentReference: normalizedPaymentReference,
         paymentNote: normalizedPaymentNote,
       });
-      setSuccessMessage("Withdrawal request marked as paid successfully");
+      setSuccessMessage("Đánh dấu đã thanh toán thành công.");
       setPaymentReference("");
       setPaymentNote("");
       setIsPaidConfirmOpen(false);
@@ -303,13 +303,13 @@ const WithdrawalRequestDetailPage = () => {
             className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
           >
             <ArrowLeft size={16} />
-            Back
+            Quay lại
           </button>
           <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
-            Withdrawal detail
+            Chi tiết yêu cầu rút tiền
           </p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
-            Withdrawal Request Detail
+            Chi tiết yêu cầu rút tiền
           </h1>
         </div>
 
@@ -317,7 +317,7 @@ const WithdrawalRequestDetailPage = () => {
           to={routePaths.withdrawals}
           className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
         >
-          Back to list
+          Về danh sách
         </Link>
       </div>
 
@@ -388,7 +388,7 @@ const WithdrawalRequestDetailPage = () => {
                     ) : (
                       <CheckCircle2 size={15} />
                     )}
-                    Approve
+                    Duyệt
                   </button>
                 ) : null}
                 {canApprove ? (
@@ -408,7 +408,7 @@ const WithdrawalRequestDetailPage = () => {
                     ) : (
                       <XCircle size={15} />
                     )}
-                    Reject
+                    Từ chối
                   </button>
                 ) : null}
                 {canMarkPaid ? (
@@ -429,7 +429,7 @@ const WithdrawalRequestDetailPage = () => {
                     ) : (
                       <Banknote size={15} />
                     )}
-                    Mark as Paid
+                    Đánh dấu đã thanh toán
                   </button>
                 ) : null}
               </div>
@@ -506,21 +506,21 @@ const WithdrawalRequestDetailPage = () => {
                 </div>
                 <div className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
                   <Clock3 size={16} className="text-slate-400" />
-                  <InfoRow label="Approved At" value={formatDateTime(withdrawal.approvedAt)} />
+                  <InfoRow label="Ngày duyệt" value={formatDateTime(withdrawal.approvedAt)} />
                 </div>
                 <div className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
                   <Clock3 size={16} className="text-slate-400" />
-                  <InfoRow label="Rejected At" value={formatDateTime(withdrawal.rejectedAt)} />
+                  <InfoRow label="Ngày từ chối" value={formatDateTime(withdrawal.rejectedAt)} />
                 </div>
                 <div className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
                   <Clock3 size={16} className="text-slate-400" />
-                  <InfoRow label="Paid At" value={formatDateTime(withdrawal.paidAt)} />
+                  <InfoRow label="Ngày thanh toán" value={formatDateTime(withdrawal.paidAt)} />
                 </div>
               </div>
             </DetailCard>
 
             <DetailCard title="Admin notes">
-              <InfoRow label="Reject reason" value={withdrawal.rejectReason} />
+              <InfoRow label="Lý do từ chối" value={withdrawal.rejectReason} />
               <InfoRow label="Admin note" value={withdrawal.adminNote} />
               <InfoRow label="Payment reference" value={withdrawal.paymentReference} />
               <InfoRow label="Payment note" value={withdrawal.paymentNote} />
@@ -533,7 +533,7 @@ const WithdrawalRequestDetailPage = () => {
                   "—"
                 }
               />
-              <InfoRow label="Paid By" value={withdrawal.paidBy?.profile?.fullName || withdrawal.paidBy?.email} />
+              <InfoRow label="Người xác nhận thanh toán" value={withdrawal.paidBy?.profile?.fullName || withdrawal.paidBy?.email} />
             </DetailCard>
           </div>
         </>
@@ -555,7 +555,7 @@ const WithdrawalRequestDetailPage = () => {
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-slate-950">
-                  Approve withdrawal request?
+                  Duyệt yêu cầu rút tiền?
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-slate-500">
                   Request của {getArtistName(withdrawal)} sẽ chuyển từ pending
@@ -575,7 +575,7 @@ const WithdrawalRequestDetailPage = () => {
                 disabled={isApproving}
                 className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Cancel
+                Hủy
               </button>
               <button
                 type="button"
@@ -588,7 +588,7 @@ const WithdrawalRequestDetailPage = () => {
                 ) : (
                   <CheckCircle2 size={16} />
                 )}
-                Confirm approve
+                Xác nhận duyệt
               </button>
             </div>
           </div>
@@ -604,7 +604,7 @@ const WithdrawalRequestDetailPage = () => {
               </div>
               <div className="min-w-0 flex-1">
                 <h2 className="text-lg font-semibold text-slate-950">
-                  Reject withdrawal request?
+                  Từ chối yêu cầu rút tiền?
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-slate-500">
                   Request của {getArtistName(withdrawal)} sẽ bị từ chối và số tiền
@@ -612,13 +612,13 @@ const WithdrawalRequestDetailPage = () => {
                 </p>
                 <label className="mt-5 block">
                   <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                    Reject reason
+                    Lý do từ chối
                   </span>
                   <textarea
                     value={rejectReason}
                     onChange={(event) => {
                       setRejectReason(event.target.value);
-                      if (error === "Reject reason is required.") setError("");
+                      if (error === "Vui lòng nhập lý do từ chối.") setError("");
                     }}
                     rows={4}
                     placeholder="Nhập lý do từ chối..."
@@ -643,7 +643,7 @@ const WithdrawalRequestDetailPage = () => {
                 disabled={isRejecting}
                 className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Cancel
+                Hủy
               </button>
               <button
                 type="button"
@@ -656,7 +656,7 @@ const WithdrawalRequestDetailPage = () => {
                 ) : (
                   <XCircle size={16} />
                 )}
-                Confirm reject
+                Xác nhận từ chối
               </button>
             </div>
           </div>
@@ -672,7 +672,7 @@ const WithdrawalRequestDetailPage = () => {
               </div>
               <div className="min-w-0 flex-1">
                 <h2 className="text-lg font-semibold text-slate-950">
-                  Mark withdrawal as paid?
+                  Đánh dấu yêu cầu đã thanh toán?
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-slate-500">
                   Chỉ bấm paid sau khi admin hoặc bộ phận tài chính đã chuyển tiền
@@ -682,13 +682,13 @@ const WithdrawalRequestDetailPage = () => {
 
                 <label className="mt-5 block">
                   <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                    Payment reference
+                    Mã giao dịch thanh toán
                   </span>
                   <input
                     value={paymentReference}
                     onChange={(event) => {
                       setPaymentReference(event.target.value);
-                      if (error === "Payment reference or payment note is required.") setError("");
+                      if (error === "Vui lòng nhập mã giao dịch hoặc ghi chú thanh toán.") setError("");
                     }}
                     placeholder="BANK-TXN-123456"
                     className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-200 focus:bg-white focus:ring-4 focus:ring-sky-50"
@@ -697,13 +697,13 @@ const WithdrawalRequestDetailPage = () => {
 
                 <label className="mt-4 block">
                   <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                    Payment note
+                    Ghi chú thanh toán
                   </span>
                   <textarea
                     value={paymentNote}
                     onChange={(event) => {
                       setPaymentNote(event.target.value);
-                      if (error === "Payment reference or payment note is required.") setError("");
+                      if (error === "Vui lòng nhập mã giao dịch hoặc ghi chú thanh toán.") setError("");
                     }}
                     rows={4}
                     placeholder="Transferred to artist bank account manually..."
@@ -730,7 +730,7 @@ const WithdrawalRequestDetailPage = () => {
                 disabled={isMarkingPaid}
                 className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Cancel
+                Hủy
               </button>
               <button
                 type="button"
@@ -743,7 +743,7 @@ const WithdrawalRequestDetailPage = () => {
                 ) : (
                   <Banknote size={16} />
                 )}
-                Confirm paid
+                Xác nhận thanh toán
               </button>
             </div>
           </div>

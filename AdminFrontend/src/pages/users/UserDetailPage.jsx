@@ -12,10 +12,10 @@ const roles = ["user", "admin"];
 
 // Danh sách tùy chọn lý do khóa tài khoản Thành viên/Người dùng đồng bộ hệ thống SaaS
 const BLOCK_REASON_OPTIONS = [
-  { value: "community_violation", label: "Community Violation (Vi phạm tiêu chuẩn cộng đồng)" },
-  { value: "spam_abuse", label: "Spam & Abuse (Cố tình spam hoặc lạm dụng hệ thống)" },
-  { value: "payment_fraud", label: "Payment Fraud (Gian lận thanh toán/Premium)" },
-  { value: "other", label: "Other Violations (Các hành vi vi phạm quy chuẩn khác)" },
+  { value: "community_violation", label: "Vi phạm tiêu chuẩn cộng đồng" },
+  { value: "spam_abuse", label: "Spam hoặc lạm dụng hệ thống" },
+  { value: "payment_fraud", label: "Gian lận thanh toán/Premium" },
+  { value: "other", label: "Vi phạm khác" },
 ];
 
 const formatDate = (value) => {
@@ -68,7 +68,7 @@ const UserDetailPage = () => {
       setUser(userData);
       setTransactions(transactionData);
     } catch (error) {
-      setMessage(error?.response?.data?.message || error?.message || "Unable to load user data.");
+      setMessage(error?.response?.data?.message || error?.message || "Không thể tải dữ liệu người dùng.");
     } finally {
       setIsLoading(false);
     }
@@ -291,9 +291,9 @@ const UserDetailPage = () => {
                   disabled={!user || isProcessing}
                   className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-400 transition cursor-pointer font-semibold"
                 >
-                  {user?.role === "artist" && <option value="artist">Artist (Nghệ sĩ chuyên biệt)</option>}
-                  <option value="user">User (Thành viên thông thường)</option>
-                  <option value="admin">Admin (Quản trị viên hệ thống)</option>
+                  {user?.role === "artist" && <option value="artist">Nghệ sĩ</option>}
+                  <option value="user">Người dùng</option>
+                  <option value="admin">Quản trị viên</option>
                 </select>
               </div>
               <div>
@@ -324,7 +324,7 @@ const UserDetailPage = () => {
           {/* Card 2: Lịch sử hóa đơn giao dịch */}
           <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
             <div className="flex items-center justify-between border-b border-slate-50 pb-3">
-              <h2 className="text-base font-bold text-slate-900">Lịch sử thanh toán hóa đơn</h2>
+            <h2 className="text-base font-bold text-slate-900">Lịch sử giao dịch</h2>
               <span className="rounded-full bg-slate-50 px-2.5 py-0.5 text-[11px] font-bold text-slate-500 border border-slate-100">
                 {transactions?.length ?? 0} Bản ghi
               </span>
@@ -398,7 +398,7 @@ const UserDetailPage = () => {
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Hạng mục Premium</p>
                 <p className="mt-1 text-sm font-bold text-slate-900">
-                  {user?.subscription?.isPremium ? "🎯 Premium Active" : "🛡️ Free Tier Account"}
+                  {user?.subscription?.isPremium ? "Đang dùng Premium" : "Tài khoản miễn phí"}
                 </p>
               </div>
               {user?.subscription?.isPremium && (
@@ -433,7 +433,7 @@ const UserDetailPage = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-bold text-slate-900">Thông báo đẩy</p>
-                  <p className="text-[11px] text-slate-400">Marketing & System</p>
+                  <p className="text-[11px] text-slate-400">Tiếp thị và hệ thống</p>
                 </div>
                 <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
                   user?.settings?.notificationsEnabled ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"
@@ -445,7 +445,7 @@ const UserDetailPage = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-bold text-slate-900">Phát ngẫu nhiên mặc định</p>
-                  <p className="text-[11px] text-slate-400">Shuffle Play Default</p>
+                  <p className="text-[11px] text-slate-400">Mặc định phát ngẫu nhiên</p>
                 </div>
                 <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
                   user?.settings?.shufflePlayDefault ? "bg-blue-50 text-blue-600" : "bg-slate-100 text-slate-500"
@@ -468,7 +468,7 @@ const UserDetailPage = () => {
               <h2 className="text-base font-bold uppercase tracking-wide">Hồ sơ Nghệ sĩ chuyên biệt</h2>
             </div>
             <p className="text-xs text-slate-600 leading-relaxed font-medium">
-              Tài khoản này đã được thiết lập quyền hạn là <span className="font-bold text-slate-900">Artist (Nghệ sĩ)</span> và có luồng quản lý dữ liệu tác phẩm, tác giả riêng. Bạn không thể hạ quyền trực tiếp tại đây. Vui lòng thực hiện hạ quyền hoặc cấu hình lại tại phân mục <span className="font-bold text-indigo-600 underline">Artist hệ thống</span>.
+              Tài khoản này đang có vai trò <span className="font-bold text-slate-900">Nghệ sĩ</span> và có luồng quản lý dữ liệu riêng. Bạn không thể đổi vai trò trực tiếp tại đây. Vui lòng thực hiện tại mục <span className="font-bold text-indigo-600 underline">Nghệ sĩ hệ thống</span>.
             </p>
             <div className="flex justify-end pt-2 border-t border-slate-100">
               <button
@@ -539,7 +539,7 @@ const UserDetailPage = () => {
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Violation Reason Flags (Chọn lý do hệ thống)</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Lý do khóa</label>
                 <div className="grid gap-2 sm:grid-cols-2">
                   {BLOCK_REASON_OPTIONS.map((reason) => {
                     const isChecked = selectedReasons.includes(reason.value);
@@ -563,7 +563,7 @@ const UserDetailPage = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Detailed Explanation (Giải trình chi tiết bắt buộc)</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Giải trình chi tiết</label>
                 <textarea
                   value={adminNote}
                   onChange={(e) => setAdminNote(e.target.value)}

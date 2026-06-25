@@ -32,7 +32,7 @@ const navigationItems = [
   },
   {
     to: routePaths.withdrawals,
-    label: "Withdrawal Requests",
+    label: "Yêu cầu rút tiền",
     icon: Banknote,
     end: false,
     matchPrefix: true,
@@ -40,13 +40,13 @@ const navigationItems = [
   },
   {
     to: routePaths.systemTracks,
-    label: "Ki\u1ec3m duy\u1ec7t track",
+    label: "Bài hát hệ thống",
     icon: Music2,
     end: false,
   },
   {
     to: routePaths.artistRequests,
-    label: "Y\u00eau c\u1ea7u artist",
+    label: "Yêu cầu nghệ sĩ",
     icon: UserCheck,
     end: false,
   },
@@ -58,7 +58,7 @@ const navigationItems = [
   },
   {
     to: routePaths.systemArtists,
-    label: "Artist h\u1ec7 th\u1ed1ng",
+    label: "Nghệ sĩ hệ thống",
     icon: Mic2,
     end: false,
   },
@@ -76,7 +76,7 @@ const navigationItems = [
   },
   {
     to: routePaths.notifications,
-    label: "Danh s\u00e1ch th\u00f4ng b\u00e1o",
+    label: "Thông báo",
     icon: Bell,
     end: false,
   },
