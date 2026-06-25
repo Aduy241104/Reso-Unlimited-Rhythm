@@ -29,6 +29,10 @@ import NotificationDetailPage from "../pages/notification/NotificationDetailPage
 import NotificationEditPage from "../pages/notification/NotificationUpdatePage";
 import ReportsListPage from "../pages/reports/ReportsListPage";
 import ReportDetailPage from "../pages/reports/ReportDetailPage";
+import SubscriptionPlansPage from "../pages/subscriptions/SubscriptionPlansPage";
+import SubscriptionPlanDetailPage from "../pages/subscriptions/SubscriptionPlanDetailPage";
+import CreateSubscriptionPlanPage from "../pages/subscriptions/CreateSubscriptionPlanPage";
+import EditSubscriptionPlanPage from "../pages/subscriptions/EditSubscriptionPlanPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import RoleRoute from "./RoleRoute";
@@ -82,6 +86,21 @@ export const appRoutes = [
               {
                 path: "revenue/history/:periodId",
                 element: <RevenuePeriodDetailPage />,
+              },
+              {
+
+                path: "withdrawals",
+                element: <AdminWithdrawalRequestsPage />,
+              },
+              {
+                path: "withdrawal-requests/:id",
+                element: <WithdrawalRequestDetailPage />,
+                path: "revenue-sharing",
+                element: <RevenueSharingHistoryPage />,
+              },
+              {
+                path: "revenue-sharing/:periodId",
+                element: <RevenueSharingWorkflowDetailPage />,
               },
               {
                 path: "users",
@@ -158,6 +177,22 @@ export const appRoutes = [
               {
                 path: "reports/:reportId",
                 element: <ReportDetailPage />,
+              },
+              {
+                path: "subscriptions",
+                element: <SubscriptionPlansPage />,
+              },
+              {
+                path: "subscriptions/new",
+                element: <CreateSubscriptionPlanPage />,
+              },
+              {
+                path: "subscriptions/:planId",
+                element: <SubscriptionPlanDetailPage />,
+              },
+              {
+                path: "subscriptions/:planId/edit",
+                element: <EditSubscriptionPlanPage />,
               },
             ],
           },
