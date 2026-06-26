@@ -117,7 +117,7 @@ const SystemTracksListPage = () => {
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">Hệ thống nhạc kho</p>
-                    <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Track Catalog Directory</h1>
+                    <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Danh sách bài hát</h1>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-4">
@@ -143,8 +143,8 @@ const SystemTracksListPage = () => {
 
                 <select value={filterApproval} onChange={(e) => setFilterApproval(e.target.value)} className="rounded-lg bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition focus:bg-sky-50 cursor-pointer">
                     <option value="">Tất cả phê duyệt</option>
-                    <option value="approved">Đã phê duyệt (Approved)</option>
-                    <option value="rejected">Đã từ chối (Rejected)</option>
+                    <option value="approved">Đã duyệt</option>
+                    <option value="rejected">Đã từ chối</option>
                 </select>
 
                 <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="rounded-lg bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition focus:bg-sky-50 cursor-pointer">

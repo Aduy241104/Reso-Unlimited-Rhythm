@@ -108,7 +108,7 @@ const GenresListPage = () => {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">Danh mục hệ thống</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Music Genres Catalog</h1>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Danh sách thể loại</h1>
         </div>
 
         <div className="flex flex-wrap items-center gap-4 self-start lg:self-auto">

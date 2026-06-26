@@ -17,10 +17,10 @@ import { routePaths } from "../../routes/routePaths";
 
 const statusFilters = [
   { value: "", label: "Tất cả trạng thái" },
-  { value: "pending", label: "Pending" },
-  { value: "approved", label: "Approved" },
-  { value: "rejected", label: "Rejected" },
-  { value: "paid", label: "Paid" },
+  { value: "pending", label: "Chờ xử lý" },
+  { value: "approved", label: "Đã duyệt" },
+  { value: "rejected", label: "Đã từ chối" },
+  { value: "paid", label: "Đã thanh toán" },
 ];
 
 const methodFilters = [
@@ -36,25 +36,25 @@ const sortOrderFilters = [
 
 const statusConfig = {
   pending: {
-    label: "Pending",
+    label: "Chờ xử lý",
     badge: "bg-amber-50 text-amber-600 border-amber-100",
     dot: "bg-amber-500",
     accent: "bg-amber-500",
   },
   approved: {
-    label: "Approved",
+    label: "Đã duyệt",
     badge: "bg-blue-50 text-blue-600 border-blue-100",
     dot: "bg-blue-500",
     accent: "bg-blue-500",
   },
   rejected: {
-    label: "Rejected",
+    label: "Đã từ chối",
     badge: "bg-rose-50 text-rose-600 border-rose-100",
     dot: "bg-rose-500",
     accent: "bg-rose-500",
   },
   paid: {
-    label: "Paid",
+    label: "Đã thanh toán",
     badge: "bg-emerald-50 text-emerald-600 border-emerald-100",
     dot: "bg-emerald-500",
     accent: "bg-emerald-500",
@@ -104,7 +104,7 @@ const getDisplayName = (withdrawal) => {
     user?.fullName ||
     user?.username ||
     user?.email ||
-    "Unknown artist"
+    "Nghệ sĩ không xác định"
   );
 };
 
@@ -253,10 +253,10 @@ const AdminWithdrawalRequestsPage = () => {
             Quản lý doanh thu artist
           </p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
-            Withdrawal Requests
+            Danh sách yêu cầu rút tiền
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-slate-500">
-            Danh sách tổng quan. Bấm View Detail để xem đầy đủ thông tin và xử lý ở bước sau.
+            Danh sách tổng quan. Bấm Chi tiết để xem đầy đủ thông tin và xử lý ở bước sau.
           </p>
         </div>
 
@@ -325,14 +325,14 @@ const AdminWithdrawalRequestsPage = () => {
           onClick={handleResetFilters}
           className="rounded-lg border border-slate-200 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
         >
-          Reset
+          Đặt lại
         </button>
 
         <button
           type="submit"
           className="rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
         >
-          Search
+          Tìm kiếm
         </button>
       </form>
 
@@ -425,7 +425,7 @@ const AdminWithdrawalRequestsPage = () => {
                         to={routePaths.withdrawalRequestDetail(withdrawalId)}
                         className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800"
                       >
-                        View Detail
+                        Chi tiết
                         <ArrowUpRight size={14} />
                       </Link>
                     </div>

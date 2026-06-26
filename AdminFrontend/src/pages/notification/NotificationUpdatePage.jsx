@@ -63,8 +63,8 @@ const NotificationUpdatePage = () => {
                     setTargetId(noti.targetId || "");
 
                     // Hiển thị text đối tượng nhận (Read-only vì bản ghi cũ bất biến đối tượng)
-                    const receiverStr = noti.receiverType === "all" ? "📢 Tất cả mọi người (Broadcast)" :
-                        noti.receiverType === "group" ? `👥 Gửi theo nhóm phân quyền: ${noti.targetRoles?.join(", ")}` :
+                    const receiverStr = noti.receiverType === "all" ? "📢 Tất cả người dùng" :
+                        noti.receiverType === "group" ? `👥 Nhóm người dùng: ${noti.targetRoles?.join(", ")}` :
                             `🎯 Gửi đích danh một tài khoản: ${noti.userId?.email || "User"}`;
                     setReceiverInfo(receiverStr);
 
@@ -199,8 +199,8 @@ const NotificationUpdatePage = () => {
             {/* HEADER BAR */}
             <div className="flex flex-col gap-4 rounded-2xl bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between border border-slate-100">
                 <div>
-                    <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Notification Operations</p>
-                    <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">Edit Notification</h1>
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Quản lý thông báo</p>
+                    <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">Cập nhật thông báo</h1>
                     <p className="mt-1 text-xs text-slate-400">Chỉnh sửa nội dung thông điệp phát hành và cấu hình định tuyến hệ thống.</p>
                 </div>
                 <Link
@@ -230,10 +230,10 @@ const NotificationUpdatePage = () => {
                             disabled={isUpdating}
                             className="w-full h-[42px] rounded-xl bg-slate-50/50 border border-slate-200 px-4 py-2 text-sm font-medium text-slate-900 outline-none cursor-pointer focus:border-slate-400 focus:bg-white transition"
                         >
-                            <option value="system">⚙️ Hệ thống (System)</option>
-                            <option value="new_release">🎵 Phát hành mới (New Release)</option>
-                            <option value="payment">💳 Thanh toán (Payment)</option>
-                            <option value="subscription">⭐ Gói cước (Subscription)</option>
+                            <option value="system">⚙️ Hệ thống</option>
+                            <option value="new_release">🎵 Phát hành mới</option>
+                            <option value="payment">💳 Thanh toán</option>
+                            <option value="subscription">⭐ Gói cước</option>
                         </select>
                     </div>
 
@@ -288,7 +288,7 @@ const NotificationUpdatePage = () => {
                                 className="w-full h-[38px] rounded-xl bg-white border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 outline-none cursor-pointer focus:border-slate-400 transition"
                             >
                                 <option value="">Không liên kết (Chỉ đọc)</option>
-                                <option value="track">🎵 Bài hát (Track)</option>
+                                <option value="track">🎵 Bài hát</option>
                                 <option value="artist">👨‍🎤 Hồ sơ Nghệ sĩ</option>
                             </select>
                         </div>
