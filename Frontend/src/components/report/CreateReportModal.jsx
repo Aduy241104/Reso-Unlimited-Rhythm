@@ -7,26 +7,42 @@ import {
   ShieldAlert,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { createReportService } from "../../services/report/user.report.service";
 import { getApiErrorFullMessage } from "../../utils/apiError";
+import ReportReasonSelect from "./ReportReasonSelect";
 
 const ANIMATION_DURATION = 300;
 
-const REPORT_REASON_OPTIONS = [
-  { value: "copyright_infringement", label: "Vi phạm bản quyền" },
-  { value: "harassment_or_hate", label: "Quấy rối / thù ghét" },
-  { value: "nudity_or_sexual_content", label: "Nội dung nhạy cảm" },
-  { value: "violence_or_dangerous_content", label: "Bạo lực / nguy hiểm" },
-  { value: "spam_or_scam", label: "Spam / lừa đảo" },
-  { value: "misleading_information", label: "Thông tin sai lệch" },
-  { value: "impersonation", label: "Mạo danh" },
-  { value: "wrong_metadata", label: "Thông tin bài hát không chính xác" },
-  { value: "lyrics_issue", label: "Lời bài hát không phù hợp" },
-  { value: "audio_quality", label: "Chất lượng âm thanh kém" },
-  { value: "fake_artist", label: "Nghệ sĩ giả mạo" },
-  { value: "other", label: "Khác" },
+const REPORT_REASON_GROUPS = [
+  {
+    label: "An toàn và nội dung",
+    options: [
+      { value: "harassment_or_hate", label: "Quấy rối / thù ghét" },
+      { value: "nudity_or_sexual_content", label: "Nội dung nhạy cảm" },
+      { value: "violence_or_dangerous_content", label: "Bạo lực / nguy hiểm" },
+      { value: "spam_or_scam", label: "Spam / lừa đảo" },
+    ],
+  },
+  {
+    label: "Bản quyền và danh tính",
+    options: [
+      { value: "copyright_infringement", label: "Vi phạm bản quyền" },
+      { value: "impersonation", label: "Mạo danh" },
+      { value: "fake_artist", label: "Nghệ sĩ giả mạo" },
+    ],
+  },
+  {
+    label: "Thông tin và chất lượng",
+    options: [
+      { value: "misleading_information", label: "Thông tin sai lệch" },
+      { value: "wrong_metadata", label: "Thông tin bài hát không chính xác" },
+      { value: "lyrics_issue", label: "Lời bài hát không phù hợp" },
+      { value: "audio_quality", label: "Chất lượng âm thanh kém" },
+      { value: "other", label: "Khác" },
+    ],
+  },
 ];
 
 const TARGET_TYPE_LABELS = {
@@ -54,7 +70,7 @@ const CreateReportModal = ({
   const [isVisible, setIsVisible] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [formData, setFormData] = useState(() =>
-    getInitialFormState(targetId, targetType)
+    getInitialFormState(targetId, targetType),
   );
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState("");
@@ -84,7 +100,10 @@ const CreateReportModal = ({
     if (!shouldRender) return undefined;
 
     const exitId = window.requestAnimationFrame(() => setIsVisible(false));
-    const timeoutId = window.setTimeout(() => setShouldRender(false), ANIMATION_DURATION);
+    const timeoutId = window.setTimeout(
+      () => setShouldRender(false),
+      ANIMATION_DURATION,
+    );
 
     return () => {
       window.cancelAnimationFrame(exitId);
@@ -117,7 +136,7 @@ const CreateReportModal = ({
 
   const imageNames = useMemo(
     () => formData.images.map((file) => file?.name).filter(Boolean),
-    [formData.images]
+    [formData.images],
   );
 
   const handleChange = (event) => {
@@ -135,6 +154,12 @@ const CreateReportModal = ({
     }
 
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleReasonChange = (reason) => {
+    setFormData((prev) => ({ ...prev, reason }));
+    setErrors((prev) => ({ ...prev, reason: undefined }));
+    setSubmitError("");
   };
 
   const handleRemoveImage = (index) => {
@@ -173,7 +198,7 @@ const CreateReportModal = ({
       onSuccess?.();
     } catch (error) {
       setSubmitError(
-        getApiErrorFullMessage(error, "Không thể gửi báo cáo vào lúc này.")
+        getApiErrorFullMessage(error, "Không thể gửi báo cáo vào lúc này."),
       );
     } finally {
       setIsSubmitting(false);
@@ -187,8 +212,7 @@ const CreateReportModal = ({
   return createPortal(
     <div
       className={[
-        "fixed inset-0 z-50 bg-black/60 backdrop-blur-sm",
-        "flex items-center justify-center p-4",
+        "fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm",
         "transition-all duration-300",
         isVisible ? "opacity-100" : "opacity-0",
       ].join(" ")}
@@ -206,7 +230,6 @@ const CreateReportModal = ({
         aria-modal="true"
         aria-labelledby="create-report-modal-title"
       >
-        {/* Header */}
         <div className="flex items-center justify-between px-6 pb-4 pt-6 sm:px-8">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#f5b66f]/20 bg-[#f5b66f]/10 text-[#f5b66f]">
@@ -236,7 +259,6 @@ const CreateReportModal = ({
         </div>
 
         {isSubmitted ? (
-          /* Success State */
           <div className="flex flex-col items-center px-6 pb-8 pt-4 text-center sm:px-8">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-400/15 text-emerald-300">
               <CheckCircle className="h-8 w-8" aria-hidden />
@@ -245,8 +267,8 @@ const CreateReportModal = ({
               Gửi báo cáo thành công
             </h3>
             <p className="mt-2 text-sm leading-6 text-white/55">
-              Cảm ơn bạn đã gửi báo cáo. Đội ngũ sẽ xem xét nội dung và xử
-              lý trong thời gian sớm nhất.
+              Cảm ơn bạn đã gửi báo cáo. Đội ngũ sẽ xem xét nội dung và xử lý
+              trong thời gian sớm nhất.
             </p>
             <button
               type="button"
@@ -257,43 +279,26 @@ const CreateReportModal = ({
             </button>
           </div>
         ) : (
-          /* Form State */
           <form
             onSubmit={handleSubmit}
             noValidate
             className="flex flex-col gap-5 px-6 pb-6 sm:px-8"
           >
-            {/* Reason */}
             <div>
               <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-white/60">
                 Lý do báo cáo <span className="ml-1 text-rose-300">*</span>
               </label>
-              <select
-                name="reason"
+              <ReportReasonSelect
+                groups={REPORT_REASON_GROUPS}
                 value={formData.reason}
-                onChange={handleChange}
+                onChange={handleReasonChange}
                 disabled={isSubmitting}
-                className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[#f5b66f]/50 focus:bg-white/[0.06] disabled:opacity-60"
-              >
-                <option value="" className="bg-[#16161d]">
-                  Chọn lý do báo cáo
-                </option>
-                {REPORT_REASON_OPTIONS.map((option) => (
-                  <option
-                    key={option.value}
-                    value={option.value}
-                    className="bg-[#16161d]"
-                  >
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+              />
               {errors.reason && (
                 <p className="mt-2 text-xs text-rose-300">{errors.reason}</p>
               )}
             </div>
 
-            {/* Description */}
             <div>
               <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-white/60">
                 Mô tả chi tiết <span className="ml-1 text-rose-300">*</span>
@@ -305,14 +310,15 @@ const CreateReportModal = ({
                 onChange={handleChange}
                 placeholder="Mô tả cụ thể vấn đề hoặc nội dung bạn muốn báo cáo..."
                 disabled={isSubmitting}
-                className="resize-none leading-6 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[#f5b66f]/50 focus:bg-white/[0.06] disabled:opacity-60"
+                className="w-full resize-none rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-white/30 focus:border-[#f5b66f]/50 focus:bg-white/[0.06] disabled:opacity-60"
               />
               {errors.description && (
-                <p className="mt-2 text-xs text-rose-300">{errors.description}</p>
+                <p className="mt-2 text-xs text-rose-300">
+                  {errors.description}
+                </p>
               )}
             </div>
 
-            {/* Images */}
             <div>
               <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-white/60">
                 Ảnh minh chứng
@@ -322,7 +328,9 @@ const CreateReportModal = ({
                   <p className="text-sm font-medium text-white/85">
                     Tải lên tối đa 5 ảnh minh chứng
                   </p>
-                  <p className="mt-0.5 text-xs text-white/45">PNG, JPG hoặc WEBP</p>
+                  <p className="mt-0.5 text-xs text-white/45">
+                    PNG, JPG hoặc WEBP
+                  </p>
                 </div>
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#f5b66f]/12 text-[#f5b66f]">
                   <ImagePlus className="h-4.5 w-4.5" aria-hidden />
@@ -344,7 +352,9 @@ const CreateReportModal = ({
                       key={name + index}
                       className="flex items-center justify-between rounded-xl border border-white/8 bg-white/[0.03] px-4 py-2"
                     >
-                      <span className="truncate text-sm text-white/70">{name}</span>
+                      <span className="truncate text-sm text-white/70">
+                        {name}
+                      </span>
                       <button
                         type="button"
                         onClick={() => handleRemoveImage(index)}
@@ -358,7 +368,6 @@ const CreateReportModal = ({
               )}
             </div>
 
-            {/* Submit Error */}
             {submitError && (
               <div className="flex items-start gap-3 rounded-xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-200">
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
@@ -366,7 +375,6 @@ const CreateReportModal = ({
               </div>
             )}
 
-            {/* Actions */}
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <button
                 type="button"
@@ -398,7 +406,7 @@ const CreateReportModal = ({
         )}
       </div>
     </div>,
-    document.body
+    document.body,
   );
 };
 

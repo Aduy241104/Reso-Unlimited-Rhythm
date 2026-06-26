@@ -4,11 +4,11 @@ import artistService, { updateAdminArtistStatusService } from "../../services/ar
 
 // Danh sách tùy chọn lý do khóa tài khoản nghệ sĩ đồng bộ hệ thống
 const BLOCK_REASON_OPTIONS = [
-    { value: "fake_identity", label: "Fake Identity (Mạo danh nghệ sĩ khác)" },
-    { value: "repost_copyright", label: "Mass Copyright Violation (Vi phạm bản quyền hàng loạt)" },
-    { value: "spam_content", label: "Spam Content (Cố tình đăng tải rác dữ liệu)" },
-    { value: "fraudulent_streams", label: "Streaming Fraud (Gian lận lượt nghe/ảo)" },
-    { value: "other", label: "Other Violations (Các hành vi vi phạm quy chuẩn khác)" },
+    { value: "fake_identity", label: "Mạo danh nghệ sĩ khác" },
+    { value: "repost_copyright", label: "Vi phạm bản quyền hàng loạt" },
+    { value: "spam_content", label: "Đăng tải nội dung rác" },
+    { value: "fraudulent_streams", label: "Gian lận lượt nghe/ảo" },
+    { value: "other", label: "Vi phạm khác" },
 ];
 
 const getStatusClasses = (status) => {
@@ -55,7 +55,7 @@ const ArtistDetailPage = () => {
                 const finalData = response?.data?.artist || response?.artist || response?.data || response;
                 if (isMounted) setArtist(finalData);
             } catch (err) {
-                if (isMounted) setError("Failed to retrieve complete artist information ledger.");
+                if (isMounted) setError("Không thể tải đầy đủ thông tin nghệ sĩ.");
             } finally {
                 if (isMounted) setIsLoading(false);
             }
@@ -85,7 +85,7 @@ const ArtistDetailPage = () => {
                 blockedReason: ""
             }));
         } catch (err) {
-            setError(err?.message || "Could not execute unblock pipeline operation.");
+            setError(err?.message || "Không thể mở khóa nghệ sĩ.");
         } finally {
             setIsProcessing(false);
         }
@@ -112,7 +112,7 @@ const ArtistDetailPage = () => {
             }));
             setModalOpen(false);
         } catch (err) {
-            setError(err?.message || "Could not execute block pipeline operation.");
+            setError(err?.message || "Không thể khóa nghệ sĩ.");
         } finally {
             setIsProcessing(false);
         }
@@ -125,7 +125,7 @@ const ArtistDetailPage = () => {
     };
 
     if (isLoading) {
-        return <div className="p-8 text-center text-xs font-bold font-mono text-slate-400">Fetching full artist context...</div>;
+        return <div className="p-8 text-center text-xs font-bold font-mono text-slate-400">Đang tải chi tiết nghệ sĩ...</div>;
     }
 
     if (error && !artist) {
@@ -133,7 +133,7 @@ const ArtistDetailPage = () => {
             <div className="mx-auto max-w-xl mt-12 p-6 rounded-2xl border border-rose-100 bg-rose-50 text-center text-rose-800 shadow-sm">
                 <p className="font-bold text-sm">{error || "Artist database record not found."}</p>
                 <button onClick={() => navigate(-1)} className="mt-4 rounded-xl bg-slate-900 px-5 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-slate-800">
-                    Go Back
+                    Quay lại
                 </button>
             </div>
         );
@@ -232,8 +232,8 @@ const ArtistDetailPage = () => {
                 <div className="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
                     <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Danh mục phát hành</p>
                     <div className="mt-3 flex gap-4 text-xs font-bold text-slate-700">
-                        <span className="bg-slate-50 px-2 py-1 rounded-md border border-slate-100">Tracks: <span className="text-slate-950 font-extrabold">{artist.metrics?.totalTracks || artist.totalTracks || 0}</span></span>
-                        <span className="bg-slate-50 px-2 py-1 rounded-md border border-slate-100">Albums: <span className="text-slate-950 font-extrabold">{artist.metrics?.totalAlbums || 0}</span></span>
+                        <span className="bg-slate-50 px-2 py-1 rounded-md border border-slate-100">Bài hát: <span className="text-slate-950 font-extrabold">{artist.metrics?.totalTracks || artist.totalTracks || 0}</span></span>
+                        <span className="bg-slate-50 px-2 py-1 rounded-md border border-slate-100">Album: <span className="text-slate-950 font-extrabold">{artist.metrics?.totalAlbums || 0}</span></span>
                     </div>
                 </div>
             </div>
@@ -335,11 +335,11 @@ const ArtistDetailPage = () => {
                         <h2 className="text-base font-bold text-slate-900 border-b border-slate-50 pb-3">Kênh định danh mạng xã hội</h2>
                         <div className="mt-4 space-y-3 text-xs font-bold">
                             <div className="p-3 bg-slate-50/70 border border-slate-100 rounded-xl">
-                                <span className="text-slate-400 block text-[10px] uppercase tracking-wide mb-1">Facebook Endpoint</span>
+                                <span className="text-slate-400 block text-[10px] uppercase tracking-wide mb-1">Facebook</span>
                                 {artist.socialLinks?.facebook ? <a href={artist.socialLinks.facebook} target="_blank" rel="noreferrer" className="text-blue-600 font-bold hover:underline truncate block">{artist.socialLinks.facebook}</a> : <span className="text-slate-300 font-medium italic">— Chưa liên kết</span>}
                             </div>
                             <div className="p-3 bg-slate-50/70 border border-slate-100 rounded-xl">
-                                <span className="text-slate-400 block text-[10px] uppercase tracking-wide mb-1">Instagram Node</span>
+                                <span className="text-slate-400 block text-[10px] uppercase tracking-wide mb-1">Instagram</span>
                                 {artist.socialLinks?.instagram ? <a href={artist.socialLinks.instagram} target="_blank" rel="noreferrer" className="text-blue-600 font-bold hover:underline truncate block">{artist.socialLinks.instagram}</a> : <span className="text-slate-300 font-medium italic">— Chưa liên kết</span>}
                             </div>
                             <div className="p-3 bg-slate-50/70 border border-slate-100 rounded-xl">
@@ -351,7 +351,7 @@ const ArtistDetailPage = () => {
 
                     {/* Tiểu sử Creator Biography */}
                     <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
-                        <h2 className="text-base font-bold text-slate-900 border-b border-slate-50 pb-3">Tiểu sử (Biography)</h2>
+                        <h2 className="text-base font-bold text-slate-900 border-b border-slate-50 pb-3">Tiểu sử</h2>
                         <div className="mt-3 border border-slate-100 bg-slate-50/40 p-4 font-mono text-xs font-medium leading-relaxed text-slate-500 whitespace-pre-line rounded-xl">
                             {artist.bio || "Không có dữ liệu văn bản tiểu sử nghệ sĩ."}
                         </div>
@@ -380,7 +380,7 @@ const ArtistDetailPage = () => {
                         <div className="space-y-4">
                             {/* PHẦN CHỌN NHIỀU CHECKBOX LÝ DO HỆ THỐNG */}
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Violation Reason Flags (Chọn lý do hệ thống)</label>
+                                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Lý do khóa</label>
                                 <div className="grid gap-2 sm:grid-cols-2">
                                     {BLOCK_REASON_OPTIONS.map((reason) => {
                                         const isChecked = blockReasons.includes(reason.value);
@@ -409,7 +409,7 @@ const ArtistDetailPage = () => {
 
                             {/* Ô NHẬP GIẢI TRÌNH CHI TIẾT */}
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Detailed Enforcement Explanation (Giải trình chi tiết bắt buộc)</label>
+                                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Giải trình chi tiết</label>
                                 <textarea
                                     value={adminNote}
                                     onChange={(e) => setAdminNote(e.target.value)}

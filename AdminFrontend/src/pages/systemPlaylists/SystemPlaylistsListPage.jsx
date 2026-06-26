@@ -41,7 +41,7 @@ const VisibilityBadge = ({ isPublic }) => (
     }`}
   >
     {isPublic ? <Globe className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
-    {isPublic ? "Public" : "Private"}
+    {isPublic ? "Công khai" : "Riêng tư"}
   </span>
 );
 
@@ -54,7 +54,7 @@ const HiddenStatusBadge = ({ hidden }) => (
     }`}
   >
     {hidden ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-    {hidden ? "Hidden" : "Visible"}
+    {hidden ? "Ẩn" : "Hiển thị"}
   </span>
 );
 
@@ -94,7 +94,7 @@ const SystemPlaylistsListPage = () => {
         setErrorMessage(
           error?.response?.data?.message ||
             error?.message ||
-            "Could not load playlists."
+            "Không thể tải danh sách playlist."
         );
       } finally {
         if (isMounted) setIsLoading(false);
@@ -113,7 +113,7 @@ const SystemPlaylistsListPage = () => {
     if (!id) return;
     if (
       !window.confirm(
-        `Delete "${playlist.title}"? This cannot be undone.`
+        `Xóa "${playlist.title}"? Hành động này không thể hoàn tác.`
       )
     )
       return;
@@ -121,12 +121,12 @@ const SystemPlaylistsListPage = () => {
     try {
       await deleteAdminSystemPlaylistService(id);
       setPlaylists((prev) => prev.filter((p) => playlistRowId(p) !== id));
-      toast.success("Playlist deleted.");
+      toast.success("Đã xóa playlist.");
     } catch (error) {
       toast.error(
         error?.response?.data?.message ||
           error?.message ||
-          "Could not delete."
+          "Không thể xóa playlist."
       );
     } finally {
       setDeletingId(null);
@@ -181,19 +181,19 @@ const SystemPlaylistsListPage = () => {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between px-1">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
-            Content Management
+            Quản lý nội dung
           </p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
-            System Playlists
+            Playlist hệ thống
           </h1>
           <p className="mt-1 text-sm text-slate-400">
-            Manage curated playlists for the platform
+            Quản lý các playlist tuyển chọn cho nền tảng
           </p>
         </div>
 
         <div className="flex items-center gap-4 self-start lg:self-auto">
           <div className="rounded-xl bg-slate-100 px-4 py-2.5 min-w-[100px] text-center">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Total</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Tổng số</p>
             <p className="mt-0.5 text-base font-bold text-slate-900">{filteredPlaylists.length}</p>
           </div>
 
@@ -202,7 +202,7 @@ const SystemPlaylistsListPage = () => {
             className="inline-flex items-center gap-2 bg-slate-950 hover:bg-slate-800 text-white px-5 py-3 text-sm font-semibold rounded-xl shadow-sm transition whitespace-nowrap"
           >
             <Plus className="h-4 w-4" />
-            New Playlist
+            Tạo playlist
           </Link>
         </div>
       </div>
@@ -213,7 +213,7 @@ const SystemPlaylistsListPage = () => {
           <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Search by title or description..."
+            placeholder="Tìm theo tiêu đề hoặc mô tả..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full rounded-lg bg-slate-100 py-3 pl-11 pr-4 text-sm text-slate-900 outline-none transition focus:bg-sky-50"
@@ -235,7 +235,7 @@ const SystemPlaylistsListPage = () => {
             onClick={() => setSearchQuery("")}
             className="rounded-lg border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition py-3 px-4"
           >
-            Clear
+            Xóa lọc
           </button>
         )}
       </form>
@@ -251,27 +251,27 @@ const SystemPlaylistsListPage = () => {
       <div className="overflow-hidden rounded-2xl bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
         <div className="grid min-w-[900px] grid-cols-[40px_80px_minmax(0,1.5fr)_100px_140px_140px_140px_120px] gap-4 border-b border-slate-200 px-5 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
           <span>#</span>
-          <span>Cover</span>
-          <span>Title</span>
-          <span>Tracks</span>
-          <span>Visibility</span>
-          <span>Status</span>
-          <span>Created</span>
-          <span className="text-right">Actions</span>
+          <span>Ảnh bìa</span>
+          <span>Tiêu đề</span>
+          <span>Bài hát</span>
+          <span>Quyền riêng tư</span>
+          <span>Trạng thái</span>
+          <span>Ngày tạo</span>
+          <span className="text-right">Thao tác</span>
         </div>
 
         <div className="overflow-x-auto">
           <div className="min-w-[900px] divide-y divide-slate-100">
             {isLoading ? (
               <div className="p-12 text-center text-xs font-bold text-slate-400 uppercase tracking-wider">
-                Loading...
+                Đang tải...
               </div>
             ) : filteredPlaylists.length === 0 ? (
               <div className="p-12 text-center text-slate-400">
                 <Disc className="h-10 w-10 mx-auto mb-3 text-slate-300" />
-                <p className="text-sm font-semibold text-slate-600">No playlists found</p>
+                <p className="text-sm font-semibold text-slate-600">Không tìm thấy playlist</p>
                 {searchQuery && (
-                  <p className="mt-1 text-xs text-slate-400">Try a different search term</p>
+                  <p className="mt-1 text-xs text-slate-400">Hãy thử từ khóa khác</p>
                 )}
               </div>
             ) : (
@@ -341,7 +341,7 @@ const SystemPlaylistsListPage = () => {
                         to={routePaths.systemPlaylistEdit(id)}
                         className="rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
                       >
-                        Edit
+                        Sửa
                       </Link>
                       <button
                         type="button"
@@ -349,7 +349,7 @@ const SystemPlaylistsListPage = () => {
                         disabled={isDeleting}
                         className="rounded-xl px-3.5 py-2 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 transition border border-red-100 disabled:opacity-30"
                       >
-                        {isDeleting ? "..." : "Delete"}
+                        {isDeleting ? "..." : "Xóa"}
                       </button>
                     </div>
                   </article>

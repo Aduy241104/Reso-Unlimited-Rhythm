@@ -10,7 +10,7 @@ const MAX_BATCH = 50;
 const formatDuration = (seconds) => {
   const total = Number(seconds);
   if (!Number.isFinite(total) || total < 0) {
-    return "—";
+    return "-";
   }
   const m = Math.floor(total / 60);
   const s = total % 60;
@@ -43,26 +43,17 @@ const AddTracksModal = ({
   );
 
   useEffect(() => {
-    if (!isOpen) return;
-
-    if (!shouldRender) {
-      const rafId = requestAnimationFrame(() => setShouldRender(true));
-      return () => cancelAnimationFrame(rafId);
+    if (isOpen) {
+      setShouldRender(true);
+      const enterId = requestAnimationFrame(() => setIsVisible(true));
+      return () => cancelAnimationFrame(enterId);
     }
 
-    const enterId = requestAnimationFrame(() => setIsVisible(true));
-    return () => cancelAnimationFrame(enterId);
-  }, [isOpen, shouldRender]);
+    setIsVisible(false);
+    if (!shouldRender) return;
 
-  useEffect(() => {
-    if (!isOpen || !shouldRender) return;
-
-    const exitId = requestAnimationFrame(() => setIsVisible(false));
     const timeoutId = setTimeout(() => setShouldRender(false), 250);
-    return () => {
-      cancelAnimationFrame(exitId);
-      clearTimeout(timeoutId);
-    };
+    return () => clearTimeout(timeoutId);
   }, [isOpen, shouldRender]);
 
   useEffect(() => {
@@ -123,7 +114,7 @@ const AddTracksModal = ({
           setListError(
             error?.response?.data?.message ||
               error?.message ||
-              "Could not load tracks."
+              "Không thể tải danh sách bài hát."
           );
         }
       } finally {
@@ -175,7 +166,7 @@ const AddTracksModal = ({
       setBatchError(
         error?.response?.data?.message ||
           error?.message ||
-          "Could not add tracks."
+          "Không thể thêm bài hát."
       );
     } finally {
       setBatchSubmitting(false);
@@ -209,7 +200,6 @@ const AddTracksModal = ({
         aria-labelledby="add-tracks-modal-title"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div
           className="flex shrink-0 items-start justify-between gap-3 px-6 pt-6 pb-5"
           style={{ borderBottom: "1px solid #e2e8f0" }}
@@ -223,10 +213,10 @@ const AddTracksModal = ({
                 id="add-tracks-modal-title"
                 className="text-lg font-semibold text-slate-900"
               >
-                Add tracks
+                Thêm bài hát
               </h2>
               <p className="mt-0.5 text-xs text-slate-400">
-                Select tracks to add to this playlist (up to {MAX_BATCH})
+                Chọn bài hát để thêm vào playlist này, tối đa {MAX_BATCH} bài mỗi lần
               </p>
             </div>
           </div>
@@ -234,13 +224,12 @@ const AddTracksModal = ({
             type="button"
             onClick={onClose}
             className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 transition hover:bg-slate-50"
-            aria-label="Close"
+            aria-label="Đóng"
           >
             <X className="h-4 w-4" style={{ color: "#64748b" }} />
           </button>
         </div>
 
-        {/* Search */}
         <div className="shrink-0 px-6 py-4" style={{ borderBottom: "1px solid #e2e8f0" }}>
           <label className="relative block">
             <Search
@@ -251,7 +240,7 @@ const AddTracksModal = ({
               type="search"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search by track or artist name…"
+              placeholder="Tìm theo tên bài hát hoặc nghệ sĩ..."
               className="w-full rounded-xl py-2.5 pl-10 pr-4 text-sm outline-none transition"
               style={{
                 backgroundColor: "#f8fafc",
@@ -263,12 +252,11 @@ const AddTracksModal = ({
           </label>
         </div>
 
-        {/* Track List */}
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-3">
           {listLoading ? (
             <div className="flex flex-col items-center justify-center py-16 text-slate-400">
               <Loader2 className="h-8 w-8 animate-spin text-blue-600" aria-hidden />
-              <p className="mt-3 text-sm">Loading tracks…</p>
+              <p className="mt-3 text-sm">Đang tải danh sách bài hát...</p>
             </div>
           ) : listError ? (
             <div
@@ -284,9 +272,9 @@ const AddTracksModal = ({
           ) : tracks.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center text-slate-400">
               <Music className="h-8 w-8 mb-3 text-slate-300" />
-              <p className="text-sm font-medium text-slate-600">No tracks found</p>
+              <p className="text-sm font-medium text-slate-600">Không tìm thấy bài hát</p>
               <p className="mt-1 text-xs text-slate-400">
-                {debouncedQuery ? "Try a different search term" : "No tracks available"}
+                {debouncedQuery ? "Hãy thử từ khóa khác" : "Hiện chưa có bài hát nào"}
               </p>
             </div>
           ) : (
@@ -320,7 +308,7 @@ const AddTracksModal = ({
                           {track.title}
                         </span>
                         <span className="mt-0.5 block text-xs text-slate-400">
-                          {track.artist?.name || "—"} · {formatDuration(track.duration)}
+                          {track.artist?.name || "-"} · {formatDuration(track.duration)}
                         </span>
                         {inPlaylist && (
                           <span
@@ -331,7 +319,7 @@ const AddTracksModal = ({
                               color: "#1d4ed8",
                             }}
                           >
-                            Already in playlist
+                            Đã có trong playlist
                           </span>
                         )}
                       </span>
@@ -343,7 +331,6 @@ const AddTracksModal = ({
           )}
         </div>
 
-        {/* Pagination */}
         {totalPages > 1 && (
           <div
             className="flex shrink-0 flex-wrap items-center justify-between gap-2 px-6 py-3 text-xs text-slate-400"
@@ -355,10 +342,10 @@ const AddTracksModal = ({
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 font-semibold transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              Previous
+              Trước
             </button>
             <span>
-              Page {currentPage} of {totalPages}
+              Trang {currentPage} / {totalPages}
             </span>
             <button
               type="button"
@@ -366,12 +353,11 @@ const AddTracksModal = ({
               onClick={() => setPage((p) => p + 1)}
               className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 font-semibold transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              Next
+              Sau
             </button>
           </div>
         )}
 
-        {/* Footer */}
         <div
           className="shrink-0 space-y-2 px-6 py-4"
           style={{
@@ -386,12 +372,12 @@ const AddTracksModal = ({
           )}
           {selectedIds.size >= MAX_BATCH && (
             <p className="text-xs text-slate-400">
-              Maximum {MAX_BATCH} tracks can be added at once.
+              Chỉ có thể thêm tối đa {MAX_BATCH} bài hát trong một lần.
             </p>
           )}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span className="text-sm text-slate-500">
-              Selected: <strong className="text-slate-900">{selectedIds.size}</strong>
+              Đã chọn: <strong className="text-slate-900">{selectedIds.size}</strong>
             </span>
             <div className="flex flex-wrap gap-2">
               <button
@@ -399,7 +385,7 @@ const AddTracksModal = ({
                 onClick={onClose}
                 className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
               >
-                Cancel
+                Hủy
               </button>
               <button
                 type="button"
@@ -409,8 +395,8 @@ const AddTracksModal = ({
                 style={{ backgroundColor: "#1e40af", color: "white" }}
               >
                 {batchSubmitting
-                  ? "Adding…"
-                  : `Add selected (${selectedIds.size})`}
+                  ? "Đang thêm..."
+                  : `Thêm đã chọn (${selectedIds.size})`}
               </button>
             </div>
           </div>

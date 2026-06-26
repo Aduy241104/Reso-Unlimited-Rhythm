@@ -161,7 +161,7 @@ const UserListPage = () => {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">Hệ thống thành viên</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">User Account Registry</h1>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Danh sách người dùng</h1>
         </div>
 
         <div className="flex flex-wrap items-center gap-4 self-start lg:self-auto">

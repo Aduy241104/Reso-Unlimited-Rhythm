@@ -25,12 +25,12 @@ import { routePaths } from "../../routes/routePaths";
 
 const fmtDur = (s) => {
   const n = Number(s);
-  if (!Number.isFinite(n) || n < 0) return "—";
+  if (!Number.isFinite(n) || n < 0) return "-";
   return `${Math.floor(n / 60)}:${String(n % 60).padStart(2, "0")}`;
 };
 
 const fmtDate = (value) => {
-  if (!value) return "—";
+  if (!value) return "-";
   return new Date(value).toLocaleString("vi-VN", {
     year: "numeric",
     month: "2-digit",
@@ -47,7 +47,7 @@ const VisibilityBadge = ({ isPublic }) => (
     }`}
   >
     {isPublic ? <Globe className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
-    {isPublic ? "Public" : "Private"}
+    {isPublic ? "Công khai" : "Riêng tư"}
   </span>
 );
 
@@ -60,7 +60,7 @@ const HiddenBadge = ({ hidden }) => (
     }`}
   >
     {hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-    {hidden ? "Hidden" : "Visible"}
+    {hidden ? "Ẩn" : "Hiển thị"}
   </span>
 );
 
@@ -99,7 +99,7 @@ const SystemPlaylistDetailPage = () => {
   const loadPlaylist = useCallback(async () => {
     if (!playlistId) {
       setIsLoading(false);
-      setErrorMessage("Missing playlist id.");
+      setErrorMessage("Thiếu mã playlist.");
       return;
     }
     setIsLoading(true);
@@ -107,7 +107,7 @@ const SystemPlaylistDetailPage = () => {
     try {
       const data = await getAdminSystemPlaylistDetailService(playlistId);
       if (!data) {
-        setErrorMessage("Playlist not found.");
+        setErrorMessage("Không tìm thấy playlist.");
         setIsLoading(false);
         return;
       }
@@ -117,7 +117,7 @@ const SystemPlaylistDetailPage = () => {
       setPlaylist(null);
       setTracks([]);
       setErrorMessage(
-        e?.response?.data?.message || e.message || "Could not load."
+        e?.response?.data?.message || e.message || "Không thể tải dữ liệu."
       );
     } finally {
       setIsLoading(false);
@@ -130,15 +130,15 @@ const SystemPlaylistDetailPage = () => {
 
   const handleDelete = async () => {
     if (!playlistId) return;
-    if (!window.confirm("Delete permanently? This cannot be undone.")) return;
+    if (!window.confirm("Xóa vĩnh viễn playlist này? Hành động này không thể hoàn tác.")) return;
     setIsDeleting(true);
     try {
       await deleteAdminSystemPlaylistService(playlistId);
-      toast.success("Playlist deleted.");
+      toast.success("Đã xóa playlist.");
       navigate(routePaths.systemPlaylists, { replace: true });
     } catch (e) {
       toast.error(
-        e?.response?.data?.message || e.message || "Could not delete playlist."
+        e?.response?.data?.message || e.message || "Không thể xóa playlist."
       );
     } finally {
       setIsDeleting(false);
@@ -150,13 +150,13 @@ const SystemPlaylistDetailPage = () => {
     setTracks(updated?.tracks ?? tracks);
     setTracksMsg({
       type: "success",
-      text: `${count} track${count === 1 ? "" : "s"} added.`,
+      text: `Đã thêm ${count} bài hát.`,
     });
   };
 
   const handleRemoveTrack = async (rowId, title) => {
     if (!playlistId || !rowId) return;
-    if (!window.confirm(`Remove "${title}"?`)) return;
+    if (!window.confirm(`Gỡ "${title}" khỏi playlist?`)) return;
     setTracksMsg({ type: "", text: "" });
     setRemovingTrackId(rowId);
     try {
@@ -168,10 +168,10 @@ const SystemPlaylistDetailPage = () => {
         setPlaylist(updated);
         setTracks(updated.tracks ?? []);
       }
-      setTracksMsg({ type: "success", text: "Track removed." });
+      setTracksMsg({ type: "success", text: "Đã gỡ bài hát khỏi playlist." });
     } catch (e) {
       toast.error(
-        e?.response?.data?.message || e.message || "Could not remove track."
+        e?.response?.data?.message || e.message || "Không thể gỡ bài hát."
       );
     } finally {
       setRemovingTrackId(null);
@@ -202,7 +202,7 @@ const SystemPlaylistDetailPage = () => {
           to={routePaths.systemPlaylists}
           className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium shadow-sm transition hover:bg-slate-50"
         >
-          <ArrowLeft className="h-4 w-4" /> System Playlists
+          <ArrowLeft className="h-4 w-4" /> Playlist hệ thống
         </Link>
         <div
           className="rounded-xl border px-5 py-4 text-sm"
@@ -212,7 +212,7 @@ const SystemPlaylistDetailPage = () => {
             color: "#dc2626",
           }}
         >
-          {errorMessage || "Playlist not found."}
+          {errorMessage || "Không tìm thấy playlist."}
         </div>
       </section>
     );
@@ -221,7 +221,6 @@ const SystemPlaylistDetailPage = () => {
   return (
     <section className="space-y-5 p-3 lg:p-5 bg-slate-50/50 min-h-screen text-slate-800 font-sans antialiased">
 
-      {/* Page Header */}
       <div className="flex items-center justify-between gap-4 px-1">
         <div className="flex items-center gap-4">
           <Link
@@ -232,7 +231,7 @@ const SystemPlaylistDetailPage = () => {
           </Link>
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
-              System Playlist
+              Playlist hệ thống
             </p>
             <h1 className="mt-1 text-xl font-semibold tracking-tight text-slate-950">
               {playlist.title}
@@ -245,7 +244,7 @@ const SystemPlaylistDetailPage = () => {
             className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium shadow-sm transition hover:bg-slate-50"
           >
             <Pencil className="h-4 w-4" style={{ color: "#64748b" }} />
-            Edit
+            Chỉnh sửa
           </Link>
           <button
             type="button"
@@ -259,15 +258,12 @@ const SystemPlaylistDetailPage = () => {
             }}
           >
             <Trash2 className="h-4 w-4" />
-            {isDeleting ? "..." : "Delete"}
+            {isDeleting ? "..." : "Xóa"}
           </button>
         </div>
       </div>
 
-      {/* Info + Cover Grid */}
       <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
-
-        {/* Info Card */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
           <div className="flex flex-wrap gap-3">
             <VisibilityBadge isPublic={playlist.isPublic} />
@@ -281,13 +277,12 @@ const SystemPlaylistDetailPage = () => {
           )}
 
           <div className="grid grid-cols-3 gap-3">
-            <StatCard icon={Music} label="Tracks" value={playlist.trackCount ?? 0} />
-            <StatCard icon={Disc} label="Duration" value={fmtDur(playlist.totalDuration)} />
-            <StatCard icon={Disc} label="Created" value={fmtDate(playlist.createdAt)} />
+            <StatCard icon={Music} label="Bài hát" value={playlist.trackCount ?? 0} />
+            <StatCard icon={Disc} label="Thời lượng" value={fmtDur(playlist.totalDuration)} />
+            <StatCard icon={Disc} label="Ngày tạo" value={fmtDate(playlist.createdAt)} />
           </div>
         </div>
 
-        {/* Cover */}
         <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
           {playlist.coverImage ? (
             <img
@@ -307,9 +302,7 @@ const SystemPlaylistDetailPage = () => {
         </div>
       </div>
 
-      {/* Tracks Card */}
       <div className="rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm">
-        {/* Tracks Header */}
         <div
           className="flex items-center justify-between px-4 py-3"
           style={{ borderBottom: "1px solid #e2e8f0" }}
@@ -319,7 +312,7 @@ const SystemPlaylistDetailPage = () => {
               <Music className="h-3.5 w-3.5 text-blue-500" />
             </div>
             <h2 className="text-sm font-bold text-slate-900">
-              Tracks · {orderedTracks.length}
+              {`Bài hát · ${orderedTracks.length}`}
             </h2>
           </div>
           <button
@@ -331,11 +324,10 @@ const SystemPlaylistDetailPage = () => {
             className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition hover:opacity-90"
             style={{ backgroundColor: "#1e40af", color: "white" }}
           >
-            <Plus className="h-4 w-4" /> Add Tracks
+            <Plus className="h-4 w-4" /> Thêm bài hát
           </button>
         </div>
 
-        {/* Feedback Message */}
         {tracksMsg.text && (
           <div
             className="mx-4 mt-4 rounded-xl border px-4 py-3 text-sm font-medium"
@@ -349,14 +341,13 @@ const SystemPlaylistDetailPage = () => {
           </div>
         )}
 
-        {/* Tracks Table */}
         {orderedTracks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-xl border border-slate-200 bg-slate-50">
               <Music className="h-7 w-7 text-slate-300" />
             </div>
-            <p className="text-sm font-semibold text-slate-700">No tracks yet</p>
-            <p className="mt-1 text-xs text-slate-400">Click "Add Tracks" to populate this playlist</p>
+            <p className="text-sm font-semibold text-slate-700">Chưa có bài hát</p>
+            <p className="mt-1 text-xs text-slate-400">Nhấn "Thêm bài hát" để cập nhật playlist này</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -367,17 +358,17 @@ const SystemPlaylistDetailPage = () => {
                   style={{ borderBottom: "1px solid #e2e8f0" }}
                 >
                   <th className="px-4 py-3 text-center w-12">#</th>
-                  <th className="px-4 py-3 text-left">Track</th>
-                  <th className="px-4 py-3 text-left">Artist</th>
-                  <th className="px-4 py-3 text-right w-20">Duration</th>
+                  <th className="px-4 py-3 text-left">Bài hát</th>
+                  <th className="px-4 py-3 text-left">Nghệ sĩ</th>
+                  <th className="px-4 py-3 text-right w-20">Thời lượng</th>
                   <th className="px-4 py-3 w-28" />
                 </tr>
               </thead>
               <tbody>
                 {orderedTracks.map((row, i) => {
                   const track = row.track;
-                  const title = track?.title ?? "Unknown track";
-                  const artistName = track?.artist?.name ?? "—";
+                  const title = track?.title ?? "Bài hát không xác định";
+                  const artistName = track?.artist?.name ?? "-";
                   const rowTrackId = row.trackId ?? track?.id ?? null;
                   const isRemoving = removingTrackId === rowTrackId;
                   return (
@@ -412,7 +403,7 @@ const SystemPlaylistDetailPage = () => {
                             }}
                           >
                             <X className="h-3 w-3" />
-                            {isRemoving ? "..." : "Remove"}
+                            {isRemoving ? "..." : "Gỡ"}
                           </button>
                         )}
                       </td>

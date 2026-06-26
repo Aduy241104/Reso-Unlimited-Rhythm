@@ -135,7 +135,7 @@ const SystemArtistsListPage = () => {
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">Hệ thống nghệ sĩ</p>
-                  <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Artist Moderation List</h1>
+                  <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Danh sách nghệ sĩ</h1>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3 self-start lg:self-auto">
@@ -162,9 +162,9 @@ const SystemArtistsListPage = () => {
 
                 <select value={filterVerify} onChange={(e) => setFilterVerify(e.target.value)} className="rounded-lg bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition focus:bg-sky-50 cursor-pointer">
                     <option value="">Tất cả xác minh</option>
-                    <option value="pending">Chờ duyệt (Pending)</option>
-                    <option value="verified">Đã xác minh (Verified)</option>
-                    <option value="rejected">Từ chối (Rejected)</option>
+                    <option value="pending">Chờ duyệt</option>
+                    <option value="verified">Đã xác minh</option>
+                    <option value="rejected">Đã từ chối</option>
                 </select>
 
                 <select value={filterActive} onChange={(e) => setFilterActive(e.target.value)} className="rounded-lg bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition focus:bg-sky-50 cursor-pointer">
