@@ -66,6 +66,7 @@ const AccountMenu = ({ user, onLogout }) => {
       { label: "Nghệ sĩ đang theo dõi", to: routePaths.libraryFollowedArtists },
       { label: "Album đang theo dõi", to: routePaths.libraryFollowedAlbums },
       { label: "Playlist của tôi", to: routePaths.userPlaylist },
+      { label: "Danh sách báo cáo", to: routePaths.userReportList },
     ],
     [isPremiumUser, userRole]
   );
