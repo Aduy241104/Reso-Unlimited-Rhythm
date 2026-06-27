@@ -48,9 +48,23 @@ export const cancelMyReleaseScheduleService = async (scheduleId) => {
   };
 };
 
+export const updateMyReleaseScheduleService = async (scheduleId, payload) => {
+  const response = await axiosClient.patch(
+    `/api/artist/release-schedules/${scheduleId}`,
+    payload
+  );
+
+  return {
+    artist: response?.data?.data?.artist ?? null,
+    releaseSchedule: response?.data?.data?.releaseSchedule ?? null,
+    message: response?.data?.message ?? "",
+  };
+};
+
 export default {
   cancelMyReleaseScheduleService,
   createMyReleaseScheduleService,
   getMyReleaseScheduleDetailService,
   getMyReleaseSchedulesService,
+  updateMyReleaseScheduleService,
 };

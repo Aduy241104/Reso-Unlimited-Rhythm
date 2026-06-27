@@ -5,7 +5,7 @@ import ConfirmActionModal from "../../components/common/ConfirmActionModal";
 import trackService from "../../services/trackService";
 import { routePaths } from "../../routes/routePaths";
 import { getApiErrorFullMessage } from "../../utils/apiError";
-import { canArtistSubmitTrack } from "../../utils/trackWorkflow";
+import { canArtistSubmitTrack, getSubmitReadinessIssues } from "../../utils/trackWorkflow";
 import ArtistReleaseSchedulePage from "./ArtistReleaseSchedulePage";
 
 const formatDuration = (duration) => {
@@ -167,6 +167,16 @@ export const MyMusicPage = () => {
 
     if (!canArtistSubmitTrack(track)) {
       setActionError("Chỉ bài nhạc ở trạng thái bản nháp hoặc bị từ chối mới có thể gửi duyệt.");
+      return;
+    }
+
+    const submitIssues = getSubmitReadinessIssues(track);
+    if (submitIssues.length > 0) {
+      setActionError(
+        `Vui lÃ²ng hoÃ n táº¥t cÃ¡c má»¥c sau trÆ°á»›c khi gá»­i duyá»‡t:\n${submitIssues
+          .map((item) => `â€¢ ${item}`)
+          .join("\n")}\n\nBáº¡n cÃ³ thá»ƒ má»Ÿ trang chá»‰nh sá»­a Ä‘á»ƒ bá»• sung thÃ´ng tin cÃ²n thiáº¿u.`
+      );
       return;
     }
 
@@ -435,6 +445,15 @@ export const MyMusicPage = () => {
                             onClick={() => {
                               setActionMessage("");
                               setActionError("");
+                              const submitIssues = getSubmitReadinessIssues(track);
+                              if (submitIssues.length > 0) {
+                                setActionError(
+                                  `Complete these items before submitting:\n${submitIssues
+                                    .map((item) => `- ${item}`)
+                                    .join("\n")}\n\nOpen the edit page to add the missing information.`
+                                );
+                                return;
+                              }
                               setSubmitTarget(track);
                             }}
                             disabled={isActionLoading}

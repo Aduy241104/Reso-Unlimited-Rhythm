@@ -30,9 +30,9 @@ const updateTrackApprovalSchema = Joi.object({
 
 const updateTrackVisibilitySchema = Joi.object({
     action: Joi.string().valid("hide", "unhide", "block").required(),
-    hiddenReason: Joi.string().trim().max(1000).allow("").default(""), 
+    hiddenReason: Joi.string().trim().max(1000).allow("").default(""),
     blockedReason: Joi.string().trim().max(1000).allow("").default(""),
-    adminNote: Joi.string().trim().max(1000).allow("").default(""),    
+    adminNote: Joi.string().trim().max(1000).allow("").default(""),
 });
 
 export default {
