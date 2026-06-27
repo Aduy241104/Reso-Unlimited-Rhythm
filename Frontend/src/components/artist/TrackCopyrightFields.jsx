@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { usesThirdPartyRights } from "../../utils/trackWorkflow";
+import { isHttpUrl, usesThirdPartyRights } from "../../utils/trackWorkflow";
 
 const COPYRIGHT_POLICY = {
   title: "Chính sách bản quyền khi tải lên bài nhạc",
@@ -236,6 +236,9 @@ const TrackCopyrightFields = ({ value, onChange, disabled = false, errors = {} }
   const licenseText = Array.isArray(copyright.licenseDocumentUrls)
     ? copyright.licenseDocumentUrls.join("\n")
     : "";
+  const invalidLicenseUrls = Array.isArray(copyright.licenseDocumentUrls)
+    ? copyright.licenseDocumentUrls.filter((url) => !isHttpUrl(url))
+    : [];
 
   const handlePolicyAccept = (nextValue) => {
     updateField("declarationAccepted", Boolean(nextValue));
@@ -348,8 +351,13 @@ const TrackCopyrightFields = ({ value, onChange, disabled = false, errors = {} }
                   value={copyright.originalTrackTitle || ""}
                   onChange={(event) => updateField("originalTrackTitle", event.target.value)}
                   disabled={disabled}
-                  className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm"
+                  className={`mt-2 w-full rounded-md border px-3 py-2 text-sm ${
+                    errors.originalTrackTitle ? "border-red-500" : "border-neutral-200"
+                  }`}
                 />
+                {errors.originalTrackTitle ? (
+                  <p className="mt-1 text-xs text-red-500">{errors.originalTrackTitle}</p>
+                ) : null}
               </div>
               <div>
                 <label className="block text-sm font-medium text-[#241b15]">
@@ -360,8 +368,13 @@ const TrackCopyrightFields = ({ value, onChange, disabled = false, errors = {} }
                   value={copyright.originalArtistName || ""}
                   onChange={(event) => updateField("originalArtistName", event.target.value)}
                   disabled={disabled}
-                  className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm"
+                  className={`mt-2 w-full rounded-md border px-3 py-2 text-sm ${
+                    errors.originalArtistName ? "border-red-500" : "border-neutral-200"
+                  }`}
                 />
+                {errors.originalArtistName ? (
+                  <p className="mt-1 text-xs text-red-500">{errors.originalArtistName}</p>
+                ) : null}
               </div>
             </div>
             <div>
@@ -382,8 +395,26 @@ const TrackCopyrightFields = ({ value, onChange, disabled = false, errors = {} }
                 }
                 disabled={disabled}
                 placeholder="https://..."
-                className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm"
+                className={`mt-2 w-full rounded-md border px-3 py-2 text-sm ${
+                  errors.licenseDocumentUrls
+                    ? "border-red-500"
+                    : invalidLicenseUrls.length > 0
+                      ? "border-amber-300"
+                      : "border-neutral-200"
+                }`}
               />
+              {errors.licenseDocumentUrls ? (
+                <p className="mt-1 text-xs text-red-500">{errors.licenseDocumentUrls}</p>
+              ) : invalidLicenseUrls.length > 0 ? (
+                <p className="mt-1 text-xs text-amber-700">
+                  Each line must be a full URL starting with `http://` or `https://`.
+                  Values like `aaa` will be ignored when the track is submitted.
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-neutral-500">
+                  Example: `https://drive.google.com/...` or a public Dropbox/Cloudinary link.
+                </p>
+              )}
             </div>
           </div>
         ) : null}

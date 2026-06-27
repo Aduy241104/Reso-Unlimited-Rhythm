@@ -45,6 +45,15 @@ const numberFormatter = new Intl.NumberFormat("vi-VN");
 
 const formatCurrency = (value) => currencyFormatter.format(Number(value) || 0);
 const formatNumber = (value) => numberFormatter.format(Number(value) || 0);
+const formatWithdrawalAmountInput = (value) => {
+  const digitsOnlyValue = String(value || "").replace(/\D/g, "");
+
+  if (!digitsOnlyValue) {
+    return "";
+  }
+
+  return numberFormatter.format(Number(digitsOnlyValue));
+};
 
 const formatDateTime = (value) => {
   if (!value) {
@@ -263,7 +272,7 @@ const ArtistWithdrawalRequestsPage = () => {
 
     setWithdrawalForm((currentForm) => ({
       ...currentForm,
-      [field]: value,
+      [field]: field === "amount" ? String(value || "").replace(/\D/g, "") : value,
     }));
   };
 
@@ -628,10 +637,9 @@ const ArtistWithdrawalRequestsPage = () => {
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-[#2f2747]">Số tiền muốn rút</label>
               <input
-                type="number"
-                min="200000"
-                step="1"
-                value={withdrawalForm.amount}
+                type="text"
+                inputMode="numeric"
+                value={formatWithdrawalAmountInput(withdrawalForm.amount)}
                 onChange={(event) =>
                   handleWithdrawalFormChange("amount", event.target.value)
                 }
