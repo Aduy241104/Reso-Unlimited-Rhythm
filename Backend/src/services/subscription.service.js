@@ -21,6 +21,29 @@ const calculateTaxAmount = (baseAmount) =>
 const calculateTotalAmount = (baseAmount) =>
     roundVndAmount((Number(baseAmount) || 0) + calculateTaxAmount(baseAmount));
 
+const buildPlanSnapshot = (plan) => {
+    if (!plan) {
+        return null;
+    }
+
+    const originalPlanId = plan.originalPlanId || plan._id || null;
+    const durationDays = Number(plan.durationDays);
+
+    if (!originalPlanId || !Number.isFinite(durationDays) || durationDays < 1) {
+        return null;
+    }
+
+    return {
+        originalPlanId,
+        name: String(plan.name || "").trim(),
+        price: roundVndAmount(plan.price),
+        durationDays,
+        description: String(plan.description || ""),
+        features: Array.isArray(plan.features) ? [...plan.features] : [],
+        status: plan.status === "inactive" ? "inactive" : "active",
+    };
+};
+
 const enrichPlanPricing = (plan) => {
     if (!plan) {
         return plan;
@@ -36,6 +59,51 @@ const enrichPlanPricing = (plan) => {
         taxAmount,
         totalPrice: calculateTotalAmount(price),
     };
+};
+
+const buildSubscriptionPlanView = (subscription) => {
+    const snapshotPlan = buildPlanSnapshot(subscription?.planSnapshot);
+
+    if (snapshotPlan) {
+        return snapshotPlan;
+    }
+
+    if (subscription?.planId && typeof subscription.planId === "object") {
+        return {
+            _id: subscription.planId._id,
+            name: subscription.planId.name,
+            price: subscription.planId.price,
+            durationDays: subscription.planId.durationDays,
+        };
+    }
+
+    return null;
+};
+
+const getRawPlanId = (source) => {
+    const rawPlanId =
+        source?.planId && typeof source.planId === "object"
+            ? source.planId._id || source.planId
+            : source?.planId;
+
+    return rawPlanId && mongoose.Types.ObjectId.isValid(rawPlanId) ? rawPlanId : null;
+};
+
+const resolvePlanSnapshotFromSource = async (source) => {
+    const currentSnapshot = buildPlanSnapshot(source?.planSnapshot);
+
+    if (currentSnapshot) {
+        return currentSnapshot;
+    }
+
+    const legacyPlanId = getRawPlanId(source);
+
+    if (!legacyPlanId) {
+        return null;
+    }
+
+    const legacyPlan = await Plan.findById(legacyPlanId).lean();
+    return buildPlanSnapshot(legacyPlan);
 };
 
 const assertObjectId = (value, fieldName) => {
@@ -102,7 +170,7 @@ const markTransactionFailed = async ({
 const markTransactionSuccessful = async ({
     transaction,
     subscription,
-    plan,
+    planSnapshot,
     paymentResult,
 }) => {
     const user = await User.findById(transaction.userId);
@@ -137,15 +205,17 @@ const markTransactionSuccessful = async ({
         : null;
     const baseDate =
         currentPremiumEndDate && currentPremiumEndDate > now ? currentPremiumEndDate : now;
-    const endDate = addDays(baseDate, plan.durationDays);
+    const endDate = addDays(baseDate, planSnapshot.durationDays);
 
     subscription.status = "active";
     subscription.startDate = now;
     subscription.endDate = endDate;
+    subscription.planSnapshot = subscription.planSnapshot || planSnapshot;
     await subscription.save();
 
     user.subscription.isPremium = true;
-    user.subscription.currentPlanId = plan._id;
+    user.subscription.currentPlanId =
+        subscription.planId || planSnapshot.originalPlanId || user.subscription.currentPlanId;
     user.subscription.premiumEndDate = endDate;
     await user.save();
 
@@ -172,15 +242,19 @@ const findPaymentContextByInvoiceNumber = async (invoiceNumber) => {
         return null;
     }
 
-    const [subscription, plan] = await Promise.all([
-        Subscription.findById(transaction.subscriptionId),
-        Plan.findById(transaction.planId),
-    ]);
+    const subscription = await Subscription.findById(transaction.subscriptionId);
+    const legacyTransactionData = await Transaction.collection.findOne({
+        _id: transaction._id,
+    });
+    const planSnapshot =
+        (await resolvePlanSnapshotFromSource(subscription)) ||
+        (await resolvePlanSnapshotFromSource(legacyTransactionData)) ||
+        (await resolvePlanSnapshotFromSource(transaction));
 
     return {
         transaction,
         subscription,
-        plan,
+        planSnapshot,
     };
 };
 
@@ -218,13 +292,8 @@ const getMySubscriptionStatus = async (userId) => {
                 price: user.subscription.currentPlanId.price,
                 durationDays: user.subscription.currentPlanId.durationDays,
             }
-            : activeSubscription?.planId
-                ? {
-                    _id: activeSubscription.planId._id,
-                    name: activeSubscription.planId.name,
-                    price: activeSubscription.planId.price,
-                    durationDays: activeSubscription.planId.durationDays,
-                }
+            : activeSubscription
+                ? buildSubscriptionPlanView(activeSubscription)
                 : null;
 
     const pricedCurrentPlan = enrichPlanPricing(currentPlan);
@@ -242,16 +311,7 @@ const getMySubscriptionStatus = async (userId) => {
                 startDate: activeSubscription.startDate,
                 endDate: activeSubscription.endDate,
                 planId: activeSubscription.planId?._id || activeSubscription.planId,
-                plan: enrichPlanPricing(
-                    activeSubscription.planId && typeof activeSubscription.planId === "object"
-                        ? {
-                            _id: activeSubscription.planId._id,
-                            name: activeSubscription.planId.name,
-                            price: activeSubscription.planId.price,
-                            durationDays: activeSubscription.planId.durationDays,
-                        }
-                        : null
-                ),
+                plan: enrichPlanPricing(buildSubscriptionPlanView(activeSubscription)),
             }
             : null,
     };
@@ -285,13 +345,19 @@ const createVnpayOrder = async ({
     const tax = calculateTaxAmount(amount);
     const totalAmount = calculateTotalAmount(amount);
     const invoiceNumber = buildInvoiceNumber(user._id);
+    const planSnapshot = buildPlanSnapshot(plan);
     let subscription;
     let transaction;
+
+    if (!planSnapshot) {
+        throw new AppError("Could not snapshot the selected subscription plan.", 500);
+    }
 
     try {
         subscription = await Subscription.create({
             userId: user._id,
             planId: plan._id,
+            planSnapshot,
             status: "pending",
             autoRenew: false,
         });
@@ -332,6 +398,7 @@ const createVnpayOrder = async ({
             tax: transaction.tax,
             taxRate: PREMIUM_TAX_RATE,
             totalAmount: transaction.totalAmount,
+            plan: enrichPlanPricing(planSnapshot),
         };
     } catch (error) {
         if (transaction?.status === "pending") {
@@ -362,14 +429,14 @@ const settleVnpayPayment = async (paymentResult) => {
 
     const context = await findPaymentContextByInvoiceNumber(paymentResult.invoiceNumber);
 
-    if (!context || !context.subscription || !context.plan) {
+    if (!context || !context.subscription || !context.planSnapshot) {
         return {
             code: "01",
             message: "Order not found",
         };
     }
 
-    const { transaction, subscription, plan } = context;
+    const { transaction, subscription, planSnapshot } = context;
 
     if (transaction.status === "success") {
         return {
@@ -389,7 +456,7 @@ const settleVnpayPayment = async (paymentResult) => {
         await markTransactionSuccessful({
             transaction,
             subscription,
-            plan,
+            planSnapshot,
             paymentResult,
         });
 

@@ -187,6 +187,23 @@ const getAnalyticsNow = () => dayjs().tz(ANALYTICS_TIMEZONE);
 const buildStoredDayDate = (dateKey) => dayjs.utc(`${dateKey}T00:00:00Z`).toDate();
 const buildDateKey = (dateValue) => dayjs(dateValue).tz(ANALYTICS_TIMEZONE).format("YYYY-MM-DD");
 const startOfDay = (dateValue) => dayjs(dateValue).tz(ANALYTICS_TIMEZONE).startOf("day");
+const buildPlanSnapshot = ({
+    _id,
+    name,
+    price,
+    durationDays,
+    description = "",
+    features = [],
+    status = "active",
+}) => ({
+    originalPlanId: _id,
+    name,
+    price,
+    durationDays,
+    description,
+    features,
+    status,
+});
 
 const buildFallbackAudioFiles = (slug) => [
     {
@@ -1721,6 +1738,9 @@ const buildDemoDocuments = async () => {
             status: "active",
         },
     ];
+    const premiumPlanSnapshot = buildPlanSnapshot(
+        plans.find((item) => objectIdToString(item._id) === objectIdToString(ids.planPremium))
+    );
 
     const albums = [
         {
@@ -1789,6 +1809,7 @@ const buildDemoDocuments = async () => {
             _id: ids.subscriptionMain,
             userId: ids.userListenerOne,
             planId: ids.planPremium,
+            planSnapshot: premiumPlanSnapshot,
             status: "active",
             startDate: rankingDay.subtract(3, "day").toDate(),
             endDate: rankingDay.add(27, "day").toDate(),

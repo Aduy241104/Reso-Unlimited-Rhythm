@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Text, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { loginSchema } from '../../validations/authValidation';
@@ -9,6 +10,7 @@ import AppButton from '../../components/common/AppButton';
 import theme from '../../theme';
 
 export const LoginScreen = () => {
+  const navigation = useNavigation();
   const { login } = useAuth();
   const [errorMsg, setErrorMsg] = useState(null);
 
@@ -21,6 +23,13 @@ export const LoginScreen = () => {
     try {
       setErrorMsg(null);
       await login(data.email, data.password);
+
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+        return;
+      }
+
+      navigation.navigate('MainTabs');
     } catch (err) {
       setErrorMsg(err.message || 'Authentication failed. Please try again.');
     }
