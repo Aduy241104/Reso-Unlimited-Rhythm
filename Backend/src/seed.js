@@ -86,6 +86,23 @@ const ids = {
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 const daysAgo = (days) => new Date(Date.now() - days * DAY_IN_MS);
 const daysFromNow = (days) => new Date(Date.now() + days * DAY_IN_MS);
+const buildPlanSnapshot = ({
+    _id,
+    name,
+    price,
+    durationDays,
+    description = "",
+    features = [],
+    status = "active",
+}) => ({
+    originalPlanId: _id,
+    name,
+    price,
+    durationDays,
+    description,
+    features,
+    status,
+});
 
 const seedCollections = [
     { model: Notification, ids: [ids.notificationUser, ids.notificationGlobal] },
@@ -567,10 +584,28 @@ const seedUserContent = async () => {
 };
 
 const seedCommerce = async () => {
+    const premiumPlanSnapshot = buildPlanSnapshot({
+        _id: ids.planPremium,
+        name: "Seed Premium",
+        price: 99000,
+        durationDays: 30,
+        description: "Goi premium mau de test thanh toan va subscription.",
+        features: [
+            "NO_ADS",
+            "HIGH_QUALITY_AUDIO",
+            "UNLIMITED_SKIP",
+            "OFFLINE_DOWNLOAD",
+            "BACKGROUND_PLAY",
+            "AI_SMART_PLAYLIST",
+        ],
+        status: "active",
+    });
+
     await Subscription.create({
         _id: ids.subscriptionMain,
         userId: ids.userListener,
         planId: ids.planPremium,
+        planSnapshot: premiumPlanSnapshot,
         status: "active",
         startDate: daysAgo(5),
         endDate: daysFromNow(25),
