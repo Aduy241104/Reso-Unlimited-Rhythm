@@ -6,6 +6,15 @@ const PREMIUM_AUDIO_FEATURES = new Set([
     "LOSSLESS_AUDIO",
 ]);
 
+const BASIC_AUDIO_FORMAT_PREFERENCE = new Map([
+    ["mp3", 0],
+    ["m4a", 1],
+    ["aac", 2],
+    ["mp4", 3],
+    ["wav", 4],
+    ["flac", 5],
+]);
+
 const toId = (value) => {
     if (!value) {
         return null;
@@ -96,6 +105,10 @@ const getValidAudioFiles = (audioFiles = []) =>
             bitrate: Number.isFinite(Number(audioFile.bitrate))
                 ? Number(audioFile.bitrate)
                 : null,
+            label: String(audioFile.label || "").toLowerCase() || "original",
+            priority: Number.isFinite(Number(audioFile.priority))
+                ? Number(audioFile.priority)
+                : 0,
         }));
 
 const pickPremiumDefaultAudio = (audioFiles) => {
@@ -112,20 +125,38 @@ const pickPremiumDefaultAudio = (audioFiles) => {
 };
 
 const pickBasicAudio = (audioFiles) => {
-    const preferredAudio = audioFiles.find(
-        (audioFile) => audioFile.format === "mp4" && audioFile.bitrate === 128
-    );
-
-    if (preferredAudio) {
-        return preferredAudio;
+    if (!audioFiles.length) {
+        return null;
     }
 
-    const fallback128Audio = audioFiles.find((audioFile) => audioFile.bitrate === 128);
-    if (fallback128Audio) {
-        return fallback128Audio;
-    }
+    return [...audioFiles].sort((leftAudio, rightAudio) => {
+        const leftBitrateDistance = Math.abs((leftAudio.bitrate ?? 128) - 128);
+        const rightBitrateDistance = Math.abs((rightAudio.bitrate ?? 128) - 128);
 
-    return audioFiles[0] || null;
+        if (leftBitrateDistance !== rightBitrateDistance) {
+            return leftBitrateDistance - rightBitrateDistance;
+        }
+
+        const leftFormatRank =
+            BASIC_AUDIO_FORMAT_PREFERENCE.get(leftAudio.format) ??
+            Number.MAX_SAFE_INTEGER;
+        const rightFormatRank =
+            BASIC_AUDIO_FORMAT_PREFERENCE.get(rightAudio.format) ??
+            Number.MAX_SAFE_INTEGER;
+
+        if (leftFormatRank !== rightFormatRank) {
+            return leftFormatRank - rightFormatRank;
+        }
+
+        const leftPriority = Number(leftAudio.priority) || 0;
+        const rightPriority = Number(rightAudio.priority) || 0;
+
+        if (leftPriority !== rightPriority) {
+            return rightPriority - leftPriority;
+        }
+
+        return (leftAudio.bitrate ?? 0) - (rightAudio.bitrate ?? 0);
+    })[0] || null;
 };
 
 const getPremiumAccessState = async (user) => {
@@ -239,14 +270,13 @@ const formatTrackPlayback = (track, audioFiles, accessState) => {
         throw new AppError(
             isPremium
                 ? "Track does not have any playable audio file."
-                : "Track does not provide an mp4 128kbps stream for basic users.",
+                : "Track does not provide a compatible playback stream for basic users.",
             isPremium ? 404 : 403,
             isPremium
                 ? null
                 : {
                     upgradeRequired: true,
-                    requiredFormat: "mp4",
-                    requiredBitrate: 128,
+                    preferredBitrate: 128,
                 }
         );
     }

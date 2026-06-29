@@ -1,3 +1,4 @@
+import axios from "axios";
 import axiosClient from "../axios/axiosClient";
 import { API_BASE_URL } from "../constants/auth";
 import { getStoredAccessToken } from "./authStorage";
@@ -261,7 +262,10 @@ export const getTrackLyricsSyncTextService = async (trackOrLyricsUrl) => {
     throw new Error("Track playback does not include a synced lyrics URL.");
   }
 
-  const response = await axiosClient.get(lyricsSyncUrl, {
+  // Synced lyric files are often served from public third-party hosts such as
+  // Cloudinary. Use a plain request here so auth interceptors do not attach an
+  // Authorization header and trigger a CORS preflight/network error.
+  const response = await axios.get(lyricsSyncUrl, {
     responseType: "text",
   });
 
