@@ -40,6 +40,7 @@
   artistReleaseScheduleDetail: (scheduleId = ":id") => `/artist/releases/${scheduleId}`,
   artistAnalytics: "/artist/analytics",
   artistNotifications: "/artist/notifications",
+  artistFollowers: "/artist/followers",
   artistNotificationDetail: (notificationId = ":id") => `/artist/notifications/${notificationId}`,
   artistRoyalties: "/artist/royalties",
   artistWithdrawalRequests: "/artist/withdrawal-requests",

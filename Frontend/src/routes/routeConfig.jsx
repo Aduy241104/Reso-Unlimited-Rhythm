@@ -21,6 +21,7 @@ import ArtistEditReleaseSchedulePage from "../pages/artist/ArtistEditReleaseSche
 import ArtistReleaseScheduleDetailPage from "../pages/artist/ArtistReleaseScheduleDetailPage";
 import ArtistNotificationDetailPage from "../pages/artist/ArtistNotificationDetailPage";
 import ArtistNotificationsPage from "../pages/artist/ArtistNotificationsPage";
+import ArtistFollowerPage from "../pages/artist/ArtistFollowerPage";
 import ArtistTrackInsightsPage from "../pages/artist/ArtistTrackInsightsPage";
 import {
   MyMusicPage,
@@ -280,6 +281,10 @@ export const appRoutes = [
               {
                 path: routePaths.artistNotifications,
                 element: <ArtistNotificationsPage />,
+              },
+              {
+                path: routePaths.artistFollowers,
+                element: <ArtistFollowerPage />,
               },
               {
                 path: routePaths.artistNotificationDetail(),
