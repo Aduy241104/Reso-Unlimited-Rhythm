@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import {
+  BadgeCheck,
   ChevronRight,
-  KeyRound,
   Loader2,
   Mail,
   MapPin,
   PencilLine,
+  ShieldCheck,
   UserRound,
   VenusAndMars,
 } from "lucide-react";
@@ -62,28 +63,40 @@ const ProfileField = ({ icon, label, value }) => {
   const IconComponent = icon;
 
   return (
-    <div
-      className="
-        group flex items-center gap-4 rounded-3xl border border-white/10 bg-white/5 p-4
-        shadow-[0_20px_60px_rgba(0,0,0,0.28)] backdrop-blur-md transition duration-300
-        hover:-translate-y-1 hover:border-[#ff9f43]/25 hover:bg-white/[0.07]
-        hover:shadow-[0_24px_70px_rgba(0,0,0,0.4)]
-      "
-    >
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-black/30 text-[#ff9f43]">
-        <IconComponent className="h-5 w-5" aria-hidden />
-      </div>
+    <div className="group rounded-[24px] border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.05),rgba(10,10,10,0.76))] p-4 transition duration-300 hover:-translate-y-0.5 hover:border-white/20 hover:shadow-[0_18px_45px_rgba(0,0,0,0.22)] sm:p-5">
+      <div className="flex items-start gap-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/12 bg-white/[0.05] text-white/80">
+          <IconComponent className="h-5 w-5" aria-hidden />
+        </div>
 
-      <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">
-          {label}
-        </p>
-        <p className="mt-1 break-words text-sm font-medium leading-6 text-white sm:text-base">
-          {value}
-        </p>
-      </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-white/35">
+            {label}
+          </p>
+          <p className="mt-2 break-words text-sm font-medium leading-6 text-white sm:text-base">
+            {value}
+          </p>
+        </div>
 
-      <ChevronRight className="h-5 w-5 shrink-0 text-gray-500 transition group-hover:translate-x-1 group-hover:text-[#ffb46a]" aria-hidden />
+        <ChevronRight
+          className="mt-1 h-5 w-5 shrink-0 text-white/20 transition group-hover:translate-x-1 group-hover:text-white/65"
+          aria-hidden
+        />
+      </div>
+    </div>
+  );
+};
+
+const secondaryButtonClassName =
+  "inline-flex items-center justify-center gap-2 rounded-2xl border border-white/12 bg-white/[0.04] px-5 py-3 text-sm font-medium text-white transition duration-300 hover:border-white/20 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-60";
+
+const primaryButtonClassName =
+  "inline-flex items-center justify-center gap-2 rounded-2xl border border-white bg-white px-5 py-3 text-sm font-semibold text-black shadow-[0_18px_38px_rgba(255,255,255,0.08)] transition duration-300 hover:bg-transparent hover:text-white disabled:cursor-not-allowed disabled:opacity-60";
+
+const Notice = ({ children }) => {
+  return (
+    <div className="mt-6 rounded-2xl border border-white/12 bg-white/[0.04] px-4 py-3 text-sm text-white/82">
+      {children}
     </div>
   );
 };
@@ -126,7 +139,7 @@ const UserProfileInfo = ({ fullName, email, gender, country }) => {
       }
     };
 
-    loadLatestProfile();
+    void loadLatestProfile();
 
     return () => {
       isMounted = false;
@@ -222,25 +235,60 @@ const UserProfileInfo = ({ fullName, email, gender, country }) => {
     setSuccessNotice(message || "Đổi mật khẩu thành công.");
   };
 
-  const fields = [...displayFields];
+  const authProvider = normalizeText(
+    profileSnapshot?.authProvider ||
+      profileSnapshot?.provider ||
+      profile?.authProvider ||
+      profile?.provider
+  ).toLowerCase();
+
+  const avatarUrl = normalizeText(profileSnapshot?.avatar || profile?.avatar).toLowerCase();
 
   const isGoogleAccount =
-    profileSnapshot?.authProvider === "google";
+    authProvider === "google" ||
+    avatarUrl.includes("googleusercontent.com");
+
+  const accountTypeLabel = isGoogleAccount ? "Google Sign-In" : "Email & Password";
+  const securityLabel = isGoogleAccount ? "Xác thực qua Google" : "Bảo mật nội bộ";
 
   return (
-    <div className="rounded-3xl border border-white/10 bg-black/30 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.25)] backdrop-blur-md sm:p-8">
-      <div>
-        <p className="text-sm font-medium uppercase tracking-[0.24em] text-[#ff9f43]">
-          Thông tin hồ sơ
-        </p>
+    <div className="overflow-hidden rounded-[30px] border border-white/10 bg-[linear-gradient(155deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03)_26%,rgba(8,8,8,0.96)_100%)] p-6 shadow-[0_28px_80px_rgba(0,0,0,0.34)] sm:p-8">
+      <div className="flex flex-col gap-5 border-b border-white/10 pb-6 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-white/70">
+            <BadgeCheck className="h-3.5 w-3.5" aria-hidden />
+            Hồ sơ đã xác thực
+          </div>
 
-        <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-[2.6rem]">
-          Chi tiết hồ sơ
-        </h2>
+          <h2 className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-[2.5rem]">
+            Chi tiết hồ sơ
+          </h2>
+
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-white/58">
+            Cập nhật thông tin cá nhân, theo dõi phương thức đăng nhập và quản lý
+            nhanh các thao tác quan trọng cho tài khoản của bạn.
+          </p>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[18rem] lg:max-w-[24rem] lg:flex-1">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 backdrop-blur-sm">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/35">
+              Đăng nhập
+            </p>
+            <p className="mt-2 text-sm font-medium text-white">{accountTypeLabel}</p>
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 backdrop-blur-sm">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/35">
+              Bảo mật
+            </p>
+            <p className="mt-2 text-sm font-medium text-white">{securityLabel}</p>
+          </div>
+        </div>
       </div>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
-        {fields.map((field) => (
+        {displayFields.map((field) => (
           <ProfileField
             key={field.label}
             icon={field.icon}
@@ -250,28 +298,20 @@ const UserProfileInfo = ({ fullName, email, gender, country }) => {
         ))}
       </div>
 
-      {successNotice ? (
-        <div className="mt-6 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
-          {successNotice}
-        </div>
-      ) : null}
+      {successNotice ? <Notice>{successNotice}</Notice> : null}
+      {formError ? <Notice>{formError}</Notice> : null}
 
-      {formError ? (
-        <div className="mt-6 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-100">
-          {formError}
-        </div>
-      ) : null}
-
-      <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-end">
+      <div className="mt-8 flex flex-col gap-3 border-t border-white/10 pt-6 sm:flex-row sm:justify-end">
         {!isGoogleAccount ? (
           <button
             type="button"
             onClick={handleOpenPasswordForm}
             disabled={isPreparingForm}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#ffb15c_0%,#ff8a2a_45%,#a64a00_100%)] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_38px_rgba(255,138,42,0.25)] transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_24px_55px_rgba(255,138,42,0.36)] disabled:cursor-not-allowed disabled:opacity-60"
+            className={secondaryButtonClassName}
           >
-            <KeyRound className="h-4 w-4" aria-hidden />
-            Đổi mật khẩu
+            <ShieldCheck className="h-4 w-4 text-white/72" aria-hidden />
+            <span className="hidden sm:inline">Đổi mật khẩu</span>
+            <span className="sm:hidden">Đổi mật khẩu</span>
           </button>
         ) : null}
 
@@ -279,7 +319,7 @@ const UserProfileInfo = ({ fullName, email, gender, country }) => {
           type="button"
           onClick={handleOpenEditor}
           disabled={isPreparingForm}
-          className="inline-flex items-center gap-2 rounded-xl bg-[linear-gradient(135deg,#ffb15c_0%,#ff8a2a_45%,#a64a00_100%)] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_38px_rgba(255,138,42,0.25)] transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_24px_55px_rgba(255,138,42,0.36)] disabled:cursor-not-allowed disabled:opacity-60"
+          className={primaryButtonClassName}
         >
           {isPreparingForm ? (
             <>
