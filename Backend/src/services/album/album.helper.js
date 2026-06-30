@@ -95,8 +95,14 @@ const formatAlbumDetail = (album) => ({
     updatedAt: album.updatedAt,
 });
 
+const formatAlbumFollowState = ({ albumId, isFollowing }) => ({
+    albumId: toId(albumId),
+    isFollowing,
+});
+
 export {
     formatAlbumDetail,
+    formatAlbumFollowState,
     formatAlbumItem,
     normalizePositiveInteger,
 };

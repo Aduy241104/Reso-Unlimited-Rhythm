@@ -22,6 +22,8 @@ import ArtistReleaseScheduleDetailPage from "../pages/artist/ArtistReleaseSchedu
 import ArtistNotificationDetailPage from "../pages/artist/ArtistNotificationDetailPage";
 import ArtistNotificationsPage from "../pages/artist/ArtistNotificationsPage";
 import ArtistTrackInsightsPage from "../pages/artist/ArtistTrackInsightsPage";
+import ArtistRevenueHistory from "../pages/artist/revenue/ArtistRevenueHistory";
+import ArtistRevenuePeriodDetail from "../pages/artist/revenue/ArtistRevenuePeriodDetail";
 import {
   MyMusicPage,
   ReleasesPage,
@@ -273,6 +275,14 @@ export const appRoutes = [
               {
                 path: routePaths.artistRoyalties,
                 element: <ArtistRoyaltiesPage />,
+              },
+              {
+                path: routePaths.artistRevenueHistory,
+                element: <ArtistRevenueHistory />,
+              },
+              {
+                path: routePaths.artistRevenuePeriodDetail(),
+                element: <ArtistRevenuePeriodDetail />,
               },
               {
                 path: routePaths.artistWithdrawalRequests,

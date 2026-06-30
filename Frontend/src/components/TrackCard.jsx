@@ -46,6 +46,7 @@ const sizeClassNames = {
 const TrackCard = ({
   index,
   trackId,
+  track = null,
   image,
   title,
   artist,
@@ -268,7 +269,7 @@ const TrackCard = ({
           </div>
 
           <div className="hidden items-center justify-end sm:flex">
-            {trackId ? <TrackTwoLevelMenu trackId={trackId} /> : null}
+            {trackId ? <TrackTwoLevelMenu trackId={trackId} track={track} /> : null}
           </div>
         </>
       )}

@@ -49,7 +49,7 @@ const HomePage = () => {
   } = useContentPlayback();
 
   return (
-    <section className="space-y-6 sm:space-y-8 lg:space-y-10">
+    <section className="space-y-6 sm:space-y-8 lg:space-y-10 p-5">
       { albumsError ? (
         <div
           className="
