@@ -2,14 +2,13 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { View, StyleSheet } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
-import { AuthNavigator } from './AuthNavigator';
 import { MainNavigator } from './MainNavigator';
 import AppLoader from '../components/common/AppLoader';
 import { navigationRef } from './navigationRef';
 import theme from '../theme';
 
 export const RootNavigator = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -21,7 +20,7 @@ export const RootNavigator = () => {
 
   return (
     <NavigationContainer ref={navigationRef}>
-      {isAuthenticated ? <MainNavigator /> : <AuthNavigator />}
+      <MainNavigator />
     </NavigationContainer>
   );
 };

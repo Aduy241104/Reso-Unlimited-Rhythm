@@ -1,25 +1,26 @@
 import { Outlet } from "react-router-dom";
+import {
+  Banknote,
+  Bell,
+  CircleDollarSign,
+  CreditCard,
+  Flag,
+  LayoutDashboard,
+  ListMusic,
+  Mic2,
+  Music2,
+  Tags,
+  UserCheck,
+  Users,
+} from "lucide-react";
 import AdminSidebar from "../components/layout/AdminSidebar";
 import { useAuth } from "../hooks/useAuth";
 import { routePaths } from "../routes/routePaths";
-import {
-  LayoutDashboard,
-  Banknote,
-  CircleDollarSign,
-  Music2,
-  UserCheck,
-  ListMusic,
-  Mic2,
-  Tags,
-  Users,
-  Bell,
-  Flag,
-} from "lucide-react";
 
 const navigationItems = [
   {
     to: routePaths.home,
-    label: "Tổng quan",
+    label: "T\u1ed5ng quan",
     icon: LayoutDashboard,
     end: true,
   },
@@ -31,7 +32,7 @@ const navigationItems = [
   },
   {
     to: routePaths.withdrawals,
-    label: "Withdrawal Requests",
+    label: "Yêu cầu rút tiền",
     icon: Banknote,
     end: false,
     matchPrefix: true,
@@ -39,50 +40,56 @@ const navigationItems = [
   },
   {
     to: routePaths.systemTracks,
-    label: "Kiểm duyệt track",
+    label: "Bài hát hệ thống",
     icon: Music2,
     end: false,
   },
   {
     to: routePaths.artistRequests,
-    label: "Yêu cầu artist",
+    label: "Yêu cầu nghệ sĩ",
     icon: UserCheck,
     end: false,
   },
   {
     to: routePaths.systemPlaylists,
-    label: "Playlist hệ thống",
+    label: "Playlist h\u1ec7 th\u1ed1ng",
     icon: ListMusic,
     end: false,
   },
   {
     to: routePaths.systemArtists,
-    label: "Artist hệ thống",
+    label: "Nghệ sĩ hệ thống",
     icon: Mic2,
     end: false,
   },
   {
     to: routePaths.genres,
-    label: "Thể loại",
+    label: "Th\u1ec3 lo\u1ea1i",
     icon: Tags,
     end: false,
   },
   {
     to: routePaths.users,
-    label: "Người dùng",
+    label: "Ng\u01b0\u1eddi d\u00f9ng",
     icon: Users,
     end: false,
   },
   {
     to: routePaths.notifications,
-    label: "Danh sách thông báo",
+    label: "Thông báo",
     icon: Bell,
     end: false,
   },
   {
     to: routePaths.reports,
-    label: "Báo cáo",
+    label: "B\u00e1o c\u00e1o",
     icon: Flag,
+    end: false,
+  },
+  {
+    to: routePaths.subscriptions,
+    label: "G\u00f3i \u0111\u0103ng k\u00fd",
+    icon: CreditCard,
     end: false,
   },
 ];

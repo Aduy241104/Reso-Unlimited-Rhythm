@@ -34,17 +34,27 @@ const AccountMenu = ({ user, onLogout }) => {
   const menuItems = useMemo(
     () => [
       { label: "Hồ sơ cá nhân", to: routePaths.userProfile },
+      { label: "Nghe gần đây", to: routePaths.userRecentListeningActivity },
 
       ...(userRole === "user"
         ? [
-            { label: "Đăng ký nghệ sĩ", to: routePaths.artistRegistrationRequest },
-            { label: "Yêu cầu của tôi", to: routePaths.artistRegistrationRequestsList },
+            {
+              label: "Đăng ký nghệ sĩ",
+              to: routePaths.artistRegistrationRequest,
+            },
+            {
+              label: "Yêu cầu của tôi",
+              to: routePaths.artistRegistrationRequestsList,
+            },
           ]
         : []),
 
       ...(userRole === "artist"
         ? [
-            { label: "Yêu cầu của tôi", to: routePaths.artistRegistrationRequestsList },
+            {
+              label: "Yêu cầu của tôi",
+              to: routePaths.artistRegistrationRequestsList,
+            },
             { label: "Khu vực nghệ sĩ", to: routePaths.artistRoot },
           ]
         : []),
@@ -57,8 +67,9 @@ const AccountMenu = ({ user, onLogout }) => {
       { label: "Album đang theo dõi", to: routePaths.libraryFollowedAlbums },
       { label: "Playlist của tôi", to: routePaths.userPlaylist },
       { label: "Lịch sử thanh toán", to: routePaths.userPaymentHistory },
+      { label: "Danh sách báo cáo", to: routePaths.userReportList },
     ],
-    [isPremiumUser, userRole],
+    [isPremiumUser, userRole]
   );
 
   useEffect(() => {
@@ -116,7 +127,7 @@ const AccountMenu = ({ user, onLogout }) => {
           "transition-all duration-200 ease-out",
           isOpen
             ? "visible translate-y-0 scale-100 opacity-100"
-            : "invisible pointer-events-none -translate-y-1 scale-95 opacity-0",
+            : "pointer-events-none invisible -translate-y-1 scale-95 opacity-0",
           isDark
             ? "border-white/10 bg-[#151515]/95"
             : "border-[#eeeeee] bg-white/95",

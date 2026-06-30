@@ -37,4 +37,8 @@ export const routePaths = {
     `/revenue-sharing/${periodId}`,
   reports: "/reports",
   reportDetail: (reportId = ":reportId") => `/reports/${reportId}`,
+  subscriptions: "/subscriptions",
+  subscriptionDetail: (planId = ":planId") => `/subscriptions/${planId}`,
+  subscriptionEdit: (planId = ":planId") => `/subscriptions/${planId}/edit`,
+  subscriptionNew: "/subscriptions/new",
 };
