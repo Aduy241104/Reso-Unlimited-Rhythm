@@ -10,17 +10,19 @@ import SearchResultPage from "../pages/search/SearchResultPage";
 import ArtistOverviewPage from "../pages/artist/ArtistOverviewPage";
 import ArtistProfileEditPage from "../pages/artist/ArtistProfileEditPage";
 import ArtistProfilePage from "../pages/artist/ArtistProfilePage";
+import ArtistRoyaltiesPage from "../pages/artist/ArtistRoyaltiesPage";
+import ArtistWithdrawalRequestsPage from "../pages/artist/ArtistWithdrawalRequestsPage";
 import ArtistAlbumPage from "../pages/artist/ArtistAlbumPage";
 import ArtistAlbumDetailPage from "../pages/artist/ArtistAlbumDetailPage";
 import ArtistCreateAlbumPage from "../pages/artist/ArtistCreateAlbumPage";
 import ArtistCreateReleaseSchedulePage from "../pages/artist/ArtistCreateReleaseSchedulePage";
 import ArtistEditAlbumPage from "../pages/artist/ArtistEditAlbumPage";
+import ArtistEditReleaseSchedulePage from "../pages/artist/ArtistEditReleaseSchedulePage";
 import ArtistReleaseScheduleDetailPage from "../pages/artist/ArtistReleaseScheduleDetailPage";
 import ArtistNotificationDetailPage from "../pages/artist/ArtistNotificationDetailPage";
 import ArtistNotificationsPage from "../pages/artist/ArtistNotificationsPage";
 import ArtistTrackInsightsPage from "../pages/artist/ArtistTrackInsightsPage";
 import ArtistRevenueHistory from "../pages/artist/revenue/ArtistRevenueHistory";
-import ArtistRevenueOverview from "../pages/artist/revenue/ArtistRevenueOverview";
 import ArtistRevenuePeriodDetail from "../pages/artist/revenue/ArtistRevenuePeriodDetail";
 import {
   MyMusicPage,
@@ -45,6 +47,7 @@ import PremiumPaymentFailedPage from "../pages/premium/PremiumPaymentFailedPage"
 import PremiumPaymentSuccessPage from "../pages/premium/PremiumPaymentSuccessPage";
 import PremiumPage from "../pages/premium/PremiumPage";
 import TrackDetailPage from "../pages/track/TrackDetailPage";
+import UserRecentListeningPage from "../pages/userInsign/user.recentListening.page";
 import UserFavoriteTracksPage from "../pages/userFavorite/UserFavoriteTracksPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
@@ -133,6 +136,15 @@ export const appRoutes = [
   {
     element: <ProtectedRoute />,
     children: userProfileRoutes,
+  },
+  {
+    element: <ProtectedRoute />,
+    children: [
+      {
+        path: routePaths.userRecentListeningActivity,
+        element: <UserRecentListeningPage />,
+      },
+    ],
   },
   {
     element: <ProtectedRoute />,
@@ -233,15 +245,19 @@ export const appRoutes = [
                 element: <ArtistAlbumDetailPage />,
               },
               {
-                path: routePaths.artistReleases,
+                path: "releases",
                 element: <ReleasesPage />,
               },
               {
-                path: routePaths.artistCreateReleaseSchedule,
+                path: "releases/create",
                 element: <ArtistCreateReleaseSchedulePage />,
               },
               {
-                path: routePaths.artistReleaseScheduleDetail(),
+                path: "releases/:id/edit",
+                element: <ArtistEditReleaseSchedulePage />,
+              },
+              {
+                path: "releases/:id",
                 element: <ArtistReleaseScheduleDetailPage />,
               },
               {
@@ -258,7 +274,7 @@ export const appRoutes = [
               },
               {
                 path: routePaths.artistRoyalties,
-                element: <ArtistRevenueOverview />,
+                element: <ArtistRoyaltiesPage />,
               },
               {
                 path: routePaths.artistRevenueHistory,
@@ -267,6 +283,10 @@ export const appRoutes = [
               {
                 path: routePaths.artistRevenuePeriodDetail(),
                 element: <ArtistRevenuePeriodDetail />,
+              },
+              {
+                path: routePaths.artistWithdrawalRequests,
+                element: <ArtistWithdrawalRequestsPage />,
               },
               {
                 path: routePaths.artistSettings,

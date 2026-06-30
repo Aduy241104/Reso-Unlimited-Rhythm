@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   Ban,
@@ -265,13 +265,14 @@ const DetailRow = ({ label, value, valueClassName = "" }) => (
 );
 
 const ArtistReleaseScheduleDetailPage = () => {
+  const location = useLocation();
   const navigate = useNavigate();
   const { id } = useParams();
   const [artistName, setArtistName] = useState("");
   const [releaseSchedule, setReleaseSchedule] = useState(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
-  const [actionMessage, setActionMessage] = useState("");
+  const [actionMessage, setActionMessage] = useState(location.state?.message || "");
   const [actionError, setActionError] = useState("");
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -326,20 +327,35 @@ const ArtistReleaseScheduleDetailPage = () => {
     };
   }, [id]);
 
+  useEffect(() => {
+    if (location.state?.message) {
+      setActionMessage(location.state.message);
+    }
+  }, [location.state]);
+
   const normalizedStatus = String(releaseSchedule?.status || "")
     .trim()
     .toLowerCase();
   const statusInfo = statusMeta[normalizedStatus] || statusMeta.draft;
   const sourceInfo =
     sourceTypeMeta[releaseSchedule?.sourceType] || sourceTypeMeta.track;
-  const canCancelRelease =
+  const scheduledTimeValue = releaseSchedule?.scheduledAt
+    ? new Date(releaseSchedule.scheduledAt).getTime()
+    : NaN;
+  const canEditRelease =
     Boolean(releaseSchedule?.id) &&
     normalizedStatus !== "released" &&
-    normalizedStatus !== "cancelled";
+    normalizedStatus !== "cancelled" &&
+    !Number.isNaN(scheduledTimeValue) &&
+    scheduledTimeValue > Date.now();
+  const canCancelRelease = canEditRelease;
   const ReleaseIcon = sourceInfo.icon;
   const releaseImage = getReleaseImage(releaseSchedule);
   const detailPath = getDetailPath(releaseSchedule);
-  const editPath = getEditPath(releaseSchedule);
+  const contentEditPath = getEditPath(releaseSchedule);
+  const scheduleEditPath = releaseSchedule?.id
+    ? routePaths.artistEditReleaseSchedule(releaseSchedule.id)
+    : "";
   const progressSteps = useMemo(
     () => buildProgressSteps(releaseSchedule),
     [releaseSchedule]
@@ -493,14 +509,15 @@ const ArtistReleaseScheduleDetailPage = () => {
             </button>
           ) : null}
 
-          {editPath ? (
+          {scheduleEditPath ? (
             <button
               type="button"
-              onClick={() => navigate(editPath)}
-              className="inline-flex h-11 items-center gap-2 rounded-2xl bg-[#6657f6] px-4 text-sm font-medium text-white transition hover:bg-[#5747ec]"
+              onClick={() => navigate(scheduleEditPath)}
+              disabled={!canEditRelease}
+              className="inline-flex h-11 items-center gap-2 rounded-2xl bg-[#6657f6] px-4 text-sm font-medium text-white transition hover:bg-[#5747ec] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Pencil className="h-4 w-4" />
-              Chỉnh sửa nội dung
+              Chỉnh sửa lịch phát hành
             </button>
           ) : null}
         </div>
@@ -714,12 +731,22 @@ const ArtistReleaseScheduleDetailPage = () => {
             <div className="mt-5 space-y-3">
               <button
                 type="button"
-                onClick={() => editPath && navigate(editPath)}
-                disabled={!editPath || isCancelling}
+                onClick={() => scheduleEditPath && navigate(scheduleEditPath)}
+                disabled={!scheduleEditPath || !canEditRelease || isCancelling}
                 className="flex w-full items-center gap-3 rounded-2xl border border-[#ebe8f8] px-4 py-3 text-left text-sm font-medium text-[#3e3560] transition hover:border-[#d7d1ff] hover:bg-[#faf9ff] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Pencil className="h-4 w-4 text-[#5b4dde]" />
                 Chỉnh sửa nội dung phát hành
+              </button>
+
+              <button
+                type="button"
+                onClick={() => contentEditPath && navigate(contentEditPath)}
+                disabled={!contentEditPath || isCancelling}
+                className="flex w-full items-center gap-3 rounded-2xl border border-[#ebe8f8] px-4 py-3 text-left text-sm font-medium text-[#3e3560] transition hover:border-[#d7d1ff] hover:bg-[#faf9ff] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Sparkles className="h-4 w-4 text-[#5b4dde]" />
+                Chỉnh sửa lịch phát hành
               </button>
 
               <button
@@ -739,9 +766,9 @@ const ArtistReleaseScheduleDetailPage = () => {
             </div>
 
             <div className="mt-4 rounded-2xl border border-[#ebe8f8] bg-[#faf9ff] px-4 py-3 text-sm text-[#7c7690]">
-              {canCancelRelease
-                ? "Bạn chỉ có thể hủy lịch khi bản phát hành vẫn đang ở trạng thái sắp tới."
-                : "Lịch đã phát hành hoặc đã hủy sẽ không thể hủy thêm lần nữa."}
+              {canEditRelease
+                ? "Bạn có thể chỉnh sửa hoặc hủy lịch khi bản phát hành vẫn đang ở trạng thái sắp tới."
+                : "Lịch đã phát hành, đã hủy, hoặc đã quá thời điểm phát hành sẽ không thể chỉnh sửa thêm."}
             </div>
           </div>
 

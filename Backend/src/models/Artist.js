@@ -43,6 +43,19 @@ const ArtistSchema = new Schema(
             ],
         },
 
+        payoutAccounts: [
+            {
+                bankName: { type: String, trim: true, required: true },
+                accountNumber: { type: String, trim: true, required: true },
+                accountHolderName: { type: String, trim: true, required: true },
+                isDefault: { type: Boolean, default: false },
+            },
+        ],
+
+        withdrawalSecurity: {
+            passwordHash: { type: String, default: "" },
+        },
+
         activeStatus: {
             type: String,
             enum: ["active", "inactive", "blocked"],

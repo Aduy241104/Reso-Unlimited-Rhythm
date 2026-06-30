@@ -1,106 +1,306 @@
-import React from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  FlatList, 
-  TouchableOpacity, 
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  FlatList,
+  TouchableOpacity,
   StatusBar,
-  Platform
+  Platform,
+  Image,
+  RefreshControl,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import AppButton from '../../components/common/AppButton';
+import AppLoader from '../../components/common/AppLoader';
+import ErrorState from '../../components/common/ErrorState';
+import FeaturedCollectionCard from '../../components/home/FeaturedCollectionCard';
 import { useAuth } from '../../hooks/useAuth';
+import homeService from '../../services/homeService';
+import { getInitials, resolveImageUri } from '../../utils/media';
+
+const initialHomeState = {
+  topTrackCollections: [],
+  monthlyTopArtists: [],
+  systemPlaylists: [],
+  sectionErrors: {},
+  query: {
+    date: '',
+    month: '',
+  },
+};
+
+const accentPalette = ['#111111', '#2f2f2f', '#4a4a4a', '#686868', '#8a8a8a'];
+
+const Artwork = ({ uri, label, color, style, textStyle }) => {
+  const imageUri = resolveImageUri(uri);
+
+  if (imageUri) {
+    return <Image source={{ uri: imageUri }} style={[styles.artwork, style]} resizeMode="cover" />;
+  }
+
+  return (
+    <View style={[styles.artwork, styles.artworkFallback, { backgroundColor: color }, style]}>
+      <Text style={[styles.artworkText, textStyle]}>{getInitials(label)}</Text>
+    </View>
+  );
+};
+
+const SectionState = ({ message, isError = false }) => (
+  <View style={[styles.sectionState, isError && styles.sectionStateError]}>
+    <Text style={[styles.sectionStateText, isError && styles.sectionStateTextError]}>{message}</Text>
+  </View>
+);
+
+const HomeSection = ({ title, data, errorMessage, renderItem, emptyMessage }) => (
+  <View style={styles.sectionContainer}>
+    <Text style={styles.sectionTitle}>{title}</Text>
+
+    {errorMessage ? (
+      <SectionState message={errorMessage} isError />
+    ) : data.length === 0 ? (
+      <SectionState message={emptyMessage || 'No items available.'} />
+    ) : (
+      <FlatList
+        data={data}
+        renderItem={renderItem}
+        keyExtractor={(item, index) => item.id || `${title}-${index}`}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.horizontalList}
+      />
+    )}
+  </View>
+);
 
 export default function HomeScreen() {
-  const { logout } = useAuth();
+  const navigation = useNavigation();
+  const { isAuthenticated, logout } = useAuth();
+  const [homeData, setHomeData] = useState(initialHomeState);
+  const [isContentLoading, setIsContentLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [contentError, setContentError] = useState(null);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const hasLoadedOnceRef = useRef(false);
 
-  // 🚀 MOCK DATA GIẢ LẬP CỨNG TẠI CHỖ (Đúng cấu trúc form của Album & Playlist)
-  const mockPlaylists = [
-    { id: 'p1', title: 'Chill Lo-Fi Beats', desc: 'Relax your mind', color: '#ff9f43' },
-    { id: 'p2', title: 'Coding Focus', desc: 'Deep work electronic', color: '#9b6cff' },
-    { id: 'p3', title: 'Midnight Melancholy', desc: 'Dark ambient sounds', color: '#4f7cff' },
-    { id: 'p4', title: 'Cyberpunk Ride', desc: 'Synthwave energy', color: '#ee5253' },
-  ];
+  const loadHomepage = useCallback(async (options = {}) => {
+    const isRefresh = Boolean(options.refresh);
 
-  const mockAlbums = [
-    { id: 'a1', title: 'Ethereal Echoes', artist: 'Luna Eclipse', color: '#10ac84' },
-    { id: 'a2', title: 'Neon Horizon', artist: 'Retro Future', color: '#ff9f43' },
-    { id: 'a3', title: 'Vortex of Soul', artist: 'The Paradox', color: '#0abde3' },
-    { id: 'a4', title: 'Shadow Symphony', artist: 'Dark Orchestra', color: '#9b6cff' },
-  ];
+    if (isRefresh) {
+      setIsRefreshing(true);
+    } else {
+      setIsContentLoading(true);
+    }
 
-  // Component phụ vẽ cái Card hình vuông (thay ảnh bằng các khối màu chuyển sắc mượt mà)
-  const renderMockCard = ({ item, isAlbum }) => {
+    try {
+      const data = await homeService.getHomepageData({
+        topTrackPreviewLimit: 1,
+        topArtistLimit: 10,
+        playlistLimit: 10,
+      });
+
+      setHomeData(data);
+      setContentError(null);
+      hasLoadedOnceRef.current = true;
+      setHasLoadedOnce(true);
+    } catch (error) {
+      if (!hasLoadedOnceRef.current) {
+        setContentError(error.message || 'Failed to load homepage data.');
+      }
+    } finally {
+      setIsContentLoading(false);
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadHomepage();
+  }, [loadHomepage]);
+
+  const handleOpenDetail = useCallback(
+    (params) => {
+      if (!params?.entityType || !params?.entityId) {
+        return;
+      }
+
+      const parentNavigation = navigation.getParent();
+
+      if (parentNavigation) {
+        parentNavigation.navigate('EntityDetail', params);
+        return;
+      }
+
+      navigation.navigate('EntityDetail', params);
+    },
+    [navigation]
+  );
+
+  const handleOpenTopTrackCollection = useCallback(
+    (item) => {
+      if (!item?.id) {
+        return;
+      }
+
+      handleOpenDetail({
+        entityType: item.entityType,
+        entityId: item.id,
+        initialTitle: item.title,
+        period: item.period,
+        date: item.date,
+        month: item.month,
+      });
+    },
+    [handleOpenDetail]
+  );
+
+  const handleHeaderAction = async () => {
+    if (isAuthenticated) {
+      await logout();
+      return;
+    }
+
+    const parentNavigation = navigation.getParent();
+
+    if (parentNavigation) {
+      parentNavigation.navigate('Login');
+      return;
+    }
+
+    navigation.navigate('Login');
+  };
+
+  const renderArtistCard = ({ item, index }) => {
+    const accentColor = accentPalette[index % accentPalette.length];
+
     return (
-      <TouchableOpacity style={styles.cardItem} activeOpacity={0.8}>
-        {/* Khối màu giả lập ảnh Cover */}
-        <View style={[styles.cardImagePlaceholder, { backgroundColor: item.color }]}>
-          <Text style={styles.cardVisualText}>{isAlbum ? '💿' : '🎵'}</Text>
-        </View>
-        <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
-        <Text style={styles.cardSubTitle} numberOfLines={1}>
-          {isAlbum ? item.artist : item.desc}
+      <TouchableOpacity
+        style={styles.cardItem}
+        activeOpacity={0.8}
+        onPress={() =>
+          handleOpenDetail({
+            entityType: 'artist',
+            entityId: item.id,
+            initialTitle: item.name || 'Artist Detail',
+          })
+        }
+      >
+        <Artwork
+          uri={item.avatar}
+          label={item.name}
+          color={accentColor}
+          style={styles.artistArtwork}
+          textStyle={styles.artistArtworkText}
+        />
+        <Text style={styles.cardTitle} numberOfLines={1}>{item.name}</Text>
+        <Text style={styles.cardSubTitle} numberOfLines={2}>
+          Featured artist in the monthly chart.
         </Text>
       </TouchableOpacity>
     );
   };
 
+  const renderPlaylistCard = ({ item, index }) => {
+    const accentColor = accentPalette[index % accentPalette.length];
+
+    return (
+      <TouchableOpacity
+        style={styles.cardItem}
+        activeOpacity={0.8}
+        onPress={() =>
+          handleOpenDetail({
+            entityType: 'playlist',
+            entityId: item.id,
+            initialTitle: item.title || 'Playlist Detail',
+          })
+        }
+      >
+        <Artwork uri={item.coverImage} label={item.title} color={accentColor} />
+        <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
+        <Text style={styles.cardSubTitle} numberOfLines={2}>
+          {item.description || 'System curated playlist'}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderTopTrackCollectionCard = ({ item }) => (
+    <FeaturedCollectionCard
+      title={item.title}
+      description={item.description}
+      image={item.image}
+      onPress={() => handleOpenTopTrackCollection(item)}
+    />
+  );
+
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0f0f14" />
-      
-      {/* HEADER TOP BAR CHUẨN FORM */}
+      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+
       <View style={styles.header}>
         <View>
           <Text style={styles.brandText}>RESO MUSIC</Text>
           <Text style={styles.welcomeText}>Home Journey</Text>
         </View>
-        <TouchableOpacity style={styles.logoutBadge} onPress={logout} activeOpacity={0.7}>
-          <Text style={styles.logoutText}>Logout</Text>
+        <TouchableOpacity style={styles.logoutBadge} onPress={handleHeaderAction} activeOpacity={0.7}>
+          <Text style={styles.logoutText}>{isAuthenticated ? 'Logout' : 'Login'}</Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollBody} showsVerticalScrollIndicator={false}>
-        
-        {/* SECTION 1: SYSTEM PLAYLIST FORM */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>System Playlist</Text>
-          <Text style={styles.sectionDesc}>Curated to help you enjoy the right music at the right moment.</Text>
-          
-          <FlatList
-            data={mockPlaylists}
-            renderItem={({ item }) => renderMockCard({ item, isAlbum: false })}
-            keyExtractor={(item) => item.id}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalList}
-          />
+      {isContentLoading && !hasLoadedOnce ? (
+        <View style={styles.centerState}>
+          <AppLoader size="large" />
         </View>
-
-        {/* SECTION 2: LATEST ALBUMS FORM */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Latest Albums</Text>
-          <Text style={styles.sectionDesc}>Browse featured albums collections tailored for every mood.</Text>
-          
-          <FlatList
-            data={mockAlbums}
-            renderItem={({ item }) => renderMockCard({ item, isAlbum: true })}
-            keyExtractor={(item) => item.id}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalList}
-          />
+      ) : contentError && !hasLoadedOnce ? (
+        <View style={styles.centerState}>
+          <ErrorState message={contentError} />
+          <AppButton title="Try Again" onPress={() => loadHomepage()} style={styles.retryButton} />
         </View>
+      ) : (
+        <ScrollView
+          contentContainerStyle={styles.scrollBody}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={() => loadHomepage({ refresh: true })}
+              tintColor="#ffffff"
+            />
+          }
+        >
+          <HomeSection
+            title="Top Track Charts"
+            data={homeData.topTrackCollections}
+            errorMessage={homeData.sectionErrors.topTrackCollections}
+            renderItem={renderTopTrackCollectionCard}
+            emptyMessage="No top track charts available."
+          />
 
-      </ScrollView>
+          <HomeSection
+            title="Monthly Top Artists"
+            data={homeData.monthlyTopArtists}
+            errorMessage={homeData.sectionErrors.monthlyTopArtists}
+            renderItem={renderArtistCard}
+            emptyMessage="No monthly top artists available."
+          />
+
+          <HomeSection
+            title="System Playlists"
+            data={homeData.systemPlaylists}
+            errorMessage={homeData.sectionErrors.systemPlaylists}
+            renderItem={renderPlaylistCard}
+            emptyMessage="No system playlists available."
+          />
+        </ScrollView>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: '#0f0f14' // Nền tối chuẩn Dark Soundscape
+  container: {
+    flex: 1,
+    backgroundColor: '#000000',
   },
   header: {
     flexDirection: 'row',
@@ -108,82 +308,123 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: Platform.OS === 'ios' ? 60 : 30,
-    paddingBottom: 15,
+    paddingBottom: 14,
     borderBottomWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: '#1f1f1f',
+    backgroundColor: '#000000',
   },
   brandText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
-    color: '#ff9f43',
-    letterSpacing: 3,
+    color: '#ffffff',
+    letterSpacing: 2,
   },
   welcomeText: {
-    fontSize: 22,
-    fontWeight: '900',
+    fontSize: 18,
+    fontWeight: '800',
     color: '#ffffff',
-    marginTop: 2,
+    marginTop: 3,
   },
   logoutBadge: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    paddingHorizontal: 12,
+    backgroundColor: '#111111',
+    paddingHorizontal: 11,
     paddingVertical: 6,
-    borderRadius: 15,
+    borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: '#2d2d2d',
   },
   logoutText: {
-    color: '#ff9f43',
-    fontSize: 12,
+    color: '#ffffff',
+    fontSize: 11,
     fontWeight: '600',
   },
+  centerState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  retryButton: {
+    minWidth: 160,
+    marginTop: 16,
+    backgroundColor: '#1a1a1a',
+    borderWidth: 1,
+    borderColor: '#2c2c2c',
+  },
   scrollBody: {
-    paddingVertical: 20,
+    paddingVertical: 16,
   },
   sectionContainer: {
-    marginBottom: 30,
+    marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: '800',
     color: '#ffffff',
     paddingHorizontal: 20,
   },
-  sectionDesc: {
-    fontSize: 13,
-    color: '#a09ba6',
-    paddingHorizontal: 20,
-    marginTop: 4,
-    marginBottom: 15,
-    lineHeight: 18,
-  },
   horizontalList: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 15,
   },
   cardItem: {
-    width: 140,
-    marginHorizontal: 6,
+    width: 102,
+    marginHorizontal: 5,
+    padding: 0,
+    backgroundColor: 'transparent',
   },
-  cardImagePlaceholder: {
-    width: 140,
-    height: 140,
-    borderRadius: 12,
-    justifyContent: 'center',
+  artwork: {
+    width: 102,
+    height: 102,
+    borderRadius: 8,
+    backgroundColor: '#202020',
+  },
+  artworkFallback: {
     alignItems: 'center',
-    opacity: 0.85,
+    justifyContent: 'center',
   },
-  cardVisualText: {
-    fontSize: 32,
+  artworkText: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#ffffff',
+    letterSpacing: 1,
+  },
+  artistArtwork: {
+    borderRadius: 51,
+  },
+  artistArtworkText: {
+    fontSize: 18,
   },
   cardTitle: {
     color: '#ffffff',
-    fontSize: 14,
+    fontSize: 11,
     fontWeight: '700',
-    marginTop: 8,
+    marginTop: 5,
   },
   cardSubTitle: {
-    color: '#a09ba6',
-    fontSize: 12,
+    color: '#9a9a9a',
+    fontSize: 10,
     marginTop: 2,
+    lineHeight: 14,
+    minHeight: 26,
+  },
+  sectionState: {
+    marginHorizontal: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: '#111111',
+    borderWidth: 1,
+    borderColor: '#252525',
+  },
+  sectionStateError: {
+    backgroundColor: '#111111',
+    borderColor: '#3a3a3a',
+  },
+  sectionStateText: {
+    color: '#d0d0d0',
+    fontSize: 12,
+  },
+  sectionStateTextError: {
+    color: '#ffffff',
   },
 });

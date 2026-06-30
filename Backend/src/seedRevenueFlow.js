@@ -30,7 +30,6 @@ const {
 
 const oid = (value) => new mongoose.Types.ObjectId(value);
 const roundCurrency = (value) => Math.max(0, Math.round(Number(value) || 0));
-
 const ids = {
     adminUser: oid("683300000000000000000001"),
     listenerUser: oid("683300000000000000000002"),

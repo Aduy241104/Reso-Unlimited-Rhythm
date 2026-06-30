@@ -68,6 +68,7 @@ const updateTrackApprovalStatus = async (req, res, next) => {
                 violationFlags,
                 rejectReason,
             },
+            req.user.id,
             req.app.get("io")
         );
 
@@ -91,7 +92,9 @@ const updateTrackVisibilityController = async (req, res, next) => {
             hiddenReason,
             blockedReason,
             adminNote
-        });
+        },
+        req.user.id,
+        req.app.get("io"));
 
         return formatResponse.success(
             res,
