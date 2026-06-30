@@ -32,6 +32,7 @@ import userFavoriteRoutes from "./user.favorite.route.js";
 import userNotificationRouter from "./user.notification.router.js";
 import userPaymentHistoryRoutes from "./user.payment.history.route.js";
 import userSubscriptionRoutes from "./user.subscription.routes.js";
+import artistFollowerRoutes from "./artist.follower.route.js";
 
 function route(app) {
     app.use("/api/auth", authenticationRoutes);
@@ -69,6 +70,7 @@ function route(app) {
     app.use("/api/users/payment-history", userPaymentHistoryRoutes);
     app.use("/api/users/payments", userPaymentHistoryRoutes);
     app.use("/api/users/subscription", userSubscriptionRoutes);
+    app.use("/api/artists", artistFollowerRoutes);
 
 }
 
