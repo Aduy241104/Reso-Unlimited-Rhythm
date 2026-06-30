@@ -1,6 +1,7 @@
 import axiosClient from '../api/axiosClient';
 import { API_ENDPOINTS } from '../api/apiEndpoints';
 import { formatCompactNumber, resolveImageUri } from '../utils/media';
+import { resolveTrackAudioUri } from '../utils/player';
 
 const normalizeArtistRanking = (item) => {
   const artist = item?.artist || {};
@@ -29,9 +30,12 @@ const normalizeArtistTrack = (item, index = 0) => {
     id: track?.id || track?._id || `track-${index}`,
     title: track?.title || 'Unknown track',
     subtitle: artist?.name || 'Unknown artist',
+    artistName: artist?.name || 'Unknown artist',
     image: resolveImageUri(track?.coverImage || track?.avatar || artist?.avatar),
     entityType: 'track',
     entityId: track?.id || track?._id || '',
+    duration: Number(track?.duration) || 0,
+    audioUri: resolveTrackAudioUri(track),
     meta: `${formatCompactNumber(track?.stats?.totalPlay || track?.playCount)} plays`,
   };
 };

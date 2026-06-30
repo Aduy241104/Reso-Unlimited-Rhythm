@@ -7,11 +7,26 @@ import {
   formatMonthLabel,
   resolveImageUri,
 } from '../utils/media';
+import { resolveTrackAudioUri } from '../utils/player';
 
 const getPayload = (response) => response?.data || response || {};
 
 const resolveTrackArtist = (item) => item?.artist || item?.artist_artistId || {};
 const resolveTrackAlbum = (item) => item?.album || item?.album_albumId || {};
+const asObject = (value) => (value && typeof value === 'object' ? value : {});
+const asArray = (value) => (Array.isArray(value) ? value : []);
+const pickFirstDefined = (...values) => values.find((value) => value !== undefined && value !== null && value !== '');
+const pickNumber = (...values) => {
+  for (const value of values) {
+    const parsedValue = Number(value);
+
+    if (Number.isFinite(parsedValue)) {
+      return parsedValue;
+    }
+  }
+
+  return 0;
+};
 
 const extractTotalItems = (payload, meta, fallback = 0) => {
   const candidates = [
@@ -46,54 +61,80 @@ const getCollectionLabel = ({ period, date, month }) => {
 };
 
 const normalizeTrackRanking = (item) => {
-  const track = item?.track || {};
+  const track = asObject(item?.track);
   const artist = resolveTrackArtist(track);
+  const rawItem = asObject(item);
 
   return {
-    id: track.id || track._id || '',
-    title: track.title || 'Unknown track',
-    artistName: artist?.name || 'Unknown artist',
-    image: resolveImageUri(track.coverImage || track.avatar || artist?.avatar || artist?.coverImage),
-    duration: Number(track.duration) || 0,
-    rank: Number(item?.rank) || 0,
-    playCount: Number(item?.playCount) || 0,
-    uniqueListeners: Number(item?.uniqueListeners) || 0,
-    date: item?.date || null,
-    month: item?.month || null,
-    rankTrend: item?.rankTrend || 'same',
-    rankChange: Number(item?.rankChange) || 0,
+    ...track,
+    ...rawItem,
+    id: pickFirstDefined(rawItem.id, rawItem._id, track.id, track._id, ''),
+    title: pickFirstDefined(rawItem.title, track.title, 'Unknown track'),
+    artistName: pickFirstDefined(rawItem.artistName, rawItem.artist?.name, artist?.name, 'Unknown artist'),
+    image: pickFirstDefined(
+      rawItem.image,
+      rawItem.coverImage,
+      resolveImageUri(track.coverImage || track.avatar || artist?.avatar || artist?.coverImage),
+      ''
+    ),
+    duration: pickNumber(rawItem.duration, track.duration),
+    audioUri: pickFirstDefined(rawItem.audioUri, resolveTrackAudioUri(rawItem), resolveTrackAudioUri(track), ''),
+    rank: pickNumber(rawItem.rank),
+    playCount: pickNumber(rawItem.playCount, rawItem.stats?.totalPlay, track.stats?.totalPlay),
+    uniqueListeners: pickNumber(rawItem.uniqueListeners),
+    date: pickFirstDefined(rawItem.date, null),
+    month: pickFirstDefined(rawItem.month, null),
+    rankTrend: pickFirstDefined(rawItem.rankTrend, 'same'),
+    rankChange: pickNumber(rawItem.rankChange),
   };
 };
 
 const normalizeTrackItem = (item, index = 0) => {
-  const track = item?.track || item?.trackId || item || {};
+  const rawItem = asObject(item);
+  const track = asObject(item?.track || item?.trackId || item);
   const artist = resolveTrackArtist(track);
   const album = resolveTrackAlbum(track);
 
   return {
-    id: track.id || track._id || item?.trackId || `track-${index}`,
-    title: track.title || 'Unknown track',
-    subtitle: artist?.name || 'Unknown artist',
-    artistId: artist?.id || artist?._id || '',
-    artistName: artist?.name || 'Unknown artist',
-    image: resolveImageUri(track.coverImage || track.avatar || album?.coverImage || artist?.avatar),
-    duration: Number(track.duration) || 0,
-    meta: formatDuration(track.duration),
+    ...track,
+    ...rawItem,
+    id: pickFirstDefined(rawItem.id, rawItem._id, track.id, track._id, rawItem.trackId, `track-${index}`),
+    title: pickFirstDefined(rawItem.title, track.title, 'Unknown track'),
+    subtitle: pickFirstDefined(rawItem.subtitle, rawItem.artistName, artist?.name, 'Unknown artist'),
+    artistId: pickFirstDefined(rawItem.artistId, artist?.id, artist?._id, ''),
+    artistName: pickFirstDefined(rawItem.artistName, artist?.name, 'Unknown artist'),
+    image: pickFirstDefined(
+      rawItem.image,
+      rawItem.coverImage,
+      resolveImageUri(track.coverImage || track.avatar || album?.coverImage || artist?.avatar),
+      ''
+    ),
+    duration: pickNumber(rawItem.duration, track.duration),
+    audioUri: pickFirstDefined(rawItem.audioUri, resolveTrackAudioUri(rawItem), resolveTrackAudioUri(track), ''),
+    meta: pickFirstDefined(rawItem.meta, formatDuration(pickNumber(rawItem.duration, track.duration))),
   };
 };
 
-const normalizeTopTrackDetailItem = (item, index = 0) => ({
-  id: item?.id || `track-${index}`,
-  title: item?.title || 'Unknown track',
-  subtitle: item?.artistName || 'Unknown artist',
-  image: item?.image || '',
-  entityType: 'track',
-  entityId: item?.id || '',
-  meta: `${formatCompactNumber(item?.playCount)} plays`,
-});
+const normalizeTopTrackDetailItem = (item, index = 0) => {
+  const rawItem = asObject(item);
+
+  return {
+    ...rawItem,
+    id: pickFirstDefined(rawItem.id, rawItem._id, `track-${index}`),
+    title: pickFirstDefined(rawItem.title, 'Unknown track'),
+    subtitle: pickFirstDefined(rawItem.subtitle, rawItem.artistName, 'Unknown artist'),
+    artistName: pickFirstDefined(rawItem.artistName, 'Unknown artist'),
+    image: pickFirstDefined(rawItem.image, rawItem.coverImage, ''),
+    entityType: pickFirstDefined(rawItem.entityType, 'track'),
+    entityId: pickFirstDefined(rawItem.entityId, rawItem.id, rawItem._id, ''),
+    duration: pickNumber(rawItem.duration),
+    audioUri: pickFirstDefined(rawItem.audioUri, resolveTrackAudioUri(rawItem), ''),
+    meta: pickFirstDefined(rawItem.meta, `${formatCompactNumber(rawItem?.playCount)} plays`),
+  };
+};
 
 const normalizeTrackDetail = (item) => {
-  const track = item || {};
+  const track = asObject(item);
   const artist = resolveTrackArtist(track);
   const album = resolveTrackAlbum(track);
   const genresSource = Array.isArray(track?.genres) ? track.genres : Array.isArray(track?.genreIds) ? track.genreIds : [];
@@ -102,32 +143,67 @@ const normalizeTrackDetail = (item) => {
     .filter(Boolean);
 
   return {
-    id: track?.id || track?._id || '',
-    type: 'track',
-    title: track?.title || 'Unknown track',
-    subtitle: artist?.name || 'Unknown artist',
-    image: resolveImageUri(track?.coverImage || track?.avatar || album?.coverImage || artist?.avatar || artist?.coverImage),
-    description: album?.title ? `From ${album.title}` : '',
-    stats: [
-      { label: 'Duration', value: formatDuration(track?.duration) },
-      { label: 'Plays', value: formatCompactNumber(track?.stats?.totalPlay) },
-      { label: 'Likes', value: formatCompactNumber(track?.stats?.totalLike) },
-    ],
-    meta: [
-      {
-        label: 'Artist',
-        value: artist?.name || 'Unknown artist',
-        entityType: artist?.id || artist?._id ? 'artist' : null,
-        entityId: artist?.id || artist?._id || '',
-      },
-      { label: 'Album', value: album?.title || 'Single track' },
-      { label: 'Released', value: formatDateLabel(track?.releaseDate) || 'Unknown' },
-    ],
-    tags: genres,
-    extraTitle: 'Lyrics',
-    extraText: track?.lyrics?.static || track?.lyricsStatic || 'No lyrics available.',
-    itemsTitle: '',
-    items: [],
+    ...track,
+    id: pickFirstDefined(track.id, track._id, ''),
+    type: pickFirstDefined(track.type, 'track'),
+    title: pickFirstDefined(track.title, 'Unknown track'),
+    subtitle: pickFirstDefined(track.subtitle, track.artistName, artist?.name, 'Unknown artist'),
+    artistName: pickFirstDefined(track.artistName, artist?.name, 'Unknown artist'),
+    image: pickFirstDefined(
+      track.image,
+      track.coverImage,
+      resolveImageUri(track?.coverImage || track?.avatar || album?.coverImage || artist?.avatar || artist?.coverImage),
+      ''
+    ),
+    duration: pickNumber(track.duration),
+    audioUri: pickFirstDefined(track.audioUri, resolveTrackAudioUri(track), ''),
+    description: pickFirstDefined(track.description, album?.title ? `From ${album.title}` : '', ''),
+    stats: asArray(track.stats).length > 0
+      ? track.stats
+      : [
+          { label: 'Duration', value: formatDuration(track?.duration) },
+          { label: 'Plays', value: formatCompactNumber(track?.stats?.totalPlay) },
+          { label: 'Likes', value: formatCompactNumber(track?.stats?.totalLike) },
+        ],
+    meta: asArray(track.meta).length > 0
+      ? track.meta
+      : [
+          {
+            label: 'Artist',
+            value: artist?.name || 'Unknown artist',
+            entityType: artist?.id || artist?._id ? 'artist' : null,
+            entityId: artist?.id || artist?._id || '',
+          },
+          { label: 'Album', value: album?.title || 'Single track' },
+          { label: 'Released', value: formatDateLabel(track?.releaseDate) || 'Unknown' },
+        ],
+    tags: asArray(track.tags).length > 0 ? track.tags : genres,
+    extraTitle: pickFirstDefined(track.extraTitle, 'Lyrics'),
+    extraText: pickFirstDefined(track.extraText, track?.lyrics?.static, track?.lyricsStatic, 'No lyrics available.'),
+    lyrics: pickFirstDefined(track.lyrics, track?.lyrics?.static, track?.lyricsStatic, 'No lyrics available.'),
+    itemsTitle: pickFirstDefined(track.itemsTitle, ''),
+    items: asArray(track.items),
+  };
+};
+
+const normalizeTrackPlayback = (item, trackId = '') => {
+  const playback = asObject(item);
+  const artist = resolveTrackArtist(playback);
+
+  return {
+    ...playback,
+    id: pickFirstDefined(playback.id, playback.trackId, trackId, ''),
+    trackId: pickFirstDefined(playback.trackId, playback.id, trackId, ''),
+    title: pickFirstDefined(playback.title, 'Unknown track'),
+    artistName: pickFirstDefined(playback.artistName, playback.artist?.name, artist?.name, 'Unknown artist'),
+    image: pickFirstDefined(
+      playback.image,
+      playback.coverImage,
+      resolveImageUri(playback.coverImage || playback.avatar || artist?.avatar || artist?.coverImage),
+      ''
+    ),
+    audioUri: pickFirstDefined(playback.audioUri, resolveTrackAudioUri(playback), ''),
+    duration: pickNumber(playback.duration),
   };
 };
 
@@ -189,7 +265,8 @@ export const trackService = {
     const response = await axiosClient.get(API_ENDPOINTS.TRACKS.TOP_DAILY, { params });
     const payload = getPayload(response);
     const meta = response?.meta || payload?.meta || null;
-    const items = Array.isArray(payload.topTracks) ? payload.topTracks.map(normalizeTrackRanking) : [];
+    const rawItems = asArray(payload.topTracks || payload.items || payload.data);
+    const items = rawItems.map(normalizeTrackRanking);
 
     return {
       items,
@@ -202,7 +279,8 @@ export const trackService = {
     const response = await axiosClient.get(API_ENDPOINTS.TRACKS.TOP_MONTHLY, { params });
     const payload = getPayload(response);
     const meta = response?.meta || payload?.meta || null;
-    const items = Array.isArray(payload.topTracks) ? payload.topTracks.map(normalizeTrackRanking) : [];
+    const rawItems = asArray(payload.topTracks || payload.items || payload.data);
+    const items = rawItems.map(normalizeTrackRanking);
 
     return {
       items,
@@ -215,7 +293,15 @@ export const trackService = {
     const response = await axiosClient.get(`${API_ENDPOINTS.TRACKS.DETAIL}/${trackId}`);
     const payload = getPayload(response);
 
-    return normalizeTrackDetail(payload?.track || payload);
+    return normalizeTrackDetail(payload?.track || payload?.data || payload);
+  },
+
+  async getTrackPlayback(trackId) {
+    const response = await axiosClient.get(`${API_ENDPOINTS.TRACKS.PLAYBACK}/${trackId}/playback`);
+    const payload = getPayload(response);
+    const playbackTrack = payload?.track || payload?.data?.track || payload?.playback || payload?.data || payload;
+
+    return normalizeTrackPlayback(playbackTrack, trackId);
   },
 
   buildTopTrackCollectionSummary,

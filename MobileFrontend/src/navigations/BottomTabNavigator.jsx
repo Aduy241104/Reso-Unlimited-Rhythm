@@ -6,6 +6,7 @@ import SearchScreen from '../screens/search/SearchScreen';
 import LibraryScreen from '../screens/library/LibraryScreen';
 import PremiumScreen from '../screens/premium/PremiumScreen';
 import CreateForMeScreen from '../screens/createForMe/CreateForMeScreen';
+import AppTabBar from '../components/navigation/AppTabBar';
 import theme from '../theme';
 
 const Tab = createBottomTabNavigator();
@@ -22,6 +23,7 @@ export const BottomTabNavigator = () => {
   return (
     <Tab.Navigator
       initialRouteName="Home"
+      tabBar={(props) => <AppTabBar {...props} />}
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: '#ffffff',

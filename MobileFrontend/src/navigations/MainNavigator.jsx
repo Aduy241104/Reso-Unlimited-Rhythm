@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { BottomTabNavigator } from './BottomTabNavigator';
 import LoginScreen from '../screens/auth/LoginScreen';
 import EntityDetailScreen from '../screens/detail/EntityDetailScreen';
+import PlayerSheetScreen from '../screens/player/PlayerSheetScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -25,6 +26,16 @@ export const MainNavigator = () => {
         options={{
           headerShown: false,
           animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="PlayerSheet"
+        component={PlayerSheetScreen}
+        options={{
+          headerShown: false,
+          presentation: 'transparentModal',
+          animation: 'slide_from_bottom',
+          contentStyle: { backgroundColor: 'transparent' },
         }}
       />
     </Stack.Navigator>

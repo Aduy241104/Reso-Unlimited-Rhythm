@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Image,
   ScrollView,
@@ -8,14 +8,18 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppLoader from '../../components/common/AppLoader';
 import ErrorState from '../../components/common/ErrorState';
+import TrackQueueBottomSheet from '../../components/player/TrackQueueBottomSheet';
+import usePlayer from '../../hooks/usePlayer';
 import artistService from '../../services/artistService';
 import playlistService from '../../services/playlistService';
 import trackService from '../../services/trackService';
 import { getErrorMessage, getInitials, resolveImageUri } from '../../utils/media';
+import { buildPlayableQueue, normalizePlayerTrack } from '../../utils/player';
 
 const accentPalette = ['#111111', '#2f2f2f', '#4a4a4a', '#686868', '#8a8a8a'];
 
@@ -24,6 +28,27 @@ const detailFetchers = {
   playlist: ({ entityId }) => playlistService.getPlaylistDetail(entityId),
   track: ({ entityId }) => trackService.getTrackDetail(entityId),
   topTrackCollection: (params) => trackService.getTopTrackCollectionDetail(params),
+};
+
+const getDisplayText = (value, fallback = '') => {
+  if (typeof value === 'string' || typeof value === 'number') {
+    const normalizedValue = String(value);
+    return normalizedValue.trim() ? normalizedValue : fallback;
+  }
+
+  if (value && typeof value === 'object') {
+    if (typeof value.value === 'string' || typeof value.value === 'number') {
+      const normalizedValue = String(value.value);
+      return normalizedValue.trim() ? normalizedValue : fallback;
+    }
+
+    if (typeof value.label === 'string' || typeof value.label === 'number') {
+      const normalizedValue = String(value.label);
+      return normalizedValue.trim() ? normalizedValue : fallback;
+    }
+  }
+
+  return fallback;
 };
 
 const Artwork = ({ uri, label, style, textStyle }) => {
@@ -42,6 +67,9 @@ const Artwork = ({ uri, label, style, textStyle }) => {
 
 const TrackListItem = ({ item, index, onPress, showIndex = true }) => {
   const accentColor = accentPalette[index % accentPalette.length];
+  const title = getDisplayText(item?.title, 'Unknown item');
+  const subtitle = getDisplayText(item?.subtitle);
+  const metaText = getDisplayText(item?.meta);
 
   return (
     <TouchableOpacity style={styles.listItem} onPress={onPress} activeOpacity={0.8}>
@@ -50,12 +78,12 @@ const TrackListItem = ({ item, index, onPress, showIndex = true }) => {
           <Text style={[styles.listIndexText, { color: accentColor }]}>{index + 1}</Text>
         </View>
       ) : null}
-      <Artwork uri={item.image} label={item.title} style={styles.listArtwork} textStyle={styles.listArtworkText} />
+      <Artwork uri={item.image} label={title} style={styles.listArtwork} textStyle={styles.listArtworkText} />
       <View style={styles.listContent}>
-        <Text style={styles.listTitle} numberOfLines={1}>{item.title}</Text>
-        <Text style={styles.listSubtitle} numberOfLines={1}>{item.subtitle}</Text>
+        <Text style={styles.listTitle} numberOfLines={1}>{title}</Text>
+        <Text style={styles.listSubtitle} numberOfLines={1}>{subtitle}</Text>
       </View>
-      <Text style={styles.listMeta}>{item.meta || ''}</Text>
+      <Text style={styles.listMeta}>{metaText}</Text>
     </TouchableOpacity>
   );
 };
@@ -64,10 +92,12 @@ export default function EntityDetailScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const insets = useSafeAreaInsets();
+  const { currentTrack, playQueue, queue } = usePlayer();
   const { entityId, entityType, initialTitle, period, date, month, limit } = route.params || {};
   const [detail, setDetail] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+  const [isQueueVisible, setIsQueueVisible] = useState(false);
 
   const loadDetail = useCallback(async () => {
     if (!entityId || !entityType || !detailFetchers[entityType]) {
@@ -95,6 +125,18 @@ export default function EntityDetailScreen() {
     loadDetail();
   }, [loadDetail]);
 
+  const playableQueue = useMemo(() => {
+    if (!detail) {
+      return [];
+    }
+
+    if (detail.type === 'track') {
+      return [normalizePlayerTrack(detail)];
+    }
+
+    return buildPlayableQueue(detail.items);
+  }, [detail]);
+
   const handleOpenNestedDetail = useCallback(
     (nextType, nextId, nextTitle) => {
       if (!nextType || !nextId) {
@@ -110,7 +152,29 @@ export default function EntityDetailScreen() {
     [navigation]
   );
 
-  const headerTitle = detail?.title || initialTitle || 'Detail';
+  const handlePlayAll = useCallback((startIndex = 0) => {
+    if (playableQueue.length === 0) {
+      return;
+    }
+
+    playQueue(playableQueue, startIndex);
+  }, [playQueue, playableQueue]);
+
+  const handleListItemPress = useCallback((item, index) => {
+    if (item?.entityType === 'track') {
+      handlePlayAll(index);
+      return;
+    }
+
+    handleOpenNestedDetail(item?.entityType, item?.entityId, item?.title);
+  }, [handleOpenNestedDetail, handlePlayAll]);
+
+  const headerTitle = getDisplayText(detail?.title, getDisplayText(initialTitle, 'Detail'));
+  const detailTitle = getDisplayText(detail?.title, headerTitle);
+  const detailSubtitle = getDisplayText(detail?.subtitle);
+  const detailDescription = getDisplayText(detail?.description);
+  const detailExtraText = getDisplayText(detail?.extraText);
+  const hasActiveQueue = Boolean(currentTrack && queue.length > 0);
   const badgeLabel = detail?.badgeLabel || (
     entityType === 'artist'
       ? 'ARTIST'
@@ -145,18 +209,33 @@ export default function EntityDetailScreen() {
           </TouchableOpacity>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.scrollBody} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollBody,
+            { paddingBottom: hasActiveQueue ? 112 + insets.bottom : 32 },
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.heroCard}>
-            <Artwork uri={detail?.image} label={detail?.title} />
+            <Artwork uri={detail?.image} label={detailTitle} />
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{badgeLabel}</Text>
             </View>
-            <Text style={styles.heroTitle}>{detail?.title}</Text>
-            {detail?.subtitle ? <Text style={styles.heroSubtitle}>{detail.subtitle}</Text> : null}
-            {detail?.description ? (
+            <Text style={styles.heroTitle}>{detailTitle}</Text>
+            {detailSubtitle ? <Text style={styles.heroSubtitle}>{detailSubtitle}</Text> : null}
+            {detailDescription ? (
               <Text style={styles.heroDescription}>
-                {detail.description}
+                {detailDescription}
               </Text>
+            ) : null}
+
+            {playableQueue.length > 0 ? (
+              <TouchableOpacity style={styles.playAction} onPress={() => handlePlayAll()} activeOpacity={0.85}>
+                <Ionicons name="play" size={16} color="#000000" />
+                <Text style={styles.playActionText}>
+                  {detail?.type === 'track' ? 'Play now' : `Play ${playableQueue.length} tracks`}
+                </Text>
+              </TouchableOpacity>
             ) : null}
           </View>
 
@@ -164,27 +243,27 @@ export default function EntityDetailScreen() {
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Tags</Text>
               <View style={styles.tagsWrap}>
-                {detail.tags.map((tag) => (
-                  <View key={tag} style={styles.tagPill}>
-                    <Text style={styles.tagText}>{tag}</Text>
+                {detail.tags.map((tag, index) => (
+                  <View key={`${getDisplayText(tag, 'tag')}-${index}`} style={styles.tagPill}>
+                    <Text style={styles.tagText}>{getDisplayText(tag)}</Text>
                   </View>
                 ))}
               </View>
             </View>
           ) : null}
 
-          {detail?.extraTitle && detail?.extraText ? (
+          {detail?.extraTitle && detailExtraText ? (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{detail.extraTitle}</Text>
+              <Text style={styles.sectionTitle}>{getDisplayText(detail.extraTitle)}</Text>
               <View style={styles.panel}>
-                <Text style={styles.extraText}>{detail.extraText}</Text>
+                <Text style={styles.extraText}>{detailExtraText}</Text>
               </View>
             </View>
           ) : null}
 
           {Array.isArray(detail?.items) && detail.items.length > 0 ? (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{detail.itemsTitle || 'Items'}</Text>
+              <Text style={styles.sectionTitle}>{getDisplayText(detail.itemsTitle, 'Items')}</Text>
               <View style={styles.panel}>
                 {detail.items.map((item, index) => (
                   <TrackListItem
@@ -192,7 +271,7 @@ export default function EntityDetailScreen() {
                     item={item}
                     index={index}
                     showIndex={detail?.type !== 'topTrackCollection'}
-                    onPress={() => handleOpenNestedDetail(item.entityType, item.entityId, item.title)}
+                    onPress={() => handleListItemPress(item, index)}
                   />
                 ))}
               </View>
@@ -200,6 +279,34 @@ export default function EntityDetailScreen() {
           ) : null}
         </ScrollView>
       )}
+
+      {hasActiveQueue ? (
+        <TouchableOpacity
+          style={[styles.queueFab, { bottom: Math.max(insets.bottom, 18) }]}
+          onPress={() => setIsQueueVisible(true)}
+          activeOpacity={0.85}
+        >
+          <View style={styles.queueFabIcon}>
+            <Ionicons name="list" size={18} color="#ffffff" />
+          </View>
+
+          <View style={styles.queueFabCopy}>
+            <Text style={styles.queueFabLabel}>Track Queue</Text>
+            <Text style={styles.queueFabText} numberOfLines={1}>
+              {queue.length} tracks queued - {currentTrack?.title || 'Now playing'}
+            </Text>
+          </View>
+
+          <Ionicons name="chevron-up" size={18} color="#ffffff" />
+        </TouchableOpacity>
+      ) : null}
+
+      <TrackQueueBottomSheet
+        visible={isQueueVisible}
+        onClose={() => setIsQueueVisible(false)}
+        title="Current Queue"
+        subtitle={`${queue.length} track${queue.length === 1 ? '' : 's'} ready to play`}
+      />
     </View>
   );
 }
@@ -320,6 +427,22 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     marginTop: 10,
   },
+  playAction: {
+    marginTop: 16,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#1ed760',
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  playActionText: {
+    color: '#000000',
+    fontSize: 12,
+    fontWeight: '800',
+  },
   section: {
     marginTop: 18,
   },
@@ -408,5 +531,50 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     marginLeft: 8,
+  },
+  queueFab: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#111111',
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#252525',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 0,
+      height: 10,
+    },
+    shadowOpacity: 0.32,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  queueFabIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1d1d1d',
+    marginRight: 12,
+  },
+  queueFabCopy: {
+    flex: 1,
+    marginRight: 10,
+  },
+  queueFabLabel: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  queueFabText: {
+    color: '#9d9d9d',
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 4,
   },
 });
