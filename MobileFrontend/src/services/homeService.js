@@ -1,3 +1,4 @@
+import albumService from './albumService';
 import artistService from './artistService';
 import playlistService from './playlistService';
 import trackService from './trackService';
@@ -27,12 +28,14 @@ export const homeService = {
     const topTrackPreviewLimit = options.topTrackPreviewLimit || 1;
     const topArtistLimit = options.topArtistLimit || 10;
     const playlistLimit = options.playlistLimit || 10;
+    const albumLimit = options.albumLimit || 10;
 
-    const [dailyTopTracks, monthlyTopTracks, monthlyTopArtists, systemPlaylists] = await Promise.allSettled([
+    const [dailyTopTracks, monthlyTopTracks, monthlyTopArtists, systemPlaylists, recentAlbums] = await Promise.allSettled([
       trackService.getDailyTopTracks({ date, limit: topTrackPreviewLimit }),
       trackService.getMonthlyTopTracks({ month, limit: topTrackPreviewLimit }),
       artistService.getMonthlyTopArtists({ month, limit: topArtistLimit }),
       playlistService.getSystemPlaylists({ page: 1, limit: playlistLimit }),
+      albumService.getRecentAlbums({ page: 1, limit: albumLimit }),
     ]);
 
     const sectionErrors = {};
@@ -64,6 +67,7 @@ export const homeService = {
       topTrackCollections,
       monthlyTopArtists: monthlyTopArtists.status === 'fulfilled' ? monthlyTopArtists.value.items : [],
       systemPlaylists: systemPlaylists.status === 'fulfilled' ? systemPlaylists.value.items : [],
+      recentAlbums: recentAlbums.status === 'fulfilled' ? recentAlbums.value.items : [],
       sectionErrors,
       query: { date, month },
     };
@@ -90,10 +94,15 @@ export const homeService = {
       sectionErrors.systemPlaylists = getErrorMessage(systemPlaylists.reason, 'Failed to load system playlists.');
     }
 
+    if (recentAlbums.status === 'rejected') {
+      sectionErrors.recentAlbums = getErrorMessage(recentAlbums.reason, 'Failed to load recent albums.');
+    }
+
     if (
       result.topTrackCollections.length === 0 &&
       result.monthlyTopArtists.length === 0 &&
       result.systemPlaylists.length === 0 &&
+      result.recentAlbums.length === 0 &&
       Object.keys(sectionErrors).length > 0
     ) {
       throw new Error('Homepage data could not be loaded.');

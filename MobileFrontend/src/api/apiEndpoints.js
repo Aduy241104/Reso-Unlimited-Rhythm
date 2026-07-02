@@ -5,6 +5,10 @@ export const API_ENDPOINTS = {
     LOGOUT: '/auth/logout',
     ME: '/auth/me',
   },
+  ALBUMS: {
+    LIST: '/albums',
+    DETAIL: '/albums',
+  },
   TRACKS: {
     DETAIL: '/tracks',
     PLAYBACK: '/tracks',

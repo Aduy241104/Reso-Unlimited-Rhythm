@@ -13,8 +13,8 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppLoader from '../../components/common/AppLoader';
 import ErrorState from '../../components/common/ErrorState';
-import TrackQueueBottomSheet from '../../components/player/TrackQueueBottomSheet';
 import usePlayer from '../../hooks/usePlayer';
+import albumService from '../../services/albumService';
 import artistService from '../../services/artistService';
 import playlistService from '../../services/playlistService';
 import trackService from '../../services/trackService';
@@ -24,6 +24,7 @@ import { buildPlayableQueue, normalizePlayerTrack } from '../../utils/player';
 const accentPalette = ['#111111', '#2f2f2f', '#4a4a4a', '#686868', '#8a8a8a'];
 
 const detailFetchers = {
+  album: ({ entityId }) => albumService.getAlbumDetail(entityId),
   artist: ({ entityId }) => artistService.getArtistDetail(entityId),
   playlist: ({ entityId }) => playlistService.getPlaylistDetail(entityId),
   track: ({ entityId }) => trackService.getTrackDetail(entityId),
@@ -92,12 +93,11 @@ export default function EntityDetailScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const insets = useSafeAreaInsets();
-  const { currentTrack, playQueue, queue } = usePlayer();
+  const { playQueue } = usePlayer();
   const { entityId, entityType, initialTitle, period, date, month, limit } = route.params || {};
   const [detail, setDetail] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
-  const [isQueueVisible, setIsQueueVisible] = useState(false);
 
   const loadDetail = useCallback(async () => {
     if (!entityId || !entityType || !detailFetchers[entityType]) {
@@ -174,9 +174,10 @@ export default function EntityDetailScreen() {
   const detailSubtitle = getDisplayText(detail?.subtitle);
   const detailDescription = getDisplayText(detail?.description);
   const detailExtraText = getDisplayText(detail?.extraText);
-  const hasActiveQueue = Boolean(currentTrack && queue.length > 0);
   const badgeLabel = detail?.badgeLabel || (
-    entityType === 'artist'
+    entityType === 'album'
+      ? 'ALBUM'
+      : entityType === 'artist'
       ? 'ARTIST'
       : entityType === 'playlist'
         ? 'PLAYLIST'
@@ -212,7 +213,7 @@ export default function EntityDetailScreen() {
         <ScrollView
           contentContainerStyle={[
             styles.scrollBody,
-            { paddingBottom: hasActiveQueue ? 112 + insets.bottom : 32 },
+            { paddingBottom: 32 + insets.bottom },
           ]}
           showsVerticalScrollIndicator={false}
         >
@@ -279,34 +280,6 @@ export default function EntityDetailScreen() {
           ) : null}
         </ScrollView>
       )}
-
-      {hasActiveQueue ? (
-        <TouchableOpacity
-          style={[styles.queueFab, { bottom: Math.max(insets.bottom, 18) }]}
-          onPress={() => setIsQueueVisible(true)}
-          activeOpacity={0.85}
-        >
-          <View style={styles.queueFabIcon}>
-            <Ionicons name="list" size={18} color="#ffffff" />
-          </View>
-
-          <View style={styles.queueFabCopy}>
-            <Text style={styles.queueFabLabel}>Track Queue</Text>
-            <Text style={styles.queueFabText} numberOfLines={1}>
-              {queue.length} tracks queued - {currentTrack?.title || 'Now playing'}
-            </Text>
-          </View>
-
-          <Ionicons name="chevron-up" size={18} color="#ffffff" />
-        </TouchableOpacity>
-      ) : null}
-
-      <TrackQueueBottomSheet
-        visible={isQueueVisible}
-        onClose={() => setIsQueueVisible(false)}
-        title="Current Queue"
-        subtitle={`${queue.length} track${queue.length === 1 ? '' : 's'} ready to play`}
-      />
     </View>
   );
 }
@@ -531,50 +504,5 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     marginLeft: 8,
-  },
-  queueFab: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#111111',
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: '#252525',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    shadowColor: '#000000',
-    shadowOffset: {
-      width: 0,
-      height: 10,
-    },
-    shadowOpacity: 0.32,
-    shadowRadius: 16,
-    elevation: 10,
-  },
-  queueFabIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1d1d1d',
-    marginRight: 12,
-  },
-  queueFabCopy: {
-    flex: 1,
-    marginRight: 10,
-  },
-  queueFabLabel: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  queueFabText: {
-    color: '#9d9d9d',
-    fontSize: 11,
-    fontWeight: '600',
-    marginTop: 4,
   },
 });
