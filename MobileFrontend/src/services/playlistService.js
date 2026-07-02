@@ -1,66 +1,104 @@
 import axiosClient from '../api/axiosClient';
 import { API_ENDPOINTS } from '../api/apiEndpoints';
 import { formatDateLabel, formatDuration, resolveImageUri } from '../utils/media';
-
-const normalizePlaylist = (item) => ({
-  id: item?.id || item?._id || '',
-  title: item?.title || 'Untitled playlist',
-  description: item?.description || '',
-  coverImage: item?.coverImage || '',
-  type: item?.type || 'system',
-  trackCount: item?.trackCount || 0,
-  totalDuration: item?.totalDuration || 0,
-  isPublic: Boolean(item?.isPublic),
-  createdAt: item?.createdAt || null,
-});
+import { resolveTrackAudioUri } from '../utils/player';
 
 const getPayload = (response) => response?.data || response || {};
+const asObject = (value) => (value && typeof value === 'object' ? value : {});
+const asArray = (value) => (Array.isArray(value) ? value : []);
+const pickFirstDefined = (...values) => values.find((value) => value !== undefined && value !== null && value !== '');
+const pickNumber = (...values) => {
+  for (const value of values) {
+    const parsedValue = Number(value);
+
+    if (Number.isFinite(parsedValue)) {
+      return parsedValue;
+    }
+  }
+
+  return 0;
+};
+
+const normalizePlaylist = (item) => {
+  const rawItem = asObject(item);
+
+  return {
+    ...rawItem,
+    id: pickFirstDefined(rawItem.id, rawItem._id, ''),
+    title: pickFirstDefined(rawItem.title, 'Untitled playlist'),
+    description: pickFirstDefined(rawItem.description, ''),
+    coverImage: pickFirstDefined(rawItem.coverImage, rawItem.image, ''),
+    type: pickFirstDefined(rawItem.type, 'system'),
+    trackCount: pickNumber(rawItem.trackCount, asArray(rawItem.tracks).length),
+    totalDuration: pickNumber(rawItem.totalDuration, rawItem.duration),
+    isPublic: typeof rawItem.isPublic === 'boolean' ? rawItem.isPublic : Boolean(rawItem.isPublic),
+    createdAt: pickFirstDefined(rawItem.createdAt, null),
+  };
+};
+
 const normalizePlaylistTrack = (item, index = 0) => {
-  const track = item?.track || item?.trackId || item || {};
+  const rawItem = asObject(item);
+  const track = asObject(item?.track || item?.trackId || item);
   const artist = track?.artist || track?.artist_artistId || {};
   const album = track?.album || track?.album_albumId || {};
 
   return {
-    id: track?.id || track?._id || item?.trackId || `track-${index}`,
-    title: track?.title || 'Unknown track',
-    subtitle: artist?.name || 'Unknown artist',
-    image: resolveImageUri(track?.coverImage || track?.avatar || album?.coverImage || artist?.avatar),
-    entityType: 'track',
-    entityId: track?.id || track?._id || '',
-    meta: formatDuration(track?.duration),
+    ...track,
+    ...rawItem,
+    id: pickFirstDefined(rawItem.id, rawItem._id, track?.id, track?._id, rawItem?.trackId, `track-${index}`),
+    title: pickFirstDefined(rawItem.title, track?.title, 'Unknown track'),
+    subtitle: pickFirstDefined(rawItem.subtitle, rawItem.artistName, artist?.name, 'Unknown artist'),
+    artistName: pickFirstDefined(rawItem.artistName, artist?.name, 'Unknown artist'),
+    image: pickFirstDefined(
+      rawItem.image,
+      rawItem.coverImage,
+      resolveImageUri(track?.coverImage || track?.avatar || album?.coverImage || artist?.avatar),
+      ''
+    ),
+    entityType: pickFirstDefined(rawItem.entityType, 'track'),
+    entityId: pickFirstDefined(rawItem.entityId, track?.id, track?._id, ''),
+    duration: pickNumber(rawItem.duration, track?.duration),
+    audioUri: pickFirstDefined(rawItem.audioUri, resolveTrackAudioUri(rawItem), resolveTrackAudioUri(track), ''),
+    meta: pickFirstDefined(rawItem.meta, formatDuration(pickNumber(rawItem.duration, track?.duration))),
   };
 };
 
 const normalizeOwner = (item) => {
-  const owner = item?.owner || item?.userId || {};
+  const owner = item?.owner || item?.userId || item?.createdBy || {};
 
   return owner?.fullName || owner?.profile?.fullName || owner?.name || owner?.email || 'Reso Music';
 };
 
 const normalizePlaylistDetail = (item) => {
-  const tracks = Array.isArray(item?.tracks) ? item.tracks.map(normalizePlaylistTrack) : [];
+  const rawItem = asObject(item);
+  const tracks = asArray(rawItem?.tracks).map(normalizePlaylistTrack);
 
   return {
-    id: item?.id || item?._id || '',
-    type: 'playlist',
-    title: item?.title || 'Untitled playlist',
-    subtitle: normalizeOwner(item),
-    image: resolveImageUri(item?.coverImage),
-    description: item?.description || '',
-    stats: [
-      { label: 'Tracks', value: `${item?.trackCount || tracks.length}` },
-      { label: 'Duration', value: formatDuration(item?.totalDuration) },
-      { label: 'Visibility', value: item?.isPublic ? 'Public' : 'System' },
-    ],
-    meta: [
-      { label: 'Owner', value: normalizeOwner(item) },
-      { label: 'Created', value: formatDateLabel(item?.createdAt) || 'Unknown' },
-      { label: 'Type', value: item?.type || 'system' },
-    ],
-    tags: [],
-    extraTitle: '',
-    extraText: '',
-    itemsTitle: 'Tracks',
+    ...rawItem,
+    id: pickFirstDefined(rawItem?.id, rawItem?._id, ''),
+    type: pickFirstDefined(rawItem?.type, 'playlist'),
+    title: pickFirstDefined(rawItem?.title, 'Untitled playlist'),
+    subtitle: pickFirstDefined(rawItem?.subtitle, normalizeOwner(rawItem)),
+    image: pickFirstDefined(rawItem?.image, resolveImageUri(rawItem?.coverImage), rawItem?.coverImage, ''),
+    description: pickFirstDefined(rawItem?.description, ''),
+    stats: asArray(rawItem?.stats).length > 0
+      ? rawItem.stats
+      : [
+          { label: 'Tracks', value: `${pickNumber(rawItem?.trackCount, tracks.length)}` },
+          { label: 'Duration', value: formatDuration(pickNumber(rawItem?.totalDuration, rawItem?.duration)) },
+          { label: 'Visibility', value: rawItem?.isPublic ? 'Public' : 'System' },
+        ],
+    meta: asArray(rawItem?.meta).length > 0
+      ? rawItem.meta
+      : [
+          { label: 'Owner', value: normalizeOwner(rawItem) },
+          { label: 'Created', value: formatDateLabel(rawItem?.createdAt) || 'Unknown' },
+          { label: 'Type', value: pickFirstDefined(rawItem?.type, 'system') },
+        ],
+    tags: asArray(rawItem?.tags),
+    extraTitle: pickFirstDefined(rawItem?.extraTitle, ''),
+    extraText: pickFirstDefined(rawItem?.extraText, ''),
+    itemsTitle: pickFirstDefined(rawItem?.itemsTitle, 'Tracks'),
     items: tracks,
   };
 };
@@ -69,9 +107,10 @@ export const playlistService = {
   async getSystemPlaylists(params) {
     const response = await axiosClient.get(API_ENDPOINTS.PLAYLISTS.SYSTEM, { params });
     const payload = getPayload(response);
+    const rawItems = asArray(payload.playlists || payload.items || payload.data);
 
     return {
-      items: Array.isArray(payload.playlists) ? payload.playlists.map(normalizePlaylist) : [],
+      items: rawItems.map(normalizePlaylist),
       meta: response?.meta || payload?.meta || null,
     };
   },
@@ -89,7 +128,7 @@ export const playlistService = {
         const response = await axiosClient.get(endpoint);
         const payload = getPayload(response);
 
-        return normalizePlaylistDetail(payload?.playlist || payload);
+        return normalizePlaylistDetail(payload?.playlist || payload?.data || payload);
       } catch (error) {
         lastError = error;
         const status = error?.response?.status;

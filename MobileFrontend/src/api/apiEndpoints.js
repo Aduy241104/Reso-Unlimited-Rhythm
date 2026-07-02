@@ -7,6 +7,7 @@ export const API_ENDPOINTS = {
   },
   TRACKS: {
     DETAIL: '/tracks',
+    PLAYBACK: '/tracks',
     TOP_DAILY: '/tracks/top/daily',
     TOP_MONTHLY: '/tracks/top/monthly',
   },

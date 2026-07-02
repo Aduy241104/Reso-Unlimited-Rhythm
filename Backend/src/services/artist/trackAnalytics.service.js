@@ -151,30 +151,6 @@ const buildPreviousPeriod = ({ from, to }) => {
     };
 };
 
-const buildRecentDailyChartPeriod = ({ from, to, maxDays = 7 }) => {
-    const fromDate = parseDateKey(from);
-    const toDate = parseDateKey(to);
-    const totalDays = toDate.diff(fromDate, "day") + 1;
-
-    if (totalDays <= maxDays) {
-        return { from, to };
-    }
-
-    return {
-        from: toDate.subtract(maxDays - 1, "day").format(DATE_KEY_FORMAT),
-        to,
-    };
-};
-
-const buildLatestDailyChartPeriod = (maxDays = 7) => {
-    const today = getTodayInAnalyticsTimezone();
-
-    return {
-        from: today.subtract(maxDays - 1, "day").format(DATE_KEY_FORMAT),
-        to: today.format(DATE_KEY_FORMAT),
-    };
-};
-
 const buildLatestMonthlyChartPeriod = (maxMonths = 12) => {
     const currentMonth = getTodayInAnalyticsTimezone().startOf("month");
 
@@ -191,6 +167,36 @@ const buildTrackPayload = (track) => ({
     coverImage: Array.isArray(track.coverImage) ? track.coverImage : [],
     duration: convertSecondsToMinutes(track.duration),
 });
+
+const resolveTrackReleaseDateKey = (track) => {
+    if (!track?.releaseDate) {
+        return null;
+    }
+
+    const releaseDate = dayjs(track.releaseDate).tz(getAnalyticsTimezone()).startOf("day");
+    return releaseDate.isValid() ? releaseDate.format(DATE_KEY_FORMAT) : null;
+};
+
+const clampPeriodToTrackReleaseDate = (period, track) => {
+    const releaseDateKey = resolveTrackReleaseDateKey(track);
+
+    if (!releaseDateKey || parseDateKey(releaseDateKey).isBefore(parseDateKey(period.from))) {
+        return period;
+    }
+
+    if (parseDateKey(releaseDateKey).isAfter(parseDateKey(period.to))) {
+        return {
+            ...period,
+            from: releaseDateKey,
+            to: releaseDateKey,
+        };
+    }
+
+    return {
+        ...period,
+        from: releaseDateKey,
+    };
+};
 
 const normalizeStatDateKey = (stat) => {
     if (stat?.dateKey) {
@@ -367,7 +373,10 @@ export const fillMissingMonthlyStats = (stats = [], year) => {
         const stat = statMap.get(month);
         const revenue = stat?.revenue || {};
         const artistRevenueAmount =
-            revenue.artistRevenueAmount || stat?.revenueAmount || 0;
+            revenue.artistRevenueAmount ||
+            revenue.revenueAmount ||
+            stat?.revenueAmount ||
+            0;
 
         return {
             month,
@@ -398,7 +407,10 @@ export const fillRecentMonthlyChartStats = (stats = [], maxMonths = 12) => {
         const stat = statMap.get(monthKey);
         const revenue = stat?.revenue || {};
         const artistRevenueAmount =
-            revenue.artistRevenueAmount || stat?.revenueAmount || 0;
+            revenue.artistRevenueAmount ||
+            revenue.revenueAmount ||
+            stat?.revenueAmount ||
+            0;
 
         filledStats.push({
             month: monthKey,
@@ -422,7 +434,7 @@ export const validateTrackOwnership = async ({ artistId, trackId }) => {
     }
 
     const track = await Track.findById(trackId)
-        .select("_id title avatar coverImage duration artist_artistId")
+        .select("_id title avatar coverImage duration artist_artistId releaseDate")
         .lean();
 
     if (!track) {
@@ -446,22 +458,17 @@ export const getTrackAnalyticsOverview = async ({
     from,
     to,
 }) => {
-    const period = resolveOverviewPeriod({ range, from, to });
+    const requestedPeriod = resolveOverviewPeriod({ range, from, to });
     const artist = await resolveArtistProfile(userId);
     const track = await validateTrackOwnership({
         artistId: artist._id,
         trackId,
     });
-    const dailyChartPeriod = buildLatestDailyChartPeriod();
+    const period = clampPeriodToTrackReleaseDate(requestedPeriod, track);
 
-    const [currentStats, lifetimeStats, dailyChartStats, monthlyChartStats] = await Promise.all([
+    const [currentStats, lifetimeStats, monthlyChartStats] = await Promise.all([
         fetchTrackDailyStats({ trackId, from: period.from, to: period.to }),
         fetchTrackDailyStats({ trackId }),
-        fetchTrackDailyStats({
-            trackId,
-            from: dailyChartPeriod.from,
-            to: dailyChartPeriod.to,
-        }),
         fetchTrackMonthlyStats({ trackId }),
     ]);
 
@@ -477,14 +484,10 @@ export const getTrackAnalyticsOverview = async ({
         },
         lastUpdatedAt: resolveLatestTimestamp(
             lifetimeStats,
-            dailyChartStats,
+            currentStats,
             monthlyChartStats
         ),
-        dailyChart: fillMissingDailyStats(
-            dailyChartStats,
-            dailyChartPeriod.from,
-            dailyChartPeriod.to
-        ),
+        dailyChart: fillMissingDailyStats(currentStats, period.from, period.to),
         monthlyChart: fillRecentMonthlyChartStats(monthlyChartStats),
     };
 };

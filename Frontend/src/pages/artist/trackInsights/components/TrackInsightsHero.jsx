@@ -7,95 +7,116 @@ import {
   getTrackImage,
 } from "../helpers";
 
+const TrackInfoItem = ({ icon: Icon, label, value }) => (
+  <div className="rounded-xl border border-[#eeeaff] bg-[#fbfaff] px-3.5 py-3">
+    <div className="flex items-center gap-2 text-xs font-medium text-[#7b7398]">
+      { Icon ? <Icon className="h-4 w-4 text-[#6f5cf1]" /> : null }
+      { label }
+    </div>
+
+    <p className="mt-1.5 truncate text-sm font-semibold text-[#211b35]">
+      { value }
+    </p>
+  </div>
+);
+
 const TrackInsightsHero = ({
   analytics,
   displayedTrack,
   onRefresh,
   onViewTrackDetail,
-}) => (
-  <div className="relative overflow-hidden rounded-[20px] bg-[#6658d9] text-white shadow-[0_20px_60px_rgba(124,108,242,0.20)]">
-    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.22),_transparent_34%),radial-gradient(circle_at_bottom_right,_rgba(227,221,255,0.22),_transparent_30%)]" />
-    <div className="relative grid gap-6 p-5 lg:p-6 xl:grid-cols-[minmax(0,1.2fr)_340px]">
-      <div>
-        <p className="text-xs uppercase tracking-[0.4em] text-[#efeaff]">
-          Phân tích chi tiết
-        </p>
-        <h3 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">
-          {displayedTrack?.title || "Bài hát đã chọn"}
-        </h3>
-        <p className="mt-4 max-w-2xl text-sm leading-6 text-white/70 sm:text-[15px]">
-          Theo dõi hiệu suất phát, khả năng giữ chân người nghe và xu hướng bỏ
-          qua để đánh giá sức hút của bài hát trong từng khoảng thời gian.
-        </p>
+}) => {
+  const periodLabel =
+    analytics?.period?.from && analytics?.period?.to
+      ? `${formatDateLabel(analytics.period.from, {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })} - ${formatDateLabel(analytics.period.to, {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })}`
+      : "Chưa có khoảng thời gian";
 
-        <div className="mt-5 flex flex-wrap gap-3 text-sm text-white/65">
-          <div className="inline-flex items-center gap-2">
-            <CalendarDays className="h-4 w-4 text-[#efeaff]" />
-            {analytics?.period?.from && analytics?.period?.to
-              ? `${formatDateLabel(analytics.period.from, {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
-                })} - ${formatDateLabel(analytics.period.to, {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
-                })}`
-              : "Chọn khoảng thời gian để xem dữ liệu"}
-          </div>
-          <div className="inline-flex items-center gap-2">
-            <Music2 className="h-4 w-4 text-[#efeaff]" />
-            Thời lượng {formatTrackDuration(displayedTrack?.duration)}
-          </div>
-        </div>
-      </div>
+  const trackTitle = displayedTrack?.title || "Bài hát đã chọn";
+  const totalPlay = formatNumber(displayedTrack?.stats?.totalPlay || 0);
+  const duration = formatTrackDuration(displayedTrack?.duration || 0);
+  const lastUpdatedAt = formatDateTime(analytics?.lastUpdatedAt);
 
-      <div className="rounded-[16px] border border-white/12 bg-white/[0.10] p-4 backdrop-blur-sm">
-        <div className="flex items-start gap-4">
+  return (
+    <section className="rounded-[18px] border border-[#e7e1ff] bg-white p-5 shadow-sm">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex min-w-0 gap-4">
           <img
-            src={getTrackImage(displayedTrack)}
-            alt={displayedTrack?.title || "Ảnh bìa bài hát"}
-            className="h-16 w-16 rounded-[14px] object-cover shadow-lg shadow-black/20"
+            src={ getTrackImage(displayedTrack) }
+            alt={ trackTitle }
+            className="
+              h-20 w-20 shrink-0 rounded-2xl
+              border border-black/5 object-cover
+              shadow-[0_10px_28px_rgba(28,22,61,0.14)]
+            "
           />
 
-          <div className="min-w-0 flex-1">
-            <p className="text-xs uppercase tracking-[0.3em] text-white/45">
-              Bài hát đang chọn
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#6f5cf1]">
+              Phân tích bài hát
             </p>
-            <h3 className="mt-2 truncate text-xl font-semibold">
-              {displayedTrack?.title || "Bài hát đã chọn"}
-            </h3>
-            <p className="mt-2 text-sm text-white/60">
-              Lượt phát hiện có {formatNumber(displayedTrack?.stats?.totalPlay || 0)}
-            </p>
-            <p className="mt-2 text-sm text-white/60">
-              Cập nhật lần cuối {formatDateTime(analytics?.lastUpdatedAt)}
+
+            <h2 className="mt-2 truncate text-2xl font-semibold tracking-[-0.03em] text-[#211b35] sm:text-3xl">
+              { trackTitle }
+            </h2>
+
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#746d8f]">
+              Theo dõi lượt phát, người nghe, thời lượng nghe và tỷ lệ bỏ qua
+              để đánh giá hiệu suất theo từng khoảng thời gian.
             </p>
           </div>
         </div>
 
-        <div className="mt-5 grid gap-2.5 sm:grid-cols-2">
+        <div className="flex shrink-0 flex-wrap gap-2 lg:justify-end">
           <button
             type="button"
-            onClick={onViewTrackDetail}
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#241b15] transition hover:brightness-95"
-          >
-            Xem chi tiết
-            <ArrowRight className="h-4 w-4" />
-          </button>
-
-          <button
-            type="button"
-            onClick={onRefresh}
-            className="inline-flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+            onClick={ onRefresh }
+            className="
+              inline-flex h-10 items-center justify-center gap-2
+              rounded-xl border border-[#ded7ff]
+              bg-white px-4 text-sm font-semibold text-[#554ad7]
+              transition hover:bg-[#f7f4ff]
+            "
           >
             <RefreshCcw className="h-4 w-4" />
             Làm mới
           </button>
+
+          <button
+            type="button"
+            onClick={ onViewTrackDetail }
+            disabled={ !displayedTrack }
+            className="
+              inline-flex h-10 items-center justify-center gap-2
+              rounded-xl bg-[#6f5cf1]
+              px-4 text-sm font-semibold text-white
+              shadow-[0_10px_24px_rgba(111,92,241,0.22)]
+              transition hover:bg-[#5f4fe0]
+              disabled:cursor-not-allowed disabled:opacity-50
+            "
+          >
+            Xem chi tiết
+            <ArrowRight className="h-4 w-4" />
+          </button>
         </div>
       </div>
-    </div>
-  </div>
-);
+
+      <div className="mt-5 grid gap-3 border-t border-[#f0ecff] pt-5 sm:grid-cols-2 xl:grid-cols-4">
+
+        <TrackInfoItem
+          label="Cập nhật lần cuối"
+          value={ lastUpdatedAt || "Chưa cập nhật" }
+        />
+      </div>
+    </section>
+  );
+};
 
 export default TrackInsightsHero;

@@ -40,7 +40,7 @@ export const artistNavigation = [
     icon: Disc3,
   },
   {
-    label: "Phân tích bài hát",
+    label: "Phân tích",
     to: routePaths.artistAnalytics,
     icon: BarChart3,
   },

@@ -312,13 +312,13 @@ const TrackInsightsChartPanel = ({
 
           <div className="flex items-center gap-4 text-sm">
             <div>
-              <p className="text-[#7c7891]">Dinh cao nhat</p>
+              <p className="text-[#7c7891]">Cao nhất</p>
               <p className="mt-1 font-semibold text-[#2f2747]">
                 {chartMeta.formatter(maxMetricValue)}
               </p>
             </div>
             <div>
-              <p className="text-[#7c7891]">Moc gan nhat</p>
+              <p className="text-[#7c7891]">Mốc gần nhất</p>
               <p className="mt-1 font-semibold text-[#2f2747]">
                 {chartMetric === "averageListenDuration"
                   ? displayRawValue(latestMetricValue)

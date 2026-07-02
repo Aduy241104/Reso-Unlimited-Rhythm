@@ -354,6 +354,7 @@ const TrackDetailPage = () => {
 
           <TrackTwoLevelMenu
             trackId={ trackId }
+            track={ track }
             onTrackAdded={ (updatedPlaylist, playlist) => {
               if (typeof handleAddTrackToPlaylist === "function") {
                 handleAddTrackToPlaylist(updatedPlaylist || playlist);
