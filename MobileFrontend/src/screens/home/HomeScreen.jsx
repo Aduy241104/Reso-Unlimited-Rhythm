@@ -24,6 +24,7 @@ const initialHomeState = {
   topTrackCollections: [],
   monthlyTopArtists: [],
   systemPlaylists: [],
+  recentAlbums: [],
   sectionErrors: {},
   query: {
     date: '',
@@ -98,6 +99,7 @@ export default function HomeScreen() {
         topTrackPreviewLimit: 1,
         topArtistLimit: 10,
         playlistLimit: 10,
+        albumLimit: 10,
       });
 
       setHomeData(data);
@@ -121,13 +123,6 @@ export default function HomeScreen() {
   const handleOpenDetail = useCallback(
     (params) => {
       if (!params?.entityType || !params?.entityId) {
-        return;
-      }
-
-      const parentNavigation = navigation.getParent();
-
-      if (parentNavigation) {
-        parentNavigation.navigate('EntityDetail', params);
         return;
       }
 
@@ -157,13 +152,6 @@ export default function HomeScreen() {
   const handleHeaderAction = async () => {
     if (isAuthenticated) {
       await logout();
-      return;
-    }
-
-    const parentNavigation = navigation.getParent();
-
-    if (parentNavigation) {
-      parentNavigation.navigate('Login');
       return;
     }
 
@@ -219,6 +207,30 @@ export default function HomeScreen() {
         <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
         <Text style={styles.cardSubTitle} numberOfLines={2}>
           {item.description || 'System curated playlist'}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderAlbumCard = ({ item, index }) => {
+    const accentColor = accentPalette[index % accentPalette.length];
+
+    return (
+      <TouchableOpacity
+        style={styles.cardItem}
+        activeOpacity={0.8}
+        onPress={() =>
+          handleOpenDetail({
+            entityType: 'album',
+            entityId: item.id,
+            initialTitle: item.title || 'Album Detail',
+          })
+        }
+      >
+        <Artwork uri={item.coverImage} label={item.title} color={accentColor} />
+        <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
+        <Text style={styles.cardSubTitle} numberOfLines={2}>
+          {item.artist?.name || 'Unknown artist'}
         </Text>
       </TouchableOpacity>
     );
@@ -291,6 +303,14 @@ export default function HomeScreen() {
             renderItem={renderPlaylistCard}
             emptyMessage="No system playlists available."
           />
+
+          <HomeSection
+            title="Recent Albums"
+            data={homeData.recentAlbums}
+            errorMessage={homeData.sectionErrors.recentAlbums}
+            renderItem={renderAlbumCard}
+            emptyMessage="No recent albums available."
+          />
         </ScrollView>
       )}
     </View>
@@ -362,6 +382,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#ffffff',
     paddingHorizontal: 20,
+    marginBottom: 12,
   },
   horizontalList: {
     paddingHorizontal: 15,
