@@ -5,6 +5,10 @@ const ARTIST_FOLLOWER_POPULATE = {
     path: "userId",
     select: "profile.fullName avatar",
 };
+const ANALYTICS_TIMEZONE =
+    process.env.ANALYTICS_TIMEZONE ||
+    process.env.CRON_TIMEZONE ||
+    "Asia/Ho_Chi_Minh";
 
 const findArtistByUserId = async (userId) => {
     return await Artist.findOne({ userId })
@@ -28,10 +32,58 @@ const countArtistFollowers = async (filter) => {
     return await Interaction.countDocuments(filter);
 };
 
-export { findArtistByUserId, findArtistFollowers, countArtistFollowers };
+const aggregateArtistFollowerGrowth = async (filter, { format, keyName }) => {
+    return await Interaction.aggregate([
+        { $match: filter },
+        {
+            $group: {
+                _id: {
+                    $dateToString: {
+                        format,
+                        date: "$createdAt",
+                        timezone: ANALYTICS_TIMEZONE,
+                    },
+                },
+                count: { $sum: 1 },
+            },
+        },
+        { $sort: { _id: 1 } },
+        {
+            $project: {
+                _id: 0,
+                [keyName]: "$_id",
+                count: 1,
+            },
+        },
+    ]);
+};
+
+const getArtistDailyFollowerGrowth = async (filter) => {
+    return await aggregateArtistFollowerGrowth(filter, {
+        format: "%Y-%m-%d",
+        keyName: "date",
+    });
+};
+
+const getArtistMonthlyFollowerGrowth = async (filter) => {
+    return await aggregateArtistFollowerGrowth(filter, {
+        format: "%Y-%m",
+        keyName: "month",
+    });
+};
+
+export {
+    findArtistByUserId,
+    findArtistFollowers,
+    countArtistFollowers,
+    getArtistDailyFollowerGrowth,
+    getArtistMonthlyFollowerGrowth,
+};
 
 export default {
     findArtistByUserId,
     findArtistFollowers,
     countArtistFollowers,
+    getArtistDailyFollowerGrowth,
+    getArtistMonthlyFollowerGrowth,
 };

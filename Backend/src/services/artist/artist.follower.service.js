@@ -3,6 +3,8 @@ import {
     countArtistFollowers,
     findArtistByUserId,
     findArtistFollowers,
+    getArtistDailyFollowerGrowth,
+    getArtistMonthlyFollowerGrowth,
 } from "./artist.follower.service.helper.js";
 
 const DEFAULT_PAGE = 1;
@@ -58,9 +60,11 @@ const getArtistFollowers = async (loggedInUserId, query = {}) => {
         action: "follow",
     };
 
-    const [followers, totalItems] = await Promise.all([
+    const [followers, totalItems, dailyGrowth, monthlyGrowth] = await Promise.all([
         findArtistFollowers(filter, { skip, limit }),
         countArtistFollowers(filter),
+        getArtistDailyFollowerGrowth(filter),
+        getArtistMonthlyFollowerGrowth(filter),
     ]);
 
     return {
@@ -68,12 +72,18 @@ const getArtistFollowers = async (loggedInUserId, query = {}) => {
             artistId: artist._id.toString(),
             name: artist.name || "",
         },
-        items: followers.map(formatFollowerItem).filter(Boolean),
-        pagination: {
-            page,
-            limit,
-            totalItems,
-            totalPages: totalItems === 0 ? 0 : Math.ceil(totalItems / limit),
+        followers: {
+            items: followers.map(formatFollowerItem).filter(Boolean),
+            pagination: {
+                page,
+                limit,
+                totalItems,
+                totalPages: totalItems === 0 ? 0 : Math.ceil(totalItems / limit),
+            },
+        },
+        statistics: {
+            dailyGrowth,
+            monthlyGrowth,
         },
     };
 };

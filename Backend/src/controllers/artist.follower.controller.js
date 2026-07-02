@@ -10,7 +10,7 @@ const getArtistFollowers = async (req, res, next) => {
 
         return res.status(200).json({
             success: true,
-            message: "Get follower list successfully.",
+            message: "Get follower analytics successfully.",
             data: result,
         });
     } catch (error) {
