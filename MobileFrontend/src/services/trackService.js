@@ -6,6 +6,7 @@ import {
   formatDuration,
   formatMonthLabel,
   resolveImageUri,
+  resolveTrackAudioUri,
 } from '../utils/media';
 
 const getPayload = (response) => response?.data || response || {};
@@ -48,12 +49,16 @@ const getCollectionLabel = ({ period, date, month }) => {
 const normalizeTrackRanking = (item) => {
   const track = item?.track || {};
   const artist = resolveTrackArtist(track);
+  const album = resolveTrackAlbum(track);
 
   return {
     id: track.id || track._id || '',
     title: track.title || 'Unknown track',
     artistName: artist?.name || 'Unknown artist',
+    artistId: artist?.id || artist?._id || '',
+    albumTitle: album?.title || '',
     image: resolveImageUri(track.coverImage || track.avatar || artist?.avatar || artist?.coverImage),
+    audioSource: resolveTrackAudioUri(track),
     duration: Number(track.duration) || 0,
     rank: Number(item?.rank) || 0,
     playCount: Number(item?.playCount) || 0,
@@ -76,7 +81,9 @@ const normalizeTrackItem = (item, index = 0) => {
     subtitle: artist?.name || 'Unknown artist',
     artistId: artist?.id || artist?._id || '',
     artistName: artist?.name || 'Unknown artist',
+    albumTitle: album?.title || '',
     image: resolveImageUri(track.coverImage || track.avatar || album?.coverImage || artist?.avatar),
+    audioSource: resolveTrackAudioUri(track),
     duration: Number(track.duration) || 0,
     meta: formatDuration(track.duration),
   };
@@ -86,9 +93,13 @@ const normalizeTopTrackDetailItem = (item, index = 0) => ({
   id: item?.id || `track-${index}`,
   title: item?.title || 'Unknown track',
   subtitle: item?.artistName || 'Unknown artist',
+  artistId: item?.artistId || '',
+  artistName: item?.artistName || 'Unknown artist',
+  albumTitle: item?.albumTitle || '',
   image: item?.image || '',
   entityType: 'track',
   entityId: item?.id || '',
+  audioSource: item?.audioSource || '',
   meta: `${formatCompactNumber(item?.playCount)} plays`,
 });
 
@@ -104,9 +115,15 @@ const normalizeTrackDetail = (item) => {
   return {
     id: track?.id || track?._id || '',
     type: 'track',
+    entityType: 'track',
+    entityId: track?.id || track?._id || '',
     title: track?.title || 'Unknown track',
     subtitle: artist?.name || 'Unknown artist',
+    artistId: artist?.id || artist?._id || '',
+    artistName: artist?.name || 'Unknown artist',
+    albumTitle: album?.title || '',
     image: resolveImageUri(track?.coverImage || track?.avatar || album?.coverImage || artist?.avatar || artist?.coverImage),
+    audioSource: resolveTrackAudioUri(track),
     description: album?.title ? `From ${album.title}` : '',
     stats: [
       { label: 'Duration', value: formatDuration(track?.duration) },

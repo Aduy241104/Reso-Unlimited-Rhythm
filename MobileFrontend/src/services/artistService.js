@@ -1,6 +1,6 @@
 import axiosClient from '../api/axiosClient';
 import { API_ENDPOINTS } from '../api/apiEndpoints';
-import { formatCompactNumber, resolveImageUri } from '../utils/media';
+import { formatCompactNumber, resolveImageUri, resolveTrackAudioUri } from '../utils/media';
 
 const normalizeArtistRanking = (item) => {
   const artist = item?.artist || {};
@@ -29,9 +29,12 @@ const normalizeArtistTrack = (item, index = 0) => {
     id: track?.id || track?._id || `track-${index}`,
     title: track?.title || 'Unknown track',
     subtitle: artist?.name || 'Unknown artist',
+    artistId: artist?.id || artist?._id || '',
+    artistName: artist?.name || 'Unknown artist',
     image: resolveImageUri(track?.coverImage || track?.avatar || artist?.avatar),
     entityType: 'track',
     entityId: track?.id || track?._id || '',
+    audioSource: resolveTrackAudioUri(track),
     meta: `${formatCompactNumber(track?.stats?.totalPlay || track?.playCount)} plays`,
   };
 };
@@ -77,9 +80,12 @@ export const artistService = {
 
   async getArtistDetail(artistId) {
     const encodedArtistId = encodeURIComponent(artistId);
-    const [profileResult, tracksResult] = await Promise.allSettled([
+    const [profileResult, tracksResult, comingReleasesResult] = await Promise.allSettled([
       axiosClient.get(`${API_ENDPOINTS.ARTISTS.DETAIL}/${encodedArtistId}/profile`),
       axiosClient.get(`${API_ENDPOINTS.ARTISTS.DETAIL}/${encodedArtistId}/tracks`, {
+        params: { limit: 10 },
+      }),
+      axiosClient.get(`${API_ENDPOINTS.ARTISTS.DETAIL}/${encodedArtistId}/coming-releases`, {
         params: { limit: 10 },
       }),
     ]);
@@ -90,11 +96,19 @@ export const artistService = {
 
     const profilePayload = getPayload(profileResult.value);
     const tracksPayload = tracksResult.status === 'fulfilled' ? getPayload(tracksResult.value) : {};
+    const comingReleasesPayload =
+      comingReleasesResult.status === 'fulfilled' ? getPayload(comingReleasesResult.value) : {};
     const tracks = Array.isArray(tracksPayload?.tracks)
       ? tracksPayload.tracks.map(normalizeArtistTrack)
       : [];
+    const comingReleases = Array.isArray(comingReleasesPayload?.comingReleases)
+      ? comingReleasesPayload.comingReleases
+      : [];
 
-    return normalizeArtistDetail(profilePayload, tracks);
+    return {
+      ...normalizeArtistDetail(profilePayload, tracks),
+      comingReleases,
+    };
   },
 };
 
