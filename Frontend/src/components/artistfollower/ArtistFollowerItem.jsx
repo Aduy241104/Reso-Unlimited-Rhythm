@@ -47,7 +47,7 @@ const ArtistFollowerItem = ({ follower }) => {
   return (
     <article className="rounded-[20px] border border-[#ece8ff] bg-white p-4 shadow-sm transition hover:border-[#d8d1ff] hover:bg-[#fcfbff] dark:border-white/10 dark:bg-[#181818] dark:hover:border-white/15 dark:hover:bg-white/[0.04] sm:p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4">
+        <div className="flex min-w-0 items-center gap-4">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[#ece8ff] bg-[#f6f3ff] text-[#6f5cf1] dark:border-white/10 dark:bg-white/[0.06] dark:text-white">
             {showFallbackAvatar ? (
               <span className="flex h-full w-full items-center justify-center text-sm font-semibold">
@@ -64,8 +64,8 @@ const ArtistFollowerItem = ({ follower }) => {
             )}
           </div>
 
-          <div className="min-w-0">
-            <h3 className="mt-1 truncate text-base font-semibold text-[#2f2747] dark:text-white sm:text-lg">
+          <div className="min-w-0 flex-1">
+            <h3 className="truncate text-base font-semibold text-[#2f2747] dark:text-white sm:text-lg">
               {fullName}
             </h3>
             <div className="mt-2 inline-flex items-center gap-2 text-sm text-[#6f6888] dark:text-[#a1a1aa]">
@@ -74,7 +74,6 @@ const ArtistFollowerItem = ({ follower }) => {
             </div>
           </div>
         </div>
-
       </div>
     </article>
   );

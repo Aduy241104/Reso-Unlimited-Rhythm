@@ -10,7 +10,7 @@ const ArtistFollowerEmpty = () => {
         Chưa có người theo dõi nào
       </h3>
       <p className="mt-2 max-w-md text-sm leading-6 text-[#7b7494] dark:text-[#a1a1aa]">
-        Khi có người dùng theo dõi bạn, danh sách sẽ xuất hiện tại đây để bạn dễ theo dõi cộng đồng của mình.
+        Danh sách follower sẽ xuất hiện tại đây ngay khi có người dùng bắt đầu theo dõi nghệ sĩ của bạn.
       </p>
     </div>
   );
