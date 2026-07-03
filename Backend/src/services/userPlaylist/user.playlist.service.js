@@ -1,5 +1,7 @@
 import Playlist from "../../models/Playlist.js";
 import Track from "../../models/Track.js";
+import User from "../../models/User.js";
+import Subscription from "../../models/Subscription.js";
 import mongoose from "mongoose";
 import {
     buildCreatePlaylistPayload,
@@ -19,6 +21,9 @@ import { extractPublicIdFromUrl } from "../../utils/uploadCloud.js";
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
+const FREE_PLAYLIST_LIMIT = 5;
+const FREE_TRACK_LIMIT_PER_PLAYLIST = 10;
+const PREMIUM_TRACK_LIMIT_PER_PLAYLIST = 30;
 
 const throwPlaylistValidationError = (error) => {
     if (error instanceof AppError) {
@@ -64,12 +69,79 @@ const assertPlaylistId = (playlistId) => {
     }
 };
 
+const throwPlaylistCreationLimitError = () => {
+    throw new AppError(
+        "Free users can create up to 5 playlists. Upgrade to premium to create more playlists.",
+        403
+    );
+};
+
+const throwPlaylistTrackLimitError = (isPremium) => {
+    const limit = isPremium
+        ? PREMIUM_TRACK_LIMIT_PER_PLAYLIST
+        : FREE_TRACK_LIMIT_PER_PLAYLIST;
+    const message = isPremium
+        ? "Premium playlists can contain up to 30 tracks."
+        : "Free playlists can contain up to 10 tracks. Upgrade to premium to add more tracks.";
+
+    throw new AppError(message, 403, {
+        limit,
+        isPremium,
+    });
+};
+
+const getPlaylistLimitByUserId = async (userId) => {
+    const now = new Date();
+
+    const [user, activeSubscription] = await Promise.all([
+        User.findById(userId)
+            .select("subscription.isPremium subscription.premiumEndDate")
+            .lean(),
+        Subscription.findOne({
+            userId,
+            status: "active",
+            startDate: { $lte: now },
+            endDate: { $gte: now },
+        })
+            .select("_id")
+            .lean(),
+    ]);
+
+    const hasActiveSubscription = Boolean(activeSubscription);
+    const hasPremiumFlag =
+        Boolean(user?.subscription?.isPremium) &&
+        Boolean(user?.subscription?.premiumEndDate) &&
+        new Date(user.subscription.premiumEndDate) >= now;
+    const isPremium = hasActiveSubscription || hasPremiumFlag;
+
+    return {
+        isPremium,
+        playlistLimit: FREE_PLAYLIST_LIMIT,
+        trackLimitPerPlaylist: isPremium
+            ? PREMIUM_TRACK_LIMIT_PER_PLAYLIST
+            : FREE_TRACK_LIMIT_PER_PLAYLIST,
+    };
+};
+
 const createMyPlaylistByUserId = async (userId, body = {}, file = null) => {
     if (!userId) {
         throw new AppError("Unauthorized.", 401);
     }
 
     const { title, description } = buildCreatePlaylistPayload(body);
+    const { isPremium, playlistLimit } = await getPlaylistLimitByUserId(userId);
+
+    if (!isPremium) {
+        const playlistCount = await Playlist.countDocuments({
+            userId,
+            type: "user",
+        });
+
+        if (playlistCount >= playlistLimit) {
+            throwPlaylistCreationLimitError();
+        }
+    }
+
     const coverImage = await uploadPlaylistCoverImage(userId, file);
 
     try {
@@ -163,11 +235,14 @@ const addTrackToMyPlaylistByUserId = async (userId, playlistId, trackId) => {
         throw new AppError("Playlist not found.", 404);
     }
 
-    const track = await Track.findOne({
-        _id: normalizedTrackId,
-        activeStatus: "active",
-        approvalStatus: "approved",
-    }).lean();
+    const [track, { isPremium, trackLimitPerPlaylist }] = await Promise.all([
+        Track.findOne({
+            _id: normalizedTrackId,
+            activeStatus: "active",
+            approvalStatus: "approved",
+        }).lean(),
+        getPlaylistLimitByUserId(userId),
+    ]);
 
     if (!track) {
         throw new AppError("Track not found or unavailable.", 404);
@@ -181,6 +256,10 @@ const addTrackToMyPlaylistByUserId = async (userId, playlistId, trackId) => {
         throw new AppError("Track already exists in playlist.", 409, {
             field: "trackId",
         });
+    }
+
+    if (playlist.tracks.length >= trackLimitPerPlaylist) {
+        throwPlaylistTrackLimitError(isPremium);
     }
 
     playlist.tracks.push({
