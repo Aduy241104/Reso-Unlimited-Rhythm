@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Image,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -12,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppLoader from '../../components/common/AppLoader';
+import AppModal from '../../components/common/AppModal';
 import ErrorState from '../../components/common/ErrorState';
 import EditPlaylistModal from '../../components/library/EditPlaylistModal';
 import { useAuth } from '../../hooks/useAuth';
@@ -110,6 +113,9 @@ export default function PlaylistDetailScreen() {
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isUpdatingPlaylist, setIsUpdatingPlaylist] = useState(false);
   const [updatePlaylistError, setUpdatePlaylistError] = useState('');
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+  const [isDeletingPlaylist, setIsDeletingPlaylist] = useState(false);
+  const [deletePlaylistError, setDeletePlaylistError] = useState('');
 
   const loadPlaylistDetail = useCallback(async () => {
     if (!playlistId) {
@@ -212,6 +218,20 @@ export default function PlaylistDetailScreen() {
     setIsEditModalVisible(false);
   }, [isUpdatingPlaylist]);
 
+  const handleOpenDeleteModal = useCallback(() => {
+    setDeletePlaylistError('');
+    setIsDeleteModalVisible(true);
+  }, []);
+
+  const handleCloseDeleteModal = useCallback(() => {
+    if (isDeletingPlaylist) {
+      return;
+    }
+
+    setDeletePlaylistError('');
+    setIsDeleteModalVisible(false);
+  }, [isDeletingPlaylist]);
+
   const handleUpdatePlaylist = useCallback(async (payload) => {
     if (!playlistId) {
       setUpdatePlaylistError('Playlist information is missing.');
@@ -231,6 +251,26 @@ export default function PlaylistDetailScreen() {
       setIsUpdatingPlaylist(false);
     }
   }, [loadPlaylistDetail, playlistId]);
+
+  const handleDeletePlaylist = useCallback(async () => {
+    if (!playlistId) {
+      setDeletePlaylistError('Playlist information is missing.');
+      return;
+    }
+
+    setIsDeletingPlaylist(true);
+    setDeletePlaylistError('');
+
+    try {
+      await userPlaylistService.deleteMyPlaylist(playlistId);
+      setIsDeleteModalVisible(false);
+      navigation.goBack();
+    } catch (error) {
+      setDeletePlaylistError(getErrorMessage(error, 'Unable to delete this playlist right now.'));
+    } finally {
+      setIsDeletingPlaylist(false);
+    }
+  }, [navigation, playlistId]);
 
   const headerTitle = readText(playlist?.title, initialTitle);
 
@@ -304,6 +344,16 @@ export default function PlaylistDetailScreen() {
                   <Text style={styles.secondaryActionText}>Edit playlist</Text>
                 </TouchableOpacity>
               ) : null}
+              {canEditPlaylist ? (
+                <TouchableOpacity
+                  style={styles.dangerAction}
+                  onPress={handleOpenDeleteModal}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="trash-outline" size={15} color="#ffb4b4" />
+                  <Text style={styles.dangerActionText}>Delete</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
           </View>
 
@@ -374,6 +424,48 @@ export default function PlaylistDetailScreen() {
         onClose={handleCloseEditModal}
         onSubmit={handleUpdatePlaylist}
       />
+
+      <AppModal visible={isDeleteModalVisible}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View style={styles.modalHeader}>
+            <View style={styles.modalHeaderContent}>
+              <Text style={styles.modalEyebrow}>DELETE PLAYLIST</Text>
+              <Text style={styles.modalTitle}>Delete this playlist?</Text>
+              <Text style={styles.modalText}>
+                {`"${readText(playlist?.title, 'This playlist')}" will be permanently removed from your library.`}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={handleCloseDeleteModal} activeOpacity={0.8} disabled={isDeletingPlaylist}>
+              <Text style={styles.modalCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+
+          {deletePlaylistError ? (
+            <Text style={styles.modalErrorText}>{deletePlaylistError}</Text>
+          ) : null}
+
+          <View style={styles.modalActions}>
+            <TouchableOpacity
+              style={styles.modalCancelButton}
+              onPress={handleCloseDeleteModal}
+              activeOpacity={0.85}
+              disabled={isDeletingPlaylist}
+            >
+              <Text style={styles.modalCancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modalDeleteButton, isDeletingPlaylist ? styles.modalDeleteButtonDisabled : null]}
+              onPress={handleDeletePlaylist}
+              activeOpacity={0.85}
+              disabled={isDeletingPlaylist}
+            >
+              <Text style={styles.modalDeleteButtonText}>
+                {isDeletingPlaylist ? 'Deleting...' : 'Delete playlist'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </AppModal>
     </View>
   );
 }
@@ -554,6 +646,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
+  dangerAction: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#251414',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#4a2424',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  dangerActionText: {
+    color: '#ffb4b4',
+    fontSize: 12,
+    fontWeight: '700',
+  },
   section: {
     marginTop: 18,
   },
@@ -693,5 +802,80 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 19,
     padding: 14,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 18,
+  },
+  modalHeaderContent: {
+    flex: 1,
+  },
+  modalEyebrow: {
+    color: '#ffb4b4',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  modalTitle: {
+    color: '#ffffff',
+    fontSize: 22,
+    fontWeight: '800',
+    marginTop: 8,
+  },
+  modalText: {
+    color: '#a3a3a3',
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 8,
+  },
+  modalCloseText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  modalErrorText: {
+    color: '#ef4444',
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 4,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 20,
+  },
+  modalCancelButton: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 10,
+    backgroundColor: '#1a1a1a',
+    borderWidth: 1,
+    borderColor: '#2c2c2c',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancelButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  modalDeleteButton: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 10,
+    backgroundColor: '#b91c1c',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalDeleteButtonDisabled: {
+    opacity: 0.7,
+  },
+  modalDeleteButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '800',
   },
 });
