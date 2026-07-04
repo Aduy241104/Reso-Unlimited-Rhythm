@@ -943,12 +943,19 @@ const calculateRevenueDistribution = async (revenuePeriodId) => {
             },
             {
                 $set: {
-                    revenueAmount: 0,
                     "revenue.eligibleStreams": 0,
+                    "revenue.revenueAmount": 0,
                     "revenue.artistRevenueAmount": 0,
                     "revenue.calculatedAt": now,
                 },
-            }
+                $unset: {
+                    revenueAmount: "",
+                    "revenue.grossRevenueAmount": "",
+                    "revenue.platformRevenueAmount": "",
+                    "revenue.revenueSharePercent": "",
+                },
+            },
+            { strict: false }
         ),
     ]);
 
@@ -1004,10 +1011,16 @@ const calculateRevenueDistribution = async (revenuePeriodId) => {
                     },
                     update: {
                         $set: {
-                            revenueAmount,
                             "revenue.eligibleStreams": eligibleStreams,
+                            "revenue.revenueAmount": revenueAmount,
                             "revenue.artistRevenueAmount": revenueAmount,
                             "revenue.calculatedAt": now,
+                        },
+                        $unset: {
+                            revenueAmount: "",
+                            "revenue.grossRevenueAmount": "",
+                            "revenue.platformRevenueAmount": "",
+                            "revenue.revenueSharePercent": "",
                         },
                         $setOnInsert: {
                             trackId: item._id,
@@ -1025,7 +1038,9 @@ const calculateRevenueDistribution = async (revenuePeriodId) => {
     }
 
     if (trackRevenueOperations.length > 0) {
-        await TrackMonthlyStat.bulkWrite(trackRevenueOperations);
+        await TrackMonthlyStat.bulkWrite(trackRevenueOperations, {
+            strict: false,
+        });
     }
 
     await RevenuePeriod.findByIdAndUpdate(revenuePeriod._id, {

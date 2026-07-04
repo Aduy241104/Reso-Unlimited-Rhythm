@@ -443,6 +443,7 @@ const UserFavoriteTracksPage = () => {
                     key={ getFavoriteItemKey(item, index) }
                     index={ index + 1 }
                     trackId={ trackId }
+                    track={ track }
                     title={ getTrackTitle(track) }
                     artistName={ getTrackArtistName(track, item) }
                     artistId={ getTrackArtistId(track, item) }

@@ -1,10 +1,12 @@
 import mongoose from "mongoose";
 import Album from "../../models/Album.js";
 import Artist from "../../models/Artist.js";
+import Interaction from "../../models/Interaction.js";
 import Track from "../../models/Track.js";
 import { AppError } from "../../utils/AppError.js";
 import {
     formatAlbumDetail,
+    formatAlbumFollowState,
     formatAlbumItem,
     normalizePositiveInteger,
 } from "./album.helper.js";
@@ -16,6 +18,40 @@ import {
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
+const ALBUM_FOLLOW_ACTION = "follow";
+const ALBUM_FOLLOW_TARGET_TYPE = "Album";
+
+const validateAlbumId = (albumId) => {
+    if (!mongoose.Types.ObjectId.isValid(albumId)) {
+        throw new AppError("Album id is invalid.", 400, {
+            field: "id",
+        });
+    }
+
+    return albumId;
+};
+
+const getActiveAlbumOrThrow = async (albumId) => {
+    const normalizedAlbumId = validateAlbumId(albumId);
+
+    const album = await Album.findOne({
+        _id: normalizedAlbumId,
+        status: "active",
+    }).select("_id");
+
+    if (!album) {
+        throw new AppError("Album not found.", 404);
+    }
+
+    return album;
+};
+
+const buildAlbumFollowFilter = (userId, albumId) => ({
+    userId,
+    targetType: ALBUM_FOLLOW_TARGET_TYPE,
+    targetId: albumId,
+    action: ALBUM_FOLLOW_ACTION,
+});
 
 const getAlbumList = async (query = {}) => {
     const page = normalizePositiveInteger(query.page, DEFAULT_PAGE);
@@ -54,11 +90,7 @@ const getAlbumList = async (query = {}) => {
 };
 
 const getAlbumDetail = async (albumId) => {
-    if (!mongoose.Types.ObjectId.isValid(albumId)) {
-        throw new AppError("Album id is invalid.", 400, {
-            field: "id",
-        });
-    }
+    validateAlbumId(albumId);
 
     const album = await Album.findOne({
         _id: albumId,
@@ -160,6 +192,107 @@ const getAlbumDetail = async (albumId) => {
     return formatAlbumDetail(album);
 };
 
+const followAlbum = async (userId, albumId) => {
+    if (!userId) {
+        throw new AppError("Unauthorized.", 401);
+    }
+
+    const album = await getActiveAlbumOrThrow(albumId);
+    const followFilter = buildAlbumFollowFilter(userId, album._id);
+
+    const existingFollow = await Interaction.findOne(followFilter)
+        .select("_id")
+        .lean();
+
+    if (!existingFollow) {
+        try {
+            await Interaction.create(followFilter);
+        } catch (error) {
+            if (error?.code !== 11000) {
+                throw error;
+            }
+        }
+    }
+
+    return formatAlbumFollowState({
+        albumId: album._id,
+        isFollowing: true,
+    });
+};
+
+const unfollowAlbum = async (userId, albumId) => {
+    if (!userId) {
+        throw new AppError("Unauthorized.", 401);
+    }
+
+    const album = await getActiveAlbumOrThrow(albumId);
+
+    await Interaction.deleteOne(buildAlbumFollowFilter(userId, album._id));
+
+    return formatAlbumFollowState({
+        albumId: album._id,
+        isFollowing: false,
+    });
+};
+
+const getAlbumFollowStatus = async (userId, albumId) => {
+    if (!userId) {
+        throw new AppError("Unauthorized.", 401);
+    }
+
+    const album = await getActiveAlbumOrThrow(albumId);
+    const existingFollow = await Interaction.findOne(
+        buildAlbumFollowFilter(userId, album._id)
+    )
+        .select("_id")
+        .lean();
+
+    return formatAlbumFollowState({
+        albumId: album._id,
+        isFollowing: Boolean(existingFollow),
+    });
+};
+
+const toggleFollowAlbum = async (userId, albumId) => {
+    if (!userId) {
+        throw new AppError("Unauthorized.", 401);
+    }
+
+    const album = await getActiveAlbumOrThrow(albumId);
+    const followFilter = buildAlbumFollowFilter(userId, album._id);
+    const existingFollow = await Interaction.findOne(followFilter)
+        .select("_id")
+        .lean();
+
+    if (existingFollow) {
+        await Interaction.deleteOne({ _id: existingFollow._id });
+
+        return {
+            action: "unfollowed",
+            follow: formatAlbumFollowState({
+                albumId: album._id,
+                isFollowing: false,
+            }),
+        };
+    }
+
+    try {
+        await Interaction.create(followFilter);
+    } catch (error) {
+        if (error?.code !== 11000) {
+            throw error;
+        }
+    }
+
+    return {
+        action: "followed",
+        follow: formatAlbumFollowState({
+            albumId: album._id,
+            isFollowing: true,
+        }),
+    };
+};
+
 const getArtistAlbums = async (userId) => {
     // Find artist by userId
     const artist = await Artist.findOne({ userId });
@@ -180,7 +313,11 @@ const getArtistAlbums = async (userId) => {
 };
 
 export default {
+    followAlbum,
     getAlbumList,
     getAlbumDetail,
+    getAlbumFollowStatus,
     getArtistAlbums,
+    toggleFollowAlbum,
+    unfollowAlbum,
 };

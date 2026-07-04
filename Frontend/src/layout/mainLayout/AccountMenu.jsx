@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ThemeToggle from "../../components/common/ThemeToggle";
 import { useTheme } from "../../hooks/useTheme";
@@ -66,6 +66,7 @@ const AccountMenu = ({ user, onLogout }) => {
       { label: "Nghệ sĩ đang theo dõi", to: routePaths.libraryFollowedArtists },
       { label: "Album đang theo dõi", to: routePaths.libraryFollowedAlbums },
       { label: "Playlist của tôi", to: routePaths.userPlaylist },
+      { label: "Lịch sử thanh toán", to: routePaths.userPaymentHistory },
       { label: "Danh sách báo cáo", to: routePaths.userReportList },
     ],
     [isPremiumUser, userRole]

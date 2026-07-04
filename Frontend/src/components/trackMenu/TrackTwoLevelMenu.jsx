@@ -1,4 +1,5 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
     CheckCircle2,
     ChevronRight,
@@ -7,7 +8,10 @@ import {
     MoreHorizontal,
     Plus,
     Search,
+    X,
 } from "lucide-react";
+import DeletePlaylistConfirmModal from "../userPlaylist/DeletePlaylistConfirmModal";
+import { usePlayer } from "../../hooks/usePlayer";
 import {
     addTrackToFavorite,
     getTrackFavoriteStatus,
@@ -17,6 +21,7 @@ import {
     addTrackToUserPlaylist,
     getUserPlaylists,
 } from "../../services/userPlaylistService";
+import { routePaths } from "../../routes/routePaths";
 import { getApiErrorMessage } from "../../utils/apiError";
 
 const getPlaylistId = (playlist) => playlist?.playlistId || playlist?.id || "";
@@ -39,15 +44,63 @@ const normalizePlaylists = (payload) => {
     return [];
 };
 
+const getPlaylistTrackLimitModalMessage = () =>
+    "Playlist này đã đạt giới hạn bài hát của gói miễn phí. Hãy đăng ký Premium để thêm nhiều bài hát hơn.";
+
+const isPlaylistTrackLimitErrorMessage = (message) => {
+    const normalizedMessage =
+        typeof message === "string" ? message.trim().toLocaleLowerCase() : "";
+
+    if (!normalizedMessage) {
+        return false;
+    }
+
+    return (
+        normalizedMessage.includes("free playlists can contain") ||
+        normalizedMessage.includes("đạt giới hạn bài hát") ||
+        normalizedMessage.includes("giới hạn bài hát") ||
+        normalizedMessage.includes("playlist") &&
+            (normalizedMessage.includes("track") || normalizedMessage.includes("bài hát")) &&
+            (normalizedMessage.includes("premium") ||
+                normalizedMessage.includes("limit") ||
+                normalizedMessage.includes("giới hạn") ||
+                normalizedMessage.includes("nâng cấp"))
+    );
+};
+
+const resolveTrackIdentity = (candidate) =>
+    candidate?.id || candidate?._id || candidate?.trackId || "";
+
+const doesQueueTrackMatch = (queueTrack, trackId) => {
+    if (!trackId) {
+        return false;
+    }
+
+    const queueTrackId =
+        queueTrack?.playbackTrackId ||
+        resolveTrackIdentity(queueTrack) ||
+        resolveTrackIdentity(queueTrack?.raw);
+
+    return String(queueTrackId || "") === String(trackId);
+};
+
 const TrackTwoLevelMenu = ({
     trackId,
+    track = null,
     onTrackAdded,
     isFavorite,
     onFavoriteChanged,
 }) => {
     const menuRef = useRef(null);
+    const navigate = useNavigate();
     const submenuAnchorRef = useRef(null);
     const hasFavoriteProp = typeof isFavorite === "boolean";
+    const {
+        queue,
+        currentIndex,
+        addTrackToQueue,
+        removeTrackFromQueue,
+    } = usePlayer();
 
     const [isOpen, setIsOpen] = useState(false);
     const [isPlaylistSubmenuOpen, setIsPlaylistSubmenuOpen] = useState(false);
@@ -55,12 +108,15 @@ const TrackTwoLevelMenu = ({
     const [searchValue, setSearchValue] = useState("");
     const [submittingPlaylistId, setSubmittingPlaylistId] = useState("");
     const [isSubmittingFavorite, setIsSubmittingFavorite] = useState(false);
+    const [isSubmittingQueue, setIsSubmittingQueue] = useState(false);
     const [favoriteState, setFavoriteState] = useState(false);
     const [isFavoriteStatusLoading, setIsFavoriteStatusLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
     const [submenuPlacement, setSubmenuPlacement] = useState("right");
+    const [isPlaylistTrackLimitModalOpen, setIsPlaylistTrackLimitModalOpen] = useState(false);
 
     const resolvedIsFavorite = hasFavoriteProp ? isFavorite : favoriteState;
+    const resolvedTrackId = trackId || resolveTrackIdentity(track);
 
     useEffect(() => {
         if (!isOpen) return undefined;
@@ -188,12 +244,12 @@ const TrackTwoLevelMenu = ({
     }, [hasFavoriteProp, isOpen, trackId]);
 
     const submenuClassName = `
-        absolute z-[10000] w-[min(22rem,calc(100vw-2rem))]
-        rounded-md border border-[#525252] bg-[#202020] p-1
+        absolute z-[10000] w-[min(15rem,calc(100vw-2rem))]
+        rounded-md border border-[#3d3c3c] bg-[#202020] p-1
         shadow-[0_10px_30px_rgba(0,0,0,0.35)]
         ${submenuPlacement === "left" ? "bottom-0 right-full mr-1.5" : ""}
         ${submenuPlacement === "right" ? "bottom-0 left-full ml-1.5" : ""}
-        ${submenuPlacement === "stacked" ? "right-0 top-full mt-2" : ""}
+        ${submenuPlacement === "stacked" ? "right-0 top-full mt-2 " : ""}
     `;
 
     const filteredPlaylists = useMemo(() => {
@@ -205,6 +261,17 @@ const TrackTwoLevelMenu = ({
             getPlaylistTitle(playlist).toLowerCase().includes(keyword)
         );
     }, [playlists, searchValue]);
+
+    const queuedTrackIndex = useMemo(() => {
+        if (!resolvedTrackId) {
+            return -1;
+        }
+
+        return queue.findIndex(
+            (queueTrack, index) =>
+                index > currentIndex && doesQueueTrackMatch(queueTrack, resolvedTrackId)
+        );
+    }, [currentIndex, queue, resolvedTrackId]);
 
     const handleToggleMenu = (event) => {
         event.stopPropagation();
@@ -232,9 +299,19 @@ const TrackTwoLevelMenu = ({
             setIsPlaylistSubmenuOpen(false);
             setSearchValue("");
         } catch (error) {
-            setErrorMessage(
-                getApiErrorMessage(error, "Không thể thêm bài hát vào playlist.")
+            const nextErrorMessage = getApiErrorMessage(
+                error,
+                "Không thể thêm bài hát vào playlist."
             );
+
+            if (isPlaylistTrackLimitErrorMessage(nextErrorMessage)) {
+                setIsOpen(false);
+                setIsPlaylistSubmenuOpen(false);
+                setSearchValue("");
+                setIsPlaylistTrackLimitModalOpen(true);
+            } else {
+                setErrorMessage(nextErrorMessage);
+            }
         } finally {
             setSubmittingPlaylistId("");
         }
@@ -276,9 +353,42 @@ const TrackTwoLevelMenu = ({
         }
     };
 
+    const handleToggleQueue = async () => {
+        if ((!track && !resolvedTrackId) || isSubmittingQueue) return;
+
+        setIsSubmittingQueue(true);
+        setErrorMessage("");
+
+        try {
+            if (queuedTrackIndex >= 0) {
+                await removeTrackFromQueue(queuedTrackIndex);
+            } else {
+                await addTrackToQueue(
+                    track || {
+                        id: resolvedTrackId,
+                    }
+                );
+            }
+
+            setIsOpen(false);
+            setIsPlaylistSubmenuOpen(false);
+            setSearchValue("");
+        } catch (error) {
+            setErrorMessage(
+                getApiErrorMessage(error, "Không thể cập nhật danh sách chờ.")
+            );
+        } finally {
+            setIsSubmittingQueue(false);
+        }
+    };
+
     const favoriteLabel = resolvedIsFavorite
         ? "Xóa khỏi Bài hát đã thích"
         : "Thích bài hát";
+    const queueActionLabel =
+        queuedTrackIndex >= 0
+            ? "Xóa khỏi danh sách chờ"
+            : "Thêm vào danh sách chờ";
 
     return (
         <div ref={ menuRef } className="relative flex items-center justify-end">
@@ -336,6 +446,32 @@ const TrackTwoLevelMenu = ({
                         ) }
 
                         <span className="truncate">{ favoriteLabel }</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={ handleToggleQueue }
+                        disabled={ isSubmittingQueue || (!track && !resolvedTrackId) }
+                        className="
+                            flex w-full items-center gap-2
+                            rounded-[6px] px-3 py-2
+                            text-left text-[12px] font-normal
+                            text-[#f3f4f6]
+                            transition-all duration-150
+                            hover:bg-[#313131]
+                            disabled:cursor-not-allowed
+                            disabled:opacity-60
+                        "
+                    >
+                        { isSubmittingQueue ? (
+                            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[#9ca3af]" />
+                        ) : queuedTrackIndex >= 0 ? (
+                            <X className="h-3.5 w-3.5 shrink-0 text-[#9ca3af]" />
+                        ) : (
+                            <Plus className="h-3.5 w-3.5 shrink-0 text-[#9ca3af]" />
+                        ) }
+
+                        <span className="truncate">{ queueActionLabel }</span>
                     </button>
 
                     <div ref={ submenuAnchorRef } className="relative">
@@ -463,8 +599,30 @@ const TrackTwoLevelMenu = ({
                     ) }
                 </div>
             ) }
+            <DeletePlaylistConfirmModal
+                isOpen={ isPlaylistTrackLimitModalOpen }
+                playlistTitle=""
+                title="Đã đạt giới hạn bài hát trong playlist"
+                message={ getPlaylistTrackLimitModalMessage() }
+                confirmLabel="Xác nhận"
+                cancelLabel="Hủy"
+                confirmTone="neutral"
+                extraActionLabel="Đăng ký Premium"
+                extraActionTone="primary"
+                onExtraAction={ () => {
+                    setIsPlaylistTrackLimitModalOpen(false);
+                    navigate(routePaths.premium);
+                } }
+                onClose={ () => setIsPlaylistTrackLimitModalOpen(false) }
+                onConfirm={ () => setIsPlaylistTrackLimitModalOpen(false) }
+                variant="dark"
+                size="sm"
+            />
         </div>
     );
 };
 
 export default TrackTwoLevelMenu;
+
+
+

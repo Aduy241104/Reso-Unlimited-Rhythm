@@ -159,9 +159,11 @@ const refreshToken = async (req, res, next) => {
 
 const me = async (req, res, next) => {
     try {
+        const user = await userServiceHelper.formatCurrentUserProfile(req.user);
+
         return formatResponse.success(
             res,
-            { user: userServiceHelper.formatCurrentUserProfile(req.user) },
+            { user },
             "Current user fetched successfully"
         );
     } catch (error) {

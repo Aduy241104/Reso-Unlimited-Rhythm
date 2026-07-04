@@ -6,7 +6,7 @@ import { useSocket } from "../../hooks/useSocket";
 import { getMyArtistNotificationsService } from "../../services/artist.notification.service";
 import { getMyArtistProfileService } from "../../services/artistService";
 import { routePaths } from "../../routes/routePaths";
-import { artistNavigation, artistProfile } from "./navigation";
+import { artistNavigation, artistProfile } from "./navigationConfig";
 
 const SIDEBAR_WIDTH = "264px";
 const ARTIST_NOTIFICATIONS_PATH = routePaths.artistNotifications;
