@@ -27,7 +27,7 @@ const normalizeVisibilityLabel = (item) => {
   return item?.isPublic ? 'Public' : 'Private';
 };
 
-const normalizePlaylist = (item) => {
+export const normalizePlaylistSummary = (item) => {
   const rawItem = asObject(item);
   const coverImage = pickFirstDefined(
     resolveImageUri(rawItem.coverImage),
@@ -36,12 +36,16 @@ const normalizePlaylist = (item) => {
     rawItem.image,
     ''
   );
-  const trackCount = pickNumber(rawItem.trackCount, asArray(rawItem.tracks).length);
+  const trackCount = pickNumber(
+    rawItem.trackCount,
+    rawItem.totalTracks,
+    asArray(rawItem.tracks).length
+  );
   const totalDuration = pickNumber(rawItem.totalDuration, rawItem.duration);
 
   return {
     ...rawItem,
-    id: pickFirstDefined(rawItem.id, rawItem._id, ''),
+    id: pickFirstDefined(rawItem.id, rawItem._id, rawItem.playlistId, ''),
     title: pickFirstDefined(rawItem.title, 'Untitled playlist'),
     description: pickFirstDefined(rawItem.description, ''),
     coverImage,
@@ -152,13 +156,14 @@ export const playlistService = {
     const rawItems = asArray(payload.playlists || payload.items || payload.data);
 
     return {
-      items: rawItems.map(normalizePlaylist),
+      items: rawItems.map(normalizePlaylistSummary),
       meta: response?.meta || payload?.meta || null,
     };
   },
 
   async getPlaylistDetail(playlistId) {
     const endpoints = [
+      `${API_ENDPOINTS.USER_PLAYLISTS.DETAIL}/${playlistId}`,
       `${API_ENDPOINTS.PLAYLISTS.SYSTEM_DETAIL}/${playlistId}`,
       `${API_ENDPOINTS.PLAYLISTS.DETAIL}/${playlistId}`,
     ];

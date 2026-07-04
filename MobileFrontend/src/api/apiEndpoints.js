@@ -24,4 +24,9 @@ export const API_ENDPOINTS = {
     SYSTEM: '/playlists/system',
     SYSTEM_DETAIL: '/playlists/system/detail',
   },
+  USER_PLAYLISTS: {
+    LIST: '/users/playlists',
+    DETAIL: '/users/playlists/detail',
+    CREATE: '/users/playlists',
+  },
 };

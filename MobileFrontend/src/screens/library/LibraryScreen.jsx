@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Image,
   RefreshControl,
@@ -10,11 +10,14 @@ import {
   View,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import CreatePlaylistModal from '../../components/library/CreatePlaylistModal';
 import AppButton from '../../components/common/AppButton';
 import AppHeader from '../../components/common/AppHeader';
 import AppLoader from '../../components/common/AppLoader';
 import ErrorState from '../../components/common/ErrorState';
+import { useAuth } from '../../hooks/useAuth';
 import playlistService from '../../services/playlistService';
+import userPlaylistService from '../../services/userPlaylistService';
 import theme from '../../theme';
 import { formatDuration, getErrorMessage, getInitials, resolveImageUri } from '../../utils/media';
 
@@ -34,6 +37,18 @@ const Artwork = ({ uri, label, color }) => {
   );
 };
 
+const resolvePlaylistBadgeLabel = (item) => {
+  if (item?.type === 'system') {
+    return 'SYSTEM';
+  }
+
+  if (item?.type === 'user') {
+    return item?.isPublic ? 'PUBLIC' : 'PRIVATE';
+  }
+
+  return 'PLAYLIST';
+};
+
 const PlaylistCard = ({ item, index, onPress }) => {
   const accentColor = accentPalette[index % accentPalette.length];
   const totalTracks = Number(item?.trackCount) || 0;
@@ -47,7 +62,7 @@ const PlaylistCard = ({ item, index, onPress }) => {
       <View style={styles.cardContent}>
         <View style={styles.cardTopRow}>
           <View style={styles.cardBadge}>
-            <Text style={styles.cardBadgeText}>{item?.type === 'system' ? 'SYSTEM' : 'PLAYLIST'}</Text>
+            <Text style={styles.cardBadgeText}>{resolvePlaylistBadgeLabel(item)}</Text>
           </View>
           <Text style={styles.cardMetaText}>
             {totalTracks > 0 ? `${totalTracks} tracks` : 'No tracks yet'}
@@ -66,20 +81,52 @@ const PlaylistCard = ({ item, index, onPress }) => {
   );
 };
 
+const SectionHeader = ({ title, description, actionLabel, onActionPress, actionDisabled = false }) => (
+  <View style={styles.sectionHeader}>
+    <View style={styles.sectionHeaderContent}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {description ? <Text style={styles.sectionDescription}>{description}</Text> : null}
+    </View>
+    {actionLabel ? (
+      <TouchableOpacity
+        onPress={onActionPress}
+        disabled={actionDisabled}
+        activeOpacity={0.85}
+        style={[styles.inlineAction, actionDisabled ? styles.inlineActionDisabled : null]}
+      >
+        <Text style={styles.inlineActionText}>{actionLabel}</Text>
+      </TouchableOpacity>
+    ) : null}
+  </View>
+);
+
 export default function LibraryScreen() {
   const navigation = useNavigation();
-  const [playlists, setPlaylists] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { isAuthenticated, user } = useAuth();
+  const [systemPlaylists, setSystemPlaylists] = useState([]);
+  const [myPlaylists, setMyPlaylists] = useState([]);
+  const [isSystemLoading, setIsSystemLoading] = useState(true);
+  const [isMyLoading, setIsMyLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [systemErrorMessage, setSystemErrorMessage] = useState('');
+  const [myErrorMessage, setMyErrorMessage] = useState('');
+  const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
+  const [isCreatingPlaylist, setIsCreatingPlaylist] = useState(false);
+  const [createPlaylistError, setCreatePlaylistError] = useState('');
 
-  const loadPlaylists = useCallback(async (options = {}) => {
-    const isRefresh = Boolean(options.refresh);
+  const displayName = useMemo(
+    () =>
+      user?.profile?.fullName ||
+      user?.fullName ||
+      user?.name ||
+      user?.email ||
+      'your account',
+    [user]
+  );
 
-    if (isRefresh) {
-      setIsRefreshing(true);
-    } else {
-      setIsLoading(true);
+  const loadSystemPlaylists = useCallback(async ({ refresh = false } = {}) => {
+    if (!refresh) {
+      setIsSystemLoading(true);
     }
 
     try {
@@ -88,20 +135,68 @@ export default function LibraryScreen() {
         limit: 24,
       });
 
-      setPlaylists(Array.isArray(result?.items) ? result.items : []);
-      setErrorMessage('');
+      setSystemPlaylists(Array.isArray(result?.items) ? result.items : []);
+      setSystemErrorMessage('');
     } catch (error) {
-      setPlaylists([]);
-      setErrorMessage(getErrorMessage(error, 'Unable to load playlists right now.'));
+      setSystemPlaylists([]);
+      setSystemErrorMessage(getErrorMessage(error, 'Unable to load playlists right now.'));
     } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
+      if (!refresh) {
+        setIsSystemLoading(false);
+      }
     }
   }, []);
 
+  const loadMyPlaylists = useCallback(async ({ refresh = false } = {}) => {
+    if (!isAuthenticated) {
+      setMyPlaylists([]);
+      setMyErrorMessage('');
+      setIsMyLoading(false);
+      return;
+    }
+
+    if (!refresh) {
+      setIsMyLoading(true);
+    }
+
+    try {
+      const result = await userPlaylistService.getMyPlaylists({
+        page: 1,
+        limit: 20,
+      });
+
+      setMyPlaylists(Array.isArray(result?.items) ? result.items : []);
+      setMyErrorMessage('');
+    } catch (error) {
+      setMyPlaylists([]);
+      setMyErrorMessage(getErrorMessage(error, 'Unable to load your playlists right now.'));
+    } finally {
+      if (!refresh) {
+        setIsMyLoading(false);
+      }
+    }
+  }, [isAuthenticated]);
+
+  const loadLibraryData = useCallback(async ({ refresh = false } = {}) => {
+    if (refresh) {
+      setIsRefreshing(true);
+    }
+
+    try {
+      await Promise.allSettled([
+        loadSystemPlaylists({ refresh }),
+        loadMyPlaylists({ refresh }),
+      ]);
+    } finally {
+      if (refresh) {
+        setIsRefreshing(false);
+      }
+    }
+  }, [loadMyPlaylists, loadSystemPlaylists]);
+
   useEffect(() => {
-    loadPlaylists();
-  }, [loadPlaylists]);
+    loadLibraryData();
+  }, [loadLibraryData]);
 
   const handleOpenPlaylist = useCallback((playlist) => {
     if (!playlist?.id) {
@@ -115,19 +210,61 @@ export default function LibraryScreen() {
     });
   }, [navigation]);
 
+  const handleOpenLogin = useCallback(() => {
+    navigation.navigate('Login');
+  }, [navigation]);
+
+  const handleOpenCreateModal = useCallback(() => {
+    if (!isAuthenticated) {
+      handleOpenLogin();
+      return;
+    }
+
+    setCreatePlaylistError('');
+    setIsCreateModalVisible(true);
+  }, [handleOpenLogin, isAuthenticated]);
+
+  const handleCloseCreateModal = useCallback(() => {
+    if (isCreatingPlaylist) {
+      return;
+    }
+
+    setCreatePlaylistError('');
+    setIsCreateModalVisible(false);
+  }, [isCreatingPlaylist]);
+
+  const handleCreatePlaylist = useCallback(async (payload) => {
+    setIsCreatingPlaylist(true);
+    setCreatePlaylistError('');
+
+    try {
+      const createdPlaylist = await userPlaylistService.createMyPlaylist(payload);
+
+      setMyPlaylists((prevPlaylists) => [createdPlaylist, ...prevPlaylists]);
+      setIsCreateModalVisible(false);
+
+      navigation.navigate('EntityDetail', {
+        entityType: 'playlist',
+        entityId: createdPlaylist.id,
+        initialTitle: createdPlaylist.title || 'Playlist Detail',
+      });
+    } catch (error) {
+      setCreatePlaylistError(getErrorMessage(error, 'Unable to create playlist right now.'));
+    } finally {
+      setIsCreatingPlaylist(false);
+    }
+  }, [navigation]);
+
+  const showInitialLoader = isSystemLoading && !isRefreshing && systemPlaylists.length === 0;
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
       <AppHeader title="Playlist Library" />
 
-      {isLoading ? (
+      {showInitialLoader ? (
         <View style={styles.centerState}>
           <AppLoader size="large" />
-        </View>
-      ) : errorMessage ? (
-        <View style={styles.centerState}>
-          <ErrorState message={errorMessage} />
-          <AppButton title="Try Again" onPress={() => loadPlaylists()} style={styles.retryButton} />
         </View>
       ) : (
         <ScrollView
@@ -136,40 +273,125 @@ export default function LibraryScreen() {
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
-              onRefresh={() => loadPlaylists({ refresh: true })}
+              onRefresh={() => loadLibraryData({ refresh: true })}
               tintColor="#ffffff"
             />
           }
         >
           <View style={styles.hero}>
             <Text style={styles.heroEyebrow}>CURATED FOR MOBILE</Text>
-            <Text style={styles.heroTitle}>View playlists in one place</Text>
+            <Text style={styles.heroTitle}>Build your playlist library</Text>
             <Text style={styles.heroText}>
-              Browse the latest system playlists, open full detail, and jump straight into playback.
+              Create your own playlists, keep them private by default, and still browse system picks in one place.
             </Text>
+            <View style={styles.heroActions}>
+              <AppButton
+                title={isAuthenticated ? 'Create Playlist' : 'Login To Create'}
+                onPress={handleOpenCreateModal}
+                style={styles.heroPrimaryAction}
+              />
+            </View>
           </View>
 
-          {playlists.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyTitle}>No playlists available</Text>
-              <Text style={styles.emptyText}>
-                Pull to refresh or come back later after new playlist data is published.
-              </Text>
+          {isAuthenticated ? (
+            <View style={styles.section}>
+              <SectionHeader
+                title="Your Playlists"
+                description={`Manage playlists for ${displayName}.`}
+                actionLabel="Create"
+                onActionPress={handleOpenCreateModal}
+              />
+
+              {isMyLoading ? (
+                <View style={styles.sectionCard}>
+                  <AppLoader size="small" />
+                </View>
+              ) : myErrorMessage ? (
+                <View style={styles.sectionCard}>
+                  <ErrorState message={myErrorMessage} />
+                  <AppButton title="Retry" onPress={() => loadMyPlaylists()} style={styles.retryCompactButton} />
+                </View>
+              ) : myPlaylists.length === 0 ? (
+                <View style={styles.sectionCard}>
+                  <Text style={styles.emptyTitle}>No playlists created yet</Text>
+                  <Text style={styles.emptyText}>
+                    Start with your first playlist and it will appear here immediately.
+                  </Text>
+                  <AppButton title="Create your first playlist" onPress={handleOpenCreateModal} style={styles.emptyActionButton} />
+                </View>
+              ) : (
+                <View style={styles.list}>
+                  {myPlaylists.map((item, index) => (
+                    <PlaylistCard
+                      key={item.id || `my-playlist-${index}`}
+                      item={item}
+                      index={index}
+                      onPress={() => handleOpenPlaylist(item)}
+                    />
+                  ))}
+                </View>
+              )}
             </View>
           ) : (
-            <View style={styles.list}>
-              {playlists.map((item, index) => (
-                <PlaylistCard
-                  key={item.id || `playlist-${index}`}
-                  item={item}
-                  index={index}
-                  onPress={() => handleOpenPlaylist(item)}
-                />
-              ))}
+            <View style={styles.section}>
+              <SectionHeader
+                title="Your Playlists"
+                description="Sign in to create and manage personal playlists."
+              />
+              <View style={styles.authCard}>
+                <Text style={styles.authCardTitle}>Login required</Text>
+                <Text style={styles.authCardText}>
+                  Creating playlists is tied to your account, so we need you signed in first.
+                </Text>
+                <AppButton title="Go to Login" onPress={handleOpenLogin} style={styles.authButton} />
+              </View>
             </View>
           )}
+
+          <View style={styles.section}>
+            <SectionHeader
+              title="Discover Playlists"
+              description="System playlists curated by the Reso team."
+              actionLabel={systemPlaylists.length > 0 ? 'Refresh' : ''}
+              onActionPress={() => loadSystemPlaylists()}
+            />
+
+            {systemErrorMessage ? (
+              <View style={styles.sectionCard}>
+                <ErrorState message={systemErrorMessage} />
+                <AppButton title="Try Again" onPress={() => loadSystemPlaylists()} style={styles.retryCompactButton} />
+              </View>
+            ) : systemPlaylists.length === 0 ? (
+              <View style={styles.sectionCard}>
+                <Text style={styles.emptyTitle}>No playlists available</Text>
+                <Text style={styles.emptyText}>
+                  Pull to refresh or come back later after new playlist data is published.
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.list}>
+                {systemPlaylists.map((item, index) => (
+                  <PlaylistCard
+                    key={item.id || `playlist-${index}`}
+                    item={item}
+                    index={index}
+                    onPress={() => handleOpenPlaylist(item)}
+                  />
+                ))}
+              </View>
+            )}
+          </View>
         </ScrollView>
       )}
+
+      <CreatePlaylistModal
+        visible={isCreateModalVisible}
+        existingPlaylists={myPlaylists}
+        isSubmitting={isCreatingPlaylist}
+        submitError={createPlaylistError}
+        onClose={handleCloseCreateModal}
+        onSubmit={handleCreatePlaylist}
+      />
     </View>
   );
 }
@@ -184,13 +406,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
-  },
-  retryButton: {
-    minWidth: 160,
-    marginTop: 16,
-    backgroundColor: '#1a1a1a',
-    borderWidth: 1,
-    borderColor: '#2c2c2c',
   },
   scrollBody: {
     paddingHorizontal: 16,
@@ -222,6 +437,53 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
     marginTop: 8,
+  },
+  heroActions: {
+    marginTop: 16,
+  },
+  heroPrimaryAction: {
+    backgroundColor: '#1ed760',
+  },
+  section: {
+    marginTop: 4,
+    marginBottom: 20,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 12,
+  },
+  sectionHeaderContent: {
+    flex: 1,
+  },
+  sectionTitle: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  sectionDescription: {
+    color: '#9a9a9a',
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 4,
+  },
+  inlineAction: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#2d2d2d',
+    backgroundColor: '#151515',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  inlineActionDisabled: {
+    opacity: 0.5,
+  },
+  inlineActionText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '700',
   },
   list: {
     gap: 14,
@@ -307,22 +569,59 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
   },
-  emptyCard: {
+  sectionCard: {
     backgroundColor: '#111111',
     borderRadius: 16,
     borderWidth: 1,
     borderColor: '#252525',
     padding: 18,
+    alignItems: 'center',
   },
   emptyTitle: {
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '800',
+    alignSelf: 'flex-start',
   },
   emptyText: {
     color: '#a3a3a3',
     fontSize: 12,
     lineHeight: 18,
     marginTop: 8,
+    alignSelf: 'flex-start',
+  },
+  emptyActionButton: {
+    width: '100%',
+    marginTop: 16,
+    backgroundColor: '#1ed760',
+  },
+  retryCompactButton: {
+    minWidth: 140,
+    marginTop: 16,
+    backgroundColor: '#1a1a1a',
+    borderWidth: 1,
+    borderColor: '#2c2c2c',
+  },
+  authCard: {
+    backgroundColor: '#111111',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#252525',
+    padding: 18,
+  },
+  authCardTitle: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  authCardText: {
+    color: '#a3a3a3',
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 8,
+  },
+  authButton: {
+    marginTop: 16,
+    backgroundColor: '#1ed760',
   },
 });
