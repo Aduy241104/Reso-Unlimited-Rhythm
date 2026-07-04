@@ -52,6 +52,29 @@ const getDisplayText = (value, fallback = '') => {
   return fallback;
 };
 
+const normalizeInfoEntries = (entries = []) =>
+  (Array.isArray(entries) ? entries : [])
+    .map((entry) => {
+      if (!entry || typeof entry !== 'object') {
+        return null;
+      }
+
+      const label = getDisplayText(entry.label);
+      const value = getDisplayText(entry.value);
+
+      if (!label || !value) {
+        return null;
+      }
+
+      return {
+        label,
+        value,
+        entityType: entry.entityType || '',
+        entityId: entry.entityId || '',
+      };
+    })
+    .filter(Boolean);
+
 const Artwork = ({ uri, label, style, textStyle }) => {
   const imageUri = resolveImageUri(uri);
 
@@ -137,6 +160,9 @@ export default function EntityDetailScreen() {
     return buildPlayableQueue(detail.items);
   }, [detail]);
 
+  const detailStats = useMemo(() => normalizeInfoEntries(detail?.stats), [detail?.stats]);
+  const detailMeta = useMemo(() => normalizeInfoEntries(detail?.meta), [detail?.meta]);
+
   const handleOpenNestedDetail = useCallback(
     (nextType, nextId, nextTitle) => {
       if (!nextType || !nextId) {
@@ -169,11 +195,24 @@ export default function EntityDetailScreen() {
     handleOpenNestedDetail(item?.entityType, item?.entityId, item?.title);
   }, [handleOpenNestedDetail, handlePlayAll]);
 
+  const handleMetaItemPress = useCallback((item) => {
+    if (!item?.entityType || !item?.entityId) {
+      return;
+    }
+
+    handleOpenNestedDetail(item.entityType, item.entityId, item.value);
+  }, [handleOpenNestedDetail]);
+
   const headerTitle = getDisplayText(detail?.title, getDisplayText(initialTitle, 'Detail'));
   const detailTitle = getDisplayText(detail?.title, headerTitle);
   const detailSubtitle = getDisplayText(detail?.subtitle);
   const detailDescription = getDisplayText(detail?.description);
   const detailExtraText = getDisplayText(detail?.extraText);
+  const ownerName = getDisplayText(
+    detail?.owner?.fullName || detail?.owner?.name || detail?.owner?.email,
+    ''
+  );
+  const ownerRole = getDisplayText(detail?.owner?.role, detail?.type === 'playlist' ? 'Playlist owner' : '');
   const badgeLabel = detail?.badgeLabel || (
     entityType === 'album'
       ? 'ALBUM'
@@ -240,6 +279,74 @@ export default function EntityDetailScreen() {
             ) : null}
           </View>
 
+          {detailStats.length > 0 ? (
+            <View style={styles.section}>
+              <View style={styles.statsGrid}>
+                {detailStats.map((item, index) => (
+                  <View
+                    key={`${item.label}-${index}`}
+                    style={[
+                      styles.statCard,
+                      index === detailStats.length - 1 && detailStats.length % 2 === 1
+                        ? styles.statCardFull
+                        : null,
+                    ]}
+                  >
+                    <Text style={styles.statValue} numberOfLines={1}>{item.value}</Text>
+                    <Text style={styles.statLabel}>{item.label}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : null}
+
+          {detailMeta.length > 0 ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Details</Text>
+              <View style={styles.panel}>
+                {detailMeta.map((item, index) => {
+                  const isPressable = Boolean(item.entityType && item.entityId);
+                  const RowComponent = isPressable ? TouchableOpacity : View;
+
+                  return (
+                    <RowComponent
+                      key={`${item.label}-${index}`}
+                      style={[
+                        styles.metaRow,
+                        index === detailMeta.length - 1 ? styles.metaRowLast : null,
+                      ]}
+                      onPress={isPressable ? () => handleMetaItemPress(item) : undefined}
+                      activeOpacity={isPressable ? 0.8 : undefined}
+                    >
+                      <Text style={styles.metaLabel}>{item.label}</Text>
+                      <View style={styles.metaValueWrap}>
+                        <Text style={styles.metaValue}>{item.value}</Text>
+                        {isPressable ? (
+                          <Ionicons name="chevron-forward" size={14} color="#7d7d7d" />
+                        ) : null}
+                      </View>
+                    </RowComponent>
+                  );
+                })}
+              </View>
+            </View>
+          ) : null}
+
+          {detail?.type === 'playlist' && ownerName ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Curated By</Text>
+              <View style={styles.ownerCard}>
+                <View style={styles.ownerAvatar}>
+                  <Text style={styles.ownerAvatarText}>{getInitials(ownerName)}</Text>
+                </View>
+                <View style={styles.ownerContent}>
+                  <Text style={styles.ownerName}>{ownerName}</Text>
+                  {ownerRole ? <Text style={styles.ownerRole}>{ownerRole}</Text> : null}
+                </View>
+              </View>
+            </View>
+          ) : null}
+
           {Array.isArray(detail?.tags) && detail.tags.length > 0 ? (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Tags</Text>
@@ -275,6 +382,13 @@ export default function EntityDetailScreen() {
                     onPress={() => handleListItemPress(item, index)}
                   />
                 ))}
+              </View>
+            </View>
+          ) : detail?.type === 'playlist' ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{getDisplayText(detail.itemsTitle, 'Items')}</Text>
+              <View style={styles.panel}>
+                <Text style={styles.emptyPanelText}>This playlist does not have any tracks yet.</Text>
               </View>
             </View>
           ) : null}
@@ -416,6 +530,36 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
   },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  statCard: {
+    width: '48.5%',
+    minHeight: 84,
+    backgroundColor: '#141414',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#262626',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    justifyContent: 'space-between',
+  },
+  statCardFull: {
+    width: '100%',
+  },
+  statValue: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  statLabel: {
+    color: '#8a8a8a',
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 8,
+  },
   section: {
     marginTop: 18,
   },
@@ -455,6 +599,71 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 19,
     padding: 14,
+  },
+  metaRow: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#242424',
+  },
+  metaRowLast: {
+    borderBottomWidth: 0,
+  },
+  metaLabel: {
+    color: '#8f8f8f',
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  metaValueWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  metaValue: {
+    flex: 1,
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  ownerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#141414',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#262626',
+    padding: 14,
+  },
+  ownerAvatar: {
+    width: 46,
+    height: 46,
+    borderRadius: 999,
+    backgroundColor: '#202020',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  ownerAvatarText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  ownerContent: {
+    flex: 1,
+  },
+  ownerName: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  ownerRole: {
+    color: '#9a9a9a',
+    fontSize: 11,
+    marginTop: 4,
   },
   listItem: {
     flexDirection: 'row',
@@ -504,5 +713,11 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     marginLeft: 8,
+  },
+  emptyPanelText: {
+    color: '#a3a3a3',
+    fontSize: 12,
+    lineHeight: 19,
+    padding: 14,
   },
 });

@@ -19,20 +19,41 @@ const pickNumber = (...values) => {
   return 0;
 };
 
+const normalizeVisibilityLabel = (item) => {
+  if (item?.type === 'system') {
+    return 'System';
+  }
+
+  return item?.isPublic ? 'Public' : 'Private';
+};
+
 const normalizePlaylist = (item) => {
   const rawItem = asObject(item);
+  const coverImage = pickFirstDefined(
+    resolveImageUri(rawItem.coverImage),
+    resolveImageUri(rawItem.image),
+    rawItem.coverImage,
+    rawItem.image,
+    ''
+  );
+  const trackCount = pickNumber(rawItem.trackCount, asArray(rawItem.tracks).length);
+  const totalDuration = pickNumber(rawItem.totalDuration, rawItem.duration);
 
   return {
     ...rawItem,
     id: pickFirstDefined(rawItem.id, rawItem._id, ''),
     title: pickFirstDefined(rawItem.title, 'Untitled playlist'),
     description: pickFirstDefined(rawItem.description, ''),
-    coverImage: pickFirstDefined(rawItem.coverImage, rawItem.image, ''),
+    coverImage,
+    image: coverImage,
     type: pickFirstDefined(rawItem.type, 'system'),
-    trackCount: pickNumber(rawItem.trackCount, asArray(rawItem.tracks).length),
-    totalDuration: pickNumber(rawItem.totalDuration, rawItem.duration),
+    trackCount,
+    totalDuration,
     isPublic: typeof rawItem.isPublic === 'boolean' ? rawItem.isPublic : Boolean(rawItem.isPublic),
     createdAt: pickFirstDefined(rawItem.createdAt, null),
+    subtitle: trackCount > 0 ? `${trackCount} tracks` : 'Playlist collection',
+    primaryMeta: trackCount > 0 ? `${trackCount} tracks` : 'No tracks yet',
+    secondaryMeta: totalDuration > 0 ? formatDuration(totalDuration) : normalizeVisibilityLabel(rawItem),
   };
 };
 
@@ -60,6 +81,8 @@ const normalizePlaylistTrack = (item, index = 0) => {
     duration: pickNumber(rawItem.duration, track?.duration),
     audioUri: pickFirstDefined(rawItem.audioUri, resolveTrackAudioUri(rawItem), resolveTrackAudioUri(track), ''),
     meta: pickFirstDefined(rawItem.meta, formatDuration(pickNumber(rawItem.duration, track?.duration))),
+    order: pickNumber(rawItem.order, index + 1),
+    addedAt: pickFirstDefined(rawItem.addedAt, null),
   };
 };
 
@@ -71,34 +94,53 @@ const normalizeOwner = (item) => {
 
 const normalizePlaylistDetail = (item) => {
   const rawItem = asObject(item);
-  const tracks = asArray(rawItem?.tracks).map(normalizePlaylistTrack);
+  const tracks = asArray(rawItem?.tracks)
+    .slice()
+    .sort((firstTrack, secondTrack) => pickNumber(firstTrack?.order) - pickNumber(secondTrack?.order))
+    .map(normalizePlaylistTrack);
+  const ownerLabel = normalizeOwner(rawItem);
+  const visibilityLabel = normalizeVisibilityLabel(rawItem);
+  const createdDate = formatDateLabel(rawItem?.createdAt);
+  const updatedDate = formatDateLabel(rawItem?.updatedAt);
+  const totalDuration = pickNumber(rawItem?.totalDuration, rawItem?.duration);
+  const coverImage = pickFirstDefined(
+    resolveImageUri(rawItem?.coverImage),
+    resolveImageUri(rawItem?.image),
+    rawItem?.coverImage,
+    rawItem?.image,
+    ''
+  );
 
   return {
     ...rawItem,
     id: pickFirstDefined(rawItem?.id, rawItem?._id, ''),
-    type: pickFirstDefined(rawItem?.type, 'playlist'),
+    type: 'playlist',
+    playlistType: pickFirstDefined(rawItem?.type, 'playlist'),
+    badgeLabel: rawItem?.type === 'system' ? 'SYSTEM PLAYLIST' : 'PLAYLIST',
     title: pickFirstDefined(rawItem?.title, 'Untitled playlist'),
-    subtitle: pickFirstDefined(rawItem?.subtitle, normalizeOwner(rawItem)),
-    image: pickFirstDefined(rawItem?.image, resolveImageUri(rawItem?.coverImage), rawItem?.coverImage, ''),
-    description: pickFirstDefined(rawItem?.description, ''),
+    subtitle: pickFirstDefined(rawItem?.subtitle, ownerLabel),
+    image: coverImage,
+    description: pickFirstDefined(rawItem?.description, rawItem?.type === 'system' ? 'Curated by the Reso team.' : ''),
     stats: asArray(rawItem?.stats).length > 0
       ? rawItem.stats
       : [
           { label: 'Tracks', value: `${pickNumber(rawItem?.trackCount, tracks.length)}` },
-          { label: 'Duration', value: formatDuration(pickNumber(rawItem?.totalDuration, rawItem?.duration)) },
-          { label: 'Visibility', value: rawItem?.isPublic ? 'Public' : 'System' },
+          { label: 'Duration', value: formatDuration(totalDuration) },
+          { label: 'Visibility', value: visibilityLabel },
         ],
     meta: asArray(rawItem?.meta).length > 0
       ? rawItem.meta
       : [
-          { label: 'Owner', value: normalizeOwner(rawItem) },
-          { label: 'Created', value: formatDateLabel(rawItem?.createdAt) || 'Unknown' },
+          { label: 'Owner', value: ownerLabel },
+          { label: 'Created', value: createdDate || 'Unknown' },
+          { label: 'Updated', value: updatedDate || 'Unknown' },
           { label: 'Type', value: pickFirstDefined(rawItem?.type, 'system') },
         ],
     tags: asArray(rawItem?.tags),
-    extraTitle: pickFirstDefined(rawItem?.extraTitle, ''),
-    extraText: pickFirstDefined(rawItem?.extraText, ''),
-    itemsTitle: pickFirstDefined(rawItem?.itemsTitle, 'Tracks'),
+    owner: asObject(rawItem?.owner),
+    extraTitle: pickFirstDefined(rawItem?.extraTitle, rawItem?.aiPrompt ? 'AI Prompt' : ''),
+    extraText: pickFirstDefined(rawItem?.extraText, rawItem?.aiPrompt, ''),
+    itemsTitle: pickFirstDefined(rawItem?.itemsTitle, 'Tracks in this playlist'),
     items: tracks,
   };
 };
