@@ -15,6 +15,9 @@ export const API_ENDPOINTS = {
     TOP_DAILY: '/tracks/top/daily',
     TOP_MONTHLY: '/tracks/top/monthly',
   },
+  USER_FAVORITES: {
+    TRACKS: '/users/favorites/tracks',
+  },
   ARTISTS: {
     DETAIL: '/browse/artists',
     TOP_MONTHLY: '/browse/artists/top/monthly',

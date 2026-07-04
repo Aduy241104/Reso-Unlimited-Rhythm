@@ -229,6 +229,15 @@ export default function LibraryScreen() {
     navigation.navigate('Login');
   }, [navigation]);
 
+  const handleOpenFavoriteTracks = useCallback(() => {
+    if (!isAuthenticated) {
+      handleOpenLogin();
+      return;
+    }
+
+    navigation.navigate('FavoriteTracks');
+  }, [handleOpenLogin, isAuthenticated, navigation]);
+
   const handleOpenCreateModal = useCallback(() => {
     if (!isAuthenticated) {
       handleOpenLogin();
@@ -305,6 +314,32 @@ export default function LibraryScreen() {
                 style={styles.heroPrimaryAction}
               />
             </View>
+          </View>
+
+          <View style={styles.section}>
+            <SectionHeader
+              title="Favorite Tracks"
+              description={isAuthenticated
+                ? 'Open the songs you liked and replay them anytime.'
+                : 'Sign in to keep your liked songs in one place.'}
+              actionLabel={isAuthenticated ? 'View All' : 'Login'}
+              onActionPress={handleOpenFavoriteTracks}
+            />
+
+            <TouchableOpacity style={styles.favoriteCard} activeOpacity={0.85} onPress={handleOpenFavoriteTracks}>
+              <View style={styles.favoriteCardContent}>
+                <Text style={styles.favoriteCardEyebrow}>PERSONAL COLLECTION</Text>
+                <Text style={styles.favoriteCardTitle}>Favorite tracks</Text>
+                <Text style={styles.favoriteCardText}>
+                  {isAuthenticated
+                    ? 'Your liked songs live here, ready to play in one tap or open in full detail.'
+                    : 'Login to unlock a dedicated view for all the tracks you liked.'}
+                </Text>
+              </View>
+              <View style={styles.favoriteCardAction}>
+                <Text style={styles.favoriteCardActionText}>{isAuthenticated ? 'Open' : 'Login'}</Text>
+              </View>
+            </TouchableOpacity>
           </View>
 
           {isAuthenticated ? (
@@ -622,6 +657,51 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#252525',
     padding: 18,
+  },
+  favoriteCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    backgroundColor: '#111111',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#252525',
+    padding: 18,
+  },
+  favoriteCardContent: {
+    flex: 1,
+  },
+  favoriteCardEyebrow: {
+    color: '#8a8a8a',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  favoriteCardTitle: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '800',
+    marginTop: 10,
+  },
+  favoriteCardText: {
+    color: '#a3a3a3',
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 8,
+  },
+  favoriteCardAction: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#2d2d2d',
+    backgroundColor: '#161616',
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  favoriteCardActionText: {
+    color: '#1ed760',
+    fontSize: 11,
+    fontWeight: '800',
   },
   authCardTitle: {
     color: '#ffffff',
