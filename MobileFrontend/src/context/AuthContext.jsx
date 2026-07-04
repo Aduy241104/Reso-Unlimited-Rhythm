@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useCallback, useEffect, useMemo, useState } from 'react';
 import { tokenStorage } from '../storage/tokenStorage';
 import { userStorage } from '../storage/userStorage';
 import authService from '../services/authService';
@@ -7,9 +7,21 @@ export const AuthContext = createContext({
     isAuthenticated: false,
     isLoading: true,
     user: null,
-    login: async (email, password) => { },
-    logout: async () => { },
+    login: async () => {},
+    logout: async () => {},
 });
+
+const normalizeAuthUser = (value) => {
+    if (!value || typeof value !== 'object') {
+        return null;
+    }
+
+    if (value.user && typeof value.user === 'object') {
+        return value.user;
+    }
+
+    return value;
+};
 
 export const AuthProvider = ({ children }) => {
     const [authState, setAuthState] = useState({
@@ -18,33 +30,32 @@ export const AuthProvider = ({ children }) => {
         user: null,
     });
 
-    // Tự động khôi phục phiên làm việc cũ khi mở lại ứng dụng (Persist Session)
     const restoreSession = useCallback(async () => {
         try {
             const accessToken = await tokenStorage.getAccessToken();
-            const storedUser = await userStorage.getUserProfile();
+            const storedUser = normalizeAuthUser(await userStorage.getUserProfile());
 
-            if (accessToken && storedUser) {
-                // Gán trạng thái tạm thời để user vào thẳng màn chính mà không bị đứng ở màn Login
-                setAuthState({ isAuthenticated: true, isLoading: false, user: storedUser });
+            if (!accessToken || !storedUser) {
+                setAuthState({ isAuthenticated: false, isLoading: false, user: null });
+                return;
+            }
 
-                try {
-                    // Thực hiện đồng bộ ngầm dữ liệu mới nhất từ router /auth/me của Backend
-                    const response = await authService.getCurrentUser();
+            setAuthState({ isAuthenticated: true, isLoading: false, user: storedUser });
 
-                    // Khớp cấu trúc dữ liệu thô trả về từ controller me của Backend
-                    const freshUser = response.data || response;
+            try {
+                const response = await authService.getCurrentUser();
+                const freshUser = normalizeAuthUser(response?.data || response);
+
+                if (freshUser) {
                     await userStorage.setUserProfile(freshUser);
                     setAuthState((prev) => ({ ...prev, user: freshUser }));
-                } catch (e) {
-                    if (e.status === 401) {
-                        await tokenStorage.clearTokens();
-                        await userStorage.clearUserProfile();
-                        setAuthState({ isAuthenticated: false, isLoading: false, user: null });
-                    }
                 }
-            } else {
-                setAuthState({ isAuthenticated: false, isLoading: false, user: null });
+            } catch (error) {
+                if (error?.status === 401) {
+                    await tokenStorage.clearTokens();
+                    await userStorage.clearUserProfile();
+                    setAuthState({ isAuthenticated: false, isLoading: false, user: null });
+                }
             }
         } catch {
             setAuthState({ isAuthenticated: false, isLoading: false, user: null });
@@ -55,57 +66,51 @@ export const AuthProvider = ({ children }) => {
         restoreSession();
     }, [restoreSession]);
 
-    // Hàm xử lý hành vi đăng nhập nối thẳng tới Backend API
-    // Hàm xử lý hành vi đăng nhập nối thẳng tới Backend API
     const login = useCallback(async (email, password) => {
         setAuthState((prev) => ({ ...prev, isLoading: true }));
+
         try {
             const response = await authService.login(email, password);
 
-            // An toàn: Kiểm tra xem response có thực sự tồn tại không
             if (!response) {
-                throw new Error("Không nhận được phản hồi từ server.");
+                throw new Error('No response received from server.');
             }
 
-            // Đọc trực tiếp dữ liệu thô vì interceptor đã gọt vỏ response.data rồi
-            const responseData = response.data ? response.data : response;
+            const responseData = response?.data || response;
             const { accessToken, refreshToken, user } = responseData;
+            const normalizedUser = normalizeAuthUser(user);
 
-            // Kiểm tra nghiêm ngặt xem có token thật không, tránh crash khi destructuring
             if (!accessToken) {
-                throw new Error(responseData?.message || "Đăng nhập thất bại: Server không trả về Token.");
+                throw new Error(responseData?.message || 'Login failed because no access token was returned.');
             }
 
-            // Lưu trữ thông tin định danh cục bộ bảo mật
             await tokenStorage.setAccessToken(accessToken);
+
             if (refreshToken) {
                 await tokenStorage.setRefreshToken(refreshToken);
             }
-            if (user) {
-                await userStorage.setUserProfile(user);
+
+            if (normalizedUser) {
+                await userStorage.setUserProfile(normalizedUser);
             }
 
             setAuthState({
                 isAuthenticated: true,
                 isLoading: false,
-                user: user || { email },
+                user: normalizedUser || { email },
             });
-
         } catch (error) {
             setAuthState({ isAuthenticated: false, isLoading: false, user: null });
-
-            // 🚀 Log lỗi thực tế ra đây để bạn nhìn thấy trên Terminal:
-            console.log("❌ LỖI THỰC TẾ TẠI AUTH_CONTEXT:", error.message || error);
-
+            console.log('AUTH_CONTEXT error:', error?.message || error);
             throw error;
         }
     }, []);
 
-    // Hàm xử lý đăng xuất đồng bộ
     const logout = useCallback(async () => {
         setAuthState((prev) => ({ ...prev, isLoading: true }));
+
         try {
-            await authService.logout().catch(() => { });
+            await authService.logout().catch(() => {});
         } finally {
             await tokenStorage.clearTokens();
             await userStorage.clearUserProfile();

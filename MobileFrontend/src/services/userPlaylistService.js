@@ -61,6 +61,28 @@ export const userPlaylistService = {
       responsePayload?.playlist || responsePayload?.data || responsePayload
     );
   },
+
+  async updateMyPlaylist(playlistId, payload = {}) {
+    const formData = new FormData();
+
+    appendStringField(formData, 'title', payload.title);
+    appendStringField(formData, 'description', payload.description);
+
+    const response = await axiosClient.patch(
+      `${API_ENDPOINTS.USER_PLAYLISTS.UPDATE}/${playlistId}`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+    const responsePayload = getPayload(response);
+
+    return normalizePlaylistSummary(
+      responsePayload?.playlist || responsePayload?.data || responsePayload
+    );
+  },
 };
 
 export default userPlaylistService;

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Image,
   RefreshControl,
@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import CreatePlaylistModal from '../../components/library/CreatePlaylistModal';
 import AppButton from '../../components/common/AppButton';
 import AppHeader from '../../components/common/AppHeader';
@@ -113,6 +113,7 @@ export default function LibraryScreen() {
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
   const [isCreatingPlaylist, setIsCreatingPlaylist] = useState(false);
   const [createPlaylistError, setCreatePlaylistError] = useState('');
+  const skipNextFocusRefreshRef = useRef(true);
 
   const displayName = useMemo(
     () =>
@@ -197,6 +198,21 @@ export default function LibraryScreen() {
   useEffect(() => {
     loadLibraryData();
   }, [loadLibraryData]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (skipNextFocusRefreshRef.current) {
+        skipNextFocusRefreshRef.current = false;
+        return undefined;
+      }
+
+      if (isAuthenticated) {
+        loadMyPlaylists({ refresh: true });
+      }
+
+      return undefined;
+    }, [isAuthenticated, loadMyPlaylists])
+  );
 
   const handleOpenPlaylist = useCallback((playlist) => {
     if (!playlist?.id) {

@@ -28,5 +28,6 @@ export const API_ENDPOINTS = {
     LIST: '/users/playlists',
     DETAIL: '/users/playlists/detail',
     CREATE: '/users/playlists',
+    UPDATE: '/users/playlists',
   },
 };

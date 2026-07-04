@@ -13,8 +13,11 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppLoader from '../../components/common/AppLoader';
 import ErrorState from '../../components/common/ErrorState';
+import EditPlaylistModal from '../../components/library/EditPlaylistModal';
+import { useAuth } from '../../hooks/useAuth';
 import usePlayer from '../../hooks/usePlayer';
 import playlistService from '../../services/playlistService';
+import userPlaylistService from '../../services/userPlaylistService';
 import { formatDateLabel, formatDuration, getErrorMessage, getInitials, resolveImageUri } from '../../utils/media';
 import { buildPlayableQueue } from '../../utils/player';
 
@@ -92,6 +95,7 @@ export default function PlaylistDetailScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const insets = useSafeAreaInsets();
+  const { isAuthenticated, user } = useAuth();
   const {
     currentTrack,
     isPlaying,
@@ -103,6 +107,9 @@ export default function PlaylistDetailScreen() {
   const [playlist, setPlaylist] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [isUpdatingPlaylist, setIsUpdatingPlaylist] = useState(false);
+  const [updatePlaylistError, setUpdatePlaylistError] = useState('');
 
   const loadPlaylistDetail = useCallback(async () => {
     if (!playlistId) {
@@ -145,6 +152,15 @@ export default function PlaylistDetailScreen() {
     : playlist?.isPublic
       ? 'Public'
       : 'Private';
+  const currentUserId = String(user?.id || user?._id || user?.user?.id || user?.user?._id || '');
+  const ownerId = String(playlist?.owner?.id || playlist?.owner?._id || '');
+  const canEditPlaylist = Boolean(
+    isAuthenticated &&
+    playlist?.playlistType !== 'system' &&
+    currentUserId &&
+    ownerId &&
+    currentUserId === ownerId
+  );
 
   const heroMeta = [
     ownerLabel,
@@ -181,6 +197,40 @@ export default function PlaylistDetailScreen() {
 
     playQueue(playableQueue, index);
   }, [activeTrackId, playQueue, playableQueue, togglePlayback]);
+
+  const handleOpenEditModal = useCallback(() => {
+    setUpdatePlaylistError('');
+    setIsEditModalVisible(true);
+  }, []);
+
+  const handleCloseEditModal = useCallback(() => {
+    if (isUpdatingPlaylist) {
+      return;
+    }
+
+    setUpdatePlaylistError('');
+    setIsEditModalVisible(false);
+  }, [isUpdatingPlaylist]);
+
+  const handleUpdatePlaylist = useCallback(async (payload) => {
+    if (!playlistId) {
+      setUpdatePlaylistError('Playlist information is missing.');
+      return;
+    }
+
+    setIsUpdatingPlaylist(true);
+    setUpdatePlaylistError('');
+
+    try {
+      await userPlaylistService.updateMyPlaylist(playlistId, payload);
+      await loadPlaylistDetail();
+      setIsEditModalVisible(false);
+    } catch (error) {
+      setUpdatePlaylistError(getErrorMessage(error, 'Unable to update this playlist right now.'));
+    } finally {
+      setIsUpdatingPlaylist(false);
+    }
+  }, [loadPlaylistDetail, playlistId]);
 
   const headerTitle = readText(playlist?.title, initialTitle);
 
@@ -244,6 +294,16 @@ export default function PlaylistDetailScreen() {
                   {playableQueue.length > 0 ? `Play ${playableQueue.length} tracks` : 'No playable tracks'}
                 </Text>
               </TouchableOpacity>
+              {canEditPlaylist ? (
+                <TouchableOpacity
+                  style={styles.secondaryAction}
+                  onPress={handleOpenEditModal}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="create-outline" size={15} color="#ffffff" />
+                  <Text style={styles.secondaryActionText}>Edit playlist</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
           </View>
 
@@ -305,6 +365,15 @@ export default function PlaylistDetailScreen() {
           </View>
         </ScrollView>
       )}
+
+      <EditPlaylistModal
+        visible={isEditModalVisible}
+        playlist={playlist}
+        isSubmitting={isUpdatingPlaylist}
+        submitError={updatePlaylistError}
+        onClose={handleCloseEditModal}
+        onSubmit={handleUpdatePlaylist}
+      />
     </View>
   );
 }
@@ -446,6 +515,9 @@ const styles = StyleSheet.create({
   },
   heroActions: {
     marginTop: 16,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
   },
   playButton: {
     alignSelf: 'flex-start',
@@ -464,6 +536,23 @@ const styles = StyleSheet.create({
     color: '#000000',
     fontSize: 12,
     fontWeight: '800',
+  },
+  secondaryAction: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#1a1a1a',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#2d2d2d',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  secondaryActionText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
   },
   section: {
     marginTop: 18,
