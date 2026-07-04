@@ -1,4 +1,4 @@
-import { Loader2, X } from "lucide-react";
+﻿import { Loader2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -10,8 +10,16 @@ const DeletePlaylistConfirmModal = ({
   title = "Xóa khỏi Thư viện?",
   message = "",
   confirmLabel = "Xóa",
+  cancelLabel = "Hủy",
   isDeleting = false,
   errorMessage = "",
+  variant = "light",
+  size = "default",
+  confirmTone = "danger",
+  extraActionLabel = "",
+  onExtraAction,
+  extraActionTone = "primary",
+  isExtraActionDisabled = false,
   onClose,
   onConfirm,
 }) => {
@@ -86,6 +94,62 @@ const DeletePlaylistConfirmModal = ({
   const titleLabel = playlistTitle?.trim() || "playlist này";
   const resolvedMessage =
     message || `Thao tác này sẽ xóa ${titleLabel} khỏi Thư viện.`;
+  const isDarkVariant = variant === "dark";
+  const isCompact = size === "sm";
+  const hasExtraAction =
+    extraActionLabel && typeof onExtraAction === "function";
+  const titleClassName = isCompact
+    ? "text-2xl font-bold tracking-tight sm:text-[1.8rem]"
+    : "text-3xl font-bold tracking-tight sm:text-[2.1rem]";
+  const descriptionClassName = isDarkVariant
+    ? "mt-3 max-w-[26rem] text-sm leading-6 text-white/72 sm:mt-4 sm:text-base"
+    : "mt-4 max-w-[26rem] text-lg leading-8 text-black/86";
+  const panelClassName = [
+    "w-full shadow-[0_30px_90px_rgba(0,0,0,0.45)] transition-all duration-300",
+    isCompact
+      ? "max-w-[420px] rounded-[26px] px-5 pb-5 pt-5 sm:px-6 sm:pb-6 sm:pt-6"
+      : "max-w-[560px] rounded-[28px] px-6 pb-7 pt-6 sm:px-10 sm:pb-9 sm:pt-8",
+    isDarkVariant
+      ? "border border-white/10 bg-[#111111] text-white"
+      : "bg-white text-[#111111]",
+    isVisible ? "scale-100 opacity-100" : "scale-95 opacity-0",
+  ].join(" ");
+  const closeButtonClassName = [
+    "inline-flex h-11 w-11 items-center justify-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-50",
+    isDarkVariant
+      ? "text-white/55 hover:bg-white/8 hover:text-white"
+      : "text-black/55 hover:bg-black/5 hover:text-black",
+  ].join(" ");
+  const cancelButtonClassName = [
+    "inline-flex min-w-0 flex-1 items-center justify-center rounded-full px-4 py-3 font-semibold transition disabled:cursor-not-allowed disabled:opacity-50",
+    isCompact ? "text-base" : "text-2xl",
+    isDarkVariant
+      ? "border border-white/12 bg-transparent text-white hover:bg-white/8"
+      : "border border-black/10 bg-white text-black hover:bg-black/5",
+  ].join(" ");
+
+  const resolveActionButtonClassName = (tone) =>
+    [
+      "inline-flex items-center justify-center rounded-full px-5 py-3 font-semibold transition disabled:cursor-not-allowed disabled:opacity-60",
+      isCompact ? "text-sm sm:text-base" : "text-xl sm:text-2xl",
+      tone === "primary"
+        ? "border border-transparent bg-white text-black hover:bg-white/90"
+        : tone === "neutral"
+          ? isDarkVariant
+            ? "border border-white/12 bg-white/10 text-white hover:bg-white/16"
+            : "border border-black/10 bg-black/5 text-[#111111] hover:bg-black/10"
+          : "border border-transparent bg-[#ef1d28] text-white hover:bg-[#d71923]",
+    ].join(" ");
+
+  const confirmButtonClassName = [
+    resolveActionButtonClassName(confirmTone),
+    "min-w-0 flex-1",
+  ].join(" ");
+
+  const extraActionButtonClassName = [
+    resolveActionButtonClassName(extraActionTone),
+    hasExtraAction && isCompact ? "w-full" : "min-w-[124px]",
+  ].join(" ");
 
   return createPortal(
     <div
@@ -102,11 +166,7 @@ const DeletePlaylistConfirmModal = ({
       aria-hidden="true"
     >
       <div
-        className={[
-          "w-full max-w-[560px] rounded-[28px] bg-white px-6 pb-7 pt-6 text-[#111111] shadow-[0_30px_90px_rgba(0,0,0,0.45)]",
-          "transition-all duration-300 sm:px-10 sm:pb-9 sm:pt-8",
-          isVisible ? "scale-100 opacity-100" : "scale-95 opacity-0",
-        ].join(" ")}
+        className={panelClassName}
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -114,21 +174,16 @@ const DeletePlaylistConfirmModal = ({
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2
-              id="delete-playlist-modal-title"
-              className="text-3xl font-bold tracking-tight sm:text-[2.1rem]"
-            >
+            <h2 id="delete-playlist-modal-title" className={titleClassName}>
               {title}
             </h2>
-            <p className="mt-4 max-w-[26rem] text-lg leading-8 text-black/86">
-              {resolvedMessage}
-            </p>
+            <p className={descriptionClassName}>{resolvedMessage}</p>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full text-black/55 transition hover:bg-black/5 hover:text-black disabled:cursor-not-allowed disabled:opacity-50"
+            className={closeButtonClassName}
             aria-label="Đóng modal"
             disabled={isDeleting}
           >
@@ -137,36 +192,56 @@ const DeletePlaylistConfirmModal = ({
         </div>
 
         {errorMessage ? (
-          <div className="mt-5 rounded-2xl border border-[#ef4444]/20 bg-[#ef4444]/8 px-4 py-3 text-sm text-[#b91c1c]">
+          <div
+            className={[
+              "mt-5 rounded-2xl border px-4 py-3 text-sm",
+              isDarkVariant
+                ? "border-white/12 bg-white/6 text-white/78"
+                : "border-[#ef4444]/20 bg-[#ef4444]/8 text-[#b91c1c]",
+            ].join(" ")}
+          >
             {errorMessage}
           </div>
         ) : null}
 
-        <div className="mt-8 flex items-center justify-end gap-3 sm:mt-10 sm:gap-4">
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex min-w-[96px] items-center justify-center rounded-full px-4 py-3 text-2xl font-semibold text-black transition hover:text-black/70 disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={isDeleting}
-          >
-            Hủy
-          </button>
+        <div className={isCompact ? "mt-7 space-y-3 sm:mt-8" : "mt-8 space-y-4 sm:mt-10"}>
+          {hasExtraAction ? (
+            <button
+              type="button"
+              onClick={onExtraAction}
+              className={extraActionButtonClassName}
+              disabled={isDeleting || isExtraActionDisabled}
+            >
+              {extraActionLabel}
+            </button>
+          ) : null}
 
-          <button
-            type="button"
-            onClick={onConfirm}
-            className="inline-flex min-w-[124px] items-center justify-center rounded-full border-2 border-[#60a5fa] bg-[#ef1d28] px-7 py-3 text-2xl font-semibold text-white transition hover:bg-[#d71923] disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={isDeleting}
-          >
-            {isDeleting ? (
-              <span className="inline-flex items-center gap-2 text-xl">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                {confirmLabel}
-              </span>
-            ) : (
-              confirmLabel
-            )}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className={cancelButtonClassName}
+              disabled={isDeleting}
+            >
+              {cancelLabel}
+            </button>
+
+            <button
+              type="button"
+              onClick={onConfirm}
+              className={confirmButtonClassName}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <span className="inline-flex items-center gap-2 text-inherit">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  {confirmLabel}
+                </span>
+              ) : (
+                confirmLabel
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>,

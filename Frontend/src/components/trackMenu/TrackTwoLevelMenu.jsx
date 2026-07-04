@@ -1,4 +1,5 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
     CheckCircle2,
     ChevronRight,
@@ -9,6 +10,7 @@ import {
     Search,
     X,
 } from "lucide-react";
+import DeletePlaylistConfirmModal from "../userPlaylist/DeletePlaylistConfirmModal";
 import { usePlayer } from "../../hooks/usePlayer";
 import {
     addTrackToFavorite,
@@ -19,6 +21,7 @@ import {
     addTrackToUserPlaylist,
     getUserPlaylists,
 } from "../../services/userPlaylistService";
+import { routePaths } from "../../routes/routePaths";
 import { getApiErrorMessage } from "../../utils/apiError";
 
 const getPlaylistId = (playlist) => playlist?.playlistId || playlist?.id || "";
@@ -39,6 +42,30 @@ const normalizePlaylists = (payload) => {
     if (Array.isArray(payload)) return payload;
     if (Array.isArray(payload?.playlists)) return payload.playlists;
     return [];
+};
+
+const getPlaylistTrackLimitModalMessage = () =>
+    "Playlist này đã đạt giới hạn bài hát của gói miễn phí. Hãy đăng ký Premium để thêm nhiều bài hát hơn.";
+
+const isPlaylistTrackLimitErrorMessage = (message) => {
+    const normalizedMessage =
+        typeof message === "string" ? message.trim().toLocaleLowerCase() : "";
+
+    if (!normalizedMessage) {
+        return false;
+    }
+
+    return (
+        normalizedMessage.includes("free playlists can contain") ||
+        normalizedMessage.includes("đạt giới hạn bài hát") ||
+        normalizedMessage.includes("giới hạn bài hát") ||
+        normalizedMessage.includes("playlist") &&
+            (normalizedMessage.includes("track") || normalizedMessage.includes("bài hát")) &&
+            (normalizedMessage.includes("premium") ||
+                normalizedMessage.includes("limit") ||
+                normalizedMessage.includes("giới hạn") ||
+                normalizedMessage.includes("nâng cấp"))
+    );
 };
 
 const resolveTrackIdentity = (candidate) =>
@@ -65,6 +92,7 @@ const TrackTwoLevelMenu = ({
     onFavoriteChanged,
 }) => {
     const menuRef = useRef(null);
+    const navigate = useNavigate();
     const submenuAnchorRef = useRef(null);
     const hasFavoriteProp = typeof isFavorite === "boolean";
     const {
@@ -85,6 +113,7 @@ const TrackTwoLevelMenu = ({
     const [isFavoriteStatusLoading, setIsFavoriteStatusLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
     const [submenuPlacement, setSubmenuPlacement] = useState("right");
+    const [isPlaylistTrackLimitModalOpen, setIsPlaylistTrackLimitModalOpen] = useState(false);
 
     const resolvedIsFavorite = hasFavoriteProp ? isFavorite : favoriteState;
     const resolvedTrackId = trackId || resolveTrackIdentity(track);
@@ -270,9 +299,19 @@ const TrackTwoLevelMenu = ({
             setIsPlaylistSubmenuOpen(false);
             setSearchValue("");
         } catch (error) {
-            setErrorMessage(
-                getApiErrorMessage(error, "Không thể thêm bài hát vào playlist.")
+            const nextErrorMessage = getApiErrorMessage(
+                error,
+                "Không thể thêm bài hát vào playlist."
             );
+
+            if (isPlaylistTrackLimitErrorMessage(nextErrorMessage)) {
+                setIsOpen(false);
+                setIsPlaylistSubmenuOpen(false);
+                setSearchValue("");
+                setIsPlaylistTrackLimitModalOpen(true);
+            } else {
+                setErrorMessage(nextErrorMessage);
+            }
         } finally {
             setSubmittingPlaylistId("");
         }
@@ -560,8 +599,30 @@ const TrackTwoLevelMenu = ({
                     ) }
                 </div>
             ) }
+            <DeletePlaylistConfirmModal
+                isOpen={ isPlaylistTrackLimitModalOpen }
+                playlistTitle=""
+                title="Đã đạt giới hạn bài hát trong playlist"
+                message={ getPlaylistTrackLimitModalMessage() }
+                confirmLabel="Xác nhận"
+                cancelLabel="Hủy"
+                confirmTone="neutral"
+                extraActionLabel="Đăng ký Premium"
+                extraActionTone="primary"
+                onExtraAction={ () => {
+                    setIsPlaylistTrackLimitModalOpen(false);
+                    navigate(routePaths.premium);
+                } }
+                onClose={ () => setIsPlaylistTrackLimitModalOpen(false) }
+                onConfirm={ () => setIsPlaylistTrackLimitModalOpen(false) }
+                variant="dark"
+                size="sm"
+            />
         </div>
     );
 };
 
 export default TrackTwoLevelMenu;
+
+
+

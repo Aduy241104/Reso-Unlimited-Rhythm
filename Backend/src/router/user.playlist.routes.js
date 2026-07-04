@@ -1,9 +1,8 @@
 import express from "express";
 import multer from "multer";
 import userPlaylistController from "../controllers/user.playlist.controller.js";
-import {
+import authenticate, {
     optionalAuthenticate,
-    requireUser,
 } from "../middlewares/Authentication/authentication.middleware.js";
 import { AppError } from "../utils/AppError.js";
 
@@ -45,13 +44,12 @@ const runPlaylistCoverUpload = (req, res, next) => {
     });
 };
 
-router.post( "/", requireUser, runPlaylistCoverUpload, userPlaylistController.createMyPlaylist);
-
-router.post("/:playlistId/tracks", requireUser, userPlaylistController.addTrackToMyPlaylist);
-router.delete("/:playlistId/tracks/:trackId", requireUser, userPlaylistController.removeTrackFromMyPlaylist);
-router.patch("/:id", requireUser, runPlaylistCoverUpload, userPlaylistController.updateMyPlaylist);
-router.delete("/:id", requireUser, userPlaylistController.deleteMyPlaylist);
-router.get("/", requireUser, userPlaylistController.getMyPlaylists);
+router.post("/", authenticate(), runPlaylistCoverUpload, userPlaylistController.createMyPlaylist);
+router.post("/:playlistId/tracks", authenticate(), userPlaylistController.addTrackToMyPlaylist);
+router.delete("/:playlistId/tracks/:trackId", authenticate(), userPlaylistController.removeTrackFromMyPlaylist);
+router.patch("/:id", authenticate(), runPlaylistCoverUpload, userPlaylistController.updateMyPlaylist);
+router.delete("/:id", authenticate(), userPlaylistController.deleteMyPlaylist);
+router.get("/", authenticate(), userPlaylistController.getMyPlaylists);
 router.get("/detail/:id", optionalAuthenticate(), userPlaylistController.getPlaylistDetail);
 
 export default router;
