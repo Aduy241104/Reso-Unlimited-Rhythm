@@ -1,4 +1,4 @@
-import {
+﻿import {
   Album,
   BarChart3,
   Bell,
@@ -7,6 +7,7 @@ import {
   Landmark,
   LayoutDashboard,
   Music2,
+  Users,
   Wallet,
   Waves,
 } from "lucide-react";
@@ -59,6 +60,11 @@ export const artistNavigation = [
     icon: Bell,
   },
   {
+    label: "Người theo dõi",
+    to: routePaths.artistFollowers,
+    icon: Users,
+  },
+  {
     label: "Hồ sơ nghệ sĩ",
     to: routePaths.artistProfile,
     icon: BarChart3,
@@ -77,6 +83,7 @@ export const artistPageTitles = {
   [routePaths.artistRoyalties]: "Số dư khả dụng",
   [routePaths.artistWithdrawalRequests]: "Yêu cầu rút tiền",
   [routePaths.artistNotifications]: "Thông báo",
+  [routePaths.artistFollowers]: "Người theo dõi",
   [routePaths.artistProfile]: "Hồ sơ nghệ sĩ",
   [routePaths.artistProfileEdit]: "Chỉnh sửa hồ sơ nghệ sĩ",
 };

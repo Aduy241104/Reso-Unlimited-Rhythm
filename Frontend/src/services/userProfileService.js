@@ -1,8 +1,7 @@
-import axiosClient from "../axios/axiosClient";
+﻿import axiosClient from "../axios/axiosClient";
+import countries from "world-countries";
 
 const USER_API_PREFIX = "/api/users";
-const COUNTRIES_API_URL =
-  "https://restcountries.com/v3.1/all?fields=name,flag,flags,cca2,cca3";
 
 const normalizeText = (value) => {
   if (typeof value !== "string") {
@@ -53,25 +52,15 @@ export const changeCurrentUserPassword = async (payload = {}) => {
 };
 
 export const getCountryOptions = async (signal) => {
-  const response = await fetch(COUNTRIES_API_URL, { signal });
+  void signal;
 
-  if (!response.ok) {
-    throw new Error("Unable to load countries right now.");
-  }
-
-  const payload = await response.json();
-
-  if (!Array.isArray(payload)) {
-    return [];
-  }
-
-  return payload
+  return countries
     .map((country) => ({
-      code: normalizeText(country?.cca2 || country?.cca3),
-      name: normalizeText(country?.name?.common),
-      officialName: normalizeText(country?.name?.official),
-      flag: normalizeText(country?.flag) || normalizeText(country?.flags?.emoji),
+      name: country.name.common,
+      officialName: country.name.official,
+      code: country.cca2,
+      code3: country.cca3,
+      flag: country.flag,
     }))
-    .filter((country) => country.name)
     .sort((left, right) => left.name.localeCompare(right.name));
 };

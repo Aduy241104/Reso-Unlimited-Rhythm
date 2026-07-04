@@ -40,6 +40,7 @@
   artistReleaseScheduleDetail: (scheduleId = ":id") => `/artist/releases/${scheduleId}`,
   artistAnalytics: "/artist/analytics",
   artistNotifications: "/artist/notifications",
+  artistFollowers: "/artist/followers",
   artistNotificationDetail: (notificationId = ":id") => `/artist/notifications/${notificationId}`,
   artistRoyalties: "/artist/royalties",
   artistRevenueHistory: "/artist/royalties/history",
@@ -49,6 +50,8 @@
   artistProfile: "/artist/profile",
   artistProfileEdit: "/artist/profile/edit",
   userPlaylist: "/user/playlist",
+  userPaymentHistory: "/payment-history",
+  userPaymentReceipt: "/payment-history/:paymentId/receipt",
   userPlaylistDetail: (playlistId = ":id") => `/user/playlist/${playlistId}`,
   userFavoriteTracks: "/user/favorite-tracks",
   userCreateReport: "/user/reports/create",
@@ -58,3 +61,4 @@
   libraryFollowedArtists: "/library/followed-artists",
   libraryFollowedAlbums: "/library/followed-albums",
 };
+

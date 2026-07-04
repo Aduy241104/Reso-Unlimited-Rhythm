@@ -21,6 +21,7 @@ import ArtistEditReleaseSchedulePage from "../pages/artist/ArtistEditReleaseSche
 import ArtistReleaseScheduleDetailPage from "../pages/artist/ArtistReleaseScheduleDetailPage";
 import ArtistNotificationDetailPage from "../pages/artist/ArtistNotificationDetailPage";
 import ArtistNotificationsPage from "../pages/artist/ArtistNotificationsPage";
+import ArtistFollowerPage from "../pages/artist/ArtistFollowerPage";
 import ArtistTrackInsightsPage from "../pages/artist/ArtistTrackInsightsPage";
 import ArtistRevenueHistory from "../pages/artist/revenue/ArtistRevenueHistory";
 import ArtistRevenuePeriodDetail from "../pages/artist/revenue/ArtistRevenuePeriodDetail";
@@ -46,6 +47,8 @@ import PlaylistDetailPage from "../pages/playlist/PlaylistDetailPage";
 import PremiumPaymentFailedPage from "../pages/premium/PremiumPaymentFailedPage";
 import PremiumPaymentSuccessPage from "../pages/premium/PremiumPaymentSuccessPage";
 import PremiumPage from "../pages/premium/PremiumPage";
+import PaymentHistoryPage from "../pages/userPayment/PaymentHistoryPage";
+import PaymentReceiptPdfPage from "../pages/userPayment/PaymentReceiptPdfPage";
 import TrackDetailPage from "../pages/track/TrackDetailPage";
 import UserRecentListeningPage from "../pages/userInsign/user.recentListening.page";
 import UserFavoriteTracksPage from "../pages/userFavorite/UserFavoriteTracksPage";
@@ -164,6 +167,19 @@ export const appRoutes = [
     element: <ProtectedRoute />,
     children: [
       {
+        path: routePaths.userPaymentHistory,
+        element: <PaymentHistoryPage />,
+      },
+      {
+        path: routePaths.userPaymentReceipt,
+        element: <PaymentReceiptPdfPage />,
+      },
+    ],
+  },
+  {
+    element: <ProtectedRoute />,
+    children: [
+      {
         path: routePaths.premium,
         element: <PremiumPage />,
       },
@@ -269,6 +285,10 @@ export const appRoutes = [
                 element: <ArtistNotificationsPage />,
               },
               {
+                path: routePaths.artistFollowers,
+                element: <ArtistFollowerPage />,
+              },
+              {
                 path: routePaths.artistNotificationDetail(),
                 element: <ArtistNotificationDetailPage />,
               },
@@ -332,3 +352,4 @@ export const appRoutes = [
     element: <Navigate to={routePaths.home} replace />,
   },
 ];
+

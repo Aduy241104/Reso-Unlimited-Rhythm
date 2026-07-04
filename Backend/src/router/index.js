@@ -1,4 +1,4 @@
-import albumRoutes from "./album.routes.js";
+﻿import albumRoutes from "./album.routes.js";
 import artistBrowseRoutes from "./artistBrowse.routes.js";
 import artistNotificationRoutes from "./artist.notification.routes.js";
 import artistRevenueRoutes from "./artist.revenue.routes.js";
@@ -31,6 +31,9 @@ import userGenreRoutes from "./user.genre.routes.js";
 import searchRoutes from "./search.routes.js";
 import userFavoriteRoutes from "./user.favorite.route.js";
 import userNotificationRouter from "./user.notification.router.js";
+import userPaymentHistoryRoutes from "./user.payment.history.route.js";
+import userSubscriptionRoutes from "./user.subscription.routes.js";
+import artistFollowerRoutes from "./artist.follower.route.js";
 
 function route(app) {
     app.use("/api/auth", authenticationRoutes);
@@ -66,6 +69,13 @@ function route(app) {
     app.use("/api/search", searchRoutes);
     app.use("/api/users/favorites", userFavoriteRoutes);
     app.use("/api/admin/notifications", adminNotificationRouter);
+    app.use("/api/users/payment-history", userPaymentHistoryRoutes);
+    app.use("/api/users/payments", userPaymentHistoryRoutes);
+    app.use("/api/users/subscription", userSubscriptionRoutes);
+    app.use("/api/artists", artistFollowerRoutes);
+
 }
 
 export default route;
+
+
