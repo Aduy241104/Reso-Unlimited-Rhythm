@@ -169,6 +169,14 @@ export default function EntityDetailScreen() {
         return;
       }
 
+      if (nextType === 'playlist') {
+        navigation.push('PlaylistDetail', {
+          playlistId: nextId,
+          initialTitle: nextTitle,
+        });
+        return;
+      }
+
       navigation.push('EntityDetail', {
         entityType: nextType,
         entityId: nextId,

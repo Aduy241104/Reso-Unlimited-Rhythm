@@ -149,6 +149,17 @@ export default function HomeScreen() {
     [handleOpenDetail]
   );
 
+  const handleOpenPlaylistDetail = useCallback((playlist) => {
+    if (!playlist?.id) {
+      return;
+    }
+
+    navigation.navigate('PlaylistDetail', {
+      playlistId: playlist.id,
+      initialTitle: playlist.title || 'Playlist Detail',
+    });
+  }, [navigation]);
+
   const handleHeaderAction = async () => {
     if (isAuthenticated) {
       await logout();
@@ -195,13 +206,7 @@ export default function HomeScreen() {
       <TouchableOpacity
         style={styles.cardItem}
         activeOpacity={0.8}
-        onPress={() =>
-          handleOpenDetail({
-            entityType: 'playlist',
-            entityId: item.id,
-            initialTitle: item.title || 'Playlist Detail',
-          })
-        }
+        onPress={() => handleOpenPlaylistDetail(item)}
       >
         <Artwork uri={item.coverImage} label={item.title} color={accentColor} />
         <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>

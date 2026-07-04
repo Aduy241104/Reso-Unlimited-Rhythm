@@ -203,9 +203,8 @@ export default function LibraryScreen() {
       return;
     }
 
-    navigation.navigate('EntityDetail', {
-      entityType: 'playlist',
-      entityId: playlist.id,
+    navigation.navigate('PlaylistDetail', {
+      playlistId: playlist.id,
       initialTitle: playlist.title || 'Playlist Detail',
     });
   }, [navigation]);
@@ -243,9 +242,8 @@ export default function LibraryScreen() {
       setMyPlaylists((prevPlaylists) => [createdPlaylist, ...prevPlaylists]);
       setIsCreateModalVisible(false);
 
-      navigation.navigate('EntityDetail', {
-        entityType: 'playlist',
-        entityId: createdPlaylist.id,
+      navigation.navigate('PlaylistDetail', {
+        playlistId: createdPlaylist.id,
         initialTitle: createdPlaylist.title || 'Playlist Detail',
       });
     } catch (error) {

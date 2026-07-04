@@ -9,6 +9,7 @@ import PremiumScreen from '../screens/premium/PremiumScreen';
 import CreateForMeScreen from '../screens/createForMe/CreateForMeScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import EntityDetailScreen from '../screens/detail/EntityDetailScreen';
+import PlaylistDetailScreen from '../screens/playlist/PlaylistDetailScreen';
 import PlayerSheetScreen from '../screens/player/PlayerSheetScreen';
 import AppTabBar from '../components/navigation/AppTabBar';
 import theme from '../theme';
@@ -40,6 +41,14 @@ function SharedTabStack({ rootName, component: RootComponent }) {
       <Stack.Screen
         name="EntityDetail"
         component={EntityDetailScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="PlaylistDetail"
+        component={PlaylistDetailScreen}
         options={{
           headerShown: false,
           animation: 'slide_from_right',
