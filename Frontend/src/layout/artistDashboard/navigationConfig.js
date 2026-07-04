@@ -6,6 +6,7 @@ import {
   FileText,
   LayoutDashboard,
   Music2,
+  Users,
   UserCircle2,
   Wallet,
   Waves,
@@ -54,6 +55,11 @@ export const artistNavigation = [
     icon: Bell,
   },
   {
+    label: "Người theo dõi",
+    to: routePaths.artistFollowers,
+    icon: Users,
+  },
+  {
     label: "Hồ sơ nghệ sĩ",
     to: routePaths.artistProfile,
     icon: UserCircle2,
@@ -71,6 +77,7 @@ export const artistPageTitles = {
   [routePaths.artistAnalytics]: "Phân tích bài hát",
   [routePaths.artistRoyalties]: "Doanh thu",
   [routePaths.artistNotifications]: "Thông báo",
+  [routePaths.artistFollowers]: "Người theo dõi",
   [routePaths.artistProfile]: "Hồ sơ nghệ sĩ",
   [routePaths.artistProfileEdit]: "Chỉnh sửa hồ sơ nghệ sĩ",
 };
