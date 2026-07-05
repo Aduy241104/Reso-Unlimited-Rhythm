@@ -22,6 +22,7 @@ import ArtistReleaseScheduleDetailPage from "../pages/artist/ArtistReleaseSchedu
 import ArtistNotificationDetailPage from "../pages/artist/ArtistNotificationDetailPage";
 import ArtistNotificationsPage from "../pages/artist/ArtistNotificationsPage";
 import ArtistTrackInsightsPage from "../pages/artist/ArtistTrackInsightsPage";
+import ArtistRevenueOverview from "../pages/artist/revenue/ArtistRevenueOverview";
 import ArtistRevenueHistory from "../pages/artist/revenue/ArtistRevenueHistory";
 import ArtistRevenuePeriodDetail from "../pages/artist/revenue/ArtistRevenuePeriodDetail";
 import {
@@ -274,6 +275,10 @@ export const appRoutes = [
               },
               {
                 path: routePaths.artistRoyalties,
+                element: <ArtistRevenueOverview />,
+              },
+              {
+                path: routePaths.artistBalanceManagement,
                 element: <ArtistRoyaltiesPage />,
               },
               {

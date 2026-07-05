@@ -23,4 +23,11 @@ export const API_ENDPOINTS = {
     SYSTEM: '/playlists/system',
     SYSTEM_DETAIL: '/playlists/system/detail',
   },
+  PREMIUM: {
+    PLANS: '/subscription-plans',
+    MY_SUBSCRIPTION: '/subscriptions/me',
+  },
+  PAYMENTS: {
+    VNPAY_CREATE_ORDER: '/payments/vnpay/create-order',
+  },
 };

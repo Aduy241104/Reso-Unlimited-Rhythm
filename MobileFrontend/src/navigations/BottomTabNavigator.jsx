@@ -4,7 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import HomeScreen from '../screens/home/HomeScreen';
 import SearchScreen from '../screens/search/SearchScreen';
 import LibraryScreen from '../screens/library/LibraryScreen';
-import PremiumScreen from '../screens/premium/PremiumScreen';
+import PremiumOverviewScreen from '../screens/premium/PremiumOverviewScreen';
 import CreateForMeScreen from '../screens/createForMe/CreateForMeScreen';
 import theme from '../theme';
 
@@ -62,7 +62,7 @@ export const BottomTabNavigator = () => {
       />
       <Tab.Screen
         name="Premium"
-        component={PremiumScreen}
+        component={PremiumOverviewScreen}
         options={{ tabBarLabel: 'Premium' }}
       />
       <Tab.Screen
