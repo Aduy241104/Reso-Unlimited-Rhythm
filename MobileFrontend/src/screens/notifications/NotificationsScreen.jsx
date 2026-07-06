@@ -5,6 +5,7 @@ import {
   FlatList,
   Image,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -168,6 +169,21 @@ const DetailRow = ({ label, value }) => {
     <View style={styles.detailRow}>
       <Text style={styles.detailLabel}>{label}</Text>
       <Text style={styles.detailValue}>{String(value)}</Text>
+    </View>
+  );
+};
+
+const DetailArtwork = ({ notification }) => {
+  const typeMeta = getTypeMeta(notification);
+  const thumbnail = resolveImageUri(notification?.thumbnail);
+
+  if (thumbnail) {
+    return <Image source={{ uri: thumbnail }} style={styles.detailArtworkImage} resizeMode="cover" />;
+  }
+
+  return (
+    <View style={[styles.detailArtworkFallback, { backgroundColor: typeMeta.backgroundColor }]}>
+      <Ionicons name={typeMeta.icon} size={30} color={typeMeta.color} />
     </View>
   );
 };
@@ -466,26 +482,71 @@ export default function NotificationsScreen() {
 
       <AppModal visible={Boolean(detailTarget)} onClose={() => setDetailTarget(null)} position="bottom">
         {detailTarget ? (
-          <View>
+          <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+            <View style={styles.modalHandle} />
             <View style={styles.modalHeader}>
-              <View>
-                <Text style={styles.modalEyebrow}>{getTypeMeta(detailTarget).label}</Text>
+              <DetailArtwork notification={detailTarget} />
+
+              <View style={styles.modalHeading}>
+                <View style={styles.modalMetaLine}>
+                  <View
+                    style={[
+                      styles.modalTypePill,
+                      { backgroundColor: getTypeMeta(detailTarget).backgroundColor },
+                    ]}
+                  >
+                    <Text style={[styles.modalTypeText, { color: getTypeMeta(detailTarget).color }]}>
+                      {getTypeMeta(detailTarget).label}
+                    </Text>
+                  </View>
+                  <Text style={styles.modalTimeText}>{getRelativeTime(detailTarget?.createdAt)}</Text>
+                </View>
+
                 <Text style={styles.modalTitle}>{detailTarget?.title || 'Thong bao'}</Text>
+                {detailTarget?.targetName ? (
+                  <Text style={styles.modalSubtitle} numberOfLines={2}>
+                    {detailTarget.targetName}
+                  </Text>
+                ) : null}
               </View>
+
               <TouchableOpacity style={styles.modalCloseButton} onPress={() => setDetailTarget(null)}>
                 <Ionicons name="close" size={22} color="#ffffff" />
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.modalContent}>
-              {detailTarget?.content || detailTarget?.targetName || 'Khong co noi dung chi tiet.'}
-            </Text>
+            <View style={styles.modalContentCard}>
+              <Text style={styles.modalSectionLabel}>Noi dung</Text>
+              <Text style={styles.modalContent}>
+                {detailTarget?.content || detailTarget?.targetName || 'Khong co noi dung chi tiet.'}
+              </Text>
+            </View>
 
-            <DetailRow label="Ten noi dung" value={detailTarget?.targetName} />
-            <DetailRow label="Nghe si" value={detailTarget?.artistName} />
-            <DetailRow label="Doi tuong" value={detailTarget?.targetType} />
-            <DetailRow label="Thoi gian" value={formatDateTime(detailTarget?.createdAt)} />
-          </View>
+            <View style={styles.detailGrid}>
+              <DetailRow label="Trang thai" value={detailTarget?.isRead ? 'Da doc' : 'Chua doc'} />
+              <DetailRow label="Nguon gui" value={detailTarget?.sourceType} />
+              <DetailRow label="Nguoi nhan" value={detailTarget?.receiverType} />
+              <DetailRow label="Doi tuong" value={detailTarget?.targetType} />
+              <DetailRow label="Ten noi dung" value={detailTarget?.targetName} />
+              <DetailRow label="Nghe si" value={detailTarget?.artistName} />
+              <DetailRow label="Thoi gian" value={formatDateTime(detailTarget?.createdAt)} />
+            </View>
+
+            {getTargetId(detailTarget) ? (
+              <TouchableOpacity
+                style={styles.openTargetButton}
+                activeOpacity={0.82}
+                onPress={() => {
+                  const notification = detailTarget;
+                  setDetailTarget(null);
+                  navigateToTarget(notification);
+                }}
+              >
+                <Ionicons name="open-outline" size={18} color="#000000" />
+                <Text style={styles.openTargetButtonText}>Mo noi dung</Text>
+              </TouchableOpacity>
+            ) : null}
+          </ScrollView>
         ) : null}
       </AppModal>
     </View>
@@ -638,24 +699,73 @@ const styles = StyleSheet.create({
     color: '#000000',
     fontWeight: '800',
   },
+  modalScroll: {
+    maxHeight: 560,
+  },
+  modalHandle: {
+    alignSelf: 'center',
+    width: 42,
+    height: 4,
+    borderRadius: 999,
+    backgroundColor: '#4b5563',
+    marginBottom: 18,
+  },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 14,
+    gap: 12,
   },
-  modalEyebrow: {
-    color: theme.colors.primaryLight,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1.4,
+  detailArtworkImage: {
+    width: 68,
+    height: 68,
+    borderRadius: 14,
+    backgroundColor: '#202020',
+  },
+  detailArtworkFallback: {
+    width: 68,
+    height: 68,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalHeading: {
+    flex: 1,
+    minWidth: 0,
+  },
+  modalMetaLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  modalTypePill: {
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+  },
+  modalTypeText: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.8,
     textTransform: 'uppercase',
+  },
+  modalTimeText: {
+    color: '#9CA3AF',
+    fontSize: 11,
+    fontWeight: '600',
   },
   modalTitle: {
     color: '#ffffff',
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
-    marginTop: 6,
+    lineHeight: 25,
+    marginTop: 8,
+  },
+  modalSubtitle: {
+    color: '#d1d5db',
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 4,
   },
   modalCloseButton: {
     width: 36,
@@ -665,17 +775,40 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
+  modalContentCard: {
+    marginTop: 20,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: '#121116',
+    borderWidth: 1,
+    borderColor: '#2C2635',
+  },
+  modalSectionLabel: {
+    color: '#8f8f8f',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
   modalContent: {
     color: '#d1d5db',
     fontSize: 14,
     lineHeight: 21,
-    marginTop: 18,
-    marginBottom: 12,
+    marginTop: 8,
+  },
+  detailGrid: {
+    marginTop: 12,
+    borderRadius: 14,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#2C2635',
   },
   detailRow: {
-    paddingVertical: 11,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     borderTopWidth: 1,
     borderTopColor: '#2C2635',
+    backgroundColor: 'rgba(255, 255, 255, 0.025)',
   },
   detailLabel: {
     color: '#8f8f8f',
@@ -688,5 +821,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     marginTop: 4,
+  },
+  openTargetButton: {
+    height: 48,
+    borderRadius: 999,
+    marginTop: 18,
+    marginBottom: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#ffffff',
+  },
+  openTargetButtonText: {
+    color: '#000000',
+    fontSize: 14,
+    fontWeight: '900',
   },
 });
