@@ -9,6 +9,14 @@ export const authService = {
     return await axiosClient.post(API_ENDPOINTS.AUTH.LOGIN, { email, password });
   },
 
+  async requestRegisterOtp(email) {
+    return await axiosClient.post(API_ENDPOINTS.AUTH.REGISTER_SEND_OTP, { email });
+  },
+
+  async register(payload) {
+    return await axiosClient.post(API_ENDPOINTS.AUTH.REGISTER, payload);
+  },
+
   /**
    * Đăng xuất hệ thống xóa trạng thái Server-side
    */
