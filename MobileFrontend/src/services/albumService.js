@@ -108,6 +108,10 @@ export const albumService = {
     };
   },
 
+  async getAlbums(params) {
+    return this.getRecentAlbums(params);
+  },
+
   async getAlbumDetail(albumId) {
     const response = await axiosClient.get(`${API_ENDPOINTS.ALBUMS.DETAIL}/${albumId}`);
     const payload = getPayload(response);

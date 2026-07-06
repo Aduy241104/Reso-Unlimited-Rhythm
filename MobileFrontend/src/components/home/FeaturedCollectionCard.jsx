@@ -21,9 +21,10 @@ export default function FeaturedCollectionCard({
   description,
   image,
   onPress,
+  style,
 }) {
   return (
-    <TouchableOpacity style={styles.card} activeOpacity={0.85} onPress={onPress}>
+    <TouchableOpacity style={[styles.card, style]} activeOpacity={0.85} onPress={onPress}>
       <Artwork uri={image} label={title} />
       <Text style={styles.title} numberOfLines={1}>{title}</Text>
       <Text style={styles.description} numberOfLines={2}>{description}</Text>
@@ -33,7 +34,6 @@ export default function FeaturedCollectionCard({
 
 const styles = StyleSheet.create({
   card: {
-    width: 152,
     marginHorizontal: 5,
     padding: 0,
     backgroundColor: 'transparent',

@@ -154,7 +154,15 @@ const ArtistRevenueOverview = () => {
                                 </h1>
                             </div>
 
-                            <div className="flex justify-end">
+                            <div className="flex flex-wrap justify-end gap-2">
+                                <Link
+                                    to={ routePaths.artistBalanceManagement }
+                                    className="inline-flex items-center gap-2 rounded-xl bg-zinc-950 px-3 py-2 text-sm font-medium text-white transition hover:bg-zinc-800"
+                                >
+                                    <Wallet className="h-4 w-4" />
+                                     Quản lý số dư
+                                </Link>
+
                                 <Link
                                     to={ routePaths.artistRevenueHistory }
                                     className="inline-flex items-center gap-1 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-800 transition hover:bg-zinc-50"

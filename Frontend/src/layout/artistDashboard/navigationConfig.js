@@ -70,6 +70,7 @@ export const artistPageTitles = {
   [routePaths.artistReleases]: "Phát hành",
   [routePaths.artistAnalytics]: "Phân tích bài hát",
   [routePaths.artistRoyalties]: "Doanh thu",
+  [routePaths.artistBalanceManagement]: "Quản lý số dư",
   [routePaths.artistNotifications]: "Thông báo",
   [routePaths.artistProfile]: "Hồ sơ nghệ sĩ",
   [routePaths.artistProfileEdit]: "Chỉnh sửa hồ sơ nghệ sĩ",

@@ -18,7 +18,7 @@ import ErrorState from '../../components/common/ErrorState';
 import FeaturedCollectionCard from '../../components/home/FeaturedCollectionCard';
 import { useAuth } from '../../hooks/useAuth';
 import homeService from '../../services/homeService';
-import { getInitials, resolveImageUri } from '../../utils/media';
+import { formatDateLabel, getInitials, resolveImageUri } from '../../utils/media';
 
 const initialHomeState = {
   topTrackCollections: [],
@@ -66,11 +66,36 @@ const HomeSection = ({ title, data, errorMessage, renderItem, emptyMessage }) =>
       <FlatList
         data={data}
         renderItem={renderItem}
-        keyExtractor={(item, index) => item.id || `${title}-${index}`}
+        keyExtractor={(item, index) => item.id || item._id || `${title}-${index}`}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.horizontalList}
       />
+    )}
+  </View>
+);
+
+const TopTrackSection = ({ data, errorMessage, onPressItem }) => (
+  <View style={styles.sectionContainer}>
+    <Text style={styles.sectionTitle}>Top Track Charts</Text>
+
+    {errorMessage ? (
+      <SectionState message={errorMessage} isError />
+    ) : data.length === 0 ? (
+      <SectionState message="No top track charts available." />
+    ) : (
+      <View style={styles.topTrackGrid}>
+        {data.slice(0, 2).map((item) => (
+          <FeaturedCollectionCard
+            key={item.id || item._id}
+            title={item.title}
+            description={item.description}
+            image={item.image}
+            style={styles.topTrackCard}
+            onPress={() => onPressItem(item)}
+          />
+        ))}
+      </View>
     )}
   </View>
 );
@@ -190,6 +215,7 @@ export default function HomeScreen() {
 
   const renderPlaylistCard = ({ item, index }) => {
     const accentColor = accentPalette[index % accentPalette.length];
+    const playlistId = item?._id || item?.id;
 
     return (
       <TouchableOpacity
@@ -198,7 +224,7 @@ export default function HomeScreen() {
         onPress={() =>
           handleOpenDetail({
             entityType: 'playlist',
-            entityId: item.id,
+            entityId: playlistId,
             initialTitle: item.title || 'Playlist Detail',
           })
         }
@@ -214,6 +240,8 @@ export default function HomeScreen() {
 
   const renderAlbumCard = ({ item, index }) => {
     const accentColor = accentPalette[index % accentPalette.length];
+    const artistName = item?.artist?.name || 'Unknown artist';
+    const releaseLabel = formatDateLabel(item?.releaseDate);
 
     return (
       <TouchableOpacity
@@ -230,20 +258,11 @@ export default function HomeScreen() {
         <Artwork uri={item.coverImage} label={item.title} color={accentColor} />
         <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
         <Text style={styles.cardSubTitle} numberOfLines={2}>
-          {item.artist?.name || 'Unknown artist'}
+          {releaseLabel ? `${artistName} - ${releaseLabel}` : artistName}
         </Text>
       </TouchableOpacity>
     );
   };
-
-  const renderTopTrackCollectionCard = ({ item }) => (
-    <FeaturedCollectionCard
-      title={item.title}
-      description={item.description}
-      image={item.image}
-      onPress={() => handleOpenTopTrackCollection(item)}
-    />
-  );
 
   return (
     <View style={styles.container}>
@@ -280,12 +299,10 @@ export default function HomeScreen() {
             />
           }
         >
-          <HomeSection
-            title="Top Track Charts"
+          <TopTrackSection
             data={homeData.topTrackCollections}
             errorMessage={homeData.sectionErrors.topTrackCollections}
-            renderItem={renderTopTrackCollectionCard}
-            emptyMessage="No top track charts available."
+            onPressItem={handleOpenTopTrackCollection}
           />
 
           <HomeSection
@@ -305,11 +322,11 @@ export default function HomeScreen() {
           />
 
           <HomeSection
-            title="Recent Albums"
+            title="New Album Releases"
             data={homeData.recentAlbums}
             errorMessage={homeData.sectionErrors.recentAlbums}
             renderItem={renderAlbumCard}
-            emptyMessage="No recent albums available."
+            emptyMessage="No new album releases available."
           />
         </ScrollView>
       )}
@@ -386,6 +403,16 @@ const styles = StyleSheet.create({
   },
   horizontalList: {
     paddingHorizontal: 15,
+  },
+  topTrackGrid: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    gap: 10,
+  },
+  topTrackCard: {
+    flex: 1,
+    minWidth: 0,
+    marginHorizontal: 0,
   },
   cardItem: {
     width: 102,

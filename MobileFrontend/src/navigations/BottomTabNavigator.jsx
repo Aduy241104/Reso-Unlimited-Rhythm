@@ -5,7 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from '../screens/home/HomeScreen';
 import SearchScreen from '../screens/search/SearchScreen';
 import LibraryScreen from '../screens/library/LibraryScreen';
-import PremiumScreen from '../screens/premium/PremiumScreen';
+import PremiumOverviewScreen from '../screens/premium/PremiumOverviewScreen';
 import CreateForMeScreen from '../screens/createForMe/CreateForMeScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import EntityDetailScreen from '../screens/detail/EntityDetailScreen';
@@ -62,7 +62,7 @@ function SharedTabStack({ rootName, component: RootComponent }) {
 const HomeStack = () => <SharedTabStack rootName="HomeScreen" component={HomeScreen} />;
 const SearchStack = () => <SharedTabStack rootName="SearchScreen" component={SearchScreen} />;
 const LibraryStack = () => <SharedTabStack rootName="LibraryScreen" component={LibraryScreen} />;
-const PremiumStack = () => <SharedTabStack rootName="PremiumScreen" component={PremiumScreen} />;
+const PremiumStack = () => <SharedTabStack rootName="PremiumScreen" component={PremiumOverviewScreen} />;
 const CreateForMeStack = () => <SharedTabStack rootName="CreateForMeScreen" component={CreateForMeScreen} />;
 
 export const BottomTabNavigator = () => {

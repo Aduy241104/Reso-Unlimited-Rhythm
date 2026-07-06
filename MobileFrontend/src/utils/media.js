@@ -72,25 +72,74 @@ export const getInitials = (value) =>
     .map((word) => word.charAt(0).toUpperCase())
     .join('') || 'RS';
 
-export const resolveImageUri = (value) => {
+const resolveMediaUri = (value) => {
   if (typeof value === 'string') {
-    return value;
+    return value.trim();
   }
 
   if (Array.isArray(value)) {
-    const firstItem = value.find(Boolean);
+    for (const entry of value) {
+      const resolvedValue = resolveMediaUri(entry);
 
-    if (typeof firstItem === 'string') {
-      return firstItem;
-    }
-
-    if (firstItem && typeof firstItem.url === 'string') {
-      return firstItem.url;
+      if (resolvedValue) {
+        return resolvedValue;
+      }
     }
   }
 
-  if (value && typeof value.url === 'string') {
-    return value.url;
+  if (value && typeof value === 'object') {
+    const candidates = [value.uri, value.url, value.secureUrl, value.secure_url, value.href];
+
+    for (const candidate of candidates) {
+      if (typeof candidate === 'string' && candidate.trim()) {
+        return candidate.trim();
+      }
+    }
+  }
+
+  return '';
+};
+
+export const resolveImageUri = (value) => resolveMediaUri(value);
+
+export const resolveTrackAudioUri = (track) => {
+  if (!track || typeof track !== 'object') {
+    return '';
+  }
+
+  const candidates = [
+    track.audioUrl,
+    track.audioURI,
+    track.audioUri,
+    track.streamUrl,
+    track.streamingUrl,
+    track.trackUrl,
+    track.previewUrl,
+    track.fileUrl,
+    track.sourceUrl,
+    track.audio,
+    track.audioFile,
+    track.audioFiles,
+    track.audioSource,
+    track.stream,
+    track.streaming,
+    track.source,
+    track.file,
+    track.media?.audio,
+    track.media?.source,
+    track.media?.file,
+    track.playback?.audio,
+    track.playback?.source,
+    track.asset?.audio,
+    track.assets?.audio,
+  ];
+
+  for (const candidate of candidates) {
+    const resolvedValue = resolveMediaUri(candidate);
+
+    if (resolvedValue) {
+      return resolvedValue;
+    }
   }
 
   return '';
