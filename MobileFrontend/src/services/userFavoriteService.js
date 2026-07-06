@@ -12,9 +12,9 @@ const normalizeFavoriteTrack = (item, index = 0) => ({
   id: pickFirstDefined(item?.id, item?._id, `favorite-track-${index}`),
   entityId: pickFirstDefined(item?.id, item?._id, ''),
   entityType: 'track',
-  title: pickFirstDefined(item?.title, 'Unknown track'),
-  subtitle: pickFirstDefined(item?.artist?.name, 'Unknown artist'),
-  artistName: pickFirstDefined(item?.artist?.name, 'Unknown artist'),
+  title: pickFirstDefined(item?.title, 'Bài hát không xác định'),
+  subtitle: pickFirstDefined(item?.artist?.name, 'Nghệ sĩ không xác định'),
+  artistName: pickFirstDefined(item?.artist?.name, 'Nghệ sĩ không xác định'),
   image: pickFirstDefined(
     resolveImageUri(item?.avatar),
     resolveImageUri(item?.coverImage),

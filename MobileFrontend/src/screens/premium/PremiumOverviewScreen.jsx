@@ -47,19 +47,19 @@ const PremiumPlanCard = ({ plan, isActive, onPress }) => {
         </View>
         {isActive ? (
           <View style={[styles.planChip, styles.activeChip]}>
-            <Text style={styles.activeChipText}>Dang su dung</Text>
+            <Text style={styles.activeChipText}>Đang sử dụng</Text>
           </View>
         ) : null}
       </View>
 
       <Text style={styles.planName}>{plan?.name || 'Premium'}</Text>
       <Text style={styles.planDescription} numberOfLines={3}>
-        {plan?.description || 'Mo khoa day du trai nghiem Premium cho tai khoan cua ban.'}
+        {plan?.description || 'Mở khóa đầy đủ trải nghiệm Premium cho tài khoản của bạn.'}
       </Text>
 
       <View style={styles.priceRow}>
         <Text style={styles.planPrice}>{formatPremiumPrice(plan?.price)}</Text>
-        <Text style={styles.totalPriceText}>Tong thanh toan {formatPremiumPrice(plan?.totalPrice)}</Text>
+        <Text style={styles.totalPriceText}>Tổng thanh toán {formatPremiumPrice(plan?.totalPrice)}</Text>
       </View>
 
       <View style={styles.featureWrap}>
@@ -71,8 +71,8 @@ const PremiumPlanCard = ({ plan, isActive, onPress }) => {
       </View>
 
       <View style={styles.planCardFooter}>
-        <Text style={styles.taxText}>Da gom VAT {formatPremiumPrice(plan?.taxAmount)}</Text>
-        <Text style={styles.linkText}>Xem chi tiet</Text>
+        <Text style={styles.taxText}>Đã gồm VAT {formatPremiumPrice(plan?.taxAmount)}</Text>
+        <Text style={styles.linkText}>Xem chi tiết</Text>
       </View>
     </TouchableOpacity>
   );
@@ -119,11 +119,11 @@ export default function PremiumOverviewScreen() {
         setErrorMessage('');
         setWarningMessage(
           subscriptionResult.status === 'rejected'
-            ? subscriptionResult.reason?.message || 'Khong the dong bo trang thai Premium hien tai.'
+            ? subscriptionResult.reason?.message || 'Không thể đồng bộ trạng thái Premium hiện tại.'
             : ''
         );
       } catch (error) {
-        setErrorMessage(error?.message || 'Khong the tai danh sach Premium luc nay.');
+        setErrorMessage(error?.message || 'Không thể tải danh sách Premium lúc này.');
         setWarningMessage('');
       } finally {
         setIsLoading(false);
@@ -186,11 +186,11 @@ export default function PremiumOverviewScreen() {
   }, [activePlanId, handleOpenPlanDetail, isAuthenticated, openStackScreen, plans]);
 
   const summaryTitle = subscription?.isPremium
-    ? `Premium dang hoat dong den ${formatPremiumDate(subscription?.premiumEndDate)}`
-    : 'Mo khoa Premium de nghe nhac khong gioi han';
+    ? `Premium đang hoạt động đến ${formatPremiumDate(subscription?.premiumEndDate)}`
+    : 'Mở khóa Premium để nghe nhạc không giới hạn';
   const summarySubtitle = subscription?.isPremium
-    ? `Goi hien tai: ${subscription?.currentPlan?.name || subscription?.activeSubscription?.plan?.name || 'Premium'}`
-    : 'Xem danh sach goi, chi tiet tung goi, va xac nhan mua ngay trong app.';
+    ? `Gói hiện tại: ${subscription?.currentPlan?.name || subscription?.activeSubscription?.plan?.name || 'Premium'}`
+    : 'Xem danh sách gói, chi tiết từng gói và xác nhận mua ngay trong app.';
 
   return (
     <View style={styles.container}>
@@ -199,10 +199,10 @@ export default function PremiumOverviewScreen() {
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View>
           <Text style={styles.headerEyebrow}>RESO PREMIUM</Text>
-          <Text style={styles.headerTitle}>Chon goi phu hop</Text>
+          <Text style={styles.headerTitle}>Chọn gói phù hợp</Text>
         </View>
         <TouchableOpacity style={styles.headerAction} onPress={handlePrimaryAction} activeOpacity={0.78}>
-          <Text style={styles.headerActionText}>{isAuthenticated ? 'Xem goi' : 'Dang nhap'}</Text>
+          <Text style={styles.headerActionText}>{isAuthenticated ? 'Xem gói' : 'Đăng nhập'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -214,7 +214,7 @@ export default function PremiumOverviewScreen() {
         <View style={styles.centerState}>
           <ErrorState message={errorMessage} />
           <TouchableOpacity style={styles.retryButton} onPress={() => loadPremiumData()} activeOpacity={0.82}>
-            <Text style={styles.retryButtonText}>Thu lai</Text>
+            <Text style={styles.retryButtonText}>Thử lại</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -230,29 +230,29 @@ export default function PremiumOverviewScreen() {
           }
         >
           <View style={styles.heroCard}>
-            <Text style={styles.heroBadge}>{subscription?.isPremium ? 'PREMIUM ACTIVE' : 'PREMIUM ACCESS'}</Text>
+            <Text style={styles.heroBadge}>{subscription?.isPremium ? 'PREMIUM ĐANG HOẠT ĐỘNG' : 'TRUY CẬP PREMIUM'}</Text>
             <Text style={styles.heroTitle}>{summaryTitle}</Text>
             <Text style={styles.heroSubtitle}>{summarySubtitle}</Text>
 
             <View style={styles.heroMetaRow}>
               <View style={styles.heroMetaCard}>
-                <Text style={styles.heroMetaLabel}>Trang thai</Text>
+                <Text style={styles.heroMetaLabel}>Trạng thái</Text>
                 <Text style={styles.heroMetaValue}>
-                  {subscription?.isPremium ? 'Dang Premium' : isAuthenticated ? 'Chua nang cap' : 'Khach'}
+                  {subscription?.isPremium ? 'Đang Premium' : isAuthenticated ? 'Chưa nâng cấp' : 'Khách'}
                 </Text>
               </View>
               <View style={styles.heroMetaCard}>
-                <Text style={styles.heroMetaLabel}>Goi dang xem</Text>
-                <Text style={styles.heroMetaValue}>{plans.length} goi</Text>
+                <Text style={styles.heroMetaLabel}>Gói đang xem</Text>
+                <Text style={styles.heroMetaValue}>{plans.length} gói</Text>
               </View>
             </View>
           </View>
 
           <View style={styles.section}>
             <PremiumSectionTitle
-              eyebrow="DANH SACH GOI"
-              title="Cac goi Premium hien co"
-              subtitle="Nhan vao tung goi de xem day du quyen loi va xac nhan mua."
+              eyebrow="DANH SÁCH GÓI"
+              title="Các gói Premium hiện có"
+              subtitle="Nhấn vào từng gói để xem đầy đủ quyền lợi và xác nhận mua."
             />
 
             {warningMessage ? (

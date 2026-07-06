@@ -36,7 +36,7 @@ const initialHomeState = {
 const accentPalette = ['#111111', '#2f2f2f', '#4a4a4a', '#686868', '#8a8a8a'];
 
 const resolveUserDisplayName = (user) =>
-  user?.fullName || user?.name || user?.username || user?.displayName || user?.email || 'Music Lover';
+  user?.fullName || user?.name || user?.username || user?.displayName || user?.email || 'Người yêu nhạc';
 
 const resolveUserAvatar = (user) =>
   resolveImageUri(
@@ -75,7 +75,7 @@ const HomeSection = ({ title, data, errorMessage, renderItem, emptyMessage }) =>
     {errorMessage ? (
       <SectionState message={errorMessage} isError />
     ) : data.length === 0 ? (
-      <SectionState message={emptyMessage || 'No items available.'} />
+      <SectionState message={emptyMessage || 'Không có dữ liệu.'} />
     ) : (
       <FlatList
         data={data}
@@ -91,12 +91,12 @@ const HomeSection = ({ title, data, errorMessage, renderItem, emptyMessage }) =>
 
 const TopTrackSection = ({ data, errorMessage, onPressItem }) => (
   <View style={styles.sectionContainer}>
-    <Text style={styles.sectionTitle}>Top Track Charts</Text>
+    <Text style={styles.sectionTitle}>BXH bài hát nổi bật</Text>
 
     {errorMessage ? (
       <SectionState message={errorMessage} isError />
     ) : data.length === 0 ? (
-      <SectionState message="No top track charts available." />
+      <SectionState message="Chưa có bảng xếp hạng bài hát nổi bật." />
     ) : (
       <View style={styles.topTrackGrid}>
         {data.slice(0, 2).map((item) => (
@@ -147,7 +147,7 @@ export default function HomeScreen() {
       setHasLoadedOnce(true);
     } catch (error) {
       if (!hasLoadedOnceRef.current) {
-        setContentError(error.message || 'Failed to load homepage data.');
+        setContentError(error.message || 'Không thể tải dữ liệu trang chủ.');
       }
     } finally {
       setIsContentLoading(false);
@@ -195,7 +195,7 @@ export default function HomeScreen() {
 
     navigation.navigate('PlaylistDetail', {
       playlistId: playlist.id,
-      initialTitle: playlist.title || 'Playlist Detail',
+      initialTitle: playlist.title || 'Chi tiết playlist',
     });
   }, [navigation]);
 
@@ -222,7 +222,7 @@ export default function HomeScreen() {
           handleOpenDetail({
             entityType: 'artist',
             entityId: item.id,
-            initialTitle: item.name || 'Artist Detail',
+            initialTitle: item.name || 'Chi tiết nghệ sĩ',
           })
         }
       >
@@ -235,7 +235,7 @@ export default function HomeScreen() {
         />
         <Text style={styles.cardTitle} numberOfLines={1}>{item.name}</Text>
         <Text style={styles.cardSubTitle} numberOfLines={2}>
-          Featured artist in the monthly chart.
+          Nghệ sĩ nổi bật trong bảng xếp hạng tháng.
         </Text>
       </TouchableOpacity>
     );
@@ -254,7 +254,7 @@ export default function HomeScreen() {
         <Artwork uri={item.coverImage} label={item.title} color={accentColor} />
         <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
         <Text style={styles.cardSubTitle} numberOfLines={2}>
-          {item.description || 'System curated playlist'}
+          {item.description || 'Playlist tuyển chọn từ hệ thống'}
         </Text>
       </TouchableOpacity>
     );
@@ -262,7 +262,7 @@ export default function HomeScreen() {
 
   const renderAlbumCard = ({ item, index }) => {
     const accentColor = accentPalette[index % accentPalette.length];
-    const artistName = item?.artist?.name || 'Unknown artist';
+    const artistName = item?.artist?.name || 'Nghệ sĩ không xác định';
     const releaseLabel = formatDateLabel(item?.releaseDate);
 
     return (
@@ -273,7 +273,7 @@ export default function HomeScreen() {
           handleOpenDetail({
             entityType: 'album',
             entityId: item.id,
-            initialTitle: item.title || 'Album Detail',
+            initialTitle: item.title || 'Chi tiết album',
           })
         }
       >
@@ -296,12 +296,12 @@ export default function HomeScreen() {
           <View style={[styles.headerTextGroup, !isAuthenticated && styles.headerTextGroupGuest]}>
             <Text style={styles.brandText}>RESO UNLIMITED RHYTHM</Text>
             <Text style={styles.welcomeText} numberOfLines={1}>
-              {isAuthenticated ? displayName : 'Login to personalize your music'}
+              {isAuthenticated ? displayName : 'Đăng nhập để cá nhân hóa âm nhạc'}
             </Text>
           </View>
         </View>
         <TouchableOpacity style={styles.logoutBadge} onPress={handleHeaderAction} activeOpacity={0.7}>
-          <Text style={styles.logoutText}>{isAuthenticated ? 'Logout' : 'Login'}</Text>
+          <Text style={styles.logoutText}>{isAuthenticated ? 'Đăng xuất' : 'Đăng nhập'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -312,7 +312,7 @@ export default function HomeScreen() {
       ) : contentError && !hasLoadedOnce ? (
         <View style={styles.centerState}>
           <ErrorState message={contentError} />
-          <AppButton title="Try Again" onPress={() => loadHomepage()} style={styles.retryButton} />
+          <AppButton title="Thử lại" onPress={() => loadHomepage()} style={styles.retryButton} />
         </View>
       ) : (
         <ScrollView
@@ -333,27 +333,27 @@ export default function HomeScreen() {
           />
 
           <HomeSection
-            title="Monthly Top Artists"
+            title="Nghệ sĩ nổi bật tháng"
             data={homeData.monthlyTopArtists}
             errorMessage={homeData.sectionErrors.monthlyTopArtists}
             renderItem={renderArtistCard}
-            emptyMessage="No monthly top artists available."
+            emptyMessage="Chưa có nghệ sĩ nổi bật theo tháng."
           />
 
           <HomeSection
-            title="System Playlists"
+            title="Playlist hệ thống"
             data={homeData.systemPlaylists}
             errorMessage={homeData.sectionErrors.systemPlaylists}
             renderItem={renderPlaylistCard}
-            emptyMessage="No system playlists available."
+            emptyMessage="Chưa có playlist hệ thống."
           />
 
           <HomeSection
-            title="New Album Releases"
+            title="Album mới phát hành"
             data={homeData.recentAlbums}
             errorMessage={homeData.sectionErrors.recentAlbums}
             renderItem={renderAlbumCard}
-            emptyMessage="No new album releases available."
+            emptyMessage="Chưa có album mới phát hành."
           />
         </ScrollView>
       )}

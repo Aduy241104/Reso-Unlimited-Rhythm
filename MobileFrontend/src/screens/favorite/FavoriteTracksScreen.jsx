@@ -48,8 +48,8 @@ const Artwork = ({ uri, label, color, style, textStyle }) => {
 
 const FavoriteTrackRow = ({ item, index, isActive, isPlaying, onPlayPress, onOpenDetail }) => {
   const accentColor = accentPalette[index % accentPalette.length];
-  const title = readText(item?.title, 'Unknown track');
-  const subtitle = readText(item?.subtitle, 'Unknown artist');
+  const title = readText(item?.title, 'Bài hát không xác định');
+  const subtitle = readText(item?.subtitle, 'Nghệ sĩ không xác định');
   const meta = readText(item?.meta, formatDuration(item?.duration));
 
   return (
@@ -112,7 +112,7 @@ export default function FavoriteTracksScreen() {
       setErrorMessage('');
     } catch (error) {
       setFavoriteTracks([]);
-      setErrorMessage(getErrorMessage(error, 'Unable to load favorite tracks right now.'));
+      setErrorMessage(getErrorMessage(error, 'Không thể tải danh sách bài hát yêu thích lúc này.'));
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -155,7 +155,7 @@ export default function FavoriteTracksScreen() {
     navigation.navigate('EntityDetail', {
       entityType: 'track',
       entityId: trackId,
-      initialTitle: track?.title || 'Track Detail',
+      initialTitle: track?.title || 'Chi tiết bài hát',
     });
   }, [navigation]);
 
@@ -165,17 +165,17 @@ export default function FavoriteTracksScreen() {
         <StatusBar barStyle="light-content" backgroundColor="#000000" />
         <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} activeOpacity={0.8}>
-            <Text style={styles.backButtonText}>Back</Text>
+            <Text style={styles.backButtonText}>Quay lại</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Favorite Tracks</Text>
+          <Text style={styles.headerTitle}>Bài hát yêu thích</Text>
           <View style={styles.headerSpacer} />
         </View>
         <View style={styles.centerState}>
-          <Text style={styles.emptyTitle}>Login required</Text>
+          <Text style={styles.emptyTitle}>Cần đăng nhập</Text>
           <Text style={styles.emptyText}>
-            Your liked songs are tied to your account, so we need you signed in first.
+            Các bài hát bạn đã thích được gắn với tài khoản, nên hãy đăng nhập trước.
           </Text>
-          <AppButton title="Go to Login" onPress={() => navigation.navigate('Login')} style={styles.loginButton} />
+          <AppButton title="Đi đến đăng nhập" onPress={() => navigation.navigate('Login')} style={styles.loginButton} />
         </View>
       </View>
     );
@@ -187,9 +187,9 @@ export default function FavoriteTracksScreen() {
 
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} activeOpacity={0.8}>
-          <Text style={styles.backButtonText}>Back</Text>
+          <Text style={styles.backButtonText}>Quay lại</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Favorite Tracks</Text>
+        <Text style={styles.headerTitle}>Bài hát yêu thích</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -200,7 +200,7 @@ export default function FavoriteTracksScreen() {
       ) : errorMessage ? (
         <View style={styles.centerState}>
           <ErrorState message={errorMessage} />
-          <AppButton title="Try Again" onPress={() => loadFavoriteTracks()} style={styles.retryButton} />
+          <AppButton title="Thử lại" onPress={() => loadFavoriteTracks()} style={styles.retryButton} />
         </View>
       ) : (
         <ScrollView
@@ -215,15 +215,15 @@ export default function FavoriteTracksScreen() {
           )}
         >
           <View style={styles.heroCard}>
-            <Text style={styles.heroEyebrow}>YOUR MUSIC</Text>
-            <Text style={styles.heroTitle}>Favorite tracks in one place</Text>
+            <Text style={styles.heroEyebrow}>ÂM NHẠC CỦA BẠN</Text>
+            <Text style={styles.heroTitle}>Gom bài hát yêu thích vào một nơi</Text>
             <Text style={styles.heroText}>
-              Replay the songs you liked most, jump back into playback instantly, and open full detail whenever you want.
+              Phát lại những bài bạn yêu thích nhất, quay lại trình phát ngay và mở chi tiết bất cứ lúc nào.
             </Text>
 
             <View style={styles.heroMetaWrap}>
               <View style={styles.metaPill}>
-                <Text style={styles.metaPillText}>{favoriteTracks.length} tracks</Text>
+                <Text style={styles.metaPillText}>{favoriteTracks.length} bài hát</Text>
               </View>
             </View>
 
@@ -235,13 +235,13 @@ export default function FavoriteTracksScreen() {
             >
               <Ionicons name="play" size={16} color="#000000" />
               <Text style={styles.playButtonText}>
-                {playableQueue.length > 0 ? `Play ${playableQueue.length} tracks` : 'No favorite tracks yet'}
+                {playableQueue.length > 0 ? `Phát ${playableQueue.length} bài hát` : 'Chưa có bài hát yêu thích'}
               </Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Liked Songs</Text>
+            <Text style={styles.sectionTitle}>Bài hát đã thích</Text>
             <View style={styles.panel}>
               {favoriteTracks.length > 0 ? (
                 favoriteTracks.map((track, index) => {
@@ -262,7 +262,7 @@ export default function FavoriteTracksScreen() {
                 })
               ) : (
                 <Text style={styles.emptyPanelText}>
-                  You have not liked any tracks yet. Like songs from track detail to build your favorites here.
+                  Bạn chưa thích bài hát nào. Hãy thích bài hát từ màn chi tiết để xây dựng danh sách yêu thích ở đây.
                 </Text>
               )}
             </View>

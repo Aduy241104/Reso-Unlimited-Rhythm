@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -15,6 +16,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppLoader from '../../components/common/AppLoader';
 import AppModal from '../../components/common/AppModal';
+import TrackActionsBottomSheet from '../../components/detail/TrackActionsBottomSheet';
 import ErrorState from '../../components/common/ErrorState';
 import EditPlaylistModal from '../../components/library/EditPlaylistModal';
 import { useAuth } from '../../hooks/useAuth';
@@ -68,11 +70,12 @@ const TrackRow = ({
   index,
   isActive,
   isPlaying,
+  onMorePress,
   onPress,
 }) => {
   const accentColor = accentPalette[index % accentPalette.length];
-  const title = readText(item?.title, 'Unknown track');
-  const subtitle = readText(item?.subtitle, item?.artistName || 'Unknown artist');
+  const title = readText(item?.title, 'Bài hát không xác định');
+  const subtitle = readText(item?.subtitle, item?.artistName || 'Nghệ sĩ không xác định');
   const meta = readText(item?.meta, formatDuration(item?.duration));
 
   return (
@@ -90,6 +93,18 @@ const TrackRow = ({
         <Text style={styles.trackSubtitle} numberOfLines={1}>{subtitle}</Text>
       </View>
       <Text style={styles.trackMeta}>{meta}</Text>
+      {onMorePress ? (
+        <TouchableOpacity
+          style={styles.moreButton}
+          activeOpacity={0.75}
+          onPress={(event) => {
+            event.stopPropagation?.();
+            onMorePress();
+          }}
+        >
+          <Ionicons name="ellipsis-horizontal" size={18} color="#9f9f9f" />
+        </TouchableOpacity>
+      ) : null}
     </TouchableOpacity>
   );
 };
@@ -106,7 +121,7 @@ export default function PlaylistDetailScreen() {
     togglePlayback,
   } = usePlayer();
   const playlistId = route.params?.playlistId || route.params?.entityId || '';
-  const initialTitle = route.params?.initialTitle || 'Playlist Detail';
+  const initialTitle = route.params?.initialTitle || 'Chi tiết playlist';
   const [playlist, setPlaylist] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
@@ -116,11 +131,17 @@ export default function PlaylistDetailScreen() {
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
   const [isDeletingPlaylist, setIsDeletingPlaylist] = useState(false);
   const [deletePlaylistError, setDeletePlaylistError] = useState('');
+  const [isTrackActionsVisible, setIsTrackActionsVisible] = useState(false);
+  const [selectedTrackAction, setSelectedTrackAction] = useState({
+    index: 0,
+    track: null,
+  });
+  const [isRemovingTrack, setIsRemovingTrack] = useState(false);
 
   const loadPlaylistDetail = useCallback(async () => {
     if (!playlistId) {
       setPlaylist(null);
-      setErrorMessage('Playlist information is missing.');
+      setErrorMessage('Thiếu thông tin playlist.');
       setIsLoading(false);
       return;
     }
@@ -133,7 +154,7 @@ export default function PlaylistDetailScreen() {
       setPlaylist(result);
     } catch (error) {
       setPlaylist(null);
-      setErrorMessage(getErrorMessage(error, 'Unable to load playlist detail right now.'));
+      setErrorMessage(getErrorMessage(error, 'Không thể tải chi tiết playlist lúc này.'));
     } finally {
       setIsLoading(false);
     }
@@ -154,10 +175,10 @@ export default function PlaylistDetailScreen() {
   const totalTracks = Number(playlist?.trackCount) || tracks.length;
   const totalDuration = formatDuration(playlist?.totalDuration);
   const visibilityLabel = playlist?.playlistType === 'system'
-    ? 'System'
+    ? 'Hệ thống'
     : playlist?.isPublic
-      ? 'Public'
-      : 'Private';
+      ? 'Công khai'
+      : 'Riêng tư';
   const currentUserId = String(user?.id || user?._id || user?.user?.id || user?.user?._id || '');
   const ownerId = String(playlist?.owner?.id || playlist?.owner?._id || '');
   const canEditPlaylist = Boolean(
@@ -171,16 +192,16 @@ export default function PlaylistDetailScreen() {
   const heroMeta = [
     ownerLabel,
     createdDate,
-    totalTracks > 0 ? `${totalTracks} tracks` : '',
+    totalTracks > 0 ? `${totalTracks} bài hát` : '',
     Number(playlist?.totalDuration) > 0 ? totalDuration : '',
     visibilityLabel,
   ].filter(Boolean);
 
   const stats = [
-    { label: 'Tracks', value: `${totalTracks}` },
-    { label: 'Duration', value: Number(playlist?.totalDuration) > 0 ? totalDuration : '0s' },
-    { label: 'Visibility', value: visibilityLabel },
-    { label: 'Updated', value: updatedDate || 'Unknown' },
+    { label: 'Bài hát', value: `${totalTracks}` },
+    { label: 'Thời lượng', value: Number(playlist?.totalDuration) > 0 ? totalDuration : '0s' },
+    { label: 'Hiển thị', value: visibilityLabel },
+    { label: 'Cập nhật', value: updatedDate || 'Không xác định' },
   ];
 
   const activeTrackId = String(currentTrack?.entityId || currentTrack?.id || '');
@@ -203,6 +224,63 @@ export default function PlaylistDetailScreen() {
 
     playQueue(playableQueue, index);
   }, [activeTrackId, playQueue, playableQueue, togglePlayback]);
+
+  const handleOpenNestedDetail = useCallback((nextType, nextId, nextTitle) => {
+    if (!nextType || !nextId) {
+      return;
+    }
+
+    navigation.push('EntityDetail', {
+      entityType: nextType,
+      entityId: nextId,
+      initialTitle: nextTitle,
+    });
+  }, [navigation]);
+
+  const openTrackActions = useCallback((track, index = 0) => {
+    if (!track) {
+      return;
+    }
+
+    setSelectedTrackAction({
+      index,
+      track,
+    });
+    setIsTrackActionsVisible(true);
+  }, []);
+
+  const closeTrackActions = useCallback(() => {
+    setIsTrackActionsVisible(false);
+  }, []);
+
+  const handleTrackActionPlayNow = useCallback((track) => {
+    if (!track) {
+      return;
+    }
+
+    const startIndex = Number.isInteger(selectedTrackAction.index)
+      ? selectedTrackAction.index
+      : -1;
+
+    if (startIndex >= 0 && startIndex < playableQueue.length) {
+      playQueue(playableQueue, startIndex);
+      return;
+    }
+
+    playQueue(buildPlayableQueue([track]), 0);
+  }, [playQueue, playableQueue, selectedTrackAction.index]);
+
+  const handleTrackActionOpenTrackDetail = useCallback((track) => {
+    handleOpenNestedDetail('track', track?.entityId || track?.id, track?.title);
+  }, [handleOpenNestedDetail]);
+
+  const handleTrackActionOpenArtistDetail = useCallback((track) => {
+    handleOpenNestedDetail('artist', track?.artistId, track?.artistName || track?.subtitle);
+  }, [handleOpenNestedDetail]);
+
+  const handleTrackActionOpenAlbumDetail = useCallback((track) => {
+    handleOpenNestedDetail('album', track?.albumId, track?.albumTitle);
+  }, [handleOpenNestedDetail]);
 
   const handleOpenEditModal = useCallback(() => {
     setUpdatePlaylistError('');
@@ -234,7 +312,7 @@ export default function PlaylistDetailScreen() {
 
   const handleUpdatePlaylist = useCallback(async (payload) => {
     if (!playlistId) {
-      setUpdatePlaylistError('Playlist information is missing.');
+      setUpdatePlaylistError('Thiếu thông tin playlist.');
       return;
     }
 
@@ -246,7 +324,7 @@ export default function PlaylistDetailScreen() {
       await loadPlaylistDetail();
       setIsEditModalVisible(false);
     } catch (error) {
-      setUpdatePlaylistError(getErrorMessage(error, 'Unable to update this playlist right now.'));
+      setUpdatePlaylistError(getErrorMessage(error, 'Không thể cập nhật playlist này lúc này.'));
     } finally {
       setIsUpdatingPlaylist(false);
     }
@@ -254,7 +332,7 @@ export default function PlaylistDetailScreen() {
 
   const handleDeletePlaylist = useCallback(async () => {
     if (!playlistId) {
-      setDeletePlaylistError('Playlist information is missing.');
+      setDeletePlaylistError('Thiếu thông tin playlist.');
       return;
     }
 
@@ -266,13 +344,118 @@ export default function PlaylistDetailScreen() {
       setIsDeleteModalVisible(false);
       navigation.goBack();
     } catch (error) {
-      setDeletePlaylistError(getErrorMessage(error, 'Unable to delete this playlist right now.'));
+      setDeletePlaylistError(getErrorMessage(error, 'Không thể xóa playlist này lúc này.'));
     } finally {
       setIsDeletingPlaylist(false);
     }
   }, [navigation, playlistId]);
 
+  const handleRemoveTrackFromPlaylist = useCallback((track) => {
+    const targetTrackId = String(track?.entityId || track?.id || '');
+
+    if (!playlistId || !targetTrackId || !canEditPlaylist || isRemovingTrack) {
+      return;
+    }
+
+    Alert.alert(
+      'Xóa bài hát',
+      `Xóa "${readText(track?.title, 'bài hát này')}" khỏi playlist này?`,
+      [
+        {
+          text: 'Hủy',
+          style: 'cancel',
+        },
+        {
+          text: 'Xóa',
+          style: 'destructive',
+          onPress: async () => {
+            setIsRemovingTrack(true);
+
+            try {
+              await userPlaylistService.removeTrackFromMyPlaylist(playlistId, targetTrackId);
+              await loadPlaylistDetail();
+            } catch (error) {
+              Alert.alert(
+                'Xóa thất bại',
+                getErrorMessage(error, 'Không thể xóa bài hát này khỏi playlist lúc này.')
+              );
+            } finally {
+              setIsRemovingTrack(false);
+            }
+          },
+        },
+      ]
+    );
+  }, [canEditPlaylist, isRemovingTrack, loadPlaylistDetail, playlistId]);
+
   const headerTitle = readText(playlist?.title, initialTitle);
+  const selectedTrack = selectedTrackAction.track;
+  const selectedTrackId = String(selectedTrack?.entityId || selectedTrack?.id || '');
+  const activeSelectedTrackId = String(currentTrack?.entityId || currentTrack?.id || '');
+  const isCurrentSelectedTrack = selectedTrackId && selectedTrackId === activeSelectedTrackId;
+
+  const trackActionItems = useMemo(
+    () => [
+      {
+        key: 'play-now',
+        label: 'Phát ngay',
+        icon: 'play',
+        description: 'Bắt đầu phát từ bài hát này.',
+        onPress: handleTrackActionPlayNow,
+      },
+      !isCurrentSelectedTrack && selectedTrackId
+        ? {
+            key: 'open-track-detail',
+            label: 'Mở chi tiết bài hát',
+            icon: 'disc-outline',
+            description: 'Xem trang chi tiết đầy đủ của bài hát này.',
+            onPress: handleTrackActionOpenTrackDetail,
+          }
+        : null,
+      selectedTrack?.artistId
+        ? {
+            key: 'open-artist-detail',
+            label: 'Mở chi tiết nghệ sĩ',
+            icon: 'person-outline',
+            description: 'Chuyển đến trang chi tiết nghệ sĩ.',
+            onPress: handleTrackActionOpenArtistDetail,
+          }
+        : null,
+      selectedTrack?.albumId
+        ? {
+            key: 'open-album-detail',
+            label: 'Mở chi tiết album',
+            icon: 'albums-outline',
+            description: 'Chuyển đến trang chi tiết album.',
+            onPress: handleTrackActionOpenAlbumDetail,
+          }
+        : null,
+      canEditPlaylist
+        ? {
+            key: 'remove-from-playlist',
+            label: 'Xóa khỏi playlist',
+            icon: 'trash-outline',
+            tintColor: '#ffb4b4',
+            description: 'Xóa bài hát này khỏi playlist cá nhân của bạn.',
+            disabled: isRemovingTrack,
+            onPress: handleRemoveTrackFromPlaylist,
+          }
+        : null,
+    ].filter(Boolean),
+    [
+      canEditPlaylist,
+      handleRemoveTrackFromPlaylist,
+      handleTrackActionOpenAlbumDetail,
+      handleTrackActionOpenArtistDetail,
+      handleTrackActionOpenTrackDetail,
+      handleTrackActionPlayNow,
+      isCurrentSelectedTrack,
+      isRemovingTrack,
+      selectedTrack?.albumId,
+      selectedTrack?.artistId,
+      selectedTrackId,
+    ]
+  );
 
   return (
     <View style={styles.container}>
@@ -280,7 +463,7 @@ export default function PlaylistDetailScreen() {
 
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} activeOpacity={0.8}>
-          <Text style={styles.backButtonText}>Back</Text>
+          <Text style={styles.backButtonText}>Quay lại</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>{headerTitle}</Text>
         <View style={styles.headerSpacer} />
@@ -294,7 +477,7 @@ export default function PlaylistDetailScreen() {
         <View style={styles.centerState}>
           <ErrorState message={errorMessage} />
           <TouchableOpacity style={styles.retryButton} onPress={loadPlaylistDetail} activeOpacity={0.85}>
-            <Text style={styles.retryButtonText}>Try Again</Text>
+            <Text style={styles.retryButtonText}>Thử lại</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -306,10 +489,10 @@ export default function PlaylistDetailScreen() {
             <Artwork uri={playlist?.image} label={playlist?.title} />
             <View style={styles.badge}>
               <Text style={styles.badgeText}>
-                {playlist?.playlistType === 'system' ? 'SYSTEM PLAYLIST' : 'PLAYLIST DETAIL'}
+                {playlist?.playlistType === 'system' ? 'PLAYLIST HỆ THỐNG' : 'CHI TIẾT PLAYLIST'}
               </Text>
             </View>
-            <Text style={styles.heroTitle}>{readText(playlist?.title, 'Untitled playlist')}</Text>
+            <Text style={styles.heroTitle}>{readText(playlist?.title, 'Playlist chưa có tên')}</Text>
             {playlist?.description ? (
               <Text style={styles.heroDescription}>{playlist.description}</Text>
             ) : null}
@@ -331,7 +514,7 @@ export default function PlaylistDetailScreen() {
               >
                 <Ionicons name="play" size={16} color="#000000" />
                 <Text style={styles.playButtonText}>
-                  {playableQueue.length > 0 ? `Play ${playableQueue.length} tracks` : 'No playable tracks'}
+                  {playableQueue.length > 0 ? `Phát ${playableQueue.length} bài hát` : 'Không có bài hát có thể phát'}
                 </Text>
               </TouchableOpacity>
               {canEditPlaylist ? (
@@ -341,7 +524,7 @@ export default function PlaylistDetailScreen() {
                   activeOpacity={0.85}
                 >
                   <Ionicons name="create-outline" size={15} color="#ffffff" />
-                  <Text style={styles.secondaryActionText}>Edit playlist</Text>
+                  <Text style={styles.secondaryActionText}>Chỉnh sửa playlist</Text>
                 </TouchableOpacity>
               ) : null}
               {canEditPlaylist ? (
@@ -351,7 +534,7 @@ export default function PlaylistDetailScreen() {
                   activeOpacity={0.85}
                 >
                   <Ionicons name="trash-outline" size={15} color="#ffb4b4" />
-                  <Text style={styles.dangerActionText}>Delete</Text>
+                  <Text style={styles.dangerActionText}>Xóa</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -375,7 +558,7 @@ export default function PlaylistDetailScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Curated By</Text>
+            <Text style={styles.sectionTitle}>Tạo bởi</Text>
             <View style={styles.ownerCard}>
               <View style={styles.ownerAvatar}>
                 <Text style={styles.ownerAvatarText}>{getInitials(ownerLabel)}</Text>
@@ -383,14 +566,14 @@ export default function PlaylistDetailScreen() {
               <View style={styles.ownerContent}>
                 <Text style={styles.ownerName}>{ownerLabel}</Text>
                 <Text style={styles.ownerRole}>
-                  {playlist?.playlistType === 'system' ? 'Reso editorial playlist' : 'Personal playlist'}
+                  {playlist?.playlistType === 'system' ? 'Playlist biên tập bởi Reso' : 'Playlist cá nhân'}
                 </Text>
               </View>
             </View>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Track List</Text>
+            <Text style={styles.sectionTitle}>Danh sách bài hát</Text>
             <View style={styles.panel}>
               {tracks.length > 0 ? (
                 tracks.map((track, index) => {
@@ -404,12 +587,13 @@ export default function PlaylistDetailScreen() {
                       index={index}
                       isActive={Boolean(isActive)}
                       isPlaying={Boolean(isActive && isPlaying)}
+                      onMorePress={canEditPlaylist ? () => openTrackActions(track, index) : undefined}
                       onPress={() => handleTrackPress(track, index)}
                     />
                   );
                 })
               ) : (
-                <Text style={styles.emptyPanelText}>This playlist does not have any tracks yet.</Text>
+                <Text style={styles.emptyPanelText}>Playlist này chưa có bài hát nào.</Text>
               )}
             </View>
           </View>
@@ -425,18 +609,25 @@ export default function PlaylistDetailScreen() {
         onSubmit={handleUpdatePlaylist}
       />
 
+      <TrackActionsBottomSheet
+        visible={isTrackActionsVisible}
+        track={selectedTrack}
+        actions={trackActionItems}
+        onClose={closeTrackActions}
+      />
+
       <AppModal visible={isDeleteModalVisible}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.modalHeader}>
             <View style={styles.modalHeaderContent}>
-              <Text style={styles.modalEyebrow}>DELETE PLAYLIST</Text>
-              <Text style={styles.modalTitle}>Delete this playlist?</Text>
+              <Text style={styles.modalEyebrow}>XÓA PLAYLIST</Text>
+              <Text style={styles.modalTitle}>Xóa playlist này?</Text>
               <Text style={styles.modalText}>
-                {`"${readText(playlist?.title, 'This playlist')}" will be permanently removed from your library.`}
+                {`"${readText(playlist?.title, 'Playlist này')}" sẽ bị xóa vĩnh viễn khỏi thư viện của bạn.`}
               </Text>
             </View>
             <TouchableOpacity onPress={handleCloseDeleteModal} activeOpacity={0.8} disabled={isDeletingPlaylist}>
-              <Text style={styles.modalCloseText}>Close</Text>
+              <Text style={styles.modalCloseText}>Đóng</Text>
             </TouchableOpacity>
           </View>
 
@@ -451,7 +642,7 @@ export default function PlaylistDetailScreen() {
               activeOpacity={0.85}
               disabled={isDeletingPlaylist}
             >
-              <Text style={styles.modalCancelButtonText}>Cancel</Text>
+              <Text style={styles.modalCancelButtonText}>Hủy</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.modalDeleteButton, isDeletingPlaylist ? styles.modalDeleteButtonDisabled : null]}
@@ -460,7 +651,7 @@ export default function PlaylistDetailScreen() {
               disabled={isDeletingPlaylist}
             >
               <Text style={styles.modalDeleteButtonText}>
-                {isDeletingPlaylist ? 'Deleting...' : 'Delete playlist'}
+                {isDeletingPlaylist ? 'Đang xóa...' : 'Xóa playlist'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -796,6 +987,13 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     marginLeft: 8,
+  },
+  moreButton: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 6,
   },
   emptyPanelText: {
     color: '#a3a3a3',

@@ -54,7 +54,7 @@ export default function PremiumCheckoutScreen() {
   const loadCheckoutData = useCallback(
     async (options = {}) => {
       if (!planId) {
-        setErrorMessage('Khong tim thay goi Premium can thanh toan.');
+        setErrorMessage('Không tìm thấy gói Premium cần thanh toán.');
         setIsLoading(false);
         setIsRefreshing(false);
         return;
@@ -85,12 +85,12 @@ export default function PremiumCheckoutScreen() {
         setSubscription(mySubscription);
         setErrorMessage(
           subscriptionResult.status === 'rejected'
-            ? subscriptionResult.reason?.message || 'Khong the dong bo trang thai Premium hien tai.'
+            ? subscriptionResult.reason?.message || 'Không thể đồng bộ trạng thái Premium hiện tại.'
             : ''
         );
         lastKnownPremiumEndDateRef.current = mySubscription?.premiumEndDate || '';
       } catch (error) {
-        setErrorMessage(error?.message || 'Khong the tai man hinh xac nhan mua goi luc nay.');
+        setErrorMessage(error?.message || 'Không thể tải màn hình xác nhận mua gói lúc này.');
       } finally {
         setIsLoading(false);
         setIsRefreshing(false);
@@ -120,14 +120,14 @@ export default function PremiumCheckoutScreen() {
         lastKnownPremiumEndDateRef.current = latestEndDate;
 
         if (latestSubscription?.isPremium && latestEndDate && latestEndDate !== previousEndDate) {
-          setNoticeMessage('Trang thai Premium da duoc cap nhat. Neu da thanh toan xong, goi cua ban da duoc gia han.');
+          setNoticeMessage('Trạng thái Premium đã được cập nhật. Nếu đã thanh toán xong, gói của bạn đã được gia hạn.');
           pendingPaymentRef.current = false;
           return;
         }
 
-        setNoticeMessage('Neu ban da thanh toan xong ma trang thai chua doi, hay thu keo lam moi sau it phut.');
+        setNoticeMessage('Nếu bạn đã thanh toán xong mà trạng thái chưa đổi, hãy thử kéo làm mới sau ít phút.');
       } catch (error) {
-        setNoticeMessage('Khong the dong bo trang thai Premium ngay luc nay. Ban co the thu lai sau.');
+        setNoticeMessage('Không thể đồng bộ trạng thái Premium ngay lúc này. Bạn có thể thử lại sau.');
       }
     });
 
@@ -157,24 +157,24 @@ export default function PremiumCheckoutScreen() {
       const result = await premiumService.createVnpayOrder(plan._id);
 
       if (!result?.paymentUrl) {
-        throw new Error('Backend khong tra ve duong dan thanh toan VNPAY.');
+        throw new Error('Hệ thống không trả về đường dẫn thanh toán VNPAY.');
       }
 
       pendingPaymentRef.current = true;
-      setNoticeMessage('Da tao don thanh toan. Sau khi hoan tat tren VNPAY, hay quay lai app de kiem tra trang thai moi nhat.');
+      setNoticeMessage('Đã tạo đơn thanh toán. Sau khi hoàn tất trên VNPAY, hãy quay lại app để kiểm tra trạng thái mới nhất.');
       await Linking.openURL(result.paymentUrl);
     } catch (error) {
-      setErrorMessage(error?.message || 'Khong the tao don thanh toan VNPAY luc nay.');
+      setErrorMessage(error?.message || 'Không thể tạo đơn thanh toán VNPAY lúc này.');
     } finally {
       setIsSubmitting(false);
     }
   }, [handleOpenLogin, isAuthenticated, plan]);
 
   const actionText = !isAuthenticated
-    ? 'Dang nhap de tiep tuc'
+    ? 'Đăng nhập để tiếp tục'
     : isSubmitting
-      ? 'Dang tao don hang...'
-      : 'Thanh toan voi VNPAY';
+      ? 'Đang tạo đơn hàng...'
+      : 'Thanh toán với VNPAY';
 
   return (
     <View style={styles.container}>
@@ -182,10 +182,10 @@ export default function PremiumCheckoutScreen() {
 
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} activeOpacity={0.8}>
-          <Text style={styles.backButtonText}>Back</Text>
+          <Text style={styles.backButtonText}>Quay lại</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
-          Xac nhan mua goi
+          Xác nhận mua gói
         </Text>
         <View style={styles.headerSpacer} />
       </View>
@@ -198,7 +198,7 @@ export default function PremiumCheckoutScreen() {
         <View style={styles.centerState}>
           <ErrorState message={errorMessage} />
           <TouchableOpacity style={styles.retryButton} onPress={() => loadCheckoutData()} activeOpacity={0.82}>
-            <Text style={styles.retryButtonText}>Thu lai</Text>
+            <Text style={styles.retryButtonText}>Thử lại</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -214,10 +214,10 @@ export default function PremiumCheckoutScreen() {
           }
         >
           <View style={styles.heroCard}>
-            <Text style={styles.heroBadge}>{isCurrentPlan ? 'GIA HAN GOI' : 'BUOC XAC NHAN'}</Text>
+            <Text style={styles.heroBadge}>{isCurrentPlan ? 'GIA HẠN GÓI' : 'BƯỚC XÁC NHẬN'}</Text>
             <Text style={styles.heroTitle}>{plan?.name || 'Premium'}</Text>
             <Text style={styles.heroSubtitle}>
-              Xac nhan thong tin goi truoc khi mo cong thanh toan VNPAY.
+              Xác nhận thông tin gói trước khi mở cổng thanh toán VNPAY.
             </Text>
           </View>
 
@@ -228,18 +228,18 @@ export default function PremiumCheckoutScreen() {
           ) : null}
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Tom tat don hang</Text>
+            <Text style={styles.sectionTitle}>Tóm tắt đơn hàng</Text>
             <View style={styles.panel}>
-              <CheckoutRow label="Ten goi" value={plan?.name || 'Premium'} />
-              <CheckoutRow label="Thoi han" value={formatDurationDays(plan?.durationDays)} />
-              <CheckoutRow label="Gia goi" value={formatPremiumPrice(plan?.price)} />
+              <CheckoutRow label="Tên gói" value={plan?.name || 'Premium'} />
+              <CheckoutRow label="Thời hạn" value={formatDurationDays(plan?.durationDays)} />
+              <CheckoutRow label="Giá gói" value={formatPremiumPrice(plan?.price)} />
               <CheckoutRow label="VAT" value={formatPremiumPrice(plan?.taxAmount)} />
-              <CheckoutRow label="Tong thanh toan" value={formatPremiumPrice(plan?.totalPrice)} emphasize />
+              <CheckoutRow label="Tổng thanh toán" value={formatPremiumPrice(plan?.totalPrice)} emphasize />
             </View>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Quyen loi se kich hoat</Text>
+            <Text style={styles.sectionTitle}>Quyền lợi sẽ kích hoạt</Text>
             <View style={styles.panel}>
               {(Array.isArray(plan?.features) ? plan.features : []).map((featureCode) => (
                 <View key={featureCode} style={styles.featureRow}>
@@ -251,27 +251,27 @@ export default function PremiumCheckoutScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Tinh trang tai khoan</Text>
+            <Text style={styles.sectionTitle}>Tình trạng tài khoản</Text>
             <View style={styles.panel}>
-              <CheckoutRow label="Da dang nhap" value={isAuthenticated ? 'Co' : 'Chua'} />
-              <CheckoutRow label="Premium hien tai" value={subscription?.isPremium ? 'Dang hoat dong' : 'Chua kich hoat'} />
+              <CheckoutRow label="Đã đăng nhập" value={isAuthenticated ? 'Có' : 'Chưa'} />
+              <CheckoutRow label="Premium hiện tại" value={subscription?.isPremium ? 'Đang hoạt động' : 'Chưa kích hoạt'} />
               <CheckoutRow
-                label="Goi hien tai"
-                value={subscription?.currentPlan?.name || subscription?.activeSubscription?.plan?.name || 'Chua co'}
+                label="Gói hiện tại"
+                value={subscription?.currentPlan?.name || subscription?.activeSubscription?.plan?.name || 'Chưa có'}
               />
               <CheckoutRow
-                label="Het han"
-                value={subscription?.premiumEndDate ? formatPremiumDate(subscription.premiumEndDate) : 'Chua co'}
+                label="Hết hạn"
+                value={subscription?.premiumEndDate ? formatPremiumDate(subscription.premiumEndDate) : 'Chưa có'}
               />
             </View>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Luu y thanh toan</Text>
+            <Text style={styles.sectionTitle}>Lưu ý thanh toán</Text>
             <View style={styles.notePanel}>
-              <Text style={styles.noteText}>Thanh toan duoc thuc hien tren cong VNPAY do backend cung cap.</Text>
-              <Text style={styles.noteText}>Sau khi thanh toan xong, quay lai app de doi chieu trang thai goi.</Text>
-              <Text style={styles.noteText}>Neu ban dang co Premium, thoi gian con lai se duoc cong don thay vi bi ghi de.</Text>
+              <Text style={styles.noteText}>Thanh toán được thực hiện trên cổng VNPAY do backend cung cấp.</Text>
+              <Text style={styles.noteText}>Sau khi thanh toán xong, quay lại app để đối chiếu trạng thái gói.</Text>
+              <Text style={styles.noteText}>Nếu bạn đang có Premium, thời gian còn lại sẽ được cộng dồn thay vì bị ghi đè.</Text>
             </View>
           </View>
 

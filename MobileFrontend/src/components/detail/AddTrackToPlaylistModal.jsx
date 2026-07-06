@@ -37,12 +37,12 @@ const Artwork = ({ uri, label }) => {
 };
 
 const PlaylistRow = ({ item, isSubmitting, onPress }) => {
-  const title = readText(item?.title, 'Untitled playlist');
+  const title = readText(item?.title, 'Playlist chưa có tên');
   const trackCount = Number(item?.trackCount) || 0;
   const durationLabel = Number(item?.totalDuration) > 0 ? formatDuration(item.totalDuration) : '';
-  const visibilityLabel = item?.type === 'system' ? 'System' : item?.isPublic ? 'Public' : 'Private';
+  const visibilityLabel = item?.type === 'system' ? 'Hệ thống' : item?.isPublic ? 'Công khai' : 'Riêng tư';
   const metaLabel = [
-    trackCount > 0 ? `${trackCount} tracks` : 'No tracks yet',
+    trackCount > 0 ? `${trackCount} bài hát` : 'Chưa có bài hát',
     durationLabel,
     visibilityLabel,
   ].filter(Boolean).join(' - ');
@@ -83,21 +83,21 @@ export default function AddTrackToPlaylistModal({
   trackTitle = '',
   visible = false,
 }) {
-  const safeTrackTitle = readText(trackTitle, 'this track');
+  const safeTrackTitle = readText(trackTitle, 'bài hát này');
 
   return (
     <AppModal visible={visible} onClose={onClose} position="bottom">
       <View style={styles.header}>
         <View style={styles.headerCopy}>
-          <Text style={styles.eyebrow}>ADD TO PLAYLIST</Text>
-          <Text style={styles.title}>Choose a playlist</Text>
+          <Text style={styles.eyebrow}>THÊM VÀO PLAYLIST</Text>
+          <Text style={styles.title}>Chọn playlist</Text>
           <Text style={styles.description} numberOfLines={2}>
-            {`Save "${safeTrackTitle}" to one of your personal playlists.`}
+            {`Lưu "${safeTrackTitle}" vào một trong các playlist cá nhân của bạn.`}
           </Text>
         </View>
 
         <TouchableOpacity style={styles.closeButton} activeOpacity={0.8} onPress={onClose}>
-          <Text style={styles.closeButtonText}>Close</Text>
+          <Text style={styles.closeButtonText}>Đóng</Text>
         </TouchableOpacity>
       </View>
 
@@ -109,14 +109,14 @@ export default function AddTrackToPlaylistModal({
         <View style={styles.centerState}>
           <ErrorState message={errorMessage} />
           <TouchableOpacity style={styles.retryButton} activeOpacity={0.85} onPress={onRetry}>
-            <Text style={styles.retryButtonText}>Try Again</Text>
+            <Text style={styles.retryButtonText}>Thử lại</Text>
           </TouchableOpacity>
         </View>
       ) : playlists.length === 0 ? (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyTitle}>No personal playlists yet</Text>
+          <Text style={styles.emptyTitle}>Chưa có playlist cá nhân</Text>
           <Text style={styles.emptyText}>
-            Create a playlist in your Library first, then come back here to add this track.
+            Hãy tạo playlist trong Thư viện trước, rồi quay lại đây để thêm bài hát này.
           </Text>
         </View>
       ) : (

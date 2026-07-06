@@ -39,11 +39,11 @@ const Artwork = ({ uri, label, color }) => {
 
 const resolvePlaylistBadgeLabel = (item) => {
   if (item?.type === 'system') {
-    return 'SYSTEM';
+    return 'HỆ THỐNG';
   }
 
   if (item?.type === 'user') {
-    return item?.isPublic ? 'PUBLIC' : 'PRIVATE';
+    return item?.isPublic ? 'CÔNG KHAI' : 'RIÊNG TƯ';
   }
 
   return 'PLAYLIST';
@@ -54,7 +54,7 @@ const PlaylistCard = ({ item, index, onPress }) => {
   const totalTracks = Number(item?.trackCount) || 0;
   const durationLabel = Number(item?.totalDuration) > 0
     ? formatDuration(item.totalDuration)
-    : 'Fresh picks';
+    : 'Tuyển chọn mới';
 
   return (
     <TouchableOpacity style={styles.card} activeOpacity={0.85} onPress={onPress}>
@@ -65,16 +65,16 @@ const PlaylistCard = ({ item, index, onPress }) => {
             <Text style={styles.cardBadgeText}>{resolvePlaylistBadgeLabel(item)}</Text>
           </View>
           <Text style={styles.cardMetaText}>
-            {totalTracks > 0 ? `${totalTracks} tracks` : 'No tracks yet'}
+            {totalTracks > 0 ? `${totalTracks} bài hát` : 'Chưa có bài hát'}
           </Text>
         </View>
-        <Text style={styles.cardTitle} numberOfLines={1}>{item?.title || 'Untitled playlist'}</Text>
+        <Text style={styles.cardTitle} numberOfLines={1}>{item?.title || 'Playlist chưa có tên'}</Text>
         <Text style={styles.cardDescription} numberOfLines={2}>
-          {item?.description || 'A playlist collection ready for your next listening session.'}
+          {item?.description || 'Một playlist sẵn sàng cho lần nghe tiếp theo của bạn.'}
         </Text>
         <View style={styles.cardFooter}>
           <Text style={styles.cardFooterText}>{durationLabel}</Text>
-          <Text style={styles.cardFooterAction}>Open playlist</Text>
+          <Text style={styles.cardFooterAction}>Mở playlist</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -121,7 +121,7 @@ export default function LibraryScreen() {
       user?.fullName ||
       user?.name ||
       user?.email ||
-      'your account',
+      'tài khoản của bạn',
     [user]
   );
 
@@ -140,7 +140,7 @@ export default function LibraryScreen() {
       setSystemErrorMessage('');
     } catch (error) {
       setSystemPlaylists([]);
-      setSystemErrorMessage(getErrorMessage(error, 'Unable to load playlists right now.'));
+      setSystemErrorMessage(getErrorMessage(error, 'Không thể tải playlist lúc này.'));
     } finally {
       if (!refresh) {
         setIsSystemLoading(false);
@@ -170,7 +170,7 @@ export default function LibraryScreen() {
       setMyErrorMessage('');
     } catch (error) {
       setMyPlaylists([]);
-      setMyErrorMessage(getErrorMessage(error, 'Unable to load your playlists right now.'));
+      setMyErrorMessage(getErrorMessage(error, 'Không thể tải playlist của bạn lúc này.'));
     } finally {
       if (!refresh) {
         setIsMyLoading(false);
@@ -221,7 +221,7 @@ export default function LibraryScreen() {
 
     navigation.navigate('PlaylistDetail', {
       playlistId: playlist.id,
-      initialTitle: playlist.title || 'Playlist Detail',
+      initialTitle: playlist.title || 'Chi tiết playlist',
     });
   }, [navigation]);
 
@@ -269,10 +269,10 @@ export default function LibraryScreen() {
 
       navigation.navigate('PlaylistDetail', {
         playlistId: createdPlaylist.id,
-        initialTitle: createdPlaylist.title || 'Playlist Detail',
+        initialTitle: createdPlaylist.title || 'Chi tiết playlist',
       });
     } catch (error) {
-      setCreatePlaylistError(getErrorMessage(error, 'Unable to create playlist right now.'));
+      setCreatePlaylistError(getErrorMessage(error, 'Không thể tạo playlist lúc này.'));
     } finally {
       setIsCreatingPlaylist(false);
     }
@@ -283,7 +283,7 @@ export default function LibraryScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
-      <AppHeader title="Playlist Library" />
+      <AppHeader title="Thư viện playlist" />
 
       {showInitialLoader ? (
         <View style={styles.centerState}>
@@ -302,14 +302,14 @@ export default function LibraryScreen() {
           }
         >
           <View style={styles.hero}>
-            <Text style={styles.heroEyebrow}>CURATED FOR MOBILE</Text>
-            <Text style={styles.heroTitle}>Build your playlist library</Text>
+            <Text style={styles.heroEyebrow}>DÀNH CHO MOBILE</Text>
+            <Text style={styles.heroTitle}>Xây dựng thư viện playlist</Text>
             <Text style={styles.heroText}>
-              Create your own playlists, keep them private by default, and still browse system picks in one place.
+              Tạo playlist của riêng bạn, mặc định để riêng tư và vẫn khám phá playlist hệ thống ngay tại một nơi.
             </Text>
             <View style={styles.heroActions}>
               <AppButton
-                title={isAuthenticated ? 'Create Playlist' : 'Login To Create'}
+                title={isAuthenticated ? 'Tạo playlist' : 'Đăng nhập để tạo'}
                 onPress={handleOpenCreateModal}
                 style={styles.heroPrimaryAction}
               />
@@ -318,26 +318,26 @@ export default function LibraryScreen() {
 
           <View style={styles.section}>
             <SectionHeader
-              title="Favorite Tracks"
+              title="Bài hát yêu thích"
               description={isAuthenticated
-                ? 'Open the songs you liked and replay them anytime.'
-                : 'Sign in to keep your liked songs in one place.'}
-              actionLabel={isAuthenticated ? 'View All' : 'Login'}
+                ? 'Mở các bài hát bạn đã thích và phát lại bất cứ lúc nào.'
+                : 'Đăng nhập để lưu các bài hát bạn thích vào một nơi.'}
+              actionLabel={isAuthenticated ? 'Xem tất cả' : 'Đăng nhập'}
               onActionPress={handleOpenFavoriteTracks}
             />
 
             <TouchableOpacity style={styles.favoriteCard} activeOpacity={0.85} onPress={handleOpenFavoriteTracks}>
               <View style={styles.favoriteCardContent}>
-                <Text style={styles.favoriteCardEyebrow}>PERSONAL COLLECTION</Text>
-                <Text style={styles.favoriteCardTitle}>Favorite tracks</Text>
+                <Text style={styles.favoriteCardEyebrow}>BỘ SƯU TẬP CÁ NHÂN</Text>
+                <Text style={styles.favoriteCardTitle}>Bài hát yêu thích</Text>
                 <Text style={styles.favoriteCardText}>
                   {isAuthenticated
-                    ? 'Your liked songs live here, ready to play in one tap or open in full detail.'
-                    : 'Login to unlock a dedicated view for all the tracks you liked.'}
+                    ? 'Những bài bạn đã thích sẽ nằm ở đây, sẵn sàng phát ngay hoặc mở xem chi tiết.'
+                    : 'Đăng nhập để mở chế độ xem riêng cho toàn bộ bài hát bạn đã thích.'}
                 </Text>
               </View>
               <View style={styles.favoriteCardAction}>
-                <Text style={styles.favoriteCardActionText}>{isAuthenticated ? 'Open' : 'Login'}</Text>
+                <Text style={styles.favoriteCardActionText}>{isAuthenticated ? 'Mở' : 'Đăng nhập'}</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -345,9 +345,9 @@ export default function LibraryScreen() {
           {isAuthenticated ? (
             <View style={styles.section}>
               <SectionHeader
-                title="Your Playlists"
-                description={`Manage playlists for ${displayName}.`}
-                actionLabel="Create"
+                title="Playlist của bạn"
+                description={`Quản lý playlist của ${displayName}.`}
+                actionLabel="Tạo"
                 onActionPress={handleOpenCreateModal}
               />
 
@@ -358,15 +358,15 @@ export default function LibraryScreen() {
               ) : myErrorMessage ? (
                 <View style={styles.sectionCard}>
                   <ErrorState message={myErrorMessage} />
-                  <AppButton title="Retry" onPress={() => loadMyPlaylists()} style={styles.retryCompactButton} />
+                  <AppButton title="Thử lại" onPress={() => loadMyPlaylists()} style={styles.retryCompactButton} />
                 </View>
               ) : myPlaylists.length === 0 ? (
                 <View style={styles.sectionCard}>
-                  <Text style={styles.emptyTitle}>No playlists created yet</Text>
+                  <Text style={styles.emptyTitle}>Bạn chưa tạo playlist nào</Text>
                   <Text style={styles.emptyText}>
-                    Start with your first playlist and it will appear here immediately.
+                    Hãy bắt đầu với playlist đầu tiên, nó sẽ xuất hiện ngay tại đây.
                   </Text>
-                  <AppButton title="Create your first playlist" onPress={handleOpenCreateModal} style={styles.emptyActionButton} />
+                  <AppButton title="Tạo playlist đầu tiên" onPress={handleOpenCreateModal} style={styles.emptyActionButton} />
                 </View>
               ) : (
                 <View style={styles.list}>
@@ -384,37 +384,37 @@ export default function LibraryScreen() {
           ) : (
             <View style={styles.section}>
               <SectionHeader
-                title="Your Playlists"
-                description="Sign in to create and manage personal playlists."
+                title="Playlist của bạn"
+                description="Đăng nhập để tạo và quản lý playlist cá nhân."
               />
               <View style={styles.authCard}>
-                <Text style={styles.authCardTitle}>Login required</Text>
+                <Text style={styles.authCardTitle}>Cần đăng nhập</Text>
                 <Text style={styles.authCardText}>
-                  Creating playlists is tied to your account, so we need you signed in first.
+                  Việc tạo playlist gắn với tài khoản của bạn, nên hãy đăng nhập trước.
                 </Text>
-                <AppButton title="Go to Login" onPress={handleOpenLogin} style={styles.authButton} />
+                <AppButton title="Đi đến đăng nhập" onPress={handleOpenLogin} style={styles.authButton} />
               </View>
             </View>
           )}
 
           <View style={styles.section}>
             <SectionHeader
-              title="Discover Playlists"
-              description="System playlists curated by the Reso team."
-              actionLabel={systemPlaylists.length > 0 ? 'Refresh' : ''}
+              title="Khám phá playlist"
+              description="Các playlist hệ thống được đội ngũ Reso tuyển chọn."
+              actionLabel={systemPlaylists.length > 0 ? 'Làm mới' : ''}
               onActionPress={() => loadSystemPlaylists()}
             />
 
             {systemErrorMessage ? (
               <View style={styles.sectionCard}>
                 <ErrorState message={systemErrorMessage} />
-                <AppButton title="Try Again" onPress={() => loadSystemPlaylists()} style={styles.retryCompactButton} />
+                <AppButton title="Thử lại" onPress={() => loadSystemPlaylists()} style={styles.retryCompactButton} />
               </View>
             ) : systemPlaylists.length === 0 ? (
               <View style={styles.sectionCard}>
-                <Text style={styles.emptyTitle}>No playlists available</Text>
+                <Text style={styles.emptyTitle}>Chưa có playlist nào</Text>
                 <Text style={styles.emptyText}>
-                  Pull to refresh or come back later after new playlist data is published.
+                  Hãy kéo để làm mới hoặc quay lại sau khi có dữ liệu playlist mới.
                 </Text>
               </View>
             ) : (

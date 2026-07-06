@@ -109,7 +109,7 @@ const Artwork = ({ uri, label, style, textStyle, rounded = false }) => {
 };
 
 const TrackListItem = ({ item, index, onMorePress, onPress, showIndex = false }) => {
-  const title = getDisplayText(item?.title, 'Unknown item');
+  const title = getDisplayText(item?.title, 'Nội dung không xác định');
   const subtitle = getDisplayText(item?.subtitle || item?.artistName);
   const explicit = isExplicitTrack(item);
 
@@ -185,7 +185,7 @@ export default function EntityDetailScreen() {
   const loadDetail = useCallback(async () => {
     if (!entityId || !entityType || !detailFetchers[entityType]) {
       setDetail(null);
-      setErrorMessage('Detail information is missing.');
+      setErrorMessage('Thiếu thông tin chi tiết.');
       setIsLoading(false);
       return;
     }
@@ -215,7 +215,7 @@ export default function EntityDetailScreen() {
           if (followError?.status === 401) {
             setIsAlbumFollowing(false);
           } else {
-            console.log('Unable to load album follow status.', followError?.message || followError);
+            console.log('Không thể tải trạng thái theo dõi album.', followError?.message || followError);
           }
         }
       } else {
@@ -224,7 +224,7 @@ export default function EntityDetailScreen() {
     } catch (error) {
       setDetail(null);
       setIsAlbumFollowing(false);
-      setErrorMessage(getErrorMessage(error, 'Unable to load detail right now.'));
+      setErrorMessage(getErrorMessage(error, 'Không thể tải nội dung chi tiết lúc này.'));
     } finally {
       setIsLoading(false);
     }
@@ -312,7 +312,7 @@ export default function EntityDetailScreen() {
       setMyPlaylists(Array.isArray(result?.items) ? result.items : []);
     } catch (error) {
       setMyPlaylists([]);
-      setPlaylistPickerError(getErrorMessage(error, 'Unable to load your playlists right now.'));
+      setPlaylistPickerError(getErrorMessage(error, 'Không thể tải playlist của bạn lúc này.'));
     } finally {
       setIsPlaylistPickerLoading(false);
     }
@@ -385,7 +385,7 @@ export default function EntityDetailScreen() {
     const targetTrackId = targetTrack?.entityId || targetTrack?.id || '';
 
     if (!targetTrackId) {
-      Alert.alert('Track unavailable', 'This track cannot be added to a playlist right now.');
+      Alert.alert('Bài hát không khả dụng', 'Không thể thêm bài hát này vào playlist lúc này.');
       return;
     }
 
@@ -413,11 +413,11 @@ export default function EntityDetailScreen() {
       await userPlaylistService.addTrackToMyPlaylist(playlistId, targetTrackId);
       setIsPlaylistPickerVisible(false);
       Alert.alert(
-        'Added to playlist',
-        `"${getDisplayText(targetTrack?.title, 'This track')}" was added to "${getDisplayText(playlist?.title, 'your playlist')}".`
+        'Đã thêm vào playlist',
+        `"${getDisplayText(targetTrack?.title, 'Bài hát này')}" đã được thêm vào "${getDisplayText(playlist?.title, 'playlist của bạn')}".`
       );
     } catch (error) {
-      Alert.alert('Add to playlist failed', getErrorMessage(error, 'Unable to add this track right now.'));
+      Alert.alert('Thêm vào playlist thất bại', getErrorMessage(error, 'Không thể thêm bài hát này lúc này.'));
     } finally {
       setSubmittingPlaylistId('');
     }
@@ -431,7 +431,7 @@ export default function EntityDetailScreen() {
     handleOpenNestedDetail(item.entityType, item.entityId, item.value);
   }, [handleOpenNestedDetail]);
 
-  const headerTitle = getDisplayText(detail?.title, getDisplayText(initialTitle, 'Detail'));
+  const headerTitle = getDisplayText(detail?.title, getDisplayText(initialTitle, 'Chi tiết'));
   const detailTitle = getDisplayText(detail?.title, headerTitle);
   const detailSubtitle = getDisplayText(detail?.subtitle);
   const detailDescription = getDisplayText(detail?.description);
@@ -440,7 +440,7 @@ export default function EntityDetailScreen() {
     detail?.owner?.fullName || detail?.owner?.name || detail?.owner?.email,
     ''
   );
-  const ownerRole = getDisplayText(detail?.owner?.role, detail?.type === 'playlist' ? 'Playlist owner' : '');
+  const ownerRole = getDisplayText(detail?.owner?.role, detail?.type === 'playlist' ? 'Chủ playlist' : '');
 
   const selectedTrack = selectedTrackAction.track;
   const selectedTrackId = selectedTrack?.entityId || selectedTrack?.id || '';
@@ -455,44 +455,44 @@ export default function EntityDetailScreen() {
     () => [
       {
         key: 'play-now',
-        label: 'Play now',
+        label: 'Phát ngay',
         icon: 'play',
-        description: 'Start playback from this track.',
+        description: 'Bắt đầu phát từ bài hát này.',
         onPress: handleTrackActionPlayNow,
       },
       {
         key: 'add-to-playlist',
-        label: isAuthenticated ? 'Add to playlist' : 'Login to add to playlist',
+        label: isAuthenticated ? 'Thêm vào playlist' : 'Đăng nhập để thêm vào playlist',
         icon: 'add-circle-outline',
         description: isAuthenticated
-          ? 'Choose one of your personal playlists for this track.'
-          : 'Sign in first to save this track to your playlists.',
+          ? 'Chọn một playlist cá nhân để thêm bài hát này.'
+          : 'Hãy đăng nhập trước để lưu bài hát này vào playlist.',
         onPress: handleOpenAddToPlaylist,
       },
       !isCurrentTrackDetail && selectedTrackId
         ? {
           key: 'open-track-detail',
-          label: 'Open track detail',
+          label: 'Mở chi tiết bài hát',
           icon: 'disc-outline',
-          description: 'View the full detail page for this track.',
+          description: 'Xem trang chi tiết đầy đủ của bài hát này.',
           onPress: handleTrackActionOpenTrackDetail,
         }
         : null,
       selectedTrack?.artistId
         ? {
           key: 'open-artist-detail',
-          label: 'Open artist detail',
+          label: 'Mở chi tiết nghệ sĩ',
           icon: 'person-outline',
-          description: 'Jump to the artist detail page.',
+          description: 'Chuyển đến trang chi tiết nghệ sĩ.',
           onPress: handleTrackActionOpenArtistDetail,
         }
         : null,
       selectedTrack?.albumId
         ? {
           key: 'open-album-detail',
-          label: 'Open album detail',
+          label: 'Mở chi tiết album',
           icon: 'albums-outline',
-          description: 'Jump to the album detail page.',
+          description: 'Chuyển đến trang chi tiết album.',
           onPress: handleTrackActionOpenAlbumDetail,
         }
         : null,
@@ -516,12 +516,12 @@ export default function EntityDetailScreen() {
     (entityType === 'album'
       ? 'Album'
       : entityType === 'artist'
-        ? 'Artist'
+        ? 'Nghệ sĩ'
         : entityType === 'playlist'
           ? 'Playlist'
           : entityType === 'topTrackCollection'
-            ? 'Chart'
-            : 'Track');
+            ? 'BXH'
+            : 'Bài hát');
 
   const isAlbum = detail?.type === 'album' || entityType === 'album';
   const isArtist = detail?.type === 'artist' || entityType === 'artist';
@@ -556,7 +556,7 @@ export default function EntityDetailScreen() {
       setIsAlbumFollowing(Boolean(followState?.isFollowing));
     } catch (error) {
       setIsAlbumFollowing(previousValue);
-      Alert.alert('Save album failed', getErrorMessage(error, 'Unable to update saved album right now.'));
+      Alert.alert('Lưu album thất bại', getErrorMessage(error, 'Không thể cập nhật album đã lưu lúc này.'));
     } finally {
       setIsAlbumFollowUpdating(false);
     }
@@ -592,7 +592,7 @@ export default function EntityDetailScreen() {
           <ErrorState message={errorMessage} />
 
           <TouchableOpacity style={styles.retryButton} onPress={loadDetail} activeOpacity={0.8}>
-            <Text style={styles.retryButtonText}>Try Again</Text>
+            <Text style={styles.retryButtonText}>Thử lại</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -638,7 +638,7 @@ export default function EntityDetailScreen() {
 
             <Text style={styles.metaLine} numberOfLines={2}>
               {badgeLabel}
-              {metaText ? ` • ${metaText}` : ''}
+              {metaText ? ` - ${metaText}` : ''}
             </Text>
 
             <View style={styles.actionRow}>
@@ -717,7 +717,7 @@ export default function EntityDetailScreen() {
 
           {detailMeta.length > 0 ? (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Details</Text>
+              <Text style={styles.sectionTitle}>Thông tin</Text>
               <View style={styles.panel}>
                 {detailMeta.map((item, index) => {
                   const isPressable = Boolean(item.entityType && item.entityId);
@@ -749,7 +749,7 @@ export default function EntityDetailScreen() {
 
           {detail?.type === 'playlist' && ownerName ? (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Curated By</Text>
+              <Text style={styles.sectionTitle}>Tạo bởi</Text>
               <View style={styles.ownerCard}>
                 <View style={styles.ownerAvatar}>
                   <Text style={styles.ownerAvatarText}>{getInitials(ownerName)}</Text>
@@ -764,7 +764,7 @@ export default function EntityDetailScreen() {
 
           {Array.isArray(detail?.tags) && detail.tags.length > 0 ? (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Tags</Text>
+              <Text style={styles.sectionTitle}>Thẻ</Text>
 
               <View style={styles.tagsWrap}>
                 {detail.tags.map((tag, index) => (
@@ -788,7 +788,7 @@ export default function EntityDetailScreen() {
 
           {Array.isArray(detail?.items) && detail.items.length > 0 ? (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{getDisplayText(detail.itemsTitle, 'Items')}</Text>
+              <Text style={styles.sectionTitle}>{getDisplayText(detail.itemsTitle, 'Danh sách')}</Text>
               <View style={detail?.type === 'topTrackCollection' ? styles.trackList : styles.panel}>
                 {detail.items.map((item, index) => (
                   <TrackListItem
@@ -808,9 +808,9 @@ export default function EntityDetailScreen() {
             </View>
           ) : detail?.type === 'playlist' ? (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{getDisplayText(detail.itemsTitle, 'Items')}</Text>
+              <Text style={styles.sectionTitle}>{getDisplayText(detail.itemsTitle, 'Danh sách')}</Text>
               <View style={styles.panel}>
-                <Text style={styles.emptyPanelText}>This playlist does not have any tracks yet.</Text>
+                <Text style={styles.emptyPanelText}>Playlist này chưa có bài hát nào.</Text>
               </View>
             </View>
           ) : null}

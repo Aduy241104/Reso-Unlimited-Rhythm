@@ -96,6 +96,14 @@ export const userPlaylistService = {
     );
   },
 
+  async removeTrackFromMyPlaylist(playlistId, trackId) {
+    const response = await axiosClient.delete(
+      `${API_ENDPOINTS.USER_PLAYLISTS.TRACKS}/${playlistId}/tracks/${trackId}`
+    );
+
+    return getPayload(response);
+  },
+
   async deleteMyPlaylist(playlistId) {
     const response = await axiosClient.delete(`${API_ENDPOINTS.USER_PLAYLISTS.UPDATE}/${playlistId}`);
     return getPayload(response);

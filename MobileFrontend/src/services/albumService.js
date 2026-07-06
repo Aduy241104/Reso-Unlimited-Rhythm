@@ -41,7 +41,7 @@ const normalizeAlbumItem = (item) => {
   return {
     ...rawItem,
     id: pickFirstDefined(rawItem.id, rawItem._id, ''),
-    title: pickFirstDefined(rawItem.title, 'Untitled album'),
+    title: pickFirstDefined(rawItem.title, 'Album chưa có tên'),
     coverImage: pickFirstDefined(rawItem.coverImage, rawItem.image, ''),
     releaseDate: pickFirstDefined(rawItem.releaseDate, null),
     trackCount,
@@ -49,7 +49,7 @@ const normalizeAlbumItem = (item) => {
     artist: artist?.id || artist?._id || artist?.name
       ? {
           id: pickFirstDefined(artist.id, artist._id, ''),
-          name: pickFirstDefined(artist.name, 'Unknown artist'),
+          name: pickFirstDefined(artist.name, 'Nghệ sĩ không xác định'),
           avatar: pickFirstDefined(artist.avatar, ''),
           coverImage: pickFirstDefined(artist.coverImage, ''),
         }
@@ -85,21 +85,21 @@ const normalizeAlbumDetail = (item) => {
     badgeLabel: 'ALBUM',
     subtitle: artist?.name || 'Album',
     image: resolveImageUri(normalizedAlbum.coverImage),
-    description: releasedOn ? `Released ${releasedOn}` : '',
+    description: releasedOn ? `Phát hành ${releasedOn}` : '',
     stats: [
-      { label: 'Tracks', value: `${normalizedAlbum.trackCount || tracks.length}` },
-      { label: 'Duration', value: formatDuration(normalizedAlbum.totalDuration) },
-      { label: 'Released', value: releasedOn || 'Unknown' },
+      { label: 'Bài hát', value: `${normalizedAlbum.trackCount || tracks.length}` },
+      { label: 'Thời lượng', value: formatDuration(normalizedAlbum.totalDuration) },
+      { label: 'Phát hành', value: releasedOn || 'Không xác định' },
     ],
     meta: [
-      { label: 'Artist', value: artist?.name || 'Unknown artist' },
-      { label: 'Status', value: pickFirstDefined(rawItem.status, 'active') },
-      { label: 'Updated', value: updatedOn || 'Unknown' },
+      { label: 'Nghệ sĩ', value: artist?.name || 'Nghệ sĩ không xác định' },
+      { label: 'Trạng thái', value: pickFirstDefined(rawItem.status, 'active') },
+      { label: 'Cập nhật', value: updatedOn || 'Không xác định' },
     ],
     tags: [],
     extraTitle: '',
     extraText: '',
-    itemsTitle: 'Tracks',
+    itemsTitle: 'Bài hát',
     items: tracks,
   };
 };

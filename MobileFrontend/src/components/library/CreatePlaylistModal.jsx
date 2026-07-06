@@ -53,15 +53,15 @@ export default function CreatePlaylistModal({
     let nextDescriptionError = '';
 
     if (!normalizedTitle) {
-      nextTitleError = 'Playlist title is required.';
+      nextTitleError = 'Vui lòng nhập tên playlist.';
     } else if (normalizedTitle.length > TITLE_MAX_LENGTH) {
-      nextTitleError = `Title must be ${TITLE_MAX_LENGTH} characters or fewer.`;
+      nextTitleError = `Tên playlist tối đa ${TITLE_MAX_LENGTH} ký tự.`;
     } else if (existingTitles.includes(normalizedTitle)) {
-      nextTitleError = 'You already have a playlist with this title.';
+      nextTitleError = 'Bạn đã có một playlist trùng tên này.';
     }
 
     if (normalizedDescription.length > DESCRIPTION_MAX_LENGTH) {
-      nextDescriptionError = `Description must be ${DESCRIPTION_MAX_LENGTH} characters or fewer.`;
+      nextDescriptionError = `Mô tả tối đa ${DESCRIPTION_MAX_LENGTH} ký tự.`;
     }
 
     setTitleError(nextTitleError);
@@ -86,22 +86,22 @@ export default function CreatePlaylistModal({
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.header}>
           <View style={styles.headerContent}>
-            <Text style={styles.eyebrow}>CREATE PLAYLIST</Text>
-            <Text style={styles.title}>Start a new playlist</Text>
+            <Text style={styles.eyebrow}>TẠO PLAYLIST</Text>
+            <Text style={styles.title}>Bắt đầu playlist mới</Text>
             <Text style={styles.subtitle}>
-              New playlists are created as private by default and can be edited later.
+              Playlist mới sẽ mặc định là riêng tư và bạn có thể chỉnh sửa sau.
             </Text>
           </View>
           <Pressable onPress={onClose} style={styles.closeButton} hitSlop={8}>
-            <Text style={styles.closeButtonText}>Close</Text>
+            <Text style={styles.closeButtonText}>Đóng</Text>
           </Pressable>
         </View>
 
         <AppInput
-          label="Playlist title"
+          label="Tên playlist"
           value={title}
           onChangeText={setTitle}
-          placeholder="Late night drive"
+          placeholder="Lái xe đêm muộn"
           autoCapitalize="sentences"
           autoCorrect={false}
           maxLength={TITLE_MAX_LENGTH}
@@ -109,12 +109,12 @@ export default function CreatePlaylistModal({
         />
 
         <View style={styles.textAreaGroup}>
-          <Text style={styles.textAreaLabel}>Description</Text>
+          <Text style={styles.textAreaLabel}>Mô tả</Text>
           <View style={[styles.textAreaWrap, descriptionError ? styles.textAreaWrapError : null]}>
             <TextInput
               value={description}
               onChangeText={setDescription}
-              placeholder="Tell listeners what this playlist is about."
+              placeholder="Mô tả ngắn về playlist này."
               placeholderTextColor="#7d7d7d"
               style={styles.textArea}
               multiline
@@ -123,7 +123,7 @@ export default function CreatePlaylistModal({
             />
           </View>
           <View style={styles.textAreaFooter}>
-            <Text style={styles.helperText}>Optional</Text>
+            <Text style={styles.helperText}>Không bắt buộc</Text>
             <Text style={styles.counterText}>{description.trim().length}/{DESCRIPTION_MAX_LENGTH}</Text>
           </View>
           {descriptionError ? <Text style={styles.errorText}>{descriptionError}</Text> : null}
@@ -133,13 +133,13 @@ export default function CreatePlaylistModal({
 
         <View style={styles.actions}>
           <AppButton
-            title="Cancel"
+            title="Hủy"
             onPress={onClose}
             disabled={isSubmitting}
             style={styles.cancelButton}
           />
           <AppButton
-            title="Create Playlist"
+            title="Tạo playlist"
             onPress={handleSubmit}
             isLoading={isSubmitting}
             style={styles.submitButton}

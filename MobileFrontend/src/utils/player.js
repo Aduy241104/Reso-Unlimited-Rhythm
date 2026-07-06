@@ -92,8 +92,8 @@ export const normalizePlayerTrack = (item, index = 0) => {
 
   return {
     id: item?.id || item?.entityId || `track-${index}`,
-    title: item?.title || 'Unknown track',
-    artistName: item?.artistName || item?.subtitle || item?.artist || 'Unknown artist',
+    title: item?.title || 'Bài hát không xác định',
+    artistName: item?.artistName || item?.subtitle || item?.artist || 'Nghệ sĩ không xác định',
     image: resolveImageUri(item?.image || item?.coverImage || item?.avatar),
     duration,
     durationLabel: item?.meta || formatDuration(duration || fallbackDuration),

@@ -144,14 +144,14 @@ export const AuthProvider = ({ children }) => {
         const response = await authService.login(email, password);
 
         if (!response) {
-          throw new Error('Khong nhan duoc phan hoi tu server.');
+          throw new Error('Không nhận được phản hồi từ server.');
         }
 
         const authPayload = normalizeAuthPayload(response?.data || response);
         const sessionUser = normalizeAuthUser(authPayload.user) || { email };
 
         if (!authPayload.accessToken) {
-          throw new Error('Dang nhap that bai: Server khong tra ve access token.');
+          throw new Error('Đăng nhập thất bại: Server không trả về access token.');
         }
 
         await persistSession({

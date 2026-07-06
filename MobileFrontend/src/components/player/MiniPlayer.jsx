@@ -54,7 +54,7 @@ export default function MiniPlayer({ onPress }) {
         <View style={styles.content}>
           <Text style={styles.title} numberOfLines={1}>{currentTrack.title}</Text>
           <Text style={styles.subtitle} numberOfLines={1}>
-            {currentError || (isBuffering ? 'Loading audio...' : currentTrack.artistName)}
+            {currentError || (isBuffering ? 'Đang tải âm thanh...' : currentTrack.artistName)}
           </Text>
         </View>
 

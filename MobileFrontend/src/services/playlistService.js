@@ -21,10 +21,10 @@ const pickNumber = (...values) => {
 
 const normalizeVisibilityLabel = (item) => {
   if (item?.type === 'system') {
-    return 'System';
+    return 'Hệ thống';
   }
 
-  return item?.isPublic ? 'Public' : 'Private';
+  return item?.isPublic ? 'Công khai' : 'Riêng tư';
 };
 
 export const normalizePlaylistSummary = (item) => {
@@ -46,7 +46,7 @@ export const normalizePlaylistSummary = (item) => {
   return {
     ...rawItem,
     id: pickFirstDefined(rawItem.id, rawItem._id, rawItem.playlistId, ''),
-    title: pickFirstDefined(rawItem.title, 'Untitled playlist'),
+    title: pickFirstDefined(rawItem.title, 'Playlist chưa có tên'),
     description: pickFirstDefined(rawItem.description, ''),
     coverImage,
     image: coverImage,
@@ -55,8 +55,8 @@ export const normalizePlaylistSummary = (item) => {
     totalDuration,
     isPublic: typeof rawItem.isPublic === 'boolean' ? rawItem.isPublic : Boolean(rawItem.isPublic),
     createdAt: pickFirstDefined(rawItem.createdAt, null),
-    subtitle: trackCount > 0 ? `${trackCount} tracks` : 'Playlist collection',
-    primaryMeta: trackCount > 0 ? `${trackCount} tracks` : 'No tracks yet',
+    subtitle: trackCount > 0 ? `${trackCount} bài hát` : 'Bộ sưu tập playlist',
+    primaryMeta: trackCount > 0 ? `${trackCount} bài hát` : 'Chưa có bài hát',
     secondaryMeta: totalDuration > 0 ? formatDuration(totalDuration) : normalizeVisibilityLabel(rawItem),
   };
 };
@@ -71,10 +71,10 @@ const normalizePlaylistTrack = (item, index = 0) => {
     ...track,
     ...rawItem,
     id: pickFirstDefined(rawItem.id, rawItem._id, track?.id, track?._id, rawItem?.trackId, `track-${index}`),
-    title: pickFirstDefined(rawItem.title, track?.title, 'Unknown track'),
-    subtitle: pickFirstDefined(rawItem.subtitle, rawItem.artistName, artist?.name, 'Unknown artist'),
+    title: pickFirstDefined(rawItem.title, track?.title, 'Bài hát không xác định'),
+    subtitle: pickFirstDefined(rawItem.subtitle, rawItem.artistName, artist?.name, 'Nghệ sĩ không xác định'),
     artistId: pickFirstDefined(rawItem.artistId, artist?.id, artist?._id, ''),
-    artistName: pickFirstDefined(rawItem.artistName, artist?.name, 'Unknown artist'),
+    artistName: pickFirstDefined(rawItem.artistName, artist?.name, 'Nghệ sĩ không xác định'),
     albumId: pickFirstDefined(rawItem.albumId, album?.id, album?._id, ''),
     albumTitle: pickFirstDefined(rawItem.albumTitle, album?.title, ''),
     image: pickFirstDefined(
@@ -124,31 +124,31 @@ const normalizePlaylistDetail = (item) => {
     id: pickFirstDefined(rawItem?.id, rawItem?._id, ''),
     type: 'playlist',
     playlistType: pickFirstDefined(rawItem?.type, 'playlist'),
-    badgeLabel: rawItem?.type === 'system' ? 'SYSTEM PLAYLIST' : 'PLAYLIST',
-    title: pickFirstDefined(rawItem?.title, 'Untitled playlist'),
+    badgeLabel: rawItem?.type === 'system' ? 'PLAYLIST HỆ THỐNG' : 'PLAYLIST',
+    title: pickFirstDefined(rawItem?.title, 'Playlist chưa có tên'),
     subtitle: pickFirstDefined(rawItem?.subtitle, ownerLabel),
     image: coverImage,
-    description: pickFirstDefined(rawItem?.description, rawItem?.type === 'system' ? 'Curated by the Reso team.' : ''),
+    description: pickFirstDefined(rawItem?.description, rawItem?.type === 'system' ? 'Được tuyển chọn bởi đội ngũ Reso.' : ''),
     stats: asArray(rawItem?.stats).length > 0
       ? rawItem.stats
       : [
-          { label: 'Tracks', value: `${pickNumber(rawItem?.trackCount, tracks.length)}` },
-          { label: 'Duration', value: formatDuration(totalDuration) },
-          { label: 'Visibility', value: visibilityLabel },
+          { label: 'Bài hát', value: `${pickNumber(rawItem?.trackCount, tracks.length)}` },
+          { label: 'Thời lượng', value: formatDuration(totalDuration) },
+          { label: 'Hiển thị', value: visibilityLabel },
         ],
     meta: asArray(rawItem?.meta).length > 0
       ? rawItem.meta
       : [
-          { label: 'Owner', value: ownerLabel },
-          { label: 'Created', value: createdDate || 'Unknown' },
-          { label: 'Updated', value: updatedDate || 'Unknown' },
-          { label: 'Type', value: pickFirstDefined(rawItem?.type, 'system') },
+          { label: 'Người tạo', value: ownerLabel },
+          { label: 'Ngày tạo', value: createdDate || 'Không xác định' },
+          { label: 'Cập nhật', value: updatedDate || 'Không xác định' },
+          { label: 'Loại', value: pickFirstDefined(rawItem?.type, 'system') },
         ],
     tags: asArray(rawItem?.tags),
     owner: asObject(rawItem?.owner),
-    extraTitle: pickFirstDefined(rawItem?.extraTitle, rawItem?.aiPrompt ? 'AI Prompt' : ''),
+    extraTitle: pickFirstDefined(rawItem?.extraTitle, rawItem?.aiPrompt ? 'Yêu cầu AI' : ''),
     extraText: pickFirstDefined(rawItem?.extraText, rawItem?.aiPrompt, ''),
-    itemsTitle: pickFirstDefined(rawItem?.itemsTitle, 'Tracks in this playlist'),
+    itemsTitle: pickFirstDefined(rawItem?.itemsTitle, 'Các bài hát trong playlist'),
     items: tracks,
   };
 };

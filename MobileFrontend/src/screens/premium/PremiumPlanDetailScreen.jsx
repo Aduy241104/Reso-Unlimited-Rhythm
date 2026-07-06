@@ -48,7 +48,7 @@ export default function PremiumPlanDetailScreen() {
   const loadDetail = useCallback(
     async (options = {}) => {
       if (!planId) {
-        setErrorMessage('Khong tim thay goi Premium can xem.');
+        setErrorMessage('Không tìm thấy gói Premium cần xem.');
         setIsLoading(false);
         setIsRefreshing(false);
         return;
@@ -79,11 +79,11 @@ export default function PremiumPlanDetailScreen() {
         setSubscription(mySubscription);
         setErrorMessage(
           subscriptionResult.status === 'rejected'
-            ? subscriptionResult.reason?.message || 'Khong the dong bo trang thai Premium hien tai.'
+            ? subscriptionResult.reason?.message || 'Không thể đồng bộ trạng thái Premium hiện tại.'
             : ''
         );
       } catch (error) {
-        setErrorMessage(error?.message || 'Khong the tai chi tiet goi Premium luc nay.');
+        setErrorMessage(error?.message || 'Không thể tải chi tiết gói Premium lúc này.');
       } finally {
         setIsLoading(false);
         setIsRefreshing(false);
@@ -115,10 +115,10 @@ export default function PremiumPlanDetailScreen() {
   }, [isAuthenticated, navigation, plan]);
 
   const actionText = !isAuthenticated
-    ? 'Dang nhap de mua goi'
+    ? 'Đăng nhập để mua gói'
     : isCurrentPlan
-      ? 'Gia han goi nay'
-      : 'Xac nhan mua goi';
+      ? 'Gia hạn gói này'
+      : 'Xác nhận mua gói';
 
   return (
     <View style={styles.container}>
@@ -126,10 +126,10 @@ export default function PremiumPlanDetailScreen() {
 
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} activeOpacity={0.8}>
-          <Text style={styles.backButtonText}>Back</Text>
+          <Text style={styles.backButtonText}>Quay lại</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
-          {plan?.name || 'Chi tiet Premium'}
+          {plan?.name || 'Chi tiết Premium'}
         </Text>
         <View style={styles.headerSpacer} />
       </View>
@@ -142,7 +142,7 @@ export default function PremiumPlanDetailScreen() {
         <View style={styles.centerState}>
           <ErrorState message={errorMessage} />
           <TouchableOpacity style={styles.retryButton} onPress={() => loadDetail()} activeOpacity={0.82}>
-            <Text style={styles.retryButtonText}>Thu lai</Text>
+            <Text style={styles.retryButtonText}>Thử lại</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -154,45 +154,45 @@ export default function PremiumPlanDetailScreen() {
           }
         >
           <View style={styles.heroCard}>
-            <Text style={styles.heroBadge}>{isCurrentPlan ? 'DANG HOAT DONG' : 'PREMIUM PLAN'}</Text>
+            <Text style={styles.heroBadge}>{isCurrentPlan ? 'ĐANG HOẠT ĐỘNG' : 'GÓI PREMIUM'}</Text>
             <Text style={styles.heroTitle}>{plan?.name || 'Premium'}</Text>
             <Text style={styles.heroSubtitle}>
-              {plan?.description || 'Goi Premium giup ban nghe nhac khong bi gian doan va mo khoa them tinh nang.'}
+              {plan?.description || 'Gói Premium giúp bạn nghe nhạc không bị gián đoạn và mở khóa thêm tính năng.'}
             </Text>
 
             <View style={styles.pricePanel}>
               <Text style={styles.heroPrice}>{formatPremiumPrice(plan?.price)}</Text>
               <Text style={styles.heroPriceCaption}>
-                Tong thanh toan {formatPremiumPrice(plan?.totalPrice)} trong {formatDurationDays(plan?.durationDays)}
+                Tổng thanh toán {formatPremiumPrice(plan?.totalPrice)} trong {formatDurationDays(plan?.durationDays)}
               </Text>
             </View>
 
             {isCurrentPlan ? (
               <View style={styles.statusPanel}>
-                <Text style={styles.statusTitle}>Goi nay dang la goi hien tai cua ban</Text>
+                <Text style={styles.statusTitle}>Gói này đang là gói hiện tại của bạn</Text>
                 <Text style={styles.statusSubtitle}>
-                  Premium duoc kich hoat den {formatPremiumDate(subscription?.premiumEndDate)}.
+                  Premium được kích hoạt đến {formatPremiumDate(subscription?.premiumEndDate)}.
                 </Text>
               </View>
             ) : null}
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Thong tin thanh toan</Text>
+            <Text style={styles.sectionTitle}>Thông tin thanh toán</Text>
             <View style={styles.panel}>
-              <SummaryRow label="Gia goi" value={formatPremiumPrice(plan?.price)} />
+              <SummaryRow label="Giá gói" value={formatPremiumPrice(plan?.price)} />
               <SummaryRow label="VAT" value={formatPremiumPrice(plan?.taxAmount)} />
               <SummaryRow
-                label="Tong thanh toan"
+                label="Tổng thanh toán"
                 value={formatPremiumPrice(plan?.totalPrice)}
                 valueStyle={styles.summaryValueStrong}
               />
-              <SummaryRow label="Thoi han" value={formatDurationDays(plan?.durationDays)} />
+              <SummaryRow label="Thời hạn" value={formatDurationDays(plan?.durationDays)} />
             </View>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Quyen loi bao gom</Text>
+            <Text style={styles.sectionTitle}>Quyền lợi bao gồm</Text>
             <View style={styles.panel}>
               {(Array.isArray(plan?.features) ? plan.features : []).map((featureCode) => (
                 <View key={featureCode} style={styles.featureRow}>
@@ -205,16 +205,16 @@ export default function PremiumPlanDetailScreen() {
 
           {isAuthenticated ? (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Trang thai tai khoan</Text>
+              <Text style={styles.sectionTitle}>Trạng thái tài khoản</Text>
               <View style={styles.panel}>
-                <SummaryRow label="Premium" value={subscription?.isPremium ? 'Dang bat' : 'Chua kich hoat'} />
+                <SummaryRow label="Premium" value={subscription?.isPremium ? 'Đang bật' : 'Chưa kích hoạt'} />
                 <SummaryRow
-                  label="Goi hien tai"
-                  value={subscription?.currentPlan?.name || subscription?.activeSubscription?.plan?.name || 'Chua co'}
+                  label="Gói hiện tại"
+                  value={subscription?.currentPlan?.name || subscription?.activeSubscription?.plan?.name || 'Chưa có'}
                 />
                 <SummaryRow
-                  label="Het han"
-                  value={subscription?.premiumEndDate ? formatPremiumDate(subscription.premiumEndDate) : 'Chua co'}
+                  label="Hết hạn"
+                  value={subscription?.premiumEndDate ? formatPremiumDate(subscription.premiumEndDate) : 'Chưa có'}
                 />
               </View>
             </View>

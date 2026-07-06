@@ -18,7 +18,7 @@ export const MainNavigator = () => {
         component={LoginScreen}
         options={{
           headerShown: true,
-          title: 'Login',
+          title: 'Đăng nhập',
           animation: 'slide_from_right',
         }}
       />

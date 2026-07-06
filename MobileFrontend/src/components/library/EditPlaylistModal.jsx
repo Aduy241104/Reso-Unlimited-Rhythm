@@ -60,13 +60,13 @@ export default function EditPlaylistModal({
     let nextFormError = '';
 
     if (!normalizedTitle) {
-      nextTitleError = 'Playlist title is required.';
+      nextTitleError = 'Vui lòng nhập tên playlist.';
     } else if (normalizedTitle.length > TITLE_MAX_LENGTH) {
-      nextTitleError = `Title must be ${TITLE_MAX_LENGTH} characters or fewer.`;
+      nextTitleError = `Tên playlist tối đa ${TITLE_MAX_LENGTH} ký tự.`;
     }
 
     if (normalizedDescription.length > DESCRIPTION_MAX_LENGTH) {
-      nextDescriptionError = `Description must be ${DESCRIPTION_MAX_LENGTH} characters or fewer.`;
+      nextDescriptionError = `Mô tả tối đa ${DESCRIPTION_MAX_LENGTH} ký tự.`;
     }
 
     if (!nextTitleError && !nextDescriptionError) {
@@ -75,7 +75,7 @@ export default function EditPlaylistModal({
         normalizedDescription === initialDescription;
 
       if (isUnchanged) {
-        nextFormError = 'Update at least one field before saving.';
+        nextFormError = 'Hãy cập nhật ít nhất một trường trước khi lưu.';
       }
     }
 
@@ -102,19 +102,19 @@ export default function EditPlaylistModal({
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.header}>
           <View style={styles.headerContent}>
-            <Text style={styles.eyebrow}>EDIT PLAYLIST</Text>
-            <Text style={styles.title}>Refine your playlist</Text>
+            <Text style={styles.eyebrow}>CHỈNH SỬA PLAYLIST</Text>
+            <Text style={styles.title}>Cập nhật playlist</Text>
             <Text style={styles.subtitle}>
-              Update the title or description so this playlist stays easy to recognize later.
+              Cập nhật tên hoặc mô tả để playlist này dễ nhận biết hơn về sau.
             </Text>
           </View>
           <Pressable onPress={onClose} style={styles.closeButton} hitSlop={8} disabled={isSubmitting}>
-            <Text style={styles.closeButtonText}>Close</Text>
+            <Text style={styles.closeButtonText}>Đóng</Text>
           </Pressable>
         </View>
 
         <AppInput
-          label="Playlist title"
+          label="Tên playlist"
           value={title}
           onChangeText={(value) => {
             setTitle(value);
@@ -125,7 +125,7 @@ export default function EditPlaylistModal({
               setFormError('');
             }
           }}
-          placeholder="Late night drive"
+          placeholder="Lái xe đêm muộn"
           autoCapitalize="sentences"
           autoCorrect={false}
           maxLength={TITLE_MAX_LENGTH}
@@ -133,7 +133,7 @@ export default function EditPlaylistModal({
         />
 
         <View style={styles.textAreaGroup}>
-          <Text style={styles.textAreaLabel}>Description</Text>
+          <Text style={styles.textAreaLabel}>Mô tả</Text>
           <View style={[styles.textAreaWrap, descriptionError ? styles.textAreaWrapError : null]}>
             <TextInput
               value={description}
@@ -146,7 +146,7 @@ export default function EditPlaylistModal({
                   setFormError('');
                 }
               }}
-              placeholder="Tell listeners what this playlist is about."
+              placeholder="Mô tả ngắn về playlist này."
               placeholderTextColor="#7d7d7d"
               style={styles.textArea}
               multiline
@@ -155,7 +155,7 @@ export default function EditPlaylistModal({
             />
           </View>
           <View style={styles.textAreaFooter}>
-            <Text style={styles.helperText}>Optional</Text>
+            <Text style={styles.helperText}>Không bắt buộc</Text>
             <Text style={styles.counterText}>{description.trim().length}/{DESCRIPTION_MAX_LENGTH}</Text>
           </View>
           {descriptionError ? <Text style={styles.errorText}>{descriptionError}</Text> : null}
@@ -166,13 +166,13 @@ export default function EditPlaylistModal({
 
         <View style={styles.actions}>
           <AppButton
-            title="Cancel"
+            title="Hủy"
             onPress={onClose}
             disabled={isSubmitting}
             style={styles.cancelButton}
           />
           <AppButton
-            title="Save Changes"
+            title="Lưu thay đổi"
             onPress={handleSubmit}
             isLoading={isSubmitting}
             style={styles.submitButton}
