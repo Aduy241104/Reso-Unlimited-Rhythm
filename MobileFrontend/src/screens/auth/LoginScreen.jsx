@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Text, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { loginSchema } from '../../validations/authValidation';
@@ -11,8 +11,10 @@ import theme from '../../theme';
 
 export const LoginScreen = () => {
   const navigation = useNavigation();
+  const route = useRoute();
   const { login } = useAuth();
   const [errorMsg, setErrorMsg] = useState(null);
+  const notice = route.params?.notice;
 
   const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     resolver: yupResolver(loginSchema),
@@ -88,6 +90,12 @@ export const LoginScreen = () => {
             </View>
           )}
 
+          {notice && !errorMsg && (
+            <View style={styles.successBox}>
+              <Text style={styles.successText}>{notice}</Text>
+            </View>
+          )}
+
           <Controller
             control={control}
             name="email"
@@ -103,6 +111,7 @@ export const LoginScreen = () => {
                 error={errors.email?.message}
                 inputStyle={styles.customInput}
                 labelStyle={styles.customLabel}
+                wrapperStyle={styles.customInputWrapper}
               />
             )}
           />
@@ -122,6 +131,7 @@ export const LoginScreen = () => {
                 error={errors.password?.message}
                 inputStyle={styles.customInput}
                 labelStyle={styles.customLabel}
+                wrapperStyle={styles.customInputWrapper}
               />
             )}
           />
@@ -149,7 +159,9 @@ export const LoginScreen = () => {
           {/* FOOTER CHUYỂN ĐIỀU HƯỚNG */}
           <View style={styles.footerLinks}>
             <Text style={styles.footerText}>Don't have an account? </Text>
-            <TouchableOpacity><Text style={styles.linkTextBold}>Create one</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+              <Text style={styles.linkTextBold}>Create one</Text>
+            </TouchableOpacity>
           </View>
           <TouchableOpacity style={styles.forgotBtn}>
             <Text style={styles.linkTextSmall}>Forgot password?</Text>
@@ -296,11 +308,14 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   customInput: {
+    color: '#1a1820',
+    fontSize: 15,
+  },
+  customInputWrapper: {
     backgroundColor: '#f5f5f5',
     borderColor: '#000000',
-    borderRadius: 25, // Bo tròn chuẩn form của bạn
+    borderRadius: 25,
     paddingHorizontal: 16,
-    color: '#1a1820',
   },
   signInBtn: {
     backgroundColor: '#ff9f43',
@@ -328,6 +343,19 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: '#e11d48',
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  successBox: {
+    backgroundColor: 'rgba(16,185,129,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(16,185,129,0.25)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 15,
+  },
+  successText: {
+    color: '#047857',
     fontSize: 13,
     textAlign: 'center',
   },
