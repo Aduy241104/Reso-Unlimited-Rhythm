@@ -9,6 +9,10 @@ export const authService = {
     return await axiosClient.post(API_ENDPOINTS.AUTH.LOGIN, { email, password });
   },
 
+  async googleLogin(token) {
+    return await axiosClient.post(API_ENDPOINTS.AUTH.GOOGLE, { token });
+  },
+
   async requestRegisterOtp(email) {
     return await axiosClient.post(API_ENDPOINTS.AUTH.REGISTER_SEND_OTP, { email });
   },

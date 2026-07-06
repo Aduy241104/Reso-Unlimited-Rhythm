@@ -3,18 +3,60 @@ import { View, StyleSheet, Text, KeyboardAvoidingView, Platform, ScrollView, Tou
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
+import * as Google from 'expo-auth-session/providers/google';
+import * as AuthSession from 'expo-auth-session';
+import { ResponseType } from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
 import { loginSchema } from '../../validations/authValidation';
 import { useAuth } from '../../hooks/useAuth';
 import AppInput from '../../components/common/AppInput';
 import AppButton from '../../components/common/AppButton';
 import theme from '../../theme';
 
+WebBrowser.maybeCompleteAuthSession();
+
+const buildGoogleProxyRedirectUri = () => {
+  const owner = process.env.EXPO_PUBLIC_EXPO_OWNER || '';
+  const slug = 'MobileFrontend';
+
+  if (!owner || owner === 'expo-username') {
+    return '';
+  }
+
+  return `https://auth.expo.io/@${owner}/${slug}`;
+};
+
+const buildExpoProxyStartUrl = ({ authUrl, proxyRedirectUri, returnUrl }) => {
+  const query = new URLSearchParams({
+    authUrl,
+    returnUrl,
+  }).toString();
+
+  return `${proxyRedirectUri}/start?${query}`;
+};
+
 export const LoginScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { login } = useAuth();
+  const { login, googleLogin } = useAuth();
   const [errorMsg, setErrorMsg] = useState(null);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
   const notice = route.params?.notice;
+  const googleClientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '';
+  const googleRedirectUri = buildGoogleProxyRedirectUri();
+  const googleRequestRedirectUri = googleRedirectUri || 'https://auth.expo.io/@expo-username/MobileFrontend';
+
+  console.log('GOOGLE REDIRECT URI:', googleRedirectUri);
+  console.log('Google Client ID đang dùng:', googleClientId);
+
+  const [googleRequest] = Google.useAuthRequest({
+    clientId: googleClientId || 'missing-google-client-id',
+    webClientId: googleClientId || 'missing-google-client-id',
+    redirectUri: googleRequestRedirectUri,
+    responseType: ResponseType.IdToken,
+    scopes: ['openid', 'profile', 'email'],
+    selectAccount: true,
+  });
 
   const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     resolver: yupResolver(loginSchema),
@@ -34,6 +76,74 @@ export const LoginScreen = () => {
       navigation.navigate('MainTabs');
     } catch (err) {
       setErrorMsg(err.message || 'Authentication failed. Please try again.');
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    if (!googleClientId) {
+      setErrorMsg('Google login is not configured.');
+      return;
+    }
+
+    if (!googleRedirectUri) {
+      setErrorMsg('Google redirect URI is not configured. Set EXPO_PUBLIC_EXPO_OWNER to your Expo username.');
+      return;
+    }
+
+    try {
+      setErrorMsg(null);
+      setIsGoogleSubmitting(true);
+
+      if (!googleRequest?.url) {
+        setErrorMsg('Google login is not ready yet. Please try again.');
+        return;
+      }
+
+      const returnUrl = AuthSession.getDefaultReturnUrl();
+      const proxyStartUrl = buildExpoProxyStartUrl({
+        authUrl: googleRequest.url,
+        proxyRedirectUri: googleRedirectUri,
+        returnUrl,
+      });
+
+      console.log('GOOGLE PROXY START URL:', proxyStartUrl);
+      console.log('GOOGLE RETURN URL:', returnUrl);
+
+      const browserResult = await WebBrowser.openAuthSessionAsync(proxyStartUrl, returnUrl);
+      const result =
+        browserResult.type === 'success'
+          ? googleRequest.parseReturnUrl(browserResult.url)
+          : browserResult;
+
+      console.log('Google response:', result);
+
+      if (result.type === 'cancel' || result.type === 'dismiss') {
+        return;
+      }
+
+      if (result.type !== 'success') {
+        setErrorMsg(result.params?.error_description || 'Google login was not completed.');
+        return;
+      }
+
+      const idToken = result.params?.id_token;
+      if (!idToken) {
+        setErrorMsg('Google did not return an ID token.');
+        return;
+      }
+
+      await googleLogin(idToken);
+
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+        return;
+      }
+
+      navigation.navigate('MainTabs');
+    } catch (err) {
+      setErrorMsg(err.message || 'Google authentication failed. Please try again.');
+    } finally {
+      setIsGoogleSubmitting(false);
     }
   };
 
@@ -152,8 +262,15 @@ export const LoginScreen = () => {
           </View>
 
           {/* NÚT GOOGLE GIẢ LẬP GIAO DIỆN WEB */}
-          <TouchableOpacity style={styles.googleBtn} activeOpacity={0.8}>
-            <Text style={styles.googleBtnText}>Continue with Google</Text>
+          <TouchableOpacity
+            style={[styles.googleBtn, (!googleRequest || isGoogleSubmitting) && styles.googleBtnDisabled]}
+            activeOpacity={0.8}
+            disabled={!googleRequest || isGoogleSubmitting}
+            onPress={handleGoogleLogin}
+          >
+            <Text style={styles.googleBtnText}>
+              {isGoogleSubmitting ? 'Connecting to Google...' : 'Continue with Google'}
+            </Text>
           </TouchableOpacity>
 
           {/* FOOTER CHUYỂN ĐIỀU HƯỚNG */}
@@ -385,6 +502,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#fff',
+  },
+  googleBtnDisabled: {
+    opacity: 0.6,
   },
   googleBtnText: {
     color: '#000000',
