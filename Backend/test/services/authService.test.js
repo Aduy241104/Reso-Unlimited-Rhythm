@@ -390,7 +390,7 @@ describe("authenticationService.googleLogin", () => {
 
         expect(mockGoogleAuthClient.verifyIdToken).toHaveBeenCalledWith({
             idToken: "google-id-token",
-            audience: "google-client-id",
+            audience: ["google-client-id"],
         });
         expect(mockUserModel.findOne).toHaveBeenCalledWith({
             email: "newuser@example.com",
