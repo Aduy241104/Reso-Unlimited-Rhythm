@@ -199,6 +199,30 @@ const getPlaylistTrackCount = (playlist) => {
   return 0;
 };
 
+const getPlaylistTrackLimitModalMessage = () =>
+  "Playlist này đã đạt giới hạn bài hát của gói miễn phí. Hãy đăng ký Premium để thêm nhiều bài hát hơn.";
+
+const isPlaylistTrackLimitErrorMessage = (message) => {
+  const normalizedMessage =
+    typeof message === "string" ? message.trim().toLocaleLowerCase() : "";
+
+  if (!normalizedMessage) {
+    return false;
+  }
+
+  return (
+    normalizedMessage.includes("free playlists can contain") ||
+    normalizedMessage.includes("đạt giới hạn bài hát") ||
+    normalizedMessage.includes("giới hạn bài hát") ||
+    normalizedMessage.includes("playlist") &&
+      (normalizedMessage.includes("track") || normalizedMessage.includes("bài hát")) &&
+      (normalizedMessage.includes("premium") ||
+        normalizedMessage.includes("limit") ||
+        normalizedMessage.includes("giới hạn") ||
+        normalizedMessage.includes("nâng cấp"))
+  );
+};
+
 const UserPlaylistDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -219,6 +243,7 @@ const UserPlaylistDetailPage = () => {
   const [pendingTrackRemoval, setPendingTrackRemoval] = useState(null);
   const [isRemovingTrack, setIsRemovingTrack] = useState(false);
   const [removeTrackErrorMessage, setRemoveTrackErrorMessage] = useState("");
+  const [isPlaylistTrackLimitModalOpen, setIsPlaylistTrackLimitModalOpen] = useState(false);
   const actionMenuRef = useRef(null);
   const trackMenuRef = useRef(null);
   const {
@@ -559,9 +584,18 @@ const UserPlaylistDetailPage = () => {
         image: getTrackImage(track, playlistCoverImage),
       });
     } catch (error) {
-      setTrackActionErrorMessage(
-        getApiErrorMessage(error, "Không thể thêm bài hát vào playlist khác.")
+      const nextErrorMessage = getApiErrorMessage(
+        error,
+        "Không thể thêm bài hát vào playlist khác."
       );
+
+      if (isPlaylistTrackLimitErrorMessage(nextErrorMessage)) {
+        setOpenTrackMenuId("");
+        setTrackMenuSearchValue("");
+        setIsPlaylistTrackLimitModalOpen(true);
+      } else {
+        setTrackActionErrorMessage(nextErrorMessage);
+      }
     } finally {
       setSubmittingTrackActionId("");
     }
@@ -1170,6 +1204,26 @@ const UserPlaylistDetailPage = () => {
         onConfirm={handleRemoveTrackFromCurrentPlaylist}
       />
 
+      <DeletePlaylistConfirmModal
+        isOpen={isPlaylistTrackLimitModalOpen}
+        playlistTitle=""
+        title="Đã đạt giới hạn bài hát trong playlist"
+        message={getPlaylistTrackLimitModalMessage()}
+        confirmLabel="Xác nhận"
+        cancelLabel="Hủy"
+        confirmTone="neutral"
+        extraActionLabel="Đăng ký Premium"
+        extraActionTone="primary"
+        onExtraAction={() => {
+          setIsPlaylistTrackLimitModalOpen(false);
+          navigate(routePaths.premium);
+        }}
+        onClose={() => setIsPlaylistTrackLimitModalOpen(false)}
+        onConfirm={() => setIsPlaylistTrackLimitModalOpen(false)}
+        variant="dark"
+        size="sm"
+      />
+
       {trackActionFeedback?.message ? (
         trackActionFeedback.tone === "success" ? (
           <div className="pointer-events-none fixed left-1/2 top-5 z-[70] w-[min(calc(100vw-2rem),26rem)] -translate-x-1/2">
@@ -1199,3 +1253,4 @@ const UserPlaylistDetailPage = () => {
 };
 
 export default UserPlaylistDetailPage;
+
