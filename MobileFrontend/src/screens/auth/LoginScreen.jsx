@@ -163,7 +163,7 @@ export const LoginScreen = () => {
               <Text style={styles.linkTextBold}>Create one</Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.forgotBtn}>
+          <TouchableOpacity style={styles.forgotBtn} onPress={() => navigation.navigate('ForgotPassword')}>
             <Text style={styles.linkTextSmall}>Forgot password?</Text>
           </TouchableOpacity>
         </View>

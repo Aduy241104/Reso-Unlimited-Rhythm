@@ -17,6 +17,14 @@ export const authService = {
     return await axiosClient.post(API_ENDPOINTS.AUTH.REGISTER, payload);
   },
 
+  async forgotPassword(email) {
+    return await axiosClient.post(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, { email });
+  },
+
+  async resetPassword(payload) {
+    return await axiosClient.post(API_ENDPOINTS.AUTH.RESET_PASSWORD, payload);
+  },
+
   /**
    * Đăng xuất hệ thống xóa trạng thái Server-side
    */
