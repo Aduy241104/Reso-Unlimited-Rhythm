@@ -50,6 +50,8 @@ const normalizePlaylistTrack = (item, index = 0) => {
     subtitle: pickFirstDefined(rawItem.subtitle, rawItem.artistName, artist?.name, 'Unknown artist'),
     artistId: pickFirstDefined(rawItem.artistId, artist?.id, artist?._id, ''),
     artistName: pickFirstDefined(rawItem.artistName, artist?.name, 'Unknown artist'),
+    albumId: pickFirstDefined(rawItem.albumId, album?.id, album?._id, ''),
+    albumTitle: pickFirstDefined(rawItem.albumTitle, album?.title, ''),
     image: pickFirstDefined(
       rawItem.image,
       rawItem.coverImage,

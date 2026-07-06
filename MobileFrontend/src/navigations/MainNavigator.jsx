@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { BottomTabNavigator } from './BottomTabNavigator';
 import LoginScreen from '../screens/auth/LoginScreen';
 import EntityDetailScreen from '../screens/detail/EntityDetailScreen';
+import PremiumOverviewScreen from '../screens/premium/PremiumOverviewScreen';
 import PremiumPlanDetailScreen from '../screens/premium/PremiumPlanDetailScreen';
 import PremiumCheckoutScreen from '../screens/premium/PremiumCheckoutScreen';
 
@@ -24,6 +25,14 @@ export const MainNavigator = () => {
       <Stack.Screen
         name="EntityDetail"
         component={EntityDetailScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="PremiumOverview"
+        component={PremiumOverviewScreen}
         options={{
           headerShown: false,
           animation: 'slide_from_right',

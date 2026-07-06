@@ -74,6 +74,7 @@ const normalizeTrackRanking = (item) => {
     title: pickFirstDefined(rawItem.title, track.title, 'Unknown track'),
     artistId: pickFirstDefined(rawItem.artistId, artist?.id, artist?._id, ''),
     artistName: pickFirstDefined(rawItem.artistName, rawItem.artist?.name, artist?.name, 'Unknown artist'),
+    albumId: pickFirstDefined(rawItem.albumId, album?.id, album?._id, ''),
     albumTitle: pickFirstDefined(rawItem.albumTitle, album?.title, ''),
     image: pickFirstDefined(
       rawItem.image,
@@ -109,6 +110,7 @@ const normalizeTrackItem = (item, index = 0) => {
     subtitle: pickFirstDefined(rawItem.subtitle, rawItem.artistName, artist?.name, 'Unknown artist'),
     artistId: pickFirstDefined(rawItem.artistId, artist?.id, artist?._id, ''),
     artistName: pickFirstDefined(rawItem.artistName, artist?.name, 'Unknown artist'),
+    albumId: pickFirstDefined(rawItem.albumId, album?.id, album?._id, ''),
     albumTitle: pickFirstDefined(rawItem.albumTitle, album?.title, ''),
     image: pickFirstDefined(
       rawItem.image,
@@ -134,6 +136,7 @@ const normalizeTopTrackDetailItem = (item, index = 0) => {
     subtitle: pickFirstDefined(rawItem.subtitle, rawItem.artistName, 'Unknown artist'),
     artistId: pickFirstDefined(rawItem.artistId, ''),
     artistName: pickFirstDefined(rawItem.artistName, 'Unknown artist'),
+    albumId: pickFirstDefined(rawItem.albumId, ''),
     albumTitle: pickFirstDefined(rawItem.albumTitle, ''),
     image: pickFirstDefined(rawItem.image, rawItem.coverImage, ''),
     entityType: pickFirstDefined(rawItem.entityType, 'track'),
@@ -165,6 +168,7 @@ const normalizeTrackDetail = (item) => {
     subtitle: pickFirstDefined(track.subtitle, track.artistName, artist?.name, 'Unknown artist'),
     artistId: pickFirstDefined(track.artistId, artist?.id, artist?._id, ''),
     artistName: pickFirstDefined(track.artistName, artist?.name, 'Unknown artist'),
+    albumId: pickFirstDefined(track.albumId, album?.id, album?._id, ''),
     albumTitle: pickFirstDefined(track.albumTitle, album?.title, ''),
     image: pickFirstDefined(
       track.image,
@@ -207,6 +211,7 @@ const normalizeTrackDetail = (item) => {
 const normalizeTrackPlayback = (item, trackId = '') => {
   const playback = asObject(item);
   const artist = resolveTrackArtist(playback);
+  const album = resolveTrackAlbum(playback);
   const audioSource = pickFirstDefined(playback.audioSource, resolveTrackAudioUri(playback), '');
 
   return {
@@ -216,6 +221,8 @@ const normalizeTrackPlayback = (item, trackId = '') => {
     title: pickFirstDefined(playback.title, 'Unknown track'),
     artistId: pickFirstDefined(playback.artistId, artist?.id, artist?._id, ''),
     artistName: pickFirstDefined(playback.artistName, playback.artist?.name, artist?.name, 'Unknown artist'),
+    albumId: pickFirstDefined(playback.albumId, album?.id, album?._id, ''),
+    albumTitle: pickFirstDefined(playback.albumTitle, album?.title, ''),
     image: pickFirstDefined(
       playback.image,
       playback.coverImage,

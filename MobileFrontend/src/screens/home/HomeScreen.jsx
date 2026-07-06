@@ -12,6 +12,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import AppAvatar from '../../components/common/AppAvatar';
 import AppButton from '../../components/common/AppButton';
 import AppLoader from '../../components/common/AppLoader';
 import ErrorState from '../../components/common/ErrorState';
@@ -33,6 +34,19 @@ const initialHomeState = {
 };
 
 const accentPalette = ['#111111', '#2f2f2f', '#4a4a4a', '#686868', '#8a8a8a'];
+
+const resolveUserDisplayName = (user) =>
+  user?.fullName || user?.name || user?.username || user?.displayName || user?.email || 'Music Lover';
+
+const resolveUserAvatar = (user) =>
+  resolveImageUri(
+    user?.avatar ||
+    user?.profileImage ||
+    user?.image ||
+    user?.photoUrl ||
+    user?.photoURL ||
+    user?.picture
+  );
 
 const Artwork = ({ uri, label, color, style, textStyle }) => {
   const imageUri = resolveImageUri(uri);
@@ -102,7 +116,7 @@ const TopTrackSection = ({ data, errorMessage, onPressItem }) => (
 
 export default function HomeScreen() {
   const navigation = useNavigation();
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout, user } = useAuth();
   const [homeData, setHomeData] = useState(initialHomeState);
   const [isContentLoading, setIsContentLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -182,6 +196,9 @@ export default function HomeScreen() {
 
     navigation.navigate('Login');
   };
+
+  const displayName = resolveUserDisplayName(user);
+  const avatarUri = resolveUserAvatar(user);
 
   const renderArtistCard = ({ item, index }) => {
     const accentColor = accentPalette[index % accentPalette.length];
@@ -269,9 +286,14 @@ export default function HomeScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
 
       <View style={styles.header}>
-        <View>
-          <Text style={styles.brandText}>RESO MUSIC</Text>
-          <Text style={styles.welcomeText}>Home Journey</Text>
+        <View style={styles.headerIdentity}>
+          {isAuthenticated ? <AppAvatar uri={avatarUri} label={displayName} size={44} /> : null}
+          <View style={[styles.headerTextGroup, !isAuthenticated && styles.headerTextGroupGuest]}>
+            <Text style={styles.brandText}>RESO UNLIMITED RHYTHM</Text>
+            <Text style={styles.welcomeText} numberOfLines={1}>
+              {isAuthenticated ? displayName : 'Login to personalize your music'}
+            </Text>
+          </View>
         </View>
         <TouchableOpacity style={styles.logoutBadge} onPress={handleHeaderAction} activeOpacity={0.7}>
           <Text style={styles.logoutText}>{isAuthenticated ? 'Logout' : 'Login'}</Text>
@@ -349,6 +371,19 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: '#1f1f1f',
     backgroundColor: '#000000',
+  },
+  headerIdentity: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  headerTextGroup: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  headerTextGroupGuest: {
+    marginLeft: 0,
   },
   brandText: {
     fontSize: 9,

@@ -25,6 +25,7 @@ const resolveProfileSource = (payload) => payload?.artist || payload?.profile ||
 const normalizeArtistTrack = (item, index = 0) => {
   const track = item?.track || item || {};
   const artist = track?.artist || track?.artist_artistId || {};
+  const album = track?.album || track?.album_albumId || {};
 
   return {
     id: track?.id || track?._id || `track-${index}`,
@@ -32,6 +33,8 @@ const normalizeArtistTrack = (item, index = 0) => {
     subtitle: artist?.name || 'Unknown artist',
     artistId: artist?.id || artist?._id || '',
     artistName: artist?.name || 'Unknown artist',
+    albumId: album?.id || album?._id || '',
+    albumTitle: album?.title || '',
     image: resolveImageUri(track?.coverImage || track?.avatar || artist?.avatar),
     entityType: 'track',
     entityId: track?.id || track?._id || '',

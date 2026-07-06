@@ -1,13 +1,13 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from '../screens/home/HomeScreen';
 import SearchScreen from '../screens/search/SearchScreen';
 import LibraryScreen from '../screens/library/LibraryScreen';
-import PremiumOverviewScreen from '../screens/premium/PremiumOverviewScreen';
 import CreateForMeScreen from '../screens/createForMe/CreateForMeScreen';
-import LoginScreen from '../screens/auth/LoginScreen';
 import EntityDetailScreen from '../screens/detail/EntityDetailScreen';
 import PlayerSheetScreen from '../screens/player/PlayerSheetScreen';
 import AppTabBar from '../components/navigation/AppTabBar';
@@ -24,19 +24,24 @@ const tabIcons = {
   CreateForMe: { active: 'sparkles', inactive: 'sparkles-outline' },
 };
 
+function PremiumRedirectScreen() {
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    const parentNavigation = navigation.getParent();
+
+    if (parentNavigation) {
+      parentNavigation.navigate('PremiumOverview');
+    }
+  }, [navigation]);
+
+  return <View style={styles.redirectScreen} />;
+}
+
 function SharedTabStack({ rootName, component: RootComponent }) {
   return (
     <Stack.Navigator initialRouteName={rootName} screenOptions={{ headerShown: false }}>
       <Stack.Screen name={rootName} component={RootComponent} />
-      <Stack.Screen
-        name="Login"
-        component={LoginScreen}
-        options={{
-          headerShown: true,
-          title: 'Login',
-          animation: 'slide_from_right',
-        }}
-      />
       <Stack.Screen
         name="EntityDetail"
         component={EntityDetailScreen}
@@ -62,7 +67,6 @@ function SharedTabStack({ rootName, component: RootComponent }) {
 const HomeStack = () => <SharedTabStack rootName="HomeScreen" component={HomeScreen} />;
 const SearchStack = () => <SharedTabStack rootName="SearchScreen" component={SearchScreen} />;
 const LibraryStack = () => <SharedTabStack rootName="LibraryScreen" component={LibraryScreen} />;
-const PremiumStack = () => <SharedTabStack rootName="PremiumScreen" component={PremiumOverviewScreen} />;
 const CreateForMeStack = () => <SharedTabStack rootName="CreateForMeScreen" component={CreateForMeScreen} />;
 
 export const BottomTabNavigator = () => {
@@ -110,7 +114,13 @@ export const BottomTabNavigator = () => {
       />
       <Tab.Screen
         name="Premium"
-        component={PremiumStack}
+        component={PremiumRedirectScreen}
+        listeners={({ navigation }) => ({
+          tabPress: (event) => {
+            event.preventDefault();
+            navigation.getParent()?.navigate('PremiumOverview');
+          },
+        })}
         options={{ tabBarLabel: 'Premium' }}
       />
       <Tab.Screen
@@ -120,4 +130,11 @@ export const BottomTabNavigator = () => {
       />
     </Tab.Navigator>
   );
+};
+
+const styles = {
+  redirectScreen: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
 };

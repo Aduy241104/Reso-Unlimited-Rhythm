@@ -24,6 +24,14 @@ const pickNumber = (...values) => {
 };
 
 const resolveAlbumArtist = (album) => album?.artist || album?.artistId || {};
+const normalizeAlbumFollowState = (value, albumIdFallback = '') => {
+  const rawValue = asObject(value);
+
+  return {
+    albumId: pickFirstDefined(rawValue.albumId, rawValue.id, albumIdFallback, ''),
+    isFollowing: Boolean(rawValue.isFollowing),
+  };
+};
 
 const normalizeAlbumItem = (item) => {
   const rawItem = asObject(item);
@@ -117,6 +125,20 @@ export const albumService = {
     const payload = getPayload(response);
 
     return normalizeAlbumDetail(payload?.album || payload?.data || payload);
+  },
+
+  async getAlbumFollowStatus(albumId) {
+    const response = await axiosClient.get(`${API_ENDPOINTS.ALBUMS.FOLLOW_STATUS}/${albumId}/follow/status`);
+    const payload = getPayload(response);
+
+    return normalizeAlbumFollowState(payload?.follow || payload?.data?.follow || payload?.data, albumId);
+  },
+
+  async toggleAlbumFollow(albumId) {
+    const response = await axiosClient.patch(`${API_ENDPOINTS.ALBUMS.TOGGLE_FOLLOW}/${albumId}/follow/toggle`);
+    const payload = getPayload(response);
+
+    return normalizeAlbumFollowState(payload?.follow || payload?.data?.follow || payload?.data, albumId);
   },
 };
 

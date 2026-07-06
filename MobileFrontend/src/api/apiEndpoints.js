@@ -8,6 +8,8 @@ export const API_ENDPOINTS = {
   ALBUMS: {
     LIST: '/albums',
     DETAIL: '/albums',
+    FOLLOW_STATUS: '/albums',
+    TOGGLE_FOLLOW: '/albums',
   },
   TRACKS: {
     DETAIL: '/tracks',
@@ -30,5 +32,8 @@ export const API_ENDPOINTS = {
   },
   PAYMENTS: {
     VNPAY_CREATE_ORDER: '/payments/vnpay/create-order',
+  },
+  LIBRARY: {
+    FOLLOWED_ALBUMS: '/libary/followed-albums',
   },
 };
