@@ -236,11 +236,12 @@ const requestForgotPassword = async ({ email }) => {
     }
 
     const resetToken = crypto.randomBytes(32).toString("hex");
+    const otp = generateOtp();
     const verificationData = {
         userId: user._id,
         email: normalizedEmail,
         token: resetToken,
-        otp: undefined,
+        otp,
         type: "reset_password",
         expiresAt: getResetPasswordExpireDate(),
         isUsed: false,
@@ -250,7 +251,7 @@ const requestForgotPassword = async ({ email }) => {
     if (latestVerification) {
         latestVerification.userId = verificationData.userId;
         latestVerification.token = verificationData.token;
-        latestVerification.otp = undefined;
+        latestVerification.otp = verificationData.otp;
         latestVerification.expiresAt = verificationData.expiresAt;
         latestVerification.isUsed = false;
         activeVerificationToken = await latestVerification.save();
@@ -269,6 +270,7 @@ const requestForgotPassword = async ({ email }) => {
     await sendResetPasswordLinkEmail({
         to: normalizedEmail,
         resetLink: buildResetLink({ token: resetToken }),
+        otp,
         ttlMinutes: RESET_PASSWORD_TTL_MINUTES,
     });
 
@@ -278,16 +280,23 @@ const requestForgotPassword = async ({ email }) => {
     };
 };
 
-const resetPassword = async ({ token, password }) => {
+const resetPassword = async ({ token, email, otp, password }) => {
+    const credentialQuery = token
+        ? { token: token.trim() }
+        : {
+            email: email.trim().toLowerCase(),
+            otp: otp.trim(),
+        };
+
     const verificationToken = await VerificationToken.findOne({
-        token,
+        ...credentialQuery,
         type: "reset_password",
         isUsed: false,
-    });
+    }).sort({ createdAt: -1 });
 
     if (!verificationToken) {
-        throw new AppError("Reset password link is invalid.", 400, {
-            field: "token",
+        throw new AppError("Reset password verification is invalid.", 400, {
+            field: token ? "token" : "otp",
         });
     }
 
@@ -295,8 +304,8 @@ const resetPassword = async ({ token, password }) => {
         verificationToken.isUsed = true;
         await verificationToken.save();
 
-        throw new AppError("Reset password link has expired.", 400, {
-            field: "token",
+        throw new AppError("Reset password verification has expired.", 400, {
+            field: token ? "token" : "otp",
         });
     }
 

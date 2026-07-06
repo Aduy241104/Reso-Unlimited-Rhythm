@@ -15,6 +15,7 @@ export const AuthContext = createContext({
   isLoading: true,
   user: null,
   login: async () => {},
+  googleLogin: async () => {},
   logout: async () => {},
 });
 
@@ -168,6 +169,52 @@ export const AuthProvider = ({ children }) => {
     [clearSession, persistSession, syncCurrentUser]
   );
 
+  const googleLogin = useCallback(
+    async (token) => {
+      setAuthState((prev) => ({ ...prev, isLoading: true }));
+
+      try {
+        const response = await authService.googleLogin(token);
+
+        if (!response) {
+          throw new Error('Khong nhan duoc phan hoi tu server.');
+        }
+
+        const authPayload = normalizeAuthPayload(response?.data || response);
+        const sessionUser = authPayload.user;
+
+        if (!authPayload.accessToken) {
+          throw new Error('Dang nhap Google that bai: Server khong tra ve access token.');
+        }
+
+        await persistSession({
+          accessToken: authPayload.accessToken,
+          refreshToken: authPayload.refreshToken,
+          user: authPayload.user,
+        });
+
+        setAuthState({
+          isAuthenticated: true,
+          isLoading: false,
+          user: sessionUser,
+        });
+
+        try {
+          await syncCurrentUser(sessionUser);
+        } catch (syncError) {
+          if (syncError?.status === 401) {
+            throw syncError;
+          }
+        }
+      } catch (error) {
+        await clearSession();
+        console.log('Google auth error:', error?.message || error);
+        throw error;
+      }
+    },
+    [clearSession, persistSession, syncCurrentUser]
+  );
+
   const logout = useCallback(async () => {
     setAuthState((prev) => ({ ...prev, isLoading: true }));
 
@@ -182,9 +229,10 @@ export const AuthProvider = ({ children }) => {
     () => ({
       ...authState,
       login,
+      googleLogin,
       logout,
     }),
-    [authState, login, logout]
+    [authState, login, googleLogin, logout]
   );
 
   return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;

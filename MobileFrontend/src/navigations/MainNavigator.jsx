@@ -2,6 +2,8 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { BottomTabNavigator } from './BottomTabNavigator';
 import LoginScreen from '../screens/auth/LoginScreen';
+import RegisterScreen from '../screens/auth/RegisterScreen';
+import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 import EntityDetailScreen from '../screens/detail/EntityDetailScreen';
 import PremiumOverviewScreen from '../screens/premium/PremiumOverviewScreen';
 import PremiumPlanDetailScreen from '../screens/premium/PremiumPlanDetailScreen';
@@ -20,6 +22,24 @@ export const MainNavigator = () => {
         options={{
           headerShown: true,
           title: 'Login',
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="Register"
+        component={RegisterScreen}
+        options={{
+          headerShown: true,
+          title: 'Register',
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="ForgotPassword"
+        component={ForgotPasswordScreen}
+        options={{
+          headerShown: true,
+          title: 'Forgot Password',
           animation: 'slide_from_right',
         }}
       />

@@ -5,6 +5,7 @@ import { refreshAccessToken } from './authSession';
 const shouldSkipRefresh = (requestUrl = '') =>
   [
     API_ENDPOINTS.AUTH.LOGIN,
+    API_ENDPOINTS.AUTH.GOOGLE,
     API_ENDPOINTS.AUTH.REFRESH_TOKEN,
     API_ENDPOINTS.AUTH.LOGOUT,
   ].some((path) => requestUrl.includes(path));
