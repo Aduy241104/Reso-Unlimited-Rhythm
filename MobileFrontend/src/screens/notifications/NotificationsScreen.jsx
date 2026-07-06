@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   RefreshControl,
@@ -199,6 +198,7 @@ export default function NotificationsScreen() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [detailTarget, setDetailTarget] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const hasMore = useMemo(() => {
     if (!meta) {
@@ -326,33 +326,40 @@ export default function NotificationsScreen() {
     }
   }, [markAsRead, navigateToTarget]);
 
-  const handleDelete = useCallback((notification) => {
+  const handleDelete = useCallback(async () => {
+    if (!deleteTarget) {
+      return;
+    }
+
+    const notificationId = getNotificationId(deleteTarget);
+
+    if (!notificationId) {
+      setDeleteTarget(null);
+      return;
+    }
+
+    const previousNotifications = notifications;
+    setDeleteTarget(null);
+    setNotifications((prev) =>
+      prev.filter((item) => String(getNotificationId(item)) !== String(notificationId))
+    );
+
+    try {
+      await notificationService.deleteNotification(notificationId);
+    } catch (error) {
+      setNotifications(previousNotifications);
+    }
+  }, [deleteTarget, notifications]);
+
+  const openDeleteConfirm = useCallback((notification) => {
     const notificationId = getNotificationId(notification);
 
     if (!notificationId) {
       return;
     }
 
-    Alert.alert('Xoa thong bao?', 'Thong bao nay se duoc an khoi danh sach cua ban.', [
-      { text: 'Huy', style: 'cancel' },
-      {
-        text: 'Xoa',
-        style: 'destructive',
-        onPress: async () => {
-          const previousNotifications = notifications;
-          setNotifications((prev) =>
-            prev.filter((item) => String(getNotificationId(item)) !== String(notificationId))
-          );
-
-          try {
-            await notificationService.deleteNotification(notificationId);
-          } catch (error) {
-            setNotifications(previousNotifications);
-          }
-        },
-      },
-    ]);
-  }, [notifications]);
+    setDeleteTarget(notification);
+  }, []);
 
   const renderItem = ({ item }) => {
     const typeMeta = getTypeMeta(item);
@@ -385,7 +392,7 @@ export default function NotificationsScreen() {
           <TouchableOpacity
             style={styles.deleteButton}
             activeOpacity={0.75}
-            onPress={() => handleDelete(item)}
+            onPress={() => openDeleteConfirm(item)}
           >
             <Ionicons name="trash-outline" size={18} color="#9CA3AF" />
           </TouchableOpacity>
@@ -547,6 +554,48 @@ export default function NotificationsScreen() {
               </TouchableOpacity>
             ) : null}
           </ScrollView>
+        ) : null}
+      </AppModal>
+
+      <AppModal visible={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)} position="center">
+        {deleteTarget ? (
+          <View style={styles.deleteModal}>
+            <View style={styles.deleteIconWrap}>
+              <Ionicons name="trash-outline" size={26} color="#f87171" />
+            </View>
+
+            <Text style={styles.deleteTitle}>Xoa thong bao?</Text>
+            <Text style={styles.deleteMessage}>
+              Thong bao nay se duoc an khoi danh sach cua ban. Hanh dong nay chi ap dung cho tai khoan hien tai.
+            </Text>
+
+            <View style={styles.deletePreview}>
+              <Text style={styles.deletePreviewTitle} numberOfLines={1}>
+                {deleteTarget?.title || 'Thong bao'}
+              </Text>
+              <Text style={styles.deletePreviewText} numberOfLines={2}>
+                {deleteTarget?.targetName || deleteTarget?.content || 'Chi tiet thong bao'}
+              </Text>
+            </View>
+
+            <View style={styles.deleteActions}>
+              <TouchableOpacity
+                style={[styles.deleteActionButton, styles.cancelDeleteButton]}
+                activeOpacity={0.82}
+                onPress={() => setDeleteTarget(null)}
+              >
+                <Text style={styles.cancelDeleteText}>Huy</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.deleteActionButton, styles.confirmDeleteButton]}
+                activeOpacity={0.82}
+                onPress={handleDelete}
+              >
+                <Text style={styles.confirmDeleteText}>Xoa</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         ) : null}
       </AppModal>
     </View>
@@ -834,6 +883,83 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   openTargetButtonText: {
+    color: '#000000',
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  deleteModal: {
+    alignItems: 'center',
+  },
+  deleteIconWrap: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(248, 113, 113, 0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(248, 113, 113, 0.24)',
+  },
+  deleteTitle: {
+    color: '#ffffff',
+    fontSize: 20,
+    fontWeight: '900',
+    marginTop: 16,
+  },
+  deleteMessage: {
+    color: '#b9bec8',
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  deletePreview: {
+    alignSelf: 'stretch',
+    marginTop: 16,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: '#121116',
+    borderWidth: 1,
+    borderColor: '#2C2635',
+  },
+  deletePreviewTitle: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  deletePreviewText: {
+    color: '#9CA3AF',
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 4,
+  },
+  deleteActions: {
+    alignSelf: 'stretch',
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 18,
+  },
+  deleteActionButton: {
+    flex: 1,
+    height: 46,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelDeleteButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: '#2C2635',
+  },
+  confirmDeleteButton: {
+    backgroundColor: '#ffffff',
+  },
+  cancelDeleteText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  confirmDeleteText: {
     color: '#000000',
     fontSize: 14,
     fontWeight: '900',
