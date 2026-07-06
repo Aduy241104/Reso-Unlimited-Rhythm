@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   Image,
+  Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -12,7 +14,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppLoader from '../../components/common/AppLoader';
+import TrackActionsBottomSheet from '../../components/detail/TrackActionsBottomSheet';
 import ErrorState from '../../components/common/ErrorState';
+import { useAuth } from '../../hooks/useAuth';
 import usePlayer from '../../hooks/usePlayer';
 import albumService from '../../services/albumService';
 import artistService from '../../services/artistService';
@@ -20,8 +24,6 @@ import playlistService from '../../services/playlistService';
 import trackService from '../../services/trackService';
 import { getErrorMessage, getInitials, resolveImageUri } from '../../utils/media';
 import { buildPlayableQueue, normalizePlayerTrack } from '../../utils/player';
-
-const accentPalette = ['#111111', '#2f2f2f', '#4a4a4a', '#686868', '#8a8a8a'];
 
 const detailFetchers = {
   album: ({ entityId }) => albumService.getAlbumDetail(entityId),
@@ -52,39 +54,80 @@ const getDisplayText = (value, fallback = '') => {
   return fallback;
 };
 
-const Artwork = ({ uri, label, style, textStyle }) => {
+const isExplicitTrack = (item) => {
+  return Boolean(
+    item?.explicit ||
+    item?.isExplicit ||
+    item?.isExplicitContent ||
+    item?.contentRating === 'explicit'
+  );
+};
+
+const Artwork = ({ uri, label, style, textStyle, rounded = false }) => {
   const imageUri = resolveImageUri(uri);
 
   if (imageUri) {
-    return <Image source={{ uri: imageUri }} style={[styles.heroImage, style]} resizeMode="cover" />;
+    return (
+      <Image
+        source={ { uri: imageUri } }
+        style={ [styles.artwork, rounded && styles.roundedArtwork, style] }
+        resizeMode="cover"
+      />
+    );
   }
 
   return (
-    <View style={[styles.heroImage, styles.heroImageFallback, style]}>
-      <Text style={[styles.heroImageFallbackText, textStyle]}>{getInitials(label)}</Text>
+    <View style={ [styles.artwork, styles.artworkFallback, rounded && styles.roundedArtwork, style] }>
+      <Text style={ [styles.artworkFallbackText, textStyle] }>{ getInitials(label) }</Text>
     </View>
   );
 };
 
-const TrackListItem = ({ item, index, onPress, showIndex = true }) => {
-  const accentColor = accentPalette[index % accentPalette.length];
+const TrackListItem = ({ item, index, onMorePress, onPress, showIndex = false }) => {
   const title = getDisplayText(item?.title, 'Unknown item');
-  const subtitle = getDisplayText(item?.subtitle);
-  const metaText = getDisplayText(item?.meta);
+  const subtitle = getDisplayText(item?.subtitle || item?.artistName);
+  const explicit = isExplicitTrack(item);
+
+  const handleMorePress = (event) => {
+    event.stopPropagation?.();
+    onMorePress?.();
+  };
 
   return (
-    <TouchableOpacity style={styles.listItem} onPress={onPress} activeOpacity={0.8}>
-      {showIndex ? (
-        <View style={[styles.listIndex, { backgroundColor: `${accentColor}22`, borderColor: `${accentColor}55` }]}>
-          <Text style={[styles.listIndexText, { color: accentColor }]}>{index + 1}</Text>
+    <TouchableOpacity style={ styles.listItem } onPress={ onPress } activeOpacity={ 0.75 }>
+      { showIndex ? (
+        <Text style={ styles.listIndex }>{ index + 1 }</Text>
+      ) : null }
+
+      <View style={ styles.listContent }>
+        <Text style={ styles.listTitle } numberOfLines={ 1 }>
+          { title }
+        </Text>
+
+        <View style={ styles.listSubtitleRow }>
+          { explicit ? (
+            <View style={ styles.explicitBadge }>
+              <Text style={ styles.explicitBadgeText }>E</Text>
+            </View>
+          ) : null }
+
+          { subtitle ? (
+            <Text style={ styles.listSubtitle } numberOfLines={ 1 }>
+              { subtitle }
+            </Text>
+          ) : null }
         </View>
-      ) : null}
-      <Artwork uri={item.image} label={title} style={styles.listArtwork} textStyle={styles.listArtworkText} />
-      <View style={styles.listContent}>
-        <Text style={styles.listTitle} numberOfLines={1}>{title}</Text>
-        <Text style={styles.listSubtitle} numberOfLines={1}>{subtitle}</Text>
       </View>
-      <Text style={styles.listMeta}>{metaText}</Text>
+
+      { onMorePress ? (
+        <TouchableOpacity
+          style={ styles.moreButton }
+          activeOpacity={ 0.7 }
+          onPress={ handleMorePress }
+        >
+          <Ionicons name="ellipsis-horizontal" size={ 18 } color="#9f9f9f" />
+        </TouchableOpacity>
+      ) : null }
     </TouchableOpacity>
   );
 };
@@ -93,11 +136,21 @@ export default function EntityDetailScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const insets = useSafeAreaInsets();
+  const { isAuthenticated } = useAuth();
   const { playQueue } = usePlayer();
+
   const { entityId, entityType, initialTitle, period, date, month, limit } = route.params || {};
+
   const [detail, setDetail] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+  const [isTrackActionsVisible, setIsTrackActionsVisible] = useState(false);
+  const [isAlbumFollowing, setIsAlbumFollowing] = useState(false);
+  const [isAlbumFollowUpdating, setIsAlbumFollowUpdating] = useState(false);
+  const [selectedTrackAction, setSelectedTrackAction] = useState({
+    index: 0,
+    track: null,
+  });
 
   const loadDetail = useCallback(async () => {
     if (!entityId || !entityType || !detailFetchers[entityType]) {
@@ -111,15 +164,41 @@ export default function EntityDetailScreen() {
     setErrorMessage('');
 
     try {
-      const result = await detailFetchers[entityType]({ entityId, period, date, month, limit });
+      const result = await detailFetchers[entityType]({
+        entityId,
+        period,
+        date,
+        month,
+        limit,
+      });
+
       setDetail(result);
+
+      const shouldLoadAlbumFollowState =
+        (entityType === 'album' || result?.type === 'album') && isAuthenticated;
+
+      if (shouldLoadAlbumFollowState) {
+        try {
+          const followState = await albumService.getAlbumFollowStatus(entityId);
+          setIsAlbumFollowing(Boolean(followState?.isFollowing));
+        } catch (followError) {
+          if (followError?.status === 401) {
+            setIsAlbumFollowing(false);
+          } else {
+            console.log('Unable to load album follow status.', followError?.message || followError);
+          }
+        }
+      } else {
+        setIsAlbumFollowing(false);
+      }
     } catch (error) {
       setDetail(null);
+      setIsAlbumFollowing(false);
       setErrorMessage(getErrorMessage(error, 'Unable to load detail right now.'));
     } finally {
       setIsLoading(false);
     }
-  }, [date, entityId, entityType, limit, month, period]);
+  }, [date, entityId, entityType, isAuthenticated, limit, month, period]);
 
   useEffect(() => {
     loadDetail();
@@ -152,134 +231,384 @@ export default function EntityDetailScreen() {
     [navigation]
   );
 
-  const handlePlayAll = useCallback((startIndex = 0) => {
-    if (playableQueue.length === 0) {
+  const handlePlayAll = useCallback(
+    (startIndex = 0) => {
+      if (playableQueue.length === 0) {
+        return;
+      }
+
+      playQueue(playableQueue, startIndex);
+    },
+    [playQueue, playableQueue]
+  );
+
+  const openTrackActions = useCallback((track, index = 0) => {
+    if (!track) {
       return;
     }
 
-    playQueue(playableQueue, startIndex);
-  }, [playQueue, playableQueue]);
+    setSelectedTrackAction({
+      index,
+      track,
+    });
+    setIsTrackActionsVisible(true);
+  }, []);
 
-  const handleListItemPress = useCallback((item, index) => {
-    if (item?.entityType === 'track') {
-      handlePlayAll(index);
-      return;
-    }
+  const closeTrackActions = useCallback(() => {
+    setIsTrackActionsVisible(false);
+  }, []);
 
-    handleOpenNestedDetail(item?.entityType, item?.entityId, item?.title);
-  }, [handleOpenNestedDetail, handlePlayAll]);
+  const handleListItemPress = useCallback(
+    (item, index) => {
+      if (item?.entityType === 'track') {
+        handlePlayAll(index);
+        return;
+      }
+
+      handleOpenNestedDetail(item?.entityType, item?.entityId, item?.title);
+    },
+    [handleOpenNestedDetail, handlePlayAll]
+  );
+
+  const handleTrackActionPlayNow = useCallback(
+    (track) => {
+      if (!track) {
+        return;
+      }
+
+      const startIndex = Number.isInteger(selectedTrackAction.index)
+        ? selectedTrackAction.index
+        : -1;
+
+      if (startIndex >= 0 && startIndex < playableQueue.length) {
+        handlePlayAll(startIndex);
+        return;
+      }
+
+      playQueue([normalizePlayerTrack(track)], 0);
+    },
+    [handlePlayAll, playableQueue.length, playQueue, selectedTrackAction.index]
+  );
+
+  const handleTrackActionOpenTrackDetail = useCallback(
+    (track) => {
+      handleOpenNestedDetail('track', track?.entityId || track?.id, track?.title);
+    },
+    [handleOpenNestedDetail]
+  );
+
+  const handleTrackActionOpenArtistDetail = useCallback(
+    (track) => {
+      handleOpenNestedDetail('artist', track?.artistId, track?.artistName || track?.subtitle);
+    },
+    [handleOpenNestedDetail]
+  );
+
+  const handleTrackActionOpenAlbumDetail = useCallback(
+    (track) => {
+      handleOpenNestedDetail('album', track?.albumId, track?.albumTitle);
+    },
+    [handleOpenNestedDetail]
+  );
 
   const headerTitle = getDisplayText(detail?.title, getDisplayText(initialTitle, 'Detail'));
   const detailTitle = getDisplayText(detail?.title, headerTitle);
   const detailSubtitle = getDisplayText(detail?.subtitle);
   const detailDescription = getDisplayText(detail?.description);
   const detailExtraText = getDisplayText(detail?.extraText);
-  const badgeLabel = detail?.badgeLabel || (
-    entityType === 'album'
-      ? 'ALBUM'
-      : entityType === 'artist'
-      ? 'ARTIST'
-      : entityType === 'playlist'
-        ? 'PLAYLIST'
-        : entityType === 'topTrackCollection'
-          ? 'CHART'
-          : 'TRACK'
+
+  const selectedTrack = selectedTrackAction.track;
+  const selectedTrackId = selectedTrack?.entityId || selectedTrack?.id || '';
+  const currentDetailTrackId = detail?.entityId || detail?.id || '';
+
+  const isCurrentTrackDetail =
+    detail?.type === 'track' && selectedTrackId && selectedTrackId === currentDetailTrackId;
+
+  const canOpenHeroTrackActions = detail?.type === 'track';
+
+  const trackActionItems = useMemo(
+    () => [
+      {
+        key: 'play-now',
+        label: 'Play now',
+        icon: 'play',
+        description: 'Start playback from this track.',
+        onPress: handleTrackActionPlayNow,
+      },
+      !isCurrentTrackDetail && selectedTrackId
+        ? {
+          key: 'open-track-detail',
+          label: 'Open track detail',
+          icon: 'disc-outline',
+          description: 'View the full detail page for this track.',
+          onPress: handleTrackActionOpenTrackDetail,
+        }
+        : null,
+      selectedTrack?.artistId
+        ? {
+          key: 'open-artist-detail',
+          label: 'Open artist detail',
+          icon: 'person-outline',
+          description: 'Jump to the artist detail page.',
+          onPress: handleTrackActionOpenArtistDetail,
+        }
+        : null,
+      selectedTrack?.albumId
+        ? {
+          key: 'open-album-detail',
+          label: 'Open album detail',
+          icon: 'albums-outline',
+          description: 'Jump to the album detail page.',
+          onPress: handleTrackActionOpenAlbumDetail,
+        }
+        : null,
+    ].filter(Boolean),
+    [
+      handleTrackActionOpenAlbumDetail,
+      handleTrackActionOpenArtistDetail,
+      handleTrackActionOpenTrackDetail,
+      handleTrackActionPlayNow,
+      isCurrentTrackDetail,
+      selectedTrack?.albumId,
+      selectedTrack?.artistId,
+      selectedTrackId,
+    ]
   );
 
+  const badgeLabel =
+    detail?.badgeLabel ||
+    (entityType === 'album'
+      ? 'Album'
+      : entityType === 'artist'
+        ? 'Artist'
+        : entityType === 'playlist'
+          ? 'Playlist'
+          : entityType === 'topTrackCollection'
+            ? 'Chart'
+            : 'Track');
+
+  const isAlbum = detail?.type === 'album' || entityType === 'album';
+  const isArtist = detail?.type === 'artist' || entityType === 'artist';
+
+  const artistName = detailSubtitle || detail?.artistName || detail?.artist?.name || '';
+  const artistImage =
+    detail?.artistImage ||
+    detail?.artistAvatar ||
+    detail?.artist?.avatar ||
+    detail?.artist?.image;
+
+  const metaText = detailDescription || detailExtraText || '';
+
+  const handleToggleAlbumFollow = useCallback(async () => {
+    const targetAlbumId = detail?.entityId || detail?.id || entityId;
+
+    if (!isAlbum || !targetAlbumId || isAlbumFollowUpdating) {
+      return;
+    }
+
+    if (!isAuthenticated) {
+      navigation.navigate('Login');
+      return;
+    }
+
+    const previousValue = isAlbumFollowing;
+    setIsAlbumFollowing(!previousValue);
+    setIsAlbumFollowUpdating(true);
+
+    try {
+      const followState = await albumService.toggleAlbumFollow(targetAlbumId);
+      setIsAlbumFollowing(Boolean(followState?.isFollowing));
+    } catch (error) {
+      setIsAlbumFollowing(previousValue);
+      Alert.alert('Save album failed', getErrorMessage(error, 'Unable to update saved album right now.'));
+    } finally {
+      setIsAlbumFollowUpdating(false);
+    }
+  }, [
+    detail?.entityId,
+    detail?.id,
+    entityId,
+    isAlbum,
+    isAlbumFollowUpdating,
+    isAlbumFollowing,
+    isAuthenticated,
+    navigation,
+  ]);
+
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+    <View style={ styles.container }>
+      <StatusBar barStyle="light-content" backgroundColor="#d9272b" />
 
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} activeOpacity={0.8}>
-          <Text style={styles.backButtonText}>Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>{headerTitle}</Text>
-        <View style={styles.headerSpacer} />
-      </View>
+      <TouchableOpacity
+        style={ [styles.backButton, { top: insets.top + 8 }] }
+        onPress={ () => navigation.goBack() }
+        activeOpacity={ 0.75 }
+      >
+        <Ionicons name="chevron-back" size={ 25 } color="#ffffff" />
+      </TouchableOpacity>
 
-      {isLoading ? (
-        <View style={styles.centerState}>
+      { isLoading ? (
+        <View style={ styles.centerState }>
           <AppLoader size="large" />
         </View>
       ) : errorMessage ? (
-        <View style={styles.centerState}>
-          <ErrorState message={errorMessage} />
-          <TouchableOpacity style={styles.retryButton} onPress={loadDetail} activeOpacity={0.8}>
-            <Text style={styles.retryButtonText}>Try Again</Text>
+        <View style={ styles.centerState }>
+          <ErrorState message={ errorMessage } />
+
+          <TouchableOpacity style={ styles.retryButton } onPress={ loadDetail } activeOpacity={ 0.8 }>
+            <Text style={ styles.retryButtonText }>Try Again</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <ScrollView
-          contentContainerStyle={[
+          contentContainerStyle={ [
             styles.scrollBody,
-            { paddingBottom: 32 + insets.bottom },
-          ]}
-          showsVerticalScrollIndicator={false}
+            { paddingBottom: 40 + insets.bottom },
+          ] }
+          showsVerticalScrollIndicator={ false }
         >
-          <View style={styles.heroCard}>
-            <Artwork uri={detail?.image} label={detailTitle} />
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{badgeLabel}</Text>
-            </View>
-            <Text style={styles.heroTitle}>{detailTitle}</Text>
-            {detailSubtitle ? <Text style={styles.heroSubtitle}>{detailSubtitle}</Text> : null}
-            {detailDescription ? (
-              <Text style={styles.heroDescription}>
-                {detailDescription}
-              </Text>
-            ) : null}
+          <View style={ [styles.heroSection, { paddingTop: insets.top + 48 }] }>
+            <View style={ styles.heroRedLayer } />
+            <View style={ styles.heroDarkLayer } />
+            <View style={ styles.heroBlackLayer } />
 
-            {playableQueue.length > 0 ? (
-              <TouchableOpacity style={styles.playAction} onPress={() => handlePlayAll()} activeOpacity={0.85}>
-                <Ionicons name="play" size={16} color="#000000" />
-                <Text style={styles.playActionText}>
-                  {detail?.type === 'track' ? 'Play now' : `Play ${playableQueue.length} tracks`}
+            <Artwork
+              uri={ detail?.image }
+              label={ detailTitle }
+              rounded={ isArtist }
+              style={ [styles.heroImage, isArtist && styles.heroArtistImage] }
+              textStyle={ styles.heroFallbackText }
+            />
+
+            <Text style={ styles.heroTitle } numberOfLines={ 2 }>
+              { detailTitle }
+            </Text>
+
+            { artistName ? (
+              <View style={ styles.artistRow }>
+                <Artwork
+                  uri={ artistImage }
+                  label={ artistName }
+                  rounded
+                  style={ styles.artistAvatar }
+                  textStyle={ styles.artistAvatarText }
+                />
+
+                <Text style={ styles.artistName } numberOfLines={ 1 }>
+                  { artistName }
                 </Text>
+              </View>
+            ) : null }
+
+            <Text style={ styles.metaLine } numberOfLines={ 2 }>
+              { badgeLabel }
+              { metaText ? ` • ${metaText}` : '' }
+            </Text>
+
+            <View style={ styles.actionRow }>
+              <TouchableOpacity style={ styles.deviceButton } activeOpacity={ 0.75 }>
+                <Ionicons name="phone-portrait-outline" size={ 23 } color="#d6d6d6" />
               </TouchableOpacity>
-            ) : null}
+
+              { isAlbum ? (
+                <TouchableOpacity
+                  style={ [
+                    styles.iconActionButton,
+                    isAlbumFollowUpdating && styles.iconActionButtonDisabled,
+                  ] }
+                  activeOpacity={ 0.75 }
+                  onPress={ handleToggleAlbumFollow }
+                  disabled={ isAlbumFollowUpdating }
+                >
+                  <Ionicons
+                    name={ isAlbumFollowing ? 'checkmark-circle' : 'add-circle-outline' }
+                    size={ 25 }
+                    color={ isAlbumFollowing ? '#1ed760' : '#b3b3b3' }
+                  />
+                </TouchableOpacity>
+              ) : null }
+
+              <TouchableOpacity style={ styles.iconActionButton } activeOpacity={ 0.75 }>
+                <Ionicons name="arrow-down-circle-outline" size={ 25 } color="#b3b3b3" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={ styles.iconActionButton }
+                activeOpacity={ 0.75 }
+                onPress={ canOpenHeroTrackActions ? () => openTrackActions(detail, 0) : undefined }
+              >
+                <Ionicons name="ellipsis-horizontal" size={ 24 } color="#b3b3b3" />
+              </TouchableOpacity>
+
+              <View style={ styles.actionSpacer } />
+
+              <TouchableOpacity style={ styles.shuffleButton } activeOpacity={ 0.75 }>
+                <Ionicons name="shuffle" size={ 26 } color="#1ed760" />
+              </TouchableOpacity>
+
+              { playableQueue.length > 0 ? (
+                <TouchableOpacity
+                  style={ styles.playCircleButton }
+                  onPress={ () => handlePlayAll() }
+                  activeOpacity={ 0.85 }
+                >
+                  <Ionicons name="play" size={ 30 } color="#000000" />
+                </TouchableOpacity>
+              ) : null }
+            </View>
           </View>
 
-          {Array.isArray(detail?.tags) && detail.tags.length > 0 ? (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Tags</Text>
-              <View style={styles.tagsWrap}>
-                {detail.tags.map((tag, index) => (
-                  <View key={`${getDisplayText(tag, 'tag')}-${index}`} style={styles.tagPill}>
-                    <Text style={styles.tagText}>{getDisplayText(tag)}</Text>
+          { Array.isArray(detail?.items) && detail.items.length > 0 ? (
+            <View style={ styles.trackList }>
+              { detail.items.map((item, index) => (
+                <TrackListItem
+                  key={ `${item.entityId || item.id}-${index}` }
+                  item={ item }
+                  index={ index }
+                  showIndex={ detail?.type === 'topTrackCollection' }
+                  onMorePress={
+                    item?.entityType === 'track'
+                      ? () => openTrackActions(item, index)
+                      : undefined
+                  }
+                  onPress={ () => handleListItemPress(item, index) }
+                />
+              )) }
+            </View>
+          ) : null }
+
+          { detail?.extraTitle && detailExtraText ? (
+            <View style={ styles.section }>
+              <Text style={ styles.sectionTitle }>{ getDisplayText(detail.extraTitle) }</Text>
+
+              <View style={ styles.infoPanel }>
+                <Text style={ styles.extraText }>{ detailExtraText }</Text>
+              </View>
+            </View>
+          ) : null }
+
+          { Array.isArray(detail?.tags) && detail.tags.length > 0 ? (
+            <View style={ styles.section }>
+              <Text style={ styles.sectionTitle }>Tags</Text>
+
+              <View style={ styles.tagsWrap }>
+                { detail.tags.map((tag, index) => (
+                  <View key={ `${getDisplayText(tag, 'tag')}-${index}` } style={ styles.tagPill }>
+                    <Text style={ styles.tagText }>{ getDisplayText(tag) }</Text>
                   </View>
-                ))}
+                )) }
               </View>
             </View>
-          ) : null}
-
-          {detail?.extraTitle && detailExtraText ? (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{getDisplayText(detail.extraTitle)}</Text>
-              <View style={styles.panel}>
-                <Text style={styles.extraText}>{detailExtraText}</Text>
-              </View>
-            </View>
-          ) : null}
-
-          {Array.isArray(detail?.items) && detail.items.length > 0 ? (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{getDisplayText(detail.itemsTitle, 'Items')}</Text>
-              <View style={styles.panel}>
-                {detail.items.map((item, index) => (
-                  <TrackListItem
-                    key={`${item.entityId || item.id}-${index}`}
-                    item={item}
-                    index={index}
-                    showIndex={detail?.type !== 'topTrackCollection'}
-                    onPress={() => handleListItemPress(item, index)}
-                  />
-                ))}
-              </View>
-            </View>
-          ) : null}
+          ) : null }
         </ScrollView>
-      )}
+      ) }
+
+      <TrackActionsBottomSheet
+        visible={ isTrackActionsVisible }
+        track={ selectedTrack }
+        actions={ trackActionItems }
+        onClose={ closeTrackActions }
+      />
     </View>
   );
 }
@@ -287,222 +616,347 @@ export default function EntityDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#121212',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1f1f1f',
-    backgroundColor: '#000000',
-  },
-  backButton: {
-    minWidth: 56,
-    paddingVertical: 8,
-  },
-  backButtonText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '700',
-    marginHorizontal: 12,
-  },
-  headerSpacer: {
-    width: 56,
-  },
+
   centerState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
+    backgroundColor: '#121212',
   },
+
   retryButton: {
     marginTop: 18,
-    backgroundColor: '#1a1a1a',
-    borderWidth: 1,
-    borderColor: '#2c2c2c',
     borderRadius: 999,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
+    paddingHorizontal: 22,
+    paddingVertical: 11,
+    backgroundColor: '#ffffff',
   },
+
   retryButtonText: {
-    color: '#ffffff',
-    fontWeight: '700',
-    fontSize: 12,
+    color: '#000000',
+    fontSize: 13,
+    fontWeight: '800',
   },
-  scrollBody: {
-    padding: 16,
-    paddingBottom: 32,
-  },
-  heroCard: {
-    backgroundColor: '#141414',
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#262626',
-  },
-  heroImage: {
-    width: '100%',
-    height: 210,
-    borderRadius: 12,
-    backgroundColor: '#202020',
-  },
-  heroImageFallback: {
+
+  backButton: {
+    position: 'absolute',
+    left: 8,
+    zIndex: 30,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  heroImageFallbackText: {
-    fontSize: 30,
-    fontWeight: '800',
-    color: '#ffffff',
-    letterSpacing: 2,
+
+  scrollBody: {
+    backgroundColor: '#121212',
   },
-  badge: {
-    alignSelf: 'flex-start',
-    marginTop: 12,
-    backgroundColor: '#1c1c1c',
+
+  heroSection: {
+    position: 'relative',
+    overflow: 'hidden',
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+    backgroundColor: '#121212',
+  },
+
+  heroRedLayer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 280,
+    backgroundColor: '#d9272b',
+  },
+
+  heroDarkLayer: {
+    position: 'absolute',
+    top: 185,
+    left: 0,
+    right: 0,
+    height: 170,
+    backgroundColor: '#3a1f1f',
+    opacity: 0.92,
+  },
+
+  heroBlackLayer: {
+    position: 'absolute',
+    top: 320,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#121212',
+  },
+
+  artwork: {
+    backgroundColor: '#282828',
+  },
+
+  artworkFallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  roundedArtwork: {
     borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: '#2d2d2d',
   },
-  badgeText: {
+
+  artworkFallbackText: {
     color: '#ffffff',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.8,
+    fontWeight: '900',
+    letterSpacing: 1,
   },
+
+  heroImage: {
+    alignSelf: 'center',
+    width: 224,
+    height: 224,
+    borderRadius: 4,
+    marginBottom: 14,
+    backgroundColor: '#282828',
+
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOpacity: 0.45,
+        shadowRadius: 18,
+        shadowOffset: { width: 0, height: 12 },
+      },
+      android: {
+        elevation: 12,
+      },
+    }),
+  },
+
+  heroArtistImage: {
+    borderRadius: 112,
+  },
+
+  heroFallbackText: {
+    fontSize: 42,
+    fontWeight: '900',
+    color: '#ffffff',
+  },
+
   heroTitle: {
     color: '#ffffff',
-    fontSize: 21,
-    fontWeight: '800',
-    marginTop: 12,
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '900',
+    letterSpacing: -0.4,
+    marginTop: 2,
   },
-  heroSubtitle: {
-    color: '#d4d4d4',
-    fontSize: 13,
-    fontWeight: '600',
-    marginTop: 5,
-  },
-  heroDescription: {
-    color: '#a3a3a3',
-    fontSize: 12,
-    lineHeight: 19,
-    marginTop: 10,
-  },
-  playAction: {
-    marginTop: 16,
-    alignSelf: 'flex-start',
+
+  artistRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#1ed760',
-    borderRadius: 999,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    marginTop: 9,
   },
-  playActionText: {
-    color: '#000000',
-    fontSize: 12,
+
+  artistAvatar: {
+    width: 23,
+    height: 23,
+    borderRadius: 12,
+    marginRight: 8,
+  },
+
+  artistAvatarText: {
+    fontSize: 9,
+    color: '#ffffff',
+    fontWeight: '900',
+  },
+
+  artistName: {
+    color: '#ffffff',
+    fontSize: 13,
     fontWeight: '800',
   },
+
+  metaLine: {
+    color: '#b7b7b7',
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '600',
+    marginTop: 8,
+  },
+
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+
+  deviceButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 4,
+    borderWidth: 1.4,
+    borderColor: '#bdbdbd',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 13,
+  },
+
+  iconActionButton: {
+    width: 34,
+    height: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 13,
+  },
+
+  iconActionButtonDisabled: {
+    opacity: 0.6,
+  },
+
+  actionSpacer: {
+    flex: 1,
+  },
+
+  shuffleButton: {
+    width: 38,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 11,
+  },
+
+  playCircleButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1ed760',
+
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOpacity: 0.28,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 7 },
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
+  },
+
+  trackList: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    backgroundColor: '#121212',
+  },
+
+  listItem: {
+    minHeight: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+
+  listIndex: {
+    width: 24,
+    marginRight: 8,
+    color: '#b3b3b3',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+
+  listContent: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+
+  listTitle: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '500',
+    letterSpacing: -0.1,
+  },
+
+  listSubtitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+
+  explicitBadge: {
+    width: 13,
+    height: 13,
+    borderRadius: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#b3b3b3',
+    marginRight: 5,
+  },
+
+  explicitBadgeText: {
+    color: '#121212',
+    fontSize: 8,
+    fontWeight: '900',
+  },
+
+  listSubtitle: {
+    flexShrink: 1,
+    color: '#b3b3b3',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+
+  moreButton: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+
   section: {
+    paddingHorizontal: 16,
     marginTop: 18,
   },
+
   sectionTitle: {
     color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '800',
-    marginBottom: 10,
+    fontSize: 18,
+    fontWeight: '900',
+    marginBottom: 12,
   },
-  panel: {
-    backgroundColor: '#141414',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#262626',
-    overflow: 'hidden',
+
+  infoPanel: {
+    borderRadius: 12,
+    padding: 14,
+    backgroundColor: '#181818',
   },
+
+  extraText: {
+    color: '#d0d0d0',
+    fontSize: 13,
+    lineHeight: 20,
+  },
+
   tagsWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
+
   tagPill: {
-    backgroundColor: '#141414',
     borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderWidth: 1,
-    borderColor: '#2a2a2a',
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+    backgroundColor: '#242424',
   },
+
   tagText: {
     color: '#ffffff',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  extraText: {
-    color: '#cfcfcf',
-    fontSize: 12,
-    lineHeight: 19,
-    padding: 14,
-  },
-  listItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#242424',
-  },
-  listIndex: {
-    width: 24,
-    height: 24,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    marginRight: 8,
-  },
-  listIndexText: {
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  listArtwork: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    marginRight: 10,
-  },
-  listArtworkText: {
-    fontSize: 13,
-  },
-  listContent: {
-    flex: 1,
-  },
-  listTitle: {
-    color: '#ffffff',
     fontSize: 12,
     fontWeight: '700',
-  },
-  listSubtitle: {
-    color: '#a3a3a3',
-    fontSize: 11,
-    marginTop: 3,
-  },
-  listMeta: {
-    color: '#d4d4d4',
-    fontSize: 10,
-    fontWeight: '700',
-    marginLeft: 8,
   },
 });

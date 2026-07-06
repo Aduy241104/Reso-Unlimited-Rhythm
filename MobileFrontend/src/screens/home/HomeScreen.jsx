@@ -12,13 +12,14 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import AppAvatar from '../../components/common/AppAvatar';
 import AppButton from '../../components/common/AppButton';
 import AppLoader from '../../components/common/AppLoader';
 import ErrorState from '../../components/common/ErrorState';
 import FeaturedCollectionCard from '../../components/home/FeaturedCollectionCard';
 import { useAuth } from '../../hooks/useAuth';
 import homeService from '../../services/homeService';
-import { getInitials, resolveImageUri } from '../../utils/media';
+import { formatDateLabel, getInitials, resolveImageUri } from '../../utils/media';
 
 const initialHomeState = {
   topTrackCollections: [],
@@ -33,6 +34,19 @@ const initialHomeState = {
 };
 
 const accentPalette = ['#111111', '#2f2f2f', '#4a4a4a', '#686868', '#8a8a8a'];
+
+const resolveUserDisplayName = (user) =>
+  user?.fullName || user?.name || user?.username || user?.displayName || user?.email || 'Music Lover';
+
+const resolveUserAvatar = (user) =>
+  resolveImageUri(
+    user?.avatar ||
+    user?.profileImage ||
+    user?.image ||
+    user?.photoUrl ||
+    user?.photoURL ||
+    user?.picture
+  );
 
 const Artwork = ({ uri, label, color, style, textStyle }) => {
   const imageUri = resolveImageUri(uri);
@@ -66,7 +80,7 @@ const HomeSection = ({ title, data, errorMessage, renderItem, emptyMessage }) =>
       <FlatList
         data={data}
         renderItem={renderItem}
-        keyExtractor={(item, index) => item.id || `${title}-${index}`}
+        keyExtractor={(item, index) => item.id || item._id || `${title}-${index}`}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.horizontalList}
@@ -75,9 +89,34 @@ const HomeSection = ({ title, data, errorMessage, renderItem, emptyMessage }) =>
   </View>
 );
 
+const TopTrackSection = ({ data, errorMessage, onPressItem }) => (
+  <View style={styles.sectionContainer}>
+    <Text style={styles.sectionTitle}>Top Track Charts</Text>
+
+    {errorMessage ? (
+      <SectionState message={errorMessage} isError />
+    ) : data.length === 0 ? (
+      <SectionState message="No top track charts available." />
+    ) : (
+      <View style={styles.topTrackGrid}>
+        {data.slice(0, 2).map((item) => (
+          <FeaturedCollectionCard
+            key={item.id || item._id}
+            title={item.title}
+            description={item.description}
+            image={item.image}
+            style={styles.topTrackCard}
+            onPress={() => onPressItem(item)}
+          />
+        ))}
+      </View>
+    )}
+  </View>
+);
+
 export default function HomeScreen() {
   const navigation = useNavigation();
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout, user } = useAuth();
   const [homeData, setHomeData] = useState(initialHomeState);
   const [isContentLoading, setIsContentLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -158,6 +197,9 @@ export default function HomeScreen() {
     navigation.navigate('Login');
   };
 
+  const displayName = resolveUserDisplayName(user);
+  const avatarUri = resolveUserAvatar(user);
+
   const renderArtistCard = ({ item, index }) => {
     const accentColor = accentPalette[index % accentPalette.length];
 
@@ -190,6 +232,7 @@ export default function HomeScreen() {
 
   const renderPlaylistCard = ({ item, index }) => {
     const accentColor = accentPalette[index % accentPalette.length];
+    const playlistId = item?._id || item?.id;
 
     return (
       <TouchableOpacity
@@ -198,7 +241,7 @@ export default function HomeScreen() {
         onPress={() =>
           handleOpenDetail({
             entityType: 'playlist',
-            entityId: item.id,
+            entityId: playlistId,
             initialTitle: item.title || 'Playlist Detail',
           })
         }
@@ -214,6 +257,8 @@ export default function HomeScreen() {
 
   const renderAlbumCard = ({ item, index }) => {
     const accentColor = accentPalette[index % accentPalette.length];
+    const artistName = item?.artist?.name || 'Unknown artist';
+    const releaseLabel = formatDateLabel(item?.releaseDate);
 
     return (
       <TouchableOpacity
@@ -230,29 +275,25 @@ export default function HomeScreen() {
         <Artwork uri={item.coverImage} label={item.title} color={accentColor} />
         <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
         <Text style={styles.cardSubTitle} numberOfLines={2}>
-          {item.artist?.name || 'Unknown artist'}
+          {releaseLabel ? `${artistName} - ${releaseLabel}` : artistName}
         </Text>
       </TouchableOpacity>
     );
   };
-
-  const renderTopTrackCollectionCard = ({ item }) => (
-    <FeaturedCollectionCard
-      title={item.title}
-      description={item.description}
-      image={item.image}
-      onPress={() => handleOpenTopTrackCollection(item)}
-    />
-  );
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
 
       <View style={styles.header}>
-        <View>
-          <Text style={styles.brandText}>RESO MUSIC</Text>
-          <Text style={styles.welcomeText}>Home Journey</Text>
+        <View style={styles.headerIdentity}>
+          {isAuthenticated ? <AppAvatar uri={avatarUri} label={displayName} size={44} /> : null}
+          <View style={[styles.headerTextGroup, !isAuthenticated && styles.headerTextGroupGuest]}>
+            <Text style={styles.brandText}>RESO UNLIMITED RHYTHM</Text>
+            <Text style={styles.welcomeText} numberOfLines={1}>
+              {isAuthenticated ? displayName : 'Login to personalize your music'}
+            </Text>
+          </View>
         </View>
         <TouchableOpacity style={styles.logoutBadge} onPress={handleHeaderAction} activeOpacity={0.7}>
           <Text style={styles.logoutText}>{isAuthenticated ? 'Logout' : 'Login'}</Text>
@@ -280,12 +321,10 @@ export default function HomeScreen() {
             />
           }
         >
-          <HomeSection
-            title="Top Track Charts"
+          <TopTrackSection
             data={homeData.topTrackCollections}
             errorMessage={homeData.sectionErrors.topTrackCollections}
-            renderItem={renderTopTrackCollectionCard}
-            emptyMessage="No top track charts available."
+            onPressItem={handleOpenTopTrackCollection}
           />
 
           <HomeSection
@@ -305,11 +344,11 @@ export default function HomeScreen() {
           />
 
           <HomeSection
-            title="Recent Albums"
+            title="New Album Releases"
             data={homeData.recentAlbums}
             errorMessage={homeData.sectionErrors.recentAlbums}
             renderItem={renderAlbumCard}
-            emptyMessage="No recent albums available."
+            emptyMessage="No new album releases available."
           />
         </ScrollView>
       )}
@@ -332,6 +371,19 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: '#1f1f1f',
     backgroundColor: '#000000',
+  },
+  headerIdentity: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  headerTextGroup: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  headerTextGroupGuest: {
+    marginLeft: 0,
   },
   brandText: {
     fontSize: 9,
@@ -386,6 +438,16 @@ const styles = StyleSheet.create({
   },
   horizontalList: {
     paddingHorizontal: 15,
+  },
+  topTrackGrid: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    gap: 10,
+  },
+  topTrackCard: {
+    flex: 1,
+    minWidth: 0,
+    marginHorizontal: 0,
   },
   cardItem: {
     width: 102,
