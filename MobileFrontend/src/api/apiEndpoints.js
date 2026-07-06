@@ -33,6 +33,12 @@ export const API_ENDPOINTS = {
   PAYMENTS: {
     VNPAY_CREATE_ORDER: '/payments/vnpay/create-order',
   },
+  NOTIFICATIONS: {
+    LIST: '/user/notifications',
+    DETAIL: '/user/notifications',
+    MARK_AS_READ: '/user/notifications',
+    DELETE: '/user/notifications',
+  },
   LIBRARY: {
     FOLLOWED_ALBUMS: '/libary/followed-albums',
   },

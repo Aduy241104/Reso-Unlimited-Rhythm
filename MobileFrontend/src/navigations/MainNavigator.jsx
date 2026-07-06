@@ -6,6 +6,7 @@ import EntityDetailScreen from '../screens/detail/EntityDetailScreen';
 import PremiumOverviewScreen from '../screens/premium/PremiumOverviewScreen';
 import PremiumPlanDetailScreen from '../screens/premium/PremiumPlanDetailScreen';
 import PremiumCheckoutScreen from '../screens/premium/PremiumCheckoutScreen';
+import NotificationsScreen from '../screens/notifications/NotificationsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -25,6 +26,14 @@ export const MainNavigator = () => {
       <Stack.Screen
         name="EntityDetail"
         component={EntityDetailScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="Notifications"
+        component={NotificationsScreen}
         options={{
           headerShown: false,
           animation: 'slide_from_right',

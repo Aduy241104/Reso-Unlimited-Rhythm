@@ -11,6 +11,7 @@ import {
   Image,
   RefreshControl,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import AppAvatar from '../../components/common/AppAvatar';
 import AppButton from '../../components/common/AppButton';
@@ -197,6 +198,15 @@ export default function HomeScreen() {
     navigation.navigate('Login');
   };
 
+  const handleOpenNotifications = () => {
+    if (!isAuthenticated) {
+      navigation.navigate('Login');
+      return;
+    }
+
+    navigation.navigate('Notifications');
+  };
+
   const displayName = resolveUserDisplayName(user);
   const avatarUri = resolveUserAvatar(user);
 
@@ -295,9 +305,14 @@ export default function HomeScreen() {
             </Text>
           </View>
         </View>
-        <TouchableOpacity style={styles.logoutBadge} onPress={handleHeaderAction} activeOpacity={0.7}>
-          <Text style={styles.logoutText}>{isAuthenticated ? 'Logout' : 'Login'}</Text>
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.iconBadge} onPress={handleOpenNotifications} activeOpacity={0.7}>
+            <Ionicons name="notifications-outline" size={18} color="#ffffff" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.logoutBadge} onPress={handleHeaderAction} activeOpacity={0.7}>
+            <Text style={styles.logoutText}>{isAuthenticated ? 'Logout' : 'Login'}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {isContentLoading && !hasLoadedOnce ? (
@@ -402,6 +417,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     paddingVertical: 6,
     borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#2d2d2d',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  iconBadge: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 16,
+    backgroundColor: '#111111',
     borderWidth: 1,
     borderColor: '#2d2d2d',
   },

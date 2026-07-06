@@ -10,6 +10,7 @@ import LibraryScreen from '../screens/library/LibraryScreen';
 import CreateForMeScreen from '../screens/createForMe/CreateForMeScreen';
 import EntityDetailScreen from '../screens/detail/EntityDetailScreen';
 import PlayerSheetScreen from '../screens/player/PlayerSheetScreen';
+import NotificationsScreen from '../screens/notifications/NotificationsScreen';
 import AppTabBar from '../components/navigation/AppTabBar';
 import theme from '../theme';
 
@@ -45,6 +46,14 @@ function SharedTabStack({ rootName, component: RootComponent }) {
       <Stack.Screen
         name="EntityDetail"
         component={EntityDetailScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="Notifications"
+        component={NotificationsScreen}
         options={{
           headerShown: false,
           animation: 'slide_from_right',
