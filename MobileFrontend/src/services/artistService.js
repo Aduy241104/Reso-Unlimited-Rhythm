@@ -25,17 +25,22 @@ const resolveProfileSource = (payload) => payload?.artist || payload?.profile ||
 const normalizeArtistTrack = (item, index = 0) => {
   const track = item?.track || item || {};
   const artist = track?.artist || track?.artist_artistId || {};
+  const album = track?.album || track?.album_albumId || {};
 
   return {
     id: track?.id || track?._id || `track-${index}`,
     title: track?.title || 'Unknown track',
     subtitle: artist?.name || 'Unknown artist',
+    artistId: artist?.id || artist?._id || '',
     artistName: artist?.name || 'Unknown artist',
+    albumId: album?.id || album?._id || '',
+    albumTitle: album?.title || '',
     image: resolveImageUri(track?.coverImage || track?.avatar || artist?.avatar),
     entityType: 'track',
     entityId: track?.id || track?._id || '',
     duration: Number(track?.duration) || 0,
     audioUri: resolveTrackAudioUri(track),
+    audioSource: resolveTrackAudioUri(track),
     meta: `${formatCompactNumber(track?.stats?.totalPlay || track?.playCount)} plays`,
   };
 };
@@ -81,9 +86,12 @@ export const artistService = {
 
   async getArtistDetail(artistId) {
     const encodedArtistId = encodeURIComponent(artistId);
-    const [profileResult, tracksResult] = await Promise.allSettled([
+    const [profileResult, tracksResult, comingReleasesResult] = await Promise.allSettled([
       axiosClient.get(`${API_ENDPOINTS.ARTISTS.DETAIL}/${encodedArtistId}/profile`),
       axiosClient.get(`${API_ENDPOINTS.ARTISTS.DETAIL}/${encodedArtistId}/tracks`, {
+        params: { limit: 10 },
+      }),
+      axiosClient.get(`${API_ENDPOINTS.ARTISTS.DETAIL}/${encodedArtistId}/coming-releases`, {
         params: { limit: 10 },
       }),
     ]);
@@ -94,11 +102,19 @@ export const artistService = {
 
     const profilePayload = getPayload(profileResult.value);
     const tracksPayload = tracksResult.status === 'fulfilled' ? getPayload(tracksResult.value) : {};
+    const comingReleasesPayload =
+      comingReleasesResult.status === 'fulfilled' ? getPayload(comingReleasesResult.value) : {};
     const tracks = Array.isArray(tracksPayload?.tracks)
       ? tracksPayload.tracks.map(normalizeArtistTrack)
       : [];
+    const comingReleases = Array.isArray(comingReleasesPayload?.comingReleases)
+      ? comingReleasesPayload.comingReleases
+      : [];
 
-    return normalizeArtistDetail(profilePayload, tracks);
+    return {
+      ...normalizeArtistDetail(profilePayload, tracks),
+      comingReleases,
+    };
   },
 };
 

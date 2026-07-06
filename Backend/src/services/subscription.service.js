@@ -264,6 +264,23 @@ const listActivePlans = async () =>
         .lean()
         .then((plans) => plans.map(enrichPlanPricing));
 
+const getActivePlanDetail = async (planId) => {
+    assertObjectId(planId, "planId");
+
+    const plan = await Plan.findOne({
+        _id: planId,
+        status: "active",
+    }).lean();
+
+    if (!plan) {
+        throw new AppError("Subscription plan not found or inactive.", 404, {
+            field: "planId",
+        });
+    }
+
+    return enrichPlanPricing(plan);
+};
+
 const getMySubscriptionStatus = async (userId) => {
     const now = new Date();
     const [user, activeSubscription] = await Promise.all([
@@ -625,6 +642,7 @@ const expireEndedSubscriptions = async () => {
 
 export default {
     listActivePlans,
+    getActivePlanDetail,
     getMySubscriptionStatus,
     createVnpayOrder,
     handleVnpayReturn,

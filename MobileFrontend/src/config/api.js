@@ -56,24 +56,52 @@ const getDefaultApiBaseUrl = () => {
   return `http://localhost:${DEFAULT_API_PORT}${DEFAULT_API_PATH}`;
 };
 
-export const resolveApiBaseUrl = () => {
+const getUniqueValues = (values = []) => {
+  const normalizedValues = values
+    .map((value) => trimTrailingSlash(readString(value)))
+    .filter(Boolean);
+
+  return [...new Set(normalizedValues)];
+};
+
+export const resolveApiBaseUrlCandidates = () => {
   const configuredBaseUrl = trimTrailingSlash(
     readString(process.env.EXPO_PUBLIC_API_URL)
   );
+  const defaultApiBaseUrl = getDefaultApiBaseUrl();
+  const fallbackCandidates = [configuredBaseUrl];
 
   if (__DEV__) {
     const expoHostBaseUrl = buildApiBaseUrl(readExpoHostUri());
 
-    if (expoHostBaseUrl) {
-      return expoHostBaseUrl;
+    if (Platform.OS === 'android') {
+      fallbackCandidates.push(defaultApiBaseUrl, expoHostBaseUrl);
+    } else {
+      fallbackCandidates.push(expoHostBaseUrl, defaultApiBaseUrl);
     }
+  } else {
+    fallbackCandidates.push(defaultApiBaseUrl);
   }
 
-  if (configuredBaseUrl) {
-    return configuredBaseUrl;
-  }
-
-  return getDefaultApiBaseUrl();
+  return getUniqueValues(fallbackCandidates);
 };
 
-export const API_BASE_URL = resolveApiBaseUrl();
+const resolvedApiBaseUrlCandidates = resolveApiBaseUrlCandidates();
+let currentApiBaseUrl = resolvedApiBaseUrlCandidates[0] || getDefaultApiBaseUrl();
+
+export const resolveApiBaseUrl = () => currentApiBaseUrl;
+
+export const getApiBaseUrl = () => currentApiBaseUrl;
+
+export const setApiBaseUrl = (value) => {
+  const normalizedValue = trimTrailingSlash(readString(value));
+
+  if (normalizedValue) {
+    currentApiBaseUrl = normalizedValue;
+  }
+
+  return currentApiBaseUrl;
+};
+
+export const API_BASE_URL_CANDIDATES = resolvedApiBaseUrlCandidates;
+export const API_BASE_URL = currentApiBaseUrl;

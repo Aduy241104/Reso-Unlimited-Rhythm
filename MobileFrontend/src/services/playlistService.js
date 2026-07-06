@@ -73,7 +73,10 @@ const normalizePlaylistTrack = (item, index = 0) => {
     id: pickFirstDefined(rawItem.id, rawItem._id, track?.id, track?._id, rawItem?.trackId, `track-${index}`),
     title: pickFirstDefined(rawItem.title, track?.title, 'Unknown track'),
     subtitle: pickFirstDefined(rawItem.subtitle, rawItem.artistName, artist?.name, 'Unknown artist'),
+    artistId: pickFirstDefined(rawItem.artistId, artist?.id, artist?._id, ''),
     artistName: pickFirstDefined(rawItem.artistName, artist?.name, 'Unknown artist'),
+    albumId: pickFirstDefined(rawItem.albumId, album?.id, album?._id, ''),
+    albumTitle: pickFirstDefined(rawItem.albumTitle, album?.title, ''),
     image: pickFirstDefined(
       rawItem.image,
       rawItem.coverImage,
@@ -84,6 +87,7 @@ const normalizePlaylistTrack = (item, index = 0) => {
     entityId: pickFirstDefined(rawItem.entityId, track?.id, track?._id, ''),
     duration: pickNumber(rawItem.duration, track?.duration),
     audioUri: pickFirstDefined(rawItem.audioUri, resolveTrackAudioUri(rawItem), resolveTrackAudioUri(track), ''),
+    audioSource: pickFirstDefined(rawItem.audioSource, resolveTrackAudioUri(rawItem), resolveTrackAudioUri(track), ''),
     meta: pickFirstDefined(rawItem.meta, formatDuration(pickNumber(rawItem.duration, track?.duration))),
     order: pickNumber(rawItem.order, index + 1),
     addedAt: pickFirstDefined(rawItem.addedAt, null),

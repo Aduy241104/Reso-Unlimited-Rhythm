@@ -1,136 +1,205 @@
 import React, { createContext, useCallback, useEffect, useMemo, useState } from 'react';
+import { normalizeAuthPayload, setSessionExpiredHandler } from '../api/authSession';
 import { tokenStorage } from '../storage/tokenStorage';
 import { userStorage } from '../storage/userStorage';
 import authService from '../services/authService';
 
+const emptyAuthState = {
+  isAuthenticated: false,
+  isLoading: false,
+  user: null,
+};
+
 export const AuthContext = createContext({
-    isAuthenticated: false,
-    isLoading: true,
-    user: null,
-    login: async () => {},
-    logout: async () => {},
+  isAuthenticated: false,
+  isLoading: true,
+  user: null,
+  login: async () => {},
+  logout: async () => {},
 });
 
 const normalizeAuthUser = (value) => {
-    if (!value || typeof value !== 'object') {
-        return null;
-    }
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
 
-    if (value.user && typeof value.user === 'object') {
-        return value.user;
-    }
+  if (value.user && typeof value.user === 'object') {
+    return value.user;
+  }
 
-    return value;
+  return value;
 };
 
 export const AuthProvider = ({ children }) => {
-    const [authState, setAuthState] = useState({
-        isAuthenticated: false,
-        isLoading: true,
-        user: null,
+  const [authState, setAuthState] = useState({
+    isAuthenticated: false,
+    isLoading: true,
+    user: null,
+  });
+
+  const clearSession = useCallback(async () => {
+    await tokenStorage.clearTokens().catch(() => {});
+    await userStorage.clearUserProfile().catch(() => {});
+    setAuthState(emptyAuthState);
+  }, []);
+
+  const persistSession = useCallback(async ({ accessToken, refreshToken, user }) => {
+    if (accessToken) {
+      await tokenStorage.setAccessToken(accessToken);
+    }
+
+    if (refreshToken) {
+      await tokenStorage.setRefreshToken(refreshToken);
+    }
+
+    const normalizedUser = normalizeAuthUser(user);
+
+    if (normalizedUser) {
+      await userStorage.setUserProfile(normalizedUser);
+    }
+  }, []);
+
+  const syncCurrentUser = useCallback(async (fallbackUser = null) => {
+    const response = await authService.getCurrentUser();
+    const freshUser = normalizeAuthUser(response?.data || response);
+
+    if (freshUser) {
+      await userStorage.setUserProfile(freshUser);
+      setAuthState({
+        isAuthenticated: true,
+        isLoading: false,
+        user: freshUser,
+      });
+      return freshUser;
+    }
+
+    setAuthState({
+      isAuthenticated: true,
+      isLoading: false,
+      user: fallbackUser,
     });
 
-    const restoreSession = useCallback(async () => {
-        try {
-            const accessToken = await tokenStorage.getAccessToken();
-            const storedUser = normalizeAuthUser(await userStorage.getUserProfile());
+    return fallbackUser;
+  }, []);
 
-            if (!accessToken || !storedUser) {
-                setAuthState({ isAuthenticated: false, isLoading: false, user: null });
-                return;
-            }
+  const restoreSession = useCallback(async () => {
+    let storedUser = null;
+    let hasStoredSession = false;
 
-            setAuthState({ isAuthenticated: true, isLoading: false, user: storedUser });
+    try {
+      const [accessToken, refreshToken, persistedUser] = await Promise.all([
+        tokenStorage.getAccessToken(),
+        tokenStorage.getRefreshToken(),
+        userStorage.getUserProfile(),
+      ]);
 
-            try {
-                const response = await authService.getCurrentUser();
-                const freshUser = normalizeAuthUser(response?.data || response);
+      storedUser = normalizeAuthUser(persistedUser);
+      hasStoredSession = Boolean(accessToken || refreshToken);
 
-                if (freshUser) {
-                    await userStorage.setUserProfile(freshUser);
-                    setAuthState((prev) => ({ ...prev, user: freshUser }));
-                }
-            } catch (error) {
-                if (error?.status === 401) {
-                    await tokenStorage.clearTokens();
-                    await userStorage.clearUserProfile();
-                    setAuthState({ isAuthenticated: false, isLoading: false, user: null });
-                }
-            }
-        } catch {
-            setAuthState({ isAuthenticated: false, isLoading: false, user: null });
+      if (!hasStoredSession) {
+        setAuthState(emptyAuthState);
+        return;
+      }
+
+      if (storedUser) {
+        setAuthState({
+          isAuthenticated: true,
+          isLoading: false,
+          user: storedUser,
+        });
+      }
+
+      await syncCurrentUser(storedUser);
+    } catch (error) {
+      if (error?.status === 401) {
+        await clearSession();
+        return;
+      }
+
+      setAuthState({
+        isAuthenticated: hasStoredSession || Boolean(storedUser),
+        isLoading: false,
+        user: storedUser,
+      });
+    }
+  }, [clearSession, syncCurrentUser]);
+
+  useEffect(() => {
+    setSessionExpiredHandler(clearSession);
+
+    return () => {
+      setSessionExpiredHandler(null);
+    };
+  }, [clearSession]);
+
+  useEffect(() => {
+    restoreSession();
+  }, [restoreSession]);
+
+  const login = useCallback(
+    async (email, password) => {
+      setAuthState((prev) => ({ ...prev, isLoading: true }));
+
+      try {
+        const response = await authService.login(email, password);
+
+        if (!response) {
+          throw new Error('Khong nhan duoc phan hoi tu server.');
         }
-    }, []);
 
-    useEffect(() => {
-        restoreSession();
-    }, [restoreSession]);
+        const authPayload = normalizeAuthPayload(response?.data || response);
+        const sessionUser = normalizeAuthUser(authPayload.user) || { email };
 
-    const login = useCallback(async (email, password) => {
-        setAuthState((prev) => ({ ...prev, isLoading: true }));
+        if (!authPayload.accessToken) {
+          throw new Error('Dang nhap that bai: Server khong tra ve access token.');
+        }
+
+        await persistSession({
+          accessToken: authPayload.accessToken,
+          refreshToken: authPayload.refreshToken,
+          user: sessionUser,
+        });
+
+        setAuthState({
+          isAuthenticated: true,
+          isLoading: false,
+          user: sessionUser,
+        });
 
         try {
-            const response = await authService.login(email, password);
-
-            if (!response) {
-                throw new Error('No response received from server.');
-            }
-
-            const responseData = response?.data || response;
-            const { accessToken, refreshToken, user } = responseData;
-            const normalizedUser = normalizeAuthUser(user);
-
-            if (!accessToken) {
-                throw new Error(responseData?.message || 'Login failed because no access token was returned.');
-            }
-
-            await tokenStorage.setAccessToken(accessToken);
-
-            if (refreshToken) {
-                await tokenStorage.setRefreshToken(refreshToken);
-            }
-
-            if (normalizedUser) {
-                await userStorage.setUserProfile(normalizedUser);
-            }
-
-            setAuthState({
-                isAuthenticated: true,
-                isLoading: false,
-                user: normalizedUser || { email },
-            });
-        } catch (error) {
-            setAuthState({ isAuthenticated: false, isLoading: false, user: null });
-            console.log('AUTH_CONTEXT error:', error?.message || error);
-            throw error;
+          await syncCurrentUser(sessionUser);
+        } catch (syncError) {
+          if (syncError?.status === 401) {
+            throw syncError;
+          }
         }
-    }, []);
+      } catch (error) {
+        await clearSession();
+        console.log('Auth error:', error?.message || error);
+        throw error;
+      }
+    },
+    [clearSession, persistSession, syncCurrentUser]
+  );
 
-    const logout = useCallback(async () => {
-        setAuthState((prev) => ({ ...prev, isLoading: true }));
+  const logout = useCallback(async () => {
+    setAuthState((prev) => ({ ...prev, isLoading: true }));
 
-        try {
-            await authService.logout().catch(() => {});
-        } finally {
-            await tokenStorage.clearTokens();
-            await userStorage.clearUserProfile();
-            setAuthState({
-                isAuthenticated: false,
-                isLoading: false,
-                user: null,
-            });
-        }
-    }, []);
+    try {
+      await authService.logout().catch(() => {});
+    } finally {
+      await clearSession();
+    }
+  }, [clearSession]);
 
-    const contextValue = useMemo(() => ({
-        ...authState,
-        login,
-        logout,
-    }), [authState, login, logout]);
+  const contextValue = useMemo(
+    () => ({
+      ...authState,
+      login,
+      logout,
+    }),
+    [authState, login, logout]
+  );
 
-    return (
-        <AuthContext.Provider value={contextValue}>
-            {children}
-        </AuthContext.Provider>
-    );
+  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 };

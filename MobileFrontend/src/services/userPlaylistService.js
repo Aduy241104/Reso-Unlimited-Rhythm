@@ -84,6 +84,18 @@ export const userPlaylistService = {
     );
   },
 
+  async addTrackToMyPlaylist(playlistId, trackId) {
+    const response = await axiosClient.post(
+      `${API_ENDPOINTS.USER_PLAYLISTS.TRACKS}/${playlistId}/tracks`,
+      { trackId }
+    );
+    const responsePayload = getPayload(response);
+
+    return normalizePlaylistSummary(
+      responsePayload?.playlist || responsePayload?.data || responsePayload
+    );
+  },
+
   async deleteMyPlaylist(playlistId) {
     const response = await axiosClient.delete(`${API_ENDPOINTS.USER_PLAYLISTS.UPDATE}/${playlistId}`);
     return getPayload(response);

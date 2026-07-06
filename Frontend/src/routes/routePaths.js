@@ -43,6 +43,7 @@
   artistFollowers: "/artist/followers",
   artistNotificationDetail: (notificationId = ":id") => `/artist/notifications/${notificationId}`,
   artistRoyalties: "/artist/royalties",
+  artistBalanceManagement: "/artist/royalties/balance",
   artistRevenueHistory: "/artist/royalties/history",
   artistRevenuePeriodDetail: (periodId = ":id") => `/artist/royalties/history/${periodId}`,
   artistWithdrawalRequests: "/artist/withdrawal-requests",
