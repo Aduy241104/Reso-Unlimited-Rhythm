@@ -44,6 +44,7 @@ export const API_ENDPOINTS = {
     VNPAY_CREATE_ORDER: '/payments/vnpay/create-order',
   },
   LIBRARY: {
+    FOLLOWED_ARTISTS: '/libary/followed-artists',
     FOLLOWED_ALBUMS: '/libary/followed-albums',
   },
 };

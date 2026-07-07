@@ -1,6 +1,6 @@
 import axiosClient from '../api/axiosClient';
 import { API_ENDPOINTS } from '../api/apiEndpoints';
-import { resolveImageUri } from '../utils/media';
+import { formatDateLabel, resolveImageUri } from '../utils/media';
 
 const getPayload = (response) => response?.data || response || {};
 const asArray = (value) => (Array.isArray(value) ? value : []);
@@ -17,7 +17,30 @@ const normalizeFollowedAlbum = (item) => ({
   trackCount: Array.isArray(item?.trackList) ? item.trackList.length : 0,
 });
 
+const normalizeFollowedArtist = (item, index = 0) => ({
+  id: pickFirstDefined(item?.artistId, item?.id, item?._id, `followed-artist-${index}`),
+  entityId: pickFirstDefined(item?.artistId, item?.id, item?._id, ''),
+  entityType: 'artist',
+  name: pickFirstDefined(item?.name, 'Nghệ sĩ không xác định'),
+  title: pickFirstDefined(item?.name, 'Nghệ sĩ không xác định'),
+  avatar: pickFirstDefined(resolveImageUri(item?.avatar), item?.avatar, ''),
+  image: pickFirstDefined(resolveImageUri(item?.avatar), item?.avatar, ''),
+  followedAt: pickFirstDefined(item?.followedAt, ''),
+  followedAtLabel: formatDateLabel(item?.followedAt),
+});
+
 export const libraryService = {
+  async getFollowedArtists(params) {
+    const response = await axiosClient.get(API_ENDPOINTS.LIBRARY.FOLLOWED_ARTISTS, { params });
+    const payload = getPayload(response);
+    const rawItems = asArray(payload?.artists || payload?.data?.artists || payload?.data);
+
+    return {
+      items: rawItems.map(normalizeFollowedArtist),
+      meta: payload?.pagination || payload?.meta || response?.meta || null,
+    };
+  },
+
   async getFollowedAlbums(params) {
     const response = await axiosClient.get(API_ENDPOINTS.LIBRARY.FOLLOWED_ALBUMS, { params });
     const payload = getPayload(response);

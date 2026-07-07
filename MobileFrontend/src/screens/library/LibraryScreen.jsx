@@ -238,6 +238,15 @@ export default function LibraryScreen() {
     navigation.navigate('FavoriteTracks');
   }, [handleOpenLogin, isAuthenticated, navigation]);
 
+  const handleOpenFollowedArtists = useCallback(() => {
+    if (!isAuthenticated) {
+      handleOpenLogin();
+      return;
+    }
+
+    navigation.navigate('FollowedArtists');
+  }, [handleOpenLogin, isAuthenticated, navigation]);
+
   const handleOpenCreateModal = useCallback(() => {
     if (!isAuthenticated) {
       handleOpenLogin();
@@ -338,6 +347,37 @@ export default function LibraryScreen() {
               </View>
               <View style={styles.favoriteCardAction}>
                 <Text style={styles.favoriteCardActionText}>{isAuthenticated ? 'Mở' : 'Đăng nhập'}</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.section}>
+            <SectionHeader
+              title="Nghệ sĩ đang theo dõi"
+              description={isAuthenticated
+                ? 'Mở nhanh danh sách nghệ sĩ bạn đang theo dõi và quay lại trang chi tiết của họ.'
+                : 'Đăng nhập để lưu và xem các nghệ sĩ bạn quan tâm.'}
+              actionLabel={isAuthenticated ? 'Xem tất cả' : 'Đăng nhập'}
+              onActionPress={handleOpenFollowedArtists}
+            />
+
+            <TouchableOpacity style={styles.followedArtistCard} activeOpacity={0.85} onPress={handleOpenFollowedArtists}>
+              <View style={styles.followedArtistVisual}>
+                <View style={[styles.followedArtistOrb, styles.followedArtistOrbPrimary]} />
+                <View style={[styles.followedArtistOrb, styles.followedArtistOrbSecondary]} />
+                <View style={[styles.followedArtistOrb, styles.followedArtistOrbAccent]} />
+              </View>
+              <View style={styles.followedArtistCardContent}>
+                <Text style={styles.followedArtistCardEyebrow}>NGHỆ SĨ BẠN QUAN TÂM</Text>
+                <Text style={styles.followedArtistCardTitle}>Nghệ sĩ đang theo dõi</Text>
+                <Text style={styles.followedArtistCardText}>
+                  {isAuthenticated
+                    ? 'Tất cả nghệ sĩ bạn đã theo dõi sẽ nằm ở đây, sẵn sàng mở xem chi tiết bất cứ lúc nào.'
+                    : 'Đăng nhập để xem một nơi tổng hợp các nghệ sĩ bạn đã theo dõi.'}
+                </Text>
+              </View>
+              <View style={styles.followedArtistCardAction}>
+                <Text style={styles.followedArtistCardActionText}>{isAuthenticated ? 'Mở' : 'Đăng nhập'}</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -699,6 +739,85 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
   },
   favoriteCardActionText: {
+    color: '#1ed760',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  followedArtistCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: '#111111',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#252525',
+    padding: 18,
+  },
+  followedArtistVisual: {
+    width: 72,
+    height: 72,
+    borderRadius: 999,
+    backgroundColor: '#181818',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  followedArtistOrb: {
+    position: 'absolute',
+    borderRadius: 999,
+  },
+  followedArtistOrbPrimary: {
+    width: 44,
+    height: 44,
+    left: 8,
+    top: 14,
+    backgroundColor: '#1ed76055',
+  },
+  followedArtistOrbSecondary: {
+    width: 30,
+    height: 30,
+    right: 10,
+    top: 12,
+    backgroundColor: '#ffffff22',
+  },
+  followedArtistOrbAccent: {
+    width: 20,
+    height: 20,
+    right: 14,
+    bottom: 12,
+    backgroundColor: '#1ed760',
+  },
+  followedArtistCardContent: {
+    flex: 1,
+  },
+  followedArtistCardEyebrow: {
+    color: '#8a8a8a',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  followedArtistCardTitle: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '800',
+    marginTop: 10,
+  },
+  followedArtistCardText: {
+    color: '#a3a3a3',
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 8,
+  },
+  followedArtistCardAction: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#2d2d2d',
+    backgroundColor: '#161616',
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  followedArtistCardActionText: {
     color: '#1ed760',
     fontSize: 11,
     fontWeight: '800',

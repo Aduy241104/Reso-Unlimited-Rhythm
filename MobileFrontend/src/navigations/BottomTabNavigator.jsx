@@ -7,6 +7,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from '../screens/home/HomeScreen';
 import SearchScreen from '../screens/search/SearchScreen';
 import LibraryScreen from '../screens/library/LibraryScreen';
+import FollowedArtistsScreen from '../screens/library/FollowedArtistsScreen';
 import CreateForMeScreen from '../screens/createForMe/CreateForMeScreen';
 import EntityDetailScreen from '../screens/detail/EntityDetailScreen';
 import FavoriteTracksScreen from '../screens/favorite/FavoriteTracksScreen';
@@ -63,6 +64,14 @@ function SharedTabStack({ rootName, component: RootComponent }) {
       <Stack.Screen
         name="FavoriteTracks"
         component={FavoriteTracksScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="FollowedArtists"
+        component={FollowedArtistsScreen}
         options={{
           headerShown: false,
           animation: 'slide_from_right',
