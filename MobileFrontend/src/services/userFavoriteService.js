@@ -6,6 +6,12 @@ import { resolveTrackAudioUri } from '../utils/player';
 const getPayload = (response) => response?.data || response || {};
 const asArray = (value) => (Array.isArray(value) ? value : []);
 const pickFirstDefined = (...values) => values.find((value) => value !== undefined && value !== null && value !== '');
+const readFavoriteState = (payload) => Boolean(
+  payload?.isFavorite ??
+  payload?.favorite?.isFavorite ??
+  payload?.data?.isFavorite ??
+  payload?.data?.favorite?.isFavorite
+);
 
 const normalizeFavoriteTrack = (item, index = 0) => ({
   ...item,
@@ -28,6 +34,33 @@ const normalizeFavoriteTrack = (item, index = 0) => ({
 });
 
 export const userFavoriteService = {
+  async addTrackToFavorite(trackId) {
+    const response = await axiosClient.post(`${API_ENDPOINTS.USER_FAVORITES.TRACKS}/${trackId}`);
+    const payload = getPayload(response);
+
+    return {
+      isFavorite: readFavoriteState(payload) || true,
+    };
+  },
+
+  async removeTrackFromFavorite(trackId) {
+    const response = await axiosClient.delete(`${API_ENDPOINTS.USER_FAVORITES.TRACKS}/${trackId}`);
+    const payload = getPayload(response);
+
+    return {
+      isFavorite: readFavoriteState(payload),
+    };
+  },
+
+  async getTrackFavoriteStatus(trackId) {
+    const response = await axiosClient.get(`${API_ENDPOINTS.USER_FAVORITES.TRACKS}/${trackId}/status`);
+    const payload = getPayload(response);
+
+    return {
+      isFavorite: readFavoriteState(payload),
+    };
+  },
+
   async getFavoriteTracks(params = {}) {
     const requestParams = {};
     const page = Number(params?.page);

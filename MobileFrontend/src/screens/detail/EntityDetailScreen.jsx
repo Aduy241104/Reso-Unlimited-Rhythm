@@ -15,6 +15,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppLoader from '../../components/common/AppLoader';
 import AddTrackToPlaylistModal from '../../components/detail/AddTrackToPlaylistModal';
+import TrackFavoriteButton from '../../components/detail/TrackFavoriteButton';
 import TrackActionsBottomSheet from '../../components/detail/TrackActionsBottomSheet';
 import ErrorState from '../../components/common/ErrorState';
 import { useAuth } from '../../hooks/useAuth';
@@ -23,6 +24,7 @@ import albumService from '../../services/albumService';
 import artistService from '../../services/artistService';
 import playlistService from '../../services/playlistService';
 import trackService from '../../services/trackService';
+import userFavoriteService from '../../services/userFavoriteService';
 import userPlaylistService from '../../services/userPlaylistService';
 import { getErrorMessage, getInitials, resolveImageUri } from '../../utils/media';
 import { buildPlayableQueue, normalizePlayerTrack } from '../../utils/player';
@@ -88,6 +90,8 @@ const isExplicitTrack = (item) => {
   );
 };
 
+const getTrackId = (item) => String(item?.entityId || item?.id || '');
+
 const Artwork = ({ uri, label, style, textStyle, rounded = false }) => {
   const imageUri = resolveImageUri(uri);
 
@@ -108,7 +112,16 @@ const Artwork = ({ uri, label, style, textStyle, rounded = false }) => {
   );
 };
 
-const TrackListItem = ({ item, index, onMorePress, onPress, showIndex = false }) => {
+const TrackListItem = ({
+  item,
+  index,
+  isFavorite = false,
+  isFavoriteLoading = false,
+  onFavoritePress,
+  onMorePress,
+  onPress,
+  showIndex = false,
+}) => {
   const title = getDisplayText(item?.title, 'Nội dung không xác định');
   const subtitle = getDisplayText(item?.subtitle || item?.artistName);
   const explicit = isExplicitTrack(item);
@@ -116,6 +129,11 @@ const TrackListItem = ({ item, index, onMorePress, onPress, showIndex = false })
   const handleMorePress = (event) => {
     event.stopPropagation?.();
     onMorePress?.();
+  };
+
+  const handleFavoritePress = (event) => {
+    event.stopPropagation?.();
+    onFavoritePress?.();
   };
 
   return (
@@ -144,14 +162,27 @@ const TrackListItem = ({ item, index, onMorePress, onPress, showIndex = false })
         </View>
       </View>
 
-      {onMorePress ? (
-        <TouchableOpacity
-          style={styles.moreButton}
-          activeOpacity={0.7}
-          onPress={handleMorePress}
-        >
-          <Ionicons name="ellipsis-horizontal" size={18} color="#9f9f9f" />
-        </TouchableOpacity>
+      {onFavoritePress || onMorePress ? (
+        <View style={styles.listActions}>
+          {onFavoritePress ? (
+            <TrackFavoriteButton
+              style={styles.listActionButton}
+              isFavorite={isFavorite}
+              isLoading={isFavoriteLoading}
+              onPress={handleFavoritePress}
+            />
+          ) : null}
+
+          {onMorePress ? (
+            <TouchableOpacity
+              style={styles.moreButton}
+              activeOpacity={0.7}
+              onPress={handleMorePress}
+            >
+              <Ionicons name="ellipsis-horizontal" size={18} color="#9f9f9f" />
+            </TouchableOpacity>
+          ) : null}
+        </View>
       ) : null}
     </TouchableOpacity>
   );
@@ -181,6 +212,8 @@ export default function EntityDetailScreen() {
   const [playlistPickerError, setPlaylistPickerError] = useState('');
   const [myPlaylists, setMyPlaylists] = useState([]);
   const [submittingPlaylistId, setSubmittingPlaylistId] = useState('');
+  const [favoriteStatusMap, setFavoriteStatusMap] = useState({});
+  const [favoriteUpdatingMap, setFavoriteUpdatingMap] = useState({});
 
   const loadDetail = useCallback(async () => {
     if (!entityId || !entityType || !detailFetchers[entityType]) {
@@ -248,6 +281,33 @@ export default function EntityDetailScreen() {
 
   const detailStats = useMemo(() => normalizeInfoEntries(detail?.stats), [detail?.stats]);
   const detailMeta = useMemo(() => normalizeInfoEntries(detail?.meta), [detail?.meta]);
+  const favoriteTrackIds = useMemo(() => {
+    const uniqueTrackIds = new Set();
+
+    if (detail?.type === 'track') {
+      const detailTrackId = getTrackId(detail);
+
+      if (detailTrackId) {
+        uniqueTrackIds.add(detailTrackId);
+      }
+    }
+
+    if (Array.isArray(detail?.items)) {
+      detail.items.forEach((item) => {
+        if (item?.entityType !== 'track') {
+          return;
+        }
+
+        const trackId = getTrackId(item);
+
+        if (trackId) {
+          uniqueTrackIds.add(trackId);
+        }
+      });
+    }
+
+    return Array.from(uniqueTrackIds);
+  }, [detail]);
 
   const handleOpenNestedDetail = useCallback(
     (nextType, nextId, nextTitle) => {
@@ -317,6 +377,56 @@ export default function EntityDetailScreen() {
       setIsPlaylistPickerLoading(false);
     }
   }, []);
+
+  const loadFavoriteStatuses = useCallback(async (trackIds = []) => {
+    if (!isAuthenticated || trackIds.length === 0) {
+      setFavoriteStatusMap({});
+      return;
+    }
+
+    const results = await Promise.allSettled(
+      trackIds.map(async (trackId) => {
+        const status = await userFavoriteService.getTrackFavoriteStatus(trackId);
+
+        return {
+          trackId,
+          isFavorite: Boolean(status?.isFavorite),
+        };
+      })
+    );
+
+    setFavoriteStatusMap((previousMap) => {
+      const nextMap = {};
+
+      trackIds.forEach((trackId) => {
+        nextMap[trackId] = previousMap[trackId] || false;
+      });
+
+      results.forEach((result) => {
+        if (result.status !== 'fulfilled') {
+          return;
+        }
+
+        nextMap[result.value.trackId] = result.value.isFavorite;
+      });
+
+      return nextMap;
+    });
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setFavoriteStatusMap({});
+      setFavoriteUpdatingMap({});
+      return;
+    }
+
+    if (favoriteTrackIds.length === 0) {
+      return;
+    }
+
+    loadFavoriteStatuses(favoriteTrackIds).catch(() => {});
+  }, [favoriteTrackIds, isAuthenticated, loadFavoriteStatuses]);
 
   const handleListItemPress = useCallback(
     (item, index) => {
@@ -423,6 +533,66 @@ export default function EntityDetailScreen() {
     }
   }, [selectedTrackAction.track]);
 
+  const handleToggleTrackFavorite = useCallback(async (track) => {
+    const trackId = getTrackId(track);
+
+    if (!trackId) {
+      Alert.alert('Bài hát không khả dụng', 'Không thể cập nhật bài hát yêu thích lúc này.');
+      return;
+    }
+
+    if (!isAuthenticated) {
+      navigation.navigate('Login');
+      return;
+    }
+
+    if (favoriteUpdatingMap[trackId]) {
+      return;
+    }
+
+    const previousValue = Boolean(favoriteStatusMap[trackId]);
+    const nextValue = !previousValue;
+
+    setFavoriteUpdatingMap((previousMap) => ({
+      ...previousMap,
+      [trackId]: true,
+    }));
+    setFavoriteStatusMap((previousMap) => ({
+      ...previousMap,
+      [trackId]: nextValue,
+    }));
+
+    try {
+      const result = previousValue
+        ? await userFavoriteService.removeTrackFromFavorite(trackId)
+        : await userFavoriteService.addTrackToFavorite(trackId);
+
+      setFavoriteStatusMap((previousMap) => ({
+        ...previousMap,
+        [trackId]: Boolean(result?.isFavorite),
+      }));
+    } catch (error) {
+      setFavoriteStatusMap((previousMap) => ({
+        ...previousMap,
+        [trackId]: previousValue,
+      }));
+      Alert.alert(
+        'Cập nhật yêu thích thất bại',
+        getErrorMessage(
+          error,
+          previousValue
+            ? 'Không thể xóa bài hát này khỏi danh sách yêu thích lúc này.'
+            : 'Không thể thêm bài hát này vào danh sách yêu thích lúc này.'
+        )
+      );
+    } finally {
+      setFavoriteUpdatingMap((previousMap) => ({
+        ...previousMap,
+        [trackId]: false,
+      }));
+    }
+  }, [favoriteStatusMap, favoriteUpdatingMap, isAuthenticated, navigation]);
+
   const handleMetaItemPress = useCallback((item) => {
     if (!item?.entityType || !item?.entityId) {
       return;
@@ -450,6 +620,9 @@ export default function EntityDetailScreen() {
     detail?.type === 'track' && selectedTrackId && selectedTrackId === currentDetailTrackId;
 
   const canOpenHeroTrackActions = detail?.type === 'track';
+  const heroTrackId = getTrackId(detail);
+  const isHeroTrackFavorite = Boolean(heroTrackId && favoriteStatusMap[heroTrackId]);
+  const isHeroTrackFavoriteUpdating = Boolean(heroTrackId && favoriteUpdatingMap[heroTrackId]);
 
   const trackActionItems = useMemo(
     () => [
@@ -668,6 +841,16 @@ export default function EntityDetailScreen() {
                 <Ionicons name="arrow-down-circle-outline" size={25} color="#b3b3b3" />
               </TouchableOpacity>
 
+              {canOpenHeroTrackActions ? (
+                <TrackFavoriteButton
+                  style={styles.iconActionButton}
+                  size={24}
+                  isFavorite={isHeroTrackFavorite}
+                  isLoading={isHeroTrackFavoriteUpdating}
+                  onPress={() => handleToggleTrackFavorite(detail)}
+                />
+              ) : null}
+
               <TouchableOpacity
                 style={styles.iconActionButton}
                 activeOpacity={0.75}
@@ -796,6 +979,13 @@ export default function EntityDetailScreen() {
                     item={item}
                     index={index}
                     showIndex={detail?.type === 'topTrackCollection'}
+                    isFavorite={Boolean(favoriteStatusMap[getTrackId(item)])}
+                    isFavoriteLoading={Boolean(favoriteUpdatingMap[getTrackId(item)])}
+                    onFavoritePress={
+                      item?.entityType === 'track'
+                        ? () => handleToggleTrackFavorite(item)
+                        : undefined
+                    }
                     onMorePress={
                       item?.entityType === 'track'
                         ? () => openTrackActions(item, index)
@@ -1170,12 +1360,24 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
+  listActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+
+  listActionButton: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
   moreButton: {
     width: 36,
     height: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 8,
   },
 
   section: {

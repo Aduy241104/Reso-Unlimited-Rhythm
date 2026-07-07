@@ -16,12 +16,14 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppLoader from '../../components/common/AppLoader';
 import AppModal from '../../components/common/AppModal';
+import TrackFavoriteButton from '../../components/detail/TrackFavoriteButton';
 import TrackActionsBottomSheet from '../../components/detail/TrackActionsBottomSheet';
 import ErrorState from '../../components/common/ErrorState';
 import EditPlaylistModal from '../../components/library/EditPlaylistModal';
 import { useAuth } from '../../hooks/useAuth';
 import usePlayer from '../../hooks/usePlayer';
 import playlistService from '../../services/playlistService';
+import userFavoriteService from '../../services/userFavoriteService';
 import userPlaylistService from '../../services/userPlaylistService';
 import { formatDateLabel, formatDuration, getErrorMessage, getInitials, resolveImageUri } from '../../utils/media';
 import { buildPlayableQueue } from '../../utils/player';
@@ -36,6 +38,8 @@ const readText = (value, fallback = '') => {
 
   return fallback;
 };
+
+const getTrackId = (item) => String(item?.entityId || item?.id || '');
 
 const Artwork = ({ uri, label, style, textStyle }) => {
   const imageUri = resolveImageUri(uri);
@@ -68,8 +72,11 @@ const MetaPill = ({ value, isPrimary = false }) => {
 const TrackRow = ({
   item,
   index,
+  isFavorite = false,
+  isFavoriteLoading = false,
   isActive,
   isPlaying,
+  onFavoritePress,
   onMorePress,
   onPress,
 }) => {
@@ -93,17 +100,32 @@ const TrackRow = ({
         <Text style={styles.trackSubtitle} numberOfLines={1}>{subtitle}</Text>
       </View>
       <Text style={styles.trackMeta}>{meta}</Text>
-      {onMorePress ? (
-        <TouchableOpacity
-          style={styles.moreButton}
-          activeOpacity={0.75}
-          onPress={(event) => {
-            event.stopPropagation?.();
-            onMorePress();
-          }}
-        >
-          <Ionicons name="ellipsis-horizontal" size={18} color="#9f9f9f" />
-        </TouchableOpacity>
+      {onFavoritePress || onMorePress ? (
+        <View style={styles.trackActions}>
+          {onFavoritePress ? (
+            <TrackFavoriteButton
+              style={styles.favoriteButton}
+              isFavorite={isFavorite}
+              isLoading={isFavoriteLoading}
+              onPress={(event) => {
+                event.stopPropagation?.();
+                onFavoritePress();
+              }}
+            />
+          ) : null}
+          {onMorePress ? (
+            <TouchableOpacity
+              style={styles.moreButton}
+              activeOpacity={0.75}
+              onPress={(event) => {
+                event.stopPropagation?.();
+                onMorePress();
+              }}
+            >
+              <Ionicons name="ellipsis-horizontal" size={18} color="#9f9f9f" />
+            </TouchableOpacity>
+          ) : null}
+        </View>
       ) : null}
     </TouchableOpacity>
   );
@@ -137,6 +159,8 @@ export default function PlaylistDetailScreen() {
     track: null,
   });
   const [isRemovingTrack, setIsRemovingTrack] = useState(false);
+  const [favoriteStatusMap, setFavoriteStatusMap] = useState({});
+  const [favoriteUpdatingMap, setFavoriteUpdatingMap] = useState({});
 
   const loadPlaylistDetail = useCallback(async () => {
     if (!playlistId) {
@@ -205,6 +229,10 @@ export default function PlaylistDetailScreen() {
   ];
 
   const activeTrackId = String(currentTrack?.entityId || currentTrack?.id || '');
+  const favoriteTrackIds = useMemo(
+    () => Array.from(new Set(tracks.map(getTrackId).filter(Boolean))),
+    [tracks]
+  );
 
   const handlePlayAll = useCallback(() => {
     if (playableQueue.length === 0) {
@@ -281,6 +309,56 @@ export default function PlaylistDetailScreen() {
   const handleTrackActionOpenAlbumDetail = useCallback((track) => {
     handleOpenNestedDetail('album', track?.albumId, track?.albumTitle);
   }, [handleOpenNestedDetail]);
+
+  const loadFavoriteStatuses = useCallback(async (trackIds = []) => {
+    if (!isAuthenticated || trackIds.length === 0) {
+      setFavoriteStatusMap({});
+      return;
+    }
+
+    const results = await Promise.allSettled(
+      trackIds.map(async (trackId) => {
+        const status = await userFavoriteService.getTrackFavoriteStatus(trackId);
+
+        return {
+          trackId,
+          isFavorite: Boolean(status?.isFavorite),
+        };
+      })
+    );
+
+    setFavoriteStatusMap((previousMap) => {
+      const nextMap = {};
+
+      trackIds.forEach((trackId) => {
+        nextMap[trackId] = previousMap[trackId] || false;
+      });
+
+      results.forEach((result) => {
+        if (result.status !== 'fulfilled') {
+          return;
+        }
+
+        nextMap[result.value.trackId] = result.value.isFavorite;
+      });
+
+      return nextMap;
+    });
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setFavoriteStatusMap({});
+      setFavoriteUpdatingMap({});
+      return;
+    }
+
+    if (favoriteTrackIds.length === 0) {
+      return;
+    }
+
+    loadFavoriteStatuses(favoriteTrackIds).catch(() => {});
+  }, [favoriteTrackIds, isAuthenticated, loadFavoriteStatuses]);
 
   const handleOpenEditModal = useCallback(() => {
     setUpdatePlaylistError('');
@@ -387,6 +465,66 @@ export default function PlaylistDetailScreen() {
       ]
     );
   }, [canEditPlaylist, isRemovingTrack, loadPlaylistDetail, playlistId]);
+
+  const handleToggleTrackFavorite = useCallback(async (track) => {
+    const trackId = getTrackId(track);
+
+    if (!trackId) {
+      Alert.alert('Bài hát không khả dụng', 'Không thể cập nhật bài hát yêu thích lúc này.');
+      return;
+    }
+
+    if (!isAuthenticated) {
+      navigation.navigate('Login');
+      return;
+    }
+
+    if (favoriteUpdatingMap[trackId]) {
+      return;
+    }
+
+    const previousValue = Boolean(favoriteStatusMap[trackId]);
+    const nextValue = !previousValue;
+
+    setFavoriteUpdatingMap((previousMap) => ({
+      ...previousMap,
+      [trackId]: true,
+    }));
+    setFavoriteStatusMap((previousMap) => ({
+      ...previousMap,
+      [trackId]: nextValue,
+    }));
+
+    try {
+      const result = previousValue
+        ? await userFavoriteService.removeTrackFromFavorite(trackId)
+        : await userFavoriteService.addTrackToFavorite(trackId);
+
+      setFavoriteStatusMap((previousMap) => ({
+        ...previousMap,
+        [trackId]: Boolean(result?.isFavorite),
+      }));
+    } catch (error) {
+      setFavoriteStatusMap((previousMap) => ({
+        ...previousMap,
+        [trackId]: previousValue,
+      }));
+      Alert.alert(
+        'Cập nhật yêu thích thất bại',
+        getErrorMessage(
+          error,
+          previousValue
+            ? 'Không thể xóa bài hát này khỏi danh sách yêu thích lúc này.'
+            : 'Không thể thêm bài hát này vào danh sách yêu thích lúc này.'
+        )
+      );
+    } finally {
+      setFavoriteUpdatingMap((previousMap) => ({
+        ...previousMap,
+        [trackId]: false,
+      }));
+    }
+  }, [favoriteStatusMap, favoriteUpdatingMap, isAuthenticated, navigation]);
 
   const headerTitle = readText(playlist?.title, initialTitle);
   const selectedTrack = selectedTrackAction.track;
@@ -585,8 +723,11 @@ export default function PlaylistDetailScreen() {
                       key={`${trackId || index}`}
                       item={track}
                       index={index}
+                      isFavorite={Boolean(favoriteStatusMap[trackId])}
+                      isFavoriteLoading={Boolean(favoriteUpdatingMap[trackId])}
                       isActive={Boolean(isActive)}
                       isPlaying={Boolean(isActive && isPlaying)}
+                      onFavoritePress={() => handleToggleTrackFavorite(track)}
                       onMorePress={canEditPlaylist ? () => openTrackActions(track, index) : undefined}
                       onPress={() => handleTrackPress(track, index)}
                     />
@@ -988,12 +1129,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginLeft: 8,
   },
+  trackActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 6,
+  },
+  favoriteButton: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   moreButton: {
     width: 36,
     height: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 6,
   },
   emptyPanelText: {
     color: '#a3a3a3',
