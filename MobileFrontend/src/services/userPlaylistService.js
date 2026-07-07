@@ -14,6 +14,25 @@ const appendStringField = (formData, field, value) => {
   formData.append(field, value.trim());
 };
 
+const getFileExtension = (uri = '') => {
+  const match = String(uri).match(/\.([a-zA-Z0-9]+)(?:\?|$)/);
+  return match?.[1]?.toLowerCase() || 'jpg';
+};
+
+const appendFileField = (formData, field, file) => {
+  if (!file?.uri) {
+    return;
+  }
+
+  const extension = getFileExtension(file.uri);
+
+  formData.append(field, {
+    uri: file.uri,
+    name: file.name || file.fileName || `upload-${Date.now()}.${extension}`,
+    type: file.type || file.mimeType || `image/${extension === 'jpg' ? 'jpeg' : extension}`,
+  });
+};
+
 export const userPlaylistService = {
   async getMyPlaylists(params = {}) {
     const requestParams = {};
@@ -45,6 +64,7 @@ export const userPlaylistService = {
 
     appendStringField(formData, 'title', payload.title);
     appendStringField(formData, 'description', payload.description);
+    appendFileField(formData, 'coverImage', payload.coverImage);
 
     const response = await axiosClient.post(
       API_ENDPOINTS.USER_PLAYLISTS.CREATE,
@@ -67,6 +87,7 @@ export const userPlaylistService = {
 
     appendStringField(formData, 'title', payload.title);
     appendStringField(formData, 'description', payload.description);
+    appendFileField(formData, 'coverImage', payload.coverImage);
 
     const response = await axiosClient.patch(
       `${API_ENDPOINTS.USER_PLAYLISTS.UPDATE}/${playlistId}`,

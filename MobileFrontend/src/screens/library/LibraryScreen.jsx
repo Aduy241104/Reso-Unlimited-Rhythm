@@ -247,6 +247,15 @@ export default function LibraryScreen() {
     navigation.navigate('FollowedArtists');
   }, [handleOpenLogin, isAuthenticated, navigation]);
 
+  const handleOpenFollowedAlbums = useCallback(() => {
+    if (!isAuthenticated) {
+      handleOpenLogin();
+      return;
+    }
+
+    navigation.navigate('FollowedAlbums');
+  }, [handleOpenLogin, isAuthenticated, navigation]);
+
   const handleOpenCreateModal = useCallback(() => {
     if (!isAuthenticated) {
       handleOpenLogin();
@@ -316,125 +325,144 @@ export default function LibraryScreen() {
             <Text style={styles.heroText}>
               Tạo playlist của riêng bạn, mặc định để riêng tư và vẫn khám phá playlist hệ thống ngay tại một nơi.
             </Text>
-            <View style={styles.heroActions}>
-              <AppButton
-                title={isAuthenticated ? 'Tạo playlist' : 'Đăng nhập để tạo'}
-                onPress={handleOpenCreateModal}
-                style={styles.heroPrimaryAction}
-              />
-            </View>
+            {isAuthenticated ? (
+              <View style={styles.heroActions}>
+                <AppButton
+                  title="Tạo playlist"
+                  onPress={handleOpenCreateModal}
+                  style={styles.heroPrimaryAction}
+                />
+              </View>
+            ) : null}
           </View>
 
-          <View style={styles.section}>
-            <SectionHeader
-              title="Bài hát yêu thích"
-              description={isAuthenticated
-                ? 'Mở các bài hát bạn đã thích và phát lại bất cứ lúc nào.'
-                : 'Đăng nhập để lưu các bài hát bạn thích vào một nơi.'}
-              actionLabel={isAuthenticated ? 'Xem tất cả' : 'Đăng nhập'}
-              onActionPress={handleOpenFavoriteTracks}
-            />
-
-            <TouchableOpacity style={styles.favoriteCard} activeOpacity={0.85} onPress={handleOpenFavoriteTracks}>
-              <View style={styles.favoriteCardContent}>
-                <Text style={styles.favoriteCardEyebrow}>BỘ SƯU TẬP CÁ NHÂN</Text>
-                <Text style={styles.favoriteCardTitle}>Bài hát yêu thích</Text>
-                <Text style={styles.favoriteCardText}>
-                  {isAuthenticated
-                    ? 'Những bài bạn đã thích sẽ nằm ở đây, sẵn sàng phát ngay hoặc mở xem chi tiết.'
-                    : 'Đăng nhập để mở chế độ xem riêng cho toàn bộ bài hát bạn đã thích.'}
-                </Text>
-              </View>
-              <View style={styles.favoriteCardAction}>
-                <Text style={styles.favoriteCardActionText}>{isAuthenticated ? 'Mở' : 'Đăng nhập'}</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.section}>
-            <SectionHeader
-              title="Nghệ sĩ đang theo dõi"
-              description={isAuthenticated
-                ? 'Mở nhanh danh sách nghệ sĩ bạn đang theo dõi và quay lại trang chi tiết của họ.'
-                : 'Đăng nhập để lưu và xem các nghệ sĩ bạn quan tâm.'}
-              actionLabel={isAuthenticated ? 'Xem tất cả' : 'Đăng nhập'}
-              onActionPress={handleOpenFollowedArtists}
-            />
-
-            <TouchableOpacity style={styles.followedArtistCard} activeOpacity={0.85} onPress={handleOpenFollowedArtists}>
-              <View style={styles.followedArtistVisual}>
-                <View style={[styles.followedArtistOrb, styles.followedArtistOrbPrimary]} />
-                <View style={[styles.followedArtistOrb, styles.followedArtistOrbSecondary]} />
-                <View style={[styles.followedArtistOrb, styles.followedArtistOrbAccent]} />
-              </View>
-              <View style={styles.followedArtistCardContent}>
-                <Text style={styles.followedArtistCardEyebrow}>NGHỆ SĨ BẠN QUAN TÂM</Text>
-                <Text style={styles.followedArtistCardTitle}>Nghệ sĩ đang theo dõi</Text>
-                <Text style={styles.followedArtistCardText}>
-                  {isAuthenticated
-                    ? 'Tất cả nghệ sĩ bạn đã theo dõi sẽ nằm ở đây, sẵn sàng mở xem chi tiết bất cứ lúc nào.'
-                    : 'Đăng nhập để xem một nơi tổng hợp các nghệ sĩ bạn đã theo dõi.'}
-                </Text>
-              </View>
-              <View style={styles.followedArtistCardAction}>
-                <Text style={styles.followedArtistCardActionText}>{isAuthenticated ? 'Mở' : 'Đăng nhập'}</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-
-          {isAuthenticated ? (
+          {!isAuthenticated ? (
             <View style={styles.section}>
-              <SectionHeader
-                title="Playlist của bạn"
-                description={`Quản lý playlist của ${displayName}.`}
-                actionLabel="Tạo"
-                onActionPress={handleOpenCreateModal}
-              />
-
-              {isMyLoading ? (
-                <View style={styles.sectionCard}>
-                  <AppLoader size="small" />
-                </View>
-              ) : myErrorMessage ? (
-                <View style={styles.sectionCard}>
-                  <ErrorState message={myErrorMessage} />
-                  <AppButton title="Thử lại" onPress={() => loadMyPlaylists()} style={styles.retryCompactButton} />
-                </View>
-              ) : myPlaylists.length === 0 ? (
-                <View style={styles.sectionCard}>
-                  <Text style={styles.emptyTitle}>Bạn chưa tạo playlist nào</Text>
-                  <Text style={styles.emptyText}>
-                    Hãy bắt đầu với playlist đầu tiên, nó sẽ xuất hiện ngay tại đây.
-                  </Text>
-                  <AppButton title="Tạo playlist đầu tiên" onPress={handleOpenCreateModal} style={styles.emptyActionButton} />
-                </View>
-              ) : (
-                <View style={styles.list}>
-                  {myPlaylists.map((item, index) => (
-                    <PlaylistCard
-                      key={item.id || `my-playlist-${index}`}
-                      item={item}
-                      index={index}
-                      onPress={() => handleOpenPlaylist(item)}
-                    />
-                  ))}
-                </View>
-              )}
-            </View>
-          ) : (
-            <View style={styles.section}>
-              <SectionHeader
-                title="Playlist của bạn"
-                description="Đăng nhập để tạo và quản lý playlist cá nhân."
-              />
               <View style={styles.authCard}>
-                <Text style={styles.authCardTitle}>Cần đăng nhập</Text>
+                <Text style={styles.authCardTitle}>Đăng nhập để mở thư viện cá nhân</Text>
                 <Text style={styles.authCardText}>
-                  Việc tạo playlist gắn với tài khoản của bạn, nên hãy đăng nhập trước.
+                  Sau khi đăng nhập, bạn sẽ xem được bài hát yêu thích, nghệ sĩ theo dõi, album theo dõi và playlist của riêng mình tại một nơi.
                 </Text>
                 <AppButton title="Đi đến đăng nhập" onPress={handleOpenLogin} style={styles.authButton} />
               </View>
             </View>
+          ) : (
+            <>
+              <View style={styles.section}>
+                <SectionHeader
+                  title="Bài hát yêu thích"
+                  description="Mở các bài hát bạn đã thích và phát lại bất cứ lúc nào."
+                  actionLabel="Xem tất cả"
+                  onActionPress={handleOpenFavoriteTracks}
+                />
+
+                <TouchableOpacity style={styles.favoriteCard} activeOpacity={0.85} onPress={handleOpenFavoriteTracks}>
+                  <View style={styles.favoriteCardContent}>
+                    <Text style={styles.favoriteCardEyebrow}>BỘ SƯU TẬP CÁ NHÂN</Text>
+                    <Text style={styles.favoriteCardTitle}>Bài hát yêu thích</Text>
+                    <Text style={styles.favoriteCardText}>
+                      Những bài bạn đã thích sẽ nằm ở đây, sẵn sàng phát ngay hoặc mở xem chi tiết.
+                    </Text>
+                  </View>
+                  <View style={styles.favoriteCardAction}>
+                    <Text style={styles.favoriteCardActionText}>Mở</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.section}>
+                <SectionHeader
+                  title="Nghệ sĩ đang theo dõi"
+                  description="Mở nhanh danh sách nghệ sĩ bạn đang theo dõi và quay lại trang chi tiết của họ."
+                  actionLabel="Xem tất cả"
+                  onActionPress={handleOpenFollowedArtists}
+                />
+
+                <TouchableOpacity style={styles.followedArtistCard} activeOpacity={0.85} onPress={handleOpenFollowedArtists}>
+                  <View style={styles.followedArtistVisual}>
+                    <View style={[styles.followedArtistOrb, styles.followedArtistOrbPrimary]} />
+                    <View style={[styles.followedArtistOrb, styles.followedArtistOrbSecondary]} />
+                    <View style={[styles.followedArtistOrb, styles.followedArtistOrbAccent]} />
+                  </View>
+                  <View style={styles.followedArtistCardContent}>
+                    <Text style={styles.followedArtistCardEyebrow}>NGHỆ SĨ BẠN QUAN TÂM</Text>
+                    <Text style={styles.followedArtistCardTitle}>Nghệ sĩ đang theo dõi</Text>
+                    <Text style={styles.followedArtistCardText}>
+                      Tất cả nghệ sĩ bạn đã theo dõi sẽ nằm ở đây, sẵn sàng mở xem chi tiết bất cứ lúc nào.
+                    </Text>
+                  </View>
+                  <View style={styles.followedArtistCardAction}>
+                    <Text style={styles.followedArtistCardActionText}>Mở</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.section}>
+                <SectionHeader
+                  title="Album đang theo dõi"
+                  description="Mở nhanh những album bạn đang theo dõi và quay lại chi tiết từng album."
+                  actionLabel="Xem tất cả"
+                  onActionPress={handleOpenFollowedAlbums}
+                />
+
+                <TouchableOpacity style={styles.followedAlbumCard} activeOpacity={0.85} onPress={handleOpenFollowedAlbums}>
+                  <View style={styles.followedAlbumVisual}>
+                    <View style={styles.followedAlbumCoverBack} />
+                    <View style={styles.followedAlbumCoverFront} />
+                    <View style={styles.followedAlbumBadge} />
+                  </View>
+                  <View style={styles.followedAlbumCardContent}>
+                    <Text style={styles.followedAlbumCardEyebrow}>BỘ SƯU TẬP ALBUM</Text>
+                    <Text style={styles.followedAlbumCardTitle}>Album đang theo dõi</Text>
+                    <Text style={styles.followedAlbumCardText}>
+                      Các album bạn đã theo dõi sẽ nằm ở đây, sẵn sàng mở xem chi tiết bất cứ lúc nào.
+                    </Text>
+                  </View>
+                  <View style={styles.followedAlbumCardAction}>
+                    <Text style={styles.followedAlbumCardActionText}>Mở</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.section}>
+                <SectionHeader
+                  title="Playlist của bạn"
+                  description={`Quản lý playlist của ${displayName}.`}
+                  actionLabel="Tạo"
+                  onActionPress={handleOpenCreateModal}
+                />
+
+                {isMyLoading ? (
+                  <View style={styles.sectionCard}>
+                    <AppLoader size="small" />
+                  </View>
+                ) : myErrorMessage ? (
+                  <View style={styles.sectionCard}>
+                    <ErrorState message={myErrorMessage} />
+                    <AppButton title="Thử lại" onPress={() => loadMyPlaylists()} style={styles.retryCompactButton} />
+                  </View>
+                ) : myPlaylists.length === 0 ? (
+                  <View style={styles.sectionCard}>
+                    <Text style={styles.emptyTitle}>Bạn chưa tạo playlist nào</Text>
+                    <Text style={styles.emptyText}>
+                      Hãy bắt đầu với playlist đầu tiên, nó sẽ xuất hiện ngay tại đây.
+                    </Text>
+                    <AppButton title="Tạo playlist đầu tiên" onPress={handleOpenCreateModal} style={styles.emptyActionButton} />
+                  </View>
+                ) : (
+                  <View style={styles.list}>
+                    {myPlaylists.map((item, index) => (
+                      <PlaylistCard
+                        key={item.id || `my-playlist-${index}`}
+                        item={item}
+                        index={index}
+                        onPress={() => handleOpenPlaylist(item)}
+                      />
+                    ))}
+                  </View>
+                )}
+              </View>
+            </>
           )}
 
           <View style={styles.section}>
@@ -818,6 +846,83 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
   },
   followedArtistCardActionText: {
+    color: '#1ed760',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  followedAlbumCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: '#111111',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#252525',
+    padding: 18,
+  },
+  followedAlbumVisual: {
+    width: 72,
+    height: 72,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  followedAlbumCoverBack: {
+    position: 'absolute',
+    width: 42,
+    height: 42,
+    borderRadius: 10,
+    backgroundColor: '#2a2a2a',
+    transform: [{ rotate: '-10deg' }, { translateX: -10 }],
+  },
+  followedAlbumCoverFront: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#1ed76044',
+    borderWidth: 1,
+    borderColor: '#1ed76077',
+    transform: [{ rotate: '8deg' }, { translateX: 8 }],
+  },
+  followedAlbumBadge: {
+    position: 'absolute',
+    right: 6,
+    bottom: 10,
+    width: 14,
+    height: 14,
+    borderRadius: 999,
+    backgroundColor: '#1ed760',
+  },
+  followedAlbumCardContent: {
+    flex: 1,
+  },
+  followedAlbumCardEyebrow: {
+    color: '#8a8a8a',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  followedAlbumCardTitle: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '800',
+    marginTop: 10,
+  },
+  followedAlbumCardText: {
+    color: '#a3a3a3',
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 8,
+  },
+  followedAlbumCardAction: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#2d2d2d',
+    backgroundColor: '#161616',
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  followedAlbumCardActionText: {
     color: '#1ed760',
     fontSize: 11,
     fontWeight: '800',
