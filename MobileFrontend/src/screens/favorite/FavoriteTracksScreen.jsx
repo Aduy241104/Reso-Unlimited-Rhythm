@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   Image,
   RefreshControl,
   ScrollView,
@@ -15,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppButton from '../../components/common/AppButton';
 import AppLoader from '../../components/common/AppLoader';
 import ErrorState from '../../components/common/ErrorState';
+import TrackFavoriteButton from '../../components/detail/TrackFavoriteButton';
 import { useAuth } from '../../hooks/useAuth';
 import usePlayer from '../../hooks/usePlayer';
 import userFavoriteService from '../../services/userFavoriteService';
@@ -32,6 +34,8 @@ const readText = (value, fallback = '') => {
   return fallback;
 };
 
+const getTrackId = (item) => String(item?.entityId || item?.id || '');
+
 const Artwork = ({ uri, label, color, style, textStyle }) => {
   const imageUri = resolveImageUri(uri);
 
@@ -46,7 +50,16 @@ const Artwork = ({ uri, label, color, style, textStyle }) => {
   );
 };
 
-const FavoriteTrackRow = ({ item, index, isActive, isPlaying, onPlayPress, onOpenDetail }) => {
+const FavoriteTrackRow = ({
+  item,
+  index,
+  isActive,
+  isPlaying,
+  isUpdatingFavorite = false,
+  onFavoritePress,
+  onPlayPress,
+  onOpenDetail,
+}) => {
   const accentColor = accentPalette[index % accentPalette.length];
   const title = readText(item?.title, 'Bài hát không xác định');
   const subtitle = readText(item?.subtitle, 'Nghệ sĩ không xác định');
@@ -70,6 +83,13 @@ const FavoriteTrackRow = ({ item, index, isActive, isPlaying, onPlayPress, onOpe
         <Text style={styles.trackMeta}>{meta}</Text>
       </TouchableOpacity>
 
+      <TrackFavoriteButton
+        style={styles.trackFavoriteButton}
+        isFavorite
+        isLoading={isUpdatingFavorite}
+        onPress={onFavoritePress}
+      />
+
       <TouchableOpacity style={styles.trackDetailButton} activeOpacity={0.85} onPress={onOpenDetail}>
         <Ionicons name="chevron-forward" size={16} color="#9d9d9d" />
       </TouchableOpacity>
@@ -86,6 +106,7 @@ export default function FavoriteTracksScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [favoriteUpdatingMap, setFavoriteUpdatingMap] = useState({});
 
   const loadFavoriteTracks = useCallback(async ({ refresh = false } = {}) => {
     if (!isAuthenticated) {
@@ -158,6 +179,53 @@ export default function FavoriteTracksScreen() {
       initialTitle: track?.title || 'Chi tiết bài hát',
     });
   }, [navigation]);
+
+  const handleRemoveTrackFromFavorite = useCallback(async (track) => {
+    const trackId = getTrackId(track);
+
+    if (!trackId || favoriteUpdatingMap[trackId]) {
+      return;
+    }
+
+    Alert.alert(
+      'Xóa khỏi yêu thích',
+      'Bạn có muốn xóa bài hát này khỏi danh sách yêu thích không?',
+      [
+        {
+          text: 'Hủy',
+          style: 'cancel',
+        },
+        {
+          text: 'Xóa',
+          style: 'destructive',
+          onPress: async () => {
+            const previousTracks = favoriteTracks;
+
+            setFavoriteUpdatingMap((previousMap) => ({
+              ...previousMap,
+              [trackId]: true,
+            }));
+            setFavoriteTracks((previousItems) => previousItems.filter((item) => getTrackId(item) !== trackId));
+
+            try {
+              await userFavoriteService.removeTrackFromFavorite(trackId);
+            } catch (error) {
+              setFavoriteTracks(previousTracks);
+              Alert.alert(
+                'Xóa khỏi yêu thích thất bại',
+                getErrorMessage(error, 'Không thể xóa bài hát này khỏi danh sách yêu thích lúc này.')
+              );
+            } finally {
+              setFavoriteUpdatingMap((previousMap) => ({
+                ...previousMap,
+                [trackId]: false,
+              }));
+            }
+          },
+        },
+      ]
+    );
+  }, [favoriteTracks, favoriteUpdatingMap]);
 
   if (!isAuthenticated) {
     return (
@@ -255,6 +323,8 @@ export default function FavoriteTracksScreen() {
                       index={index}
                       isActive={Boolean(isActive)}
                       isPlaying={Boolean(isActive && isPlaying)}
+                      isUpdatingFavorite={Boolean(favoriteUpdatingMap[trackId])}
+                      onFavoritePress={() => handleRemoveTrackFromFavorite(track)}
                       onPlayPress={() => handleTrackPress(track, index)}
                       onOpenDetail={() => handleOpenTrackDetail(track)}
                     />
@@ -466,6 +536,11 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   trackDetailButton: {
+    width: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  trackFavoriteButton: {
     width: 42,
     alignItems: 'center',
     justifyContent: 'center',

@@ -517,20 +517,35 @@ export default function EntityDetailScreen() {
       return;
     }
 
-    setSubmittingPlaylistId(playlistId);
+    Alert.alert(
+      'Thêm vào playlist',
+      `Bạn có muốn thêm "${getDisplayText(targetTrack?.title, 'bài hát này')}" vào "${getDisplayText(playlist?.title, 'playlist của bạn')}" không?`,
+      [
+        {
+          text: 'Hủy',
+          style: 'cancel',
+        },
+        {
+          text: 'Thêm',
+          onPress: async () => {
+            setSubmittingPlaylistId(playlistId);
 
-    try {
-      await userPlaylistService.addTrackToMyPlaylist(playlistId, targetTrackId);
-      setIsPlaylistPickerVisible(false);
-      Alert.alert(
-        'Đã thêm vào playlist',
-        `"${getDisplayText(targetTrack?.title, 'Bài hát này')}" đã được thêm vào "${getDisplayText(playlist?.title, 'playlist của bạn')}".`
-      );
-    } catch (error) {
-      Alert.alert('Thêm vào playlist thất bại', getErrorMessage(error, 'Không thể thêm bài hát này lúc này.'));
-    } finally {
-      setSubmittingPlaylistId('');
-    }
+            try {
+              await userPlaylistService.addTrackToMyPlaylist(playlistId, targetTrackId);
+              setIsPlaylistPickerVisible(false);
+              Alert.alert(
+                'Đã thêm vào playlist',
+                `"${getDisplayText(targetTrack?.title, 'Bài hát này')}" đã được thêm vào "${getDisplayText(playlist?.title, 'playlist của bạn')}".`
+              );
+            } catch (error) {
+              Alert.alert('Thêm vào playlist thất bại', getErrorMessage(error, 'Không thể thêm bài hát này lúc này.'));
+            } finally {
+              setSubmittingPlaylistId('');
+            }
+          },
+        },
+      ]
+    );
   }, [selectedTrackAction.track]);
 
   const handleToggleTrackFavorite = useCallback(async (track) => {
@@ -553,44 +568,61 @@ export default function EntityDetailScreen() {
     const previousValue = Boolean(favoriteStatusMap[trackId]);
     const nextValue = !previousValue;
 
-    setFavoriteUpdatingMap((previousMap) => ({
-      ...previousMap,
-      [trackId]: true,
-    }));
-    setFavoriteStatusMap((previousMap) => ({
-      ...previousMap,
-      [trackId]: nextValue,
-    }));
+    Alert.alert(
+      previousValue ? 'Xóa khỏi yêu thích' : 'Thêm vào yêu thích',
+      previousValue
+        ? 'Bạn có muốn xóa bài hát này khỏi danh sách yêu thích không?'
+        : 'Bạn có muốn thêm bài hát này vào danh sách yêu thích không?',
+      [
+        {
+          text: 'Hủy',
+          style: 'cancel',
+        },
+        {
+          text: previousValue ? 'Xóa' : 'Thêm',
+          onPress: async () => {
+            setFavoriteUpdatingMap((previousMap) => ({
+              ...previousMap,
+              [trackId]: true,
+            }));
+            setFavoriteStatusMap((previousMap) => ({
+              ...previousMap,
+              [trackId]: nextValue,
+            }));
 
-    try {
-      const result = previousValue
-        ? await userFavoriteService.removeTrackFromFavorite(trackId)
-        : await userFavoriteService.addTrackToFavorite(trackId);
+            try {
+              const result = previousValue
+                ? await userFavoriteService.removeTrackFromFavorite(trackId)
+                : await userFavoriteService.addTrackToFavorite(trackId);
 
-      setFavoriteStatusMap((previousMap) => ({
-        ...previousMap,
-        [trackId]: Boolean(result?.isFavorite),
-      }));
-    } catch (error) {
-      setFavoriteStatusMap((previousMap) => ({
-        ...previousMap,
-        [trackId]: previousValue,
-      }));
-      Alert.alert(
-        'Cập nhật yêu thích thất bại',
-        getErrorMessage(
-          error,
-          previousValue
-            ? 'Không thể xóa bài hát này khỏi danh sách yêu thích lúc này.'
-            : 'Không thể thêm bài hát này vào danh sách yêu thích lúc này.'
-        )
-      );
-    } finally {
-      setFavoriteUpdatingMap((previousMap) => ({
-        ...previousMap,
-        [trackId]: false,
-      }));
-    }
+              setFavoriteStatusMap((previousMap) => ({
+                ...previousMap,
+                [trackId]: Boolean(result?.isFavorite),
+              }));
+            } catch (error) {
+              setFavoriteStatusMap((previousMap) => ({
+                ...previousMap,
+                [trackId]: previousValue,
+              }));
+              Alert.alert(
+                'Cập nhật yêu thích thất bại',
+                getErrorMessage(
+                  error,
+                  previousValue
+                    ? 'Không thể xóa bài hát này khỏi danh sách yêu thích lúc này.'
+                    : 'Không thể thêm bài hát này vào danh sách yêu thích lúc này.'
+                )
+              );
+            } finally {
+              setFavoriteUpdatingMap((previousMap) => ({
+                ...previousMap,
+                [trackId]: false,
+              }));
+            }
+          },
+        },
+      ]
+    );
   }, [favoriteStatusMap, favoriteUpdatingMap, isAuthenticated, navigation]);
 
   const handleMetaItemPress = useCallback((item) => {
@@ -721,18 +753,36 @@ export default function EntityDetailScreen() {
     }
 
     const previousValue = isAlbumFollowing;
-    setIsAlbumFollowing(!previousValue);
-    setIsAlbumFollowUpdating(true);
 
-    try {
-      const followState = await albumService.toggleAlbumFollow(targetAlbumId);
-      setIsAlbumFollowing(Boolean(followState?.isFollowing));
-    } catch (error) {
-      setIsAlbumFollowing(previousValue);
-      Alert.alert('Lưu album thất bại', getErrorMessage(error, 'Không thể cập nhật album đã lưu lúc này.'));
-    } finally {
-      setIsAlbumFollowUpdating(false);
-    }
+    Alert.alert(
+      previousValue ? 'Bỏ lưu album' : 'Lưu album',
+      previousValue
+        ? 'Bạn có muốn bỏ lưu album này không?'
+        : 'Bạn có muốn lưu album này vào thư viện không?',
+      [
+        {
+          text: 'Hủy',
+          style: 'cancel',
+        },
+        {
+          text: previousValue ? 'Bỏ lưu' : 'Lưu',
+          onPress: async () => {
+            setIsAlbumFollowing(!previousValue);
+            setIsAlbumFollowUpdating(true);
+
+            try {
+              const followState = await albumService.toggleAlbumFollow(targetAlbumId);
+              setIsAlbumFollowing(Boolean(followState?.isFollowing));
+            } catch (error) {
+              setIsAlbumFollowing(previousValue);
+              Alert.alert('Lưu album thất bại', getErrorMessage(error, 'Không thể cập nhật album đã lưu lúc này.'));
+            } finally {
+              setIsAlbumFollowUpdating(false);
+            }
+          },
+        },
+      ]
+    );
   }, [
     detail?.entityId,
     detail?.id,

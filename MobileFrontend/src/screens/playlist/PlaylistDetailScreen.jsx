@@ -486,44 +486,61 @@ export default function PlaylistDetailScreen() {
     const previousValue = Boolean(favoriteStatusMap[trackId]);
     const nextValue = !previousValue;
 
-    setFavoriteUpdatingMap((previousMap) => ({
-      ...previousMap,
-      [trackId]: true,
-    }));
-    setFavoriteStatusMap((previousMap) => ({
-      ...previousMap,
-      [trackId]: nextValue,
-    }));
+    Alert.alert(
+      previousValue ? 'Xóa khỏi yêu thích' : 'Thêm vào yêu thích',
+      previousValue
+        ? 'Bạn có muốn xóa bài hát này khỏi danh sách yêu thích không?'
+        : 'Bạn có muốn thêm bài hát này vào danh sách yêu thích không?',
+      [
+        {
+          text: 'Hủy',
+          style: 'cancel',
+        },
+        {
+          text: previousValue ? 'Xóa' : 'Thêm',
+          onPress: async () => {
+            setFavoriteUpdatingMap((previousMap) => ({
+              ...previousMap,
+              [trackId]: true,
+            }));
+            setFavoriteStatusMap((previousMap) => ({
+              ...previousMap,
+              [trackId]: nextValue,
+            }));
 
-    try {
-      const result = previousValue
-        ? await userFavoriteService.removeTrackFromFavorite(trackId)
-        : await userFavoriteService.addTrackToFavorite(trackId);
+            try {
+              const result = previousValue
+                ? await userFavoriteService.removeTrackFromFavorite(trackId)
+                : await userFavoriteService.addTrackToFavorite(trackId);
 
-      setFavoriteStatusMap((previousMap) => ({
-        ...previousMap,
-        [trackId]: Boolean(result?.isFavorite),
-      }));
-    } catch (error) {
-      setFavoriteStatusMap((previousMap) => ({
-        ...previousMap,
-        [trackId]: previousValue,
-      }));
-      Alert.alert(
-        'Cập nhật yêu thích thất bại',
-        getErrorMessage(
-          error,
-          previousValue
-            ? 'Không thể xóa bài hát này khỏi danh sách yêu thích lúc này.'
-            : 'Không thể thêm bài hát này vào danh sách yêu thích lúc này.'
-        )
-      );
-    } finally {
-      setFavoriteUpdatingMap((previousMap) => ({
-        ...previousMap,
-        [trackId]: false,
-      }));
-    }
+              setFavoriteStatusMap((previousMap) => ({
+                ...previousMap,
+                [trackId]: Boolean(result?.isFavorite),
+              }));
+            } catch (error) {
+              setFavoriteStatusMap((previousMap) => ({
+                ...previousMap,
+                [trackId]: previousValue,
+              }));
+              Alert.alert(
+                'Cập nhật yêu thích thất bại',
+                getErrorMessage(
+                  error,
+                  previousValue
+                    ? 'Không thể xóa bài hát này khỏi danh sách yêu thích lúc này.'
+                    : 'Không thể thêm bài hát này vào danh sách yêu thích lúc này.'
+                )
+              );
+            } finally {
+              setFavoriteUpdatingMap((previousMap) => ({
+                ...previousMap,
+                [trackId]: false,
+              }));
+            }
+          },
+        },
+      ]
+    );
   }, [favoriteStatusMap, favoriteUpdatingMap, isAuthenticated, navigation]);
 
   const headerTitle = readText(playlist?.title, initialTitle);
