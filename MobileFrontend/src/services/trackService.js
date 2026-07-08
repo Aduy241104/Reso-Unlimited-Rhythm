@@ -7,7 +7,7 @@ import {
   formatMonthLabel,
   resolveImageUri,
 } from '../utils/media';
-import { resolveTrackAudioUri } from '../utils/player';
+import { resolveTrackAudioUri, resolveTrackLrc, resolveTrackStaticLyrics } from '../utils/player';
 
 const getPayload = (response) => response?.data || response || {};
 
@@ -201,8 +201,9 @@ const normalizeTrackDetail = (item) => {
         ],
     tags: asArray(track.tags).length > 0 ? track.tags : genres,
     extraTitle: pickFirstDefined(track.extraTitle, 'Lyrics'),
-    extraText: pickFirstDefined(track.extraText, track?.lyrics?.static, track?.lyricsStatic, 'No lyrics available.'),
-    lyrics: pickFirstDefined(track.lyrics, track?.lyrics?.static, track?.lyricsStatic, 'No lyrics available.'),
+    extraText: resolveTrackStaticLyrics(track) || 'No lyrics available.',
+    lyrics: resolveTrackStaticLyrics(track) || 'No lyrics available.',
+    lrc: resolveTrackLrc(track),
     itemsTitle: pickFirstDefined(track.itemsTitle, ''),
     items: asArray(track.items),
   };
@@ -232,6 +233,8 @@ const normalizeTrackPlayback = (item, trackId = '') => {
     audioUri: pickFirstDefined(playback.audioUri, audioSource, ''),
     audioSource,
     duration: pickNumber(playback.duration),
+    lyrics: resolveTrackStaticLyrics(playback),
+    lrc: resolveTrackLrc(playback),
   };
 };
 

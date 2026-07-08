@@ -20,8 +20,8 @@ const tabIcons = {
   Home: { active: 'home', inactive: 'home-outline' },
   Search: { active: 'search', inactive: 'search-outline' },
   Library: { active: 'library', inactive: 'library-outline' },
-  Premium: { active: 'diamond', inactive: 'diamond-outline' },
-  CreateForMe: { active: 'sparkles', inactive: 'sparkles-outline' },
+  Premium: { active: 'star', inactive: 'star-outline' },
+  CreateForMe: { active: 'add', inactive: 'add-outline' },
 };
 
 function PremiumRedirectScreen() {

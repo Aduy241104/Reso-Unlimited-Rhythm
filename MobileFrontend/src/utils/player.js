@@ -12,6 +12,8 @@ const readStringCandidate = (value) => {
   return '';
 };
 
+const timedLrcPattern = /\[\d{1,2}:\d{1,2}(?:\.\d{1,3})?\]/;
+
 const readNestedUri = (value) => {
   if (!value) {
     return '';
@@ -95,7 +97,8 @@ export const normalizePlayerTrack = (item, index = 0) => {
     duration,
     durationLabel: item?.meta || formatDuration(duration || fallbackDuration),
     description: item?.description || '',
-    lyrics: item?.lyrics || item?.extraText || '',
+    lyrics: resolveTrackStaticLyrics(item),
+    lrc: resolveTrackLrc(item),
     entityId: item?.entityId || item?.id || '',
     entityType: item?.entityType || 'track',
     audioUri,
@@ -176,6 +179,48 @@ export const resolveTrackAudioUri = (item) => {
   }
 
   return '';
+};
+
+export const resolveTrackStaticLyrics = (item) => {
+  if (!item) {
+    return '';
+  }
+
+  return (
+    readStringCandidate(item?.lyrics) ||
+    readStringCandidate(item?.extraText) ||
+    readStringCandidate(item?.lyrics?.static) ||
+    readStringCandidate(item?.lyricsStatic) ||
+    readStringCandidate(item?.raw?.lyrics?.static) ||
+    readStringCandidate(item?.raw?.lyricsStatic) ||
+    ''
+  );
+};
+
+export const resolveTrackLrc = (item) => {
+  if (!item) {
+    return '';
+  }
+
+  return (
+    readStringCandidate(item?.lrc) ||
+    readStringCandidate(item?.lrcText) ||
+    readStringCandidate(item?.lyricsLrc) ||
+    readStringCandidate(item?.syncedLyrics) ||
+    readStringCandidate(item?.lyrics?.lrc) ||
+    readStringCandidate(item?.lyrics?.sync) ||
+    readStringCandidate(item?.lyrics?.synced) ||
+    readStringCandidate(item?.playback?.lrc) ||
+    readStringCandidate(item?.playback?.lyrics?.lrc) ||
+    readStringCandidate(item?.raw?.lrc) ||
+    readStringCandidate(item?.raw?.lyrics?.lrc) ||
+    ''
+  );
+};
+
+export const hasSyncedLrc = (value) => {
+  const lrc = typeof value === 'string' ? value : resolveTrackLrc(value);
+  return timedLrcPattern.test(lrc);
 };
 
 export const buildExpoAudioSource = (track, accessToken) => {

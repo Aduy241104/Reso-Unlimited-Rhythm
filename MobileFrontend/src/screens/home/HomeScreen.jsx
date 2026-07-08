@@ -7,11 +7,11 @@ import {
   FlatList,
   TouchableOpacity,
   StatusBar,
-  Platform,
   Image,
   RefreshControl,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppAvatar from '../../components/common/AppAvatar';
 import AppButton from '../../components/common/AppButton';
 import AppLoader from '../../components/common/AppLoader';
@@ -116,6 +116,7 @@ const TopTrackSection = ({ data, errorMessage, onPressItem }) => (
 
 export default function HomeScreen() {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const { isAuthenticated, logout, user } = useAuth();
   const [homeData, setHomeData] = useState(initialHomeState);
   const [isContentLoading, setIsContentLoading] = useState(true);
@@ -285,16 +286,20 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
 
-      <View style={styles.header}>
-        <View style={styles.headerIdentity}>
-          {isAuthenticated ? <AppAvatar uri={avatarUri} label={displayName} size={44} /> : null}
-          <View style={[styles.headerTextGroup, !isAuthenticated && styles.headerTextGroupGuest]}>
-            <Text style={styles.brandText}>RESO UNLIMITED RHYTHM</Text>
-            <Text style={styles.welcomeText} numberOfLines={1}>
-              {isAuthenticated ? displayName : 'Login to personalize your music'}
-            </Text>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+        {isAuthenticated ? (
+          <View style={styles.headerIdentity}>
+            <AppAvatar uri={avatarUri} label={displayName} size={44} />
+            <View style={styles.headerTextGroup}>
+              <Text style={styles.brandText}>RESO UNLIMITED RHYTHM</Text>
+              <Text style={styles.welcomeText} numberOfLines={1}>
+                {displayName}
+              </Text>
+            </View>
           </View>
-        </View>
+        ) : (
+          <View style={styles.headerGuestSpacer} />
+        )}
         <TouchableOpacity style={styles.logoutBadge} onPress={handleHeaderAction} activeOpacity={0.7}>
           <Text style={styles.logoutText}>{isAuthenticated ? 'Logout' : 'Login'}</Text>
         </TouchableOpacity>
@@ -366,7 +371,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 60 : 30,
     paddingBottom: 14,
     borderBottomWidth: 1,
     borderColor: '#1f1f1f',
@@ -378,12 +382,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 12,
   },
+  headerGuestSpacer: {
+    flex: 1,
+  },
   headerTextGroup: {
     flex: 1,
     marginLeft: 12,
-  },
-  headerTextGroupGuest: {
-    marginLeft: 0,
   },
   brandText: {
     fontSize: 9,

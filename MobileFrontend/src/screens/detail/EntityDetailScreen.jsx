@@ -140,6 +140,10 @@ export default function EntityDetailScreen() {
   const { playQueue } = usePlayer();
 
   const { entityId, entityType, initialTitle, period, date, month, limit } = route.params || {};
+  const navigationState = navigation.getState?.();
+  const currentRouteIndex = navigationState?.routes?.findIndex?.((item) => item.key === route.key) ?? -1;
+  const previousRoute = currentRouteIndex > 0 ? navigationState?.routes?.[currentRouteIndex - 1] : null;
+  const isOpenedFromPlayer = route.params?.source === 'player' || previousRoute?.name === 'PlayerSheet';
 
   const [detail, setDetail] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -226,9 +230,10 @@ export default function EntityDetailScreen() {
         entityType: nextType,
         entityId: nextId,
         initialTitle: nextTitle,
+        source: isOpenedFromPlayer ? 'player' : undefined,
       });
     },
-    [navigation]
+    [isOpenedFromPlayer, navigation]
   );
 
   const handlePlayAll = useCallback(
@@ -440,7 +445,7 @@ export default function EntityDetailScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#d9272b" />
 
       <TouchableOpacity
-        style={ [styles.backButton, { top: insets.top + 8 }] }
+        style={ [styles.backButton, { top: insets.top + (isOpenedFromPlayer ? 2 : 8) }] }
         onPress={ () => navigation.goBack() }
         activeOpacity={ 0.75 }
       >
@@ -467,7 +472,7 @@ export default function EntityDetailScreen() {
           ] }
           showsVerticalScrollIndicator={ false }
         >
-          <View style={ [styles.heroSection, { paddingTop: insets.top + 48 }] }>
+          <View style={ [styles.heroSection, { paddingTop: insets.top + (isOpenedFromPlayer ? 12 : 48) }] }>
             <View style={ styles.heroRedLayer } />
             <View style={ styles.heroDarkLayer } />
             <View style={ styles.heroBlackLayer } />
