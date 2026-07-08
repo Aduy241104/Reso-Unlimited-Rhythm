@@ -6,9 +6,13 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from '../screens/home/HomeScreen';
 import SearchScreen from '../screens/search/SearchScreen';
+import FollowedAlbumsScreen from '../screens/library/FollowedAlbumsScreen';
 import LibraryScreen from '../screens/library/LibraryScreen';
+import FollowedArtistsScreen from '../screens/library/FollowedArtistsScreen';
 import CreateForMeScreen from '../screens/createForMe/CreateForMeScreen';
 import EntityDetailScreen from '../screens/detail/EntityDetailScreen';
+import FavoriteTracksScreen from '../screens/favorite/FavoriteTracksScreen';
+import PlaylistDetailScreen from '../screens/playlist/PlaylistDetailScreen';
 import PlayerSheetScreen from '../screens/player/PlayerSheetScreen';
 import AppTabBar from '../components/navigation/AppTabBar';
 import theme from '../theme';
@@ -45,6 +49,38 @@ function SharedTabStack({ rootName, component: RootComponent }) {
       <Stack.Screen
         name="EntityDetail"
         component={EntityDetailScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="PlaylistDetail"
+        component={PlaylistDetailScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="FavoriteTracks"
+        component={FavoriteTracksScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="FollowedArtists"
+        component={FollowedArtistsScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="FollowedAlbums"
+        component={FollowedAlbumsScreen}
         options={{
           headerShown: false,
           animation: 'slide_from_right',

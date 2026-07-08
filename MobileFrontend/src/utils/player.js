@@ -1,8 +1,7 @@
+import { getApiBaseUrl } from '../config/api';
 import { formatDuration, resolveImageUri } from './media';
 
 const fallbackDuration = 30;
-const apiBaseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.248:8080/api';
-const apiBaseUrlWithSlash = apiBaseUrl.endsWith('/') ? apiBaseUrl : `${apiBaseUrl}/`;
 
 const readStringCandidate = (value) => {
   if (typeof value === 'string' && value.trim()) {
@@ -54,6 +53,9 @@ const toAbsoluteAudioUri = (value) => {
   }
 
   try {
+    const apiBaseUrl = getApiBaseUrl();
+    const apiBaseUrlWithSlash = apiBaseUrl.endsWith('/') ? apiBaseUrl : `${apiBaseUrl}/`;
+
     return new URL(candidate, apiBaseUrlWithSlash).toString();
   } catch {
     return candidate;
@@ -66,6 +68,7 @@ const shouldAttachAuthHeader = (uri) => {
   }
 
   try {
+    const apiBaseUrl = getApiBaseUrl();
     const apiOrigin = new URL(apiBaseUrl).origin;
     const targetOrigin = new URL(uri, apiBaseUrl).origin;
 
@@ -89,8 +92,8 @@ export const normalizePlayerTrack = (item, index = 0) => {
 
   return {
     id: item?.id || item?.entityId || `track-${index}`,
-    title: item?.title || 'Unknown track',
-    artistName: item?.artistName || item?.subtitle || item?.artist || 'Unknown artist',
+    title: item?.title || 'Bài hát không xác định',
+    artistName: item?.artistName || item?.subtitle || item?.artist || 'Nghệ sĩ không xác định',
     image: resolveImageUri(item?.image || item?.coverImage || item?.avatar),
     duration,
     durationLabel: item?.meta || formatDuration(duration || fallbackDuration),

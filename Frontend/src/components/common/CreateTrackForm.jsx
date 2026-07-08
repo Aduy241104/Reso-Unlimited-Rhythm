@@ -34,6 +34,7 @@ const CreateTrackForm = () => {
   const [loading, setLoading] = useState(false);
   const [uploadingQualities, setUploadingQualities] = useState(false);
   const [uploadedQualities, setUploadedQualities] = useState([]);
+  const [uploadedAudioAnalysis, setUploadedAudioAnalysis] = useState(null);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [albums, setAlbums] = useState([]);
@@ -88,6 +89,8 @@ const CreateTrackForm = () => {
   const handleAudioFileChange = (e) => {
     const file = e.target.files?.[0] ?? null;
     setAudioFile(file);
+    setUploadedQualities([]);
+    setUploadedAudioAnalysis(null);
   };
 
   const handleCoverImagesChange = (e) => {
@@ -191,10 +194,12 @@ const CreateTrackForm = () => {
 
     setLoading(true);
     setUploadedQualities([]);
+    setUploadedAudioAnalysis(null);
     setUploadingQualities(false);
 
     try {
       let uploadedAudioUrls = [];
+      let uploadedAudioAnalysisResult = null;
       let avatarUrl = formData.avatar || "";
       let uploadedCoverUrls = [];
       let uploadedLyricsSyncUrl = "";
@@ -219,12 +224,14 @@ const CreateTrackForm = () => {
 
         ({
           audioFiles: uploadedAudioUrls = [],
+          audioAnalysis: uploadedAudioAnalysisResult = null,
           avatar: avatarUrl = "",
           coverImages: uploadedCoverUrls = [],
           lyricsSyncUrl: uploadedLyricsSyncUrl = "",
         } = uploadResponse.data || {});
 
         setUploadedQualities(uploadedAudioUrls || []);
+        setUploadedAudioAnalysis(uploadedAudioAnalysisResult || null);
         setUploadingQualities(false);
       }
 
@@ -286,6 +293,7 @@ const CreateTrackForm = () => {
         <AudioQualityDisplay
           qualities={uploadedQualities}
           isLoading={uploadingQualities}
+          sourceAnalysis={uploadedAudioAnalysis}
         />
       )}
 
@@ -375,7 +383,7 @@ const CreateTrackForm = () => {
           </p>
           <input
             type="file"
-            accept="audio/*,video/mp4"
+            accept=".mp3,.wav,.flac,.aac,.m4a,audio/mpeg,audio/wav,audio/flac,audio/aac,audio/mp4"
             onChange={handleAudioFileChange}
             disabled={loading}
             className={`mt-2 w-full rounded-md border px-3 py-2 text-sm disabled:bg-neutral-100 ${
@@ -387,7 +395,11 @@ const CreateTrackForm = () => {
               <p className="truncate text-sm text-neutral-700">{audioFile.name}</p>
               <button
                 type="button"
-                onClick={() => setAudioFile(null)}
+                onClick={() => {
+                  setAudioFile(null);
+                  setUploadedQualities([]);
+                  setUploadedAudioAnalysis(null);
+                }}
                 disabled={loading}
                 className="ml-2 text-red-500 hover:text-red-700 disabled:opacity-50"
               >
