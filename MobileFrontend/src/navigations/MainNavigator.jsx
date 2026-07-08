@@ -6,6 +6,7 @@ import EntityDetailScreen from '../screens/detail/EntityDetailScreen';
 import PremiumOverviewScreen from '../screens/premium/PremiumOverviewScreen';
 import PremiumPlanDetailScreen from '../screens/premium/PremiumPlanDetailScreen';
 import PremiumCheckoutScreen from '../screens/premium/PremiumCheckoutScreen';
+import PremiumPaymentResultScreen from '../screens/premium/PremiumPaymentResultScreen';
 import TrackLyricsScreen from '../screens/player/TrackLyricsScreen';
 
 const Stack = createNativeStackNavigator();
@@ -61,6 +62,22 @@ export const MainNavigator = () => {
         options={{
           headerShown: false,
           animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="PremiumPaymentSuccess"
+        component={PremiumPaymentResultScreen}
+        options={{
+          headerShown: false,
+          animation: 'fade_from_bottom',
+        }}
+      />
+      <Stack.Screen
+        name="PremiumPaymentFailed"
+        component={PremiumPaymentResultScreen}
+        options={{
+          headerShown: false,
+          animation: 'fade_from_bottom',
         }}
       />
     </Stack.Navigator>

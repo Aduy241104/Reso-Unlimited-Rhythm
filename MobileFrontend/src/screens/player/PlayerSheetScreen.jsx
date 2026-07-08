@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import axiosClient from '../../api/axiosClient';
 import { API_ENDPOINTS } from '../../api/apiEndpoints';
 import PlayerDetailSheet from '../../components/player/PlayerDetailSheet';
+import TrackLyricsBottomSheet from '../../components/player/TrackLyricsBottomSheet';
 import TrackQueueBottomSheet from '../../components/player/TrackQueueBottomSheet';
 import usePlayer from '../../hooks/usePlayer';
 import { getErrorMessage } from '../../utils/media';
@@ -12,6 +13,7 @@ import { hasSyncedLrc } from '../../utils/player';
 export default function PlayerSheetScreen() {
   const navigation = useNavigation();
   const [isQueueVisible, setIsQueueVisible] = useState(false);
+  const [isLyricsVisible, setIsLyricsVisible] = useState(false);
   const [trackDetailResponse, setTrackDetailResponse] = useState(null);
   const [artistProfileResponse, setArtistProfileResponse] = useState(null);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
@@ -100,13 +102,21 @@ export default function PlayerSheetScreen() {
     void loadPlayerDetail();
   }, [loadPlayerDetail]);
 
+  useEffect(() => {
+    if (currentTrack && hasTimedLyrics) {
+      return;
+    }
+
+    setIsLyricsVisible(false);
+  }, [currentTrack, hasTimedLyrics]);
+
   const handleOpenLyrics = useCallback(() => {
     if (!currentTrack || !hasTimedLyrics) {
       return;
     }
 
-    navigation.getParent()?.getParent()?.navigate('TrackLyrics');
-  }, [currentTrack, hasTimedLyrics, navigation]);
+    setIsLyricsVisible(true);
+  }, [currentTrack, hasTimedLyrics]);
 
   return (
     <View style={styles.container}>
@@ -133,6 +143,11 @@ export default function PlayerSheetScreen() {
         progressSeconds={progressSeconds}
         queueLength={queue.length}
         trackDetailResponse={trackDetailResponse}
+      />
+
+      <TrackLyricsBottomSheet
+        visible={isLyricsVisible}
+        onClose={() => setIsLyricsVisible(false)}
       />
 
       <TrackQueueBottomSheet

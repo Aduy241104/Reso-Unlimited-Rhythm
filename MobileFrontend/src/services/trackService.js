@@ -7,7 +7,12 @@ import {
   formatMonthLabel,
   resolveImageUri,
 } from '../utils/media';
-import { resolveTrackAudioUri, resolveTrackLrc, resolveTrackStaticLyrics } from '../utils/player';
+import {
+  resolveTrackAudioUri,
+  resolveTrackLrc,
+  resolveTrackLyricsSyncUrl,
+  resolveTrackStaticLyrics,
+} from '../utils/player';
 
 const getPayload = (response) => response?.data || response || {};
 
@@ -209,35 +214,6 @@ const normalizeTrackDetail = (item) => {
   };
 };
 
-const normalizeTrackPlayback = (item, trackId = '') => {
-  const playback = asObject(item);
-  const artist = resolveTrackArtist(playback);
-  const album = resolveTrackAlbum(playback);
-  const audioSource = pickFirstDefined(playback.audioSource, resolveTrackAudioUri(playback), '');
-
-  return {
-    ...playback,
-    id: pickFirstDefined(playback.id, playback.trackId, trackId, ''),
-    trackId: pickFirstDefined(playback.trackId, playback.id, trackId, ''),
-    title: pickFirstDefined(playback.title, 'Unknown track'),
-    artistId: pickFirstDefined(playback.artistId, artist?.id, artist?._id, ''),
-    artistName: pickFirstDefined(playback.artistName, playback.artist?.name, artist?.name, 'Unknown artist'),
-    albumId: pickFirstDefined(playback.albumId, album?.id, album?._id, ''),
-    albumTitle: pickFirstDefined(playback.albumTitle, album?.title, ''),
-    image: pickFirstDefined(
-      playback.image,
-      playback.coverImage,
-      resolveImageUri(playback.coverImage || playback.avatar || artist?.avatar || artist?.coverImage),
-      ''
-    ),
-    audioUri: pickFirstDefined(playback.audioUri, audioSource, ''),
-    audioSource,
-    duration: pickNumber(playback.duration),
-    lyrics: resolveTrackStaticLyrics(playback),
-    lrc: resolveTrackLrc(playback),
-  };
-};
-
 const buildTopTrackCollectionSummary = ({ period, date, month, items = [], totalItems = 0 }) => {
   const leadingTrack = items[0];
   const periodLabel = getCollectionLabel({ period, date, month });
@@ -330,9 +306,40 @@ export const trackService = {
   async getTrackPlayback(trackId) {
     const response = await axiosClient.get(`${API_ENDPOINTS.TRACKS.PLAYBACK}/${trackId}/playback`);
     const payload = getPayload(response);
-    const playbackTrack = payload?.track || payload?.data?.track || payload?.playback || payload?.data || payload;
+    return payload?.track || payload?.data?.track || payload?.playback || payload?.data || payload;
+  },
 
-    return normalizeTrackPlayback(playbackTrack, trackId);
+  async getTrackSyncedLyrics(trackOrUrl) {
+    const lyricsSyncUrl =
+      typeof trackOrUrl === 'string'
+        ? resolveTrackLyricsSyncUrl({ lyricsSyncUrl: trackOrUrl })
+        : resolveTrackLyricsSyncUrl(trackOrUrl);
+
+    if (!lyricsSyncUrl) {
+      throw new Error('Track playback does not include a synced lyrics URL.');
+    }
+
+    const response = await axiosClient.get(lyricsSyncUrl, {
+      responseType: 'text',
+      headers: {
+        Accept: 'text/plain, text/*, application/octet-stream, */*',
+      },
+    });
+
+    const lyricsText =
+      typeof response === 'string'
+        ? response
+        : typeof response?.data === 'string'
+          ? response.data
+          : typeof response?.data?.data === 'string'
+            ? response.data.data
+            : '';
+
+    if (!lyricsText.trim()) {
+      throw new Error('The synced lyrics response is empty.');
+    }
+
+    return lyricsText;
   },
 
   buildTopTrackCollectionSummary,

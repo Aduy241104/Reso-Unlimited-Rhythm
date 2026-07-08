@@ -126,26 +126,42 @@ export const Lyric = forwardRef(function Lyric(
     onCurrentLineChange,
     height = 500,
     style,
+    activeLineAnchorOffset = 0,
     ...props
   },
   ref
 ) {
   const lrcRef = useRef(null);
+  const lineLayoutRef = useRef({});
   const lrcLineList = useMemo(() => parseLrc(lrc), [lrc]);
   const currentIndex = useCurrentIndex({ lrcLineList, currentTime });
+  const topSpacerHeight = autoScroll
+    ? (activeLineAnchorOffset > 0 ? activeLineAnchorOffset * activeLineHeight : 0.45 * height)
+    : 0;
   const { localAutoScroll, resetLocalAutoScroll, onScroll } = useLocalAutoScroll({
     autoScroll,
     autoScrollAfterUserScroll,
   });
 
+  const getScrollTarget = (index) => {
+    const activeLine = lrcLineList[index];
+    const activeLayout = activeLine ? lineLayoutRef.current[activeLine.id] : null;
+
+    if (activeLayout && Number.isFinite(activeLayout.y)) {
+      return Math.max(activeLayout.y - topSpacerHeight, 0);
+    }
+
+    return Math.max(index * lineHeight, 0);
+  };
+
   useEffect(() => {
     if (localAutoScroll) {
       lrcRef.current?.scrollTo({
-        y: currentIndex * lineHeight || 0,
+        y: getScrollTarget(currentIndex),
         animated: true,
       });
     }
-  }, [currentIndex, lineHeight, localAutoScroll]);
+  }, [currentIndex, lineHeight, localAutoScroll, lrcLineList, topSpacerHeight]);
 
   useEffect(() => {
     onCurrentLineChange?.({
@@ -162,7 +178,7 @@ export const Lyric = forwardRef(function Lyric(
     scrollToCurrentLine: () => {
       resetLocalAutoScroll();
       lrcRef.current?.scrollTo({
-        y: currentIndex * lineHeight || 0,
+        y: getScrollTarget(currentIndex),
         animated: true,
       });
     },
@@ -173,8 +189,12 @@ export const Lyric = forwardRef(function Lyric(
       lrcLineList.map((lrcLine, index) => (
         <View
           key={lrcLine.id}
+          onLayout={(event) => {
+            lineLayoutRef.current[lrcLine.id] = event.nativeEvent.layout;
+          }}
           style={{
-            height: currentIndex === index ? activeLineHeight : lineHeight,
+            minHeight: currentIndex === index ? activeLineHeight : lineHeight,
+            justifyContent: 'center',
           }}
         >
           {lineRenderer({ lrcLine, index, active: currentIndex === index })}
@@ -192,7 +212,7 @@ export const Lyric = forwardRef(function Lyric(
       style={[style, { height }]}
     >
       <View>
-        {autoScroll ? <View style={{ width: '100%', height: 0.45 * height }} /> : null}
+        {autoScroll ? <View style={{ width: '100%', height: topSpacerHeight }} /> : null}
         {lyricNodeList}
         {autoScroll ? <View style={{ width: '100%', height: 0.5 * height }} /> : null}
       </View>

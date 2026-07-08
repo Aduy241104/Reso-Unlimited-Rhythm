@@ -1222,12 +1222,36 @@ const confirmRevenueDistribution = async (revenuePeriodId, adminUserId) => {
     };
 };
 
+const processRevenuePeriodAction = async (
+    revenuePeriodId,
+    action,
+    adminUserId
+) => {
+    const actionHandlers = {
+        close: () => closeRevenuePeriod(revenuePeriodId),
+        calculate: () => calculateRevenueDistribution(revenuePeriodId),
+        confirm: () =>
+            confirmRevenueDistribution(revenuePeriodId, adminUserId),
+    };
+
+    const handler = actionHandlers[action];
+
+    if (!handler) {
+        throw new AppError("Revenue period action is invalid.", 400, {
+            field: "action",
+        });
+    }
+
+    return handler();
+};
+
 export default {
     getCurrentRevenuePeriod,
     getRevenueCharts,
     getRevenuePeriods,
     getRevenuePeriodDetail,
     triggerRevenueAggregation,
+    processRevenuePeriodAction,
     closeRevenuePeriod,
     calculateRevenueDistribution,
     confirmRevenueDistribution,

@@ -13,6 +13,7 @@ const readStringCandidate = (value) => {
 };
 
 const timedLrcPattern = /\[\d{1,2}:\d{1,2}(?:\.\d{1,3})?\]/;
+const isLoopbackHostname = (value = '') => ['localhost', '127.0.0.1', '::1'].includes(String(value).toLowerCase());
 
 const readNestedUri = (value) => {
   if (!value) {
@@ -52,7 +53,24 @@ const toAbsoluteAudioUri = (value) => {
   }
 
   if (/^https?:\/\//i.test(candidate) || /^file:\/\//i.test(candidate) || /^asset:\/\//i.test(candidate)) {
-    return candidate;
+    if (!/^https?:\/\//i.test(candidate)) {
+      return candidate;
+    }
+
+    try {
+      const candidateUrl = new URL(candidate);
+      const apiUrl = new URL(apiBaseUrl);
+
+      if (isLoopbackHostname(candidateUrl.hostname) && !isLoopbackHostname(apiUrl.hostname)) {
+        candidateUrl.protocol = apiUrl.protocol;
+        candidateUrl.hostname = apiUrl.hostname;
+        candidateUrl.port = apiUrl.port;
+      }
+
+      return candidateUrl.toString();
+    } catch {
+      return candidate;
+    }
   }
 
   try {
@@ -90,19 +108,25 @@ export const normalizePlayerTrack = (item, index = 0) => {
   const audioUri = resolveTrackAudioUri(item);
 
   return {
+    ...(item && typeof item === 'object' ? item : {}),
     id: item?.id || item?.entityId || `track-${index}`,
     title: item?.title || 'Unknown track',
-    artistName: item?.artistName || item?.subtitle || item?.artist || 'Unknown artist',
-    image: resolveImageUri(item?.image || item?.coverImage || item?.avatar),
+    artistName: item?.artistName || item?.subtitle || item?.artist?.name || item?.artist || 'Unknown artist',
+    image: item?.image || resolveImageUri(item?.coverImage || item?.avatar),
     duration,
-    durationLabel: item?.meta || formatDuration(duration || fallbackDuration),
+    durationLabel:
+      item?.durationLabel ||
+      (typeof item?.meta === 'string' ? item.meta : '') ||
+      formatDuration(duration || fallbackDuration),
     description: item?.description || '',
-    lyrics: resolveTrackStaticLyrics(item),
-    lrc: resolveTrackLrc(item),
+    lyrics: item?.lyrics ?? resolveTrackStaticLyrics(item),
+    lrc: item?.lrc || resolveTrackLrc(item),
+    lyricsSyncUrl: item?.lyricsSyncUrl || resolveTrackLyricsSyncUrl(item),
     entityId: item?.entityId || item?.id || '',
     entityType: item?.entityType || 'track',
-    audioUri,
+    audioUri: item?.audioUri || audioUri,
     audioHeaders: item?.audioHeaders || null,
+    raw: item?.raw || item,
   };
 };
 
@@ -193,6 +217,28 @@ export const resolveTrackStaticLyrics = (item) => {
     readStringCandidate(item?.lyricsStatic) ||
     readStringCandidate(item?.raw?.lyrics?.static) ||
     readStringCandidate(item?.raw?.lyricsStatic) ||
+    ''
+  );
+};
+
+export const resolveTrackLyricsSyncUrl = (item) => {
+  if (!item) {
+    return '';
+  }
+
+  return (
+    toAbsoluteAudioUri(item?.lyricsSyncUrl) ||
+    toAbsoluteAudioUri(item?.o3icsSyncUrl) ||
+    toAbsoluteAudioUri(item?.lyrics?.syncUrl) ||
+    toAbsoluteAudioUri(item?.o3ics?.syncUrl) ||
+    toAbsoluteAudioUri(item?.playback?.lyricsSyncUrl) ||
+    toAbsoluteAudioUri(item?.playback?.o3icsSyncUrl) ||
+    toAbsoluteAudioUri(item?.playback?.lyrics?.syncUrl) ||
+    toAbsoluteAudioUri(item?.playback?.o3ics?.syncUrl) ||
+    toAbsoluteAudioUri(item?.raw?.lyricsSyncUrl) ||
+    toAbsoluteAudioUri(item?.raw?.o3icsSyncUrl) ||
+    toAbsoluteAudioUri(item?.raw?.lyrics?.syncUrl) ||
+    toAbsoluteAudioUri(item?.raw?.o3ics?.syncUrl) ||
     ''
   );
 };

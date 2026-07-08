@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppLoader from '../common/AppLoader';
 import { formatCompactNumber, formatDateLabel, formatDuration, getInitials, resolveImageUri } from '../../utils/media';
-import { formatPlayerTime, getPlayableDuration } from '../../utils/player';
+import { formatPlayerTime, getPlayableDuration, resolveTrackStaticLyrics } from '../../utils/player';
 
 const CLOSE_THRESHOLD = 120;
 const CLOSE_VELOCITY = 0.9;
@@ -97,7 +97,9 @@ export default function PlayerDetailSheet({
   const trackPayload = trackDetailResponse?.data?.track || null;
   const artistPayload = artistProfileResponse?.data?.artist || null;
   const songInfoRows = buildSongInfoRows(trackPayload);
-  const lyricsPreview = getLyricsPreview(trackPayload?.lyrics?.static || currentTrack?.lyrics);
+  const lyricsPreview = getLyricsPreview(
+    resolveTrackStaticLyrics(trackPayload) || resolveTrackStaticLyrics(currentTrack)
+  );
   const artistSummary = artistPayload?.bio || 'No artist introduction available.';
   const queueStatusLabel = currentIndex >= 0
     ? `Open playing queue. ${queueLength} tracks queued. Current track ${currentIndex + 1}.`
