@@ -1,5 +1,6 @@
 import axiosClient from '../api/axiosClient';
 import { API_ENDPOINTS } from '../api/apiEndpoints';
+import trackService from './trackService';
 import { resolveImageUri } from '../utils/media';
 
 const getPayload = (response) => response?.data || response || {};
@@ -45,6 +46,15 @@ const extractGenreItems = (payload) => {
   );
 };
 
+const extractTrackItems = (payload) =>
+  asArray(
+    payload?.tracks ||
+      payload?.items ||
+      payload?.data?.tracks ||
+      payload?.data?.items ||
+      payload?.data
+  );
+
 export const genreService = {
   async getGenres(params) {
     try {
@@ -61,6 +71,30 @@ export const genreService = {
 
       return {
         items: [],
+        meta: null,
+      };
+    }
+  },
+
+  async getGenreTracks(genreId, params = {}) {
+    try {
+      const response = await axiosClient.get(`${API_ENDPOINTS.TRACKS.BY_GENRE}/${genreId}/tracks`, {
+        params,
+      });
+      const payload = getPayload(response);
+      const rawItems = extractTrackItems(payload);
+
+      return {
+        data: payload,
+        tracks: rawItems.map((item, index) => trackService.normalizeTrackItem(item, index)),
+        meta: payload?.pagination || payload?.meta || response?.meta || null,
+      };
+    } catch (error) {
+      console.error('Failed to fetch genre tracks:', error);
+
+      return {
+        data: null,
+        tracks: [],
         meta: null,
       };
     }

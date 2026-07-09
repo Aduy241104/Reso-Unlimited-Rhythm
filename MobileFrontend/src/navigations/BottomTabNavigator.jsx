@@ -6,6 +6,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from '../screens/home/HomeScreen';
 import SearchScreen from '../screens/search/SearchScreen';
+import GenreDetailScreen from '../screens/search/GenreDetailScreen';
 import FollowedAlbumsScreen from '../screens/library/FollowedAlbumsScreen';
 import LibraryScreen from '../screens/library/LibraryScreen';
 import FollowedArtistsScreen from '../screens/library/FollowedArtistsScreen';
@@ -46,6 +47,22 @@ function SharedTabStack({ rootName, component: RootComponent }) {
   return (
     <Stack.Navigator initialRouteName={rootName} screenOptions={{ headerShown: false }}>
       <Stack.Screen name={rootName} component={RootComponent} />
+      <Stack.Screen
+        name="GenreDetail"
+        component={GenreDetailScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="TrackDetail"
+        component={EntityDetailScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
       <Stack.Screen
         name="EntityDetail"
         component={EntityDetailScreen}

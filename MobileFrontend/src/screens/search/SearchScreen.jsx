@@ -33,7 +33,7 @@ const resolveGenreColor = (genre, index) => {
   return backendColor || getFallbackColor(genre, index);
 };
 
-export default function SearchScreen() {
+export default function SearchScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const [searchText, setSearchText] = useState('');
   const [genres, setGenres] = useState([]);
@@ -54,21 +54,38 @@ export default function SearchScreen() {
     loadGenres();
   }, [loadGenres]);
 
-  const handlePressGenre = useCallback((genre) => {
-    const genreId = genre?.genreId || genre?.id;
-    console.log(genreId);
-  }, []);
+  const handlePressGenre = useCallback(
+    (genre, genreColor) => {
+      const genreId = genre?._id || genre?.id || genre?.genreId;
+
+      if (!genreId) {
+        return;
+      }
+
+      navigation.navigate('GenreDetail', {
+        genreId,
+        genreName: genre?.name,
+        genreImage: genre?.coverImage || genre?.image || genre?.avatar,
+        genreColor: genre?.color || genreColor,
+      });
+    },
+    [navigation]
+  );
 
   const renderGenreCard = useCallback(
-    ({ item, index }) => (
-      <View style={styles.genreCardSlot}>
-        <GenreCard
-          backgroundColor={resolveGenreColor(item, index)}
-          genre={item}
-          onPress={handlePressGenre}
-        />
-      </View>
-    ),
+    ({ item, index }) => {
+      const genreColor = resolveGenreColor(item, index);
+
+      return (
+        <View style={styles.genreCardSlot}>
+          <GenreCard
+            backgroundColor={genreColor}
+            genre={item}
+            onPress={(genre) => handlePressGenre(genre, genreColor)}
+          />
+        </View>
+      );
+    },
     [handlePressGenre]
   );
 
