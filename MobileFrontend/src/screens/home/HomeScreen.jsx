@@ -257,6 +257,12 @@ export default function HomeScreen() {
   const sidebarMenuItems = useMemo(
     () => [
       {
+        key: 'user-profile',
+        label: 'Ho so cua ban',
+        icon: 'person-circle-outline',
+        onPress: () => runAfterSidebarClose(() => navigation.navigate('UserProfile')),
+      },
+      {
         key: 'add-account',
         label: 'Thêm tài khoản',
         icon: 'add-circle-outline',
@@ -287,7 +293,7 @@ export default function HomeScreen() {
         onPress: () => { },
       },
     ],
-    []
+    [navigation, runAfterSidebarClose]
   );
 
   const renderArtistCard = ({ item, index }) => {

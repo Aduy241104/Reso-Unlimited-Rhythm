@@ -105,6 +105,10 @@ const normalizeArtistDetail = (payload, tracks = []) => {
     type: 'artist',
     title: artistName,
     subtitle: '',
+    followersCount: followers,
+    trackCount,
+    albumCount,
+    isFollowing: false,
     image: resolveImageUri(profile?.avatar || profile?.image || profile?.coverImage),
     description: summaryText,
     stats: [
