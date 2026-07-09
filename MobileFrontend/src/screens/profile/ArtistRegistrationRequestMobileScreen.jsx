@@ -21,7 +21,7 @@ import AppLoader from '../../components/common/AppLoader';
 import ErrorState from '../../components/common/ErrorState';
 import ArtistBirthDatePickerModal from '../../components/profile/ArtistBirthDatePickerModal';
 import ArtistDeclarationModal from '../../components/profile/ArtistDeclarationModal';
-import ArtistRegistrationHistoryList from '../../components/profile/ArtistRegistrationHistoryList';
+import ArtistRegistrationRequestHistorySection from '../../components/profile/ArtistRegistrationRequestHistorySection';
 import { useAuth } from '../../hooks/useAuth';
 import artistRegistrationRequestService from '../../services/artistRegistrationRequestService';
 import { toDisplayDateValue } from '../../utils/artistRegistrationDate';
@@ -282,6 +282,14 @@ export default function ArtistRegistrationRequestMobileScreen() {
       return undefined;
     }, [loadRequests])
   );
+
+  const handleOpenRequestDetail = useCallback((requestId) => {
+    if (!requestId) {
+      return;
+    }
+
+    navigation.navigate('ArtistRegistrationRequestDetail', { requestId });
+  }, [navigation]);
 
   const clearFieldError = useCallback((field) => {
     setFieldErrors((prev) => {
@@ -556,6 +564,12 @@ export default function ArtistRegistrationRequestMobileScreen() {
                   </View>
                 ) : null}
 
+                <AppButton
+                  title="Xem chi tiết yêu cầu"
+                  onPress={() => handleOpenRequestDetail(latestRequest.id)}
+                  style={styles.viewDetailButton}
+                />
+
                 {latestRequest.status === 'pending' ? (
                   <AppButton
                     title="Hủy yêu cầu đang chờ duyệt"
@@ -568,7 +582,10 @@ export default function ArtistRegistrationRequestMobileScreen() {
             </View>
           ) : null}
 
-          <ArtistRegistrationHistoryList requests={latestRequest ? requests.slice(1) : requests} />
+          <ArtistRegistrationRequestHistorySection
+            requests={latestRequest ? requests.slice(1) : requests}
+            onPressItem={(request) => handleOpenRequestDetail(request?.id)}
+          />
 
           {submitSuccess ? <Text style={styles.successBanner}>{submitSuccess}</Text> : null}
           {submitError ? <Text style={styles.errorBanner}>{submitError}</Text> : null}
@@ -987,6 +1004,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     marginTop: 6,
+  },
+  viewDetailButton: {
+    marginTop: 14,
+    backgroundColor: '#f3c26b',
   },
   cancelRequestButton: {
     marginTop: 14,
