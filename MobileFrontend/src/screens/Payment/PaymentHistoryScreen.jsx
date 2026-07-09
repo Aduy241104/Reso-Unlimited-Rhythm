@@ -98,11 +98,11 @@ const DetailRow = ({ label, value, valueStyle }) => (
   </View>
 );
 
-const PaymentHistoryItem = ({ item }) => {
+const PaymentHistoryItem = ({ item, onPress }) => {
   const status = getMappedStatus(item?.status);
 
   return (
-    <View style={styles.card}>
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.82}>
       <View style={styles.cardHeader}>
         <View style={styles.titleWrap}>
           <Text style={styles.planName}>{item?.planName || 'Premium'}</Text>
@@ -126,7 +126,7 @@ const PaymentHistoryItem = ({ item }) => {
         <DetailRow label="Ngày thanh toán" value={formatPaymentDate(item?.paidAt)} />
         {item?.transactionId ? <DetailRow label="Mã giao dịch" value={item?.transactionId} valueStyle={styles.monoText} /> : null}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -142,6 +142,34 @@ export default function PaymentHistoryScreen() {
   const handleOpenLogin = useCallback(() => {
     navigation.navigate('Login');
   }, [navigation]);
+
+  const handleOpenPaymentDetail = useCallback(
+    (item) => {
+      const paymentId = item?._id || item?.id;
+
+      if (!paymentId) {
+        return;
+      }
+
+      const parentNavigation = navigation?.getParent?.();
+      const canOpenFromParent = parentNavigation?.getState?.()?.routeNames?.includes('PaymentDetail');
+      const targetNavigation = canOpenFromParent ? parentNavigation : navigation;
+
+      if (typeof targetNavigation?.push === 'function') {
+        targetNavigation.push('PaymentDetail', {
+          paymentId,
+          payment: item,
+        });
+        return;
+      }
+
+      targetNavigation?.navigate?.('PaymentDetail', {
+        paymentId,
+        payment: item,
+      });
+    },
+    [navigation]
+  );
 
   const loadPaymentHistory = useCallback(async (options = {}) => {
     if (!isAuthenticated) {
@@ -180,7 +208,10 @@ export default function PaymentHistoryScreen() {
     }, [loadPaymentHistory])
   );
 
-  const renderItem = useCallback(({ item }) => <PaymentHistoryItem item={item} />, []);
+  const renderItem = useCallback(
+    ({ item }) => <PaymentHistoryItem item={item} onPress={() => handleOpenPaymentDetail(item)} />,
+    [handleOpenPaymentDetail]
+  );
 
   return (
     <View style={styles.container}>
@@ -213,7 +244,7 @@ export default function PaymentHistoryScreen() {
       ) : (
         <FlatList
           data={paymentHistory}
-          keyExtractor={(item) => item?.id || `${item?.transactionId || 'payment'}-${item?.paidAt || 'unknown'}`}
+          keyExtractor={(item) => item?._id || item?.id || `${item?.transactionId || 'payment'}-${item?.paidAt || 'unknown'}`}
           renderItem={renderItem}
           contentContainerStyle={[
             styles.listContent,
