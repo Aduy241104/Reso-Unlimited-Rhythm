@@ -2,7 +2,6 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import {
   Modal,
-  Pressable,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -20,6 +19,7 @@ import AppLoader from '../../components/common/AppLoader';
 import ErrorState from '../../components/common/ErrorState';
 import { useAuth } from '../../hooks/useAuth';
 import userProfileService from '../../services/userProfileService';
+import profilePasswordService from '../../services/profilePasswordService';
 import { getErrorMessage } from '../../utils/media';
 
 const buildInfoRows = (profile) => {
@@ -54,6 +54,12 @@ export default function UserProfileScreen() {
   const [saveErrorMessage, setSaveErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [formErrors, setFormErrors] = useState({});
+  const [passwordDraft, setPasswordDraft] = useState(() => profilePasswordService.createPasswordDraft());
+  const [passwordErrors, setPasswordErrors] = useState({});
+  const [isPasswordModalVisible, setIsPasswordModalVisible] = useState(false);
+  const [isPasswordSaving, setIsPasswordSaving] = useState(false);
+  const [passwordErrorMessage, setPasswordErrorMessage] = useState('');
+  const [passwordSuccessMessage, setPasswordSuccessMessage] = useState('');
 
   const syncDraftState = useCallback((nextProfile) => {
     setDraft(userProfileService.buildProfileDraft(nextProfile));
@@ -173,6 +179,61 @@ export default function UserProfileScreen() {
     }
   }, [draft, isDraftChanged, profile, syncDraftState, updateUser]);
 
+  const resetPasswordState = useCallback(() => {
+    setPasswordDraft(profilePasswordService.createPasswordDraft());
+    setPasswordErrors({});
+    setPasswordErrorMessage('');
+  }, []);
+
+  const handleOpenPasswordModal = useCallback(() => {
+    resetPasswordState();
+    setPasswordSuccessMessage('');
+    setIsPasswordModalVisible(true);
+  }, [resetPasswordState]);
+
+  const handleClosePasswordModal = useCallback(() => {
+    resetPasswordState();
+    setIsPasswordModalVisible(false);
+  }, [resetPasswordState]);
+
+  const handlePasswordDraftChange = useCallback((field, value) => {
+    setPasswordDraft((prev) => ({ ...prev, [field]: value }));
+    setPasswordErrors((prev) => {
+      if (!prev[field]) {
+        return prev;
+      }
+
+      const nextErrors = { ...prev };
+      delete nextErrors[field];
+      return nextErrors;
+    });
+    setPasswordErrorMessage('');
+    setPasswordSuccessMessage('');
+  }, []);
+
+  const handleSavePassword = useCallback(async () => {
+    const validationErrors = profilePasswordService.validatePasswordDraft(passwordDraft);
+
+    if (Object.keys(validationErrors).length > 0) {
+      setPasswordErrors(validationErrors);
+      setPasswordErrorMessage('Vui lòng kiểm tra lại thông tin mật khẩu.');
+      return;
+    }
+
+    setIsPasswordSaving(true);
+    setPasswordErrorMessage('');
+
+    try {
+      await profilePasswordService.changeMyPassword(passwordDraft);
+      setPasswordSuccessMessage('Đã cập nhật mật khẩu tài khoản.');
+      handleClosePasswordModal();
+    } catch (error) {
+      setPasswordErrorMessage(profilePasswordService.translateChangePasswordError(error));
+    } finally {
+      setIsPasswordSaving(false);
+    }
+  }, [handleClosePasswordModal, passwordDraft]);
+
   if (!isAuthenticated) {
     return (
       <View style={styles.container}>
@@ -262,6 +323,20 @@ export default function UserProfileScreen() {
             </View>
             {successMessage ? <Text style={styles.successBanner}>{successMessage}</Text> : null}
           </View>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Bảo mật tài khoản</Text>
+            <TouchableOpacity style={styles.securityCard} onPress={handleOpenPasswordModal} activeOpacity={0.85}>
+              <View style={styles.securityIconWrap}>
+                <Ionicons name="lock-closed-outline" size={18} color="#ffffff" />
+              </View>
+              <View style={styles.securityContent}>
+                <Text style={styles.securityTitle}>Đổi mật khẩu</Text>
+                <Text style={styles.securityText}>Cập nhật mật khẩu để bảo vệ tài khoản của bạn.</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#8f8f8f" />
+            </TouchableOpacity>
+            {passwordSuccessMessage ? <Text style={styles.successBanner}>{passwordSuccessMessage}</Text> : null}
+          </View>
         </ScrollView>
       )}
 
@@ -269,10 +344,10 @@ export default function UserProfileScreen() {
         visible={isEditing}
         transparent
         animationType="fade"
-        onRequestClose={handleCancelEditing}
+        onRequestClose={() => {}}
       >
         <View style={styles.modalOverlay}>
-          <Pressable style={styles.modalBackdrop} onPress={handleCancelEditing} />
+          <View style={styles.modalBackdrop} />
           <View style={[styles.modalCard, { marginBottom: Math.max(insets.bottom, 16) }]}>
             <View style={styles.modalHeader}>
               <View style={styles.modalTitleWrap}>
@@ -345,6 +420,85 @@ export default function UserProfileScreen() {
                 title="Hủy chỉnh sửa"
                 onPress={handleCancelEditing}
                 disabled={isSaving}
+                style={styles.resetButton}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={isPasswordModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {}}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBackdrop} />
+          <View style={[styles.modalCard, { marginBottom: Math.max(insets.bottom, 16) }]}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalTitleWrap}>
+                <Text style={styles.modalTitle}>Đổi mật khẩu</Text>
+                <Text style={styles.modalSubtitle}>Tạo mật khẩu mới để tăng bảo mật cho tài khoản.</Text>
+              </View>
+              <TouchableOpacity style={styles.modalCloseButton} onPress={handleClosePasswordModal} activeOpacity={0.85}>
+                <Ionicons name="close" size={20} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              style={styles.modalScroll}
+              contentContainerStyle={styles.modalScrollContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              <AppInput
+                label="Mật khẩu hiện tại"
+                value={passwordDraft.currentPassword}
+                onChangeText={(value) => handlePasswordDraftChange('currentPassword', value)}
+                placeholder="Nhập mật khẩu hiện tại"
+                autoCapitalize="none"
+                autoCorrect={false}
+                secureTextEntry
+                error={passwordErrors.currentPassword}
+              />
+
+              <AppInput
+                label="Mật khẩu mới"
+                value={passwordDraft.newPassword}
+                onChangeText={(value) => handlePasswordDraftChange('newPassword', value)}
+                placeholder="Nhập mật khẩu mới"
+                autoCapitalize="none"
+                autoCorrect={false}
+                secureTextEntry
+                error={passwordErrors.newPassword}
+              />
+
+              <AppInput
+                label="Xác nhận mật khẩu mới"
+                value={passwordDraft.confirmPassword}
+                onChangeText={(value) => handlePasswordDraftChange('confirmPassword', value)}
+                placeholder="Nhập lại mật khẩu mới"
+                autoCapitalize="none"
+                autoCorrect={false}
+                secureTextEntry
+                error={passwordErrors.confirmPassword}
+              />
+
+              {passwordErrorMessage ? <Text style={styles.errorBanner}>{passwordErrorMessage}</Text> : null}
+            </ScrollView>
+
+            <View style={styles.formActionRow}>
+              <AppButton
+                title="Cập nhật mật khẩu"
+                onPress={handleSavePassword}
+                isLoading={isPasswordSaving}
+                style={styles.saveButton}
+              />
+              <AppButton
+                title="Hủy"
+                onPress={handleClosePasswordModal}
+                disabled={isPasswordSaving}
                 style={styles.resetButton}
               />
             </View>
@@ -470,6 +624,41 @@ const styles = StyleSheet.create({
     backgroundColor: '#161616',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  securityCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#141414',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#262626',
+    padding: 14,
+  },
+  securityIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#191919',
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  securityContent: {
+    flex: 1,
+    marginLeft: 12,
+    marginRight: 10,
+  },
+  securityTitle: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  securityText: {
+    color: '#a3a3a3',
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 4,
   },
   panel: {
     backgroundColor: '#141414',
