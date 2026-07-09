@@ -1,5 +1,8 @@
 import React, { useCallback, useMemo, useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import {
+  Modal,
+  Pressable,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -12,6 +15,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppAvatar from '../../components/common/AppAvatar';
 import AppButton from '../../components/common/AppButton';
+import AppInput from '../../components/common/AppInput';
 import AppLoader from '../../components/common/AppLoader';
 import ErrorState from '../../components/common/ErrorState';
 import { useAuth } from '../../hooks/useAuth';
@@ -24,6 +28,9 @@ const buildInfoRows = (profile) => {
   }
 
   return [
+    { label: 'Họ và tên', value: profile?.profile?.fullName || 'Chưa cập nhật' },
+    { label: 'Giới tính', value: profile?.profile?.genderLabel || 'Chưa cập nhật' },
+    { label: 'Quốc gia', value: profile?.profile?.country || 'Chưa cập nhật' },
     { label: 'Email', value: profile.email || 'Chưa có email' },
     { label: 'Vai trò', value: profile.roleLabel || 'Không xác định' },
     { label: 'Trạng thái', value: profile.activeStatusLabel || 'Không xác định' },
@@ -36,16 +43,32 @@ const buildInfoRows = (profile) => {
 export default function UserProfileScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, updateUser } = useAuth();
   const [profile, setProfile] = useState(() => userProfileService.normalizeUserProfile({}, user));
+  const [draft, setDraft] = useState(() => userProfileService.buildProfileDraft(user));
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [saveErrorMessage, setSaveErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [formErrors, setFormErrors] = useState({});
+
+  const syncDraftState = useCallback((nextProfile) => {
+    setDraft(userProfileService.buildProfileDraft(nextProfile));
+    setFormErrors({});
+  }, []);
 
   const loadProfile = useCallback(async ({ refresh = false } = {}) => {
     if (!isAuthenticated) {
-      setProfile(userProfileService.normalizeUserProfile({}, user));
+      const fallbackProfile = userProfileService.normalizeUserProfile({}, user);
+      setProfile(fallbackProfile);
+      syncDraftState(fallbackProfile);
       setErrorMessage('');
+      setSaveErrorMessage('');
+      setSuccessMessage('');
+      setIsEditing(false);
       setIsLoading(false);
       setIsRefreshing(false);
       return;
@@ -60,14 +83,16 @@ export default function UserProfileScreen() {
     try {
       const result = await userProfileService.getMyProfile(user);
       setProfile(result);
+      syncDraftState(result);
       setErrorMessage('');
+      setSaveErrorMessage('');
     } catch (error) {
       setErrorMessage(getErrorMessage(error, 'Không thể tải thông tin tài khoản lúc này.'));
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, syncDraftState, user]);
 
   useFocusEffect(
     useCallback(() => {
@@ -77,6 +102,76 @@ export default function UserProfileScreen() {
   );
 
   const infoRows = useMemo(() => buildInfoRows(profile), [profile]);
+  const isDraftChanged = useMemo(() => userProfileService.hasProfileChanges(draft, profile), [draft, profile]);
+
+  const handleDraftChange = useCallback((field, value) => {
+    setDraft((prev) => ({ ...prev, [field]: value }));
+    setFormErrors((prev) => {
+      if (!prev[field]) {
+        return prev;
+      }
+
+      const nextErrors = { ...prev };
+      delete nextErrors[field];
+      return nextErrors;
+    });
+    setSaveErrorMessage('');
+    setSuccessMessage('');
+  }, []);
+
+  const handleSelectGender = useCallback((value) => {
+    handleDraftChange('gender', value);
+  }, [handleDraftChange]);
+
+  const handleCancelEditing = useCallback(() => {
+    syncDraftState(profile);
+    setSaveErrorMessage('');
+    setSuccessMessage('');
+    setIsEditing(false);
+  }, [profile, syncDraftState]);
+
+  const handleStartEditing = useCallback(() => {
+    syncDraftState(profile);
+    setSaveErrorMessage('');
+    setSuccessMessage('');
+    setIsEditing(true);
+  }, [profile, syncDraftState]);
+
+  const handleSaveProfile = useCallback(async () => {
+    const validationErrors = userProfileService.validateProfileDraft(draft, profile);
+
+    if (Object.keys(validationErrors).length > 0) {
+      setFormErrors(validationErrors);
+      setSaveErrorMessage('Vui lòng kiểm tra lại thông tin đã nhập.');
+      setSuccessMessage('');
+      return;
+    }
+
+    if (!isDraftChanged) {
+      setSaveErrorMessage('');
+      setSuccessMessage('Thông tin hiện tại đã mới nhất.');
+      setIsEditing(false);
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const updatedProfile = await userProfileService.updateMyProfile(draft, profile);
+      setProfile(updatedProfile);
+      syncDraftState(updatedProfile);
+      await updateUser(updatedProfile);
+      setErrorMessage('');
+      setSuccessMessage('Đã cập nhật thông tin cá nhân.');
+      setIsEditing(false);
+    } catch (error) {
+      setSaveErrorMessage(getErrorMessage(error, 'Không thể cập nhật thông tin lúc này.'));
+    } finally {
+      setIsSaving(false);
+    }
+  }, [draft, isDraftChanged, profile, syncDraftState, updateUser]);
 
   if (!isAuthenticated) {
     return (
@@ -92,7 +187,7 @@ export default function UserProfileScreen() {
         <View style={styles.centerState}>
           <Text style={styles.emptyTitle}>Cần đăng nhập</Text>
           <Text style={styles.emptyText}>
-            Hãy đăng nhập để xem thông tin tài khoản và trạng thái gói của bạn.
+            Hãy đăng nhập để xem và cập nhật thông tin tài khoản của bạn.
           </Text>
           <AppButton title="Đi đến đăng nhập" onPress={() => navigation.navigate('Login')} style={styles.loginButton} />
         </View>
@@ -109,7 +204,9 @@ export default function UserProfileScreen() {
           <Text style={styles.backButtonText}>Quay lại</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Hồ sơ của bạn</Text>
-        <View style={styles.headerSpacer} />
+        <TouchableOpacity style={styles.editIconButton} onPress={handleStartEditing} activeOpacity={0.85}>
+          <Ionicons name="create-outline" size={18} color="#ffffff" />
+        </TouchableOpacity>
       </View>
 
       {isLoading ? (
@@ -136,12 +233,12 @@ export default function UserProfileScreen() {
           <View style={styles.heroCard}>
             <AppAvatar uri={profile?.avatar} label={profile?.displayName} size={88} style={styles.heroAvatar} />
             <View style={styles.heroContent}>
-              <Text style={styles.heroEyebrow}>TAI KHOAN DANG NHAP</Text>
-              <Text style={styles.heroTitle}>{profile?.displayName || 'Tai khoan cua ban'}</Text>
+              <Text style={styles.heroEyebrow}>TÀI KHOẢN ĐANG ĐĂNG NHẬP</Text>
+              <Text style={styles.heroTitle}>{profile?.displayName || 'Tài khoản của bạn'}</Text>
               <Text style={styles.heroText}>{profile?.email || 'Chưa có email'}</Text>
               <View style={styles.badgeRow}>
                 <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{profile?.roleLabel || 'Tai khoan'}</Text>
+                  <Text style={styles.badgeText}>{profile?.roleLabel || 'Tài khoản'}</Text>
                 </View>
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>{profile?.isPremium ? 'Premium' : 'Gói thường'}</Text>
@@ -163,9 +260,97 @@ export default function UserProfileScreen() {
                 </View>
               ))}
             </View>
+            {successMessage ? <Text style={styles.successBanner}>{successMessage}</Text> : null}
           </View>
         </ScrollView>
       )}
+
+      <Modal
+        visible={isEditing}
+        transparent
+        animationType="fade"
+        onRequestClose={handleCancelEditing}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable style={styles.modalBackdrop} onPress={handleCancelEditing} />
+          <View style={[styles.modalCard, { marginBottom: Math.max(insets.bottom, 16) }]}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalTitleWrap}>
+                <Text style={styles.modalTitle}>Chỉnh sửa hồ sơ</Text>
+                <Text style={styles.modalSubtitle}>Cập nhật thông tin cá nhân của bạn</Text>
+              </View>
+              <TouchableOpacity style={styles.modalCloseButton} onPress={handleCancelEditing} activeOpacity={0.85}>
+                <Ionicons name="close" size={20} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              style={styles.modalScroll}
+              contentContainerStyle={styles.modalScrollContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              <AppInput
+                label="Họ và tên"
+                value={draft.fullName}
+                onChangeText={(value) => handleDraftChange('fullName', value)}
+                placeholder="Nhập họ và tên"
+                autoCapitalize="words"
+                autoCorrect={false}
+                error={formErrors.fullName}
+              />
+
+              <Text style={styles.groupLabel}>Giới tính</Text>
+              <View style={styles.genderRow}>
+                {userProfileService.genderOptions.map((option) => {
+                  const isSelected = draft.gender === option.value;
+
+                  return (
+                    <TouchableOpacity
+                      key={option.value}
+                      activeOpacity={0.85}
+                      onPress={() => handleSelectGender(option.value)}
+                      style={[styles.genderChip, isSelected ? styles.genderChipSelected : null]}
+                    >
+                      <Text style={[styles.genderChipText, isSelected ? styles.genderChipTextSelected : null]}>
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              {formErrors.gender ? <Text style={styles.fieldError}>{formErrors.gender}</Text> : null}
+
+              <AppInput
+                label="Quốc gia"
+                value={draft.country}
+                onChangeText={(value) => handleDraftChange('country', value)}
+                placeholder="VD: Việt Nam"
+                autoCapitalize="words"
+                autoCorrect={false}
+              />
+
+              {saveErrorMessage ? <Text style={styles.errorBanner}>{saveErrorMessage}</Text> : null}
+            </ScrollView>
+
+            <View style={styles.formActionRow}>
+              <AppButton
+                title="Lưu thay đổi"
+                onPress={handleSaveProfile}
+                isLoading={isSaving}
+                disabled={!isDraftChanged}
+                style={styles.saveButton}
+              />
+              <AppButton
+                title="Hủy chỉnh sửa"
+                onPress={handleCancelEditing}
+                disabled={isSaving}
+                style={styles.resetButton}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -276,6 +461,16 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     marginBottom: 10,
   },
+  editIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#2c2c2c',
+    backgroundColor: '#161616',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   panel: {
     backgroundColor: '#141414',
     borderRadius: 14,
@@ -305,6 +500,67 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
+  groupLabel: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 10,
+  },
+  genderRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 16,
+  },
+  genderChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#2d2d2d',
+    backgroundColor: '#111111',
+  },
+  genderChipSelected: {
+    backgroundColor: '#1ed760',
+    borderColor: '#1ed760',
+  },
+  genderChipText: {
+    color: '#d0d0d0',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  genderChipTextSelected: {
+    color: '#04120a',
+  },
+  fieldError: {
+    color: '#ff8e8e',
+    fontSize: 12,
+    marginTop: -8,
+    marginBottom: 12,
+  },
+  errorBanner: {
+    color: '#ff8e8e',
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 4,
+  },
+  successBanner: {
+    color: '#7ff0a6',
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 8,
+  },
+  formActionRow: {
+    gap: 10,
+  },
+  saveButton: {
+    backgroundColor: '#1ed760',
+  },
+  resetButton: {
+    backgroundColor: '#1a1a1a',
+    borderWidth: 1,
+    borderColor: '#2c2c2c',
+  },
   emptyTitle: {
     color: '#ffffff',
     fontSize: 18,
@@ -330,4 +586,60 @@ const styles = StyleSheet.create({
     marginTop: 16,
     backgroundColor: '#1ed760',
   },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.74)',
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  modalCard: {
+    backgroundColor: '#101010',
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#2b2b2b',
+    padding: 16,
+    maxHeight: '82%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 12,
+  },
+  modalTitleWrap: {
+    flex: 1,
+  },
+  modalTitle: {
+    color: '#ffffff',
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  modalSubtitle: {
+    color: '#9a9a9a',
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 6,
+  },
+  modalCloseButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#181818',
+    borderWidth: 1,
+    borderColor: '#2b2b2b',
+  },
+  modalScroll: {
+    flexGrow: 0,
+  },
+  modalScrollContent: {
+    paddingTop: 4,
+    paddingBottom: 8,
+  },
 });
+
