@@ -7,7 +7,9 @@ import {
   buildPlayableQueue,
   formatPlayerTime,
   getPlayableDuration,
+  hasSyncedLrc,
   normalizePlayerTrack,
+  resolveTrackLyricsSyncUrl,
 } from '../utils/player';
 
 export const PlayerContext = createContext({
@@ -89,19 +91,35 @@ export const PlayerProvider = ({ children }) => {
   const resolveTrackForPlayback = useCallback(async (track) => {
     const normalizedTrack = normalizePlayerTrack(track);
     const trackId = normalizedTrack.entityId || normalizedTrack.id;
-
-    if (!trackId) {
-      return normalizedTrack;
-    }
-
-    const playbackTrack = await trackService.getTrackPlayback(trackId);
-
-    return normalizePlayerTrack({
+    const playbackTrack = trackId ? await trackService.getTrackPlayback(trackId) : null;
+    const mergedTrack = normalizePlayerTrack({
       ...normalizedTrack,
-      ...playbackTrack,
+      ...(playbackTrack || {}),
       entityId: normalizedTrack.entityId || trackId,
       id: normalizedTrack.id || trackId,
     });
+
+    if (hasSyncedLrc(mergedTrack)) {
+      return mergedTrack;
+    }
+
+    const lyricsSyncUrl = resolveTrackLyricsSyncUrl(mergedTrack);
+
+    if (!lyricsSyncUrl) {
+      return mergedTrack;
+    }
+
+    try {
+      const syncedLyrics = await trackService.getTrackSyncedLyrics(lyricsSyncUrl);
+
+      return normalizePlayerTrack({
+        ...mergedTrack,
+        lrc: syncedLyrics,
+        lyricsSyncUrl,
+      });
+    } catch {
+      return mergedTrack;
+    }
   }, []);
 
   const loadTrackAtIndex = useCallback(async (index, options = {}, explicitQueue = null) => {
