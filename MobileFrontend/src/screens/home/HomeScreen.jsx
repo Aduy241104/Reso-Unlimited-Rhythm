@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   FlatList,
+  Pressable,
   TouchableOpacity,
   StatusBar,
   Image,
@@ -16,10 +17,13 @@ import AppAvatar from '../../components/common/AppAvatar';
 import AppButton from '../../components/common/AppButton';
 import AppLoader from '../../components/common/AppLoader';
 import ErrorState from '../../components/common/ErrorState';
+import ProfileSidebarMenu from '../../components/common/ProfileSidebarMenu';
 import FeaturedCollectionCard from '../../components/home/FeaturedCollectionCard';
 import { useAuth } from '../../hooks/useAuth';
 import homeService from '../../services/homeService';
 import { formatDateLabel, getInitials, resolveImageUri } from '../../utils/media';
+
+const SIDEBAR_CLOSE_DELAY = 180;
 
 const initialHomeState = {
   topTrackCollections: [],
@@ -123,7 +127,24 @@ export default function HomeScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [contentError, setContentError] = useState(null);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const hasLoadedOnceRef = useRef(false);
+  const sidebarActionTimeoutRef = useRef(null);
+
+  useEffect(
+    () => () => {
+      if (sidebarActionTimeoutRef.current) {
+        clearTimeout(sidebarActionTimeoutRef.current);
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setIsSidebarVisible(false);
+    }
+  }, [isAuthenticated]);
 
   const loadHomepage = useCallback(async (options = {}) => {
     const isRefresh = Boolean(options.refresh);
@@ -159,6 +180,26 @@ export default function HomeScreen() {
   useEffect(() => {
     loadHomepage();
   }, [loadHomepage]);
+
+  const closeSidebar = useCallback(() => {
+    setIsSidebarVisible(false);
+  }, []);
+
+  const runAfterSidebarClose = useCallback(
+    (callback) => {
+      closeSidebar();
+
+      if (sidebarActionTimeoutRef.current) {
+        clearTimeout(sidebarActionTimeoutRef.current);
+      }
+
+      sidebarActionTimeoutRef.current = setTimeout(() => {
+        sidebarActionTimeoutRef.current = null;
+        callback?.();
+      }, SIDEBAR_CLOSE_DELAY);
+    },
+    [closeSidebar]
+  );
 
   const handleOpenDetail = useCallback(
     (params) => {
@@ -200,17 +241,54 @@ export default function HomeScreen() {
     });
   }, [navigation]);
 
-  const handleHeaderAction = async () => {
+  const handleOpenSidebar = useCallback(() => {
     if (isAuthenticated) {
-      await logout();
+      setIsSidebarVisible(true);
       return;
     }
 
     navigation.navigate('Login');
-  };
+  }, [isAuthenticated, navigation]);
 
+  
   const displayName = resolveUserDisplayName(user);
   const avatarUri = resolveUserAvatar(user);
+  const userSubtitle = user?.email || 'Tài khoản đã đăng nhập';
+  const sidebarMenuItems = useMemo(
+    () => [
+      {
+        key: 'add-account',
+        label: 'Thêm tài khoản',
+        icon: 'add-circle-outline',
+        onPress: () => { },
+      },
+      {
+        key: 'listening-stats',
+        label: 'Số liệu hoạt động nghe',
+        icon: 'analytics-outline',
+        onPress: () => { },
+      },
+      {
+        key: 'recent',
+        label: 'Gần đây',
+        icon: 'time-outline',
+        onPress: () => { },
+      },
+      {
+        key: 'updates',
+        label: 'Tin cập nhật',
+        icon: 'megaphone-outline',
+        onPress: () => { },
+      },
+      {
+        key: 'settings-privacy',
+        label: 'Cài đặt và quyền riêng tư',
+        icon: 'settings-outline',
+        onPress: () => { },
+      },
+    ],
+    []
+  );
 
   const renderArtistCard = ({ item, index }) => {
     const accentColor = accentPalette[index % accentPalette.length];
@@ -244,7 +322,6 @@ export default function HomeScreen() {
 
   const renderPlaylistCard = ({ item, index }) => {
     const accentColor = accentPalette[index % accentPalette.length];
-    const playlistId = item?._id || item?.id;
 
     return (
       <TouchableOpacity
@@ -291,20 +368,13 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
 
-      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-        <View style={styles.headerIdentity}>
-          {isAuthenticated ? <AppAvatar uri={avatarUri} label={displayName} size={44} /> : null}
-          <View style={[styles.headerTextGroup, !isAuthenticated && { marginLeft: 0 }]}>
-            <Text style={styles.brandText}>RESO UNLIMITED RHYTHM</Text>
-            <Text style={styles.welcomeText} numberOfLines={1}>
-              {isAuthenticated ? displayName : 'Đăng nhập để cá nhân hóa âm nhạc'}
-            </Text>
-          </View>
+      {isAuthenticated ? (
+        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+          <Pressable style={styles.avatarButton} onPress={handleOpenSidebar} hitSlop={8}>
+            <AppAvatar uri={avatarUri} label={displayName} size={44} />
+          </Pressable>
         </View>
-        <TouchableOpacity style={styles.logoutBadge} onPress={handleHeaderAction} activeOpacity={0.7}>
-          <Text style={styles.logoutText}>{isAuthenticated ? 'Đăng xuất' : 'Đăng nhập'}</Text>
-        </TouchableOpacity>
-      </View>
+      ) : null}
 
       {isContentLoading && !hasLoadedOnce ? (
         <View style={styles.centerState}>
@@ -358,6 +428,15 @@ export default function HomeScreen() {
           />
         </ScrollView>
       )}
+
+      <ProfileSidebarMenu
+        visible={isSidebarVisible}
+        onClose={closeSidebar}
+        displayName={displayName}
+        subtitle={userSubtitle}
+        avatarUri={avatarUri}
+        menuItems={sidebarMenuItems}
+      />
     </View>
   );
 }
@@ -369,7 +448,7 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingBottom: 14,
@@ -383,8 +462,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 12,
   },
-  headerGuestSpacer: {
-    flex: 1,
+  avatarButton: {
+    borderRadius: 999,
   },
   headerTextGroup: {
     flex: 1,

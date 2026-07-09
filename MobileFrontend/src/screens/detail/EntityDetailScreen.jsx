@@ -1,11 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
-  Image,
-  Platform,
   ScrollView,
   StatusBar,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -26,8 +23,10 @@ import playlistService from '../../services/playlistService';
 import trackService from '../../services/trackService';
 import userFavoriteService from '../../services/userFavoriteService';
 import userPlaylistService from '../../services/userPlaylistService';
-import { getErrorMessage, getInitials, resolveImageUri } from '../../utils/media';
+import { getErrorMessage, getInitials } from '../../utils/media';
 import { buildPlayableQueue, normalizePlayerTrack } from '../../utils/player';
+import { Artwork, TrackListItem } from './EntityDetailComponents';
+import styles from './EntityDetailScreen.styles';
 
 const detailFetchers = {
   album: ({ entityId }) => albumService.getAlbumDetail(entityId),
@@ -81,112 +80,7 @@ const normalizeInfoEntries = (entries = []) =>
     })
     .filter(Boolean);
 
-const isExplicitTrack = (item) => {
-  return Boolean(
-    item?.explicit ||
-    item?.isExplicit ||
-    item?.isExplicitContent ||
-    item?.contentRating === 'explicit'
-  );
-};
-
 const getTrackId = (item) => String(item?.entityId || item?.id || '');
-
-const Artwork = ({ uri, label, style, textStyle, rounded = false }) => {
-  const imageUri = resolveImageUri(uri);
-
-  if (imageUri) {
-    return (
-      <Image
-        source={{ uri: imageUri }}
-        style={[styles.artwork, rounded && styles.roundedArtwork, style]}
-        resizeMode="cover"
-      />
-    );
-  }
-
-  return (
-    <View style={[styles.artwork, styles.artworkFallback, rounded && styles.roundedArtwork, style]}>
-      <Text style={[styles.artworkFallbackText, textStyle]}>{getInitials(label)}</Text>
-    </View>
-  );
-};
-
-const TrackListItem = ({
-  item,
-  index,
-  isFavorite = false,
-  isFavoriteLoading = false,
-  onFavoritePress,
-  onMorePress,
-  onPress,
-  showIndex = false,
-}) => {
-  const title = getDisplayText(item?.title, 'Nội dung không xác định');
-  const subtitle = getDisplayText(item?.subtitle || item?.artistName);
-  const explicit = isExplicitTrack(item);
-
-  const handleMorePress = (event) => {
-    event.stopPropagation?.();
-    onMorePress?.();
-  };
-
-  const handleFavoritePress = (event) => {
-    event.stopPropagation?.();
-    onFavoritePress?.();
-  };
-
-  return (
-    <TouchableOpacity style={styles.listItem} onPress={onPress} activeOpacity={0.75}>
-      {showIndex ? (
-        <Text style={styles.listIndex}>{index + 1}</Text>
-      ) : null}
-
-      <View style={styles.listContent}>
-        <Text style={styles.listTitle} numberOfLines={1}>
-          {title}
-        </Text>
-
-        <View style={styles.listSubtitleRow}>
-          {explicit ? (
-            <View style={styles.explicitBadge}>
-              <Text style={styles.explicitBadgeText}>E</Text>
-            </View>
-          ) : null}
-
-          {subtitle ? (
-            <Text style={styles.listSubtitle} numberOfLines={1}>
-              {subtitle}
-            </Text>
-          ) : null}
-        </View>
-      </View>
-
-      {onFavoritePress || onMorePress ? (
-        <View style={styles.listActions}>
-          {onFavoritePress ? (
-            <TrackFavoriteButton
-              style={styles.listActionButton}
-              isFavorite={isFavorite}
-              isLoading={isFavoriteLoading}
-              onPress={handleFavoritePress}
-            />
-          ) : null}
-
-          {onMorePress ? (
-            <TouchableOpacity
-              style={styles.moreButton}
-              activeOpacity={0.7}
-              onPress={handleMorePress}
-            >
-              <Ionicons name="ellipsis-horizontal" size={18} color="#9f9f9f" />
-            </TouchableOpacity>
-          ) : null}
-        </View>
-      ) : null}
-    </TouchableOpacity>
-  );
-};
 
 export default function EntityDetailScreen() {
   const navigation = useNavigation();
@@ -735,6 +629,11 @@ export default function EntityDetailScreen() {
 
   const isAlbum = detail?.type === 'album' || entityType === 'album';
   const isArtist = detail?.type === 'artist' || entityType === 'artist';
+  const isTrackDetail = detail?.type === 'track' || entityType === 'track';
+  const shouldShowDetailStats = !isAlbum && detailStats.length > 0;
+  const shouldShowDetailMeta = !isAlbum && detailMeta.length > 0;
+  const albumTrackCount = Number(detail?.trackCount) || (Array.isArray(detail?.items) ? detail.items.length : 0);
+  const albumTrackLabel = isAlbum && albumTrackCount > 0 ? `${albumTrackCount} bài hát` : '';
 
   const artistName = detailSubtitle || detail?.artistName || detail?.artist?.name || '';
   const artistImage =
@@ -743,7 +642,11 @@ export default function EntityDetailScreen() {
     detail?.artist?.avatar ||
     detail?.artist?.image;
 
-  const metaText = detailDescription || detailExtraText || '';
+  const metaLineParts = [
+    badgeLabel,
+    albumTrackLabel,
+    detailDescription || detailExtraText || '',
+  ].filter(Boolean);
 
   const handleToggleAlbumFollow = useCallback(async () => {
     const targetAlbumId = detail?.entityId || detail?.id || entityId;
@@ -865,14 +768,15 @@ export default function EntityDetailScreen() {
             ) : null}
 
             <Text style={styles.metaLine} numberOfLines={2}>
-              {badgeLabel}
-              {metaText ? ` - ${metaText}` : ''}
+              {metaLineParts.join(' - ')}
             </Text>
 
             <View style={styles.actionRow}>
-              <TouchableOpacity style={styles.deviceButton} activeOpacity={0.75}>
-                <Ionicons name="phone-portrait-outline" size={23} color="#d6d6d6" />
-              </TouchableOpacity>
+              {!isAlbum ? (
+                <TouchableOpacity style={styles.deviceButton} activeOpacity={0.75}>
+                  <Ionicons name="phone-portrait-outline" size={23} color="#d6d6d6" />
+                </TouchableOpacity>
+              ) : null}
 
               {isAlbum ? (
                 <TouchableOpacity
@@ -932,14 +836,15 @@ export default function EntityDetailScreen() {
             </View>
           </View>
 
-          {detailStats.length > 0 ? (
-            <View style={styles.section}>
+          {shouldShowDetailStats ? (
+            <View style={[styles.section, isTrackDetail ? styles.trackSectionCompact : null]}>
               <View style={styles.statsGrid}>
                 {detailStats.map((item, index) => (
                   <View
                     key={`${item.label}-${index}`}
                     style={[
                       styles.statCard,
+                      isTrackDetail ? styles.trackStatCardPlain : null,
                       index === detailStats.length - 1 && detailStats.length % 2 === 1
                         ? styles.statCardFull
                         : null,
@@ -953,10 +858,10 @@ export default function EntityDetailScreen() {
             </View>
           ) : null}
 
-          {detailMeta.length > 0 ? (
-            <View style={styles.section}>
+          {shouldShowDetailMeta ? (
+            <View style={[styles.section, isTrackDetail ? styles.trackSectionCompact : null]}>
               <Text style={styles.sectionTitle}>Thông tin</Text>
-              <View style={styles.panel}>
+              <View style={[styles.panel, isTrackDetail ? styles.trackPanelPlain : null]}>
                 {detailMeta.map((item, index) => {
                   const isPressable = Boolean(item.entityType && item.entityId);
                   const RowComponent = isPressable ? TouchableOpacity : View;
@@ -966,6 +871,7 @@ export default function EntityDetailScreen() {
                       key={`${item.label}-${index}`}
                       style={[
                         styles.metaRow,
+                        isTrackDetail ? styles.trackMetaRowPlain : null,
                         index === detailMeta.length - 1 ? styles.metaRowLast : null,
                       ]}
                       onPress={isPressable ? () => handleMetaItemPress(item) : undefined}
@@ -986,7 +892,7 @@ export default function EntityDetailScreen() {
           ) : null}
 
           {detail?.type === 'playlist' && ownerName ? (
-            <View style={styles.section}>
+            <View style={[styles.section, isTrackDetail ? styles.trackSectionCompact : null]}>
               <Text style={styles.sectionTitle}>Tạo bởi</Text>
               <View style={styles.ownerCard}>
                 <View style={styles.ownerAvatar}>
@@ -1001,12 +907,19 @@ export default function EntityDetailScreen() {
           ) : null}
 
           {Array.isArray(detail?.tags) && detail.tags.length > 0 ? (
-            <View style={styles.section}>
+            <View style={[styles.section, isTrackDetail ? styles.trackSectionCompact : null]}>
               <Text style={styles.sectionTitle}>Thẻ</Text>
 
               <View style={styles.tagsWrap}>
                 {detail.tags.map((tag, index) => (
-                  <View key={`${getDisplayText(tag, 'tag')}-${index}`} style={styles.tagPill}>
+                  <View
+                    key={`${getDisplayText(tag, 'tag')}-${index}`}
+                    style={[
+                      styles.tagPill,
+                      isAlbum ? styles.albumTagPlain : null,
+                      isTrackDetail ? styles.trackTagPlain : null,
+                    ]}
+                  >
                     <Text style={styles.tagText}>{getDisplayText(tag)}</Text>
                   </View>
                 ))}
@@ -1015,19 +928,35 @@ export default function EntityDetailScreen() {
           ) : null}
 
           {detail?.extraTitle && detailExtraText ? (
-            <View style={styles.section}>
+            <View style={[styles.section, isTrackDetail ? styles.trackSectionCompact : null]}>
               <Text style={styles.sectionTitle}>{getDisplayText(detail.extraTitle)}</Text>
 
-              <View style={styles.infoPanel}>
+              <View
+                style={[
+                  styles.infoPanel,
+                  isAlbum ? styles.albumInfoPlain : null,
+                  isTrackDetail ? styles.trackInfoPlain : null,
+                ]}
+              >
                 <Text style={styles.extraText}>{detailExtraText}</Text>
               </View>
             </View>
           ) : null}
 
           {Array.isArray(detail?.items) && detail.items.length > 0 ? (
-            <View style={styles.section}>
+            <View style={[styles.section, isTrackDetail ? styles.trackSectionCompact : null]}>
               <Text style={styles.sectionTitle}>{getDisplayText(detail.itemsTitle, 'Danh sách')}</Text>
-              <View style={detail?.type === 'topTrackCollection' ? styles.trackList : styles.panel}>
+              <View
+                style={
+                  detail?.type === 'topTrackCollection'
+                    ? styles.trackList
+                    : [
+                      styles.panel,
+                      isAlbum ? styles.albumSurfacePlain : null,
+                      isTrackDetail ? styles.trackPanelPlain : null,
+                    ]
+                }
+              >
                 {detail.items.map((item, index) => (
                   <TrackListItem
                     key={`${item.entityId || item.id}-${index}`}
@@ -1083,488 +1012,3 @@ export default function EntityDetailScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#121212',
-  },
-
-  centerState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    backgroundColor: '#121212',
-  },
-
-  retryButton: {
-    marginTop: 18,
-    borderRadius: 999,
-    paddingHorizontal: 22,
-    paddingVertical: 11,
-    backgroundColor: '#ffffff',
-  },
-
-  retryButtonText: {
-    color: '#000000',
-    fontSize: 13,
-    fontWeight: '800',
-  },
-
-  backButton: {
-    position: 'absolute',
-    left: 8,
-    zIndex: 30,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  scrollBody: {
-    backgroundColor: '#121212',
-  },
-
-  heroSection: {
-    position: 'relative',
-    overflow: 'hidden',
-    paddingHorizontal: 16,
-    paddingBottom: 10,
-    backgroundColor: '#121212',
-  },
-
-  heroRedLayer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 280,
-    backgroundColor: '#d9272b',
-  },
-
-  heroDarkLayer: {
-    position: 'absolute',
-    top: 185,
-    left: 0,
-    right: 0,
-    height: 170,
-    backgroundColor: '#3a1f1f',
-    opacity: 0.92,
-  },
-
-  heroBlackLayer: {
-    position: 'absolute',
-    top: 320,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#121212',
-  },
-
-  artwork: {
-    backgroundColor: '#282828',
-  },
-
-  artworkFallback: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  roundedArtwork: {
-    borderRadius: 999,
-  },
-
-  artworkFallbackText: {
-    color: '#ffffff',
-    fontWeight: '900',
-    letterSpacing: 1,
-  },
-
-  heroImage: {
-    alignSelf: 'center',
-    width: 224,
-    height: 224,
-    borderRadius: 4,
-    marginBottom: 14,
-    backgroundColor: '#282828',
-
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOpacity: 0.45,
-        shadowRadius: 18,
-        shadowOffset: { width: 0, height: 12 },
-      },
-      android: {
-        elevation: 12,
-      },
-    }),
-  },
-
-  heroArtistImage: {
-    borderRadius: 112,
-  },
-
-  heroFallbackText: {
-    fontSize: 42,
-    fontWeight: '900',
-    color: '#ffffff',
-  },
-
-  heroTitle: {
-    color: '#ffffff',
-    fontSize: 22,
-    lineHeight: 28,
-    fontWeight: '900',
-    letterSpacing: -0.4,
-    marginTop: 2,
-  },
-
-  artistRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 9,
-  },
-
-  artistAvatar: {
-    width: 23,
-    height: 23,
-    borderRadius: 12,
-    marginRight: 8,
-  },
-
-  artistAvatarText: {
-    fontSize: 9,
-    color: '#ffffff',
-    fontWeight: '900',
-  },
-
-  artistName: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '800',
-  },
-
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-
-  statCard: {
-    width: '48.5%',
-    minHeight: 84,
-    backgroundColor: '#141414',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#262626',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    justifyContent: 'space-between',
-  },
-
-  statCardFull: {
-    width: '100%',
-  },
-
-  statValue: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '800',
-  },
-
-  statLabel: {
-    color: '#8a8a8a',
-    fontSize: 11,
-    fontWeight: '600',
-    marginTop: 8,
-  },
-
-  metaLine: {
-    color: '#b7b7b7',
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: '600',
-    marginTop: 8,
-  },
-
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12,
-  },
-
-  deviceButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 4,
-    borderWidth: 1.4,
-    borderColor: '#bdbdbd',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 13,
-  },
-
-  iconActionButton: {
-    width: 34,
-    height: 34,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 13,
-  },
-
-  iconActionButtonDisabled: {
-    opacity: 0.6,
-  },
-
-  actionSpacer: {
-    flex: 1,
-  },
-
-  shuffleButton: {
-    width: 38,
-    height: 38,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 11,
-  },
-
-  playCircleButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1ed760',
-
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOpacity: 0.28,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 7 },
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
-  },
-
-  trackList: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    backgroundColor: '#121212',
-  },
-
-  listItem: {
-    minHeight: 52,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-  },
-
-  listIndex: {
-    width: 24,
-    marginRight: 8,
-    color: '#b3b3b3',
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-
-  listContent: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-
-  listTitle: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '500',
-    letterSpacing: -0.1,
-  },
-
-  listSubtitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-  },
-
-  explicitBadge: {
-    width: 13,
-    height: 13,
-    borderRadius: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#b3b3b3',
-    marginRight: 5,
-  },
-
-  explicitBadgeText: {
-    color: '#121212',
-    fontSize: 8,
-    fontWeight: '900',
-  },
-
-  listSubtitle: {
-    flexShrink: 1,
-    color: '#b3b3b3',
-    fontSize: 13,
-    fontWeight: '500',
-  },
-
-  listActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
-
-  listActionButton: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  moreButton: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  section: {
-    paddingHorizontal: 16,
-    marginTop: 18,
-  },
-
-  sectionTitle: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '900',
-    marginBottom: 12,
-  },
-
-  panel: {
-    backgroundColor: '#141414',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#262626',
-    overflow: 'hidden',
-  },
-
-  infoPanel: {
-    borderRadius: 12,
-    padding: 14,
-    backgroundColor: '#181818',
-  },
-
-  extraText: {
-    color: '#d0d0d0',
-    fontSize: 13,
-    lineHeight: 20,
-  },
-
-  tagsWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-
-  tagPill: {
-    borderRadius: 999,
-    paddingHorizontal: 13,
-    paddingVertical: 8,
-    backgroundColor: '#242424',
-  },
-
-  tagText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  metaRow: {
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#242424',
-  },
-
-  metaRowLast: {
-    borderBottomWidth: 0,
-  },
-
-  metaLabel: {
-    color: '#8f8f8f',
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-    marginBottom: 6,
-  },
-
-  metaValueWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-
-  metaValue: {
-    flex: 1,
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-
-  ownerCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#141414',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#262626',
-    padding: 14,
-  },
-
-  ownerAvatar: {
-    width: 46,
-    height: 46,
-    borderRadius: 999,
-    backgroundColor: '#202020',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-
-  ownerAvatarText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-
-  ownerContent: {
-    flex: 1,
-  },
-
-  ownerName: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-
-  ownerRole: {
-    color: '#9a9a9a',
-    fontSize: 11,
-    marginTop: 4,
-  },
-
-  emptyPanelText: {
-    color: '#a3a3a3',
-    fontSize: 12,
-    lineHeight: 19,
-    padding: 14,
-  },
-});
