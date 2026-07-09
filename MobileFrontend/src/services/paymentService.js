@@ -1,4 +1,4 @@
-import axiosClient from '../api/axiosClient';
+﻿import axiosClient from '../api/axiosClient';
 import { API_ENDPOINTS } from '../api/apiEndpoints';
 
 const getPayload = (response) => response?.data || response || {};
@@ -140,9 +140,18 @@ const normalizePaymentDetail = (payment = {}) => {
 };
 
 export const paymentService = {
-  async getPaymentHistory() {
+  async getPaymentHistory(status = 'all') {
     try {
-      const response = await axiosClient.get(API_ENDPOINTS.PAYMENTS.HISTORY);
+      const normalizedStatus = String(status || 'all').trim().toLowerCase();
+      const requestConfig =
+        normalizedStatus !== 'all'
+          ? {
+              params: {
+                status: normalizedStatus,
+              },
+            }
+          : undefined;
+      const response = await axiosClient.get(API_ENDPOINTS.PAYMENTS.HISTORY, requestConfig);
       const payload = getPayload(response);
       const historyItems = extractHistoryItems(payload);
 

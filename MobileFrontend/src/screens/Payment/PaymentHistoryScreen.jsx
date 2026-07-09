@@ -2,6 +2,7 @@
 import {
   FlatList,
   RefreshControl,
+  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -15,6 +16,13 @@ import AppButton from '../../components/common/AppButton';
 import ErrorState from '../../components/common/ErrorState';
 import { useAuth } from '../../hooks/useAuth';
 import paymentService from '../../services/paymentService';
+
+const FILTER_OPTIONS = [
+  { key: 'all', label: 'Tất cả' },
+  { key: 'success', label: 'Thành công' },
+  { key: 'pending', label: 'Đang xử lý' },
+  { key: 'failed', label: 'Thất bại' },
+];
 
 const currencyFormatter = new Intl.NumberFormat('vi-VN', {
   style: 'currency',
@@ -134,6 +142,7 @@ export default function PaymentHistoryScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { isAuthenticated } = useAuth();
+  const [selectedStatus, setSelectedStatus] = useState('all');
   const [paymentHistory, setPaymentHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(Boolean(isAuthenticated));
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -142,6 +151,10 @@ export default function PaymentHistoryScreen() {
   const handleOpenLogin = useCallback(() => {
     navigation.navigate('Login');
   }, [navigation]);
+
+  const handleSelectStatus = useCallback((statusKey) => {
+    setSelectedStatus((currentStatus) => (currentStatus === statusKey ? currentStatus : statusKey));
+  }, []);
 
   const handleOpenPaymentDetail = useCallback(
     (item) => {
@@ -171,41 +184,44 @@ export default function PaymentHistoryScreen() {
     [navigation]
   );
 
-  const loadPaymentHistory = useCallback(async (options = {}) => {
-    if (!isAuthenticated) {
-      setPaymentHistory([]);
-      setErrorMessage('');
-      setIsLoading(false);
-      setIsRefreshing(false);
-      return;
-    }
+  const loadPaymentHistory = useCallback(
+    async (status = selectedStatus, options = {}) => {
+      if (!isAuthenticated) {
+        setPaymentHistory([]);
+        setErrorMessage('');
+        setIsLoading(false);
+        setIsRefreshing(false);
+        return;
+      }
 
-    const refresh = Boolean(options?.refresh);
+      const refresh = Boolean(options?.refresh);
 
-    if (refresh) {
-      setIsRefreshing(true);
-    } else {
-      setIsLoading(true);
-    }
+      if (refresh) {
+        setIsRefreshing(true);
+      } else {
+        setIsLoading(true);
+      }
 
-    try {
-      const history = await paymentService.getPaymentHistory();
+      try {
+        const history = await paymentService.getPaymentHistory(status);
 
-      setPaymentHistory(Array.isArray(history) ? history : []);
-      setErrorMessage('');
-    } catch (error) {
-      setErrorMessage(error?.message || 'Không thể tải lịch sử thanh toán lúc này.');
-      setPaymentHistory([]);
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }, [isAuthenticated]);
+        setPaymentHistory(Array.isArray(history) ? history : []);
+        setErrorMessage('');
+      } catch (error) {
+        setErrorMessage(error?.message || 'Không thể tải lịch sử thanh toán lúc này.');
+        setPaymentHistory([]);
+      } finally {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
+    },
+    [isAuthenticated, selectedStatus]
+  );
 
   useFocusEffect(
     useCallback(() => {
-      loadPaymentHistory();
-    }, [loadPaymentHistory])
+      loadPaymentHistory(selectedStatus);
+    }, [loadPaymentHistory, selectedStatus])
   );
 
   const renderItem = useCallback(
@@ -225,6 +241,27 @@ export default function PaymentHistoryScreen() {
         <View style={styles.headerSpacer} />
       </View>
 
+      {isAuthenticated ? (
+        <View style={styles.filterSection}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterContent}>
+            {FILTER_OPTIONS.map((option) => {
+              const isActive = selectedStatus === option?.key;
+
+              return (
+                <TouchableOpacity
+                  key={option?.key}
+                  style={[styles.filterChip, isActive && styles.filterChipActive]}
+                  onPress={() => handleSelectStatus(option?.key)}
+                  activeOpacity={0.82}
+                >
+                  <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]}>{option?.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      ) : null}
+
       {!isAuthenticated ? (
         <View style={styles.centerState}>
           <Text style={styles.unauthText}>Bạn cần đăng nhập để xem lịch sử thanh toán.</Text>
@@ -237,7 +274,7 @@ export default function PaymentHistoryScreen() {
       ) : errorMessage && paymentHistory.length === 0 ? (
         <View style={styles.centerState}>
           <ErrorState message={errorMessage} />
-          <TouchableOpacity style={styles.retryButton} onPress={() => loadPaymentHistory()} activeOpacity={0.82}>
+          <TouchableOpacity style={styles.retryButton} onPress={() => loadPaymentHistory(selectedStatus)} activeOpacity={0.82}>
             <Text style={styles.retryButtonText}>Thử lại</Text>
           </TouchableOpacity>
         </View>
@@ -254,13 +291,13 @@ export default function PaymentHistoryScreen() {
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
-              onRefresh={() => loadPaymentHistory({ refresh: true })}
+              onRefresh={() => loadPaymentHistory(selectedStatus, { refresh: true })}
               tintColor="#ffffff"
             />
           }
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Text style={styles.emptyStateText}>Chưa có lịch sử thanh toán.</Text>
+              <Text style={styles.emptyStateText}>Không có giao dịch phù hợp.</Text>
             </View>
           }
         />
@@ -302,6 +339,33 @@ const styles = StyleSheet.create({
   },
   headerSpacer: {
     width: 72,
+  },
+  filterSection: {
+    paddingTop: 16,
+  },
+  filterContent: {
+    paddingHorizontal: 20,
+    gap: 10,
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#2d2d33',
+    backgroundColor: '#111113',
+  },
+  filterChipActive: {
+    borderColor: '#f0c15d',
+    backgroundColor: '#2f2410',
+  },
+  filterChipText: {
+    color: '#d4d4d8',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  filterChipTextActive: {
+    color: '#f8d98b',
   },
   centerState: {
     flex: 1,
