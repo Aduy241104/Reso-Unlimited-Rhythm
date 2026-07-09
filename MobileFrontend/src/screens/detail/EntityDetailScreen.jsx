@@ -694,6 +694,28 @@ export default function EntityDetailScreen() {
   const isAlbum = detail?.type === 'album' || entityType === 'album';
   const isArtist = detail?.type === 'artist' || entityType === 'artist';
   const isTrackDetail = detail?.type === 'track' || entityType === 'track';
+  const isReportableDetail = isAlbum || isArtist || isTrackDetail;
+
+  const handleOpenCreateReport = useCallback(() => {
+    const reportTargetId = String(detail?.entityId || detail?.id || entityId || '');
+    const reportTargetType = isTrackDetail ? 'track' : isAlbum ? 'album' : isArtist ? 'artist' : '';
+
+    if (!reportTargetId || !reportTargetType) {
+      Alert.alert('Không thể báo cáo', 'Nội dung này hiện chưa sẵn sàng để gửi báo cáo.');
+      return;
+    }
+
+    if (!isAuthenticated) {
+      navigation.navigate('Login');
+      return;
+    }
+
+    navigation.navigate('CreateReport', {
+      targetId: reportTargetId,
+      targetType: reportTargetType,
+      targetTitle: detailTitle,
+    });
+  }, [detail?.entityId, detail?.id, detailTitle, entityId, isAlbum, isArtist, isAuthenticated, isTrackDetail, navigation]);
   const shouldShowDetailStats = !isAlbum && detailStats.length > 0;
   const shouldShowDetailMeta = !isAlbum && detailMeta.length > 0;
   const albumTrackCount = Number(detail?.trackCount) || (Array.isArray(detail?.items) ? detail.items.length : 0);
@@ -945,6 +967,16 @@ export default function EntityDetailScreen() {
               <TouchableOpacity style={styles.iconActionButton} activeOpacity={0.75}>
                 <Ionicons name="arrow-down-circle-outline" size={25} color="#b3b3b3" />
               </TouchableOpacity>
+
+              {isReportableDetail ? (
+                <TouchableOpacity
+                  style={styles.iconActionButton}
+                  activeOpacity={0.75}
+                  onPress={handleOpenCreateReport}
+                >
+                  <Ionicons name="flag-outline" size={22} color="#b3b3b3" />
+                </TouchableOpacity>
+              ) : null}
 
               {canOpenHeroTrackActions ? (
                 <TrackFavoriteButton
