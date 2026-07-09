@@ -190,8 +190,12 @@ export default function SearchScreen({ navigation }) {
     [handlePressGenre]
   );
 
+  const renderScreenTitle = <Text style={styles.screenTitle}>Tìm kiếm</Text>;
+
   const renderSearchHeader = (
     <View style={styles.headerContent}>
+      {renderScreenTitle}
+
       <View style={styles.searchBar}>
         <Ionicons color="#111111" name="search" size={22} />
         <TextInput
@@ -218,6 +222,8 @@ export default function SearchScreen({ navigation }) {
 
   const renderGenreHeader = (
     <View style={styles.headerContent}>
+      {renderScreenTitle}
+
       <View style={styles.searchBar}>
         <Ionicons color="#111111" name="search" size={22} />
         <TextInput
@@ -299,6 +305,12 @@ const styles = StyleSheet.create({
   },
   headerContent: {
     paddingBottom: 20,
+  },
+  screenTitle: {
+    color: '#ffffff',
+    fontSize: 32,
+    fontWeight: 'bold',
+    marginBottom: 20,
   },
   searchBar: {
     flexDirection: 'row',
