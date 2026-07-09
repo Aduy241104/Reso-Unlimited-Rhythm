@@ -15,6 +15,7 @@ import FavoriteTracksScreen from '../screens/favorite/FavoriteTracksScreen';
 import PlaylistDetailScreen from '../screens/playlist/PlaylistDetailScreen';
 import PlayerSheetScreen from '../screens/player/PlayerSheetScreen';
 import UserProfileScreen from '../screens/profile/UserProfileScreen';
+import ArtistRegistrationRequestMobileScreen from '../screens/profile/ArtistRegistrationRequestMobileScreen';
 import AppTabBar from '../components/navigation/AppTabBar';
 import theme from '../theme';
 
@@ -90,6 +91,14 @@ function SharedTabStack({ rootName, component: RootComponent }) {
       <Stack.Screen
         name="UserProfile"
         component={UserProfileScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="ArtistRegistrationRequest"
+        component={ArtistRegistrationRequestMobileScreen}
         options={{
           headerShown: false,
           animation: 'slide_from_right',

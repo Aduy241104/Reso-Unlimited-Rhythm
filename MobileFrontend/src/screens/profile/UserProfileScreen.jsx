@@ -250,7 +250,11 @@ export default function UserProfileScreen() {
           <Text style={styles.emptyText}>
             Hãy đăng nhập để xem và cập nhật thông tin tài khoản của bạn.
           </Text>
-          <AppButton title="Đi đến đăng nhập" onPress={() => navigation.navigate('Login')} style={styles.loginButton} />
+          <AppButton
+            title="Đi đến đăng nhập"
+            onPress={() => navigation.navigate('Login')}
+            style={styles.loginButton}
+          />
         </View>
       </View>
     );
@@ -323,6 +327,7 @@ export default function UserProfileScreen() {
             </View>
             {successMessage ? <Text style={styles.successBanner}>{successMessage}</Text> : null}
           </View>
+
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Bảo mật tài khoản</Text>
             <TouchableOpacity style={styles.securityCard} onPress={handleOpenPasswordModal} activeOpacity={0.85}>
@@ -337,6 +342,26 @@ export default function UserProfileScreen() {
             </TouchableOpacity>
             {passwordSuccessMessage ? <Text style={styles.successBanner}>{passwordSuccessMessage}</Text> : null}
           </View>
+
+          {user?.role === 'user' ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Đăng ký nghệ sĩ</Text>
+              <TouchableOpacity
+                style={styles.securityCard}
+                onPress={() => navigation.navigate('ArtistRegistrationRequest')}
+                activeOpacity={0.85}
+              >
+                <View style={styles.securityIconWrap}>
+                  <Ionicons name="mic-outline" size={18} color="#ffffff" />
+                </View>
+                <View style={styles.securityContent}>
+                  <Text style={styles.securityTitle}>Trở thành nghệ sĩ</Text>
+                  <Text style={styles.securityText}>Gửi yêu cầu để nâng cấp tài khoản thành nghệ sĩ.</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color="#8f8f8f" />
+              </TouchableOpacity>
+            </View>
+          ) : null}
         </ScrollView>
       )}
 
@@ -831,4 +856,3 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
 });
-

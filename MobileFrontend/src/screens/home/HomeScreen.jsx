@@ -258,7 +258,7 @@ export default function HomeScreen() {
     () => [
       {
         key: 'user-profile',
-        label: 'Ho so cua ban',
+        label: 'Hồ sơ của bạn',
         icon: 'person-circle-outline',
         onPress: () => runAfterSidebarClose(() => navigation.navigate('UserProfile')),
       },
