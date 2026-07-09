@@ -24,6 +24,10 @@ export const API_ENDPOINTS = {
     DETAIL: '/browse/artists',
     TOP_MONTHLY: '/browse/artists/top/monthly',
   },
+  GENRES: {
+    LIST: '/genres',
+    DETAIL: '/genres',
+  },
   PLAYLISTS: {
     DETAIL: '/playlists/detail',
     SYSTEM: '/playlists/system',
