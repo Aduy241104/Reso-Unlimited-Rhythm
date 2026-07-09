@@ -177,6 +177,7 @@ export default function PremiumCheckoutScreen() {
     ? 'Đăng nhập để tiếp tục'
     : isSubmitting
       ? 'Đang tạo đơn thanh toán...'
+      ? 'Đang tạo đơn thanh toán...'
       : 'Thanh toán với VNPAY';
 
   return (
@@ -279,12 +280,16 @@ export default function PremiumCheckoutScreen() {
               <CheckoutRow
                 label="Hết hạn"
                 value={subscription?.premiumEndDate ? formatPremiumDate(subscription?.premiumEndDate) : 'Chưa có'}
+                value={subscription?.premiumEndDate ? formatPremiumDate(subscription?.premiumEndDate) : 'Chưa có'}
               />
             </View>
           </View>
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Lưu ý thanh toán</Text>
+            <View style={styles.noteCard}>
+              <Text style={styles.noteText}>Thanh toán được thực hiện trên cổng VNPAY do hệ thống cung cấp.</Text>
+              <Text style={styles.noteText}>Sau khi thanh toán xong, hãy quay lại ứng dụng để đối chiếu trạng thái gói.</Text>
             <View style={styles.noteCard}>
               <Text style={styles.noteText}>Thanh toán được thực hiện trên cổng VNPAY do hệ thống cung cấp.</Text>
               <Text style={styles.noteText}>Sau khi thanh toán xong, hãy quay lại ứng dụng để đối chiếu trạng thái gói.</Text>

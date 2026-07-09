@@ -1,8 +1,7 @@
+import { getApiBaseUrl } from '../config/api';
 import { formatDuration, resolveImageUri } from './media';
 
 const fallbackDuration = 30;
-const apiBaseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.248:8080/api';
-const apiBaseUrlWithSlash = apiBaseUrl.endsWith('/') ? apiBaseUrl : `${apiBaseUrl}/`;
 
 const readStringCandidate = (value) => {
   if (typeof value === 'string' && value.trim()) {
@@ -14,6 +13,10 @@ const readStringCandidate = (value) => {
 
 const timedLrcPattern = /\[\d{1,2}:\d{1,2}(?:\.\d{1,3})?\]/;
 const isLoopbackHostname = (value = '') => ['localhost', '127.0.0.1', '::1'].includes(String(value).toLowerCase());
+const getApiBaseUrlWithSlash = () => {
+  const apiBaseUrl = getApiBaseUrl();
+  return apiBaseUrl.endsWith('/') ? apiBaseUrl : `${apiBaseUrl}/`;
+};
 
 const readNestedUri = (value) => {
   if (!value) {
@@ -59,7 +62,7 @@ const toAbsoluteAudioUri = (value) => {
 
     try {
       const candidateUrl = new URL(candidate);
-      const apiUrl = new URL(apiBaseUrl);
+      const apiUrl = new URL(getApiBaseUrl());
 
       if (isLoopbackHostname(candidateUrl.hostname) && !isLoopbackHostname(apiUrl.hostname)) {
         candidateUrl.protocol = apiUrl.protocol;
@@ -74,7 +77,7 @@ const toAbsoluteAudioUri = (value) => {
   }
 
   try {
-    return new URL(candidate, apiBaseUrlWithSlash).toString();
+    return new URL(candidate, getApiBaseUrlWithSlash()).toString();
   } catch {
     return candidate;
   }
@@ -86,6 +89,7 @@ const shouldAttachAuthHeader = (uri) => {
   }
 
   try {
+    const apiBaseUrl = getApiBaseUrl();
     const apiOrigin = new URL(apiBaseUrl).origin;
     const targetOrigin = new URL(uri, apiBaseUrl).origin;
 
@@ -110,9 +114,9 @@ export const normalizePlayerTrack = (item, index = 0) => {
   return {
     ...(item && typeof item === 'object' ? item : {}),
     id: item?.id || item?.entityId || `track-${index}`,
-    title: item?.title || 'Unknown track',
-    artistName: item?.artistName || item?.subtitle || item?.artist?.name || item?.artist || 'Unknown artist',
-    image: item?.image || resolveImageUri(item?.coverImage || item?.avatar),
+    title: item?.title || 'Bài hát không xác định',
+    artistName: item?.artistName || item?.subtitle || item?.artist?.name || item?.artist || 'Nghệ sĩ không xác định',
+    image: resolveImageUri(item?.image || item?.coverImage || item?.avatar),
     duration,
     durationLabel:
       item?.durationLabel ||

@@ -8,7 +8,7 @@ const normalizeArtistRanking = (item) => {
 
   return {
     id: artist.id || artist._id || '',
-    name: artist.name || 'Unknown artist',
+    name: artist.name || 'Nghệ sĩ không xác định',
     avatar: artist.avatar || '',
     rank: item?.rank || 0,
     playCount: item?.playCount || 0,
@@ -29,10 +29,10 @@ const normalizeArtistTrack = (item, index = 0) => {
 
   return {
     id: track?.id || track?._id || `track-${index}`,
-    title: track?.title || 'Unknown track',
-    subtitle: artist?.name || 'Unknown artist',
+    title: track?.title || 'Bài hát không xác định',
+    subtitle: artist?.name || 'Nghệ sĩ không xác định',
     artistId: artist?.id || artist?._id || '',
-    artistName: artist?.name || 'Unknown artist',
+    artistName: artist?.name || 'Nghệ sĩ không xác định',
     albumId: album?.id || album?._id || '',
     albumTitle: album?.title || '',
     image: resolveImageUri(track?.coverImage || track?.avatar || artist?.avatar),
@@ -41,7 +41,7 @@ const normalizeArtistTrack = (item, index = 0) => {
     duration: Number(track?.duration) || 0,
     audioUri: resolveTrackAudioUri(track),
     audioSource: resolveTrackAudioUri(track),
-    meta: `${formatCompactNumber(track?.stats?.totalPlay || track?.playCount)} plays`,
+    meta: `${formatCompactNumber(track?.stats?.totalPlay || track?.playCount)} lượt phát`,
   };
 };
 
@@ -51,24 +51,24 @@ const normalizeArtistDetail = (payload, tracks = []) => {
   return {
     id: profile?.id || profile?._id || profile?.artistId || '',
     type: 'artist',
-    title: profile?.stageName || profile?.artistName || profile?.displayName || profile?.fullName || profile?.name || 'Unknown artist',
-    subtitle: profile?.role || 'Artist',
+    title: profile?.stageName || profile?.artistName || profile?.displayName || profile?.fullName || profile?.name || 'Nghệ sĩ không xác định',
+    subtitle: profile?.role || 'Nghệ sĩ',
     image: resolveImageUri(profile?.avatar || profile?.image || profile?.coverImage),
     description: profile?.bio || profile?.about || profile?.description || '',
     stats: [
-      { label: 'Listeners', value: formatCompactNumber(profile?.monthlyListeners || profile?.stats?.monthlyListeners) },
-      { label: 'Followers', value: formatCompactNumber(profile?.followers || profile?.followersCount || profile?.stats?.followers) },
-      { label: 'Tracks', value: `${tracks.length}` },
+      { label: 'Người nghe', value: formatCompactNumber(profile?.monthlyListeners || profile?.stats?.monthlyListeners) },
+      { label: 'Người theo dõi', value: formatCompactNumber(profile?.followers || profile?.followersCount || profile?.stats?.followers) },
+      { label: 'Bài hát', value: `${tracks.length}` },
     ],
     meta: [
-      { label: 'Role', value: profile?.role || 'Artist' },
-      { label: 'Location', value: profile?.location || profile?.country || profile?.city || 'Unknown' },
-      { label: 'Verified', value: profile?.verified || profile?.isVerified ? 'Yes' : 'No' },
+      { label: 'Vai trò', value: profile?.role || 'Nghệ sĩ' },
+      { label: 'Địa điểm', value: profile?.location || profile?.country || profile?.city || 'Không xác định' },
+      { label: 'Xác minh', value: profile?.verified || profile?.isVerified ? 'Có' : 'Không' },
     ],
     tags: [],
     extraTitle: '',
     extraText: '',
-    itemsTitle: 'Tracks',
+    itemsTitle: 'Bài hát',
     items: tracks,
   };
 };

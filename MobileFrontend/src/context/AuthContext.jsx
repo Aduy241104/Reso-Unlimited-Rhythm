@@ -18,6 +18,18 @@ export const AuthContext = createContext({
   logout: async () => {},
 });
 
+const normalizeAuthUser = (value) => {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  if (value.user && typeof value.user === 'object') {
+    return value.user;
+  }
+
+  return value;
+};
+
 export const AuthProvider = ({ children }) => {
   const [authState, setAuthState] = useState({
     isAuthenticated: false,
@@ -40,14 +52,16 @@ export const AuthProvider = ({ children }) => {
       await tokenStorage.setRefreshToken(refreshToken);
     }
 
-    if (user) {
-      await userStorage.setUserProfile(user);
+    const normalizedUser = normalizeAuthUser(user);
+
+    if (normalizedUser) {
+      await userStorage.setUserProfile(normalizedUser);
     }
   }, []);
 
   const syncCurrentUser = useCallback(async (fallbackUser = null) => {
     const response = await authService.getCurrentUser();
-    const freshUser = response?.data || response;
+    const freshUser = normalizeAuthUser(response?.data || response);
 
     if (freshUser) {
       await userStorage.setUserProfile(freshUser);
@@ -79,7 +93,7 @@ export const AuthProvider = ({ children }) => {
         userStorage.getUserProfile(),
       ]);
 
-      storedUser = persistedUser;
+      storedUser = normalizeAuthUser(persistedUser);
       hasStoredSession = Boolean(accessToken || refreshToken);
 
       if (!hasStoredSession) {
@@ -130,20 +144,20 @@ export const AuthProvider = ({ children }) => {
         const response = await authService.login(email, password);
 
         if (!response) {
-          throw new Error('Khong nhan duoc phan hoi tu server.');
+          throw new Error('Không nhận được phản hồi từ server.');
         }
 
         const authPayload = normalizeAuthPayload(response?.data || response);
-        const sessionUser = authPayload.user || { email };
+        const sessionUser = normalizeAuthUser(authPayload.user) || { email };
 
         if (!authPayload.accessToken) {
-          throw new Error('Dang nhap that bai: Server khong tra ve access token.');
+          throw new Error('Đăng nhập thất bại: Server không trả về access token.');
         }
 
         await persistSession({
           accessToken: authPayload.accessToken,
           refreshToken: authPayload.refreshToken,
-          user: authPayload.user,
+          user: sessionUser,
         });
 
         setAuthState({

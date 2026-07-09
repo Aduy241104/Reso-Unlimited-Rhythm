@@ -55,14 +55,14 @@ const extractTotalItems = (payload, meta, fallback = 0) => {
   return fallback;
 };
 
-const getCollectionTitle = (period) => (period === 'monthly' ? 'Monthly Top Tracks' : 'Daily Top Tracks');
+const getCollectionTitle = (period) => (period === 'monthly' ? 'BXH bài hát tháng' : 'BXH bài hát ngày');
 
 const getCollectionLabel = ({ period, date, month }) => {
   if (period === 'monthly') {
-    return formatMonthLabel(month) || month || 'This month';
+    return formatMonthLabel(month) || month || 'Tháng này';
   }
 
-  return formatDateLabel(date) || date || 'Today';
+  return formatDateLabel(date) || date || 'Hôm nay';
 };
 
 const normalizeTrackRanking = (item) => {
@@ -76,9 +76,9 @@ const normalizeTrackRanking = (item) => {
     ...track,
     ...rawItem,
     id: pickFirstDefined(rawItem.id, rawItem._id, track.id, track._id, ''),
-    title: pickFirstDefined(rawItem.title, track.title, 'Unknown track'),
+    title: pickFirstDefined(rawItem.title, track.title, 'Bài hát không xác định'),
     artistId: pickFirstDefined(rawItem.artistId, artist?.id, artist?._id, ''),
-    artistName: pickFirstDefined(rawItem.artistName, rawItem.artist?.name, artist?.name, 'Unknown artist'),
+    artistName: pickFirstDefined(rawItem.artistName, rawItem.artist?.name, artist?.name, 'Nghệ sĩ không xác định'),
     albumId: pickFirstDefined(rawItem.albumId, album?.id, album?._id, ''),
     albumTitle: pickFirstDefined(rawItem.albumTitle, album?.title, ''),
     image: pickFirstDefined(
@@ -111,10 +111,10 @@ const normalizeTrackItem = (item, index = 0) => {
     ...track,
     ...rawItem,
     id: pickFirstDefined(rawItem.id, rawItem._id, track.id, track._id, rawItem.trackId, `track-${index}`),
-    title: pickFirstDefined(rawItem.title, track.title, 'Unknown track'),
-    subtitle: pickFirstDefined(rawItem.subtitle, rawItem.artistName, artist?.name, 'Unknown artist'),
+    title: pickFirstDefined(rawItem.title, track.title, 'Bài hát không xác định'),
+    subtitle: pickFirstDefined(rawItem.subtitle, rawItem.artistName, artist?.name, 'Nghệ sĩ không xác định'),
     artistId: pickFirstDefined(rawItem.artistId, artist?.id, artist?._id, ''),
-    artistName: pickFirstDefined(rawItem.artistName, artist?.name, 'Unknown artist'),
+    artistName: pickFirstDefined(rawItem.artistName, artist?.name, 'Nghệ sĩ không xác định'),
     albumId: pickFirstDefined(rawItem.albumId, album?.id, album?._id, ''),
     albumTitle: pickFirstDefined(rawItem.albumTitle, album?.title, ''),
     image: pickFirstDefined(
@@ -137,10 +137,10 @@ const normalizeTopTrackDetailItem = (item, index = 0) => {
   return {
     ...rawItem,
     id: pickFirstDefined(rawItem.id, rawItem._id, `track-${index}`),
-    title: pickFirstDefined(rawItem.title, 'Unknown track'),
-    subtitle: pickFirstDefined(rawItem.subtitle, rawItem.artistName, 'Unknown artist'),
+    title: pickFirstDefined(rawItem.title, 'Bài hát không xác định'),
+    subtitle: pickFirstDefined(rawItem.subtitle, rawItem.artistName, 'Nghệ sĩ không xác định'),
     artistId: pickFirstDefined(rawItem.artistId, ''),
-    artistName: pickFirstDefined(rawItem.artistName, 'Unknown artist'),
+    artistName: pickFirstDefined(rawItem.artistName, 'Nghệ sĩ không xác định'),
     albumId: pickFirstDefined(rawItem.albumId, ''),
     albumTitle: pickFirstDefined(rawItem.albumTitle, ''),
     image: pickFirstDefined(rawItem.image, rawItem.coverImage, ''),
@@ -149,7 +149,7 @@ const normalizeTopTrackDetailItem = (item, index = 0) => {
     duration: pickNumber(rawItem.duration),
     audioUri: pickFirstDefined(rawItem.audioUri, audioSource, ''),
     audioSource,
-    meta: pickFirstDefined(rawItem.meta, `${formatCompactNumber(rawItem?.playCount)} plays`),
+    meta: pickFirstDefined(rawItem.meta, `${formatCompactNumber(rawItem?.playCount)} lượt phát`),
   };
 };
 
@@ -169,10 +169,10 @@ const normalizeTrackDetail = (item) => {
     type: pickFirstDefined(track.type, 'track'),
     entityType: pickFirstDefined(track.entityType, 'track'),
     entityId: pickFirstDefined(track.entityId, track.id, track._id, ''),
-    title: pickFirstDefined(track.title, 'Unknown track'),
-    subtitle: pickFirstDefined(track.subtitle, track.artistName, artist?.name, 'Unknown artist'),
+    title: pickFirstDefined(track.title, 'Bài hát không xác định'),
+    subtitle: pickFirstDefined(track.subtitle, track.artistName, artist?.name, 'Nghệ sĩ không xác định'),
     artistId: pickFirstDefined(track.artistId, artist?.id, artist?._id, ''),
-    artistName: pickFirstDefined(track.artistName, artist?.name, 'Unknown artist'),
+    artistName: pickFirstDefined(track.artistName, artist?.name, 'Nghệ sĩ không xác định'),
     albumId: pickFirstDefined(track.albumId, album?.id, album?._id, ''),
     albumTitle: pickFirstDefined(track.albumTitle, album?.title, ''),
     image: pickFirstDefined(
@@ -184,36 +184,67 @@ const normalizeTrackDetail = (item) => {
     duration: pickNumber(track.duration),
     audioUri: pickFirstDefined(track.audioUri, audioSource, ''),
     audioSource,
-    description: pickFirstDefined(track.description, album?.title ? `From ${album.title}` : '', ''),
+    description: pickFirstDefined(track.description, album?.title ? `Từ album ${album.title}` : '', ''),
     stats: asArray(track.stats).length > 0
       ? track.stats
       : [
-          { label: 'Duration', value: formatDuration(track?.duration) },
-          { label: 'Plays', value: formatCompactNumber(track?.stats?.totalPlay) },
-          { label: 'Likes', value: formatCompactNumber(track?.stats?.totalLike) },
+          { label: 'Thời lượng', value: formatDuration(track?.duration) },
+          { label: 'Lượt phát', value: formatCompactNumber(track?.stats?.totalPlay) },
+          { label: 'Lượt thích', value: formatCompactNumber(track?.stats?.totalLike) },
         ],
     meta: asArray(track.meta).length > 0
       ? track.meta
       : [
           {
-            label: 'Artist',
-            value: artist?.name || 'Unknown artist',
+            label: 'Nghệ sĩ',
+            value: artist?.name || 'Nghệ sĩ không xác định',
             entityType: artist?.id || artist?._id ? 'artist' : null,
             entityId: artist?.id || artist?._id || '',
           },
-          { label: 'Album', value: album?.title || 'Single track' },
-          { label: 'Released', value: formatDateLabel(track?.releaseDate) || 'Unknown' },
+          { label: 'Album', value: album?.title || 'Đĩa đơn' },
+          { label: 'Phát hành', value: formatDateLabel(track?.releaseDate) || 'Không xác định' },
         ],
     tags: asArray(track.tags).length > 0 ? track.tags : genres,
-    extraTitle: pickFirstDefined(track.extraTitle, 'Lyrics'),
-    extraText: resolveTrackStaticLyrics(track) || 'No lyrics available.',
-    lyrics: resolveTrackStaticLyrics(track) || 'No lyrics available.',
+    extraTitle: pickFirstDefined(track.extraTitle, 'Lời bài hát'),
+    extraText: resolveTrackStaticLyrics(track) || 'Chưa có lời bài hát.',
+    lyrics: pickFirstDefined(track.lyrics, resolveTrackStaticLyrics(track), 'Chưa có lời bài hát.'),
     lrc: resolveTrackLrc(track),
+    lyricsSyncUrl: resolveTrackLyricsSyncUrl(track),
     itemsTitle: pickFirstDefined(track.itemsTitle, ''),
     items: asArray(track.items),
   };
 };
 
+const normalizeTrackPlayback = (item, trackId = '') => {
+  const playback = asObject(item);
+  const artist = resolveTrackArtist(playback);
+  const album = resolveTrackAlbum(playback);
+  const audioSource = pickFirstDefined(playback.audioSource, resolveTrackAudioUri(playback), '');
+
+  return {
+    ...playback,
+    id: pickFirstDefined(playback.id, playback.trackId, trackId, ''),
+    trackId: pickFirstDefined(playback.trackId, playback.id, trackId, ''),
+    title: pickFirstDefined(playback.title, 'Bài hát không xác định'),
+    artistId: pickFirstDefined(playback.artistId, artist?.id, artist?._id, ''),
+    artistName: pickFirstDefined(playback.artistName, playback.artist?.name, artist?.name, 'Nghệ sĩ không xác định'),
+    albumId: pickFirstDefined(playback.albumId, album?.id, album?._id, ''),
+    albumTitle: pickFirstDefined(playback.albumTitle, album?.title, ''),
+    image: pickFirstDefined(
+      playback.image,
+      playback.coverImage,
+      resolveImageUri(playback.coverImage || playback.avatar || artist?.avatar || artist?.coverImage),
+      ''
+    ),
+    audioUri: pickFirstDefined(playback.audioUri, audioSource, ''),
+    audioSource,
+    duration: pickNumber(playback.duration),
+    lyrics: pickFirstDefined(playback.lyrics, resolveTrackStaticLyrics(playback), ''),
+    lrc: resolveTrackLrc(playback),
+    lyricsSyncUrl: resolveTrackLyricsSyncUrl(playback),
+    raw: playback.raw || playback,
+  };
+};
 const buildTopTrackCollectionSummary = ({ period, date, month, items = [], totalItems = 0 }) => {
   const leadingTrack = items[0];
   const periodLabel = getCollectionLabel({ period, date, month });
@@ -225,15 +256,15 @@ const buildTopTrackCollectionSummary = ({ period, date, month, items = [], total
     period,
     date: date || '',
     month: month || '',
-    badgeLabel: period === 'monthly' ? 'MONTHLY' : 'DAILY',
+    badgeLabel: period === 'monthly' ? 'THÁNG' : 'NGÀY',
     title: getCollectionTitle(period),
     subtitle: periodLabel,
     description: leadingTrack
-      ? `Leading song: ${leadingTrack.title} by ${leadingTrack.artistName}`
-      : 'Open the chart to view the current ranking.',
+      ? `Bài dẫn đầu: ${leadingTrack.title} - ${leadingTrack.artistName}`
+      : 'Mở bảng xếp hạng để xem thứ hạng hiện tại.',
     image: leadingTrack?.image || '',
-    primaryMeta: hasKnownCount ? `${totalItems} songs` : 'Open chart detail',
-    secondaryMeta: leadingTrack ? `#1 ${leadingTrack.title}` : 'Open detail',
+    primaryMeta: hasKnownCount ? `${totalItems} bài hát` : 'Mở chi tiết BXH',
+    secondaryMeta: leadingTrack ? `#1 ${leadingTrack.title}` : 'Mở chi tiết',
   };
 };
 
@@ -244,25 +275,25 @@ const normalizeTopTrackCollectionDetail = ({ period, date, month, items = [], to
   return {
     id: `${period}-${date || month || 'chart'}`,
     type: 'topTrackCollection',
-    badgeLabel: period === 'monthly' ? 'MONTHLY CHART' : 'DAILY CHART',
+    badgeLabel: period === 'monthly' ? 'BXH THÁNG' : 'BXH NGÀY',
     title: getCollectionTitle(period),
     subtitle: collectionLabel,
     image: leadingTrack?.image || '',
-    description: `Chart ranking for ${collectionLabel}. Open a song below to see its full detail.`,
+    description: `Bảng xếp hạng của ${collectionLabel}. Mở một bài hát bên dưới để xem chi tiết đầy đủ.`,
     stats: [
-      { label: 'Songs', value: `${totalItems || items.length}` },
-      { label: 'Leader Plays', value: formatCompactNumber(leadingTrack?.playCount) },
-      { label: period === 'monthly' ? 'Month' : 'Date', value: collectionLabel },
+      { label: 'Bài hát', value: `${totalItems || items.length}` },
+      { label: 'Lượt phát hạng 1', value: formatCompactNumber(leadingTrack?.playCount) },
+      { label: period === 'monthly' ? 'Tháng' : 'Ngày', value: collectionLabel },
     ],
     meta: [
-      { label: 'Chart Type', value: getCollectionTitle(period) },
-      { label: 'Leading Track', value: leadingTrack ? `${leadingTrack.title} - ${leadingTrack.artistName}` : 'Unknown' },
-      { label: 'Preview Size', value: `${items.length} songs loaded` },
+      { label: 'Loại BXH', value: getCollectionTitle(period) },
+      { label: 'Bài dẫn đầu', value: leadingTrack ? `${leadingTrack.title} - ${leadingTrack.artistName}` : 'Không xác định' },
+      { label: 'Số bài đã tải', value: `${items.length} bài hát` },
     ],
     tags: [],
     extraTitle: '',
     extraText: '',
-    itemsTitle: 'Songs In Chart',
+    itemsTitle: 'Bài hát trong BXH',
     items: items.map(normalizeTopTrackDetailItem),
   };
 };
@@ -306,7 +337,9 @@ export const trackService = {
   async getTrackPlayback(trackId) {
     const response = await axiosClient.get(`${API_ENDPOINTS.TRACKS.PLAYBACK}/${trackId}/playback`);
     const payload = getPayload(response);
-    return payload?.track || payload?.data?.track || payload?.playback || payload?.data || payload;
+    const playbackTrack = payload?.track || payload?.data?.track || payload?.playback || payload?.data || payload;
+
+    return normalizeTrackPlayback(playbackTrack, trackId);
   },
 
   async getTrackSyncedLyrics(trackOrUrl) {

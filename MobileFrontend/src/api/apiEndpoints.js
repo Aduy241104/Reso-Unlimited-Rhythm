@@ -17,6 +17,9 @@ export const API_ENDPOINTS = {
     TOP_DAILY: '/tracks/top/daily',
     TOP_MONTHLY: '/tracks/top/monthly',
   },
+  USER_FAVORITES: {
+    TRACKS: '/users/favorites/tracks',
+  },
   ARTISTS: {
     DETAIL: '/browse/artists',
     TOP_MONTHLY: '/browse/artists/top/monthly',
@@ -26,6 +29,13 @@ export const API_ENDPOINTS = {
     SYSTEM: '/playlists/system',
     SYSTEM_DETAIL: '/playlists/system/detail',
   },
+  USER_PLAYLISTS: {
+    LIST: '/users/playlists',
+    DETAIL: '/users/playlists/detail',
+    CREATE: '/users/playlists',
+    UPDATE: '/users/playlists',
+    TRACKS: '/users/playlists',
+  },
   PREMIUM: {
     PLANS: '/subscription-plans',
     MY_SUBSCRIPTION: '/subscriptions/me',
@@ -34,6 +44,7 @@ export const API_ENDPOINTS = {
     VNPAY_CREATE_ORDER: '/payments/vnpay/create-order',
   },
   LIBRARY: {
+    FOLLOWED_ARTISTS: '/libary/followed-artists',
     FOLLOWED_ALBUMS: '/libary/followed-albums',
   },
 };

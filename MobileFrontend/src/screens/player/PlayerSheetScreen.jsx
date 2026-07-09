@@ -90,7 +90,7 @@ export default function PlayerSheetScreen() {
 
       setTrackDetailResponse(null);
       setArtistProfileResponse(null);
-      setDetailErrorMessage(getErrorMessage(error, 'Unable to load track detail right now.'));
+      setDetailErrorMessage(getErrorMessage(error, 'Không thể tải chi tiết bài hát lúc này.'));
     } finally {
       if (requestRef.current === requestId) {
         setIsDetailLoading(false);
@@ -153,8 +153,8 @@ export default function PlayerSheetScreen() {
       <TrackQueueBottomSheet
         visible={isQueueVisible}
         onClose={() => setIsQueueVisible(false)}
-        title="Playing Queue"
-        subtitle={`${queue.length} track${queue.length === 1 ? '' : 's'} in this session`}
+        title="Hàng chờ phát"
+        subtitle={`${queue.length} bài hát trong phiên này`}
       />
     </View>
   );

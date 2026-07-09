@@ -46,7 +46,7 @@ const getLyricsPreview = (value) => {
     .slice(0, 6);
 
   if (lines.length === 0) {
-    return 'No lyrics available.';
+    return 'Chưa có lời bài hát.';
   }
 
   return lines.join('\n');
@@ -58,12 +58,12 @@ const buildSongInfoRows = (trackPayload) => {
   }
 
   return [
-    { label: 'Artist', value: trackPayload?.artist?.name || 'Unknown artist' },
-    { label: 'Album', value: trackPayload?.album?.title || 'Single track' },
-    { label: 'Duration', value: formatDuration(trackPayload?.duration) || '0s' },
-    { label: 'Released', value: formatDateLabel(trackPayload?.releaseDate) || 'Unknown' },
-    { label: 'Plays', value: formatCompactNumber(trackPayload?.stats?.totalPlay) },
-    { label: 'Likes', value: formatCompactNumber(trackPayload?.stats?.totalLike) },
+    { label: 'Nghệ sĩ', value: trackPayload?.artist?.name || 'Nghệ sĩ không xác định' },
+    { label: 'Album', value: trackPayload?.album?.title || 'Đĩa đơn' },
+    { label: 'Thời lượng', value: formatDuration(trackPayload?.duration) || '0s' },
+    { label: 'Phát hành', value: formatDateLabel(trackPayload?.releaseDate) || 'Không xác định' },
+    { label: 'Lượt phát', value: formatCompactNumber(trackPayload?.stats?.totalPlay) },
+    { label: 'Lượt thích', value: formatCompactNumber(trackPayload?.stats?.totalLike) },
   ].filter((item) => String(item.value || '').trim());
 };
 
@@ -240,9 +240,9 @@ export default function PlayerDetailSheet({
         >
           {!currentTrack ? (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyTitle}>No track selected</Text>
+              <Text style={styles.emptyTitle}>Chưa chọn bài hát</Text>
               <Text style={styles.emptyText}>
-                Choose a song from a playlist, artist, or chart to show the player here.
+                Hãy chọn bài hát từ playlist, nghệ sĩ hoặc bảng xếp hạng để hiển thị trình phát tại đây.
               </Text>
             </View>
           ) : (
@@ -252,7 +252,7 @@ export default function PlayerDetailSheet({
               <Text style={styles.trackTitle}>{currentTrack.title}</Text>
               <Text style={styles.trackSubtitle}>{currentTrack.artistName}</Text>
               {currentError ? <Text style={styles.statusTextError}>{currentError}</Text> : null}
-              {!currentError && isBuffering ? <Text style={styles.statusText}>Loading audio...</Text> : null}
+              {!currentError && isBuffering ? <Text style={styles.statusText}>Đang tải âm thanh...</Text> : null}
 
               <View style={styles.progressBlock}>
                 <View style={styles.progressTrack}>
@@ -302,16 +302,16 @@ export default function PlayerDetailSheet({
               {isDetailLoading ? (
                 <View style={styles.detailStateCard}>
                   <AppLoader size="small" />
-                  <Text style={styles.detailStateText}>Loading track detail...</Text>
+                  <Text style={styles.detailStateText}>Đang tải chi tiết bài hát...</Text>
                 </View>
               ) : null}
 
               {!isDetailLoading && detailErrorMessage ? (
                 <View style={styles.detailStateCard}>
-                  <Text style={styles.detailErrorTitle}>Track detail unavailable</Text>
+                  <Text style={styles.detailErrorTitle}>Không thể tải chi tiết bài hát</Text>
                   <Text style={styles.detailErrorText}>{detailErrorMessage}</Text>
                   <Pressable style={styles.retryButton} onPress={onRetryDetail}>
-                    <Text style={styles.retryButtonText}>Try again</Text>
+                    <Text style={styles.retryButtonText}>Thử lại</Text>
                   </Pressable>
                 </View>
               ) : null}
@@ -352,7 +352,7 @@ export default function PlayerDetailSheet({
               {!isDetailLoading && !detailErrorMessage && trackPayload ? (
                 <>
                   <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Song Info</Text>
+                    <Text style={styles.sectionTitle}>Thông tin bài hát</Text>
 
                     <View style={styles.detailCard}>
                       {songInfoRows.map((item) => (
@@ -362,6 +362,7 @@ export default function PlayerDetailSheet({
                   </View>
 
                   <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>About the Artist</Text>
                     <Text style={styles.sectionTitle}>About the Artist</Text>
 
                     <View style={styles.detailCard}>
@@ -377,12 +378,12 @@ export default function PlayerDetailSheet({
 
                         <View style={styles.artistIntroCopy}>
                           <Text style={styles.artistIntroName}>
-                            {artistPayload?.name || trackPayload?.artist?.name || 'Unknown artist'}
+                            {artistPayload?.name || trackPayload?.artist?.name || 'Nghệ sĩ không xác định'}
                           </Text>
                           <Text style={styles.artistIntroMeta}>
-                            {formatCompactNumber(artistPayload?.stats?.monthlyListeners)} monthly listeners
+                            {formatCompactNumber(artistPayload?.stats?.monthlyListeners)} người nghe mỗi tháng
                             {' - '}
-                            {formatCompactNumber(artistPayload?.stats?.followers || artistPayload?.stats?.totalFollowers)} followers
+                            {formatCompactNumber(artistPayload?.stats?.followers || artistPayload?.stats?.totalFollowers)} người theo dõi
                           </Text>
                         </View>
                       </View>
