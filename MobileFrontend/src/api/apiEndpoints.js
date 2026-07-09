@@ -30,6 +30,12 @@ export const API_ENDPOINTS = {
     DETAIL: '/browse/genres',
     TRACKS: '/browse/genres',
   },
+  SEARCH: {
+    ALL: '/search',
+    SONGS: '/search/songs',
+    ARTISTS: '/search/artists',
+    ALBUMS: '/search/albums',
+  },
   PLAYLISTS: {
     DETAIL: '/playlists/detail',
     SYSTEM: '/playlists/system',
