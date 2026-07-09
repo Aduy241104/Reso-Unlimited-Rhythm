@@ -18,8 +18,8 @@ import ErrorState from '../../components/common/ErrorState';
 import { useAuth } from '../../hooks/useAuth';
 import usePlayer from '../../hooks/usePlayer';
 import albumService from '../../services/albumService';
-import artistService from '../../services/artistService';
 import playlistService from '../../services/playlistService';
+import profileArtistService from '../../services/profileArtistService';
 import trackService from '../../services/trackService';
 import userFavoriteService from '../../services/userFavoriteService';
 import userPlaylistService from '../../services/userPlaylistService';
@@ -30,7 +30,7 @@ import styles from './EntityDetailScreen.styles';
 
 const detailFetchers = {
   album: ({ entityId }) => albumService.getAlbumDetail(entityId),
-  artist: ({ entityId }) => artistService.getArtistDetail(entityId),
+  artist: ({ entityId }) => profileArtistService.getArtistDetail(entityId),
   playlist: ({ entityId }) => playlistService.getPlaylistDetail(entityId),
   track: ({ entityId }) => trackService.getTrackDetail(entityId),
   topTrackCollection: (params) => trackService.getTopTrackCollectionDetail(params),
