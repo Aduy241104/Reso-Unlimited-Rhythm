@@ -601,9 +601,8 @@ const main = async () => {
     console.log("Suggested test steps:");
     console.log(`  1. npm run revenue:sync -- ${context.targetMonth}`);
     console.log("  2. GET /api/admin/revenue/periods to lấy period id");
-    console.log("  3. POST /api/admin/revenue/periods/:id/close");
-    console.log("  4. POST /api/admin/revenue/periods/:id/calculate");
-    console.log("  5. POST /api/admin/revenue/periods/:id/confirm");
+    console.log("  3. POST /api/admin/revenue/periods/:id/actions");
+    console.log('     body: { "action": "close" | "calculate" | "confirm" }');
 };
 
 main()

@@ -916,9 +916,8 @@ const logExpectedSummary = (context, expected) => {
     console.log("  1. npm run seed:revenue-flow");
     console.log(`  2. npm run revenue:sync -- ${context.targetMonth}`);
     console.log(`  3. GET /api/admin/revenue/periods?year=${context.year}&month=${context.month}`);
-    console.log("  4. POST /api/admin/revenue/periods/:id/close");
-    console.log("  5. POST /api/admin/revenue/periods/:id/calculate");
-    console.log("  6. POST /api/admin/revenue/periods/:id/confirm");
+    console.log("  4. POST /api/admin/revenue/periods/:id/actions");
+    console.log('     body: { "action": "close" | "calculate" | "confirm" }');
     console.log("  7. GET /api/artist/revenue/dashboard khi dang nhap artist de doi chieu so");
 };
 

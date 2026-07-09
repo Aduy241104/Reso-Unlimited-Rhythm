@@ -23,10 +23,10 @@ import {
   resolveCurrentPlanId,
 } from '../../utils/premium';
 
-const SummaryRow = ({ label, value, valueStyle }) => (
-  <View style={styles.summaryRow}>
-    <Text style={styles.summaryLabel}>{label}</Text>
-    <Text style={[styles.summaryValue, valueStyle]}>{value}</Text>
+const DetailRow = ({ label, value, emphasize = false }) => (
+  <View style={styles.detailRow}>
+    <Text style={styles.detailLabel}>{label}</Text>
+    <Text style={[styles.detailValue, emphasize && styles.detailValueEmphasize]}>{value}</Text>
   </View>
 );
 
@@ -41,6 +41,7 @@ export default function PremiumPlanDetailScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [warningMessage, setWarningMessage] = useState('');
 
   const currentPlanId = useMemo(() => resolveCurrentPlanId(subscription), [subscription]);
   const isCurrentPlan = isSamePlan(plan?._id, currentPlanId) && Boolean(subscription?.isPremium);
@@ -77,13 +78,15 @@ export default function PremiumPlanDetailScreen() {
 
         setPlan(planDetail);
         setSubscription(mySubscription);
-        setErrorMessage(
+        setErrorMessage('');
+        setWarningMessage(
           subscriptionResult.status === 'rejected'
             ? subscriptionResult.reason?.message || 'Không thể đồng bộ trạng thái Premium hiện tại.'
             : ''
         );
       } catch (error) {
         setErrorMessage(error?.message || 'Không thể tải chi tiết gói Premium lúc này.');
+        setWarningMessage('');
       } finally {
         setIsLoading(false);
         setIsRefreshing(false);
@@ -115,22 +118,20 @@ export default function PremiumPlanDetailScreen() {
   }, [isAuthenticated, navigation, plan]);
 
   const actionText = !isAuthenticated
-    ? 'Đăng nhập để mua gói'
+    ? 'Đăng nhập để tiếp tục'
     : isCurrentPlan
       ? 'Gia hạn gói này'
-      : 'Xác nhận mua gói';
+      : 'Tiếp tục xác nhận';
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+      <StatusBar barStyle="light-content" backgroundColor="#0b0b0d" />
 
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} activeOpacity={0.8}>
           <Text style={styles.backButtonText}>Quay lại</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          {plan?.name || 'Chi tiết Premium'}
-        </Text>
+        <Text style={styles.headerTitle}>Chi tiết gói</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -153,41 +154,47 @@ export default function PremiumPlanDetailScreen() {
             <RefreshControl refreshing={isRefreshing} onRefresh={() => loadDetail({ refresh: true })} tintColor="#ffffff" />
           }
         >
-          <View style={styles.heroCard}>
-            <Text style={styles.heroBadge}>{isCurrentPlan ? 'ĐANG HOẠT ĐỘNG' : 'GÓI PREMIUM'}</Text>
-            <Text style={styles.heroTitle}>{plan?.name || 'Premium'}</Text>
-            <Text style={styles.heroSubtitle}>
+          <View style={styles.summaryCard}>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{isCurrentPlan ? 'Gói đang dùng' : 'Thông tin gói'}</Text>
+            </View>
+            <Text style={styles.planName}>{plan?.name || 'Premium'}</Text>
+            <Text style={styles.planDescription}>
               {plan?.description || 'Gói Premium giúp bạn nghe nhạc không bị gián đoạn và mở khóa thêm tính năng.'}
             </Text>
 
             <View style={styles.pricePanel}>
-              <Text style={styles.heroPrice}>{formatPremiumPrice(plan?.price)}</Text>
-              <Text style={styles.heroPriceCaption}>
-                Tổng thanh toán {formatPremiumPrice(plan?.totalPrice)} trong {formatDurationDays(plan?.durationDays)}
+              <Text style={styles.priceCaption}>Tổng thanh toán</Text>
+              <Text style={styles.priceValue}>{formatPremiumPrice(plan?.totalPrice)}</Text>
+              <Text style={styles.priceMeta}>
+                {formatDurationDays(plan?.durationDays)} • Giá gói {formatPremiumPrice(plan?.price)} • VAT {formatPremiumPrice(plan?.taxAmount)}
               </Text>
             </View>
 
             {isCurrentPlan ? (
-              <View style={styles.statusPanel}>
-                <Text style={styles.statusTitle}>Gói này đang là gói hiện tại của bạn</Text>
-                <Text style={styles.statusSubtitle}>
-                  Premium được kích hoạt đến {formatPremiumDate(subscription?.premiumEndDate)}.
+              <View style={styles.activeNotice}>
+                <Text style={styles.activeNoticeTitle}>Gói này đang được kích hoạt</Text>
+                <Text style={styles.activeNoticeText}>
+                  Premium của bạn hiện có hiệu lực đến {formatPremiumDate(subscription?.premiumEndDate) || 'khi có cập nhật mới'}.
                 </Text>
               </View>
             ) : null}
           </View>
 
+          {warningMessage ? (
+            <View style={styles.messageCard}>
+              <Text style={styles.messageText}>{warningMessage}</Text>
+            </View>
+          ) : null}
+
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Thông tin thanh toán</Text>
             <View style={styles.panel}>
-              <SummaryRow label="Giá gói" value={formatPremiumPrice(plan?.price)} />
-              <SummaryRow label="VAT" value={formatPremiumPrice(plan?.taxAmount)} />
-              <SummaryRow
-                label="Tổng thanh toán"
-                value={formatPremiumPrice(plan?.totalPrice)}
-                valueStyle={styles.summaryValueStrong}
-              />
-              <SummaryRow label="Thời hạn" value={formatDurationDays(plan?.durationDays)} />
+              <DetailRow label="Tên gói" value={plan?.name || 'Premium'} />
+              <DetailRow label="Thời hạn" value={formatDurationDays(plan?.durationDays)} />
+              <DetailRow label="Giá gói" value={formatPremiumPrice(plan?.price)} />
+              <DetailRow label="VAT" value={formatPremiumPrice(plan?.taxAmount)} />
+              <DetailRow label="Tổng thanh toán" value={formatPremiumPrice(plan?.totalPrice)} emphasize />
             </View>
           </View>
 
@@ -207,14 +214,14 @@ export default function PremiumPlanDetailScreen() {
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Trạng thái tài khoản</Text>
               <View style={styles.panel}>
-                <SummaryRow label="Premium" value={subscription?.isPremium ? 'Đang bật' : 'Chưa kích hoạt'} />
-                <SummaryRow
+                <DetailRow label="Premium hiện tại" value={subscription?.isPremium ? 'Đang hoạt động' : 'Chưa kích hoạt'} />
+                <DetailRow
                   label="Gói hiện tại"
                   value={subscription?.currentPlan?.name || subscription?.activeSubscription?.plan?.name || 'Chưa có'}
                 />
-                <SummaryRow
+                <DetailRow
                   label="Hết hạn"
-                  value={subscription?.premiumEndDate ? formatPremiumDate(subscription.premiumEndDate) : 'Chưa có'}
+                  value={subscription?.premiumEndDate ? formatPremiumDate(subscription?.premiumEndDate) : 'Chưa có'}
                 />
               </View>
             </View>
@@ -240,36 +247,36 @@ export default function PremiumPlanDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#0b0b0d',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingBottom: 14,
+    paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#181818',
+    borderBottomColor: '#1a1a1f',
   },
   backButton: {
-    minWidth: 56,
+    minWidth: 72,
     paddingVertical: 6,
   },
   backButtonText: {
     color: '#ffffff',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
   },
   headerTitle: {
     flex: 1,
     textAlign: 'center',
     color: '#ffffff',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '800',
     marginHorizontal: 12,
   },
   headerSpacer: {
-    width: 56,
+    width: 72,
   },
   centerState: {
     flex: 1,
@@ -281,126 +288,145 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingHorizontal: 18,
     paddingVertical: 11,
-    borderRadius: 999,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#2d2d2d',
-    backgroundColor: '#121212',
+    borderColor: '#2d2d33',
+    backgroundColor: '#17171c',
   },
   retryButtonText: {
     color: '#ffffff',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
   },
   scrollBody: {
+    paddingHorizontal: 20,
+    paddingTop: 18,
     paddingBottom: 34,
+    gap: 16,
   },
-  heroCard: {
-    marginHorizontal: 20,
-    marginTop: 18,
-    padding: 22,
+  summaryCard: {
+    padding: 20,
     borderRadius: 24,
-    backgroundColor: '#101010',
+    backgroundColor: '#141418',
     borderWidth: 1,
-    borderColor: '#1f1f1f',
+    borderColor: '#212129',
+    gap: 14,
   },
-  heroBadge: {
-    color: '#96e8b8',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.1,
+  badge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#1c1c22',
+    borderWidth: 1,
+    borderColor: '#2e2e38',
   },
-  heroTitle: {
+  badgeText: {
+    color: '#d7d7df',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  planName: {
     color: '#ffffff',
-    fontSize: 29,
-    fontWeight: '900',
-    marginTop: 10,
+    fontSize: 24,
+    fontWeight: '800',
   },
-  heroSubtitle: {
-    color: '#b5b5b5',
-    fontSize: 13,
+  planDescription: {
+    color: '#b2b2bc',
+    fontSize: 14,
     lineHeight: 20,
-    marginTop: 8,
   },
   pricePanel: {
-    marginTop: 18,
-    padding: 16,
-    borderRadius: 20,
-    backgroundColor: '#151515',
-    borderWidth: 1,
-    borderColor: '#252525',
+    padding: 14,
+    borderRadius: 18,
+    backgroundColor: '#1a1a20',
+    gap: 6,
   },
-  heroPrice: {
-    color: '#ffffff',
-    fontSize: 30,
-    fontWeight: '900',
-  },
-  heroPriceCaption: {
-    color: '#9e9e9e',
+  priceCaption: {
+    color: '#9999a5',
     fontSize: 12,
-    lineHeight: 18,
-    marginTop: 6,
+    fontWeight: '600',
   },
-  statusPanel: {
-    marginTop: 16,
-    padding: 16,
-    borderRadius: 20,
-    backgroundColor: '#122016',
-    borderWidth: 1,
-    borderColor: '#1c5d34',
-  },
-  statusTitle: {
-    color: '#dffbe8',
-    fontSize: 14,
+  priceValue: {
+    color: '#ffffff',
+    fontSize: 28,
     fontWeight: '800',
   },
-  statusSubtitle: {
-    color: '#b0d9bd',
+  priceMeta: {
+    color: '#a4a4ae',
     fontSize: 12,
     lineHeight: 18,
-    marginTop: 6,
+  },
+  activeNotice: {
+    padding: 14,
+    borderRadius: 18,
+    backgroundColor: '#182019',
+    borderWidth: 1,
+    borderColor: '#304a35',
+    gap: 6,
+  },
+  activeNoticeTitle: {
+    color: '#e4f7e8',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  activeNoticeText: {
+    color: '#c6dfcb',
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  messageCard: {
+    padding: 14,
+    borderRadius: 18,
+    backgroundColor: '#1a1820',
+    borderWidth: 1,
+    borderColor: '#343040',
+  },
+  messageText: {
+    color: '#d6d2e4',
+    fontSize: 13,
+    lineHeight: 19,
   },
   section: {
-    marginTop: 28,
-    paddingHorizontal: 20,
+    gap: 12,
   },
   sectionTitle: {
     color: '#ffffff',
-    fontSize: 19,
+    fontSize: 18,
     fontWeight: '800',
-    marginBottom: 12,
   },
   panel: {
     borderRadius: 20,
-    backgroundColor: '#121212',
+    backgroundColor: '#141418',
     borderWidth: 1,
-    borderColor: '#202020',
+    borderColor: '#212129',
     overflow: 'hidden',
   },
-  summaryRow: {
+  detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#1d1d1d',
+    borderBottomColor: '#212129',
     gap: 14,
   },
-  summaryLabel: {
-    color: '#8f8f8f',
-    fontSize: 12,
-    fontWeight: '700',
+  detailLabel: {
+    color: '#a6a6b1',
+    fontSize: 13,
+    fontWeight: '600',
   },
-  summaryValue: {
+  detailValue: {
     flex: 1,
     textAlign: 'right',
     color: '#ffffff',
     fontSize: 13,
     fontWeight: '700',
   },
-  summaryValueStrong: {
+  detailValueEmphasize: {
     fontSize: 15,
-    fontWeight: '900',
+    fontWeight: '800',
   },
   featureRow: {
     flexDirection: 'row',
@@ -408,42 +434,39 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#1d1d1d',
-    gap: 12,
+    borderBottomColor: '#212129',
+    gap: 10,
   },
   featureDot: {
-    width: 8,
-    height: 8,
+    width: 7,
+    height: 7,
     borderRadius: 999,
-    backgroundColor: '#1db954',
+    backgroundColor: '#f0c15d',
   },
   featureText: {
     flex: 1,
-    color: '#f0f0f0',
+    color: '#f3f3f6',
     fontSize: 13,
     lineHeight: 19,
   },
   inlineError: {
-    marginTop: 18,
-    marginHorizontal: 20,
     borderRadius: 18,
-    backgroundColor: '#101010',
+    backgroundColor: '#141418',
     borderWidth: 1,
-    borderColor: '#242424',
+    borderColor: '#212129',
   },
   footer: {
-    marginTop: 28,
-    paddingHorizontal: 20,
+    paddingTop: 4,
   },
   primaryButton: {
-    backgroundColor: '#ffffff',
-    borderRadius: 999,
+    backgroundColor: '#f0c15d',
+    borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
   },
   primaryButtonText: {
-    color: '#000000',
+    color: '#181611',
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 });

@@ -7,7 +7,12 @@ import {
   formatMonthLabel,
   resolveImageUri,
 } from '../utils/media';
-import { resolveTrackAudioUri } from '../utils/player';
+import {
+  resolveTrackAudioUri,
+  resolveTrackLrc,
+  resolveTrackLyricsSyncUrl,
+  resolveTrackStaticLyrics,
+} from '../utils/player';
 
 const getPayload = (response) => response?.data || response || {};
 
@@ -201,8 +206,10 @@ const normalizeTrackDetail = (item) => {
         ],
     tags: asArray(track.tags).length > 0 ? track.tags : genres,
     extraTitle: pickFirstDefined(track.extraTitle, 'Lời bài hát'),
-    extraText: pickFirstDefined(track.extraText, track?.lyrics?.static, track?.lyricsStatic, 'Chưa có lời bài hát.'),
-    lyrics: pickFirstDefined(track.lyrics, track?.lyrics?.static, track?.lyricsStatic, 'Chưa có lời bài hát.'),
+    extraText: resolveTrackStaticLyrics(track) || 'Chưa có lời bài hát.',
+    lyrics: pickFirstDefined(track.lyrics, resolveTrackStaticLyrics(track), 'Chưa có lời bài hát.'),
+    lrc: resolveTrackLrc(track),
+    lyricsSyncUrl: resolveTrackLyricsSyncUrl(track),
     itemsTitle: pickFirstDefined(track.itemsTitle, ''),
     items: asArray(track.items),
   };
@@ -232,9 +239,12 @@ const normalizeTrackPlayback = (item, trackId = '') => {
     audioUri: pickFirstDefined(playback.audioUri, audioSource, ''),
     audioSource,
     duration: pickNumber(playback.duration),
+    lyrics: pickFirstDefined(playback.lyrics, resolveTrackStaticLyrics(playback), ''),
+    lrc: resolveTrackLrc(playback),
+    lyricsSyncUrl: resolveTrackLyricsSyncUrl(playback),
+    raw: playback.raw || playback,
   };
 };
-
 const buildTopTrackCollectionSummary = ({ period, date, month, items = [], totalItems = 0 }) => {
   const leadingTrack = items[0];
   const periodLabel = getCollectionLabel({ period, date, month });
@@ -330,6 +340,39 @@ export const trackService = {
     const playbackTrack = payload?.track || payload?.data?.track || payload?.playback || payload?.data || payload;
 
     return normalizeTrackPlayback(playbackTrack, trackId);
+  },
+
+  async getTrackSyncedLyrics(trackOrUrl) {
+    const lyricsSyncUrl =
+      typeof trackOrUrl === 'string'
+        ? resolveTrackLyricsSyncUrl({ lyricsSyncUrl: trackOrUrl })
+        : resolveTrackLyricsSyncUrl(trackOrUrl);
+
+    if (!lyricsSyncUrl) {
+      throw new Error('Track playback does not include a synced lyrics URL.');
+    }
+
+    const response = await axiosClient.get(lyricsSyncUrl, {
+      responseType: 'text',
+      headers: {
+        Accept: 'text/plain, text/*, application/octet-stream, */*',
+      },
+    });
+
+    const lyricsText =
+      typeof response === 'string'
+        ? response
+        : typeof response?.data === 'string'
+          ? response.data
+          : typeof response?.data?.data === 'string'
+            ? response.data.data
+            : '';
+
+    if (!lyricsText.trim()) {
+      throw new Error('The synced lyrics response is empty.');
+    }
+
+    return lyricsText;
   },
 
   buildTopTrackCollectionSummary,

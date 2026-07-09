@@ -16,6 +16,12 @@ const revenuePeriodIdParamSchema = Joi.object({
         .required(),
 });
 
+const revenuePeriodActionBodySchema = Joi.object({
+    action: Joi.string()
+        .valid("close", "calculate", "confirm")
+        .required(),
+});
+
 const revenuePeriodDetailParamSchema = Joi.object({
     id: Joi.alternatives()
         .try(
@@ -34,6 +40,7 @@ const runRevenueAggregationBodySchema = Joi.object({
 export default {
     listRevenuePeriodsQuerySchema,
     revenuePeriodIdParamSchema,
+    revenuePeriodActionBodySchema,
     revenuePeriodDetailParamSchema,
     runRevenueAggregationBodySchema,
 };

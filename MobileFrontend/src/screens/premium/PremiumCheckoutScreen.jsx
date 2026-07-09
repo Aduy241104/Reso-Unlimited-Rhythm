@@ -44,6 +44,7 @@ export default function PremiumCheckoutScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [warningMessage, setWarningMessage] = useState('');
   const [noticeMessage, setNoticeMessage] = useState('');
   const pendingPaymentRef = useRef(false);
   const lastKnownPremiumEndDateRef = useRef('');
@@ -83,14 +84,16 @@ export default function PremiumCheckoutScreen() {
 
         setPlan(planDetail);
         setSubscription(mySubscription);
-        setErrorMessage(
+        setErrorMessage('');
+        setWarningMessage(
           subscriptionResult.status === 'rejected'
             ? subscriptionResult.reason?.message || 'Không thể đồng bộ trạng thái Premium hiện tại.'
             : ''
         );
         lastKnownPremiumEndDateRef.current = mySubscription?.premiumEndDate || '';
       } catch (error) {
-        setErrorMessage(error?.message || 'Không thể tải màn hình xác nhận mua gói lúc này.');
+        setErrorMessage(error?.message || 'Không thể tải màn hình xác nhận thanh toán lúc này.');
+        setWarningMessage('');
       } finally {
         setIsLoading(false);
         setIsRefreshing(false);
@@ -120,14 +123,14 @@ export default function PremiumCheckoutScreen() {
         lastKnownPremiumEndDateRef.current = latestEndDate;
 
         if (latestSubscription?.isPremium && latestEndDate && latestEndDate !== previousEndDate) {
-          setNoticeMessage('Trạng thái Premium đã được cập nhật. Nếu đã thanh toán xong, gói của bạn đã được gia hạn.');
+          setNoticeMessage('Trạng thái Premium đã được cập nhật. Nếu bạn vừa thanh toán xong, gói đã được gia hạn.');
           pendingPaymentRef.current = false;
           return;
         }
 
-        setNoticeMessage('Nếu bạn đã thanh toán xong mà trạng thái chưa đổi, hãy thử kéo làm mới sau ít phút.');
+        setNoticeMessage('Nếu đã thanh toán xong mà trạng thái chưa đổi, hãy kéo để làm mới sau ít phút.');
       } catch (error) {
-        setNoticeMessage('Không thể đồng bộ trạng thái Premium ngay lúc này. Bạn có thể thử lại sau.');
+        setNoticeMessage('Chưa thể đồng bộ trạng thái Premium ngay lúc này. Bạn có thể thử lại sau.');
       }
     });
 
@@ -157,11 +160,11 @@ export default function PremiumCheckoutScreen() {
       const result = await premiumService.createVnpayOrder(plan._id);
 
       if (!result?.paymentUrl) {
-        throw new Error('Hệ thống không trả về đường dẫn thanh toán VNPAY.');
+        throw new Error('Hệ thống chưa trả về đường dẫn thanh toán VNPAY.');
       }
 
       pendingPaymentRef.current = true;
-      setNoticeMessage('Đã tạo đơn thanh toán. Sau khi hoàn tất trên VNPAY, hãy quay lại app để kiểm tra trạng thái mới nhất.');
+      setNoticeMessage('Đã tạo đơn thanh toán. Sau khi hoàn tất trên VNPAY, hãy quay lại ứng dụng để kiểm tra trạng thái mới nhất.');
       await Linking.openURL(result.paymentUrl);
     } catch (error) {
       setErrorMessage(error?.message || 'Không thể tạo đơn thanh toán VNPAY lúc này.');
@@ -173,20 +176,18 @@ export default function PremiumCheckoutScreen() {
   const actionText = !isAuthenticated
     ? 'Đăng nhập để tiếp tục'
     : isSubmitting
-      ? 'Đang tạo đơn hàng...'
+      ? 'Đang tạo đơn thanh toán...'
       : 'Thanh toán với VNPAY';
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+      <StatusBar barStyle="light-content" backgroundColor="#0b0b0d" />
 
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} activeOpacity={0.8}>
           <Text style={styles.backButtonText}>Quay lại</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          Xác nhận mua gói
-        </Text>
+        <Text style={styles.headerTitle}>Xác nhận thanh toán</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -213,17 +214,33 @@ export default function PremiumCheckoutScreen() {
             />
           }
         >
-          <View style={styles.heroCard}>
-            <Text style={styles.heroBadge}>{isCurrentPlan ? 'GIA HẠN GÓI' : 'BƯỚC XÁC NHẬN'}</Text>
-            <Text style={styles.heroTitle}>{plan?.name || 'Premium'}</Text>
-            <Text style={styles.heroSubtitle}>
-              Xác nhận thông tin gói trước khi mở cổng thanh toán VNPAY.
+          <View style={styles.summaryCard}>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{isCurrentPlan ? 'Gia hạn gói' : 'Bước xác nhận'}</Text>
+            </View>
+            <Text style={styles.planName}>{plan?.name || 'Premium'}</Text>
+            <Text style={styles.planDescription}>
+              Kiểm tra lại thông tin gói trước khi chuyển sang cổng thanh toán VNPAY.
             </Text>
+
+            <View style={styles.pricePanel}>
+              <Text style={styles.priceCaption}>Tổng thanh toán</Text>
+              <Text style={styles.priceValue}>{formatPremiumPrice(plan?.totalPrice)}</Text>
+              <Text style={styles.priceMeta}>
+                {formatDurationDays(plan?.durationDays)} • Giá gói {formatPremiumPrice(plan?.price)} • VAT {formatPremiumPrice(plan?.taxAmount)}
+              </Text>
+            </View>
           </View>
 
           {noticeMessage ? (
-            <View style={styles.noticePanel}>
+            <View style={styles.noticeCard}>
               <Text style={styles.noticeText}>{noticeMessage}</Text>
+            </View>
+          ) : null}
+
+          {warningMessage ? (
+            <View style={styles.warningCard}>
+              <Text style={styles.warningText}>{warningMessage}</Text>
             </View>
           ) : null}
 
@@ -261,16 +278,16 @@ export default function PremiumCheckoutScreen() {
               />
               <CheckoutRow
                 label="Hết hạn"
-                value={subscription?.premiumEndDate ? formatPremiumDate(subscription.premiumEndDate) : 'Chưa có'}
+                value={subscription?.premiumEndDate ? formatPremiumDate(subscription?.premiumEndDate) : 'Chưa có'}
               />
             </View>
           </View>
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Lưu ý thanh toán</Text>
-            <View style={styles.notePanel}>
-              <Text style={styles.noteText}>Thanh toán được thực hiện trên cổng VNPAY do backend cung cấp.</Text>
-              <Text style={styles.noteText}>Sau khi thanh toán xong, quay lại app để đối chiếu trạng thái gói.</Text>
+            <View style={styles.noteCard}>
+              <Text style={styles.noteText}>Thanh toán được thực hiện trên cổng VNPAY do hệ thống cung cấp.</Text>
+              <Text style={styles.noteText}>Sau khi thanh toán xong, hãy quay lại ứng dụng để đối chiếu trạng thái gói.</Text>
               <Text style={styles.noteText}>Nếu bạn đang có Premium, thời gian còn lại sẽ được cộng dồn thay vì bị ghi đè.</Text>
             </View>
           </View>
@@ -300,36 +317,36 @@ export default function PremiumCheckoutScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#0b0b0d',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingBottom: 14,
+    paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#181818',
+    borderBottomColor: '#1a1a1f',
   },
   backButton: {
-    minWidth: 56,
+    minWidth: 72,
     paddingVertical: 6,
   },
   backButtonText: {
     color: '#ffffff',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
   },
   headerTitle: {
     flex: 1,
     textAlign: 'center',
     color: '#ffffff',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '800',
     marginHorizontal: 12,
   },
   headerSpacer: {
-    width: 56,
+    width: 72,
   },
   centerState: {
     flex: 1,
@@ -341,75 +358,112 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingHorizontal: 18,
     paddingVertical: 11,
-    borderRadius: 999,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#2d2d2d',
-    backgroundColor: '#121212',
+    borderColor: '#2d2d33',
+    backgroundColor: '#17171c',
   },
   retryButtonText: {
     color: '#ffffff',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
   },
   scrollBody: {
+    paddingHorizontal: 20,
+    paddingTop: 18,
     paddingBottom: 34,
+    gap: 16,
   },
-  heroCard: {
-    marginHorizontal: 20,
-    marginTop: 18,
-    padding: 22,
+  summaryCard: {
+    padding: 20,
     borderRadius: 24,
-    backgroundColor: '#101010',
+    backgroundColor: '#141418',
     borderWidth: 1,
-    borderColor: '#1f1f1f',
+    borderColor: '#212129',
+    gap: 14,
   },
-  heroBadge: {
-    color: '#f1d8a3',
-    fontSize: 10,
+  badge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#1c1c22',
+    borderWidth: 1,
+    borderColor: '#2e2e38',
+  },
+  badgeText: {
+    color: '#d7d7df',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  planName: {
+    color: '#ffffff',
+    fontSize: 24,
     fontWeight: '800',
-    letterSpacing: 1.1,
   },
-  heroTitle: {
+  planDescription: {
+    color: '#b2b2bc',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  pricePanel: {
+    padding: 14,
+    borderRadius: 18,
+    backgroundColor: '#1a1a20',
+    gap: 6,
+  },
+  priceCaption: {
+    color: '#9999a5',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  priceValue: {
     color: '#ffffff',
     fontSize: 28,
-    fontWeight: '900',
-    marginTop: 10,
+    fontWeight: '800',
   },
-  heroSubtitle: {
-    color: '#b5b5b5',
-    fontSize: 13,
-    lineHeight: 20,
-    marginTop: 8,
+  priceMeta: {
+    color: '#a4a4ae',
+    fontSize: 12,
+    lineHeight: 18,
   },
-  noticePanel: {
-    marginTop: 16,
-    marginHorizontal: 20,
-    padding: 16,
+  noticeCard: {
+    padding: 14,
     borderRadius: 18,
-    backgroundColor: '#141d14',
+    backgroundColor: '#182019',
     borderWidth: 1,
-    borderColor: '#24442a',
+    borderColor: '#304a35',
   },
   noticeText: {
-    color: '#d8f0dd',
-    fontSize: 12,
+    color: '#d9f0de',
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  warningCard: {
+    padding: 14,
+    borderRadius: 18,
+    backgroundColor: '#1a1820',
+    borderWidth: 1,
+    borderColor: '#343040',
+  },
+  warningText: {
+    color: '#d6d2e4',
+    fontSize: 13,
     lineHeight: 19,
   },
   section: {
-    marginTop: 26,
-    paddingHorizontal: 20,
+    gap: 12,
   },
   sectionTitle: {
     color: '#ffffff',
-    fontSize: 19,
+    fontSize: 18,
     fontWeight: '800',
-    marginBottom: 12,
   },
   panel: {
     borderRadius: 20,
-    backgroundColor: '#121212',
+    backgroundColor: '#141418',
     borderWidth: 1,
-    borderColor: '#202020',
+    borderColor: '#212129',
     overflow: 'hidden',
   },
   checkoutRow: {
@@ -419,13 +473,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#1d1d1d',
+    borderBottomColor: '#212129',
     gap: 14,
   },
   checkoutLabel: {
-    color: '#8f8f8f',
-    fontSize: 12,
-    fontWeight: '700',
+    color: '#a6a6b1',
+    fontSize: 13,
+    fontWeight: '600',
   },
   checkoutValue: {
     flex: 1,
@@ -436,7 +490,7 @@ const styles = StyleSheet.create({
   },
   checkoutValueEmphasize: {
     fontSize: 15,
-    fontWeight: '900',
+    fontWeight: '800',
   },
   featureRow: {
     flexDirection: 'row',
@@ -444,49 +498,46 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#1d1d1d',
-    gap: 12,
+    borderBottomColor: '#212129',
+    gap: 10,
   },
   featureDot: {
-    width: 8,
-    height: 8,
+    width: 7,
+    height: 7,
     borderRadius: 999,
     backgroundColor: '#f0c15d',
   },
   featureText: {
     flex: 1,
-    color: '#f0f0f0',
+    color: '#f3f3f6',
     fontSize: 13,
     lineHeight: 19,
   },
-  notePanel: {
+  noteCard: {
     padding: 16,
     borderRadius: 20,
-    backgroundColor: '#121212',
+    backgroundColor: '#141418',
     borderWidth: 1,
-    borderColor: '#202020',
+    borderColor: '#212129',
     gap: 10,
   },
   noteText: {
-    color: '#c7c7c7',
-    fontSize: 12,
+    color: '#c9c9d1',
+    fontSize: 13,
     lineHeight: 19,
   },
   inlineError: {
-    marginTop: 18,
-    marginHorizontal: 20,
     borderRadius: 18,
-    backgroundColor: '#101010',
+    backgroundColor: '#141418',
     borderWidth: 1,
-    borderColor: '#242424',
+    borderColor: '#212129',
   },
   footer: {
-    marginTop: 28,
-    paddingHorizontal: 20,
+    paddingTop: 4,
   },
   primaryButton: {
-    backgroundColor: '#ffffff',
-    borderRadius: 999,
+    backgroundColor: '#f0c15d',
+    borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
   },
@@ -494,8 +545,8 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   primaryButtonText: {
-    color: '#000000',
+    color: '#181611',
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 });
