@@ -263,6 +263,18 @@ export default function HomeScreen() {
         onPress: () => runAfterSidebarClose(() => navigation.navigate('UserProfile')),
       },
       {
+        key: 'artist-registration',
+        label: 'Danh sách yêu cầu nghệ sĩ',
+        icon: 'document-text-outline',
+        onPress: () => runAfterSidebarClose(() => navigation.navigate('ArtistRegistrationRequest', { initialView: 'history' })),
+      },
+      {
+        key: 'artist-registration-form',
+        label: 'Đăng ký trở thành nghệ sĩ',
+        icon: 'mic-outline',
+        onPress: () => runAfterSidebarClose(() => navigation.navigate('ArtistRegistrationRequest', { initialView: 'form' })),
+      },
+      {
         key: 'add-account',
         label: 'Thêm tài khoản',
         icon: 'add-circle-outline',
@@ -601,3 +613,4 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
 });
+

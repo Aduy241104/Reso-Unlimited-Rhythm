@@ -1,4 +1,4 @@
-const DATE_VALUE_PATTERN = /^(\d{2})-(\d{2})-(\d{4})$/;
+﻿const DATE_VALUE_PATTERN = /^(\d{2})-(\d{2})-(\d{4})$/;
 const API_DATE_VALUE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 export const DATE_PICKER_MIN_YEAR = 1900;

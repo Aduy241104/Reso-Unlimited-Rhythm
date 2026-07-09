@@ -345,18 +345,32 @@ export default function UserProfileScreen() {
 
           {user?.role === 'user' ? (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Đăng ký nghệ sĩ</Text>
+              <Text style={styles.sectionTitle}>Yêu cầu nghệ sĩ</Text>
               <TouchableOpacity
                 style={styles.securityCard}
-                onPress={() => navigation.navigate('ArtistRegistrationRequest')}
+                onPress={() => navigation.navigate('ArtistRegistrationRequest', { initialView: 'history' })}
+                activeOpacity={0.85}
+              >
+                <View style={styles.securityIconWrap}>
+                  <Ionicons name="list-outline" size={18} color="#ffffff" />
+                </View>
+                <View style={styles.securityContent}>
+                  <Text style={styles.securityTitle}>Xem danh sách yêu cầu</Text>
+                  <Text style={styles.securityText}>Mở danh sách và trạng thái các yêu cầu đăng ký nghệ sĩ của bạn.</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color="#8f8f8f" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.securityCard, { marginTop: 12 }]}
+                onPress={() => navigation.navigate('ArtistRegistrationRequest', { initialView: 'form' })}
                 activeOpacity={0.85}
               >
                 <View style={styles.securityIconWrap}>
                   <Ionicons name="mic-outline" size={18} color="#ffffff" />
                 </View>
                 <View style={styles.securityContent}>
-                  <Text style={styles.securityTitle}>Trở thành nghệ sĩ</Text>
-                  <Text style={styles.securityText}>Gửi yêu cầu để nâng cấp tài khoản thành nghệ sĩ.</Text>
+                  <Text style={styles.securityTitle}>Gửi yêu cầu đăng ký</Text>
+                  <Text style={styles.securityText}>Đi tới biểu mẫu để đăng ký trở thành nghệ sĩ.</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color="#8f8f8f" />
               </TouchableOpacity>
@@ -856,3 +870,4 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
 });
+

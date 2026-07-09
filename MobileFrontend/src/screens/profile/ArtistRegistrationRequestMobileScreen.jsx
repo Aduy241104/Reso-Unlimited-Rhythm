@@ -1,5 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Image,
@@ -13,7 +13,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppButton from '../../components/common/AppButton';
 import AppInput from '../../components/common/AppInput';
@@ -21,6 +21,7 @@ import AppLoader from '../../components/common/AppLoader';
 import ErrorState from '../../components/common/ErrorState';
 import ArtistBirthDatePickerModal from '../../components/profile/ArtistBirthDatePickerModal';
 import ArtistDeclarationModal from '../../components/profile/ArtistDeclarationModal';
+import ArtistRegistrationHistoryList from '../../components/profile/ArtistRegistrationHistoryList';
 import { useAuth } from '../../hooks/useAuth';
 import artistRegistrationRequestService from '../../services/artistRegistrationRequestService';
 import { toDisplayDateValue } from '../../utils/artistRegistrationDate';
@@ -190,6 +191,7 @@ const ImagePickerField = ({ title, helperText, image, onPick, onClear, error }) 
 
 export default function ArtistRegistrationRequestMobileScreen() {
   const navigation = useNavigation();
+  const route = useRoute();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const [requests, setRequests] = useState([]);
@@ -204,6 +206,11 @@ export default function ArtistRegistrationRequestMobileScreen() {
   const [isCancelling, setIsCancelling] = useState(false);
   const [isDatePickerVisible, setIsDatePickerVisible] = useState(false);
   const [activeDeclarationKey, setActiveDeclarationKey] = useState('');
+  const [activeView, setActiveView] = useState(
+    route?.params?.initialView === 'history' ? 'history' : 'form'
+  );
+  const scrollViewRef = useRef(null);
+  const historySectionOffsetRef = useRef(0);
 
   const latestRequest = useMemo(() => getLatestRequest(requests), [requests]);
   const isListenerAccount = user?.role === 'user';
@@ -211,6 +218,8 @@ export default function ArtistRegistrationRequestMobileScreen() {
   const hasApprovedRequest = latestRequest?.status === 'approved';
   const isArtistAccount = user?.role === 'artist';
   const canSubmitRequest = isListenerAccount && !isArtistAccount && !hasPendingRequest && !hasApprovedRequest;
+  const hasAnyRequest = requests.length > 0;
+  const isHistoryView = activeView === 'history';
   const displayDateOfBirth = useMemo(() => toDisplayDateValue(draft.dateOfBirth), [draft.dateOfBirth]);
   const activeDeclarationConfig = activeDeclarationKey ? DECLARATION_CONTENT[activeDeclarationKey] : null;
   const selectedGenreText = useMemo(
@@ -223,6 +232,25 @@ export default function ArtistRegistrationRequestMobileScreen() {
       setDraft((prev) => ({ ...prev, dateOfBirth: displayDateOfBirth }));
     }
   }, [displayDateOfBirth, draft.dateOfBirth]);
+
+  useEffect(() => {
+    setActiveView(route?.params?.initialView === 'history' ? 'history' : 'form');
+  }, [route?.params?.initialView]);
+
+  useEffect(() => {
+    if (activeView !== 'history' || isLoading || requests.length === 0) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      scrollViewRef.current?.scrollTo({
+        y: Math.max(historySectionOffsetRef.current - 12, 0),
+        animated: true,
+      });
+    }, 80);
+
+    return () => clearTimeout(timer);
+  }, [activeView, isLoading, requests.length]);
 
   const loadRequests = useCallback(async ({ refresh = false } = {}) => {
     if (refresh) {
@@ -408,6 +436,7 @@ export default function ArtistRegistrationRequestMobileScreen() {
       await artistRegistrationRequestService.submitRequest(draft);
       setDraft(artistRegistrationRequestService.createArtistRegistrationDraft());
       setFieldErrors({});
+      setActiveView('history');
       setSubmitSuccess('Đã gửi yêu cầu đăng ký nghệ sĩ thành công.');
       await loadRequests({ refresh: true });
     } catch (error) {
@@ -479,6 +508,7 @@ export default function ArtistRegistrationRequestMobileScreen() {
         </View>
       ) : (
         <ScrollView
+          ref={scrollViewRef}
           contentContainerStyle={[styles.scrollBody, { paddingBottom: 32 + insets.bottom }]}
           showsVerticalScrollIndicator={false}
           refreshControl={(
@@ -496,6 +526,12 @@ export default function ArtistRegistrationRequestMobileScreen() {
               Hoàn thiện hồ sơ, giấy tờ xác minh và kênh hoạt động để đội ngũ quản trị xét duyệt tài khoản nghệ sĩ của bạn.
             </Text>
           </View>
+
+          <View
+            onLayout={({ nativeEvent }) => {
+              historySectionOffsetRef.current = nativeEvent.layout.y;
+            }}
+          />
 
           {latestRequest ? (
             <View style={styles.section}>
@@ -532,10 +568,21 @@ export default function ArtistRegistrationRequestMobileScreen() {
             </View>
           ) : null}
 
+          <ArtistRegistrationHistoryList requests={latestRequest ? requests.slice(1) : requests} />
+
           {submitSuccess ? <Text style={styles.successBanner}>{submitSuccess}</Text> : null}
           {submitError ? <Text style={styles.errorBanner}>{submitError}</Text> : null}
 
-          {!isListenerAccount ? (
+          {isHistoryView ? (
+            !hasAnyRequest ? (
+              <View style={styles.section}>
+                <View style={styles.infoCard}>
+                  <Text style={styles.infoTitle}>Chưa có yêu cầu nào</Text>
+                  <Text style={styles.infoText}>Bạn chưa gửi yêu cầu đăng ký nghệ sĩ nào trước đây.</Text>
+                </View>
+              </View>
+            ) : null
+          ) : !isListenerAccount ? (
             <View style={styles.section}>
               <View style={styles.infoCard}>
                 <Text style={styles.infoTitle}>Tài khoản hiện không phù hợp</Text>
