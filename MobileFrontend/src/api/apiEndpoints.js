@@ -54,6 +54,7 @@ export const API_ENDPOINTS = {
   },
   PAYMENTS: {
     VNPAY_CREATE_ORDER: '/payments/vnpay/create-order',
+    HISTORY: '/users/payment-history',
   },
   LIBRARY: {
     FOLLOWED_ARTISTS: '/libary/followed-artists',

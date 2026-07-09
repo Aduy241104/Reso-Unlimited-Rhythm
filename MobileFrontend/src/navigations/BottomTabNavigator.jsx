@@ -1,7 +1,5 @@
-import React, { useEffect } from 'react';
-import { View } from 'react-native';
+import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from '../screens/home/HomeScreen';
@@ -15,6 +13,7 @@ import EntityDetailScreen from '../screens/detail/EntityDetailScreen';
 import FavoriteTracksScreen from '../screens/favorite/FavoriteTracksScreen';
 import PlaylistDetailScreen from '../screens/playlist/PlaylistDetailScreen';
 import PlayerSheetScreen from '../screens/player/PlayerSheetScreen';
+import PremiumScreen from '../screens/premium/PremiumScreen';
 import AppTabBar from '../components/navigation/AppTabBar';
 import theme from '../theme';
 
@@ -28,20 +27,6 @@ const tabIcons = {
   Premium: { active: 'star', inactive: 'star-outline' },
   CreateForMe: { active: 'add', inactive: 'add-outline' },
 };
-
-function PremiumRedirectScreen() {
-  const navigation = useNavigation();
-
-  useEffect(() => {
-    const parentNavigation = navigation.getParent();
-
-    if (parentNavigation) {
-      parentNavigation.navigate('PremiumOverview');
-    }
-  }, [navigation]);
-
-  return <View style={styles.redirectScreen} />;
-}
 
 function SharedTabStack({ rootName, component: RootComponent }) {
   return (
@@ -167,13 +152,7 @@ export const BottomTabNavigator = () => {
       />
       <Tab.Screen
         name="Premium"
-        component={PremiumRedirectScreen}
-        listeners={({ navigation }) => ({
-          tabPress: (event) => {
-            event.preventDefault();
-            navigation.getParent()?.navigate('PremiumOverview');
-          },
-        })}
+        component={PremiumScreen}
         options={{ tabBarLabel: 'Premium' }}
       />
       <Tab.Screen
@@ -183,11 +162,4 @@ export const BottomTabNavigator = () => {
       />
     </Tab.Navigator>
   );
-};
-
-const styles = {
-  redirectScreen: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
 };
