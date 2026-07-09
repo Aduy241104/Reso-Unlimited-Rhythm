@@ -1,14 +1,14 @@
 const PREMIUM_FEATURE_LABELS = {
-  NO_ADS: 'Khong bi chen quang cao',
-  HIGH_QUALITY_AUDIO: 'Chat luong am thanh cao',
-  LOSSLESS_AUDIO: 'Nghe nhac lossless',
-  UNLIMITED_SKIP: 'Bo qua bai hat khong gioi han',
-  OFFLINE_DOWNLOAD: 'Tai nhac de nghe offline',
-  BACKGROUND_PLAY: 'Phat nhac nen',
-  AI_SMART_PLAYLIST: 'Playlist AI thong minh',
-  ADVANCED_RECOMMENDATION: 'De xuat nang cao',
-  EARLY_ACCESS: 'Truy cap som',
-  EXCLUSIVE_CONTENT: 'Noi dung doc quyen',
+  NO_ADS: 'Không bị chèn quảng cáo',
+  HIGH_QUALITY_AUDIO: 'Chất lượng âm thanh cao',
+  LOSSLESS_AUDIO: 'Nghe nhạc lossless',
+  UNLIMITED_SKIP: 'Bỏ qua bài hát không giới hạn',
+  OFFLINE_DOWNLOAD: 'Tải nhạc để nghe ngoại tuyến',
+  BACKGROUND_PLAY: 'Phát nhạc nền',
+  AI_SMART_PLAYLIST: 'Danh sách phát AI thông minh',
+  ADVANCED_RECOMMENDATION: 'Đề xuất nâng cao',
+  EARLY_ACCESS: 'Truy cập sớm',
+  EXCLUSIVE_CONTENT: 'Nội dung độc quyền',
 };
 
 const currencyFormatter = new Intl.NumberFormat('vi-VN', {
@@ -52,18 +52,18 @@ export const formatDurationDays = (value) => {
   const durationDays = Number(value) || 0;
 
   if (durationDays <= 0) {
-    return 'Khong xac dinh';
+    return 'Không xác định';
   }
 
   if (durationDays % 30 === 0) {
     const monthCount = durationDays / 30;
-    return `${monthCount} thang`;
+    return `${monthCount} tháng`;
   }
 
-  return `${durationDays} ngay`;
+  return `${durationDays} ngày`;
 };
 
-export const getPremiumFeatureLabel = (featureCode) => PREMIUM_FEATURE_LABELS[featureCode] || featureCode || 'Tinh nang';
+export const getPremiumFeatureLabel = (featureCode) => PREMIUM_FEATURE_LABELS[featureCode] || featureCode || 'Tính năng';
 
 export const isSamePlan = (leftPlanId, rightPlanId) =>
   Boolean(leftPlanId) && Boolean(rightPlanId) && String(leftPlanId) === String(rightPlanId);

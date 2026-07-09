@@ -27,15 +27,15 @@ const formatFailureReason = (reason) => {
   const normalizedReason = getParamValue(reason);
 
   if (!normalizedReason) {
-    return 'Giao dich VNPAY khong thanh cong.';
+    return 'Giao dịch VNPAY không thành công.';
   }
 
   const reasonMap = {
-    invalid_signature: 'Chu ky callback tu VNPAY khong hop le.',
-    'Order not found': 'Khong tim thay don thanh toan tren he thong.',
-    'Invalid amount': 'So tien giao dich khong khop voi don thanh toan.',
-    'Order already confirmed': 'Don thanh toan nay da duoc xac nhan truoc do.',
-    'Confirm success': 'Giao dich VNPAY da duoc tiep nhan nhung chua thanh cong.',
+    invalid_signature: 'Chữ ký callback từ VNPAY không hợp lệ.',
+    'Order not found': 'Không tìm thấy đơn thanh toán trên hệ thống.',
+    'Invalid amount': 'Số tiền giao dịch không khớp với đơn thanh toán.',
+    'Order already confirmed': 'Đơn thanh toán này đã được xác nhận trước đó.',
+    'Confirm success': 'Giao dịch VNPAY đã được tiếp nhận nhưng chưa thành công.',
   };
 
   return reasonMap[normalizedReason] || normalizedReason;
@@ -68,7 +68,7 @@ export default function PremiumPaymentResultScreen() {
       const latestSubscription = await premiumService.getMySubscription();
       setSubscription(latestSubscription);
     } catch (error) {
-      setErrorMessage(error?.message || 'Khong the tai trang thai Premium luc nay.');
+      setErrorMessage(error?.message || 'Không thể tải trạng thái Premium lúc này.');
     } finally {
       setIsLoading(false);
     }
@@ -78,14 +78,14 @@ export default function PremiumPaymentResultScreen() {
     loadSubscription();
   }, [loadSubscription]);
 
-  const headline = isSuccess ? 'Thanh toan hoan tat' : 'Thanh toan chua thanh cong';
+  const headline = isSuccess ? 'Thanh toán hoàn tất' : 'Thanh toán chưa thành công';
   const subtitle = isSuccess
     ? subscription?.isPremium && subscription?.premiumEndDate
-      ? `Goi Premium cua ban dang hoat dong den ${formatPremiumDate(subscription.premiumEndDate)}.`
-      : 'App da nhan callback tu VNPAY. Neu trang thai goi chua doi, hay thu vao lai sau it phut.'
+      ? `Gói Premium của bạn đang hoạt động đến ${formatPremiumDate(subscription.premiumEndDate)}.`
+      : 'Ứng dụng đã nhận callback từ VNPAY. Nếu trạng thái gói chưa đổi, hãy thử vào lại sau ít phút.'
     : failureReason;
 
-  const primaryActionLabel = !isAuthenticated ? 'Dang nhap lai' : 'Mo tong quan Premium';
+  const primaryActionLabel = !isAuthenticated ? 'Đăng nhập lại' : 'Mở tổng quan Premium';
   const handlePrimaryAction = useCallback(() => {
     if (!isAuthenticated) {
       navigation.navigate('Login');
@@ -101,10 +101,10 @@ export default function PremiumPaymentResultScreen() {
 
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('MainTabs')} activeOpacity={0.8}>
-          <Text style={styles.backButtonText}>Home</Text>
+          <Text style={styles.backButtonText}>Trang chủ</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
-          Ket qua thanh toan
+          Kết quả thanh toán
         </Text>
         <View style={styles.headerSpacer} />
       </View>
@@ -112,24 +112,24 @@ export default function PremiumPaymentResultScreen() {
       <View style={styles.body}>
         <View style={[styles.heroCard, isSuccess ? styles.heroCardSuccess : styles.heroCardFailed]}>
           <Text style={[styles.heroBadge, isSuccess ? styles.heroBadgeSuccess : styles.heroBadgeFailed]}>
-            {isSuccess ? 'VNPAY SUCCESS' : 'VNPAY FAILED'}
+            {isSuccess ? 'VNPAY THÀNH CÔNG' : 'VNPAY THẤT BẠI'}
           </Text>
           <Text style={styles.heroTitle}>{headline}</Text>
           <Text style={styles.heroSubtitle}>{subtitle}</Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Thong tin giao dich</Text>
+          <Text style={styles.sectionTitle}>Thông tin giao dịch</Text>
           <View style={styles.panel}>
-            <SummaryRow label="Ma don" value={invoiceNumber || 'Khong co'} />
-            <SummaryRow label="Trang thai" value={isSuccess ? 'Thanh cong' : 'That bai'} emphasize />
+            <SummaryRow label="Mã đơn" value={invoiceNumber || 'Không có'} />
+            <SummaryRow label="Trạng thái" value={isSuccess ? 'Thành công' : 'Thất bại'} emphasize />
             <SummaryRow
-              label="Premium hien tai"
-              value={subscription?.isPremium ? 'Dang hoat dong' : isAuthenticated ? 'Chua kich hoat' : 'Chua dang nhap'}
+              label="Premium hiện tại"
+              value={subscription?.isPremium ? 'Đang hoạt động' : isAuthenticated ? 'Chưa kích hoạt' : 'Chưa đăng nhập'}
             />
             <SummaryRow
-              label="Het han"
-              value={subscription?.premiumEndDate ? formatPremiumDate(subscription.premiumEndDate) : 'Chua co'}
+              label="Hết hạn"
+              value={subscription?.premiumEndDate ? formatPremiumDate(subscription.premiumEndDate) : 'Chưa có'}
             />
           </View>
         </View>
@@ -155,7 +155,7 @@ export default function PremiumPaymentResultScreen() {
             onPress={() => navigation.navigate('MainTabs')}
             activeOpacity={0.82}
           >
-            <Text style={styles.secondaryButtonText}>Ve trang chu</Text>
+            <Text style={styles.secondaryButtonText}>Về trang chủ</Text>
           </TouchableOpacity>
         </View>
       </View>
