@@ -19,6 +19,7 @@ import theme from '../theme';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
+const TAB_ICON_SIZE = 23;
 
 const tabIcons = {
   Home: { active: 'home', inactive: 'home-outline' },
@@ -129,7 +130,18 @@ export const BottomTabNavigator = () => {
           const iconSet = tabIcons[route.name] || tabIcons.Home;
           const iconName = focused ? iconSet.active : iconSet.inactive;
 
-          return <Ionicons name={iconName} size={size || 22} color={color} />;
+          return (
+            <Ionicons
+              name={iconName}
+              size={Math.max(size || TAB_ICON_SIZE, TAB_ICON_SIZE)}
+              color={color}
+              style={{
+                textShadowColor: color,
+                textShadowOffset: { width: 0, height: 0 },
+                textShadowRadius: focused ? 0.9 : 0.6,
+              }}
+            />
+          );
         },
       })}
     >

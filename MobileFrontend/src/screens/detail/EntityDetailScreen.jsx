@@ -26,7 +26,9 @@ import userPlaylistService from '../../services/userPlaylistService';
 import { getErrorMessage, getInitials } from '../../utils/media';
 import { buildPlayableQueue, normalizePlayerTrack } from '../../utils/player';
 import { Artwork, TrackListItem } from './EntityDetailComponents';
+import { LinearGradient } from 'expo-linear-gradient';
 import styles from './EntityDetailScreen.styles';
+import { StyleSheet } from 'react-native';
 
 const detailFetchers = {
   album: ({ entityId }) => albumService.getAlbumDetail(entityId),
@@ -735,9 +737,22 @@ export default function EntityDetailScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={[styles.heroSection, { paddingTop: insets.top + (isOpenedFromPlayer ? 12 : 48) }]}>
-            <View style={styles.heroRedLayer} />
+            {/* <View style={styles.heroRedLayer} />
             <View style={styles.heroDarkLayer} />
-            <View style={styles.heroBlackLayer} />
+            <View style={styles.heroBlackLayer} /> */}
+                <LinearGradient
+                  colors={ [
+                    '#4338CA',
+                    '#312E81',
+                    '#1E1B4B',
+                    '#171717',
+                    '#131212ff',
+                  ] }
+                  locations={ [0, 0.25, 0.5, 0.78, 1] }
+                  start={ { x: 0.5, y: 0 } }
+                  end={ { x: 0.5, y: 1 } }
+                  style={ StyleSheet.absoluteFillObject }
+                />
 
             <Artwork
               uri={detail?.image}
