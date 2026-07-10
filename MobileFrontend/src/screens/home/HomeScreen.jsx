@@ -257,6 +257,32 @@ export default function HomeScreen() {
   const sidebarMenuItems = useMemo(
     () => [
       {
+        key: 'user-profile',
+        label: 'Hồ sơ của bạn',
+        icon: 'person-circle-outline',
+        onPress: () => runAfterSidebarClose(() => navigation.navigate('UserProfile')),
+      },
+      {
+        key: 'artist-registration',
+        label: 'Danh sách yêu cầu nghệ sĩ',
+        icon: 'document-text-outline',
+        onPress: () => runAfterSidebarClose(() => navigation.navigate('ArtistRegistrationRequest', { initialView: 'history' })),
+      },
+      {
+        key: 'artist-registration-form',
+        label: 'Đăng ký trở thành nghệ sĩ',
+        icon: 'mic-outline',
+        onPress: () => runAfterSidebarClose(() => navigation.navigate('ArtistRegistrationRequest', { initialView: 'form' })),
+      },
+      user?.role === 'user'
+        ? {
+          key: 'report-list',
+          label: 'Danh sách báo cáo',
+          icon: 'flag-outline',
+          onPress: () => runAfterSidebarClose(() => navigation.navigate('ReportList')),
+        }
+        : null,
+      {
         key: 'add-account',
         label: 'Thêm tài khoản',
         icon: 'add-circle-outline',
@@ -286,8 +312,8 @@ export default function HomeScreen() {
         icon: 'settings-outline',
         onPress: () => { },
       },
-    ],
-    []
+    ].filter(Boolean),
+    [navigation, runAfterSidebarClose, user?.role]
   );
 
   const renderArtistCard = ({ item, index }) => {
@@ -621,3 +647,4 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
 });
+

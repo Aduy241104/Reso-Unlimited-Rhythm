@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+﻿import React, { useEffect } from 'react';
 import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -14,6 +14,12 @@ import EntityDetailScreen from '../screens/detail/EntityDetailScreen';
 import FavoriteTracksScreen from '../screens/favorite/FavoriteTracksScreen';
 import PlaylistDetailScreen from '../screens/playlist/PlaylistDetailScreen';
 import PlayerSheetScreen from '../screens/player/PlayerSheetScreen';
+import ArtistRegistrationRequestDetailScreen from '../screens/profile/ArtistRegistrationRequestDetailScreen';
+import UserProfileScreen from '../screens/profile/UserProfileScreen';
+import ArtistRegistrationRequestMobileScreen from '../screens/profile/ArtistRegistrationRequestMobileScreen';
+import CreateReportScreen from '../screens/report/CreateReportScreen';
+import ReportDetailScreen from '../screens/report/ReportDetailScreen';
+import ReportListScreen from '../screens/report/ReportListScreen';
 import AppTabBar from '../components/navigation/AppTabBar';
 import theme from '../theme';
 
@@ -82,6 +88,54 @@ function SharedTabStack({ rootName, component: RootComponent }) {
       <Stack.Screen
         name="FollowedAlbums"
         component={FollowedAlbumsScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="UserProfile"
+        component={UserProfileScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="ArtistRegistrationRequest"
+        component={ArtistRegistrationRequestMobileScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="ArtistRegistrationRequestDetail"
+        component={ArtistRegistrationRequestDetailScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="CreateReport"
+        component={CreateReportScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="ReportList"
+        component={ReportListScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="ReportDetail"
+        component={ReportDetailScreen}
         options={{
           headerShown: false,
           animation: 'slide_from_right',
