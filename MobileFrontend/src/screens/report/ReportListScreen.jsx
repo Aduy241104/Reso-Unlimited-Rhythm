@@ -150,6 +150,14 @@ export default function ReportListScreen() {
 
   const emptyState = getEmptyStateContent(activeFilter);
 
+  const handleOpenReportDetail = useCallback((reportId) => {
+    if (!reportId) {
+      return;
+    }
+
+    navigation.navigate('ReportDetail', { reportId });
+  }, [navigation]);
+
   if (isLoading) {
     return (
       <View style={styles.screen}>
@@ -287,6 +295,15 @@ export default function ReportListScreen() {
                         <Text style={styles.noteText}>{report.resolutionNote}</Text>
                       </View>
                     ) : null}
+
+                    <TouchableOpacity
+                      style={styles.detailButton}
+                      activeOpacity={0.85}
+                      onPress={() => handleOpenReportDetail(report.id)}
+                    >
+                      <Text style={styles.detailButtonText}>Chi tiết</Text>
+                      <Ionicons name="chevron-forward" size={16} color="#f3c26b" />
+                    </TouchableOpacity>
                   </View>
                 );
               })}
@@ -553,5 +570,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     marginTop: 6,
+  },
+  detailButton: {
+    marginTop: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#2d2d2d',
+    backgroundColor: '#171717',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  detailButtonText: {
+    color: '#f3c26b',
+    fontSize: 13,
+    fontWeight: '800',
   },
 });
