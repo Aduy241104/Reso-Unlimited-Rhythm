@@ -12,25 +12,29 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppLoader from '../../components/common/AppLoader';
 import AddTrackToPlaylistModal from '../../components/detail/AddTrackToPlaylistModal';
+import ArtistFollowButton from '../../components/detail/ArtistFollowButton';
 import TrackFavoriteButton from '../../components/detail/TrackFavoriteButton';
 import TrackActionsBottomSheet from '../../components/detail/TrackActionsBottomSheet';
 import ErrorState from '../../components/common/ErrorState';
 import { useAuth } from '../../hooks/useAuth';
 import usePlayer from '../../hooks/usePlayer';
 import albumService from '../../services/albumService';
-import artistService from '../../services/artistService';
+import artistFollowService from '../../services/artistFollowService';
 import playlistService from '../../services/playlistService';
+import profileArtistService from '../../services/profileArtistService';
 import trackService from '../../services/trackService';
 import userFavoriteService from '../../services/userFavoriteService';
 import userPlaylistService from '../../services/userPlaylistService';
-import { getErrorMessage, getInitials } from '../../utils/media';
+import { formatCompactNumber, getErrorMessage, getInitials } from '../../utils/media';
 import { buildPlayableQueue, normalizePlayerTrack } from '../../utils/player';
 import { Artwork, TrackListItem } from './EntityDetailComponents';
+import { LinearGradient } from 'expo-linear-gradient';
 import styles from './EntityDetailScreen.styles';
+import { StyleSheet } from 'react-native';
 
 const detailFetchers = {
   album: ({ entityId }) => albumService.getAlbumDetail(entityId),
-  artist: ({ entityId }) => artistService.getArtistDetail(entityId),
+  artist: ({ entityId }) => profileArtistService.getArtistDetail(entityId),
   playlist: ({ entityId }) => playlistService.getPlaylistDetail(entityId),
   track: ({ entityId }) => trackService.getTrackDetail(entityId),
   topTrackCollection: (params) => trackService.getTopTrackCollectionDetail(params),
@@ -101,6 +105,8 @@ export default function EntityDetailScreen() {
   const [isTrackActionsVisible, setIsTrackActionsVisible] = useState(false);
   const [isAlbumFollowing, setIsAlbumFollowing] = useState(false);
   const [isAlbumFollowUpdating, setIsAlbumFollowUpdating] = useState(false);
+  const [isArtistFollowing, setIsArtistFollowing] = useState(false);
+  const [isArtistFollowUpdating, setIsArtistFollowUpdating] = useState(false);
   const [selectedTrackAction, setSelectedTrackAction] = useState({
     index: 0,
     track: null,
@@ -112,6 +118,42 @@ export default function EntityDetailScreen() {
   const [submittingPlaylistId, setSubmittingPlaylistId] = useState('');
   const [favoriteStatusMap, setFavoriteStatusMap] = useState({});
   const [favoriteUpdatingMap, setFavoriteUpdatingMap] = useState({});
+
+  const applyArtistFollowSnapshot = useCallback((nextIsFollowing, nextFollowers) => {
+    setDetail((previousDetail) => {
+      if (!previousDetail || previousDetail.type !== 'artist') {
+        return previousDetail;
+      }
+
+      const safeFollowers = Math.max(0, Number(nextFollowers) || 0);
+      const safeTrackCount = Math.max(
+        0,
+        Number(previousDetail?.trackCount) || (Array.isArray(previousDetail?.items) ? previousDetail.items.length : 0)
+      );
+      const nextDescription = safeFollowers > 0
+        ? `${formatCompactNumber(safeFollowers)} người theo dõi`
+        : safeTrackCount > 0
+          ? `${safeTrackCount} bài hát`
+          : 'Hồ sơ nghệ sĩ';
+
+      return {
+        ...previousDetail,
+        isFollowing: nextIsFollowing,
+        followersCount: safeFollowers,
+        description: nextDescription,
+        stats: Array.isArray(previousDetail?.stats)
+          ? previousDetail.stats.map((item) =>
+            item?.label === 'Người theo dõi'
+              ? {
+                ...item,
+                value: formatCompactNumber(safeFollowers),
+              }
+              : item
+          )
+          : previousDetail?.stats,
+      };
+    });
+  }, []);
 
   const loadDetail = useCallback(async () => {
     if (!entityId || !entityType || !detailFetchers[entityType]) {
@@ -137,6 +179,8 @@ export default function EntityDetailScreen() {
 
       const shouldLoadAlbumFollowState =
         (entityType === 'album' || result?.type === 'album') && isAuthenticated;
+      const shouldLoadArtistFollowState =
+        (entityType === 'artist' || result?.type === 'artist') && isAuthenticated;
 
       if (shouldLoadAlbumFollowState) {
         try {
@@ -152,14 +196,36 @@ export default function EntityDetailScreen() {
       } else {
         setIsAlbumFollowing(false);
       }
+      if (shouldLoadArtistFollowState) {
+        try {
+          const followState = await artistFollowService.getArtistFollowStatus(result?.id || entityId);
+          const nextIsFollowing = Boolean(followState?.isFollowing);
+
+          setIsArtistFollowing(nextIsFollowing);
+          applyArtistFollowSnapshot(
+            nextIsFollowing,
+            Number(result?.followersCount) || Number(followState?.followers) || 0
+          );
+        } catch (followError) {
+          if (followError?.status === 401) {
+            setIsArtistFollowing(false);
+          } else {
+            console.log('KhĂ´ng thá»ƒ táº£i tráº¡ng thĂ¡i theo dĂµi nghá»‡ sÄ©.', followError?.message || followError);
+          }
+        }
+      } else {
+        setIsArtistFollowing(false);
+      }
     } catch (error) {
       setDetail(null);
       setIsAlbumFollowing(false);
+      setIsArtistFollowing(false);
+      setIsArtistFollowUpdating(false);
       setErrorMessage(getErrorMessage(error, 'Không thể tải nội dung chi tiết lúc này.'));
     } finally {
       setIsLoading(false);
     }
-  }, [date, entityId, entityType, isAuthenticated, limit, month, period]);
+  }, [applyArtistFollowSnapshot, date, entityId, entityType, isAuthenticated, limit, month, period]);
 
   useEffect(() => {
     loadDetail();
@@ -630,6 +696,28 @@ export default function EntityDetailScreen() {
   const isAlbum = detail?.type === 'album' || entityType === 'album';
   const isArtist = detail?.type === 'artist' || entityType === 'artist';
   const isTrackDetail = detail?.type === 'track' || entityType === 'track';
+  const isReportableDetail = isAlbum || isArtist || isTrackDetail;
+
+  const handleOpenCreateReport = useCallback(() => {
+    const reportTargetId = String(detail?.entityId || detail?.id || entityId || '');
+    const reportTargetType = isTrackDetail ? 'track' : isAlbum ? 'album' : isArtist ? 'artist' : '';
+
+    if (!reportTargetId || !reportTargetType) {
+      Alert.alert('Không thể báo cáo', 'Nội dung này hiện chưa sẵn sàng để gửi báo cáo.');
+      return;
+    }
+
+    if (!isAuthenticated) {
+      navigation.navigate('Login');
+      return;
+    }
+
+    navigation.navigate('CreateReport', {
+      targetId: reportTargetId,
+      targetType: reportTargetType,
+      targetTitle: detailTitle,
+    });
+  }, [detail?.entityId, detail?.id, detailTitle, entityId, isAlbum, isArtist, isAuthenticated, isTrackDetail, navigation]);
   const shouldShowDetailStats = !isAlbum && detailStats.length > 0;
   const shouldShowDetailMeta = !isAlbum && detailMeta.length > 0;
   const albumTrackCount = Number(detail?.trackCount) || (Array.isArray(detail?.items) ? detail.items.length : 0);
@@ -702,6 +790,80 @@ export default function EntityDetailScreen() {
     navigation,
   ]);
 
+  const handleToggleArtistFollow = useCallback(async () => {
+    const targetArtistId = detail?.entityId || detail?.id || entityId;
+
+    if (!isArtist || !targetArtistId || isArtistFollowUpdating) {
+      return;
+    }
+
+    if (!isAuthenticated) {
+      navigation.navigate('Login');
+      return;
+    }
+
+    const previousValue = isArtistFollowing;
+    const previousFollowers = Math.max(0, Number(detail?.followersCount) || 0);
+
+    Alert.alert(
+      previousValue ? 'Bỏ theo dõi nghệ sĩ' : 'Theo dõi nghệ sĩ',
+      previousValue
+        ? 'Bạn có muốn bỏ theo dõi nghệ sĩ này không?'
+        : 'Bạn có muốn theo dõi nghệ sĩ này để lưu lại trong thư viện không?',
+      [
+        {
+          text: 'Hủy',
+          style: 'cancel',
+        },
+        {
+          text: previousValue ? 'Bỏ theo dõi' : 'Theo dõi',
+          onPress: async () => {
+            const optimisticValue = !previousValue;
+            const optimisticFollowers = Math.max(previousFollowers + (previousValue ? -1 : 1), 0);
+
+            setIsArtistFollowing(optimisticValue);
+            setIsArtistFollowUpdating(true);
+            applyArtistFollowSnapshot(optimisticValue, optimisticFollowers);
+
+            try {
+              const followState = await artistFollowService.toggleArtistFollow(targetArtistId);
+              const resolvedFollowers = Number(followState?.followers) || optimisticFollowers;
+              const resolvedValue = Boolean(followState?.isFollowing);
+
+              setIsArtistFollowing(resolvedValue);
+              applyArtistFollowSnapshot(resolvedValue, resolvedFollowers);
+            } catch (error) {
+              setIsArtistFollowing(previousValue);
+              applyArtistFollowSnapshot(previousValue, previousFollowers);
+              Alert.alert(
+                previousValue ? 'Bỏ theo dõi thất bại' : 'Theo dõi thất bại',
+                getErrorMessage(
+                  error,
+                  previousValue
+                    ? 'Không thể bỏ theo dõi nghệ sĩ này lúc này.'
+                    : 'Không thể theo dõi nghệ sĩ này lúc này.'
+                )
+              );
+            } finally {
+              setIsArtistFollowUpdating(false);
+            }
+          },
+        },
+      ]
+    );
+  }, [
+    applyArtistFollowSnapshot,
+    detail?.entityId,
+    detail?.followersCount,
+    detail?.id,
+    entityId,
+    isArtist,
+    isArtistFollowUpdating,
+    isArtistFollowing,
+    isAuthenticated,
+    navigation,
+  ]);
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#d9272b" />
@@ -735,9 +897,22 @@ export default function EntityDetailScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={[styles.heroSection, { paddingTop: insets.top + (isOpenedFromPlayer ? 12 : 48) }]}>
-            <View style={styles.heroRedLayer} />
+            {/* <View style={styles.heroRedLayer} />
             <View style={styles.heroDarkLayer} />
-            <View style={styles.heroBlackLayer} />
+            <View style={styles.heroBlackLayer} /> */}
+                <LinearGradient
+                  colors={ [
+                    '#4338CA',
+                    '#312E81',
+                    '#1E1B4B',
+                    '#171717',
+                    '#131212ff',
+                  ] }
+                  locations={ [0, 0.25, 0.5, 0.78, 1] }
+                  start={ { x: 0.5, y: 0 } }
+                  end={ { x: 0.5, y: 1 } }
+                  style={ StyleSheet.absoluteFillObject }
+                />
 
             <Artwork
               uri={detail?.image}
@@ -772,7 +947,7 @@ export default function EntityDetailScreen() {
             </Text>
 
             <View style={styles.actionRow}>
-              {!isAlbum ? (
+              {!isAlbum && !isArtist ? (
                 <TouchableOpacity style={styles.deviceButton} activeOpacity={0.75}>
                   <Ionicons name="phone-portrait-outline" size={23} color="#d6d6d6" />
                 </TouchableOpacity>
@@ -796,9 +971,27 @@ export default function EntityDetailScreen() {
                 </TouchableOpacity>
               ) : null}
 
+              {isArtist ? (
+                <ArtistFollowButton
+                  isFollowing={isArtistFollowing}
+                  isLoading={isArtistFollowUpdating}
+                  onPress={handleToggleArtistFollow}
+                />
+              ) : null}
+
               <TouchableOpacity style={styles.iconActionButton} activeOpacity={0.75}>
                 <Ionicons name="arrow-down-circle-outline" size={25} color="#b3b3b3" />
               </TouchableOpacity>
+
+              {isReportableDetail ? (
+                <TouchableOpacity
+                  style={styles.iconActionButton}
+                  activeOpacity={0.75}
+                  onPress={handleOpenCreateReport}
+                >
+                  <Ionicons name="flag-outline" size={22} color="#b3b3b3" />
+                </TouchableOpacity>
+              ) : null}
 
               {canOpenHeroTrackActions ? (
                 <TrackFavoriteButton

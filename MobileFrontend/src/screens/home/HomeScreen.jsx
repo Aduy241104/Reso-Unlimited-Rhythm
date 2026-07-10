@@ -121,7 +121,7 @@ const TopTrackSection = ({ data, errorMessage, onPressItem }) => (
 export default function HomeScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { isAuthenticated, logout, user } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [homeData, setHomeData] = useState(initialHomeState);
   const [isContentLoading, setIsContentLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -257,6 +257,32 @@ export default function HomeScreen() {
   const sidebarMenuItems = useMemo(
     () => [
       {
+        key: 'user-profile',
+        label: 'Hồ sơ của bạn',
+        icon: 'person-circle-outline',
+        onPress: () => runAfterSidebarClose(() => navigation.navigate('UserProfile')),
+      },
+      {
+        key: 'artist-registration',
+        label: 'Danh sách yêu cầu nghệ sĩ',
+        icon: 'document-text-outline',
+        onPress: () => runAfterSidebarClose(() => navigation.navigate('ArtistRegistrationRequest', { initialView: 'history' })),
+      },
+      {
+        key: 'artist-registration-form',
+        label: 'Đăng ký trở thành nghệ sĩ',
+        icon: 'mic-outline',
+        onPress: () => runAfterSidebarClose(() => navigation.navigate('ArtistRegistrationRequest', { initialView: 'form' })),
+      },
+      user?.role === 'user'
+        ? {
+          key: 'report-list',
+          label: 'Danh sách báo cáo',
+          icon: 'flag-outline',
+          onPress: () => runAfterSidebarClose(() => navigation.navigate('ReportList')),
+        }
+        : null,
+      {
         key: 'add-account',
         label: 'Thêm tài khoản',
         icon: 'add-circle-outline',
@@ -286,8 +312,8 @@ export default function HomeScreen() {
         icon: 'settings-outline',
         onPress: () => { },
       },
-    ],
-    []
+    ].filter(Boolean),
+    [navigation, runAfterSidebarClose, user?.role]
   );
 
   const renderArtistCard = ({ item, index }) => {
@@ -368,13 +394,32 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
 
-      {isAuthenticated ? (
-        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-          <Pressable style={styles.avatarButton} onPress={handleOpenSidebar} hitSlop={8}>
-            <AppAvatar uri={avatarUri} label={displayName} size={44} />
-          </Pressable>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+        <View style={styles.headerIdentity}>
+          {isAuthenticated ? (
+            <Pressable style={styles.avatarButton} onPress={handleOpenSidebar} hitSlop={8}>
+              <AppAvatar uri={avatarUri} label={displayName} size={44} />
+            </Pressable>
+          ) : null}
+
+          <View style={styles.headerTextGroup}>
+            <Text style={styles.brandText}>RESO MUSIC</Text>
+            <Text style={styles.welcomeText} numberOfLines={1}>
+              {isAuthenticated ? displayName : 'Trang chủ'}
+            </Text>
+          </View>
         </View>
-      ) : null}
+
+        <TouchableOpacity
+          style={[styles.logoutBadge, !isAuthenticated && styles.loginBadge]}
+          onPress={handleOpenSidebar}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.logoutText, !isAuthenticated && styles.loginText]}>
+            {isAuthenticated ? 'Tài khoản' : 'Đăng nhập'}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       {isContentLoading && !hasLoadedOnce ? (
         <View style={styles.centerState}>
@@ -494,6 +539,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
   },
+  loginBadge: {
+    backgroundColor: '#ffffff',
+    borderColor: '#ffffff',
+  },
+  loginText: {
+    color: '#000000',
+  },
   centerState: {
     flex: 1,
     justifyContent: 'center',
@@ -595,3 +647,4 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
 });
+
