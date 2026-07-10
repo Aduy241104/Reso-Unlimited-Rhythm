@@ -16,6 +16,7 @@ export const API_ENDPOINTS = {
     PLAYBACK: '/tracks',
     TOP_DAILY: '/tracks/top/daily',
     TOP_MONTHLY: '/tracks/top/monthly',
+    BY_GENRE: '/browse/genres',
   },
   USER_FAVORITES: {
     TRACKS: '/users/favorites/tracks',
@@ -23,6 +24,17 @@ export const API_ENDPOINTS = {
   ARTISTS: {
     DETAIL: '/browse/artists',
     TOP_MONTHLY: '/browse/artists/top/monthly',
+  },
+  GENRES: {
+    LIST: '/browse/genres',
+    DETAIL: '/browse/genres',
+    TRACKS: '/browse/genres',
+  },
+  SEARCH: {
+    ALL: '/search',
+    SONGS: '/search/songs',
+    ARTISTS: '/search/artists',
+    ALBUMS: '/search/albums',
   },
   PLAYLISTS: {
     DETAIL: '/playlists/detail',
