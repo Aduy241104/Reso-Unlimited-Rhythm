@@ -18,6 +18,7 @@ import ArtistRegistrationRequestDetailScreen from '../screens/profile/ArtistRegi
 import UserProfileScreen from '../screens/profile/UserProfileScreen';
 import ArtistRegistrationRequestMobileScreen from '../screens/profile/ArtistRegistrationRequestMobileScreen';
 import CreateReportScreen from '../screens/report/CreateReportScreen';
+import ReportListScreen from '../screens/report/ReportListScreen';
 import AppTabBar from '../components/navigation/AppTabBar';
 import theme from '../theme';
 
@@ -117,6 +118,14 @@ function SharedTabStack({ rootName, component: RootComponent }) {
       <Stack.Screen
         name="CreateReport"
         component={CreateReportScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="ReportList"
+        component={ReportListScreen}
         options={{
           headerShown: false,
           animation: 'slide_from_right',

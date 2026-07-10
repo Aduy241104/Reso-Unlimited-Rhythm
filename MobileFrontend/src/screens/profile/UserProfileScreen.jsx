@@ -376,6 +376,26 @@ export default function UserProfileScreen() {
               </TouchableOpacity>
             </View>
           ) : null}
+
+          {user?.role === 'user' ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Báo cáo của bạn</Text>
+              <TouchableOpacity
+                style={styles.securityCard}
+                onPress={() => navigation.navigate('ReportList')}
+                activeOpacity={0.85}
+              >
+                <View style={styles.securityIconWrap}>
+                  <Ionicons name="flag-outline" size={18} color="#ffffff" />
+                </View>
+                <View style={styles.securityContent}>
+                  <Text style={styles.securityTitle}>Xem danh sách báo cáo</Text>
+                  <Text style={styles.securityText}>Theo dõi trạng thái các báo cáo bạn đã gửi trước đó.</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color="#8f8f8f" />
+              </TouchableOpacity>
+            </View>
+          ) : null}
         </ScrollView>
       )}
 

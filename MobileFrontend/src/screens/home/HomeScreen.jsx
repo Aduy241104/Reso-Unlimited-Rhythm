@@ -274,6 +274,14 @@ export default function HomeScreen() {
         icon: 'mic-outline',
         onPress: () => runAfterSidebarClose(() => navigation.navigate('ArtistRegistrationRequest', { initialView: 'form' })),
       },
+      user?.role === 'user'
+        ? {
+          key: 'report-list',
+          label: 'Danh sách báo cáo',
+          icon: 'flag-outline',
+          onPress: () => runAfterSidebarClose(() => navigation.navigate('ReportList')),
+        }
+        : null,
       {
         key: 'add-account',
         label: 'Thêm tài khoản',
@@ -304,8 +312,8 @@ export default function HomeScreen() {
         icon: 'settings-outline',
         onPress: () => { },
       },
-    ],
-    [navigation, runAfterSidebarClose]
+    ].filter(Boolean),
+    [navigation, runAfterSidebarClose, user?.role]
   );
 
   const renderArtistCard = ({ item, index }) => {
