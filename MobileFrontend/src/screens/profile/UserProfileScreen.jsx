@@ -32,11 +32,6 @@ const buildInfoRows = (profile) => {
     { label: 'Giới tính', value: profile?.profile?.genderLabel || 'Chưa cập nhật' },
     { label: 'Quốc gia', value: profile?.profile?.country || 'Chưa cập nhật' },
     { label: 'Email', value: profile.email || 'Chưa có email' },
-    { label: 'Vai trò', value: profile.roleLabel || 'Không xác định' },
-    { label: 'Trạng thái', value: profile.activeStatusLabel || 'Không xác định' },
-    { label: 'Premium', value: profile.isPremium ? 'Đang sử dụng' : 'Chưa nâng cấp' },
-    profile.username ? { label: 'Username', value: profile.username } : null,
-    profile.id ? { label: 'Mã tài khoản', value: profile.id } : null,
   ].filter(Boolean);
 };
 
@@ -890,4 +885,3 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
 });
-
