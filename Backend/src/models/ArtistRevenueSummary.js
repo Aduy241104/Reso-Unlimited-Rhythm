@@ -53,12 +53,25 @@ const ArtistRevenueSummarySchema = new Schema(
         },
         status: {
             type: String,
-            enum: ["pending", "calculated", "paid"],
+            enum: [
+                "pending",
+                "calculated",
+                "confirmed"
+            ],
             default: "pending",
             index: true,
         },
         calculatedAt: {
             type: Date,
+            default: null,
+        },
+        confirmedAt: {
+            type: Date,
+            default: null,
+        },
+        confirmedBy: {
+            type: Schema.Types.ObjectId,
+            ref: "User",
             default: null,
         },
     },

@@ -21,6 +21,7 @@ const toId = (value) => {
 const formatAdminArtistListItem = (artist) => {
     return {
         id: toId(artist._id),
+        userId: toId(artist.userId),
         name: artist.name,
         avatar: artist.avatar || "",
         bio: artist.bio || "",

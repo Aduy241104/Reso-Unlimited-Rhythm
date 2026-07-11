@@ -27,6 +27,33 @@ const ArtistSchema = new Schema(
         stats: {
             followers: { type: Number, default: 0, min: 0 },
             totalStreams: { type: Number, default: 0, min: 0 },
+            monthlyListeners: { type: Number, default: 0, min: 0 },
+        },
+
+        revenue: {
+            totalEarnedAmount: Number,
+            totalWithdrawnAmount: Number,
+            availableAmount: Number,
+            pendingPayoutAmount: Number,
+            confirmedRevenueSummaryIds: [
+                {
+                    type: Schema.Types.ObjectId,
+                    ref: "ArtistRevenueSummary",
+                },
+            ],
+        },
+
+        payoutAccounts: [
+            {
+                bankName: { type: String, trim: true, required: true },
+                accountNumber: { type: String, trim: true, required: true },
+                accountHolderName: { type: String, trim: true, required: true },
+                isDefault: { type: Boolean, default: false },
+            },
+        ],
+
+        withdrawalSecurity: {
+            passwordHash: { type: String, default: "" },
         },
 
         activeStatus: {

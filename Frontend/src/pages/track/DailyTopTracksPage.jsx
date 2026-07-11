@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
-  MoreHorizontal,
   Pause,
   Play,
   TrendingUp,
@@ -18,6 +17,7 @@ import {
   formatTrackDuration,
 } from "../../utils/albumDetail";
 import { getApiErrorMessage } from "../../utils/apiError";
+import TrackTwoLevelMenu from "../../components/trackMenu/TrackTwoLevelMenu";
 
 const DAILY_TOP_TRACK_LIMIT = 30;
 
@@ -26,13 +26,13 @@ const metaPillClassName = `
   px-3 py-1.5 text-xs text-white/88 backdrop-blur-sm sm:text-sm
 `;
 
-const dailyChartHeaderColumns = [
-  { label: "Rank" },
-  { label: "Title" },
-  { label: "Growth", className: "text-right" },
-  { label: "Time", className: "text-right" },
-  { label: "" },
-];
+// const dailyChartHeaderColumns = [
+//   { label: "#" },
+//   { label: "Tiêu đề" },
+//   { label: "Tăng trưởng", className: "text-right" },
+//   { label: "Thời lượng", className: "text-right" },
+//   { label: "" },
+// ];
 
 const dailyChartHeaderGridClassName = `
   mb-0 hidden grid-cols-[5.5rem_minmax(0,1fr)_9.5rem_3rem_2rem] items-center gap-3
@@ -52,7 +52,7 @@ const getPreviousDateValue = () => {
 
 const formatChartDate = (dateValue) => {
   if (!dateValue) {
-    return "Unknown day";
+    return "Chưa rõ ngày";
   }
 
   const date = new Date(`${dateValue}T00:00:00`);
@@ -61,7 +61,7 @@ const formatChartDate = (dateValue) => {
     return dateValue;
   }
 
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("vi-VN", {
     weekday: "long",
     year: "numeric",
     month: "long",
@@ -69,7 +69,7 @@ const formatChartDate = (dateValue) => {
   }).format(date);
 };
 
-const formatNumber = (value) => new Intl.NumberFormat("en-US").format(Number(value) || 0);
+const formatNumber = (value) => new Intl.NumberFormat("vi-VN").format(Number(value) || 0);
 
 const getRankChangeAmount = (item) => {
   const currentRank = Number(item?.rank) || 0;
@@ -90,30 +90,29 @@ const getRankTrendPresentation = (item) => {
     case "up":
       return {
         icon: ArrowUp,
-        badgeLabel: rankChangeAmount > 0 ? `+${rankChangeAmount}` : "Up",
-        badgeClassName:
-          "border-emerald-400/20 bg-emerald-500/10 text-emerald-300",
+        badgeLabel: "",
+        badgeClassName: "text-emerald-400",
       };
+
     case "down":
       return {
         icon: ArrowDown,
-        badgeLabel: rankChangeAmount > 0 ? `-${rankChangeAmount}` : "Down",
-        badgeClassName:
-          "border-rose-400/20 bg-rose-500/10 text-rose-300",
+        badgeLabel: "",
+        badgeClassName: "text-rose-400",
       };
+
     case "new":
       return {
         icon: null,
-        badgeLabel: "NEW",
-        badgeClassName:
-          "border-violet-400/20 bg-violet-500/10 text-violet-300",
+        badgeLabel: "",
+        badgeClassName: "bg-sky-400 rounded-full w-2 h-2",
       };
+
     default:
       return {
         icon: null,
-        badgeLabel: "UNCH",
-        badgeClassName:
-          "border-white/[0.08] bg-white/[0.06] text-white/55",
+        badgeLabel: "",
+        badgeClassName: "",
       };
   }
 };
@@ -124,8 +123,8 @@ const renderGrowthContent = (playCount, totalPlay, isMobile = false) => {
   const primaryLabel = `+${formatNumber(safePlayCount)}`;
   const secondaryLabel =
     safeTotalPlay > 0
-      ? `to ${formatNumber(safeTotalPlay)} total`
-      : "plays";
+      ? `lên ${formatNumber(safeTotalPlay)} lượt phát`
+      : "lượt phát";
 
   return (
     <span className={ [
@@ -148,29 +147,36 @@ const renderGrowthContent = (playCount, totalPlay, isMobile = false) => {
 };
 
 const renderRankChangeContent = (item, isMobile = false) => {
-  const {
-    icon: Icon,
-    badgeLabel,
-    badgeClassName,
-  } = getRankTrendPresentation(item);
+  const { icon: Icon, badgeClassName } = getRankTrendPresentation(item);
+
+  if (!Icon && !badgeClassName) {
+    return null;
+  }
 
   return (
     <span
       className={ [
-        "inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.14em]",
-        isMobile ? "min-w-[2.85rem] justify-center" : "",
-        badgeClassName,
-      ].join(" ").trim() }
+        "inline-flex items-center justify-center",
+        isMobile ? "min-w-[0.75rem]" : "",
+      ]
+        .join(" ")
+        .trim() }
     >
-      { Icon ? <Icon className="h-2.5 w-2.5" /> : null }
-      <span>{ badgeLabel }</span>
+      { Icon ? (
+        <Icon className={ `h-2.5 w-2.5 ${badgeClassName}` } />
+      ) : (
+        <span className={ badgeClassName } />
+      ) }
     </span>
   );
 };
 
 const renderRankCellContent = (item) => (
-  <span className="inline-flex items-center gap-2">
-    <span className="w-4 text-[13px] font-semibold text-white">{ item?.rank || 0 }</span>
+  <span className="flex flex-col items-center justify-center gap-0.5">
+    <span className="w-4 text-center text-[13px] font-semibold text-white">
+      { item?.rank || 0 }
+    </span>
+
     { renderRankChangeContent(item, true) }
   </span>
 );
@@ -218,7 +224,7 @@ const DailyTopTracksPage = () => {
         setErrorMessage(
           getApiErrorMessage(
             error,
-            "Unable to load daily top tracks from the backend right now."
+            "Không thể tải bảng xếp hạng bài hát theo ngày lúc này."
           )
         );
       } finally {
@@ -260,9 +266,9 @@ const DailyTopTracksPage = () => {
   const collectionMeta = {
     id: `daily-top-${selectedDate}`,
     type: "daily-top",
-    title: `Daily Top Tracks - ${selectedDate}`,
+    title: `Top bài hát ngày - ${selectedDate}`,
     image: heroImage,
-    artistName: "Reso Music",
+    artistName: "Reso",
   };
 
   const handlePlayChart = async () => {
@@ -297,11 +303,7 @@ const DailyTopTracksPage = () => {
     const track = item?.track;
     const totalPlay = Number(track?.stats?.totalPlay) || 0;
     const durationLabel = formatTrackDuration(track?.duration);
-    const image =
-      track?.coverImage ||
-      track?.avatar ||
-      track?.artist?.avatar ||
-      heroImage;
+    const image = track?.coverImage || track?.avatar || track?.artist?.avatar || heroImage;
     const isPlaybackActive = currentTrack?.id === track?.id;
     const PlaybackIcon = isPlaybackActive && isPlaying ? Pause : Play;
 
@@ -309,37 +311,55 @@ const DailyTopTracksPage = () => {
       <div
         key={ track?.id || `${selectedDate}-${index}` }
         className={ [
-          "group grid grid-cols-[4.2rem_minmax(0,1fr)_auto] items-center gap-2.5 px-3 py-2.5 transition sm:grid-cols-[5.15rem_minmax(0,1fr)_8.75rem_2.75rem_2rem] sm:px-4",
+          "group grid grid-cols-[4.2rem_minmax(0,1fr)_auto] items-center gap-2.5 px-3 py-2.5 transition",
+          "sm:grid-cols-[2.5rem_3rem_minmax(0,1fr)_8.75rem_3.25rem_2rem] sm:px-4",
           isPlaybackActive ? "bg-white/[0.045]" : "hover:bg-white/[0.03]",
         ].join(" ") }
       >
-        <div className="flex items-center">
+        <div className="flex items-center justify-center">
           { renderRankCellContent(item) }
         </div>
+
+        <button
+          type="button"
+          onClick={ () => handlePlayTrack(track, index) }
+          aria-label={ `${isPlaybackActive && isPlaying ? "Tạm dừng" : "Phát"} ${track?.title || "bài hát"}` }
+          className="relative hidden h-10 w-10 shrink-0 overflow-hidden rounded-[10px] bg-white/6 shadow-[0_10px_20px_rgba(0,0,0,0.24)] sm:block"
+        >
+          { image ? (
+            <img
+              src={ image }
+              alt={ track?.title || "Ảnh bìa bài hát" }
+              className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04] group-hover:brightness-[0.4]"
+            />
+          ) : (
+            <div className="h-full w-full bg-[linear-gradient(135deg,#262b39,#12161f)]" />
+          ) }
+
+          <span
+            className={ [
+              "absolute inset-0 flex items-center justify-center bg-black/35 text-white transition duration-300 sm:bg-black/0 sm:opacity-0 sm:group-hover:bg-black/45 sm:group-hover:opacity-100",
+              isPlaybackActive ? "opacity-100" : "opacity-90 sm:opacity-0",
+            ].join(" ") }
+          >
+            <PlaybackIcon className="h-3.5 w-3.5 fill-current drop-shadow-[0_2px_10px_rgba(0,0,0,0.45)]" />
+          </span>
+        </button>
 
         <div className="flex min-w-0 items-center gap-2.5">
           <button
             type="button"
             onClick={ () => handlePlayTrack(track, index) }
-            aria-label={ `${isPlaybackActive && isPlaying ? "Pause" : "Play"} ${track?.title || "track"}` }
-            className="relative h-9 w-9 shrink-0 overflow-hidden rounded-[10px] bg-white/6 shadow-[0_10px_20px_rgba(0,0,0,0.24)] sm:h-10 sm:w-10"
+            className="relative h-9 w-9 shrink-0 overflow-hidden rounded-[10px] bg-white/6 sm:hidden"
           >
             { image ? (
-              <img
-                src={ image }
-                alt={ track?.title || "Track cover" }
-                className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04] group-hover:brightness-[0.4]"
-              />
+              <img src={ image } alt="" className="h-full w-full object-cover" />
             ) : (
               <div className="h-full w-full bg-[linear-gradient(135deg,#262b39,#12161f)]" />
             ) }
-            <span
-              className={ [
-                "absolute inset-0 flex items-center justify-center bg-black/35 text-white transition duration-300 sm:bg-black/0 sm:opacity-0 sm:group-hover:bg-black/45 sm:group-hover:opacity-100",
-                isPlaybackActive ? "opacity-100" : "opacity-90 sm:opacity-0",
-              ].join(" ") }
-            >
-              <PlaybackIcon className="h-3.5 w-3.5 fill-current drop-shadow-[0_2px_10px_rgba(0,0,0,0.45)]" />
+
+            <span className="absolute inset-0 flex items-center justify-center bg-black/35 text-white">
+              <PlaybackIcon className="h-3.5 w-3.5 fill-current" />
             </span>
           </button>
 
@@ -352,14 +372,16 @@ const DailyTopTracksPage = () => {
                   isPlaybackActive ? "text-emerald-300" : "text-white",
                 ].join(" ") }
               >
-                { track?.title || "Untitled track" }
+                { track?.title || "Bài hát chưa có tên" }
               </Link>
             ) : (
-              <p className={ [
-                "truncate text-[13px] font-semibold sm:text-sm",
-                isPlaybackActive ? "text-emerald-300" : "text-white",
-              ].join(" ") }>
-                { track?.title || "Untitled track" }
+              <p
+                className={ [
+                  "truncate text-[13px] font-semibold sm:text-sm",
+                  isPlaybackActive ? "text-emerald-300" : "text-white",
+                ].join(" ") }
+              >
+                { track?.title || "Bài hát chưa có tên" }
               </p>
             ) }
 
@@ -369,11 +391,14 @@ const DailyTopTracksPage = () => {
                   to={ `/artists/${track.artist.id}` }
                   className="truncate transition hover:text-white/72 hover:underline"
                 >
-                  { track?.artist?.name || "Unknown artist" }
+                  { track?.artist?.name || "Nghệ sĩ không xác định" }
                 </Link>
               ) : (
-                <span className="truncate">{ track?.artist?.name || "Unknown artist" }</span>
+                <span className="truncate">
+                  { track?.artist?.name || "Nghệ sĩ không xác định" }
+                </span>
               ) }
+
               <span className="sm:hidden">{ durationLabel }</span>
               <span className="sm:hidden">
                 { renderGrowthContent(item?.playCount, totalPlay, true) }
@@ -386,12 +411,12 @@ const DailyTopTracksPage = () => {
           { renderGrowthContent(item?.playCount, totalPlay) }
         </div>
 
-        <div className="text-right text-[11px] font-medium text-white/56 sm:text-xs">
+        <div className="hidden text-right text-[11px] font-medium text-white/56 sm:block sm:text-xs">
           { durationLabel }
         </div>
 
-        <div className="hidden items-center justify-end text-white/46 sm:flex">
-          <MoreHorizontal className="h-3.5 w-3.5" />
+        <div className="hidden items-center justify-end sm:flex">
+          { track?.id ? <TrackTwoLevelMenu trackId={ track.id } track={ track } /> : null }
         </div>
       </div>
     );
@@ -429,7 +454,7 @@ const DailyTopTracksPage = () => {
 
           { isLoading ? (
             <div className="relative z-10 flex min-h-[20rem] items-end">
-              <p className="text-sm text-white/82">Loading daily top tracks...</p>
+              <p className="text-sm text-white/82">Đang tải bảng xếp hạng ngày...</p>
             </div>
           ) : errorMessage ? (
             <div className="relative z-10 flex min-h-[20rem] items-end">
@@ -439,7 +464,7 @@ const DailyTopTracksPage = () => {
             <div className="relative z-10 flex min-h-[20rem] flex-col items-center justify-end gap-5 text-center md:flex-row md:items-end md:justify-start md:text-left">
               <img
                 src={ heroImage }
-                alt="Daily top tracks cover"
+                alt="Ảnh bìa top bài hát ngày"
                 className="
                   h-32 w-32 rounded-[18px] object-cover
                   shadow-[0_22px_52px_rgba(15,23,42,0.38)]
@@ -452,21 +477,21 @@ const DailyTopTracksPage = () => {
                 style={ { textShadow: "0 2px 18px rgba(0,0,0,0.32)" } }
               >
                 <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/82">
-                  Daily chart
+                  Bảng xếp hạng ngày
                 </p>
                 <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:mt-3 sm:text-5xl lg:text-6xl">
-                  Daily Top Tracks
+                  Top bài hát theo ngày
                 </h1>
                 <p className="mt-3 text-sm leading-6 text-white/88 sm:mt-4 sm:text-base">
-                  The top { DAILY_TOP_TRACK_LIMIT } most-played tracks for { chartDateLabel }.
+                  { DAILY_TOP_TRACK_LIMIT } bài hát được phát nhiều nhất vào { chartDateLabel }.
                 </p>
                 <div className="mt-4 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
                   <span className={ `${metaPillClassName} font-medium text-white` }>
                     Top { DAILY_TOP_TRACK_LIMIT }
                   </span>
-                  <span className={ metaPillClassName }>{ formatNumber(totalPlayCount) } plays</span>
+                  <span className={ metaPillClassName }>{ formatNumber(totalPlayCount) } lượt phát</span>
                   <span className={ metaPillClassName }>
-                    { formatNumber(totalListeners) } listeners
+                    { formatNumber(totalListeners) } người nghe
                   </span>
                   <span className={ metaPillClassName }>{ chartDateLabel }</span>
                 </div>
@@ -487,14 +512,14 @@ const DailyTopTracksPage = () => {
           <TrackListSection
             isLoading={ isLoading }
             errorMessage={ errorMessage }
-            loadingMessage="Loading tracks..."
-            mobileLabel="Track chart"
-            headerColumns={ dailyChartHeaderColumns }
+            loadingMessage="Đang tải bài hát..."
+            mobileLabel="Bảng xếp hạng"
+            type="rank"
             headerGridClassName={ dailyChartHeaderGridClassName }
-            emptyMessage="No daily top tracks are available for this date yet."
+            emptyMessage="Chưa có dữ liệu top bài hát cho ngày này."
             hasItems={ dailyTopTracks.length > 0 }
             loadingClassName="rounded-[24px] border-white/[0.06] bg-transparent text-white/58"
-            containerClassName="overflow-hidden rounded-[24px] border-white/[0.06] bg-transparent !p-0 shadow-none sm:!p-0"
+            containerClassName="overflow-visible rounded-[24px] border-white/[0.06] bg-transparent !p-0 shadow-none sm:!p-0"
             mobileLabelClassName="px-4 pt-4 text-white/36"
             emptyMessageClassName="px-4 py-6 text-white/52"
           >

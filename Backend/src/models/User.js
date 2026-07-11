@@ -49,6 +49,12 @@ const UserSchema = new Schema(
             default: "active",
             index: true,
         },
+        
+        blockReason: {
+            type: String,
+            default: "",
+            trim: true
+        },
 
         emailVerified: {
             type: Boolean,

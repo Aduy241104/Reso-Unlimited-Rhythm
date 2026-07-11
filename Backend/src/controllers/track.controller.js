@@ -1,5 +1,5 @@
 import trackService from "../services/track/track.service.js";
-import listenService from "../services/track/listen.service.js";
+import listenEventService from "../services/listenEvent/listenEvent.service.js";
 import formatResponse from "../utils/formatResponse.js";
 
 const getTrackDetail = async (req, res, next) => {
@@ -62,13 +62,15 @@ const getMonthlyTopTracks = async (req, res, next) => {
 
 const recordListen = async (req, res, next) => {
     try {
-        const { duration, skipped } = req.body;
-        const result = await listenService.recordListenEvent(
-            req.user.id,
-            req.params.id,
-            duration,
-            skipped
-        );
+        const { duration, device, country, source } = req.body;
+        const result = await listenEventService.recordCompletedListenAttempt({
+            userId: req.user.id,
+            trackId: req.params.id,
+            listenedDuration: duration,
+            device,
+            country,
+            source,
+        });
 
         return formatResponse.success(
             res,

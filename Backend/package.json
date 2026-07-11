@@ -7,8 +7,17 @@
     "start": "nodemon --inspect src/server.js",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand",
     "seed": "node src/seed.js",
+    "seed:recent-listening-activity": "node src/seed2.js",
+    "seed:withdrawal-balance": "node src/seedWithdrawalBalance.js",
+    "seed:artist-overview": "node src/seedArtistPerformanceOverview.js",
+    "seed:premium-user": "node src/seedPremiumUser.js",
     "seed5": "node src/seed5.js",
-    "seed7": "node src/seed7.js"
+    "seed7": "node src/seed7.js",
+    "listen:sync": "node src/runListenEventSync.js",
+    "revenue:sync": "node src/runRevenueAggregation.js",
+    "seed:revenue-history": "node src/seedRevenueHistory.js",
+    "seed:revenue-flow": "node src/seedRevenueFlowV2.js",
+    "seed:artist-overview": "node src/seedArtistPerformanceOverview.js"
   },
   "author": "",
   "license": "ISC",
@@ -35,9 +44,11 @@
     "multer": "^2.0.2",
     "node-cron": "^3.0.3",
     "nodemailer": "^7.0.9",
+    "pdf-lib": "^1.17.1",
     "redis": "^4.6.7",
     "sharp": "^0.34.5",
     "socket.io": "^4.8.1",
+    "tslib": "^2.8.1",
     "vnpay": "^2.4.4"
   },
   "devDependencies": {

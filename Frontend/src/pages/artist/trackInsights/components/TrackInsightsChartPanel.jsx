@@ -33,18 +33,20 @@ const TrackInsightsChartPanel = ({
   chartMeta,
   chartMetric,
   embedded = false,
-  emptyDescription = "Khi bài hát bắt đầu có lượt nghe, biểu đồ sẽ hiển thị diễn biến dữ liệu tại đây.",
-  emptyTitle = "Chưa có dữ liệu trong giai đoạn này",
+  emptyDescription = "Khi du lieu bat dau duoc ghi nhan, bieu do se hien thi tai day.",
+  emptyTitle = "Chua co du lieu trong giai doan nay",
   items,
   isAnalyticsLoading,
   latestMetricValue,
   maxMetricValue,
   metricOptions,
   onChangeMetric,
-  sectionDescription = "Chọn chỉ số cần theo dõi để xem biến động dữ liệu.",
-  sectionEyebrow = "Xu hướng",
-  sectionTitle = "Biểu đồ hiệu suất",
+  sectionDescription = "Chon chi so can theo doi de xem bien dong du lieu.",
+  sectionEyebrow = "Xu huong",
+  sectionTitle = "Bieu do hieu suat",
+  showTooltipListenValue = true,
   tooltipLabelFormatter = (value) => value,
+  tooltipListenLabel = "luot nghe",
   tooltipListenValueKey = "playCount",
   tooltipMetricValueKey,
   xAxisLabelFormatter = (value) => value,
@@ -252,6 +254,8 @@ const TrackInsightsChartPanel = ({
     return null;
   }
 
+  const metricEntries = Object.entries(metricOptions);
+
   return (
     <Wrapper
       className={
@@ -273,23 +277,25 @@ const TrackInsightsChartPanel = ({
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          {Object.entries(metricOptions).map(([metricKey, metric]) => (
-            <button
-              key={metricKey}
-              type="button"
-              onClick={() => onChangeMetric(metricKey)}
-              className={[
-                "rounded-full border px-3.5 py-2 text-sm font-medium transition",
-                chartMetric === metricKey
-                  ? "border-[#6f5cf1] bg-[#6f5cf1] text-white"
-                  : "border-[#e7e1ff] bg-[#f8f6ff] text-[#645d86] hover:border-[#b7abff] hover:text-[#2f2747]",
-              ].join(" ")}
-            >
-              {metric.label}
-            </button>
-          ))}
-        </div>
+        {metricEntries.length > 1 ? (
+          <div className="flex flex-wrap gap-2">
+            {metricEntries.map(([metricKey, metric]) => (
+              <button
+                key={metricKey}
+                type="button"
+                onClick={() => onChangeMetric(metricKey)}
+                className={[
+                  "rounded-full border px-3.5 py-2 text-sm font-medium transition",
+                  chartMetric === metricKey
+                    ? "border-[#6f5cf1] bg-[#6f5cf1] text-white"
+                    : "border-[#e7e1ff] bg-[#f8f6ff] text-[#645d86] hover:border-[#b7abff] hover:text-[#2f2747]",
+                ].join(" ")}
+              >
+                {metric.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       <div
@@ -306,7 +312,7 @@ const TrackInsightsChartPanel = ({
 
           <div className="flex items-center gap-4 text-sm">
             <div>
-              <p className="text-[#7c7891]">Đỉnh cao nhất</p>
+              <p className="text-[#7c7891]">Cao nhất</p>
               <p className="mt-1 font-semibold text-[#2f2747]">
                 {chartMeta.formatter(maxMetricValue)}
               </p>
@@ -327,7 +333,7 @@ const TrackInsightsChartPanel = ({
             <div className="flex h-[320px] items-center justify-center rounded-[20px] border border-dashed border-neutral-200 bg-white text-sm text-neutral-500">
               <div className="flex items-center gap-3">
                 <LoaderCircle className="h-5 w-5 animate-spin text-[#8b5e3c]" />
-                Đang tải biểu đồ phân tích...
+                Dang tai bieu do phan tich...
               </div>
             </div>
           ) : chartIsEmpty ? (
@@ -354,9 +360,11 @@ const TrackInsightsChartPanel = ({
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#7c6cf2]">
                     {tooltipLabelFormatter(hoveredPoint.label)}
                   </p>
-                  <p className="mt-1 text-sm font-semibold text-[#2f2747]">
-                    {formatNumber(hoveredPoint.listenValue)} lượt nghe
-                  </p>
+                  {showTooltipListenValue ? (
+                    <p className="mt-1 text-sm font-semibold text-[#2f2747]">
+                      {formatNumber(hoveredPoint.listenValue)} {tooltipListenLabel}
+                    </p>
+                  ) : null}
                   <p className="mt-1 text-xs text-[#7c7891]">
                     {chartMeta.label}:{" "}
                     {chartMetric === "averageListenDuration"

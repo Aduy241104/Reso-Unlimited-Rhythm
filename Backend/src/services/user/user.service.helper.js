@@ -1,5 +1,6 @@
 import { StatusCodes } from "http-status-codes";
 import { AppError } from "../../utils/AppError.js";
+import Subscription from "../../models/Subscription.js";
 import { uploadImageBuffer, deleteImageByPublicId } from "../cloudinaryService.js";
 import { extractPublicIdFromUrl } from "../../utils/uploadCloud.js";
 
@@ -9,12 +10,6 @@ const ALLOWED_GENDERS = new Set([
     "other",
 ]);
 const CLOUDINARY_USER_FOLDER = "reso/users";
-
-const normalizeProfile = (profile = {}) => ({
-    fullName: profile.fullName ?? "",
-    gender: profile.gender ?? "prefer_not_to_say",
-    country: profile.country ?? "",
-});
 
 const normalizeId = (user = {}) => {
     if (user.id) {
@@ -28,14 +23,58 @@ const normalizeId = (user = {}) => {
     return "";
 };
 
-export const formatCurrentUserProfile = (user = {}) => ({
+const hasActivePremiumSubscription = async (userId) => {
+    if (!userId) {
+        return false;
+    }
+
+    const now = new Date();
+
+    const activeSubscription = await Subscription.exists({
+        userId,
+        status: "active",
+        $and: [
+            {
+                $or: [
+                    { startDate: null },
+                    { startDate: { $lte: now } },
+                ],
+            },
+            {
+                $or: [
+                    { endDate: null },
+                    { endDate: { $gt: now } },
+                ],
+            },
+        ],
+    });
+
+    return Boolean(activeSubscription);
+};
+
+const resolveCurrentUserPremiumState = async (user = {}) => {
+    const now = new Date();
+    const premiumEndDate = user.subscription?.premiumEndDate
+        ? new Date(user.subscription.premiumEndDate)
+        : null;
+    const hasPremiumFlag = Boolean(user.subscription?.isPremium) &&
+        (!premiumEndDate || premiumEndDate > now);
+
+    if (hasPremiumFlag) {
+        return true;
+    }
+
+    return hasActivePremiumSubscription(normalizeId(user));
+};
+
+export const formatCurrentUserProfile = async (user = {}) => ({
     id: normalizeId(user),
     email: user.email ?? "",
     username: user.username ?? "",
     avatar: user.avatar ?? "",
     role: user.role ?? "",
     activeStatus: user.activeStatus ?? "",
-    profile: normalizeProfile(user.profile),
+    isPremium: await resolveCurrentUserPremiumState(user),
 });
 
 const assertObjectPayload = (

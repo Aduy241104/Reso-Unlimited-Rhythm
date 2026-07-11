@@ -66,7 +66,7 @@ const HomePage = () => {
   const shouldShowRecommendationSection = isAuthenticated && !isAuthLoading;
 
   return (
-    <section className="space-y-8 sm:space-y-10">
+    <section className="space-y-6 sm:space-y-8 lg:space-y-10 p-5">
       {albumsError ? (
         <div
           className="
@@ -198,7 +198,7 @@ const HomePage = () => {
       {shouldShowRecommendationSection ? (
         <ContentCardSection
           label="Daily Mix"
-          title={`D\u00e0nh cho ${recommendationUserName}`}
+          title={`Dành cho ${recommendationUserName}`}
           description="Những playlist gợi ý được làm mới mỗi ngày dựa trên lịch sử nghe, lượt thích và playlist của bạn."
           items={mapRecommendationMixesToContentCards(
             recommendationMixes,

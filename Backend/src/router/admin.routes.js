@@ -4,6 +4,10 @@ import adminGenreController from "../controllers/admin.genre.controller.js";
 import adminDashboardController from "../controllers/admin.dashboard.controller.js";
 import adminArtistRequestRouter from "./adminArtistRequest.routes.js";
 import adminTrackRouter from "./admin.track.routes.js";
+import adminReportRouter from "./admin.report.routes.js";
+import adminSubscriptionRouter from "./admin.subscription.routes.js";
+import adminWithdrawalRouter, { withdrawalRequestRouter } from "./admin.withdrawal.routes.js";
+import adminRevenueRouter from "./admin.revenue.routes.js";
 import { requireAdmin } from "../middlewares/Authentication/authentication.middleware.js";
 import upload from "../middlewares/upload.middleware.js";
 
@@ -21,7 +25,6 @@ router.delete('/genres/:id', adminGenreController.deleteGenre);
 router.use("/tracks", adminTrackRouter);
 router.post(
     "/genres/upload",
-    requireAdmin,
     upload.single("coverImage"),
     adminGenreController.uploadGenreImage
 );
@@ -36,5 +39,14 @@ router.get("/dashboard/overview", adminDashboardController.getOverviewStats);
 router.get("/dashboard/monthly", adminDashboardController.getMonthlyOverview);
 router.get("/dashboard/daily", adminDashboardController.getDailyStats);
 router.get("/dashboard/new-users", adminDashboardController.getNewUsersByMonth);
+router.use("/withdrawals", adminWithdrawalRouter);
+router.use("/withdrawal-requests", withdrawalRequestRouter);
+router.use("/revenue", adminRevenueRouter);
+
+// Reports
+router.use("/reports", adminReportRouter);
+
+// Subscriptions
+router.use("/subscriptions", adminSubscriptionRouter);
 
 export default router;

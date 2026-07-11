@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Settings, LogOut, ChevronUp } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 
 const AdminSidebar = ({ navigationItems, onLogout, user }) => {
   const [isAccountOpen, setIsAccountOpen] = useState(false);
+  const { pathname } = useLocation();
 
   const handleLogout = () => {
     setIsAccountOpen(false);
@@ -18,23 +19,32 @@ const AdminSidebar = ({ navigationItems, onLogout, user }) => {
 
       <div className="border-t border-white/10 px-6 py-6">
         <nav className="mt-3 -mx-6 space-y-1">
-          {navigationItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end !== false}
-              className={({ isActive }) =>
-                `mx-3 block rounded-r-xl border-l transition-all duration-200 ${isActive
-                  ? "border-white bg-white text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)]"
-                  : "border-transparent text-white/45 hover:border-white/20 hover:bg-white/[0.04] hover:text-white"
-                }`
-              }
-            >
-              <div className="px-5 py-3 text-sm font-medium">
-                { item.label }
-              </div>
-            </NavLink>
-          ))}
+          { navigationItems.map((item) => {
+            const Icon = item.icon;
+            const activePaths = item.activePaths || [item.to];
+            const isPrefixActive = item.matchPrefix && activePaths.some((path) => (
+              pathname === path || pathname.startsWith(`${path}/`)
+            ));
+
+            return (
+              <NavLink
+                key={ item.to }
+                to={ item.to }
+                end={ item.end !== false }
+                className={ ({ isActive }) =>
+                  `mx-3 block rounded-r-xl border-l transition-all duration-200 ${isPrefixActive || isActive
+                    ? "border-white bg-white text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)]"
+                    : "border-transparent text-white/45 hover:border-white/20 hover:bg-white/[0.04] hover:text-white"
+                  }`
+                }
+              >
+                <div className="flex items-center gap-3 px-5 py-3 text-sm font-medium">
+                  { Icon ? <Icon size={ 18 } strokeWidth={ 2 } /> : null }
+                  <span>{ item.label }</span>
+                </div>
+              </NavLink>
+            );
+          }) }
         </nav>
       </div>
 

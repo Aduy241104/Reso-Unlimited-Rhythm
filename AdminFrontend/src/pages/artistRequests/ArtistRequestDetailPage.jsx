@@ -156,52 +156,51 @@ const ArtistRequestDetailPage = () => {
   };
 
   return (
-    <section className="-mt-4 space-y-1 xl:flex xl:h-full xl:min-h-0 xl:flex-col">
-      {message && (
+    <section className="-mt-3 space-y-4 xl:flex xl:h-full xl:min-h-0 xl:flex-col">
+      { message && (
         <div
-          className={`rounded-[1.25rem] px-5 py-4 text-sm ${
-            messageTone === "success"
-              ? "bg-emerald-50 text-emerald-700"
-              : "bg-red-50 text-red-700"
-          }`}
+          className={ `rounded-md border px-4 py-3 text-sm ${messageTone === "success"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+              : "border-rose-200 bg-rose-50 text-rose-700"
+            }` }
         >
-          {message}
+          { message }
         </div>
-      )}
+      ) }
 
-      {isLoading ? (
-        <div className="rounded-[1.5rem] bg-white px-6 py-20 text-center text-sm text-slate-600">
+      { isLoading ? (
+        <div className="rounded-lg border border-slate-200 bg-white px-6 py-20 text-center text-sm text-slate-600">
           Đang tải chi tiết yêu cầu...
         </div>
       ) : artistRequest ? (
-        <div className="grid gap-3 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1.25fr)_390px] xl:overflow-hidden">
+        <div className="grid gap-4 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1.25fr)_380px] xl:overflow-hidden">
           <div className="xl:min-h-0 xl:overflow-y-auto xl:pr-2">
             <ArtistRequestInfoSections
-              artistRequest={artistRequest}
-              genres={genres}
-              socialLinks={socialLinks}
-              demoTrackUrls={demoTrackUrls}
-              musicLinks={musicLinks}
+              artistRequest={ artistRequest }
+              genres={ genres }
+              socialLinks={ socialLinks }
+              demoTrackUrls={ demoTrackUrls }
+              musicLinks={ musicLinks }
             />
           </div>
 
           <div className="xl:self-start">
             <ArtistRequestReviewSidebar
-              artistRequest={artistRequest}
-              reviewForm={reviewForm}
-              isSubmitting={isSubmitting}
-              isPending={isPending}
-              isApproved={isApproved}
-              hasCompletedChecklist={hasCompletedChecklist}
-              hasAllCriteriaApproved={hasAllCriteriaApproved}
-              onChecklistChange={handleChecklistChange}
-              onFieldChange={handleFieldChange}
-              onApprove={() => void submitDecision("approved")}
-              onReject={() => void submitDecision("rejected")}
+              artistRequest={ artistRequest }
+              reviewForm={ reviewForm }
+              isSubmitting={ isSubmitting }
+              isPending={ isPending }
+              isApproved={ isApproved }
+              hasCompletedChecklist={ hasCompletedChecklist }
+              hasAllCriteriaApproved={ hasAllCriteriaApproved }
+              onChecklistChange={ handleChecklistChange }
+              onFieldChange={ handleFieldChange }
+              onApprove={ () => void submitDecision("approved") }
+              onReject={ () => void submitDecision("rejected") }
             />
           </div>
         </div>
-      ) : null}
+      ) : null }
     </section>
   );
 };

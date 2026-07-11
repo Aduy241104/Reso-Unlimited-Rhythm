@@ -15,6 +15,7 @@ const buildMonthlyArtistAggregationPipeline = ({ startDate, endDate }) => ([
     {
         $match: {
             artistId: { $exists: true, $ne: null },
+            isValidStream: true,
             listenedAt: { $gte: startDate, $lt: endDate },
         },
     },

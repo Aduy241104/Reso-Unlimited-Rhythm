@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BarChart3, Eye, EyeOff, Pencil, Trash2 } from "lucide-react";
+import ConfirmActionModal from "../../components/common/ConfirmActionModal";
 import trackService from "../../services/trackService";
 import { routePaths } from "../../routes/routePaths";
 import { getApiErrorFullMessage } from "../../utils/apiError";
-import { canArtistSubmitTrack } from "../../utils/trackWorkflow";
+import { canArtistSubmitTrack, getSubmitReadinessIssues } from "../../utils/trackWorkflow";
+import ArtistReleaseSchedulePage from "./ArtistReleaseSchedulePage";
 
 const formatDuration = (duration) => {
   const totalSeconds = Number(duration) || 0;
@@ -43,6 +45,7 @@ export const MyMusicPage = () => {
   const [actionMessage, setActionMessage] = useState("");
   const [actionError, setActionError] = useState("");
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const [submitTarget, setSubmitTarget] = useState(null);
 
   // fetch handled by effect below which depends on filters
   // refetch when filters change
@@ -163,36 +166,39 @@ export const MyMusicPage = () => {
     if (!track || isActionLoading) return;
 
     if (!canArtistSubmitTrack(track)) {
-      setActionError("Only draft or rejected tracks can be submitted.");
+      setActionError("Chỉ bài nhạc ở trạng thái bản nháp hoặc bị từ chối mới có thể gửi duyệt.");
       return;
     }
 
-    const confirmed = window.confirm(
-      "Submit this track for admin review? You will not be able to edit it while pending."
-    );
-    if (!confirmed) return;
+    const submitIssues = getSubmitReadinessIssues(track);
+    if (submitIssues.length > 0) {
+      setActionError(
+        `Vui lÃ²ng hoÃ n táº¥t cÃ¡c má»¥c sau trÆ°á»›c khi gá»­i duyá»‡t:\n${submitIssues
+          .map((item) => `â€¢ ${item}`)
+          .join("\n")}\n\nBáº¡n cÃ³ thá»ƒ má»Ÿ trang chá»‰nh sá»­a Ä‘á»ƒ bá»• sung thÃ´ng tin cÃ²n thiáº¿u.`
+      );
+      return;
+    }
 
     setActionMessage("");
     setActionError("");
     setIsActionLoading(true);
+    setSubmitTarget(null);
 
     try {
       const updatedTrack = await trackService.submitForApproval(track._id);
       setTracks((current) => current.map((t) => (t._id === updatedTrack?._id ? updatedTrack : t)));
-      setActionMessage("Track submitted for approval.");
+      setActionMessage("Đã gửi bài nhạc lên để chờ phê duyệt.");
     } catch (error) {
-      const message = getApiErrorFullMessage(error, "Failed to submit track.");
-      setActionError(message);
-
-      if (track?._id) {
-        const shouldOpenEditor = window.confirm(
-          `${message}\n\nOpen the track editor to complete missing fields?`
-        );
-
-        if (shouldOpenEditor) {
-          navigate(routePaths.artistTrackEdit(track._id));
-        }
-      }
+      const message = getApiErrorFullMessage(
+        error,
+        "Không thể gửi bài nhạc để phê duyệt."
+      );
+      setActionError(
+        track?._id
+          ? `${message}\n\nBạn có thể mở trang chỉnh sửa để bổ sung các thông tin còn thiếu.`
+          : message
+      );
     } finally {
       setIsActionLoading(false);
     }
@@ -436,11 +442,24 @@ export const MyMusicPage = () => {
                         {track.approvalStatus !== "pending" && track.approvalStatus !== "approved" ? (
                           <button
                             type="button"
-                            onClick={() => handleSubmitForApproval(track)}
+                            onClick={() => {
+                              setActionMessage("");
+                              setActionError("");
+                              const submitIssues = getSubmitReadinessIssues(track);
+                              if (submitIssues.length > 0) {
+                                setActionError(
+                                  `Complete these items before submitting:\n${submitIssues
+                                    .map((item) => `- ${item}`)
+                                    .join("\n")}\n\nOpen the edit page to add the missing information.`
+                                );
+                                return;
+                              }
+                              setSubmitTarget(track);
+                            }}
                             disabled={isActionLoading}
                             className="inline-flex items-center gap-2 rounded-sm border border-sky-200 bg-sky-50 px-2 py-1 text-xs font-medium text-sky-900 transition hover:bg-sky-100 whitespace-nowrap flex-shrink-0"
                           >
-                            Submit
+                            Gửi duyệt
                           </button>
                         ) : null}
 
@@ -462,16 +481,22 @@ export const MyMusicPage = () => {
           </div>
         )}
       </div>
+
+      <ConfirmActionModal
+        isOpen={Boolean(submitTarget)}
+        title="Gửi duyệt bài nhạc?"
+        message="Sau khi gửi duyệt, bạn sẽ không thể chỉnh sửa bài nhạc trong thời gian chờ phê duyệt. Bạn có muốn tiếp tục không?"
+        confirmText="Xác nhận gửi duyệt"
+        cancelText="Quay lại"
+        isLoading={isActionLoading}
+        onCancel={() => setSubmitTarget(null)}
+        onConfirm={() => handleSubmitForApproval(submitTarget)}
+      />
     </section>
   );
 };
 
-export const ReleasesPage = () => (
-  <ArtistSectionPage
-    title="Releases"
-    description="Plan release schedules, monitor launch readiness, and track how each project performs after it goes live."
-  />
-);
+export const ReleasesPage = () => <ArtistReleaseSchedulePage />;
 
 export const AnalyticsPage = () => (
   <ArtistSectionPage

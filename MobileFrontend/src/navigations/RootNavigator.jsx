@@ -2,14 +2,24 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { View, StyleSheet } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
-import { AuthNavigator } from './AuthNavigator';
 import { MainNavigator } from './MainNavigator';
 import AppLoader from '../components/common/AppLoader';
 import { navigationRef } from './navigationRef';
+import { APP_LINK_PREFIX, PAYMENT_FAILED_PATH, PAYMENT_SUCCESS_PATH } from '../config/linking';
 import theme from '../theme';
 
 export const RootNavigator = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isLoading } = useAuth();
+
+  const linking = {
+    prefixes: [APP_LINK_PREFIX],
+    config: {
+      screens: {
+        PremiumPaymentSuccess: PAYMENT_SUCCESS_PATH,
+        PremiumPaymentFailed: PAYMENT_FAILED_PATH,
+      },
+    },
+  };
 
   if (isLoading) {
     return (
@@ -20,8 +30,8 @@ export const RootNavigator = () => {
   }
 
   return (
-    <NavigationContainer ref={navigationRef}>
-      {isAuthenticated ? <MainNavigator /> : <AuthNavigator />}
+    <NavigationContainer ref={navigationRef} linking={linking}>
+      <MainNavigator />
     </NavigationContainer>
   );
 };

@@ -9,7 +9,7 @@ const validate = (schema, target = "body") => (req, res, next) => {
     if (error) {
         return next(
             new AppError(
-                "Invalid request data.",
+                "Dữ liệu gửi lên không hợp lệ.",
                 400,
                 error.details.map((detail) => ({
                     field: detail.path.join("."),
