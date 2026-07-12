@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -121,7 +121,7 @@ const TopTrackSection = ({ data, errorMessage, onPressItem }) => (
 export default function HomeScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
   const [homeData, setHomeData] = useState(initialHomeState);
   const [isContentLoading, setIsContentLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -250,7 +250,12 @@ export default function HomeScreen() {
     navigation.navigate('Login');
   }, [isAuthenticated, navigation]);
 
-  
+  const handleLogout = useCallback(() => {
+    runAfterSidebarClose(() => {
+      logout();
+    });
+  }, [logout, runAfterSidebarClose]);
+
   const displayName = resolveUserDisplayName(user);
   const avatarUri = resolveUserAvatar(user);
   const userSubtitle = user?.email || 'Tài khoản đã đăng nhập';
@@ -490,6 +495,12 @@ export default function HomeScreen() {
         subtitle={userSubtitle}
         avatarUri={avatarUri}
         menuItems={sidebarMenuItems}
+        footerItem={{
+          icon: 'log-out-outline',
+          label: 'Đăng xuất',
+          onPress: handleLogout,
+          tone: 'danger',
+        }}
       />
     </View>
   );
@@ -656,7 +667,3 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
 });
-
-
-
-

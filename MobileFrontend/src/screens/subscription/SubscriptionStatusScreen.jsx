@@ -191,15 +191,10 @@ export default function SubscriptionStatusScreen() {
     [subscriptionDetails]
   );
 
+  const shouldShowFreeCta = !subscriptionDetails.hasSubscription;
+
   const handleOpenPremiumScreen = useCallback(() => {
-    const parentNavigation = navigation.getParent();
-
-    if (parentNavigation) {
-      parentNavigation.navigate('Premium');
-      return;
-    }
-
-    navigation.navigate('Premium');
+    navigation.navigate('PremiumOverview');
   }, [navigation]);
 
   return (
@@ -250,24 +245,24 @@ export default function SubscriptionStatusScreen() {
 
           {errorMessage ? <Text style={styles.errorBanner}>{errorMessage}</Text> : null}
 
-          <View style={styles.infoCard}>
-            {infoRows.map((item, index) => (
-              <InfoRow
-                key={`${item.label}-${index}`}
-                label={item.label}
-                value={item.value}
-                isLast={index === infoRows.length - 1}
-              />
-            ))}
-          </View>
-
-          {!subscriptionDetails.hasSubscription ? (
+          {shouldShowFreeCta ? (
             <AppButton
               title="Xem các gói Premium"
               onPress={handleOpenPremiumScreen}
               style={styles.premiumButton}
             />
-          ) : null}
+          ) : (
+            <View style={styles.infoCard}>
+              {infoRows.map((item, index) => (
+                <InfoRow
+                  key={`${item.label}-${index}`}
+                  label={item.label}
+                  value={item.value}
+                  isLast={index === infoRows.length - 1}
+                />
+              ))}
+            </View>
+          )}
         </ScrollView>
       )}
     </View>
