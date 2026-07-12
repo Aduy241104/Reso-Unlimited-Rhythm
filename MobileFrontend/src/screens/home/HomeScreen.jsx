@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -261,6 +261,15 @@ export default function HomeScreen() {
         label: 'Hồ sơ của bạn',
         icon: 'person-circle-outline',
         onPress: () => runAfterSidebarClose(() => navigation.navigate('UserProfile')),
+      },
+      {
+        key: 'subscription-status',
+        label: 'Trạng thái đăng ký',
+        icon: 'diamond-outline',
+        onPress: () =>
+          runAfterSidebarClose(() =>
+            navigation.navigate('SubscriptionStatus')
+          ),
       },
       {
         key: 'artist-registration',
@@ -647,4 +656,7 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
 });
+
+
+
 
