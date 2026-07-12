@@ -128,6 +128,8 @@ const ids = {
     artistThree: oid("682600000000000000000303"),
     artistRequest: oid("682600000000000000000304"),
     artistVerificationRequest: oid("682600000000000000000305"),
+    artistVerificationRequestClosedOne: oid("682600000000000000000306"),
+    artistVerificationRequestClosedTwo: oid("682600000000000000000307"),
 
     albumOne: oid("682600000000000000000401"),
     albumTwo: oid("682600000000000000000402"),
@@ -1599,7 +1601,6 @@ const buildDemoDocuments = async () => {
                 instagram: "https://instagram.com/demoartistone",
                 youtube: "https://youtube.com/@demoartistone",
             },
-            verificationStatus: "verified",
             stats: {
                 followers: 540,
                 totalStreams:
@@ -1630,7 +1631,6 @@ const buildDemoDocuments = async () => {
                 instagram: "https://instagram.com/demoartisttwo",
                 youtube: "https://youtube.com/@demoartisttwo",
             },
-            verificationStatus: "verified",
             stats: {
                 followers: 465,
                 totalStreams:
@@ -1660,7 +1660,6 @@ const buildDemoDocuments = async () => {
                 instagram: "https://instagram.com/demoartistthree",
                 youtube: "https://youtube.com/@demoartistthree",
             },
-            verificationStatus: "verified",
             stats: {
                 followers: 392,
                 totalStreams:
@@ -2050,6 +2049,20 @@ const buildDemoDocuments = async () => {
     ];
 
     const artistVerificationRequests = [
+        {
+            _id: ids.artistVerificationRequestClosedOne,
+            artistId: ids.artistOne,
+            userId: ids.userArtistOne,
+            status: "closed",
+            note: "Seeded as previously verified artist profile.",
+        },
+        {
+            _id: ids.artistVerificationRequestClosedTwo,
+            artistId: ids.artistTwo,
+            userId: ids.userArtistTwo,
+            status: "closed",
+            note: "Seeded as previously verified artist profile.",
+        },
         {
             _id: ids.artistVerificationRequest,
             artistId: ids.artistThree,

@@ -20,6 +20,7 @@ dayjs.extend(timezone);
 const {
     User,
     Artist,
+    ArtistVerificationRequest,
     Album,
     Track,
     UserRecentListeningActivity,
@@ -37,6 +38,7 @@ const ids = {
     targetUser: oid(TARGET_USER_ID),
     artistUser: oid("683500000000000000000002"),
     artist: oid("683500000000000000000101"),
+    artistVerificationRequestClosed: oid("683500000000000000000102"),
     album: oid("683500000000000000000201"),
     trackNightDrive: oid("683500000000000000000301"),
     trackMidnightSignals: oid("683500000000000000000302"),
@@ -97,6 +99,10 @@ const seedCollections = [
     {
         model: Artist,
         ids: [ids.artist],
+    },
+    {
+        model: ArtistVerificationRequest,
+        ids: [ids.artistVerificationRequestClosed],
     },
     {
         model: User,
@@ -162,13 +168,20 @@ const seedArtistCatalog = async () => {
         bio: "Artist seed de test recent listening activity.",
         avatar: "https://images.unsplash.com/photo-1516280440614-37939bbacd81",
         coverImage: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a",
-        verificationStatus: "verified",
         activeStatus: "active",
         stats: {
             followers: 1840,
             totalStreams: 15320,
             monthlyListeners: 2910,
         },
+    });
+
+    await ArtistVerificationRequest.create({
+        _id: ids.artistVerificationRequestClosed,
+        artistId: ids.artist,
+        userId: ids.artistUser,
+        status: "closed",
+        note: "Seeded as previously verified artist profile.",
     });
 
     await Album.create({

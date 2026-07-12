@@ -55,6 +55,7 @@ import UserRecentListeningPage from "../pages/userInsign/user.recentListening.pa
 import UserFavoriteTracksPage from "../pages/userFavorite/UserFavoriteTracksPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
+import { recommendationRoutes } from "./recommendationRoutes";
 import RoleRoute from "./RoleRoute";
 import { libaryRoutes } from "./libaryRoutes";
 import { routePaths } from "./routePaths";
@@ -206,6 +207,10 @@ export const appRoutes = [
   {
     element: <ProtectedRoute />,
     children: userPlaylistRoutes,
+  },
+  {
+    element: <ProtectedRoute />,
+    children: recommendationRoutes,
   },
   {
     element: <ProtectedRoute />,
