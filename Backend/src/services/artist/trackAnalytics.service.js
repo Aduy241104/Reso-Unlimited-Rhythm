@@ -6,7 +6,9 @@ import TrackDailyStat from "../../models/TrackDailyStat.js";
 import TrackMonthlyStat from "../../models/TrackMonthlyStat.js";
 import { AppError } from "../../utils/AppError.js";
 import {
+    resolveAllTimeTrackPeriod,
     buildDailySummary,
+    buildMonthlySummary,
     buildTrackPayload,
     clampPeriodToTrackReleaseDate,
     fillMissingDailyStats,
@@ -96,24 +98,28 @@ export const getTrackAnalyticsOverview = async ({
         artistId: artist._id,
         trackId,
     });
-    const period = clampPeriodToTrackReleaseDate(requestedPeriod, track);
 
-    const [currentStats, lifetimeStats, monthlyChartStats] = await Promise.all([
-        fetchTrackDailyStats({ trackId, from: period.from, to: period.to }),
+    const [lifetimeStats, monthlyChartStats] = await Promise.all([
         fetchTrackDailyStats({ trackId }),
         fetchTrackMonthlyStats({ trackId }),
     ]);
+    const period = requestedPeriod.range === "all"
+        ? resolveAllTimeTrackPeriod(track, lifetimeStats, monthlyChartStats)
+        : clampPeriodToTrackReleaseDate(requestedPeriod, track);
+    const currentStats = requestedPeriod.range === "all"
+        ? lifetimeStats
+        : await fetchTrackDailyStats({ trackId, from: period.from, to: period.to });
 
-    const summary = buildDailySummary(currentStats);
-    const lifetimeSummary = buildDailySummary(lifetimeStats);
+    const summary = requestedPeriod.range === "all" &&
+        currentStats.length === 0 &&
+        monthlyChartStats.length > 0
+        ? buildMonthlySummary(monthlyChartStats)
+        : buildDailySummary(currentStats);
 
     return {
         track: buildTrackPayload(track),
         period,
-        summary: {
-            ...summary,
-            totalListeningTime: lifetimeSummary.totalListeningTime,
-        },
+        summary,
         lastUpdatedAt: resolveLatestTimestamp(
             lifetimeStats,
             currentStats,

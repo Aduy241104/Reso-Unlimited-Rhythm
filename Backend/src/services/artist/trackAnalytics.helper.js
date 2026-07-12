@@ -10,7 +10,13 @@ dayjs.extend(timezone);
 
 const DATE_KEY_FORMAT = "YYYY-MM-DD";
 const DEFAULT_RANGE = "30d";
-const ALLOWED_RANGES = new Set(["7d", "30d", "90d", "custom"]);
+const ALLOWED_RANGES = new Set(["7d", "30d", "90d", "all", "custom"]);
+const RANGE_ALIASES = new Map([
+    ["all-time", "all"],
+    ["all_time", "all"],
+    ["alltime", "all"],
+    ["lifetime", "all"],
+]);
 
 const roundToTwoDecimals = (value) => Number(Number(value || 0).toFixed(2));
 
@@ -33,6 +39,11 @@ const formatDateKey = (dateValue) => dayjs.utc(dateValue).format(DATE_KEY_FORMAT
 const getTodayInAnalyticsTimezone = () =>
     dayjs().tz(getAnalyticsTimezone()).startOf("day");
 
+const normalizeRange = (range) => {
+    const rawRange = String(range || DEFAULT_RANGE).trim().toLowerCase();
+    return RANGE_ALIASES.get(rawRange) || rawRange;
+};
+
 const ensureDateKey = (value) => {
     if (!isValidDateKey(value)) {
         throw new AppError("Invalid date range", StatusCodes.BAD_REQUEST);
@@ -48,10 +59,18 @@ const ensureDateRangeOrder = (from, to) => {
 };
 
 export const resolveOverviewPeriod = ({ range, from, to }) => {
-    const normalizedRange = String(range || DEFAULT_RANGE).trim();
+    const normalizedRange = normalizeRange(range);
 
     if (!ALLOWED_RANGES.has(normalizedRange)) {
         throw new AppError("Invalid analytics range", StatusCodes.BAD_REQUEST);
+    }
+
+    if (normalizedRange === "all") {
+        return {
+            from: null,
+            to: null,
+            range: normalizedRange,
+        };
     }
 
     if (normalizedRange === "custom") {
@@ -111,7 +130,78 @@ const resolveTrackReleaseDateKey = (track) => {
     return releaseDate.isValid() ? releaseDate.format(DATE_KEY_FORMAT) : null;
 };
 
+const resolveEarliestStatDateKey = (stats = []) =>
+    stats.reduce((earliestDateKey, stat) => {
+        const candidateDateKey = stat?.dateKey || (stat?.date ? formatDateKey(stat.date) : null);
+
+        if (!candidateDateKey) {
+            return earliestDateKey;
+        }
+
+        if (!earliestDateKey || candidateDateKey < earliestDateKey) {
+            return candidateDateKey;
+        }
+
+        return earliestDateKey;
+    }, null);
+
+const resolveEarliestMonthlyStatDateKey = (stats = []) =>
+    stats.reduce((earliestDateKey, stat) => {
+        const year = Number(stat?.year);
+        const month = Number(stat?.month);
+
+        if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
+            return earliestDateKey;
+        }
+
+        const candidateDateKey = `${year}-${String(month).padStart(2, "0")}-01`;
+
+        if (!earliestDateKey || candidateDateKey < earliestDateKey) {
+            return candidateDateKey;
+        }
+
+        return earliestDateKey;
+    }, null);
+
+export const buildMonthlySummary = (stats = []) => ({
+    totalPlays: stats.reduce((total, stat) => total + Number(stat?.playCount || 0), 0),
+    uniqueListeners: stats.reduce(
+        (total, stat) => total + Number(stat?.uniqueListeners || 0),
+        0
+    ),
+    totalListeningTime: 0,
+    averageListenDuration: 0,
+    skipCount: 0,
+    skipRate: 0,
+});
+
+export const resolveAllTimeTrackPeriod = (
+    track,
+    lifetimeStats = [],
+    monthlyStats = []
+) => {
+    const todayDateKey = getTodayInAnalyticsTimezone().format(DATE_KEY_FORMAT);
+    const releaseDateKey = resolveTrackReleaseDateKey(track);
+    const earliestStatDateKey = resolveEarliestStatDateKey(lifetimeStats);
+    const earliestMonthlyStatDateKey = resolveEarliestMonthlyStatDateKey(monthlyStats);
+    const fromDateKey =
+        releaseDateKey ||
+        earliestStatDateKey ||
+        earliestMonthlyStatDateKey ||
+        todayDateKey;
+
+    return {
+        from: fromDateKey,
+        to: todayDateKey,
+        range: "all",
+    };
+};
+
 export const clampPeriodToTrackReleaseDate = (period, track) => {
+    if (!period?.from || !period?.to) {
+        return period;
+    }
+
     const releaseDateKey = resolveTrackReleaseDateKey(track);
 
     if (!releaseDateKey || parseDateKey(releaseDateKey).isBefore(parseDateKey(period.from))) {
@@ -277,10 +367,12 @@ export const fillRecentMonthlyChartStats = (stats = [], maxMonths = 12) => {
 
 export default {
     buildDailySummary,
+    buildMonthlySummary,
     buildTrackPayload,
     clampPeriodToTrackReleaseDate,
     fillMissingDailyStats,
     fillRecentMonthlyChartStats,
+    resolveAllTimeTrackPeriod,
     resolveLastUpdatedAt,
     resolveLatestTimestamp,
     resolveOverviewPeriod,

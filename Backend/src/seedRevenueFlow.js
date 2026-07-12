@@ -19,6 +19,7 @@ dayjs.extend(timezone);
 const {
     User,
     Artist,
+    ArtistVerificationRequest,
     Plan,
     Track,
     Transaction,
@@ -38,6 +39,8 @@ const ids = {
 
     artistOne: oid("683300000000000000000101"),
     artistTwo: oid("683300000000000000000102"),
+    artistVerificationRequestOne: oid("683300000000000000000103"),
+    artistVerificationRequestTwo: oid("683300000000000000000104"),
 
     premiumPlan: oid("683300000000000000000201"),
 
@@ -108,6 +111,13 @@ const seedCollections = [
     {
         model: Artist,
         ids: [ids.artistOne, ids.artistTwo],
+    },
+    {
+        model: ArtistVerificationRequest,
+        ids: [
+            ids.artistVerificationRequestOne,
+            ids.artistVerificationRequestTwo,
+        ],
     },
     {
         model: Plan,
@@ -268,7 +278,6 @@ const seedArtists = async () => {
             bio: "Artist seed de test chia doanh thu 60 phan tram.",
             avatar: "https://example.com/seed/flow-artist-one.jpg",
             coverImage: "https://example.com/seed/flow-artist-one-cover.jpg",
-            verificationStatus: "verified",
             activeStatus: "active",
             revenue: {
                 totalEarnedAmount: 0,
@@ -285,7 +294,6 @@ const seedArtists = async () => {
             bio: "Artist seed de test chia doanh thu 40 phan tram.",
             avatar: "https://example.com/seed/flow-artist-two.jpg",
             coverImage: "https://example.com/seed/flow-artist-two-cover.jpg",
-            verificationStatus: "verified",
             activeStatus: "active",
             revenue: {
                 totalEarnedAmount: 0,
@@ -294,6 +302,23 @@ const seedArtists = async () => {
                 pendingPayoutAmount: 0,
                 confirmedRevenueSummaryIds: [],
             },
+        },
+    ]);
+
+    await ArtistVerificationRequest.insertMany([
+        {
+            _id: ids.artistVerificationRequestOne,
+            artistId: ids.artistOne,
+            userId: ids.artistUserOne,
+            status: "closed",
+            note: "Seeded as previously verified artist profile.",
+        },
+        {
+            _id: ids.artistVerificationRequestTwo,
+            artistId: ids.artistTwo,
+            userId: ids.artistUserTwo,
+            status: "closed",
+            note: "Seeded as previously verified artist profile.",
         },
     ]);
 };

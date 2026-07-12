@@ -103,7 +103,6 @@ const getAlbumDetail = async (albumId) => {
                 "bio",
                 "avatar",
                 "coverImage",
-                "verificationStatus",
                 "activeStatus",
                 "stats",
             ].join(" "),

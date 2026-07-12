@@ -10,7 +10,6 @@ import {
   formatMonthLabel,
 } from "./trackInsights/helpers";
 import TrackInsightsChartPanel from "./trackInsights/components/TrackInsightsChartPanel";
-import TrackInsightsDailyTable from "./trackInsights/components/TrackInsightsDailyTable";
 import TrackInsightsHero from "./trackInsights/components/TrackInsightsHero";
 import TrackInsightsSidebar from "./trackInsights/components/TrackInsightsSidebar";
 import TrackInsightsSummaryGrid from "./trackInsights/components/TrackInsightsSummaryGrid";
@@ -282,7 +281,7 @@ const ArtistTrackInsightsPage = () => {
               onChangeMetric={ setChartMetric }
               sectionEyebrow="Xu hướng theo ngày"
               sectionTitle="Biểu đồ hiệu suất"
-              sectionDescription="Theo dõi diễn biến lượt phát, quy mô người nghe, thời lượng nghe trung bình và số lượt bỏ qua theo từng ngày."
+              sectionDescription="Theo dõi diễn biến lượt phát, quy mô người nghe, số lượt bỏ qua theo từng ngày."
               tooltipLabelFormatter={ (value) =>
                 formatDateLabel(value, {
                   day: "2-digit",
@@ -308,7 +307,7 @@ const ArtistTrackInsightsPage = () => {
               onChangeMetric={ setMonthlyChartMetric }
               sectionEyebrow="Xu hướng theo tháng"
               sectionTitle="Biểu đồ tích lũy theo tháng"
-              sectionDescription="So sánh nhịp tăng trưởng dài hạn của bài hát qua từng tháng với lượt phát, người nghe, stream hợp lệ và doanh thu."
+              sectionDescription="So sánh nhịp tăng trưởng dài hạn của bài hát qua từng tháng với lượt phát, người nghe và stream hợp lệ."
               emptyTitle="Chưa có dữ liệu theo tháng"
               emptyDescription="Khi hệ thống bắt đầu tổng hợp dữ liệu theo tháng, biểu đồ tích lũy sẽ xuất hiện tại đây."
               tooltipLabelFormatter={ (value) => formatMonthLabel(value) }
@@ -318,7 +317,6 @@ const ArtistTrackInsightsPage = () => {
             />
           </section>
 
-          <TrackInsightsDailyTable dailyChart={ dailyChart } />
         </>
       ) }
     </section>
@@ -326,3 +324,4 @@ const ArtistTrackInsightsPage = () => {
 };
 
 export default ArtistTrackInsightsPage;
+

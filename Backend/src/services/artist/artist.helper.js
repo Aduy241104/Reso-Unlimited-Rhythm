@@ -24,7 +24,6 @@ export const formatArtistProfile = (artist) => {
         avatar: artist.avatar ?? "",
         coverImage: artist.coverImage ?? "",
         socialLinks: artist.socialLinks ?? {},
-        verificationStatus: artist.verificationStatus,
         stats: artist.stats ?? { followers: 0, totalStreams: 0 },
         activeStatus: artist.activeStatus,
         blockedReason: artist.blockedReason ?? "",
