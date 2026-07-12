@@ -58,6 +58,12 @@ router.patch(
 );
 
 router.get(
+    "/playback",
+    optionalAuthenticate(),
+    trackController.getTrackPlayback
+);
+
+router.get(
     "/:id",
     validate(trackValidation.trackIdParamSchema, "params"),
     trackController.getTrackDetail
@@ -66,7 +72,6 @@ router.get(
 router.get(
     "/:id/playback",
     optionalAuthenticate(),
-    validate(trackValidation.trackIdParamSchema, "params"),
     trackController.getTrackPlayback
 );
 

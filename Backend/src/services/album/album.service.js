@@ -20,6 +20,276 @@ const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
 const ALBUM_FOLLOW_ACTION = "follow";
 const ALBUM_FOLLOW_TARGET_TYPE = "Album";
+const ALBUM_LIST_CRITERIA = Object.freeze({
+    FEATURED: "featured",
+    POPULAR: "popular",
+    NEW_RELEASE: "new_release",
+    UPCOMING: "upcoming",
+});
+
+const normalizeAlbumListCriteria = (value) => {
+    const normalizedValue = String(value || "").trim().toLowerCase();
+
+    return Object.values(ALBUM_LIST_CRITERIA).includes(normalizedValue)
+        ? normalizedValue
+        : ALBUM_LIST_CRITERIA.FEATURED;
+};
+
+const buildReleasedAlbumFilter = (now) => ({
+    $or: [
+        { releaseDate: { $exists: false } },
+        { releaseDate: null },
+        { releaseDate: { $lte: now } },
+    ],
+});
+
+const buildAlbumListFilter = (criteria, now) => {
+    const filter = {
+        status: "active",
+    };
+
+    if (criteria === ALBUM_LIST_CRITERIA.UPCOMING) {
+        filter.releaseDate = { $gt: now };
+        return filter;
+    }
+
+    if (
+        criteria === ALBUM_LIST_CRITERIA.POPULAR ||
+        criteria === ALBUM_LIST_CRITERIA.NEW_RELEASE
+    ) {
+        filter.$or = buildReleasedAlbumFilter(now).$or;
+    }
+
+    return filter;
+};
+
+const buildAlbumListSort = (criteria) => {
+    switch (criteria) {
+        case ALBUM_LIST_CRITERIA.POPULAR:
+            return {
+                totalTrackPlays: -1,
+                albumFollowCount: -1,
+                approvedTrackCount: -1,
+                releaseDate: -1,
+                createdAt: -1,
+                _id: -1,
+            };
+        case ALBUM_LIST_CRITERIA.NEW_RELEASE:
+            return {
+                releaseDate: -1,
+                albumFollowCount: -1,
+                totalTrackPlays: -1,
+                createdAt: -1,
+                _id: -1,
+            };
+        case ALBUM_LIST_CRITERIA.UPCOMING:
+            return {
+                releaseDate: 1,
+                albumFollowCount: -1,
+                approvedTrackCount: -1,
+                createdAt: -1,
+                _id: -1,
+            };
+        case ALBUM_LIST_CRITERIA.FEATURED:
+        default:
+            return {
+                isUpcoming: 1,
+                rankingScore: -1,
+                releaseDate: -1,
+                createdAt: -1,
+                _id: -1,
+            };
+    }
+};
+
+const buildAlbumListAggregation = ({ criteria, now, skip, limit }) => {
+    const filter = buildAlbumListFilter(criteria, now);
+    const sort = buildAlbumListSort(criteria);
+
+    return [
+        {
+            $match: filter,
+        },
+        {
+            $lookup: {
+                from: Artist.collection.name,
+                localField: "artistId",
+                foreignField: "_id",
+                as: "artist",
+            },
+        },
+        {
+            $unwind: "$artist",
+        },
+        {
+            $match: {
+                "artist.activeStatus": "active",
+            },
+        },
+        {
+            $lookup: {
+                from: Track.collection.name,
+                let: {
+                    trackIds: "$trackList.trackId",
+                },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {
+                                $and: [
+                                    {
+                                        $in: [
+                                            "$_id",
+                                            {
+                                                $ifNull: ["$$trackIds", []],
+                                            },
+                                        ],
+                                    },
+                                    { $eq: ["$activeStatus", "active"] },
+                                    { $eq: ["$approvalStatus", "approved"] },
+                                ],
+                            },
+                        },
+                    },
+                    {
+                        $project: {
+                            _id: 1,
+                            stats: 1,
+                        },
+                    },
+                ],
+                as: "albumTracks",
+            },
+        },
+        {
+            $lookup: {
+                from: Interaction.collection.name,
+                let: {
+                    albumId: "$_id",
+                },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {
+                                $and: [
+                                    { $eq: ["$targetId", "$$albumId"] },
+                                    {
+                                        $eq: [
+                                            "$targetType",
+                                            ALBUM_FOLLOW_TARGET_TYPE,
+                                        ],
+                                    },
+                                    {
+                                        $eq: [
+                                            "$action",
+                                            ALBUM_FOLLOW_ACTION,
+                                        ],
+                                    },
+                                ],
+                            },
+                        },
+                    },
+                    {
+                        $count: "total",
+                    },
+                ],
+                as: "followStats",
+            },
+        },
+        {
+            $addFields: {
+                artistId: {
+                    _id: "$artist._id",
+                    name: "$artist.name",
+                    avatar: "$artist.avatar",
+                    coverImage: "$artist.coverImage",
+                },
+                trackCount: {
+                    $size: {
+                        $ifNull: ["$trackList", []],
+                    },
+                },
+                approvedTrackCount: {
+                    $size: {
+                        $ifNull: ["$albumTracks", []],
+                    },
+                },
+                totalTrackPlays: {
+                    $reduce: {
+                        input: {
+                            $ifNull: ["$albumTracks", []],
+                        },
+                        initialValue: 0,
+                        in: {
+                            $add: [
+                                "$$value",
+                                {
+                                    $ifNull: [
+                                        "$$this.stats.totalPlay",
+                                        0,
+                                    ],
+                                },
+                            ],
+                        },
+                    },
+                },
+                albumFollowCount: {
+                    $ifNull: [{ $first: "$followStats.total" }, 0],
+                },
+                isUpcoming: {
+                    $cond: [
+                        {
+                            $and: [
+                                { $ne: ["$releaseDate", null] },
+                                { $gt: ["$releaseDate", now] },
+                            ],
+                        },
+                        1,
+                        0,
+                    ],
+                },
+            },
+        },
+        {
+            $addFields: {
+                rankingScore: {
+                    $add: [
+                        "$totalTrackPlays",
+                        { $multiply: ["$albumFollowCount", 25] },
+                        { $multiply: ["$approvedTrackCount", 10] },
+                    ],
+                },
+            },
+        },
+        {
+            $project: {
+                artist: 0,
+                albumTracks: 0,
+                followStats: 0,
+            },
+        },
+        {
+            $facet: {
+                metadata: [
+                    {
+                        $count: "total",
+                    },
+                ],
+                albums: [
+                    {
+                        $sort: sort,
+                    },
+                    {
+                        $skip: skip,
+                    },
+                    {
+                        $limit: limit,
+                    },
+                ],
+            },
+        },
+    ];
+};
 
 const validateAlbumId = (albumId) => {
     if (!mongoose.Types.ObjectId.isValid(albumId)) {
@@ -58,23 +328,19 @@ const getAlbumList = async (query = {}) => {
     const requestedLimit = normalizePositiveInteger(query.limit, DEFAULT_LIMIT);
     const limit = Math.min(requestedLimit, MAX_LIMIT);
     const skip = (page - 1) * limit;
+    const criteria = normalizeAlbumListCriteria(query.criteria);
+    const now = new Date();
 
-    const filter = {
-        status: "active",
-    };
-
-    const [albums, total] = await Promise.all([
-        Album.find(filter)
-            .sort({ releaseDate: -1, totalDuration: -1, createdAt: -1, _id: -1 })
-            .skip(skip)
-            .limit(limit)
-            .populate({
-                path: "artistId",
-                select: "name avatar coverImage",
-            })
-            .lean(),
-        Album.countDocuments(filter),
-    ]);
+    const [result] = await Album.aggregate(
+        buildAlbumListAggregation({
+            criteria,
+            now,
+            skip,
+            limit,
+        })
+    );
+    const albums = result?.albums || [];
+    const total = result?.metadata?.[0]?.total || 0;
 
     await enrichAlbumsWithTotalDuration(albums);
 
@@ -85,6 +351,7 @@ const getAlbumList = async (query = {}) => {
             limit,
             total,
             totalPages: total === 0 ? 0 : Math.ceil(total / limit),
+            criteria,
         },
     };
 };
