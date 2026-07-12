@@ -51,10 +51,6 @@ const AccountMenu = ({ user, onLogout }) => {
 
       ...(userRole === "artist"
         ? [
-            {
-              label: "Yêu cầu của tôi",
-              to: routePaths.artistRegistrationRequestsList,
-            },
             { label: "Khu vực nghệ sĩ", to: routePaths.artistRoot },
           ]
         : []),

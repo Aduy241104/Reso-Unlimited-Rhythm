@@ -28,6 +28,12 @@ const CONTEXT_QUEUE_SOURCE = "context";
 const getTrackId = (track, fallbackId = null) =>
   track?.id || track?._id || track?.trackId || fallbackId;
 
+const getExplicitTrackId = (track) =>
+  track?.id || track?._id || track?.trackId || null;
+
+const getPlaybackRequestTrackId = (track) =>
+  track?.playbackTrackId || getExplicitTrackId(track?.raw) || null;
+
 const getArtistName = (track, fallbackArtistName = "") =>
   track?.artist?.name ||
   track?.artistName ||
@@ -585,6 +591,37 @@ export const PlayerProvider = ({ children }) => {
     });
   };
 
+  const createRandomPlaybackQueueTrack = () => {
+    queueMutationCounterRef.current += 1;
+
+    return normalizeQueueTrack(
+      {
+        title: "Random track",
+        artistName: "Unknown artist",
+      },
+      {
+        index: queueMutationCounterRef.current,
+        collectionId: "random-playback",
+        collectionType: "queue",
+        queueSource: CONTEXT_QUEUE_SOURCE,
+        queueItemId: `random:${Date.now()}:${queueMutationCounterRef.current}`,
+      }
+    );
+  };
+
+  const playRandomPlaybackTrack = async (options = {}) => {
+    const nextQueueTrack = createRandomPlaybackQueueTrack();
+    const nextQueue = [...queueRef.current, nextQueueTrack];
+    const nextOrderedQueue = [...orderedQueueRef.current, nextQueueTrack];
+
+    syncQueueState(nextQueue);
+    syncOrderedQueueState(nextOrderedQueue);
+    setErrorMessage("");
+    setRestrictionMessage("");
+
+    await playTrackByIndexRef.current?.(nextQueue.length - 1, nextQueue, options);
+  };
+
   const clearPlaybackState = () => {
     const audio = audioRef.current;
 
@@ -923,9 +960,9 @@ export const PlayerProvider = ({ children }) => {
         return;
       }
 
-      setIsPlaying(false);
-      setCurrentTime(0);
-      syncLyricsRef.current?.(0, true);
+      await playRandomPlaybackTrack({
+        skipListenFlush: true,
+      });
     };
 
     const handleError = () => {
@@ -1052,7 +1089,7 @@ export const PlayerProvider = ({ children }) => {
         const restoredCurrentTrack = restoredQueue[restoredCurrentIndex];
         const hydratedCurrentTrack = {
           ...restoredCurrentTrack,
-          id: restoredCurrentTrack.id || getTrackId(playbackSource.track, restoredCurrentTrack.id),
+          id: getExplicitTrackId(playbackSource.track) || restoredCurrentTrack.id,
           title: playbackSource.track?.title || restoredCurrentTrack.title,
           artist: playbackSource.track?.artist || restoredCurrentTrack.artist,
           artistName: getArtistName(playbackSource.track, restoredCurrentTrack.artistName),
@@ -1060,7 +1097,7 @@ export const PlayerProvider = ({ children }) => {
             Number(playbackSource.track?.duration) || restoredCurrentTrack.duration,
           image: getTrackImage(playbackSource.track, restoredCurrentTrack.image),
           playbackTrackId:
-            getTrackId(playbackSource.track, restoredCurrentTrack.playbackTrackId) ||
+            getExplicitTrackId(playbackSource.track) ||
             restoredCurrentTrack.playbackTrackId,
           playback: playbackSource.track?.playback || restoredCurrentTrack.playback,
           lyricsSyncUrl:
@@ -1232,7 +1269,7 @@ export const PlayerProvider = ({ children }) => {
           track: nextTrack.raw,
         };
       } else {
-        source = await getTrackPlaybackSource(nextTrack.playbackTrackId || nextTrack.id, {
+        source = await getTrackPlaybackSource(getPlaybackRequestTrackId(nextTrack), {
           preferredQualityLabel,
           preferredQualityUrl,
         });
@@ -1258,7 +1295,7 @@ export const PlayerProvider = ({ children }) => {
       const hydratedTrack = {
         ...nextTrack,
         queueItemId: nextQueueItemId,
-        id: nextTrack.id || getTrackId(source.track, nextTrack.id),
+        id: getExplicitTrackId(source.track) || nextTrack.id,
         lyricsThemeIndex,
         title: source.track?.title || nextTrack.title,
         artist: source.track?.artist || nextTrack.artist,
@@ -1266,7 +1303,7 @@ export const PlayerProvider = ({ children }) => {
         duration: Number(source.track?.duration) || nextTrack.duration,
         image: getTrackImage(source.track, nextTrack.image),
         playbackTrackId:
-          getTrackId(source.track, nextTrack.playbackTrackId) ||
+          getExplicitTrackId(source.track) ||
           nextTrack.playbackTrackId,
         playback: source.track?.playback || nextTrack.playback,
         lyricsSyncUrl:
@@ -1519,11 +1556,16 @@ export const PlayerProvider = ({ children }) => {
     let nextIndex = currentIndexRef.current + 1;
 
     if (nextIndex >= queueRef.current.length) {
-      if (repeatModeRef.current !== "all" || queueRef.current.length === 0) {
+      if (repeatModeRef.current === "all" && queueRef.current.length > 0) {
+        nextIndex = 0;
+      } else {
+        if (!consumeFreeSkip()) {
+          return;
+        }
+
+        await playRandomPlaybackTrack();
         return;
       }
-
-      nextIndex = 0;
     }
 
     if (!consumeFreeSkip()) {
