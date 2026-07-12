@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { getAlbumDetailService } from "../services/albumService";
-import {
-  getPlaylistDetailService,
-} from "../services/playlistService";
+import { getPlaylistDetailService } from "../services/playlistService";
 import {
   getDailyTopTracksService,
   getMonthlyTopTracksService,
@@ -20,6 +18,10 @@ import {
   getCurrentMonthValue,
   getMonthlyTopTracksHeroImage,
 } from "../utils/monthlyTopTracks";
+import {
+  createRecommendationMixCollectionMeta,
+  getRecommendationUserDisplayName,
+} from "../utils/recommendation";
 import { getResourceId } from "../utils/homeContent";
 import { usePlayer } from "./usePlayer";
 
@@ -43,7 +45,7 @@ export const useContentPlayback = () => {
       setPlaybackError(
         getApiErrorMessage(
           error,
-          "Không thể tải danh sách bài hát của album để phát lúc này."
+          "Khong the tai danh sach bai hat cua album de phat luc nay."
         )
       );
     }
@@ -65,7 +67,7 @@ export const useContentPlayback = () => {
       setPlaybackError(
         getApiErrorMessage(
           error,
-          "Không thể tải danh sách bài hát của playlist để phát lúc này."
+          "Khong the tai danh sach bai hat cua playlist de phat luc nay."
         )
       );
     }
@@ -85,7 +87,9 @@ export const useContentPlayback = () => {
       const topTracks = response?.topTracks ?? [];
 
       if (topTracks.length === 0) {
-        setPlaybackError("Bảng xếp hạng ngày hiện chưa có bài hát nào để phát.");
+        setPlaybackError(
+          "Bang xep hang ngay hien chua co bai hat nao de phat."
+        );
         return;
       }
 
@@ -105,7 +109,7 @@ export const useContentPlayback = () => {
       setPlaybackError(
         getApiErrorMessage(
           error,
-          "Không thể tải bảng xếp hạng bài hát theo ngày để phát lúc này."
+          "Khong the tai bang xep hang bai hat theo ngay de phat luc nay."
         )
       );
     }
@@ -125,7 +129,9 @@ export const useContentPlayback = () => {
       const topTracks = response?.topTracks ?? [];
 
       if (topTracks.length === 0) {
-        setPlaybackError("Bảng xếp hạng tháng hiện chưa có bài hát nào để phát.");
+        setPlaybackError(
+          "Bang xep hang thang hien chua co bai hat nao de phat."
+        );
         return;
       }
 
@@ -145,7 +151,35 @@ export const useContentPlayback = () => {
       setPlaybackError(
         getApiErrorMessage(
           error,
-          "Không thể tải bảng xếp hạng bài hát theo tháng để phát lúc này."
+          "Khong the tai bang xep hang bai hat theo thang de phat luc nay."
+        )
+      );
+    }
+  };
+
+  const playRecommendationMixItem = async (item, user = null) => {
+    const mix = item?.raw ?? item;
+    const tracks = Array.isArray(mix?.tracks) ? mix.tracks : [];
+
+    if (tracks.length === 0) {
+      setPlaybackError("Playlist goi y nay hien chua co bai hat de phat.");
+      return;
+    }
+
+    try {
+      setPlaybackError("");
+      await playCollection(tracks, {
+        startIndex: 0,
+        collection: createRecommendationMixCollectionMeta(
+          mix,
+          getRecommendationUserDisplayName(user)
+        ),
+      });
+    } catch (error) {
+      setPlaybackError(
+        getApiErrorMessage(
+          error,
+          "Khong the phat playlist goi y ca nhan luc nay."
         )
       );
     }
@@ -162,5 +196,6 @@ export const useContentPlayback = () => {
     playDailyTopTracksItem,
     playMonthlyTopTracksItem,
     playPlaylistItem,
+    playRecommendationMixItem,
   };
 };

@@ -12,6 +12,7 @@ const {
     ArtistMonthlyStat,
     ArtistRequest,
     ArtistStat,
+    ArtistVerificationRequest,
     Genre,
     Interaction,
     ListenEvent,
@@ -53,6 +54,7 @@ const ids = {
     artistRequest: oid("681300000000000000000302"),
     artistStat: oid("681300000000000000000303"),
     artistMonthlyStat: oid("681300000000000000000304"),
+    artistVerificationRequestClosed: oid("681300000000000000000306"),
 
     albumMain: oid("681300000000000000000401"),
 
@@ -125,6 +127,10 @@ const seedCollections = [
     { model: ArtistDailyRanking, ids: [ids.artistDailyRanking] },
     { model: ArtistMonthlyStat, ids: [ids.artistMonthlyStat] },
     { model: ArtistStat, ids: [ids.artistStat] },
+    {
+        model: ArtistVerificationRequest,
+        ids: [ids.artistVerificationRequestClosed],
+    },
     { model: ArtistRequest, ids: [ids.artistRequest] },
     { model: Artist, ids: [ids.artistMain] },
     { model: Genre, ids: [ids.genreLofi, ids.genrePop, ids.genreTalk] },
@@ -338,12 +344,19 @@ const seedArtistData = async () => {
             instagram: "https://instagram.com/seedwaves",
             youtube: "https://youtube.com/@seedwaves",
         },
-        verificationStatus: "verified",
         stats: {
             followers: 5200,
             totalStreams: 128450,
         },
         activeStatus: "active",
+    });
+
+    await ArtistVerificationRequest.create({
+        _id: ids.artistVerificationRequestClosed,
+        artistId: ids.artistMain,
+        userId: ids.userArtist,
+        status: "closed",
+        note: "Seeded as previously verified artist profile.",
     });
 
     await ArtistRequest.create({
