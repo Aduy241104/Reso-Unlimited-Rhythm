@@ -1,7 +1,8 @@
-﻿import React, { useEffect } from 'react';
+﻿
+import React, { useEffect } from 'react';
 import { View } from 'react-native';
+
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from '../screens/home/HomeScreen';
@@ -15,12 +16,17 @@ import EntityDetailScreen from '../screens/detail/EntityDetailScreen';
 import FavoriteTracksScreen from '../screens/favorite/FavoriteTracksScreen';
 import PlaylistDetailScreen from '../screens/playlist/PlaylistDetailScreen';
 import PlayerSheetScreen from '../screens/player/PlayerSheetScreen';
+
+import PremiumScreen from '../screens/premium/PremiumScreen';
+
 import ArtistRegistrationRequestDetailScreen from '../screens/profile/ArtistRegistrationRequestDetailScreen';
 import UserProfileScreen from '../screens/profile/UserProfileScreen';
+import SubscriptionStatusScreen from '../screens/subscription/SubscriptionStatusScreen';
 import ArtistRegistrationRequestMobileScreen from '../screens/profile/ArtistRegistrationRequestMobileScreen';
 import CreateReportScreen from '../screens/report/CreateReportScreen';
 import ReportDetailScreen from '../screens/report/ReportDetailScreen';
 import ReportListScreen from '../screens/report/ReportListScreen';
+
 import AppTabBar from '../components/navigation/AppTabBar';
 import theme from '../theme';
 
@@ -35,20 +41,6 @@ const tabIcons = {
   Premium: { active: 'star', inactive: 'star-outline' },
   CreateForMe: { active: 'add', inactive: 'add-outline' },
 };
-
-function PremiumRedirectScreen() {
-  const navigation = useNavigation();
-
-  useEffect(() => {
-    const parentNavigation = navigation.getParent();
-
-    if (parentNavigation) {
-      parentNavigation.navigate('PremiumOverview');
-    }
-  }, [navigation]);
-
-  return <View style={styles.redirectScreen} />;
-}
 
 function SharedTabStack({ rootName, component: RootComponent }) {
   return (
@@ -102,7 +94,7 @@ function SharedTabStack({ rootName, component: RootComponent }) {
           animation: 'slide_from_right',
         }}
       />
-      <Stack.Screen
+            <Stack.Screen
         name="FollowedAlbums"
         component={FollowedAlbumsScreen}
         options={{
@@ -113,6 +105,14 @@ function SharedTabStack({ rootName, component: RootComponent }) {
       <Stack.Screen
         name="UserProfile"
         component={UserProfileScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="SubscriptionStatus"
+        component={SubscriptionStatusScreen}
         options={{
           headerShown: false,
           animation: 'slide_from_right',
@@ -233,13 +233,7 @@ export const BottomTabNavigator = () => {
       />
       <Tab.Screen
         name="Premium"
-        component={PremiumRedirectScreen}
-        listeners={({ navigation }) => ({
-          tabPress: (event) => {
-            event.preventDefault();
-            navigation.getParent()?.navigate('PremiumOverview');
-          },
-        })}
+        component={PremiumScreen}
         options={{ tabBarLabel: 'Premium' }}
       />
       <Tab.Screen
@@ -251,9 +245,5 @@ export const BottomTabNavigator = () => {
   );
 };
 
-const styles = {
-  redirectScreen: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-};
+
+

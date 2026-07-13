@@ -51,6 +51,7 @@ export default function ProfileSidebarMenu({
   subtitle,
   avatarUri,
   menuItems = [],
+  footerItem = null,
 }) {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -145,16 +146,29 @@ export default function ProfileSidebarMenu({
 
           <View style={ styles.divider } />
 
-          <View style={ styles.itemList }>
-            { menuItems.map((item) => (
-              <SidebarItem
-                key={ item.key }
-                icon={ item.icon }
-                label={ item.label }
-                onPress={ item.onPress }
-                tone={ item.tone }
-              />
-            )) }
+          <View style={ styles.content }>
+            <View style={ styles.itemList }>
+              { menuItems.map((item) => (
+                <SidebarItem
+                  key={ item.key }
+                  icon={ item.icon }
+                  label={ item.label }
+                  onPress={ item.onPress }
+                  tone={ item.tone }
+                />
+              )) }
+            </View>
+
+            { footerItem ? (
+              <View style={ styles.footer }>
+                <SidebarItem
+                  icon={ footerItem.icon }
+                  label={ footerItem.label }
+                  onPress={ footerItem.onPress }
+                  tone={ footerItem.tone }
+                />
+              </View>
+            ) : null }
           </View>
         </Animated.View>
       </View>
@@ -209,8 +223,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#373737',
   },
 
+  content: {
+    flex: 1,
+  },
+
   itemList: {
     paddingTop: 11,
+  },
+
+  footer: {
+    marginTop: 'auto',
+    paddingBottom: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#373737',
   },
 
   itemButton: {
