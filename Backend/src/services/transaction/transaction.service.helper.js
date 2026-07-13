@@ -54,51 +54,37 @@ const normalizeEnumFilter = (value, allowedValues, field) => {
     return normalizedValue;
 };
 
-const parseDateValue = (value, field) => {
-    if (value === undefined || value === null || value === "") {
-        return null;
+const validateTransactionListQuery = (query = {}) => {
+    const page = normalizePositiveInteger(query.page, DEFAULT_PAGE, "page");
+    const limit = normalizePositiveInteger(query.limit, DEFAULT_LIMIT, "limit", {
+        max: MAX_LIMIT,
+    });
+    const status = normalizeEnumFilter(
+        query.status,
+        VALID_TRANSACTION_STATUSES,
+        "status"
+    );
+    const paymentMethod = normalizeEnumFilter(
+        query.paymentMethod,
+        VALID_PAYMENT_METHODS,
+        "paymentMethod"
+    );
+
+    if (
+        query.search !== undefined &&
+        query.search !== null &&
+        typeof query.search !== "string"
+    ) {
+        throw new AppError("Invalid search.", 400, { field: "search" });
     }
 
-    if (typeof value !== "string") {
-        throw new AppError(`Invalid ${field}.`, 400, { field });
-    }
-
-    const parsedDate = new Date(value);
-
-    if (Number.isNaN(parsedDate.getTime())) {
-        throw new AppError(`Invalid ${field}.`, 400, { field });
-    }
-
-    return parsedDate;
-};
-
-const buildTransactionDateFilter = (startDateValue, endDateValue) => {
-    const startDate = parseDateValue(startDateValue, "startDate");
-    const endDate = parseDateValue(endDateValue, "endDate");
-
-    if (!startDate && !endDate) {
-        return null;
-    }
-
-    const createdAt = {};
-
-    if (startDate) {
-        createdAt.$gte = startDate;
-    }
-
-    if (endDate) {
-        endDate.setUTCHours(23, 59, 59, 999);
-        createdAt.$lte = endDate;
-    }
-
-    if (startDate && endDate && startDate > endDate) {
-        throw new AppError("startDate cannot be greater than endDate.", 400, {
-            startDate: startDateValue,
-            endDate: endDateValue,
-        });
-    }
-
-    return { createdAt };
+    return {
+        page,
+        limit,
+        search: (query.search || "").trim(),
+        status,
+        paymentMethod,
+    };
 };
 
 const escapeRegex = (value = "") => {
@@ -146,7 +132,7 @@ export {
     VALID_PAYMENT_METHODS,
     normalizePositiveInteger,
     normalizeEnumFilter,
-    buildTransactionDateFilter,
+    validateTransactionListQuery,
     escapeRegex,
     formatTransactionListItem,
     buildPagination,
@@ -160,7 +146,7 @@ export default {
     VALID_PAYMENT_METHODS,
     normalizePositiveInteger,
     normalizeEnumFilter,
-    buildTransactionDateFilter,
+    validateTransactionListQuery,
     escapeRegex,
     formatTransactionListItem,
     buildPagination,

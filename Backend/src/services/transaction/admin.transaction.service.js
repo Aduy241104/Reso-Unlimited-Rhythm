@@ -1,38 +1,22 @@
 ﻿import Transaction from "../../models/Transaction.js";
 import User from "../../models/User.js";
-import { AppError } from "../../utils/AppError.js";
 import {
-    DEFAULT_LIMIT,
-    DEFAULT_PAGE,
-    MAX_LIMIT,
-    VALID_PAYMENT_METHODS,
-    VALID_TRANSACTION_STATUSES,
     buildPagination,
-    buildTransactionDateFilter,
     escapeRegex,
     formatTransactionListItem,
-    normalizeEnumFilter,
-    normalizePositiveInteger,
+    validateTransactionListQuery,
 } from "./transaction.service.helper.js";
 
 const getTransactionList = async (query = {}) => {
-    const page = normalizePositiveInteger(query.page, DEFAULT_PAGE, "page");
-    const limit = normalizePositiveInteger(query.limit, DEFAULT_LIMIT, "limit", {
-        max: MAX_LIMIT,
-    });
+    const {
+        page,
+        limit,
+        search,
+        status,
+        paymentMethod,
+    } = validateTransactionListQuery(query);
     const skip = (page - 1) * limit;
     const filter = {};
-
-    const status = normalizeEnumFilter(
-        query.status,
-        VALID_TRANSACTION_STATUSES,
-        "status"
-    );
-    const paymentMethod = normalizeEnumFilter(
-        query.paymentMethod,
-        VALID_PAYMENT_METHODS,
-        "paymentMethod"
-    );
 
     if (status) {
         filter.status = status;
@@ -41,25 +25,6 @@ const getTransactionList = async (query = {}) => {
     if (paymentMethod) {
         filter.paymentMethod = paymentMethod;
     }
-
-    const dateFilter = buildTransactionDateFilter(
-        query.startDate,
-        query.endDate
-    );
-
-    if (dateFilter) {
-        Object.assign(filter, dateFilter);
-    }
-
-    if (
-        query.search !== undefined &&
-        query.search !== null &&
-        typeof query.search !== "string"
-    ) {
-        throw new AppError("Invalid search.", 400, { field: "search" });
-    }
-
-    const search = (query.search || "").trim();
 
     if (search) {
         const escapedSearch = escapeRegex(search);
