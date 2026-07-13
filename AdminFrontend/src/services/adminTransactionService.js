@@ -31,6 +31,15 @@ export const getAdminTransactionList = async (params = {}) => {
   };
 };
 
+export const getAdminTransactionDetail = async (transactionId) => {
+  const response = await axiosClient.get(
+    `${ADMIN_TRANSACTION_API_PREFIX}/${transactionId}`
+  );
+
+  return response?.data?.data ?? null;
+};
+
 export default {
   getAdminTransactionList,
+  getAdminTransactionDetail,
 };

@@ -35,6 +35,7 @@ import SubscriptionPlansPage from "../pages/subscriptions/SubscriptionPlansPage"
 import SubscriptionPlanDetailPage from "../pages/subscriptions/SubscriptionPlanDetailPage";
 import CreateSubscriptionPlanPage from "../pages/subscriptions/CreateSubscriptionPlanPage";
 import EditSubscriptionPlanPage from "../pages/subscriptions/EditSubscriptionPlanPage";
+import TransactionDetail from "../pages/transactions/TransactionDetail";
 import TransactionList from "../pages/transactions/TransactionList";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
@@ -116,11 +117,11 @@ export const appRoutes = [
               },
               {
                 path: "notifications",
-                element: <NotificationsListPage />, // Đổi thành List trang chủ thông báo
+                element: <NotificationsListPage />,
               },
               {
                 path: "notifications/new",
-                element: <CreateNotificationPage />, // Đổi thành /notifications/new để khớp với routePaths.createNotification
+                element: <CreateNotificationPage />,
               },
               {
                 path: "notifications/:id",
@@ -201,6 +202,10 @@ export const appRoutes = [
               {
                 path: routePaths.transactions,
                 element: <TransactionList />,
+              },
+              {
+                path: routePaths.transactionDetail(),
+                element: <TransactionDetail />,
               },
             ],
           },

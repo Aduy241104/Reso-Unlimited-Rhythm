@@ -42,4 +42,5 @@
   subscriptionEdit: (planId = ":planId") => `/subscriptions/${planId}/edit`,
   subscriptionNew: "/subscriptions/new",
   transactions: "/transactions",
+  transactionDetail: (transactionId = ":id") => `/transactions/${transactionId}`,
 };

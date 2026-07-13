@@ -1,4 +1,5 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   AlertCircle,
   ArrowUpRight,
@@ -7,6 +8,7 @@ import {
   Search,
 } from "lucide-react";
 import { getAdminTransactionList } from "../../services/adminTransactionService";
+import { routePaths } from "../../routes/routePaths";
 
 const statusOptions = [
   { value: "", label: "Tất cả trạng thái" },
@@ -115,6 +117,7 @@ const getStatusConfig = (status) =>
   };
 
 const TransactionList = () => {
+  const navigate = useNavigate();
   const [transactions, setTransactions] = useState([]);
   const [pagination, setPagination] = useState({
     page: 1,
@@ -210,6 +213,14 @@ const TransactionList = () => {
 
   const handleRetry = () => {
     setReloadKey((currentValue) => currentValue + 1);
+  };
+
+  const handleViewDetail = (transactionId) => {
+    if (!transactionId) {
+      return;
+    }
+
+    navigate(routePaths.transactionDetail(transactionId));
   };
 
   const total = pagination?.total ?? 0;
@@ -357,9 +368,10 @@ const TransactionList = () => {
         </div>
       ) : (
         <div className="overflow-hidden rounded-2xl bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
-          <table className="w-full table-fixed text-left">
-            <thead className="border-b border-slate-200 bg-slate-50">
-              <tr className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+          <div className="overflow-x-auto">
+            <table className="w-full table-fixed text-left">
+              <thead className="border-b border-slate-200 bg-slate-50">
+                <tr className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
                 <th className="w-[16%] px-4 py-4">Mã hóa đơn</th>
                 <th className="w-[18%] px-4 py-4">Người dùng</th>
                 <th className="w-[13%] px-4 py-4">Gói đăng ký</th>
@@ -368,81 +380,85 @@ const TransactionList = () => {
                 <th className="w-[10%] px-4 py-4">Trạng thái</th>
                 <th className="w-[13%] px-4 py-4">Ngày giao dịch</th>
                 <th className="w-[10%] px-4 py-4 text-right">Thao tác</th>
-              </tr>
-            </thead>
+                </tr>
+              </thead>
 
-            <tbody className="divide-y divide-slate-100 align-top">
-              {transactions.map((transaction) => {
-                const status = getStatusConfig(transaction.status);
+              <tbody className="divide-y divide-slate-100 align-top">
+                {transactions.map((transaction) => {
+                  const status = getStatusConfig(transaction.status);
+                  const transactionId = transaction.id;
 
-                return (
-                  <tr
-                    key={transaction.id || transaction.invoiceNumber}
-                    className="transition hover:bg-slate-50/80"
-                  >
-                    <td className="px-4 py-4 align-top">
-                      <p className="break-words text-sm font-semibold leading-6 text-slate-950">
-                        {transaction.invoiceNumber || "-"}
-                      </p>
-                    </td>
+                  return (
+                    <tr
+                      key={transactionId || transaction.invoiceNumber}
+                      className="transition hover:bg-slate-50/80"
+                    >
+                      <td className="px-2.5 py-4 align-top">
+                        <p className="break-words text-sm font-semibold leading-6 text-slate-950">
+                          {transaction.invoiceNumber || "-"}
+                        </p>
+                      </td>
 
-                    <td className="px-4 py-4 align-top">
-                      <p className="break-all text-sm leading-6 text-slate-700">
-                        {transaction.user?.email || "-"}
-                      </p>
-                    </td>
+                      <td className="px-2.5 py-4 align-top">
+                        <p className="break-all text-sm leading-6 text-slate-700">
+                          {transaction.user?.email || "-"}
+                        </p>
+                      </td>
 
-                    <td className="px-4 py-4 align-top">
-                      <p className="break-words text-sm leading-6 text-slate-700">
-                        {transaction.plan?.name || "-"}
-                      </p>
-                    </td>
+                      <td className="px-2.5 py-4 align-top">
+                        <p className="break-words text-sm leading-6 text-slate-700">
+                          {transaction.plan?.name || "-"}
+                        </p>
+                      </td>
 
-                    <td className="px-4 py-4 align-top">
-                      <p className="whitespace-nowrap text-sm font-semibold leading-6 text-slate-900">
-                        {formatCurrency(
-                          transaction.totalAmount,
-                          transaction.currency || "VND"
-                        )}
-                      </p>
-                    </td>
+                      <td className="px-2.5 py-4 align-top">
+                        <p className="whitespace-nowrap text-sm font-semibold leading-6 text-slate-900">
+                          {formatCurrency(
+                            transaction.totalAmount,
+                            transaction.currency || "VND"
+                          )}
+                        </p>
+                      </td>
 
-                    <td className="px-4 py-4 align-top">
-                      <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
-                        {getPaymentMethodLabel(transaction.paymentMethod)}
-                      </span>
-                    </td>
+                      <td className="px-2.5 py-4 align-top">
+                        <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+                          {getPaymentMethodLabel(transaction.paymentMethod)}
+                        </span>
+                      </td>
 
-                    <td className="px-4 py-4 align-top">
-                      <span
-                        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${status.className}`}
-                      >
-                        {status.label}
-                      </span>
-                    </td>
-
-                    <td className="px-4 py-4 align-top">
-                      <p className="text-sm leading-6 text-slate-600">
-                        {formatTransactionDate(transaction.transactionDate)}
-                      </p>
-                    </td>
-
-                    <td className="px-4 py-4 align-top">
-                      <div className="flex justify-end">
-                        <button
-                          type="button"
-                          className="inline-flex items-center gap-1 whitespace-nowrap rounded-lg border border-slate-200 px-2.5 py-2 text-xs font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-100 hover:text-slate-950"
+                      <td className="px-2.5 py-4 align-top">
+                        <span
+                          className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${status.className}`}
                         >
+                          {status.label}
+                        </span>
+                      </td>
+
+                      <td className="px-2.5 py-4 align-top">
+                        <p className="whitespace-nowrap text-sm leading-6 text-slate-600">
+                          {formatTransactionDate(transaction.transactionDate)}
+                        </p>
+                      </td>
+
+                      <td className="px-2.5 py-4 align-top">
+                        <div className="flex justify-end">
+                          <button
+                            type="button"
+                            disabled={!transactionId}
+                            onClick={() => handleViewDetail(transactionId)}
+                            className="inline-flex w-full items-center justify-center gap-1 whitespace-nowrap rounded-lg border border-slate-200 px-2 py-2 text-[11px] font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-100 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
                           Xem chi tiết
-                          <ArrowUpRight size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                            <ArrowUpRight size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -487,3 +503,4 @@ const TransactionList = () => {
 };
 
 export default TransactionList;
+
