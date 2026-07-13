@@ -115,6 +115,54 @@ const formatTransactionListItem = (transaction) => {
     };
 };
 
+const formatTransactionDetail = (transaction) => {
+    return {
+        id: transaction._id?.toString?.() || "",
+        invoiceNumber: transaction.invoiceNumber || "",
+        gatewayTransactionId: transaction.gatewayTransactionId || "",
+        user: transaction.userId?._id
+            ? {
+                id: transaction.userId._id.toString(),
+                fullName: transaction.userId.profile?.fullName || "",
+                country: transaction.userId.profile?.country || "",
+                email: transaction.userId.email || "",
+                avatar: transaction.userId.avatar || "",
+                gender: transaction.userId.profile?.gender || "",
+            }
+            : null,
+        plan: transaction.planId?._id
+            ? {
+                id: transaction.planId._id.toString(),
+                name: transaction.planId.name || "",
+                price: Number(transaction.planId.price || 0),
+                duration: Number(
+                    transaction.planId.durationDays || transaction.planId.duration || 0
+                ),
+            }
+            : null,
+        subscription: transaction.subscriptionId?._id
+            ? {
+                id: transaction.subscriptionId._id.toString(),
+                status: transaction.subscriptionId.status || "",
+                startDate: transaction.subscriptionId.startDate || null,
+                endDate: transaction.subscriptionId.endDate || null,
+            }
+            : null,
+        amount: Number(transaction.amount || 0),
+        tax: Number(transaction.tax || 0),
+        totalAmount: Number(transaction.totalAmount || 0),
+        currency: transaction.currency || "VND",
+        paymentMethod: transaction.paymentMethod || "",
+        paymentGateway: transaction.paymentGateway || "",
+        status: transaction.status || "",
+        paidAt: transaction.paidAt || null,
+        failedAt: transaction.failedAt || null,
+        failureReason: transaction.failureReason || "",
+        createdAt: transaction.createdAt || null,
+        updatedAt: transaction.updatedAt || null,
+    };
+};
+
 const buildPagination = (page, limit, total) => {
     return {
         page,
@@ -135,6 +183,7 @@ export {
     validateTransactionListQuery,
     escapeRegex,
     formatTransactionListItem,
+    formatTransactionDetail,
     buildPagination,
 };
 
@@ -149,5 +198,6 @@ export default {
     validateTransactionListQuery,
     escapeRegex,
     formatTransactionListItem,
+    formatTransactionDetail,
     buildPagination,
 };

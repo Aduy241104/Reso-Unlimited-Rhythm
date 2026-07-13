@@ -18,6 +18,21 @@ const getTransactionList = async (req, res, next) => {
     }
 };
 
+const getTransactionDetail = async (req, res, next) => {
+    try {
+        const result = await adminTransactionService.getTransactionDetail(req.params.id);
+
+        return formatResponse.success(
+            res,
+            result,
+            "Transaction detail retrieved successfully."
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getTransactionList,
+    getTransactionDetail,
 };

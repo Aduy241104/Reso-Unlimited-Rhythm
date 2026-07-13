@@ -1,8 +1,11 @@
-﻿import Transaction from "../../models/Transaction.js";
+﻿import mongoose from "mongoose";
+import Transaction from "../../models/Transaction.js";
 import User from "../../models/User.js";
+import { AppError } from "../../utils/AppError.js";
 import {
     buildPagination,
     escapeRegex,
+    formatTransactionDetail,
     formatTransactionListItem,
     validateTransactionListQuery,
 } from "./transaction.service.helper.js";
@@ -79,8 +82,39 @@ const getTransactionList = async (query = {}) => {
     };
 };
 
-export { getTransactionList };
+const getTransactionDetail = async (transactionId) => {
+    if (!mongoose.Types.ObjectId.isValid(transactionId)) {
+        throw new AppError("Transaction id is invalid.", 400);
+    }
+
+    const transaction = await Transaction.findById(transactionId)
+        .select(
+            "userId subscriptionId planId amount tax totalAmount currency paymentMethod paymentGateway gatewayTransactionId status paidAt failedAt failureReason invoiceNumber createdAt updatedAt"
+        )
+        .populate({
+            path: "userId",
+            select: "_id email avatar profile.fullName profile.country profile.gender",
+        })
+        .populate({
+            path: "planId",
+            select: "_id name price durationDays",
+        })
+        .populate({
+            path: "subscriptionId",
+            select: "_id status startDate endDate",
+        })
+        .lean();
+
+    if (!transaction) {
+        throw new AppError("Transaction not found.", 404);
+    }
+
+    return formatTransactionDetail(transaction);
+};
+
+export { getTransactionList, getTransactionDetail };
 
 export default {
     getTransactionList,
+    getTransactionDetail,
 };
