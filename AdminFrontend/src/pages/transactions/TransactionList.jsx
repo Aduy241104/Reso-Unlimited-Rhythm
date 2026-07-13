@@ -50,6 +50,12 @@ const statusMap = {
   },
 };
 
+const DEFAULT_APPLIED_FILTERS = {
+  search: "",
+  status: "",
+  paymentMethod: "",
+};
+
 const formatCurrency = (value, currency = "VND") => {
   if (value === undefined || value === null) {
     return "-";
@@ -121,27 +127,34 @@ const TransactionList = () => {
   const [reloadKey, setReloadKey] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [searchKeyword, setSearchKeyword] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
+  const [appliedFilters, setAppliedFilters] = useState(DEFAULT_APPLIED_FILTERS);
 
   useEffect(() => {
     let isActive = true;
 
-    const loadTransactions = async () => {
+    const fetchTransactions = async () => {
       setIsLoading(true);
       setError("");
 
       try {
-        const result = await getAdminTransactionList(page, limit);
+        const response = await getAdminTransactionList({
+          page,
+          limit,
+          ...appliedFilters,
+        });
 
         if (!isActive) {
           return;
         }
 
-        setTransactions(result.transactions ?? []);
+        const data = response?.data?.data ?? response?.data ?? response;
+
+        setTransactions(data?.transactions ?? []);
         setPagination(
-          result.pagination ?? {
+          data?.pagination ?? {
             page,
             limit,
             total: 0,
@@ -155,12 +168,16 @@ const TransactionList = () => {
 
         console.error(apiError);
         setTransactions([]);
-        setError("Không thể tải danh sách giao dịch.");
-        setPagination((currentPagination) => ({
-          ...currentPagination,
+        setError(
+          apiError?.response?.data?.message ||
+            "Không thể tải danh sách giao dịch."
+        );
+        setPagination({
           page,
           limit,
-        }));
+          total: 0,
+          totalPages: 0,
+        });
       } finally {
         if (isActive) {
           setIsLoading(false);
@@ -168,15 +185,27 @@ const TransactionList = () => {
       }
     };
 
-    void loadTransactions();
+    void fetchTransactions();
 
     return () => {
       isActive = false;
     };
-  }, [page, limit, reloadKey]);
+  }, [page, limit, appliedFilters, reloadKey]);
+
+  const handleSearch = () => {
+    const nextFilters = {
+      search: searchInput.trim(),
+      status: selectedStatus,
+      paymentMethod: selectedPaymentMethod,
+    };
+
+    setAppliedFilters(nextFilters);
+    setPage(1);
+  };
 
   const handleSearchSubmit = (event) => {
     event.preventDefault();
+    handleSearch();
   };
 
   const handleRetry = () => {
@@ -196,6 +225,7 @@ const TransactionList = () => {
       : Math.min(currentPage * (pagination?.limit ?? limit), total);
   const canGoPrevious = currentPage > 1 && !isLoading;
   const canGoNext = totalPages > 0 && currentPage < totalPages && !isLoading;
+  const hasAppliedFilters = Object.values(appliedFilters).some(Boolean);
 
   return (
     <section className="min-h-screen w-full space-y-6 bg-slate-50/50 p-6 text-slate-800 antialiased">
@@ -248,8 +278,8 @@ const TransactionList = () => {
           />
           <input
             type="text"
-            value={searchKeyword}
-            onChange={(event) => setSearchKeyword(event.target.value)}
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
             placeholder="Tìm theo mã hóa đơn, email người dùng..."
             className="w-full rounded-lg bg-slate-100 py-3 pl-11 pr-4 text-sm text-slate-900 outline-none transition focus:bg-sky-50"
           />
@@ -294,7 +324,7 @@ const TransactionList = () => {
               <AlertCircle size={24} />
             </div>
             <p className="mt-4 text-sm font-semibold text-slate-900">
-              Không thể tải danh sách giao dịch.
+              {error}
             </p>
             <button
               type="button"
@@ -319,7 +349,9 @@ const TransactionList = () => {
               <ReceiptText size={24} />
             </div>
             <p className="mt-4 text-sm font-semibold text-slate-900">
-              Không có giao dịch nào.
+              {hasAppliedFilters
+                ? "Không có giao dịch nào phù hợp với điều kiện tìm kiếm."
+                : "Không có giao dịch nào."}
             </p>
           </div>
         </div>
