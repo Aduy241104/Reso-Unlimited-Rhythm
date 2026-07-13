@@ -1,4 +1,4 @@
-export const routePaths = {
+﻿export const routePaths = {
   home: "/",
   login: "/login",
   systemTracks: "/system-tracks",
@@ -41,4 +41,5 @@ export const routePaths = {
   subscriptionDetail: (planId = ":planId") => `/subscriptions/${planId}`,
   subscriptionEdit: (planId = ":planId") => `/subscriptions/${planId}/edit`,
   subscriptionNew: "/subscriptions/new",
+  transactions: "/transactions",
 };

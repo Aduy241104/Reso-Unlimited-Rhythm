@@ -1,4 +1,4 @@
-import { Navigate } from "react-router-dom";
+﻿import { Navigate } from "react-router-dom";
 import AdminLayout from "../layouts/AdminLayout";
 import SystemPlaylistsLayout from "../layouts/SystemPlaylistsLayout";
 import LoginPage from "../pages/auth/LoginPage";
@@ -35,6 +35,7 @@ import SubscriptionPlansPage from "../pages/subscriptions/SubscriptionPlansPage"
 import SubscriptionPlanDetailPage from "../pages/subscriptions/SubscriptionPlanDetailPage";
 import CreateSubscriptionPlanPage from "../pages/subscriptions/CreateSubscriptionPlanPage";
 import EditSubscriptionPlanPage from "../pages/subscriptions/EditSubscriptionPlanPage";
+import TransactionList from "../pages/transactions/TransactionList";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import RoleRoute from "./RoleRoute";
@@ -90,7 +91,6 @@ export const appRoutes = [
                 element: <RevenuePeriodDetailPage />,
               },
               {
-
                 path: "withdrawals",
                 element: <AdminWithdrawalRequestsPage />,
               },
@@ -197,6 +197,10 @@ export const appRoutes = [
               {
                 path: "subscriptions/:planId/edit",
                 element: <EditSubscriptionPlanPage />,
+              },
+              {
+                path: routePaths.transactions,
+                element: <TransactionList />,
               },
             ],
           },
