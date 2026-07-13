@@ -3,9 +3,12 @@ import formatResponse from "../utils/formatResponse.js";
 
 const getMyArtistNotifications = async (req, res, next) => {
     try {
+        const userId = req.user?._id || req.user?.id;
+        const userRole = req.user?.role;
         const { notifications, meta } =
             await artistNotificationService.getMyArtistNotifications(
-                req.user.id,
+                userId,
+                userRole,
                 req.query
             );
 
@@ -22,9 +25,12 @@ const getMyArtistNotifications = async (req, res, next) => {
 
 const getMyArtistNotificationDetail = async (req, res, next) => {
     try {
+        const userId = req.user?._id || req.user?.id;
+        const userRole = req.user?.role;
         const notification =
             await artistNotificationService.getMyArtistNotificationDetail(
-                req.user.id,
+                userId,
+                userRole,
                 req.params.id
             );
 

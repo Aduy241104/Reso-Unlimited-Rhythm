@@ -254,6 +254,8 @@ const TrackInsightsChartPanel = ({
     return null;
   }
 
+  const metricEntries = Object.entries(metricOptions);
+
   return (
     <Wrapper
       className={
@@ -275,23 +277,25 @@ const TrackInsightsChartPanel = ({
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          {Object.entries(metricOptions).map(([metricKey, metric]) => (
-            <button
-              key={metricKey}
-              type="button"
-              onClick={() => onChangeMetric(metricKey)}
-              className={[
-                "rounded-full border px-3.5 py-2 text-sm font-medium transition",
-                chartMetric === metricKey
-                  ? "border-[#6f5cf1] bg-[#6f5cf1] text-white"
-                  : "border-[#e7e1ff] bg-[#f8f6ff] text-[#645d86] hover:border-[#b7abff] hover:text-[#2f2747]",
-              ].join(" ")}
-            >
-              {metric.label}
-            </button>
-          ))}
-        </div>
+        {metricEntries.length > 1 ? (
+          <div className="flex flex-wrap gap-2">
+            {metricEntries.map(([metricKey, metric]) => (
+              <button
+                key={metricKey}
+                type="button"
+                onClick={() => onChangeMetric(metricKey)}
+                className={[
+                  "rounded-full border px-3.5 py-2 text-sm font-medium transition",
+                  chartMetric === metricKey
+                    ? "border-[#6f5cf1] bg-[#6f5cf1] text-white"
+                    : "border-[#e7e1ff] bg-[#f8f6ff] text-[#645d86] hover:border-[#b7abff] hover:text-[#2f2747]",
+                ].join(" ")}
+              >
+                {metric.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       <div
@@ -308,13 +312,13 @@ const TrackInsightsChartPanel = ({
 
           <div className="flex items-center gap-4 text-sm">
             <div>
-              <p className="text-[#7c7891]">Dinh cao nhat</p>
+              <p className="text-[#7c7891]">Cao nhất</p>
               <p className="mt-1 font-semibold text-[#2f2747]">
                 {chartMeta.formatter(maxMetricValue)}
               </p>
             </div>
             <div>
-              <p className="text-[#7c7891]">Moc gan nhat</p>
+              <p className="text-[#7c7891]">Mốc gần nhất</p>
               <p className="mt-1 font-semibold text-[#2f2747]">
                 {chartMetric === "averageListenDuration"
                   ? displayRawValue(latestMetricValue)

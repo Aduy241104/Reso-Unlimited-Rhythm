@@ -11,10 +11,8 @@ const TrackMonthlyStatSchema = new Schema(
         uniqueListeners: { type: Number, default: 0, min: 0 },
         revenue: {
             eligibleStreams: { type: Number, default: 0, min: 0 },
-            grossRevenueAmount: { type: Number, default: 0, min: 0 },
+            revenueAmount: { type: Number, default: 0, min: 0 },
             artistRevenueAmount: { type: Number, default: 0, min: 0 },
-            platformRevenueAmount: { type: Number, default: 0, min: 0 },
-            revenueSharePercent: { type: Number, default: 0, min: 0 },
             calculatedAt: { type: Date, default: null },
         },
     },

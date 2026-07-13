@@ -10,19 +10,25 @@ import SearchResultPage from "../pages/search/SearchResultPage";
 import ArtistOverviewPage from "../pages/artist/ArtistOverviewPage";
 import ArtistProfileEditPage from "../pages/artist/ArtistProfileEditPage";
 import ArtistProfilePage from "../pages/artist/ArtistProfilePage";
+import ArtistRoyaltiesPage from "../pages/artist/ArtistRoyaltiesPage";
+import ArtistWithdrawalRequestsPage from "../pages/artist/ArtistWithdrawalRequestsPage";
 import ArtistAlbumPage from "../pages/artist/ArtistAlbumPage";
 import ArtistAlbumDetailPage from "../pages/artist/ArtistAlbumDetailPage";
 import ArtistCreateAlbumPage from "../pages/artist/ArtistCreateAlbumPage";
 import ArtistCreateReleaseSchedulePage from "../pages/artist/ArtistCreateReleaseSchedulePage";
 import ArtistEditAlbumPage from "../pages/artist/ArtistEditAlbumPage";
+import ArtistEditReleaseSchedulePage from "../pages/artist/ArtistEditReleaseSchedulePage";
 import ArtistReleaseScheduleDetailPage from "../pages/artist/ArtistReleaseScheduleDetailPage";
 import ArtistNotificationDetailPage from "../pages/artist/ArtistNotificationDetailPage";
 import ArtistNotificationsPage from "../pages/artist/ArtistNotificationsPage";
+import ArtistFollowerPage from "../pages/artist/ArtistFollowerPage";
 import ArtistTrackInsightsPage from "../pages/artist/ArtistTrackInsightsPage";
+import ArtistRevenueOverview from "../pages/artist/revenue/ArtistRevenueOverview";
+import ArtistRevenueHistory from "../pages/artist/revenue/ArtistRevenueHistory";
+import ArtistRevenuePeriodDetail from "../pages/artist/revenue/ArtistRevenuePeriodDetail";
 import {
   MyMusicPage,
   ReleasesPage,
-  RoyaltiesPage,
   SettingsPage,
 } from "../pages/artist/ArtistSectionPages";
 import CreateTrackPage from "../pages/artist/CreateTrackPage";
@@ -42,10 +48,14 @@ import PlaylistDetailPage from "../pages/playlist/PlaylistDetailPage";
 import PremiumPaymentFailedPage from "../pages/premium/PremiumPaymentFailedPage";
 import PremiumPaymentSuccessPage from "../pages/premium/PremiumPaymentSuccessPage";
 import PremiumPage from "../pages/premium/PremiumPage";
+import PaymentHistoryPage from "../pages/userPayment/PaymentHistoryPage";
+import PaymentReceiptPdfPage from "../pages/userPayment/PaymentReceiptPdfPage";
 import TrackDetailPage from "../pages/track/TrackDetailPage";
+import UserRecentListeningPage from "../pages/userInsign/user.recentListening.page";
 import UserFavoriteTracksPage from "../pages/userFavorite/UserFavoriteTracksPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
+import { recommendationRoutes } from "./recommendationRoutes";
 import RoleRoute from "./RoleRoute";
 import { libaryRoutes } from "./libaryRoutes";
 import { routePaths } from "./routePaths";
@@ -136,6 +146,15 @@ export const appRoutes = [
     element: <ProtectedRoute />,
     children: [
       {
+        path: routePaths.userRecentListeningActivity,
+        element: <UserRecentListeningPage />,
+      },
+    ],
+  },
+  {
+    element: <ProtectedRoute />,
+    children: [
+      {
         element: <MainLayout />,
         children: [
           {
@@ -143,6 +162,19 @@ export const appRoutes = [
             element: <UserFavoriteTracksPage />,
           },
         ],
+      },
+    ],
+  },
+  {
+    element: <ProtectedRoute />,
+    children: [
+      {
+        path: routePaths.userPaymentHistory,
+        element: <PaymentHistoryPage />,
+      },
+      {
+        path: routePaths.userPaymentReceipt,
+        element: <PaymentReceiptPdfPage />,
       },
     ],
   },
@@ -175,6 +207,10 @@ export const appRoutes = [
   {
     element: <ProtectedRoute />,
     children: userPlaylistRoutes,
+  },
+  {
+    element: <ProtectedRoute />,
+    children: recommendationRoutes,
   },
   {
     element: <ProtectedRoute />,
@@ -231,15 +267,19 @@ export const appRoutes = [
                 element: <ArtistAlbumDetailPage />,
               },
               {
-                path: routePaths.artistReleases,
+                path: "releases",
                 element: <ReleasesPage />,
               },
               {
-                path: routePaths.artistCreateReleaseSchedule,
+                path: "releases/create",
                 element: <ArtistCreateReleaseSchedulePage />,
               },
               {
-                path: routePaths.artistReleaseScheduleDetail(),
+                path: "releases/:id/edit",
+                element: <ArtistEditReleaseSchedulePage />,
+              },
+              {
+                path: "releases/:id",
                 element: <ArtistReleaseScheduleDetailPage />,
               },
               {
@@ -251,12 +291,32 @@ export const appRoutes = [
                 element: <ArtistNotificationsPage />,
               },
               {
+                path: routePaths.artistFollowers,
+                element: <ArtistFollowerPage />,
+              },
+              {
                 path: routePaths.artistNotificationDetail(),
                 element: <ArtistNotificationDetailPage />,
               },
               {
                 path: routePaths.artistRoyalties,
-                element: <RoyaltiesPage />,
+                element: <ArtistRevenueOverview />,
+              },
+              {
+                path: routePaths.artistBalanceManagement,
+                element: <ArtistRoyaltiesPage />,
+              },
+              {
+                path: routePaths.artistRevenueHistory,
+                element: <ArtistRevenueHistory />,
+              },
+              {
+                path: routePaths.artistRevenuePeriodDetail(),
+                element: <ArtistRevenuePeriodDetail />,
+              },
+              {
+                path: routePaths.artistWithdrawalRequests,
+                element: <ArtistWithdrawalRequestsPage />,
               },
               {
                 path: routePaths.artistSettings,
@@ -302,3 +362,4 @@ export const appRoutes = [
     element: <Navigate to={routePaths.home} replace />,
   },
 ];
+

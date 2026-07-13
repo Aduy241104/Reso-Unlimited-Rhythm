@@ -5,7 +5,6 @@ import { useAuth } from "../../hooks/useAuth";
 import { useTheme } from "../../hooks/useTheme";
 import { routePaths } from "../../routes/routePaths";
 import { getMySubscriptionService } from "../../services/subscriptionService";
-import { getCurrentUserProfile } from "../../services/userProfileService";
 import { getApiErrorMessage } from "../../utils/apiError";
 
 const dateFormatter = new Intl.DateTimeFormat("vi-VN", {
@@ -75,7 +74,7 @@ const mergeSubscriptionIntoUser = (user, subscription) => {
 
 const PremiumPaymentSuccessPage = () => {
   const [searchParams] = useSearchParams();
-  const { refreshSession, setUser } = useAuth();
+  const { refreshSession, refreshCurrentUser, setUser } = useAuth();
   const { isDark } = useTheme();
   const [subscription, setSubscription] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -102,13 +101,13 @@ const PremiumPaymentSuccessPage = () => {
         for (let attempt = 0; attempt < PREMIUM_SYNC_MAX_ATTEMPTS; attempt += 1) {
           const [latestSubscription, latestUserProfile] = await Promise.all([
             getMySubscriptionService(),
-            getCurrentUserProfile().catch(() => null),
+            refreshCurrentUser().catch(() => null),
           ]);
 
           subscriptionResponse = latestSubscription || subscriptionResponse;
           currentUserProfile = latestUserProfile || currentUserProfile;
 
-          if (latestSubscription?.isPremium) {
+          if (latestSubscription?.isPremium || latestUserProfile?.isPremium) {
             break;
           }
 
@@ -151,7 +150,7 @@ const PremiumPaymentSuccessPage = () => {
     return () => {
       isMounted = false;
     };
-  }, [refreshSession, setUser]);
+  }, [refreshCurrentUser, refreshSession, setUser]);
 
   return (
     <main className="mx-auto max-w-3xl py-8">

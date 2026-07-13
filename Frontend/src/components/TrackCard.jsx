@@ -46,6 +46,7 @@ const sizeClassNames = {
 const TrackCard = ({
   index,
   trackId,
+  track = null,
   image,
   title,
   artist,
@@ -72,7 +73,7 @@ const TrackCard = ({
     typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches;
   const resolvedSize = sizeClassNames[size] ? size : "default";
   const resolvedClasses = sizeClassNames[resolvedSize];
-    const navigate = useNavigate();
+  const navigate = useNavigate();
   const resolvedDesktopMetaColumns = desktopMetaColumns.filter(Boolean);
   const resolvedMobileMetaItems = mobileMetaItems.filter(Boolean);
   const primaryAction = onPlaybackAction || onPlay;
@@ -182,7 +183,9 @@ const TrackCard = ({
             {artistId ? (
               <Link
                 to={`/artists/${artistId}`}
-                onClick={handleMobileLinkClick}
+                onClick={(event) => {
+                  event.stopPropagation();
+                }}
                 className="hidden truncate hover:underline sm:inline"
               >
                 {artist}
@@ -223,8 +226,8 @@ const TrackCard = ({
           {liked ? (
             <button
               type="button"
-              onClick={ handleLike }
-              aria-label={ `Bỏ lưu ${title}` }
+              onClick={handleLike}
+              aria-label={`Bỏ lưu ${title}`}
               className="hidden h-8 w-8 items-center justify-center text-[#1ed760] sm:inline-flex"
             >
               <CheckCircle2 className="h-4.5 w-4.5 fill-current" />
@@ -232,8 +235,8 @@ const TrackCard = ({
           ) : (
             <button
               type="button"
-              onClick={ handleLike }
-              aria-label={ `Lưu ${title}` }
+              onClick={handleLike}
+              aria-label={`Lưu ${title}`}
               className="
                 hidden h-8 w-8 items-center justify-center text-[#71717a]
                 transition sm:inline-flex sm:opacity-0 sm:group-hover:opacity-100 dark:text-[#a1a1aa]
@@ -268,7 +271,7 @@ const TrackCard = ({
           </div>
 
           <div className="hidden items-center justify-end sm:flex">
-            {trackId ? <TrackTwoLevelMenu trackId={trackId} /> : null}
+            {trackId ? <TrackTwoLevelMenu trackId={trackId} track={track} /> : null}
           </div>
         </>
       )}

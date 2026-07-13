@@ -70,7 +70,7 @@ const Header = ({ onToggleSidebar, isDesktopSidebarVisible }) => {
                                 isDark ? "text-[#f7f1ea]" : "text-[#111111]",
                             ].join(" ")}
                         >
-                            Khám phá âm nhạc
+                            Reso
                         </h2>
                     </div>
                 </Link>

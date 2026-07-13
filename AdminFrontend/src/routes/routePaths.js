@@ -28,6 +28,17 @@ export const routePaths = {
   revenueHistory: "/revenue/history",
   revenuePeriodDetail: (year = ":year", month = ":month") =>
     `/revenue/history/${year}/${month}`,
+  withdrawals: "/withdrawals",
+  withdrawalRequestDetail: (withdrawalRequestId = ":id") =>
+    `/withdrawal-requests/${withdrawalRequestId}`,
+  revenuePeriodDetail: (periodId = ":periodId") => `/revenue/history/${periodId}`,
+  revenueSharingHistory: "/revenue-sharing",
+  revenueSharingDetail: (periodId = ":periodId") =>
+    `/revenue-sharing/${periodId}`,
   reports: "/reports",
   reportDetail: (reportId = ":reportId") => `/reports/${reportId}`,
+  subscriptions: "/subscriptions",
+  subscriptionDetail: (planId = ":planId") => `/subscriptions/${planId}`,
+  subscriptionEdit: (planId = ":planId") => `/subscriptions/${planId}/edit`,
+  subscriptionNew: "/subscriptions/new",
 };

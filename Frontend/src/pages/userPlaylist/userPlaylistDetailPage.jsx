@@ -11,6 +11,7 @@ import {
   Search,
   Shuffle,
   Trash2,
+  X,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import DeletePlaylistConfirmModal from "../../components/userPlaylist/DeletePlaylistConfirmModal";
@@ -127,6 +128,19 @@ const getTrackEntity = (trackItem) => trackItem?.track || trackItem || null;
 
 const getTrackId = (track) => track?.id || track?.trackId || "";
 
+const doesQueueTrackMatch = (queueTrack, trackId) => {
+  if (!trackId) {
+    return false;
+  }
+
+  const queueTrackId =
+    queueTrack?.playbackTrackId ||
+    getTrackId(queueTrack) ||
+    getTrackId(queueTrack?.raw);
+
+  return String(queueTrackId || "") === String(trackId);
+};
+
 const getTrackArtistName = (track, fallbackArtistName) => {
   if (typeof track?.artist?.name === "string" && track.artist.name.trim()) {
     return track.artist.name.trim();
@@ -185,6 +199,30 @@ const getPlaylistTrackCount = (playlist) => {
   return 0;
 };
 
+const getPlaylistTrackLimitModalMessage = () =>
+  "Playlist này đã đạt giới hạn bài hát của gói miễn phí. Hãy đăng ký Premium để thêm nhiều bài hát hơn.";
+
+const isPlaylistTrackLimitErrorMessage = (message) => {
+  const normalizedMessage =
+    typeof message === "string" ? message.trim().toLocaleLowerCase() : "";
+
+  if (!normalizedMessage) {
+    return false;
+  }
+
+  return (
+    normalizedMessage.includes("free playlists can contain") ||
+    normalizedMessage.includes("đạt giới hạn bài hát") ||
+    normalizedMessage.includes("giới hạn bài hát") ||
+    normalizedMessage.includes("playlist") &&
+      (normalizedMessage.includes("track") || normalizedMessage.includes("bài hát")) &&
+      (normalizedMessage.includes("premium") ||
+        normalizedMessage.includes("limit") ||
+        normalizedMessage.includes("giới hạn") ||
+        normalizedMessage.includes("nâng cấp"))
+  );
+};
+
 const UserPlaylistDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -205,9 +243,12 @@ const UserPlaylistDetailPage = () => {
   const [pendingTrackRemoval, setPendingTrackRemoval] = useState(null);
   const [isRemovingTrack, setIsRemovingTrack] = useState(false);
   const [removeTrackErrorMessage, setRemoveTrackErrorMessage] = useState("");
+  const [isPlaylistTrackLimitModalOpen, setIsPlaylistTrackLimitModalOpen] = useState(false);
   const actionMenuRef = useRef(null);
   const trackMenuRef = useRef(null);
   const {
+    queue,
+    currentIndex,
     currentTrack,
     isPlaying,
     isShuffleEnabled,
@@ -215,6 +256,8 @@ const UserPlaylistDetailPage = () => {
     playPlaylist,
     playTrack,
     togglePlayPause,
+    addTrackToQueue,
+    removeTrackFromQueue,
   } = usePlayer();
 
   useEffect(() => {
@@ -541,8 +584,69 @@ const UserPlaylistDetailPage = () => {
         image: getTrackImage(track, playlistCoverImage),
       });
     } catch (error) {
+      const nextErrorMessage = getApiErrorMessage(
+        error,
+        "Không thể thêm bài hát vào playlist khác."
+      );
+
+      if (isPlaylistTrackLimitErrorMessage(nextErrorMessage)) {
+        setOpenTrackMenuId("");
+        setTrackMenuSearchValue("");
+        setIsPlaylistTrackLimitModalOpen(true);
+      } else {
+        setTrackActionErrorMessage(nextErrorMessage);
+      }
+    } finally {
+      setSubmittingTrackActionId("");
+    }
+  };
+
+  const getQueuedTrackIndex = (track) => {
+    const trackId = getTrackId(track);
+
+    if (!trackId) {
+      return -1;
+    }
+
+    return queue.findIndex(
+      (queueTrack, index) =>
+        index > currentIndex && doesQueueTrackMatch(queueTrack, trackId)
+    );
+  };
+
+  const handleToggleTrackQueue = async (track) => {
+    const trackId = getTrackId(track);
+
+    if (!trackId || submittingTrackActionId) {
+      return;
+    }
+
+    const queuedTrackIndex = getQueuedTrackIndex(track);
+
+    setSubmittingTrackActionId(`queue:${trackId}`);
+    setTrackActionErrorMessage("");
+    setTrackActionFeedback(null);
+
+    try {
+      if (queuedTrackIndex >= 0) {
+        await removeTrackFromQueue(queuedTrackIndex);
+      } else {
+        await addTrackToQueue(track);
+      }
+
+      setOpenTrackMenuId("");
+      setTrackMenuSearchValue("");
+      setTrackActionFeedback({
+        tone: "success",
+        message:
+          queuedTrackIndex >= 0
+            ? `Đã xóa "${track?.title || track?.name || "bài hát"}" khỏi danh sách chờ.`
+            : `Đã thêm "${track?.title || track?.name || "bài hát"}" vào danh sách chờ.`,
+        image: getTrackImage(track, playlistCoverImage),
+      });
+    } catch (error) {
       setTrackActionErrorMessage(
-        getApiErrorMessage(error, "Không thể thêm bài hát vào playlist khác.")
+        getApiErrorMessage(error, "Không thể cập nhật danh sách chờ.")
       );
     } finally {
       setSubmittingTrackActionId("");
@@ -877,11 +981,16 @@ const UserPlaylistDetailPage = () => {
               const trackId = getTrackId(track);
               const trackActionKey = trackId || `${trackItem?.trackId || "track"}-${index}`;
               const isTrackMenuOpen = openTrackMenuId === trackActionKey;
+              const queuedTrackIndex = getQueuedTrackIndex(track);
+              const isTrackQueued = queuedTrackIndex >= 0;
+              const isSubmittingQueueAction =
+                submittingTrackActionId === `queue:${trackId}`;
 
               return (
                 <TrackCard
                   key={trackActionKey}
                   index={trackItem?.order || index + 1}
+                  track={track}
                   image={getTrackImage(track, playlistCoverImage)}
                   title={track?.title || track?.name || ""}
                   artist={getTrackArtistName(track, playlistOwnerLabel)}
@@ -932,6 +1041,25 @@ const UserPlaylistDetailPage = () => {
                               aria-label="Track actions"
                               onClick={(event) => event.stopPropagation()}
                             >
+                              <button
+                                type="button"
+                                onClick={() => handleToggleTrackQueue(track)}
+                                disabled={Boolean(submittingTrackActionId)}
+                                className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-white transition hover:bg-[#3e3e3e] disabled:cursor-not-allowed disabled:opacity-60"
+                                role="menuitem"
+                              >
+                                {isSubmittingQueueAction ? (
+                                  <Loader2 className="h-4 w-4 shrink-0 animate-spin text-white/72" />
+                                ) : isTrackQueued ? (
+                                  <X className="h-4 w-4 shrink-0 text-white/72" />
+                                ) : (
+                                  <Plus className="h-4 w-4 shrink-0 text-white/72" />
+                                )}
+                                {isTrackQueued
+                                  ? "Xóa khỏi danh sách chờ"
+                                  : "Thêm vào danh sách chờ"}
+                              </button>
+
                               <div className="group relative">
                                 <button
                                   type="button"
@@ -1076,6 +1204,26 @@ const UserPlaylistDetailPage = () => {
         onConfirm={handleRemoveTrackFromCurrentPlaylist}
       />
 
+      <DeletePlaylistConfirmModal
+        isOpen={isPlaylistTrackLimitModalOpen}
+        playlistTitle=""
+        title="Đã đạt giới hạn bài hát trong playlist"
+        message={getPlaylistTrackLimitModalMessage()}
+        confirmLabel="Xác nhận"
+        cancelLabel="Hủy"
+        confirmTone="neutral"
+        extraActionLabel="Đăng ký Premium"
+        extraActionTone="primary"
+        onExtraAction={() => {
+          setIsPlaylistTrackLimitModalOpen(false);
+          navigate(routePaths.premium);
+        }}
+        onClose={() => setIsPlaylistTrackLimitModalOpen(false)}
+        onConfirm={() => setIsPlaylistTrackLimitModalOpen(false)}
+        variant="dark"
+        size="sm"
+      />
+
       {trackActionFeedback?.message ? (
         trackActionFeedback.tone === "success" ? (
           <div className="pointer-events-none fixed left-1/2 top-5 z-[70] w-[min(calc(100vw-2rem),26rem)] -translate-x-1/2">
@@ -1105,3 +1253,4 @@ const UserPlaylistDetailPage = () => {
 };
 
 export default UserPlaylistDetailPage;
+

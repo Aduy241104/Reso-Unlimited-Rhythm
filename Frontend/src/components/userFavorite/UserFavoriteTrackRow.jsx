@@ -13,6 +13,7 @@ const UserFavoriteTrackRow = ({
   coverImage = "",
   duration,
   trackId = "",
+  track = null,
   isFavorite = true,
   onFavoriteChanged,
   isPlaybackActive = false,
@@ -124,6 +125,7 @@ const UserFavoriteTrackRow = ({
         { trackId ? (
           <TrackTwoLevelMenu
             trackId={ trackId }
+            track={ track }
             isFavorite={ isFavorite }
             onFavoriteChanged={ onFavoriteChanged }
           />

@@ -1,125 +1,101 @@
-import axios from 'axios';
 import { tokenStorage } from '../storage/tokenStorage';
+import { API_BASE_URL_CANDIDATES, setApiBaseUrl } from '../config/api';
+import { refreshAccessToken } from './authSession';
 import { API_ENDPOINTS } from './apiEndpoints';
 
-let isRefreshing = false;
-let failedQueue = [];
+const shouldSkipRefresh = (requestUrl = '') =>
+  [
+    API_ENDPOINTS.AUTH.LOGIN,
+    API_ENDPOINTS.AUTH.REFRESH_TOKEN,
+    API_ENDPOINTS.AUTH.LOGOUT,
+  ].some((path) => requestUrl.includes(path));
 
-const processQueue = (error, token = null) => {
-  failedQueue.forEach((prom) => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve(token);
-    }
-  });
-  failedQueue = [];
+const normalizeBaseUrl = (value = '') => {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  return value.trim().replace(/\/+$/, '');
 };
 
 export const setupInterceptors = (axiosInstance) => {
-  // 🚀 REQUEST INTERCEPTOR: ĐÃ ĐƯỢC BỌC GIÁP CHỐNG CRASH NGẦM
   axiosInstance.interceptors.request.use(
     async (config) => {
       try {
-        // Đặt timeout ngắn cho việc lấy token, đề phòng hàm này bị treo ngầm
         const tokenPromise = tokenStorage.getAccessToken();
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("SecureStore Timeout")), 2000)
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('SecureStore Timeout')), 2000)
         );
-        
+
         const token = await Promise.race([tokenPromise, timeoutPromise]).catch(() => null);
-        
-        if (token) {
+
+        if (token && !config.headers?.Authorization) {
           config.headers.Authorization = `Bearer ${token}`;
         }
       } catch (storageError) {
-        // Nếu bộ nhớ lưu trữ lỗi, bỏ qua và cho phép request đi tiếp (nhất là khi Login)
-        console.log("⚠️ CẢNH BÁO STORAGE: Không lấy được token nội bộ:", storageError.message);
+        console.log('Storage warning: unable to read access token.', storageError.message);
       }
+
       return config;
     },
     (error) => Promise.reject(error)
   );
 
-  // RESPONSE INTERCEPTOR
   axiosInstance.interceptors.response.use(
-    (response) => response.data,
-    async (error) => {
-      // Bọc an toàn để bảo vệ biến originalRequest không bị undefined gây crash log
-      const originalRequest = error?.config || { url: 'KHÔNG CÓ CONFIG URL (Cố định localhost:8080)' };
+    (response) => {
+      const resolvedBaseUrl = normalizeBaseUrl(response?.config?.baseURL);
 
-      console.log("============== DEBUG AXIOS ERROR ==============");
-      console.log("1. URL GỌI BỊ LỖI:", originalRequest?.url || 'Không xác định');
-      console.log("2. MÃ LỖI HỆ THỐNG (Code):", error?.code || 'Không có mã lỗi'); 
-      console.log("3. TRẠNG THÁI HTTP (Status):", error?.response?.status || 'Không có HTTP Status');
-      console.log("4. BACKEND PHẢN HỒI THÔ (Data):", error?.response?.data ? JSON.stringify(error.response.data) : 'Không có dữ liệu trả về');
-      console.log("===============================================");
+      if (resolvedBaseUrl) {
+        setApiBaseUrl(resolvedBaseUrl);
+        axiosInstance.defaults.baseURL = resolvedBaseUrl;
+      }
+
+      return response.data;
+    },
+    async (error) => {
+      const originalRequest = error?.config || {};
 
       if (!error?.response) {
-        // Kiểm tra xem có phải do kẹt cứng IP config không, nếu có thì thử ép gọi thẳng localhost
+        const currentBaseUrl = normalizeBaseUrl(originalRequest.baseURL || axiosInstance.defaults.baseURL);
+        const attemptedBaseUrls = Array.isArray(originalRequest._attemptedBaseUrls)
+          ? originalRequest._attemptedBaseUrls.map(normalizeBaseUrl)
+          : currentBaseUrl
+            ? [currentBaseUrl]
+            : [];
+        const nextBaseUrl = API_BASE_URL_CANDIDATES.find(
+          (candidate) => !attemptedBaseUrls.includes(normalizeBaseUrl(candidate))
+        );
+
+        if (nextBaseUrl) {
+          originalRequest._attemptedBaseUrls = [...attemptedBaseUrls, normalizeBaseUrl(nextBaseUrl)];
+          originalRequest.baseURL = nextBaseUrl;
+
+          return axiosInstance(originalRequest);
+        }
+
         return Promise.reject({
-          message: `Network error (${error?.code || 'UNKNOWN'}). Vui lòng kiểm tra kết nối mạng giữa App và Server.`,
+          message: `Network error (${error?.code || 'UNKNOWN'}). Please check the connection between the app and server.`,
           status: 0,
         });
       }
 
-      // Xử lý Auto Refresh Token khi hết hạn (401)
-      if (error.response.status === 401 && !originalRequest._retry) {
-        if (isRefreshing) {
-          return new Promise((resolve, reject) => {
-            failedQueue.push({ resolve, reject });
-          })
-            .then((token) => {
-              originalRequest.headers.Authorization = `Bearer ${token}`;
-              return axiosInstance(originalRequest);
-            })
-            .catch((err) => Promise.reject(err));
-        }
-
+      if (
+        error.response.status === 401 &&
+        !originalRequest._retry &&
+        !shouldSkipRefresh(originalRequest.url || '')
+      ) {
         originalRequest._retry = true;
-        isRefreshing = true;
 
         try {
-          const refreshToken = await tokenStorage.getRefreshToken().catch(() => null);
-          if (!refreshToken) throw new Error('No refresh token available');
+          const currentBaseUrl = originalRequest.baseURL || axiosInstance.defaults.baseURL;
+          const { accessToken } = await refreshAccessToken(currentBaseUrl);
 
-          const baseUrl = 'http://10.0.2.2:8080/api';
+          originalRequest.headers = originalRequest.headers || {};
+          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
 
-          const response = await axios.post(
-            `${baseUrl}${API_ENDPOINTS.AUTH.REFRESH_TOKEN}`,
-            {},
-            {
-              headers: {
-                'Cookie': `refreshToken=${refreshToken}`,
-              },
-              timeout: 5000
-            }
-          );
-
-          const responseData = response.data?.data || response.data;
-          const newAccessToken = responseData?.accessToken;
-          const newRefreshToken = responseData?.refreshToken;
-
-          if (newAccessToken) {
-            await tokenStorage.setAccessToken(newAccessToken).catch(() => {});
-            if (newRefreshToken) {
-              await tokenStorage.setRefreshToken(newRefreshToken).catch(() => {});
-            }
-            axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
-            processQueue(null, newAccessToken);
-            isRefreshing = false;
-            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-            return axiosInstance(originalRequest);
-          }
-          throw new Error('Refresh token invalid');
-        } catch (refreshError) {
-          processQueue(refreshError, null);
-          isRefreshing = false;
-          await tokenStorage.clearTokens().catch(() => {});
-          return Promise.reject({
-            message: 'Session expired. Please log in again.',
-            status: 401,
-          });
+          return axiosInstance(originalRequest);
+        } catch (sessionError) {
+          return Promise.reject(sessionError);
         }
       }
 

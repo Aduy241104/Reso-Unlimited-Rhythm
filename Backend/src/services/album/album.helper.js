@@ -83,7 +83,6 @@ const formatAlbumDetail = (album) => ({
             bio: album.artistId.bio,
             avatar: album.artistId.avatar,
             coverImage: album.artistId.coverImage,
-            verificationStatus: album.artistId.verificationStatus,
             activeStatus: album.artistId.activeStatus,
             stats: album.artistId.stats,
         }
@@ -95,8 +94,14 @@ const formatAlbumDetail = (album) => ({
     updatedAt: album.updatedAt,
 });
 
+const formatAlbumFollowState = ({ albumId, isFollowing }) => ({
+    albumId: toId(albumId),
+    isFollowing,
+});
+
 export {
     formatAlbumDetail,
+    formatAlbumFollowState,
     formatAlbumItem,
     normalizePositiveInteger,
 };

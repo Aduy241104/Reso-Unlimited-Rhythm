@@ -1,4 +1,4 @@
-const normalizeSearchKeyword = (q) => {
+ï»¿const normalizeSearchKeyword = (q) => {
     if (typeof q !== "string") {
         return "";
     }
@@ -18,8 +18,8 @@ const removeVietnameseTones = (text) => {
     return text
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
-        .replace(/ð/g, "d")
-        .replace(/Ð/g, "D");
+        .replace(/Ã°/g, "d")
+        .replace(/Ã/g, "D");
 };
 
 const normalizeSearchText = (text) => {
@@ -71,7 +71,6 @@ const buildArtistsSearchFilter = (keyword) => {
 
     return {
         activeStatus: "active",
-        verificationStatus: "verified",
     };
 };
 
@@ -113,3 +112,4 @@ export {
     buildAlbumsSearchFilter,
     buildPaginationMeta,
 };
+

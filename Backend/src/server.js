@@ -10,9 +10,11 @@ import http from "http";
 import { initSocket } from "./config/socket.js";
 import { connectRedis } from "./config/redisConfig.js";
 import { startDailyTopArtistCron } from "./jobs/dailyTopArtist.cron.js";
+import { startPersonalizedDailyMixCron } from "./jobs/personalizedDailyMix.cron.js";
 import { startMonthlyTopArtistCron } from "./jobs/monthlyTopArtist.cron.js";
 import { startDailyArtistOverviewStatCron } from "./jobs/dailyArtistOverviewStat.cron.js";
 import { startDailyTrackStatCron } from "./jobs/dailyTrackStat.cron.js";
+import { startDailyUserListeningStatCron } from "./jobs/dailyUserListeningStat.cron.js";
 import { startDailyTopTrackCron } from "./jobs/dailyTopTrack.cron.js";
 import { startMonthlyTrackStatCron } from "./jobs/monthlyTrackStat.cron.js";
 import { startMonthlyTopTrackCron } from "./jobs/monthlyTopTrack.cron.js";
@@ -24,6 +26,7 @@ import {
 } from "./middlewares/error.middleware.js";
 import model from "./models/index.js";
 import { startPlatformStreamingStatsCron } from "./jobs/platformStreamingStats.cron.js";
+import recommendationRoutes from "./router/recommendation.routes.js";
 import {
     runReleaseSchedulePublication,
     startReleaseScheduleCron,
@@ -51,6 +54,7 @@ app.use("/static", express.static("public"));
 app.use(morgan("combined"));
 
 route(app);
+app.use("/api/recommendations", recommendationRoutes);
 
 app.use(notFoundHandler);
 app.use(globalErrorHandler);
@@ -59,19 +63,20 @@ const PORT = process.env.PORT || 8080;
 
 const startServer = async () => {
     try {
-
-
         await connectMongose();
         await connectRedis();
 
-        server.listen(PORT, '0.0.0.0', () => {
+        server.listen(PORT, "0.0.0.0", () => {
             console.log(`🚀 Server + Socket.IO đang chạy tại port ${PORT}`);
-            console.log(`📡 Server đang mở cổng mạng nội bộ tại mọi IP`);
+            console.log("📡 Server đang mở cổng mạng nội bộ tại mọi IP");
         });
+
         await runReleaseSchedulePublication();
         await runSubscriptionMaintenance();
         await runStartupAnalyticsCatchup();
+
         startDailyArtistOverviewStatCron();
+        startDailyUserListeningStatCron();
         startDailyTopArtistCron();
         startMonthlyTopArtistCron();
         startDailyTrackStatCron();
@@ -79,14 +84,13 @@ const startServer = async () => {
         startMonthlyTrackStatCron();
         startMonthlyTopTrackCron();
         startPlatformStreamingStatsCron();
+        startPersonalizedDailyMixCron();
         startListenEventSyncCron();
         startReleaseScheduleCron();
         startSubscriptionMaintenanceCron();
         startRevenueAggregationCron();
-
-
     } catch (error) {
-        console.error("💥¨ Failed to start server:", error);
+        console.error("💥 Failed to start server:", error);
         process.exit(1);
     }
 };

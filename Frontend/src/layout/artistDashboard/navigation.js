@@ -1,11 +1,14 @@
-import {
+﻿import {
   Album,
   BarChart3,
   Bell,
   Disc3,
   FileText,
+  Landmark,
   LayoutDashboard,
   Music2,
+  Users,
+  Wallet,
   Waves,
 } from "lucide-react";
 import { routePaths } from "../../routes/routePaths";
@@ -37,14 +40,29 @@ export const artistNavigation = [
     icon: Disc3,
   },
   {
-    label: "Phân tích bài hát",
+    label: "Phân tích",
     to: routePaths.artistAnalytics,
     icon: BarChart3,
+  },
+  {
+    label: "Số dư",
+    to: routePaths.artistRoyalties,
+    icon: Wallet,
+  },
+  {
+    label: "Yêu cầu rút tiền",
+    to: routePaths.artistWithdrawalRequests,
+    icon: Landmark,
   },
   {
     label: "Thông báo",
     to: routePaths.artistNotifications,
     icon: Bell,
+  },
+  {
+    label: "Người theo dõi",
+    to: routePaths.artistFollowers,
+    icon: Users,
   },
   {
     label: "Hồ sơ nghệ sĩ",
@@ -62,7 +80,11 @@ export const artistPageTitles = {
   [routePaths.artistAlbums]: "Album của tôi",
   [routePaths.artistReleases]: "Phát hành",
   [routePaths.artistAnalytics]: "Phân tích bài hát",
+  [routePaths.artistRoyalties]: "Số dư khả dụng",
+  [routePaths.artistBalanceManagement]: "Quản lý số dư",
+  [routePaths.artistWithdrawalRequests]: "Yêu cầu rút tiền",
   [routePaths.artistNotifications]: "Thông báo",
+  [routePaths.artistFollowers]: "Người theo dõi",
   [routePaths.artistProfile]: "Hồ sơ nghệ sĩ",
   [routePaths.artistProfileEdit]: "Chỉnh sửa hồ sơ nghệ sĩ",
 };

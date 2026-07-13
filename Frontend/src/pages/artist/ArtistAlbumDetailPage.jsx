@@ -476,7 +476,7 @@ const ArtistAlbumDetailPage = () => {
             <div className="flex-1 overflow-y-auto">
               {tracksLoading ? (
                 <div className="px-6 py-8 text-center text-neutral-500">
-                  Loading tracks...
+                  Loading tracks....
                 </div>
               ) : availableTracks.length === 0 ? (
                 <div className="px-6 py-8 text-center text-neutral-500">

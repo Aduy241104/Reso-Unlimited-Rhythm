@@ -2,6 +2,7 @@ export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "";
 
 export const AUTH_API_PREFIX = "/api/auth";
+export const AUTH_WEB_CLIENT_TYPE = "web";
 
 export const AUTH_USER_STORAGE_KEY = "capstone.auth.user";
 

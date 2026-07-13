@@ -1,4 +1,4 @@
-import { MONTH_LABELS } from "./constants";
+﻿import { MONTH_LABELS } from "./constants";
 
 export const formatCurrency = (value) =>
   new Intl.NumberFormat("vi-VN", {
@@ -93,7 +93,7 @@ export const buildInsightItems = (dashboard) => {
   const { period, summary, metadata } = dashboard;
   const items = [
     {
-      title: "Tỉ lệ chia doanh thu",
+      title: "Tỷ lệ chia doanh thu",
       description: `Artist nhận ${metadata?.revenueSharePercent?.artist || 0}% và nền tảng giữ ${metadata?.revenueSharePercent?.platform || 0}% doanh thu premium trong kỳ.`,
     },
   ];

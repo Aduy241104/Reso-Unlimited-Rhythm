@@ -14,11 +14,11 @@ const formatNumber = (num) => {
 };
 
 const formatDuration = (seconds) => {
-    if (!seconds || seconds <= 0) return "0m";
+    if (!seconds || seconds <= 0) return "0 phút";
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
-    if (h > 0) return `${h}h ${m}m`;
-    return `${m}m`;
+    if (h > 0) return `${h} giờ ${m} phút`;
+    return `${m} phút`;
 };
 
 const toDDMMYYYY = (dateStr) => {
@@ -39,7 +39,20 @@ const toMonthYear = (dateStr) => {
     return `${dd}/${mm}/${yyyy}`;
 };
 
-const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const monthNames = [
+    "Tháng 1",
+    "Tháng 2",
+    "Tháng 3",
+    "Tháng 4",
+    "Tháng 5",
+    "Tháng 6",
+    "Tháng 7",
+    "Tháng 8",
+    "Tháng 9",
+    "Tháng 10",
+    "Tháng 11",
+    "Tháng 12",
+];
 
 /* ─── Skeleton ──────────────────────────────────────────────── */
 const Skeleton = ({ lines = 3, height = "h-4" }) => (
@@ -119,7 +132,7 @@ const UserBar = ({ month, newUsers, maxNewUsers, isCurrentMonth }) => {
 };
 
 /* ─── DataTable ─────────────────────────────────────────────── */
-const DataTable = ({ columns, rows, emptyMsg = "No data available." }) => (
+const DataTable = ({ columns, rows, emptyMsg = "Không có dữ liệu." }) => (
     <div className="overflow-x-auto rounded-xl border border-slate-200">
         <table className="w-full text-xs">
             <thead>
@@ -222,7 +235,7 @@ const DashboardPage = () => {
             const data = await getOverviewStatsService();
             setOverview(data);
         } catch (error) {
-            setMessage(error?.response?.data?.message || error?.message || "Failed to load overview stats.");
+            setMessage(error?.response?.data?.message || error?.message || "Không thể tải thống kê tổng quan.");
         } finally {
             setIsLoading(false);
         }
@@ -290,18 +303,18 @@ const DashboardPage = () => {
             <div className="flex items-end justify-between pb-2 px-1">
                 <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
-                        Analytics
+                        Phân tích
                     </p>
                     <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
-                        Platform Overview
+                        Tổng quan nền tảng
                     </h1>
                     <p className="mt-1 max-w-2xl text-sm text-slate-400 leading-relaxed">
-                        Real-time streaming statistics and platform performance metrics.
+                        Thống kê lượt phát theo thời gian thực và các chỉ số hiệu suất của nền tảng.
                     </p>
                 </div>
                 <div className="hidden text-right lg:block">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">
-                        Last updated
+                        Cập nhật lần cuối
                     </p>
                     <p className="mt-0.5 text-xs font-semibold text-slate-600">
                         {toDDMMYYYY(new Date().toISOString())}
@@ -325,24 +338,24 @@ const DashboardPage = () => {
             ) : overview ? (
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                     <StatCard
-                        label="Total Streams"
+                        label="Tổng lượt phát"
                         value={formatNumber(overview.streamsThisMonth)}
-                        sub={`All time: ${formatNumber(overview.streamsAllTime)}`}
+                        sub={`Toàn thời gian: ${formatNumber(overview.streamsAllTime)}`}
                     />
                     <StatCard
-                        label="Total Users"
+                        label="Tổng người dùng"
                         value={formatNumber(overview.totalUsers)}
-                        sub="Registered accounts"
+                        sub="Tài khoản đã đăng ký"
                     />
                     <StatCard
-                        label="Total Artists"
+                        label="Tổng nghệ sĩ"
                         value={formatNumber(overview.totalArtists)}
-                        sub="Active artists"
+                        sub="Nghệ sĩ đang hoạt động"
                     />
                     <StatCard
-                        label="Active Tracks"
+                        label="Bài hát đang hoạt động"
                         value={formatNumber(overview.totalTracks)}
-                        sub="Approved & active"
+                        sub="Đã duyệt và đang hoạt động"
                     />
                 </div>
             ) : null}
@@ -353,8 +366,8 @@ const DashboardPage = () => {
                     <Skeleton lines={1} height="h-64" />
                 ) : overview?.last7Days?.length > 0 ? (
                     <SectionCard
-                        title="Streaming Activity"
-                        subtitle="Last 7 Days"
+                        title="Hoạt động phát nhạc"
+                        subtitle="7 ngày gần nhất"
                         badge={periodTotal}
                     >
                         <div className="flex items-end gap-1">
@@ -374,7 +387,7 @@ const DashboardPage = () => {
                     <Skeleton lines={1} height="h-64" />
                 ) : newUsersByMonth ? (
                     <SectionCard
-                        title="User Growth"
+                        title="Tăng trưởng người dùng"
                         subtitle={`${newUsersByMonth.year}`}
                         badge={newUsersByMonth.totalNewUsers}
                     >
@@ -443,16 +456,16 @@ const DashboardPage = () => {
                         {/* Monthly KPIs */}
                         <div className="grid gap-3 md:grid-cols-3">
                             <StatCard
-                                label="Total Streams"
+                                label="Tổng lượt phát"
                                 value={formatNumber(monthly.streamingStats?.totalStreams ?? 0)}
                             />
                             <StatCard
-                                label="New Users"
+                                label="Người dùng mới"
                                 value={formatNumber(monthly.userStats?.newUsers ?? 0)}
-                                sub={`Total: ${formatNumber(monthly.userStats?.totalUsers ?? 0)}`}
+                                sub={`Tổng cộng: ${formatNumber(monthly.userStats?.totalUsers ?? 0)}`}
                             />
                             <StatCard
-                                label="Total Artists"
+                                label="Tổng nghệ sĩ"
                                 value={formatNumber(monthly.artistStats?.totalArtists ?? 0)}
                             />
                         </div>
@@ -462,16 +475,16 @@ const DashboardPage = () => {
                             <>
                                 <div>
                                     <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.25em] text-slate-400">
-                                        Daily Breakdown
+                                        Chi tiết theo ngày
                                     </p>
                                     <DataTable
                                         columns={[
-                                            { key: "date", label: "Date", render: (v) => toMonthYear(v) },
-                                            { key: "totalStreams", label: "Streams", align: "right", bold: true },
-                                            { key: "uniqueUsers", label: "Unique Users", align: "right" },
+                                            { key: "date", label: "Ngày", render: (v) => toMonthYear(v) },
+                                            { key: "totalStreams", label: "Lượt phát", align: "right", bold: true },
+                                            { key: "uniqueUsers", label: "Người dùng duy nhất", align: "right" },
                                             {
                                                 key: "totalListeningTime",
-                                                label: "Listening Time",
+                                                label: "Thời gian nghe",
                                                 align: "right",
                                                 render: (v) => formatDuration(v ?? 0),
                                             },
@@ -495,18 +508,18 @@ const DashboardPage = () => {
                                     return (
                                         <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
                                             <p className="text-[9px] font-semibold uppercase tracking-[0.3em] text-slate-400">
-                                                Top Track of the Month
+                                                Bài hát nổi bật nhất tháng
                                             </p>
                                             <div className="mt-2 flex items-center justify-between">
                                                 <div>
-                                                    <p className="text-sm font-bold text-slate-900">{topTrack.title || "Unknown"}</p>
+                                                    <p className="text-sm font-bold text-slate-900">{topTrack.title || "Không xác định"}</p>
                                                     <p className="mt-0.5 text-xs text-slate-400">{toDDMMYYYY(topTrack.date)}</p>
                                                 </div>
                                                 <div className="text-right">
                                                     <p className="text-xl font-black text-blue-600">
                                                         {formatNumber(topTrack.streamCount ?? 0)}
                                                     </p>
-                                                    <p className="text-[10px] text-slate-400">streams</p>
+                                                    <p className="text-[10px] text-slate-400">lượt phát</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -515,13 +528,13 @@ const DashboardPage = () => {
                             </>
                         ) : (
                             <div className="flex h-24 items-center justify-center rounded-xl border border-slate-200">
-                                <p className="text-xs text-slate-400">No streaming data for this month.</p>
+                                <p className="text-xs text-slate-400">Không có dữ liệu phát nhạc cho tháng này.</p>
                             </div>
                         )}
                     </div>
                 ) : (
                     <div className="flex h-24 items-center justify-center rounded-xl border border-slate-200">
-                        <p className="text-xs text-slate-400">No data available for this month.</p>
+                        <p className="text-xs text-slate-400">Không có dữ liệu cho tháng này.</p>
                     </div>
                 )}
             </SectionCard>
@@ -529,10 +542,10 @@ const DashboardPage = () => {
             {/* ── Footer ── */}
             <div className="flex items-center justify-between border-t border-slate-200 pt-3">
                 <p className="text-[10px] text-slate-400">
-                    Data refreshes automatically every 30 minutes
+                    Dữ liệu tự động làm mới mỗi 30 phút
                 </p>
                 <p className="text-[10px] text-slate-400">
-                    All dates in dd/mm/yyyy format
+                    Tất cả ngày tháng theo định dạng dd/mm/yyyy
                 </p>
             </div>
         </section>

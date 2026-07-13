@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { ArrowLeft, Disc, Loader2, Plus, Upload, X } from "lucide-react";
+import { ArrowLeft, Disc, Loader2, Plus, X } from "lucide-react";
 import {
   createSystemPlaylistService,
   uploadSystemPlaylistCoverService,
@@ -9,13 +9,13 @@ import {
 import { routePaths } from "../../routes/routePaths";
 
 const FormInput = ({ id, type = "text", rows, ...props }) => {
-  const base = `w-full rounded-xl px-4 py-3 text-sm outline-none transition disabled:opacity-50`;
+  const base = "w-full rounded-xl px-4 py-3 text-sm outline-none transition disabled:opacity-50";
   const styling = {
     backgroundColor: "#f8fafc",
     border: "1px solid #e2e8f0",
     color: "#1e293b",
   };
-  if (type === "textarea")
+  if (type === "textarea") {
     return (
       <textarea
         id={id}
@@ -25,6 +25,7 @@ const FormInput = ({ id, type = "text", rows, ...props }) => {
         {...props}
       />
     );
+  }
   return <input id={id} type={type} className={base} style={styling} {...props} />;
 };
 
@@ -118,22 +119,20 @@ const CreateSystemPlaylistPage = () => {
         try {
           await uploadSystemPlaylistCoverService(playlistId, coverFile);
         } catch (e) {
-          toast.success(
-            "Playlist created (cover upload failed — you can upload later)."
-          );
+          toast.success("Đã tạo playlist nhưng tải ảnh bìa thất bại, bạn có thể tải lên sau.");
           navigate(routePaths.systemPlaylists, { replace: true });
           return;
         } finally {
           setIsUploadingCover(false);
         }
       }
-      toast.success("Playlist created.");
+      toast.success("Đã tạo playlist.");
       navigate(routePaths.systemPlaylists, { replace: true });
     } catch (error) {
       toast.error(
         error?.response?.data?.message ||
           error?.message ||
-          "Could not create playlist."
+          "Không thể tạo playlist."
       );
     } finally {
       setIsSubmitting(false);
@@ -144,8 +143,6 @@ const CreateSystemPlaylistPage = () => {
 
   return (
     <section className="space-y-5 p-3 lg:p-5 bg-slate-50/50 min-h-screen text-slate-800 font-sans antialiased">
-
-      {/* Header */}
       <div className="flex items-center gap-4 px-1">
         <Link
           to={routePaths.systemPlaylists}
@@ -155,23 +152,20 @@ const CreateSystemPlaylistPage = () => {
         </Link>
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
-            New Playlist
+            Playlist mới
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">
-            Create System Playlist
+            Tạo playlist hệ thống
           </h1>
         </div>
       </div>
 
-      {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-5">
-
-        {/* Basic Info Card */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="mb-4 text-sm font-bold text-slate-900">Basic Information</h2>
+          <h2 className="mb-4 text-sm font-bold text-slate-900">Thông tin cơ bản</h2>
           <div className="space-y-5">
             <div>
-              <FieldLabel required>Title</FieldLabel>
+              <FieldLabel required>Tiêu đề</FieldLabel>
               <FormInput
                 id="sys-pl-title"
                 required
@@ -179,11 +173,11 @@ const CreateSystemPlaylistPage = () => {
                 value={form.title}
                 onChange={handleChange("title")}
                 disabled={isBusy}
-                placeholder="e.g. Weekend Focus"
+                placeholder="Ví dụ: Nhạc cuối tuần"
               />
             </div>
             <div>
-              <FieldLabel>Description</FieldLabel>
+              <FieldLabel>Mô tả</FieldLabel>
               <FormInput
                 id="sys-pl-desc"
                 type="textarea"
@@ -191,21 +185,20 @@ const CreateSystemPlaylistPage = () => {
                 value={form.description}
                 onChange={handleChange("description")}
                 disabled={isBusy}
-                placeholder="Short description for this playlist"
+                placeholder="Mô tả ngắn cho playlist này"
               />
             </div>
           </div>
         </div>
 
-        {/* Cover Image Card */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="mb-4 text-sm font-bold text-slate-900">Cover Image</h2>
+          <h2 className="mb-4 text-sm font-bold text-slate-900">Ảnh bìa</h2>
           {coverPreview ? (
             <div className="flex items-center gap-5">
               <div className="relative flex-shrink-0">
                 <img
                   src={coverPreview}
-                  alt="Cover"
+                  alt="Ảnh bìa"
                   className="h-28 w-28 rounded-2xl object-cover shadow-sm"
                 />
                 <button
@@ -232,17 +225,15 @@ const CreateSystemPlaylistPage = () => {
               htmlFor="sys-pl-cover-file"
               className="flex flex-col items-center justify-center gap-3 cursor-pointer rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 py-10 transition hover:border-blue-300 hover:bg-slate-100"
             >
-              <div
-                className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50"
-              >
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50">
                 <Disc className="h-7 w-7 text-blue-500" />
               </div>
               <div className="text-center">
                 <span className="text-sm font-medium text-slate-700">
-                  Click to upload cover
+                  Nhấn để tải ảnh bìa lên
                 </span>
                 <p className="mt-1 text-xs" style={{ color: "#94a3b8" }}>
-                  JPEG, PNG, WebP (max 5MB)
+                  JPEG, PNG, WebP (tối đa 5MB)
                 </p>
               </div>
               <input
@@ -257,46 +248,44 @@ const CreateSystemPlaylistPage = () => {
             </label>
           )}
           <p className="mt-3 text-xs" style={{ color: "#94a3b8" }}>
-            Optional. Leave blank for default cover.
+            Tùy chọn. Để trống nếu muốn dùng ảnh bìa mặc định.
           </p>
         </div>
 
-        {/* Settings Card */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="mb-4 text-sm font-bold text-slate-900">Settings</h2>
+          <h2 className="mb-4 text-sm font-bold text-slate-900">Cài đặt</h2>
           <div className="space-y-5">
             <div>
               <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: "#64748b" }}>
-                Visibility
+                Quyền riêng tư
               </p>
               <ToggleField
                 checked={form.isPublic}
                 onChange={(e) =>
                   setForm((p) => ({ ...p, isPublic: e.target.checked }))
                 }
-                label="Public"
-                hint="Visible to all users."
+                label="Công khai"
+                hint="Hiển thị cho tất cả người dùng."
                 disabled={isBusy}
               />
             </div>
             <div>
               <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: "#64748b" }}>
-                Status
+                Trạng thái
               </p>
               <ToggleField
                 checked={form.isHidden}
                 onChange={(e) =>
                   setForm((p) => ({ ...p, isHidden: e.target.checked }))
                 }
-                label="Hidden"
-                hint="Excluded from public list."
+                label="Ẩn"
+                hint="Không hiển thị trong danh sách công khai."
                 disabled={isBusy}
               />
             </div>
           </div>
         </div>
 
-        {/* Actions */}
         <div className="flex items-center gap-3 pt-2">
           <button
             type="submit"
@@ -307,11 +296,11 @@ const CreateSystemPlaylistPage = () => {
             {isBusy ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                {isUploadingCover ? "Uploading..." : "Creating..."}
+                {isUploadingCover ? "Đang tải ảnh..." : "Đang tạo..."}
               </>
             ) : (
               <>
-                <Plus className="h-4 w-4" /> Create playlist
+                <Plus className="h-4 w-4" /> Tạo playlist
               </>
             )}
           </button>
@@ -319,7 +308,7 @@ const CreateSystemPlaylistPage = () => {
             to={routePaths.systemPlaylists}
             className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-medium text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
           >
-            Cancel
+            Hủy
           </Link>
         </div>
       </form>

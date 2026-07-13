@@ -203,7 +203,7 @@ const NotificationDetailPage = () => {
                             </h2>
                             <div className="grid gap-4 sm:grid-cols-2 pt-1">
                                 <div>
-                                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Mô-đun Đích đến (Target Type)</label>
+                                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Loại điều hướng</label>
                                     <p className="mt-1 text-sm font-mono font-bold text-indigo-600 bg-indigo-50/40 px-3 py-2 rounded-xl border border-indigo-100/50 uppercase tracking-wide">
                                         {noti?.targetType}
                                     </p>
@@ -255,7 +255,7 @@ const NotificationDetailPage = () => {
                             <div>
                                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Phân loại nhãn định danh</p>
                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 mt-1 capitalize">
-                                    <Tag size={12} /> {noti?.type || "General"}
+                                    <Tag size={12} /> {noti?.type || "Thông báo chung"}
                                 </span>
                             </div>
                             

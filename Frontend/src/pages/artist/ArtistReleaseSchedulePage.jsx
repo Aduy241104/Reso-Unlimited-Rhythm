@@ -7,16 +7,20 @@ import {
   CircleX,
   Clock3,
   Disc3,
-  EllipsisVertical,
   Eye,
   FileText,
   Music2,
   Pencil,
+  Trash2,
   Search,
   RotateCcw,
 } from "lucide-react";
+import ConfirmActionModal from "../../components/common/ConfirmActionModal";
 import { routePaths } from "../../routes/routePaths";
-import { getMyReleaseSchedulesService } from "../../services/artistReleaseScheduleService";
+import {
+  cancelMyReleaseScheduleService,
+  getMyReleaseSchedulesService,
+} from "../../services/artistReleaseScheduleService";
 
 const PAGE_SIZE = 6;
 const FETCH_LIMIT = 50;
@@ -157,18 +161,30 @@ const matchesDateFilter = (release, selectedDate) => {
 const buildRowNumber = (index, page) =>
   String((page - 1) * PAGE_SIZE + index + 1).padStart(2, "0");
 
+const canCancelRelease = (release) => {
+  if (!release?.id || release?.status !== "scheduled" || !release?.scheduledAt) {
+    return false;
+  }
+
+  const scheduledAtValue = new Date(release.scheduledAt).getTime();
+  return !Number.isNaN(scheduledAtValue) && scheduledAtValue > Date.now();
+};
+
 const ArtistReleaseSchedulePage = () => {
   const navigate = useNavigate();
   const [artistName, setArtistName] = useState("");
   const [releaseSchedules, setReleaseSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [actionMessage, setActionMessage] = useState("");
   const [serverStatus, setServerStatus] = useState("");
   const [serverType, setServerType] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [page, setPage] = useState(1);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [pendingCancelRelease, setPendingCancelRelease] = useState(null);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -300,16 +316,65 @@ const ArtistReleaseSchedulePage = () => {
   };
 
   const handleEditRelease = (release) => {
-    if (!release?.item?.id) {
+    if (!release?.id) {
       return;
     }
 
-    if (release.sourceType === "album") {
-      navigate(routePaths.artistEditAlbum(release.item.id));
+    navigate(routePaths.artistEditReleaseSchedule(release.id));
+  };
+
+  const handleOpenCancelModal = (release) => {
+    if (!canCancelRelease(release) || isCancelling) {
       return;
     }
 
-    navigate(routePaths.artistTrackEdit(release.item.id));
+    setActionMessage("");
+    setErrorMessage("");
+    setPendingCancelRelease(release);
+  };
+
+  const handleCloseCancelModal = () => {
+    if (isCancelling) {
+      return;
+    }
+
+    setPendingCancelRelease(null);
+  };
+
+  const handleConfirmCancelRelease = async () => {
+    if (!pendingCancelRelease?.id || isCancelling) {
+      return;
+    }
+
+    setIsCancelling(true);
+    setActionMessage("");
+    setErrorMessage("");
+
+    try {
+      const response = await cancelMyReleaseScheduleService(pendingCancelRelease.id);
+      const updatedRelease = response?.releaseSchedule || null;
+
+      setArtistName(response?.artist?.name || artistName);
+      setReleaseSchedules((current) =>
+        current.map((release) =>
+          release.id === pendingCancelRelease.id && updatedRelease
+            ? updatedRelease
+            : release
+        )
+      );
+      setActionMessage(
+        response?.message || "Đã hủy lịch phát hành thành công."
+      );
+      setPendingCancelRelease(null);
+    } catch (error) {
+      setErrorMessage(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Không thể hủy lịch phát hành lúc này."
+      );
+    } finally {
+      setIsCancelling(false);
+    }
   };
 
   const handleResetFilters = () => {
@@ -334,6 +399,12 @@ const ArtistReleaseSchedulePage = () => {
       {errorMessage ? (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {errorMessage}
+        </div>
+      ) : null}
+
+      {actionMessage ? (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          {actionMessage}
         </div>
       ) : null}
 
@@ -463,6 +534,7 @@ const ArtistReleaseSchedulePage = () => {
                   const TypeIcon = typeInfo.icon;
                   const StatusIcon = statusInfo.icon;
                   const image = getReleaseImage(release);
+                  const canCancelCurrentRelease = canCancelRelease(release);
 
                   return (
                     <tr key={release.id} className="text-[#201931]">
@@ -534,10 +606,17 @@ const ArtistReleaseSchedulePage = () => {
                           </button>
                           <button
                             type="button"
-                            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[#736d88] transition hover:bg-[#f3f1ff] hover:text-[#5b4dde]"
-                            aria-label="Thêm hành động"
+                            onClick={() => handleOpenCancelModal(release)}
+                            disabled={!canCancelCurrentRelease || isCancelling}
+                            className={[
+                              "inline-flex h-9 w-9 items-center justify-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-40",
+                              canCancelCurrentRelease
+                                ? "text-[#d85858] hover:bg-[#fff1f1] hover:text-[#c53d3d]"
+                                : "text-[#b3aec4]",
+                            ].join(" ")}
+                            aria-label="Hủy lịch phát hành"
                           >
-                            <EllipsisVertical className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
                       </td>
@@ -595,6 +674,17 @@ const ArtistReleaseSchedulePage = () => {
           </div>
         </div>
       </div>
+
+      <ConfirmActionModal
+        isOpen={Boolean(pendingCancelRelease)}
+        title="Hủy lịch phát hành?"
+        message={`Bạn có chắc muốn hủy lịch phát hành "${pendingCancelRelease?.item?.title || "bản phát hành này"}" không? Hành động này không thể hoàn tác.`}
+        confirmText="Xác nhận hủy"
+        cancelText="Quay lại"
+        isLoading={isCancelling}
+        onCancel={handleCloseCancelModal}
+        onConfirm={handleConfirmCancelRelease}
+      />
     </section>
   );
 };

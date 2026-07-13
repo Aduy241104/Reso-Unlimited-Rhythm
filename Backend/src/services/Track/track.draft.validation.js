@@ -122,13 +122,6 @@ export const assertArtistCanCreateTrack = (artist) => {
             StatusCodes.FORBIDDEN
         );
     }
-
-    if (artist.verificationStatus !== "verified") {
-        throw new AppError(
-            "Your artist profile must be verified before creating tracks.",
-            StatusCodes.FORBIDDEN
-        );
-    }
 };
 
 const validateSingleAudioFile = (file, index) => {

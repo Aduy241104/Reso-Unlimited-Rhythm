@@ -16,6 +16,20 @@ const getActivePlans = async (req, res, next) => {
     }
 };
 
+const getActivePlanDetail = async (req, res, next) => {
+    try {
+        const plan = await subscriptionService.getActivePlanDetail(req.params.id);
+
+        return formatResponse.success(
+            res,
+            plan,
+            "Subscription plan retrieved successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 const getMySubscription = async (req, res, next) => {
     try {
         const subscription = await subscriptionService.getMySubscriptionStatus(req.user.id);
@@ -70,6 +84,7 @@ const handleVnpayIpn = async (req, res, next) => {
 
 export default {
     getActivePlans,
+    getActivePlanDetail,
     getMySubscription,
     createVnpayOrder,
     handleVnpayReturn,

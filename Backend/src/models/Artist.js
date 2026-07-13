@@ -17,13 +17,6 @@ const ArtistSchema = new Schema(
             youtube: { type: String, default: "" },
         },
 
-        verificationStatus: {
-            type: String,
-            enum: ["pending", "verified", "rejected"],
-            default: "pending",
-            index: true,
-        },
-
         stats: {
             followers: { type: Number, default: 0, min: 0 },
             totalStreams: { type: Number, default: 0, min: 0 },
@@ -35,6 +28,25 @@ const ArtistSchema = new Schema(
             totalWithdrawnAmount: Number,
             availableAmount: Number,
             pendingPayoutAmount: Number,
+            confirmedRevenueSummaryIds: [
+                {
+                    type: Schema.Types.ObjectId,
+                    ref: "ArtistRevenueSummary",
+                },
+            ],
+        },
+
+        payoutAccounts: [
+            {
+                bankName: { type: String, trim: true, required: true },
+                accountNumber: { type: String, trim: true, required: true },
+                accountHolderName: { type: String, trim: true, required: true },
+                isDefault: { type: Boolean, default: false },
+            },
+        ],
+
+        withdrawalSecurity: {
+            passwordHash: { type: String, default: "" },
         },
 
         activeStatus: {

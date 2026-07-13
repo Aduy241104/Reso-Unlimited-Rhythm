@@ -257,6 +257,7 @@ const MonthlyTopTracksPage = () => {
               <TrackCard
                 key={ item?.track?.id || `${resolvedMonth}-${index}` }
                 index={ item?.rank || index + 1 }
+                track={ item?.track }
                 indexClassName="!text-sm sm:!text-base"
                 image={
                   item?.track?.coverImage ||

@@ -207,6 +207,64 @@ const formatMonthlyTopTrackStat = ({ stat, monthKey }) => ({
     uniqueListeners: stat.uniqueListeners,
 });
 
+const PLAYBACK_TRACK_FILTER = {
+    activeStatus: "active",
+    approvalStatus: "approved",
+};
+
+const isMissingPlaybackTrackId = (trackId) => {
+    if (trackId === null || trackId === undefined) {
+        return true;
+    }
+
+    const normalizedTrackId = String(trackId).trim().toLowerCase();
+    return (
+        normalizedTrackId === "" ||
+        normalizedTrackId === "null" ||
+        normalizedTrackId === "undefined"
+    );
+};
+
+const buildTrackPlaybackQuery = (filter) =>
+    Track.findOne(filter)
+        .populate({
+            path: "artist_artistId",
+            select: "name avatar coverImage",
+        })
+        .populate({
+            path: "album_albumId",
+            select: "title coverImage",
+        })
+        .lean()
+        .select("-__v -createdAt -updatedAt");
+
+const getRandomTrackPlaybackCandidate = async () => {
+    const [randomTrack] = await Track.aggregate([
+        {
+            $match: {
+                ...PLAYBACK_TRACK_FILTER,
+                "audioFiles.url": { $exists: true, $ne: "" },
+            },
+        },
+        {
+            $sample: {
+                size: 1,
+            },
+        },
+        {
+            $project: {
+                _id: 1,
+            },
+        },
+    ]);
+
+    if (!randomTrack?._id) {
+        throw new AppError("No playable track available.", 404);
+    }
+
+    return buildTrackPlaybackQuery({ _id: randomTrack._id, ...PLAYBACK_TRACK_FILTER });
+};
+
 const getTrackDetail = async (trackId) => {
     if (!mongoose.Types.ObjectId.isValid(trackId)) {
         throw new AppError("Track id is invalid.", 400, {
@@ -242,27 +300,20 @@ const getTrackDetail = async (trackId) => {
 };
 
 const getTrackPlayback = async (trackId, user) => {
-    if (!mongoose.Types.ObjectId.isValid(trackId)) {
+    let track = null;
+
+    if (isMissingPlaybackTrackId(trackId)) {
+        track = await getRandomTrackPlaybackCandidate();
+    } else if (!mongoose.Types.ObjectId.isValid(trackId)) {
         throw new AppError("Track id is invalid.", 400, {
             field: "id",
         });
+    } else {
+        track = await buildTrackPlaybackQuery({
+            _id: trackId,
+            ...PLAYBACK_TRACK_FILTER,
+        });
     }
-
-    const track = await Track.findOne({
-        _id: trackId,
-        activeStatus: "active",
-        approvalStatus: "approved",
-    })
-        .populate({
-            path: "artist_artistId",
-            select: "name avatar coverImage",
-        })
-        .populate({
-            path: "album_albumId",
-            select: "title coverImage",
-        })
-        .lean()
-        .select("-__v -createdAt -updatedAt");
 
     if (!track) {
         throw new AppError("Track not found.", 404);

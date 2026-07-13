@@ -1,17 +1,11 @@
-import {
-  Globe,
-  ImagePlus,
-  Loader2,
-  Lock,
-  MoreHorizontal,
-  X,
-} from "lucide-react";
+﻿import { ImagePlus, Loader2, MoreHorizontal, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { createUserPlaylist } from "../../services/userPlaylistService";
 import { getApiErrorMessage } from "../../utils/apiError";
 
 const ANIMATION_DURATION = 300;
+const USER_PLAYLISTS_CHANGED_EVENT = "user-playlists:changed";
 
 const INITIAL_FORM_STATE = {
   title: "Danh sách phát của tôi",
@@ -256,6 +250,14 @@ const CreatePlaylistModal = ({
         coverImage: formData.coverImage,
       });
 
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent(USER_PLAYLISTS_CHANGED_EVENT, {
+            detail: { type: "created", playlist: createdPlaylist || null },
+          })
+        );
+      }
+
       resetForm();
       onCreated?.(createdPlaylist);
       onClose?.();
@@ -306,7 +308,7 @@ const CreatePlaylistModal = ({
             type="button"
             onClick={handleClose}
             className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white/70 transition-all duration-300 hover:bg-white/15 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-            aria-label="Dong modal"
+            aria-label="Đóng modal"
             disabled={isSubmitting}
           >
             <X className="h-5 w-5" />
@@ -354,14 +356,12 @@ const CreatePlaylistModal = ({
                     type="button"
                     onClick={handleRemoveCover}
                     className="absolute right-3 top-3 inline-flex h-11 w-11 items-center justify-center rounded-full bg-black/50 text-white transition hover:bg-black/65"
-                    aria-label="Xoa anh da chon"
+                    aria-label="Xóa ảnh đã chọn"
                   >
                     <MoreHorizontal className="h-5 w-5" />
                   </button>
                 ) : null}
               </div>
-
-              
             </div>
 
             <div className="flex min-w-0 flex-col">
@@ -375,7 +375,7 @@ const CreatePlaylistModal = ({
                     type="text"
                     value={formData.title}
                     onChange={handleTitleChange}
-                    placeholder="Nhap ten playlist"
+                    placeholder="Nhập tên playlist"
                     className="w-full rounded-xl border border-white/8 bg-[#464646] px-5 py-4 text-2xl font-semibold text-white placeholder:text-white/45 focus:border-white/20 focus:outline-none"
                     maxLength={120}
                     disabled={isSubmitting}
@@ -408,7 +408,6 @@ const CreatePlaylistModal = ({
                       {errorMessage}
                     </div>
                   ) : null}
-
 
                   {children}
                 </div>

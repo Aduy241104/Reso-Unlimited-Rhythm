@@ -13,7 +13,7 @@ const ArtistHeroSection = ({
   const followButtonLabel = isFollowLoading
     ? "\u0110ang x\u1eed l\u00fd..."
     : isFollowing
-      ? "Đã theo dõi"
+      ? "Đang theo dõi"
       : "Theo dõi";
 
   return (

@@ -12,26 +12,19 @@ const statusOptions = [
   { value: "rejected", label: "Đã từ chối" },
 ];
 
-const getStatusClasses = (status) => {
-  switch (status) {
-    case "approved":
-      return "bg-emerald-100 text-emerald-800";
-    case "rejected":
-      return "bg-rose-100 text-rose-700";
-    default:
-      return "bg-amber-100 text-amber-800";
-  }
-};
-
-const getAccentClasses = (status) => {
-  switch (status) {
-    case "approved":
-      return "bg-emerald-500";
-    case "rejected":
-      return "bg-rose-500";
-    default:
-      return "bg-amber-500";
-  }
+const statusMap = {
+  pending: {
+    label: "Chờ duyệt",
+    className: "bg-amber-50 text-amber-700 ring-amber-200",
+  },
+  approved: {
+    label: "Đã duyệt",
+    className: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  },
+  rejected: {
+    label: "Đã từ chối",
+    className: "bg-rose-50 text-rose-700 ring-rose-200",
+  },
 };
 
 const formatDate = (value) => {
@@ -48,34 +41,46 @@ const formatDate = (value) => {
 
 const getInitials = (name = "") => {
   const parts = name.trim().split(/\s+/).filter(Boolean);
-
-  if (parts.length === 0) return "AR";
+  if (!parts.length) return "AR";
 
   return parts
     .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() || "")
+    .map((part) => part[0]?.toUpperCase())
     .join("");
 };
 
-const HeaderStat = ({ label, value }) => (
-  <div className="rounded-xl bg-slate-100 px-4 py-3">
-    <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400">
-      {label}
+const StatCard = ({ label, value }) => (
+  <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4">
+    <p className="text-xs font-medium text-slate-500">{ label }</p>
+    <p className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">
+      { value }
     </p>
-    <p className="mt-1.5 text-lg font-semibold text-slate-900">{value}</p>
   </div>
 );
 
+const StatusBadge = ({ status }) => {
+  const config = statusMap[status] || {
+    label: "-",
+    className: "bg-slate-50 text-slate-600 ring-slate-200",
+  };
+
+  return (
+    <span
+      className={ `inline-flex rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset ${config.className}` }
+    >
+      { config.label }
+    </span>
+  );
+};
+
 const EmptyState = ({ isLoading }) => (
-  <div className="rounded-[1.75rem] bg-white px-6 py-20 text-center shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
-    <div>
-      <p className="text-base font-semibold text-black">
-        {isLoading ? "Đang tải danh sách..." : "Không tìm thấy yêu cầu nào."}
-      </p>
-      <p className="mt-2 text-sm text-black/45">
-        Hãy thử từ khóa hoặc bộ lọc trạng thái khác.
-      </p>
-    </div>
+  <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
+    <p className="text-sm font-semibold text-slate-900">
+      { isLoading ? "Đang tải danh sách..." : "Không tìm thấy yêu cầu nào" }
+    </p>
+    <p className="mt-2 text-sm text-slate-500">
+      Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc trạng thái.
+    </p>
   </div>
 );
 
@@ -98,13 +103,13 @@ const ArtistRequestsListPage = () => {
 
     try {
       const result = await getArtistRequestsService(params);
-      setArtistRequests(result.artistRequests);
+      setArtistRequests(result.artistRequests || []);
       setPagination(result.pagination);
     } catch (error) {
       setMessage(
         error?.response?.data?.message ||
-          error?.message ||
-          "Khong the tai danh sach yeu cau."
+        error?.message ||
+        "Không thể tải danh sách yêu cầu."
       );
     } finally {
       setIsLoading(false);
@@ -146,186 +151,186 @@ const ArtistRequestsListPage = () => {
     ? `${pagination.page}/${pagination.totalPages}`
     : "1/1";
 
-  const formatStatus = (status) => {
-    if (status === "pending") return "Chờ duyệt";
-    if (status === "approved") return "Đã duyệt";
-    if (status === "rejected") return "Đã từ chối";
-    return "-";
-  };
-
   return (
-    <section className="space-y-8">
-      <div className="space-y-4">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
-              Đăng ký Artist
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
-              Danh sách yêu cầu
-            </h1>
-          </div>
+    <section className="space-y-6">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p className="text-sm font-medium text-slate-500">
+            Đăng ký Artist
+          </p>
+          <h1 className="mt-1 text-3xl font-semibold tracking-tight text-slate-950">
+            Danh sách yêu cầu
+          </h1>
+        </div>
 
-          <div className="grid gap-3 sm:grid-cols-3">
-            <HeaderStat label="Tổng số" value={total} />
-            <HeaderStat label="Hiển thị" value={visibleCount} />
-            <HeaderStat label="Trang" value={pageLabel} />
-          </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <StatCard label="Tổng số" value={ total } />
+          <StatCard label="Đang hiển thị" value={ visibleCount } />
+          <StatCard label="Trang" value={ pageLabel } />
         </div>
       </div>
 
       <form
-        onSubmit={handleSearchSubmit}
-        className="grid gap-3 rounded-2xl bg-white p-4 shadow-[0_12px_32px_rgba(15,23,42,0.06)] md:grid-cols-[minmax(0,1fr)_220px_132px]"
+        onSubmit={ handleSearchSubmit }
+        className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 md:grid-cols-[1fr_220px_auto]"
       >
-        <label className="relative block">
+        <label className="relative">
           <Search
-            size={18}
+            size={ 18 }
             className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
           />
+
           <input
             type="text"
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Tìm theo nghệ danh, người nộp hồ sơ, CCCD"
-            className="w-full rounded-lg bg-slate-100 py-3 pl-11 pr-4 text-sm text-slate-900 outline-none transition focus:bg-sky-50"
+            value={ searchTerm }
+            onChange={ (event) => setSearchTerm(event.target.value) }
+            placeholder="Tìm theo nghệ danh, người nộp, CCCD..."
+            className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400"
           />
         </label>
 
         <select
-          value={query.status}
-          onChange={handleStatusChange}
-          className="rounded-lg bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition focus:bg-sky-50"
+          value={ query.status }
+          onChange={ handleStatusChange }
+          className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-slate-400"
         >
-          {statusOptions.map((option) => (
-            <option key={option.value || "all"} value={option.value}>
-              {option.label}
+          { statusOptions.map((option) => (
+            <option key={ option.value || "all" } value={ option.value }>
+              { option.label }
             </option>
-          ))}
+          )) }
         </select>
 
         <button
           type="submit"
-          className="rounded-lg bg-sky-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-700"
+          className="h-11 rounded-xl bg-slate-950 px-6 text-sm font-semibold text-white transition hover:bg-slate-800"
         >
           Tìm kiếm
         </button>
       </form>
 
-      {message && (
-        <div className="bg-red-50 px-5 py-4 text-sm text-red-700">{message}</div>
-      )}
+      { message && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          { message }
+        </div>
+      ) }
 
-      {artistRequests.length === 0 ? (
-        <EmptyState isLoading={isLoading} />
+      { artistRequests.length === 0 ? (
+        <EmptyState isLoading={ isLoading } />
       ) : (
-        <div className="overflow-hidden rounded-2xl bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
-          <div className="grid min-w-[980px] grid-cols-[minmax(0,1.4fr)_minmax(0,1.1fr)_minmax(0,1.3fr)_140px_170px_132px] gap-4 border-b border-slate-200 px-5 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-            <span>Artist</span>
-            <span>Người nộp</span>
-            <span>Email</span>
-            <span>Trạng thái</span>
-            <span>Ngày nộp</span>
-            <span className="text-right">Chi tiết</span>
-          </div>
-
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
           <div className="overflow-x-auto">
-            <div className="min-w-[980px] divide-y divide-slate-100">
-          {artistRequests.map((request) => (
-            <article
-              key={request._id}
-              className="relative grid grid-cols-[minmax(0,1.4fr)_minmax(0,1.1fr)_minmax(0,1.3fr)_140px_170px_132px] gap-4 px-5 py-4 transition hover:bg-slate-50"
-            >
-              <div
-                className={`absolute inset-y-2 left-0 w-1 rounded-r ${getAccentClasses(
-                  request.status
-                )}`}
-              />
+            <table className="min-w-[980px] w-full text-left">
+              <thead className="border-b border-slate-200 bg-slate-50">
+                <tr className="text-xs font-medium text-slate-500">
+                  <th className="px-5 py-4">Artist</th>
+                  <th className="px-5 py-4">Người nộp</th>
+                  <th className="px-5 py-4">Email</th>
+                  <th className="px-5 py-4">Trạng thái</th>
+                  <th className="px-5 py-4">Ngày nộp</th>
+                  <th className="px-5 py-4 text-right">Thao tác</th>
+                </tr>
+              </thead>
 
-              <div className="flex min-w-0 items-center gap-3">
-                {request.avatar ? (
-                  <img
-                    src={request.avatar}
-                    alt={request.stageName}
-                    className="h-10 w-10 rounded-xl object-cover"
-                  />
-                ) : (
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-black text-xs font-semibold text-white">
-                    {getInitials(request.stageName)}
-                  </div>
-                )}
+              <tbody className="divide-y divide-slate-100">
+                { artistRequests.map((request) => (
+                  <tr
+                    key={ request._id }
+                    className="transition hover:bg-slate-50"
+                  >
+                    <td className="px-5 py-4">
+                      <div className="flex min-w-0 items-center gap-3">
+                        { request.avatar ? (
+                          <img
+                            src={ request.avatar }
+                            alt={ request.stageName || "Artist avatar" }
+                            className="h-10 w-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-950 text-xs font-semibold text-white">
+                            { getInitials(request.stageName) }
+                          </div>
+                        ) }
 
-                <p className="truncate text-sm font-semibold text-slate-950">
-                  {request.stageName || "-"}
-                </p>
-              </div>
+                        <p className="truncate text-sm font-semibold text-slate-950">
+                          { request.stageName || "-" }
+                        </p>
+                      </div>
+                    </td>
 
-              <p className="truncate text-sm text-slate-700">
-                {request.userId?.profile?.fullName || "-"}
-              </p>
+                    <td className="px-5 py-4">
+                      <p className="truncate text-sm text-slate-700">
+                        { request.userId?.profile?.fullName || "-" }
+                      </p>
+                    </td>
 
-              <p className="truncate text-sm text-slate-700">
-                {request.userId?.email || "-"}
-              </p>
+                    <td className="px-5 py-4">
+                      <p className="truncate text-sm text-slate-700">
+                        { request.userId?.email || "-" }
+                      </p>
+                    </td>
 
-              <div>
-                <span
-                  className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getStatusClasses(
-                    request.status
-                  )}`}
-                >
-                  {formatStatus(request.status)}
-                </span>
-              </div>
+                    <td className="px-5 py-4">
+                      <StatusBadge status={ request.status } />
+                    </td>
 
-              <p className="text-sm text-slate-700">
-                {formatDate(request.createdAt)}
-              </p>
+                    <td className="px-5 py-4 text-sm text-slate-700">
+                      { formatDate(request.createdAt) }
+                    </td>
 
-              <div className="flex justify-end">
-                <Link
-                  to={routePaths.artistRequestDetail(request._id)}
-                  className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
-                >
-                  Xem
-                  <ArrowUpRight size={15} />
-                </Link>
-              </div>
-            </article>
-          ))}
-            </div>
+                    <td className="px-5 py-4">
+                      <div className="flex justify-end">
+                        <Link
+                          to={ routePaths.artistRequestDetail(request._id) }
+                          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-100 hover:text-slate-950"
+                        >
+                          Xem chi tiết
+                          <ArrowUpRight size={ 15 } />
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                )) }
+              </tbody>
+            </table>
           </div>
         </div>
-      )}
+      ) }
 
-      {pagination?.totalPages > 1 && (
-        <div className="flex flex-col gap-4 rounded-2xl bg-white px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-slate-600">
-            {(pagination.page - 1) * pagination.limit + 1}-
-            {Math.min(pagination.page * pagination.limit, pagination.total)} /{" "}
-            {pagination.total}
+      { pagination?.totalPages > 1 && (
+        <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-slate-500">
+            Hiển thị{ " " }
+            <span className="font-medium text-slate-900">
+              { (pagination.page - 1) * pagination.limit + 1 }-
+              { Math.min(pagination.page * pagination.limit, pagination.total) }
+            </span>{ " " }
+            trong tổng số{ " " }
+            <span className="font-medium text-slate-900">
+              { pagination.total }
+            </span>
           </p>
 
           <ReactPaginate
             breakLabel="..."
             nextLabel=">"
             previousLabel="<"
-            forcePage={Math.max((query.page || 1) - 1, 0)}
-            onPageChange={handlePageChange}
-            pageRangeDisplayed={3}
-            marginPagesDisplayed={1}
-            pageCount={pagination.totalPages}
-            renderOnZeroPageCount={null}
+            forcePage={ Math.max((query.page || 1) - 1, 0) }
+            onPageChange={ handlePageChange }
+            pageRangeDisplayed={ 3 }
+            marginPagesDisplayed={ 1 }
+            pageCount={ pagination.totalPages }
+            renderOnZeroPageCount={ null }
             containerClassName="flex flex-wrap items-center gap-2"
-            pageLinkClassName="flex h-10 min-w-10 items-center justify-center rounded-xl bg-slate-100 px-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-200"
-            previousLinkClassName="flex h-10 min-w-10 items-center justify-center rounded-xl bg-slate-100 px-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-200"
-            nextLinkClassName="flex h-10 min-w-10 items-center justify-center rounded-xl bg-slate-100 px-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-200"
-            breakLinkClassName="flex h-10 min-w-10 items-center justify-center rounded-xl bg-slate-100 px-3 text-sm font-semibold text-slate-500"
-            activeLinkClassName="bg-sky-600 text-white hover:bg-sky-600"
-            disabledLinkClassName="cursor-not-allowed opacity-40 hover:bg-slate-100"
+            pageLinkClassName="flex h-9 min-w-9 items-center justify-center rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+            previousLinkClassName="flex h-9 min-w-9 items-center justify-center rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+            nextLinkClassName="flex h-9 min-w-9 items-center justify-center rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+            breakLinkClassName="flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-sm font-medium text-slate-400"
+            activeLinkClassName="border-slate-950 bg-slate-950 text-white hover:bg-slate-950"
+            disabledLinkClassName="cursor-not-allowed opacity-40 hover:bg-white"
           />
         </div>
-      )}
+      ) }
     </section>
   );
 };

@@ -44,12 +44,13 @@ router.post(
 
 router.post(
     "/logout",
+    validate(authenticationValidation.logoutSchema),
     authenticationController.logout
 );
 
 router.post(
     "/refresh-token",
-    validate(authenticationValidation.refreshTokenCookieSchema, "cookies"),
+    validate(authenticationValidation.refreshTokenSchema),
     authenticationController.refreshToken
 );
 

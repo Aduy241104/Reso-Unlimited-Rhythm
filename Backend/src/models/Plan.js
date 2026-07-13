@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const { Schema, model } = mongoose;
 
-const PLAN_FEATURES = [
+export const PLAN_FEATURES = [
     "NO_ADS",
     "HIGH_QUALITY_AUDIO",
     "LOSSLESS_AUDIO",

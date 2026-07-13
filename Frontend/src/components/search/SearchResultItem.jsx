@@ -243,7 +243,7 @@ const SearchResultItem = ({
           className="shrink-0"
           onClick={(event) => event.stopPropagation()}
         >
-          <TrackTwoLevelMenu trackId={itemId} />
+          <TrackTwoLevelMenu trackId={itemId} track={item} />
         </div>
       ) : null}
     </div>

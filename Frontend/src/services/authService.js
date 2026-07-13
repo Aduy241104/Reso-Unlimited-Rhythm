@@ -1,9 +1,14 @@
 import axiosClient from "../axios/axiosClient";
-import { AUTH_API_PREFIX } from "../constants/auth";
+import { AUTH_API_PREFIX, AUTH_WEB_CLIENT_TYPE } from "../constants/auth";
 
 const getAuthPayload = (response) => response?.data?.data ?? null;
 const getApiEnvelope = (response) => response?.data ?? null;
 let refreshSessionPromise = null;
+
+const withWebClientType = (payload = {}) => ({
+  ...payload,
+  clientType: AUTH_WEB_CLIENT_TYPE,
+});
 
 const normalizeAuthSession = (response) => {
   const payload = getAuthPayload(response);
@@ -16,12 +21,18 @@ const normalizeAuthSession = (response) => {
 };
 
 export const loginService = async (payload) => {
-  const response = await axiosClient.post(`${AUTH_API_PREFIX}/login`, payload);
+  const response = await axiosClient.post(
+    `${AUTH_API_PREFIX}/login`,
+    withWebClientType(payload)
+  );
   return normalizeAuthSession(response);
 };
 
 export const googleLoginService = async (token) => {
-  const response = await axiosClient.post(`${AUTH_API_PREFIX}/google`, { token });
+  const response = await axiosClient.post(
+    `${AUTH_API_PREFIX}/google`,
+    withWebClientType({ token })
+  );
   return normalizeAuthSession(response);
 };
 
@@ -60,7 +71,9 @@ export const resetPasswordService = async (payload) => {
 export const refreshSessionService = async () => {
   if (!refreshSessionPromise) {
     refreshSessionPromise = axiosClient
-      .post(`${AUTH_API_PREFIX}/refresh-token`)
+      .post(`${AUTH_API_PREFIX}/refresh-token`, {
+        clientType: AUTH_WEB_CLIENT_TYPE,
+      })
       .then((response) => normalizeAuthSession(response))
       .finally(() => {
         refreshSessionPromise = null;
@@ -71,7 +84,9 @@ export const refreshSessionService = async () => {
 };
 
 export const logoutService = async () => {
-  return axiosClient.post(`${AUTH_API_PREFIX}/logout`);
+  return axiosClient.post(`${AUTH_API_PREFIX}/logout`, {
+    clientType: AUTH_WEB_CLIENT_TYPE,
+  });
 };
 
 export const testAccessTokenService = async () => {

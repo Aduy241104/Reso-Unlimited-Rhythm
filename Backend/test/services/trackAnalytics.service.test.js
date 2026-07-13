@@ -131,26 +131,6 @@ describe("trackAnalyticsService", () => {
             .mockReturnValueOnce(
                 createQueryChain([
                     {
-                        dateKey: "2026-06-01",
-                        playCount: 10,
-                        uniqueListeners: 8,
-                        averageListenDuration: 100,
-                        skipCount: 2,
-                        updatedAt: "2026-06-30T08:00:00.000Z",
-                    },
-                    {
-                        dateKey: "2026-06-28",
-                        playCount: 5,
-                        uniqueListeners: 4,
-                        averageListenDuration: 80,
-                        skipCount: 1,
-                        updatedAt: "2026-06-30T09:15:00.000Z",
-                    },
-                ])
-            )
-            .mockReturnValueOnce(
-                createQueryChain([
-                    {
                         dateKey: "2026-05-15",
                         playCount: 20,
                         uniqueListeners: 10,
@@ -178,6 +158,14 @@ describe("trackAnalyticsService", () => {
             )
             .mockReturnValueOnce(
                 createQueryChain([
+                    {
+                        dateKey: "2026-06-01",
+                        playCount: 10,
+                        uniqueListeners: 8,
+                        averageListenDuration: 100,
+                        skipCount: 2,
+                        updatedAt: "2026-06-30T08:00:00.000Z",
+                    },
                     {
                         dateKey: "2026-06-28",
                         playCount: 5,
@@ -230,21 +218,21 @@ describe("trackAnalyticsService", () => {
         expect(result.summary).toEqual({
             totalPlays: 15,
             uniqueListeners: 12,
-            totalListeningTime: 43.33,
+            totalListeningTime: 23.33,
             averageListenDuration: 1.56,
             skipCount: 3,
             skipRate: 20,
         });
         expect(result.comparison).toBeUndefined();
-        expect(result.dailyChart).toHaveLength(7);
+        expect(result.dailyChart).toHaveLength(30);
         expect(result.dailyChart[0]).toEqual({
-            date: "2026-06-24",
-            playCount: 0,
-            uniqueListeners: 0,
-            averageListenDuration: 0,
-            skipCount: 0,
+            date: "2026-06-01",
+            playCount: 10,
+            uniqueListeners: 8,
+            averageListenDuration: 1.67,
+            skipCount: 2,
         });
-        expect(result.dailyChart[4]).toEqual({
+        expect(result.dailyChart[27]).toEqual({
             date: "2026-06-28",
             playCount: 5,
             uniqueListeners: 4,
@@ -316,6 +304,14 @@ describe("trackAnalyticsService", () => {
                         skipCount: 2,
                         updatedAt: "2026-05-16T09:00:00.000Z",
                     },
+                    {
+                        dateKey: "2026-06-28",
+                        playCount: 5,
+                        uniqueListeners: 4,
+                        averageListenDuration: 80,
+                        skipCount: 1,
+                        updatedAt: "2026-06-30T09:15:00.000Z",
+                    },
                 ])
             )
             .mockReturnValueOnce(
@@ -327,26 +323,6 @@ describe("trackAnalyticsService", () => {
                         averageListenDuration: 60,
                         skipCount: 2,
                         updatedAt: "2026-05-16T09:00:00.000Z",
-                    },
-                    {
-                        dateKey: "2026-06-28",
-                        playCount: 5,
-                        uniqueListeners: 4,
-                        averageListenDuration: 80,
-                        skipCount: 1,
-                        updatedAt: "2026-06-30T09:15:00.000Z",
-                    },
-                ])
-            )
-            .mockReturnValueOnce(
-                createQueryChain([
-                    {
-                        dateKey: "2026-06-28",
-                        playCount: 5,
-                        uniqueListeners: 4,
-                        averageListenDuration: 80,
-                        skipCount: 1,
-                        updatedAt: "2026-06-30T09:15:00.000Z",
                     },
                 ])
             );
@@ -377,19 +353,183 @@ describe("trackAnalyticsService", () => {
         expect(result.summary).toEqual({
             totalPlays: 20,
             uniqueListeners: 10,
-            totalListeningTime: 26.67,
+            totalListeningTime: 20,
             averageListenDuration: 1,
             skipCount: 2,
             skipRate: 10,
         });
         expect(result.dailyChart[4]).toEqual({
-            date: "2026-06-28",
-            playCount: 5,
-            uniqueListeners: 4,
-            averageListenDuration: 1.33,
-            skipCount: 1,
+            date: "2026-05-05",
+            playCount: 0,
+            uniqueListeners: 0,
+            averageListenDuration: 0,
+            skipCount: 0,
+        });
+        expect(result.dailyChart[14]).toEqual({
+            date: "2026-05-15",
+            playCount: 20,
+            uniqueListeners: 10,
+            averageListenDuration: 1,
+            skipCount: 2,
         });
         expect(result.monthlyChart[11].month).toBe("2026-06");
+    });
+
+    test("does not mix lifetime listening time into an empty ranged summary", async () => {
+        const { trackAnalyticsService } = await loadTrackAnalyticsService();
+
+        mockArtistModel.findOne.mockReturnValue(createQueryChain({ _id: artistId }));
+        mockTrackModel.findById.mockReturnValue(createQueryChain(mockOwnedTrack()));
+        mockTrackDailyStatModel.find
+            .mockReturnValueOnce(
+                createQueryChain([
+                    {
+                        dateKey: "2026-05-15",
+                        playCount: 6,
+                        uniqueListeners: 3,
+                        averageListenDuration: 115.8,
+                        skipCount: 0,
+                        updatedAt: "2026-05-16T09:00:00.000Z",
+                    },
+                ])
+            )
+            .mockReturnValueOnce(createQueryChain([]));
+        mockTrackMonthlyStatModel.find.mockReturnValue(createQueryChain([]));
+
+        const result = await trackAnalyticsService.getTrackAnalyticsOverview({
+            userId,
+            trackId,
+        });
+
+        expect(result.summary).toEqual({
+            totalPlays: 0,
+            uniqueListeners: 0,
+            totalListeningTime: 0,
+            averageListenDuration: 0,
+            skipCount: 0,
+            skipRate: 0,
+        });
+        expect(result.lastUpdatedAt).toBe("2026-05-16T09:00:00.000Z");
+    });
+
+    test("uses lifetime stats when overview range is all", async () => {
+        const { trackAnalyticsService } = await loadTrackAnalyticsService();
+
+        mockArtistModel.findOne.mockReturnValue(createQueryChain({ _id: artistId }));
+        mockTrackModel.findById.mockReturnValue(
+            createQueryChain(
+                mockOwnedTrack({
+                    releaseDate: "2026-05-15T00:00:00.000Z",
+                })
+            )
+        );
+        mockTrackDailyStatModel.find.mockReturnValue(
+            createQueryChain([
+                {
+                    dateKey: "2026-05-15",
+                    playCount: 6,
+                    uniqueListeners: 3,
+                    averageListenDuration: 115.8,
+                    skipCount: 0,
+                    updatedAt: "2026-05-16T09:00:00.000Z",
+                },
+                {
+                    dateKey: "2026-06-28",
+                    playCount: 5,
+                    uniqueListeners: 4,
+                    averageListenDuration: 80,
+                    skipCount: 1,
+                    updatedAt: "2026-06-30T09:15:00.000Z",
+                },
+            ])
+        );
+        mockTrackMonthlyStatModel.find.mockReturnValue(createQueryChain([]));
+
+        const result = await trackAnalyticsService.getTrackAnalyticsOverview({
+            userId,
+            trackId,
+            range: "all",
+        });
+
+        expect(result.period).toEqual({
+            from: "2026-05-15",
+            to: "2026-06-30",
+            range: "all",
+        });
+        expect(result.summary).toEqual({
+            totalPlays: 11,
+            uniqueListeners: 7,
+            totalListeningTime: 18.25,
+            averageListenDuration: 1.66,
+            skipCount: 1,
+            skipRate: 9.09,
+        });
+        expect(result.dailyChart[0]).toEqual({
+            date: "2026-05-15",
+            playCount: 6,
+            uniqueListeners: 3,
+            averageListenDuration: 1.93,
+            skipCount: 0,
+        });
+        expect(result.dailyChart[result.dailyChart.length - 1]).toEqual({
+            date: "2026-06-30",
+            playCount: 0,
+            uniqueListeners: 0,
+            averageListenDuration: 0,
+            skipCount: 0,
+        });
+    });
+
+    test("falls back to monthly stats for all-time summary when daily stats are missing", async () => {
+        const { trackAnalyticsService } = await loadTrackAnalyticsService();
+
+        mockArtistModel.findOne.mockReturnValue(createQueryChain({ _id: artistId }));
+        mockTrackModel.findById.mockReturnValue(createQueryChain(mockOwnedTrack()));
+        mockTrackDailyStatModel.find.mockReturnValue(createQueryChain([]));
+        mockTrackMonthlyStatModel.find.mockReturnValue(
+            createQueryChain([
+                {
+                    year: 2026,
+                    month: 6,
+                    playCount: 3,
+                    uniqueListeners: 2,
+                    updatedAt: "2026-06-30T10:30:00.000Z",
+                    revenue: {
+                        eligibleStreams: 2,
+                        artistRevenueAmount: 142800,
+                    },
+                },
+            ])
+        );
+
+        const result = await trackAnalyticsService.getTrackAnalyticsOverview({
+            userId,
+            trackId,
+            range: "all",
+        });
+
+        expect(result.period).toEqual({
+            from: "2026-06-01",
+            to: "2026-06-30",
+            range: "all",
+        });
+        expect(result.summary).toEqual({
+            totalPlays: 3,
+            uniqueListeners: 2,
+            totalListeningTime: 0,
+            averageListenDuration: 0,
+            skipCount: 0,
+            skipRate: 0,
+        });
+        expect(result.monthlyChart[11]).toEqual({
+            month: "2026-06",
+            year: 2026,
+            monthNumber: 6,
+            playCount: 3,
+            uniqueListeners: 2,
+            eligibleStreams: 2,
+            artistRevenueAmount: 142800,
+        });
     });
 
     test("returns 100 percent growth when previous period has no data", async () => {

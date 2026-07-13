@@ -1,9 +1,10 @@
 import axios from 'axios';
 import { setupInterceptors } from './interceptors';
+import { API_BASE_URL } from '../config/api';
 
 const axiosClient = axios.create({
-  baseURL: process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.6:8080/api',
-  timeout: 15000, 
+  baseURL: API_BASE_URL,
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',

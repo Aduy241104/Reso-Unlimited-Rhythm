@@ -7,6 +7,7 @@ import validate from "../middlewares/validate.middleware.js";
 const router = express.Router();
 
 router.get("/subscription-plans", subscriptionController.getActivePlans);
+router.get("/subscription-plans/:id", subscriptionController.getActivePlanDetail);
 router.get("/subscriptions/me", authenticate(), subscriptionController.getMySubscription);
 
 router.post(

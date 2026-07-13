@@ -1,6 +1,8 @@
 import { Bell, ChevronRight, LoaderCircle } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useAuth } from "../../hooks/useAuth";
+import { useSocket } from "../../hooks/useSocket";
 import { routePaths } from "../../routes/routePaths";
 import { getMyArtistNotificationsService } from "../../services/artist.notification.service";
 
@@ -11,6 +13,7 @@ const TYPE_OPTIONS = [
   { value: "", label: "Tất cả" },
   { value: "system", label: "Hệ thống" },
   { value: "new_release", label: "Phát hành mới" },
+  { value: "artist_update", label: "Cập nhật nghệ sĩ" },
   { value: "payment", label: "Thanh toán" },
   { value: "follow", label: "Theo dõi" },
   { value: "report", label: "Báo cáo" },
@@ -20,6 +23,7 @@ const TYPE_OPTIONS = [
 const TYPE_LABELS = {
   system: "Hệ thống",
   new_release: "Phát hành mới",
+  artist_update: "Cập nhật nghệ sĩ",
   payment: "Thanh toán",
   follow: "Theo dõi",
   report: "Báo cáo",
@@ -51,6 +55,8 @@ const normalizeErrorMessage = (error) =>
 const ArtistNotificationsPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { accessToken } = useAuth();
+  const socket = useSocket(accessToken);
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number.parseInt(searchParams.get("page") || "", 10) || DEFAULT_PAGE;
   const type = searchParams.get("type") || "";
@@ -61,11 +67,11 @@ const ArtistNotificationsPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadNotifications = async () => {
-      setIsLoading(true);
+  const loadNotifications = useCallback(
+    async ({ silent = false } = {}) => {
+      if (!silent) {
+        setIsLoading(true);
+      }
 
       try {
         const params = {
@@ -87,34 +93,45 @@ const ArtistNotificationsPage = () => {
 
         const result = await getMyArtistNotificationsService(params);
 
-        if (!isMounted) {
-          return;
-        }
-
         setNotifications(result.notifications || []);
         setMeta(result.meta || {});
         setErrorMessage("");
       } catch (error) {
-        if (!isMounted) {
-          return;
-        }
-
         setNotifications([]);
         setMeta({});
         setErrorMessage(normalizeErrorMessage(error));
       } finally {
-        if (isMounted) {
+        if (!silent) {
           setIsLoading(false);
         }
       }
+    },
+    [isReadParam, page, type]
+  );
+
+  useEffect(() => {
+    loadNotifications();
+  }, [loadNotifications]);
+
+  useEffect(() => {
+    if (!socket) {
+      return undefined;
+    }
+
+    const handleNotificationChange = () => {
+      loadNotifications({ silent: true });
     };
 
-    loadNotifications();
+    socket.on("new_notification", handleNotificationChange);
+    socket.on("update_notification", handleNotificationChange);
+    socket.on("delete_notification", handleNotificationChange);
 
     return () => {
-      isMounted = false;
+      socket.off("new_notification", handleNotificationChange);
+      socket.off("update_notification", handleNotificationChange);
+      socket.off("delete_notification", handleNotificationChange);
     };
-  }, [page, type, isReadParam]);
+  }, [loadNotifications, socket]);
 
   const updateQuery = (updates) => {
     const nextParams = new URLSearchParams(searchParams);
@@ -142,9 +159,29 @@ const ArtistNotificationsPage = () => {
     [totalPages]
   );
 
-  const handleOpenDetail = (notificationId) => {
+  const handleOpenDetail = (notification) => {
+    const notificationId = notification?._id;
+
     if (!notificationId) {
       return;
+    }
+
+    if (!notification?.isRead) {
+      setNotifications((currentNotifications) =>
+        currentNotifications.map((item) =>
+          item?._id === notificationId ? { ...item, isRead: true } : item
+        )
+      );
+      setMeta((currentMeta) => ({
+        ...currentMeta,
+        unreadCount: Math.max(0, Number(currentMeta?.unreadCount || 0) - 1),
+      }));
+
+      window.dispatchEvent(
+        new CustomEvent("artist-notifications:unread-delta", {
+          detail: { delta: -1 },
+        })
+      );
     }
 
     navigate(routePaths.artistNotificationDetail(notificationId), {
@@ -164,8 +201,9 @@ const ArtistNotificationsPage = () => {
           Thông báo của bạn
         </h2>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-[#7c7891]">
-          Theo dõi các thông báo hệ thống, phát hành, thanh toán và những cập nhật
-          liên quan đến tài khoản nghệ sĩ của bạn.
+          Artist sẽ thấy thông báo hệ thống, thông báo gửi riêng và các cập nhật
+          nhắm tới vai trò nghệ sĩ ngay tại đây, kể cả khi có thông báo mới qua
+          websocket.
         </p>
 
         <div className="mt-5 grid gap-4 md:grid-cols-3">
@@ -256,7 +294,8 @@ const ArtistNotificationsPage = () => {
               Chưa có thông báo nào
             </p>
             <p className="mt-2 max-w-md text-sm leading-6 text-[#7c7891]">
-              Khi có thông báo mới liên quan đến nghệ sĩ, danh sách sẽ hiển thị tại đây.
+              Khi có thông báo mới liên quan đến tài khoản nghệ sĩ, danh sách sẽ
+              xuất hiện tại đây theo thời gian thực.
             </p>
           </div>
         ) : (
@@ -265,7 +304,7 @@ const ArtistNotificationsPage = () => {
               <button
                 key={notification._id}
                 type="button"
-                onClick={() => handleOpenDetail(notification?._id)}
+                onClick={() => handleOpenDetail(notification)}
                 className={[
                   "w-full rounded-[16px] border px-4 py-4 text-left transition",
                   notification?.isRead

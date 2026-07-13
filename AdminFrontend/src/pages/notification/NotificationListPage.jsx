@@ -171,7 +171,7 @@ const NotificationListPage = () => {
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">Quản trị thông báo</p>
-                    <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">History Notifications</h1>
+                    <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Danh sách thông báo</h1>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-4 self-start lg:self-auto">
@@ -213,8 +213,8 @@ const NotificationListPage = () => {
                 <select value={filterReceiver} onChange={(e) => setFilterReceiver(e.target.value)} className="rounded-lg bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition focus:bg-sky-50 cursor-pointer font-medium">
                     <option value="">👥 Tất cả đối tượng nhận</option>
                     <option value="all">📢 Toàn bộ (All)</option>
-                    <option value="group">👥 Theo nhóm (Group)</option>
-                    <option value="single">🎯 Đích danh (Single)</option>
+                    <option value="group">👥 Nhóm người dùng</option>
+                    <option value="single">🎯 Một người dùng</option>
                 </select>
 
                 <button

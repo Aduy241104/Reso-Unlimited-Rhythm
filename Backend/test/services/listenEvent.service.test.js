@@ -12,9 +12,11 @@ const mockRedisClient = {
     isOpen: true,
     executeIsolated: jest.fn(),
 };
+const mockStoreRecentListeningActivity = jest.fn();
 
 const createTrackQuery = (result) => ({
     select: jest.fn().mockReturnThis(),
+    populate: jest.fn().mockReturnThis(),
     lean: jest.fn().mockResolvedValue(result),
 });
 
@@ -23,7 +25,7 @@ const createIsolatedRedisClient = ({
     execResult = ["1717716000000-0", 1, 1],
 } = {}) => {
     const transactionChain = {
-        xAdd: jest.fn().mockReturnThis(),
+        rPush: jest.fn().mockReturnThis(),
         incr: jest.fn().mockReturnThis(),
         expire: jest.fn().mockReturnThis(),
         exec: jest.fn().mockResolvedValue(execResult),
@@ -53,6 +55,12 @@ const loadListenEventService = async () => {
             getAnalyticsTimezone: () => "UTC",
         })
     );
+    jest.unstable_mockModule(
+        "../../src/services/user/userListeningAnalytics.service.js",
+        () => ({
+            storeRecentListeningActivity: mockStoreRecentListeningActivity,
+        })
+    );
 
     const { default: listenEventService } = await import(
         "../../src/services/listenEvent/listenEvent.service.js"
@@ -65,6 +73,7 @@ describe("listenEventService.recordCompletedListenAttempt", () => {
     beforeEach(() => {
         jest.clearAllMocks();
         mockRedisClient.isOpen = true;
+        mockStoreRecentListeningActivity.mockResolvedValue({ _id: "activity-1" });
         jest.useFakeTimers();
         jest.setSystemTime(new Date("2026-06-07T12:00:00.000Z"));
     });
@@ -109,23 +118,23 @@ describe("listenEventService.recordCompletedListenAttempt", () => {
         expect(isolatedClient.watch).toHaveBeenCalledWith(
             "valid_stream_count:2026-06-07:507f1f77bcf86cd799439011:507f1f77bcf86cd799439013"
         );
-        expect(isolatedClient.transactionChain.xAdd).toHaveBeenCalledWith(
-            "listen_event_stream",
-            "*",
-            expect.objectContaining({
-                userId,
-                trackId,
-                artistId,
-                listenPercent: "40",
-                dailyListenOrder: "1",
-                requiredPercent: "40",
-                source: "playlist",
-            })
+        expect(isolatedClient.transactionChain.rPush).toHaveBeenCalledWith(
+            "listen_event_queue",
+            expect.stringContaining('"trackId":"507f1f77bcf86cd799439013"')
         );
         expect(isolatedClient.transactionChain.incr).toHaveBeenCalledTimes(1);
         expect(isolatedClient.transactionChain.expire).toHaveBeenCalledWith(
             "valid_stream_count:2026-06-07:507f1f77bcf86cd799439011:507f1f77bcf86cd799439013",
             172800
+        );
+        expect(mockStoreRecentListeningActivity).toHaveBeenCalledWith(
+            expect.objectContaining({
+                userId,
+                artistId,
+                listenedDuration: 80,
+                listenPercent: 40,
+                source: "playlist",
+            })
         );
     });
 

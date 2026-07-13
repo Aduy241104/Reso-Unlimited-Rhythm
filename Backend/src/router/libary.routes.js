@@ -4,7 +4,7 @@ import authenticate, { requireUser } from "../middlewares/Authentication/authent
 
 const router = express.Router();
 
-router.get("/followed-artists", requireUser, libaryController.getMyFollowedArtists);
-router.get("/followed-albums", requireUser, libaryController.getMyFollowedAlbums);
+router.get("/followed-artists", authenticate(["user", "artist"]), libaryController.getMyFollowedArtists);
+router.get("/followed-albums",authenticate(["user", "artist"]),libaryController.getMyFollowedAlbums);
 
 export default router;

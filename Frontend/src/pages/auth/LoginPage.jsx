@@ -127,105 +127,126 @@ const LoginPage = () => {
           </div>
 
           <div className="flex justify-center lg:justify-end">
-            <div className="relative w-full max-w-md overflow-hidden rounded-[12px] border border-[#f5b66f]/20 bg-white p-6 shadow-[0_30px_100px_rgba(245,158,66,0.18)] backdrop-blur-xl sm:p-8">
-              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(160deg,_rgba(255,255,255,0.06)_0%,_rgba(255,255,255,0.015)_26%,_rgba(255,255,255,0.03)_100%)]" />
-              <div className="pointer-events-none absolute left-[-3rem] top-[-3rem] h-28 w-28 rounded-full bg-[#ff9f43]/12 blur-3xl" />
-              <div className="pointer-events-none absolute bottom-[-4rem] right-[-3rem] h-24 w-24 rounded-full bg-[#9b6cff]/10 blur-3xl" />
+            <div className="w-full max-w-md rounded-2xl border border-black/10 bg-white p-6 text-[#171717] shadow-[0_24px_80px_rgba(0,0,0,0.28)] sm:p-8">
+              <div className="mb-8">
+                <p className="mb-2 text-xs font-bold uppercase tracking-[0.28em] text-[#d98235]">
+                  Reso Music
+                </p>
 
-              <div className="relative">
-                <div className="mb-8">
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.4em] text-[#f5b66f]">
-                    Reso Music
-                  </p>
+                <h1 className="font-title text-4xl font-black tracking-tight text-[#111]">
+                  Đăng nhập
+                </h1>
 
-                  <h1 className="font-title text-4xl font-black text-black">Đăng nhập</h1>
+                <p className="mt-3 text-sm leading-6 text-[#666]">
+                  Đăng nhập để tiếp tục nghe nhạc, quản lý thư viện và khám phá nội dung
+                  dành cho bạn.
+                </p>
+              </div>
 
-                  <p className="mt-3 text-sm leading-6 text-black">
-                    Đăng nhập để tiếp tục hành trình âm nhạc của bạn.
-                  </p>
+              { authNotice && (
+                <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+                  { authNotice }
                 </div>
+              ) }
 
-                { authNotice && (
-                  <div className="mb-5 rounded-2xl border border-emerald-300/25 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-100 shadow-[0_10px_30px_rgba(52,211,153,0.08)]">
-                    { authNotice }
-                  </div>
-                ) }
+              { error && (
+                <div className="mb-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+                  { error }
+                </div>
+              ) }
 
-                { error && (
-                  <div className="mb-5 rounded-2xl border border-rose-300/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-100 shadow-[0_10px_30px_rgba(251,113,133,0.08)]">
-                    { error }
-                  </div>
-                ) }
+              <form onSubmit={ handleSubmit } className="space-y-5">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-[#222]">
+                    Email
+                  </label>
 
-                <form onSubmit={ handleSubmit } className="space-y-5">
-                  <div>
-                    <label className="mb-2 block text-sm font-semibold text-black">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      placeholder="Email"
-                      value={ email }
-                      onChange={ (event) => setEmail(event.target.value) }
-                      disabled={ loading }
-                      className="w-full rounded-full border border-black bg-[#f5f5f5] px-4 py-3 text-[#1a1820] outline-none transition placeholder:text-[#9a8fa8] focus:border-[#f5b66f] focus:ring-4 focus:ring-[#f5b66f]/20"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="mb-2 flex items-center justify-between gap-3">
-                      <label className="block text-sm font-semibold text-black">
-                        Mật khẩu
-                      </label>
-                    </div>
-                    <input
-                      type="password"
-                      placeholder="Mật khẩu"
-                      value={ password }
-                      onChange={ (event) => setPassword(event.target.value) }
-                      disabled={ loading }
-                      className="w-full rounded-full border border-black bg-[#f5f5f5] px-4 py-3 text-[#1a1820] outline-none transition placeholder:text-[#9a8fa8] focus:border-[#f5b66f] focus:ring-4 focus:ring-[#f5b66f]/20"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
+                  <input
+                    type="email"
+                    placeholder="Nhập email"
+                    value={ email }
+                    onChange={ (event) => setEmail(event.target.value) }
                     disabled={ loading }
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#f5b66f] via-[#d98235] to-[#17131a] px-6 py-3.5 text-base font-semibold text-white shadow-[0_18px_45px_rgba(245,158,66,0.28)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_24px_60px_rgba(245,158,66,0.26)] disabled:cursor-not-allowed disabled:opacity-70"
-                  >
-                    { loading ? "Đang đăng nhập..." : "Đăng nhập" }
-                  </button>
-                </form>
-
-                <div className="my-6 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.28em] text-[#6b6573]">
-                  <div className="h-px flex-1 bg-black/10" />
-                  <span>Hoặc tiếp tục với</span>
-                  <div className="h-px flex-1 bg-black/10" />
+                    className="
+            h-12 w-full rounded-xl border border-[#dedede]
+            bg-[#fafafa] px-4 text-sm text-[#111]
+            outline-none transition
+            placeholder:text-[#9a9a9a]
+            focus:border-[#111] focus:bg-white focus:ring-4 focus:ring-black/5
+            disabled:cursor-not-allowed disabled:opacity-70
+          "
+                  />
                 </div>
 
-                <GoogleLoginButton
-                  disabled={ loading }
-                  onCredential={ handleGoogleLogin }
-                />
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-[#222]">
+                    Mật khẩu
+                  </label>
 
-                <p className="mt-7 text-center text-sm text-[#d9d5cf]">
+                  <input
+                    type="password"
+                    placeholder="Nhập mật khẩu"
+                    value={ password }
+                    onChange={ (event) => setPassword(event.target.value) }
+                    disabled={ loading }
+                    className="
+            h-12 w-full rounded-xl border border-[#dedede]
+            bg-[#fafafa] px-4 text-sm text-[#111]
+            outline-none transition
+            placeholder:text-[#9a9a9a]
+            focus:border-[#111] focus:bg-white focus:ring-4 focus:ring-black/5
+            disabled:cursor-not-allowed disabled:opacity-70
+          "
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={ loading }
+                  className="
+          inline-flex h-12 w-full items-center justify-center
+          rounded-xl bg-[#111] px-5 text-sm font-semibold text-white
+          transition duration-200
+          hover:bg-[#2a2a2a]
+          disabled:cursor-not-allowed disabled:opacity-70
+        "
+                >
+                  { loading ? "Đang đăng nhập..." : "Đăng nhập" }
+                </button>
+              </form>
+
+              <div className="my-6 flex items-center gap-3">
+                <div className="h-px flex-1 bg-black/10" />
+                <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[#888]">
+                  Hoặc
+                </span>
+                <div className="h-px flex-1 bg-black/10" />
+              </div>
+
+              <GoogleLoginButton
+                disabled={ loading }
+                onCredential={ handleGoogleLogin }
+              />
+
+              <div className="mt-7 space-y-3 text-center text-sm text-[#666]">
+                <p>
                   Chưa có tài khoản?{ " " }
                   <button
                     type="button"
                     onClick={ () => navigate(routePaths.register) }
-                    className="font-semibold text-black transition hover:text-[#ffd3a0]"
+                    className="font-semibold text-[#111] transition hover:text-[#d98235]"
                   >
                     Tạo tài khoản
                   </button>
-                  <br />
-                  <button
-                    type="button"
-                    onClick={ () => navigate(routePaths.forgotPassword) }
-                    className="text-xs font-semibold text-black transition hover:text-[#ffd3a0]"
-                  >
-                    Quên mật khẩu?
-                  </button>
                 </p>
+
+                <button
+                  type="button"
+                  onClick={ () => navigate(routePaths.forgotPassword) }
+                  className="text-sm font-semibold text-[#555] transition hover:text-[#111]"
+                >
+                  Quên mật khẩu?
+                </button>
               </div>
             </div>
           </div>

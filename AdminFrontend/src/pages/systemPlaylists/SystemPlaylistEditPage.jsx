@@ -11,13 +11,13 @@ import {
 import { routePaths } from "../../routes/routePaths";
 
 const FormInput = ({ id, type = "text", rows, ...props }) => {
-  const base = `w-full rounded-xl px-4 py-3 text-sm outline-none transition disabled:opacity-50`;
+  const base = "w-full rounded-xl px-4 py-3 text-sm outline-none transition disabled:opacity-50";
   const styling = {
     backgroundColor: "#f8fafc",
     border: "1px solid #e2e8f0",
     color: "#1e293b",
   };
-  if (type === "textarea")
+  if (type === "textarea") {
     return (
       <textarea
         id={id}
@@ -27,6 +27,7 @@ const FormInput = ({ id, type = "text", rows, ...props }) => {
         {...props}
       />
     );
+  }
   return <input id={id} type={type} className={base} style={styling} {...props} />;
 };
 
@@ -95,7 +96,7 @@ const SystemPlaylistEditPage = () => {
   const load = useCallback(async () => {
     if (!playlistId) {
       setIsLoading(false);
-      setFeedback({ type: "error", text: "Missing playlist id." });
+      setFeedback({ type: "error", text: "Thiếu mã playlist." });
       return;
     }
     setIsLoading(true);
@@ -104,7 +105,7 @@ const SystemPlaylistEditPage = () => {
       const data = await getAdminSystemPlaylistDetailService(playlistId);
       if (!data) {
         setPlaylist(null);
-        setFeedback({ type: "error", text: "Playlist not found." });
+        setFeedback({ type: "error", text: "Không tìm thấy playlist." });
         return;
       }
       setPlaylist(data);
@@ -118,7 +119,7 @@ const SystemPlaylistEditPage = () => {
       setPlaylist(null);
       setFeedback({
         type: "error",
-        text: e?.response?.data?.message || e.message || "Could not load.",
+        text: e?.response?.data?.message || e.message || "Không thể tải dữ liệu.",
       });
     } finally {
       setIsLoading(false);
@@ -169,7 +170,7 @@ const SystemPlaylistEditPage = () => {
         try {
           await uploadSystemPlaylistCoverService(playlistId, coverFile);
         } catch (e) {
-          setFeedback({ type: "error", text: "Could not upload cover." });
+          setFeedback({ type: "error", text: "Không thể tải ảnh bìa." });
           setIsSubmitting(false);
           return;
         } finally {
@@ -180,7 +181,7 @@ const SystemPlaylistEditPage = () => {
         try {
           await deleteSystemPlaylistCoverService(playlistId);
         } catch (e) {
-          setFeedback({ type: "error", text: "Could not remove cover." });
+          setFeedback({ type: "error", text: "Không thể xóa ảnh bìa." });
           setIsSubmitting(false);
           return;
         } finally {
@@ -193,11 +194,11 @@ const SystemPlaylistEditPage = () => {
         isPublic: form.isPublic,
         isHidden: form.isHidden,
       });
-      toast.success("Playlist updated.");
+      toast.success("Đã cập nhật playlist.");
       navigate(routePaths.systemPlaylistDetail(playlistId), { replace: true });
     } catch (e) {
       toast.error(
-        e?.response?.data?.message || e.message || "Could not update."
+        e?.response?.data?.message || e.message || "Không thể cập nhật playlist."
       );
     } finally {
       setIsSubmitting(false);
@@ -224,7 +225,7 @@ const SystemPlaylistEditPage = () => {
           to={routePaths.systemPlaylists}
           className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium shadow-sm transition hover:bg-slate-50"
         >
-          <ArrowLeft className="h-4 w-4" /> System Playlists
+          <ArrowLeft className="h-4 w-4" /> Playlist hệ thống
         </Link>
         <div
           className="rounded-xl border px-5 py-4 text-sm"
@@ -248,8 +249,6 @@ const SystemPlaylistEditPage = () => {
 
   return (
     <section className="space-y-5 p-3 lg:p-5 bg-slate-50/50 min-h-screen text-slate-800 font-sans antialiased">
-
-      {/* Page Header */}
       <div className="flex items-center justify-between gap-4 px-1">
         <div className="flex items-center gap-4">
           <Link
@@ -260,7 +259,7 @@ const SystemPlaylistEditPage = () => {
           </Link>
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
-              Edit Playlist
+              Chỉnh sửa playlist
             </p>
             <h1 className="mt-1 text-xl font-semibold tracking-tight text-slate-950">
               {playlist?.title}
@@ -271,13 +270,11 @@ const SystemPlaylistEditPage = () => {
           to={routePaths.systemPlaylistDetail(playlistId)}
           className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium shadow-sm transition hover:bg-slate-50"
         >
-          View Detail
+          Xem chi tiết
         </Link>
       </div>
 
-      {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-5">
-
         {feedback.text && (
           <div
             className="rounded-xl border px-5 py-4 text-sm font-medium"
@@ -291,12 +288,11 @@ const SystemPlaylistEditPage = () => {
           </div>
         )}
 
-        {/* Basic Info Card */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="mb-4 text-sm font-bold text-slate-900">Basic Information</h2>
+          <h2 className="mb-4 text-sm font-bold text-slate-900">Thông tin cơ bản</h2>
           <div className="space-y-5">
             <div>
-              <FieldLabel required>Title</FieldLabel>
+              <FieldLabel required>Tiêu đề</FieldLabel>
               <FormInput
                 id="sys-pl-edit-title"
                 required
@@ -304,11 +300,11 @@ const SystemPlaylistEditPage = () => {
                 value={form.title}
                 onChange={handleChange("title")}
                 disabled={isBusy}
-                placeholder="Playlist title"
+                placeholder="Tiêu đề playlist"
               />
             </div>
             <div>
-              <FieldLabel>Description</FieldLabel>
+              <FieldLabel>Mô tả</FieldLabel>
               <FormInput
                 id="sys-pl-edit-desc"
                 type="textarea"
@@ -316,21 +312,20 @@ const SystemPlaylistEditPage = () => {
                 value={form.description}
                 onChange={handleChange("description")}
                 disabled={isBusy}
-                placeholder="Short description for this playlist"
+                placeholder="Mô tả ngắn cho playlist này"
               />
             </div>
           </div>
         </div>
 
-        {/* Cover Image Card */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="mb-4 text-sm font-bold text-slate-900">Cover Image</h2>
+          <h2 className="mb-4 text-sm font-bold text-slate-900">Ảnh bìa</h2>
           <div className="flex flex-wrap items-start gap-5">
             {currentCover ? (
               <div className="relative flex-shrink-0">
                 <img
                   src={currentCover}
-                  alt="Cover"
+                  alt="Ảnh bìa"
                   className="h-28 w-28 rounded-2xl object-cover shadow-sm"
                 />
                 <button
@@ -343,13 +338,11 @@ const SystemPlaylistEditPage = () => {
                   <X className="h-3.5 w-3.5" />
                 </button>
                 <p className="mt-1.5 text-center text-xs" style={{ color: "#94a3b8" }}>
-                  {coverPreview ? "New cover" : "Current"}
+                  {coverPreview ? "Ảnh bìa mới" : "Hiện tại"}
                 </p>
               </div>
             ) : (
-              <div
-                className="flex h-28 w-28 items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50"
-              >
+              <div className="flex h-28 w-28 items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50">
                 <Disc className="h-8 w-8 text-slate-300" />
               </div>
             )}
@@ -359,7 +352,7 @@ const SystemPlaylistEditPage = () => {
                 className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
               >
                 <Upload className="h-4 w-4" style={{ color: "#64748b" }} />
-                {currentCover ? "Change Cover" : "Upload Cover"}
+                {currentCover ? "Đổi ảnh bìa" : "Tải ảnh bìa"}
                 <input
                   key={`cover-${coverInputKey}`}
                   id="sys-pl-edit-cover-file"
@@ -377,48 +370,46 @@ const SystemPlaylistEditPage = () => {
                   disabled={isBusy}
                   className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
                 >
-                  Restore Original
+                  Khôi phục ảnh gốc
                 </button>
               )}
               <p className="text-xs" style={{ color: "#94a3b8" }}>
-                JPEG, PNG, WebP (max 5MB)
+                JPEG, PNG, WebP (tối đa 5MB)
               </p>
             </div>
           </div>
         </div>
 
-        {/* Settings Card */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="mb-4 text-sm font-bold text-slate-900">Settings</h2>
+          <h2 className="mb-4 text-sm font-bold text-slate-900">Cài đặt</h2>
           <div className="space-y-5">
             <div>
               <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: "#64748b" }}>
-                Visibility
+                Quyền riêng tư
               </p>
               <ToggleField
                 checked={form.isPublic}
                 onChange={handleChange("isPublic")}
-                label="Public"
-                hint="Visible to all users."
+                label="Công khai"
+                hint="Hiển thị cho tất cả người dùng."
                 disabled={isBusy}
               />
             </div>
             <div>
               <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: "#64748b" }}>
-                Status
+                Trạng thái
               </p>
               <ToggleField
                 checked={form.isHidden}
                 onChange={handleChange("isHidden")}
-                label="Hidden"
-                hint="Excluded from public list."
+                label="Ẩn"
+                hint="Không hiển thị trong danh sách công khai."
                 disabled={isBusy}
               />
             </div>
           </div>
         </div>
 
-        {/* Actions */}
         <div className="flex items-center gap-3 pt-2">
           <button
             type="submit"
@@ -429,11 +420,11 @@ const SystemPlaylistEditPage = () => {
             {isBusy ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                {isUploadingCover ? "Uploading..." : "Saving..."}
+                {isUploadingCover ? "Đang tải ảnh..." : "Đang lưu..."}
               </>
             ) : (
               <>
-                <Pencil className="h-4 w-4" /> Save changes
+                <Pencil className="h-4 w-4" /> Lưu thay đổi
               </>
             )}
           </button>
@@ -441,7 +432,7 @@ const SystemPlaylistEditPage = () => {
             to={routePaths.systemPlaylistDetail(playlistId)}
             className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-medium shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
           >
-            Cancel
+            Hủy
           </Link>
         </div>
       </form>

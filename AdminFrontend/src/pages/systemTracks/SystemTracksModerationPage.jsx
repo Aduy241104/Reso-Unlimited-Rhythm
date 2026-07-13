@@ -65,7 +65,7 @@ const SystemTracksModerationPage = () => {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-amber-500">Kiểm duyệt chất lượng</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Track Verification Queue</h1>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Hàng chờ duyệt bài hát</h1>
         </div>
 
         <div className="flex flex-wrap items-center gap-4">
