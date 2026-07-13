@@ -100,6 +100,7 @@ describe("listenEventService.recordCompletedListenAttempt", () => {
         expect(result).toEqual({
             success: true,
             isValidStream: true,
+            isSkipped: false,
             listenPercent: 40,
             requiredPercent: 40,
             dailyListenOrder: 1,
@@ -153,6 +154,7 @@ describe("listenEventService.recordCompletedListenAttempt", () => {
         expect(result).toEqual({
             success: true,
             isValidStream: false,
+            isSkipped: false,
             listenPercent: 50,
             requiredPercent: 60,
             dailyListenOrder: 2,
@@ -187,6 +189,7 @@ describe("listenEventService.recordCompletedListenAttempt", () => {
         expect(result).toEqual({
             success: true,
             isValidStream: false,
+            isSkipped: false,
             listenPercent: 99.5,
             requiredPercent: 100,
             dailyListenOrder: 4,
