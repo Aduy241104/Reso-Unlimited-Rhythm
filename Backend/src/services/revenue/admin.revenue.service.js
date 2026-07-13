@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+﻿import mongoose from "mongoose";
 import Artist from "../../models/Artist.js";
 import ArtistRevenueSummary from "../../models/ArtistRevenueSummary.js";
 import ListenEvent from "../../models/ListenEvent.js";
@@ -355,8 +355,6 @@ const formatDistributedArtistItem = (artistRevenueSummary) => ({
             id: toId(artistRevenueSummary.artistId._id || artistRevenueSummary.artistId),
             name: artistRevenueSummary.artistId.name || "",
             avatar: artistRevenueSummary.artistId.avatar || "",
-            verificationStatus:
-                  artistRevenueSummary.artistId.verificationStatus || "pending",
             activeStatus: artistRevenueSummary.artistId.activeStatus || "active",
         }
         : null,
@@ -409,7 +407,7 @@ const findDistributedArtistSummaries = async ({
     })
         .populate(
             "artistId",
-            "name avatar verificationStatus activeStatus"
+            "name avatar activeStatus"
         )
         .sort({ artistRevenueAmount: -1, totalEligibleStreams: -1, _id: 1 })
         .lean();
@@ -1256,3 +1254,4 @@ export default {
     calculateRevenueDistribution,
     confirmRevenueDistribution,
 };
+
