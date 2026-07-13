@@ -8,7 +8,7 @@ dotenv.config();
 const {
     Album,
     Artist,
-    ArtistDailyRanking,
+    ArtistRanking,
     ArtistMonthlyStat,
     ArtistRequest,
     ArtistStat,
@@ -124,7 +124,7 @@ const seedCollections = [
     { model: Playlist, ids: [ids.playlistMain] },
     { model: Track, ids: [ids.trackSunrise, ids.trackCityLights] },
     { model: Album, ids: [ids.albumMain] },
-    { model: ArtistDailyRanking, ids: [ids.artistDailyRanking] },
+    { model: ArtistRanking, ids: [ids.artistDailyRanking] },
     { model: ArtistMonthlyStat, ids: [ids.artistMonthlyStat] },
     { model: ArtistStat, ids: [ids.artistStat] },
     {
@@ -738,6 +738,9 @@ const seedActivity = async () => {
 };
 
 const seedModerationAndStats = async () => {
+    const rankingDate = daysAgo(1);
+    const rankingDateKey = rankingDate.toISOString().slice(0, 10);
+
     await Report.create({
         _id: ids.reportMain,
         userId: ids.userListener,
@@ -767,7 +770,7 @@ const seedModerationAndStats = async () => {
     await TrackDailyStat.create({
         _id: ids.trackDailyStat,
         trackId: ids.trackSunrise,
-        date: daysAgo(1),
+        date: rankingDate,
         playCount: 180,
         uniqueListeners: 124,
         averageListenDuration: 204,
@@ -776,7 +779,8 @@ const seedModerationAndStats = async () => {
 
     await TrackDailyRanking.create({
         _id: ids.trackDailyRanking,
-        date: daysAgo(1),
+        dateKey: rankingDateKey,
+        date: rankingDate,
         rankings: [
             {
                 trackId: ids.trackSunrise,
@@ -797,9 +801,11 @@ const seedModerationAndStats = async () => {
         ],
     });
 
-    await ArtistDailyRanking.create({
+    await ArtistRanking.create({
         _id: ids.artistDailyRanking,
-        date: daysAgo(1),
+        periodType: "daily",
+        dateKey: rankingDateKey,
+        date: rankingDate,
         rankings: [
             {
                 artistId: ids.artistMain,

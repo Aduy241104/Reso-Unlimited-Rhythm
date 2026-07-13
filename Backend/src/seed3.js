@@ -17,9 +17,8 @@ dayjs.extend(timezone);
 const {
     Album,
     Artist,
-    ArtistDailyRanking,
+    ArtistRanking,
     ArtistDailyStat,
-    ArtistMonthlyRanking,
     ArtistMonthlyStat,
     ArtistRequest,
     ArtistRevenueSummary,
@@ -63,9 +62,8 @@ const ALL_MODELS = [
     ArtistVerificationRequest,
     ArtistStat,
     ArtistDailyStat,
-    ArtistDailyRanking,
     ArtistMonthlyStat,
-    ArtistMonthlyRanking,
+    ArtistRanking,
     Album,
     Track,
     TrackDailyStat,
@@ -903,6 +901,7 @@ const buildArtistRankingStats = (events, dateKey) => {
 const buildArtistDailyRankingDocuments = (events, rankingDateKeys) =>
     rankingDateKeys.map((dateKey) => ({
         _id: nextArtistDailyRankingId(),
+        periodType: "daily",
         dateKey,
         date: buildStoredDayDate(dateKey),
         rankings: buildArtistRankingStats(events, dateKey)
@@ -1021,6 +1020,7 @@ const buildArtistMonthlyRankingDocument = (events, year, month) => {
 
     return {
         _id: nextArtistMonthlyRankingId(),
+        periodType: "monthly",
         year,
         month,
         rankings,
@@ -2172,7 +2172,7 @@ const buildDemoDocuments = async () => {
                 },
             },
             {
-                model: ArtistDailyRanking,
+                model: ArtistRanking,
                 query: {
                     $or: [
                         { dateKey: { $in: cleanupArtistRankingDateKeys } },
@@ -2181,7 +2181,7 @@ const buildDemoDocuments = async () => {
                 },
             },
             { model: TrackMonthlyRanking, query: { year, month } },
-            { model: ArtistMonthlyRanking, query: { year, month } },
+            { model: ArtistRanking, query: { year, month } },
             { model: PlatformMonthlyStat, query: { year, month } },
             { model: RevenuePeriod, query: { year, month } },
             {
@@ -2245,9 +2245,9 @@ const buildDemoDocuments = async () => {
             { model: Playlist, docs: playlists },
             { model: Track, docs: trackDocs },
             { model: Album, docs: albums },
-            { model: ArtistDailyRanking, docs: artistDailyRankings },
+            { model: ArtistRanking, docs: artistDailyRankings },
             { model: ArtistDailyStat, docs: artistDailyStats },
-            { model: ArtistMonthlyRanking, docs: [artistMonthlyRanking] },
+            { model: ArtistRanking, docs: [artistMonthlyRanking] },
             { model: ArtistMonthlyStat, docs: artistMonthlyStats },
             { model: ArtistStat, docs: artistStats },
             { model: ArtistVerificationRequest, docs: artistVerificationRequests },

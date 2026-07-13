@@ -1,8 +1,7 @@
 import Album from "./Album.js";
 import Artist from "./Artist.js";
 import ArtistDailyStat from "./ArtistDailyStat.js";
-import ArtistDailyRanking from "./ArtistDailyRanking.js";
-import ArtistMonthlyRanking from "./ArtistMonthlyRanking.js";
+import ArtistRanking from "./ArtistRanking.js";
 import ArtistMonthlyStat from "./ArtistMonthlyStat.js";
 import ArtistRequest from "./ArtistRequest.js";
 import ArtistRevenueSummary from "./ArtistRevenueSummary.js";
@@ -39,8 +38,9 @@ export default {
     Album,
     Artist,
     ArtistDailyStat,
-    ArtistDailyRanking,
-    ArtistMonthlyRanking,
+    ArtistRanking,
+    ArtistDailyRanking: ArtistRanking,
+    ArtistMonthlyRanking: ArtistRanking,
     ArtistMonthlyStat,
     ArtistRequest,
     ArtistRevenueSummary,
