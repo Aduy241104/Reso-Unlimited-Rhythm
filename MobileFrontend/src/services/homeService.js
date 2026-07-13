@@ -1,6 +1,7 @@
 import albumService from './albumService';
 import artistService from './artistService';
 import playlistService from './playlistService';
+import recommendationService from './recommendationService';
 import trackService from './trackService';
 
 const formatLocalDate = (date) => {
@@ -25,17 +26,21 @@ export const homeService = {
     const now = new Date();
     const date = options.date || formatLocalDate(now);
     const month = options.month || formatLocalMonth(now);
+    const includeRecommendations = Boolean(options.includeRecommendations);
     const topTrackPreviewLimit = options.topTrackPreviewLimit || 1;
     const topArtistLimit = options.topArtistLimit || 10;
     const playlistLimit = options.playlistLimit || 10;
     const albumLimit = options.albumLimit || 10;
 
-    const [dailyTopTracks, monthlyTopTracks, monthlyTopArtists, systemPlaylists, recentAlbums] = await Promise.allSettled([
+    const [dailyTopTracks, monthlyTopTracks, monthlyTopArtists, systemPlaylists, recentAlbums, recommendedPlaylists] = await Promise.allSettled([
       trackService.getDailyTopTracks({ date, limit: topTrackPreviewLimit }),
       trackService.getMonthlyTopTracks({ month, limit: topTrackPreviewLimit }),
       artistService.getMonthlyTopArtists({ month, limit: topArtistLimit }),
       playlistService.getSystemPlaylists({ page: 1, limit: playlistLimit }),
       albumService.getRecentAlbums({ page: 1, limit: albumLimit }),
+      includeRecommendations
+        ? recommendationService.getDailyMixes()
+        : Promise.resolve({ items: [] }),
     ]);
 
     const sectionErrors = {};
@@ -68,6 +73,7 @@ export const homeService = {
       monthlyTopArtists: monthlyTopArtists.status === 'fulfilled' ? monthlyTopArtists.value.items : [],
       systemPlaylists: systemPlaylists.status === 'fulfilled' ? systemPlaylists.value.items : [],
       recentAlbums: recentAlbums.status === 'fulfilled' ? recentAlbums.value.items : [],
+      recommendedPlaylists: recommendedPlaylists.status === 'fulfilled' ? recommendedPlaylists.value.items : [],
       sectionErrors,
       query: { date, month },
     };
@@ -98,10 +104,18 @@ export const homeService = {
       sectionErrors.recentAlbums = getErrorMessage(recentAlbums.reason, 'Không thể tải album mới.');
     }
 
+    if (includeRecommendations && recommendedPlaylists.status === 'rejected') {
+      sectionErrors.recommendedPlaylists = getErrorMessage(
+        recommendedPlaylists.reason,
+        'Khong the tai playlist goi y luc nay.'
+      );
+    }
+
     if (
       result.topTrackCollections.length === 0 &&
       result.monthlyTopArtists.length === 0 &&
       result.systemPlaylists.length === 0 &&
+      result.recommendedPlaylists.length === 0 &&
       result.recentAlbums.length === 0 &&
       Object.keys(sectionErrors).length > 0
     ) {

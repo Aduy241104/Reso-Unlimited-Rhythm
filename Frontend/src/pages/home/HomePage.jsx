@@ -1,11 +1,11 @@
 import ContentCardSection from "../../components/content/ContentCardSection";
-import DailyTopArtistsSection from "../../components/home/DailyTopArtistsSection";
 import TrackChartSection from "../../components/home/TrackChartSection";
 import { useAuth } from "../../hooks/useAuth";
 import { useContentPlayback } from "../../hooks/useContentPlayback";
 import { useHomePageData } from "../../hooks/useHomePageData";
 import { useRecommendationMixes } from "../../hooks/useRecommendationMixes";
 import { routePaths } from "../../routes/routePaths";
+import { mapDailyTopArtistsToContentCards } from "../../utils/dailyTopArtists";
 import { mapDailyTopTracksToContentCards } from "../../utils/dailyTopTracks";
 import {
   mapAlbumsToContentCards,
@@ -41,7 +41,6 @@ const HomePage = () => {
     dailyTopTracksError,
     monthlyTopTracksError,
     monthlyTopArtistsError,
-    dailyTopArtistsError,
     dailyTopTracksDate,
     monthlyTopTracksDate,
     monthlyTopArtistsDate,
@@ -66,7 +65,7 @@ const HomePage = () => {
   const shouldShowRecommendationSection = isAuthenticated && !isAuthLoading;
 
   return (
-    <section className="space-y-6 sm:space-y-8 lg:space-y-10 p-5">
+    <section className="space-y-6 p-5 sm:space-y-8 lg:space-y-10">
       {albumsError ? (
         <div
           className="
@@ -174,11 +173,17 @@ const HomePage = () => {
                 limit: monthlyTopArtistsLimit,
               })
             : []),
+          ...mapDailyTopArtistsToContentCards({
+            topArtists: dailyTopArtists,
+            date: dailyTopArtists[0]?.date,
+            limit: dailyTopArtists.length,
+          }),
         ]}
         isLoading={
           isLoadingDailyTopTracks ||
           isLoadingMonthlyTopTracks ||
-          isLoadingMonthlyTopArtists
+          isLoadingMonthlyTopArtists ||
+          isLoadingDailyTopArtists
         }
         emptyMessage="Hiện chưa có dữ liệu bảng xếp hạng."
         showPlayButton={false}
@@ -218,15 +223,6 @@ const HomePage = () => {
         isLoading={isLoadingAlbums}
         emptyMessage="Hiện chưa có dữ liệu album."
         onPlay={playAlbumItem}
-      />
-
-      <DailyTopArtistsSection
-        title="Top nghệ sĩ theo ngày"
-        description="Những nghệ sĩ được nghe nhiều nhất hôm nay."
-        items={dailyTopArtists}
-        isLoading={isLoadingDailyTopArtists}
-        errorMessage={dailyTopArtistsError}
-        emptyMessage="Hôm nay chưa có dữ liệu xếp hạng."
       />
 
       {playbackError ? (

@@ -61,4 +61,7 @@ export const API_ENDPOINTS = {
     FOLLOWED_ARTISTS: '/libary/followed-artists',
     FOLLOWED_ALBUMS: '/libary/followed-albums',
   },
+  RECOMMENDATIONS: {
+    DAILY_MIXES: '/recommendations/daily-mixes',
+  },
 };

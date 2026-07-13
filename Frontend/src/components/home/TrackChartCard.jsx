@@ -59,7 +59,7 @@ const TrackChartCard = ({
   const cardContent = (
     <>
       <div className="relative overflow-hidden rounded-[12px] bg-[#ececec] dark:bg-[#282828] sm:rounded-[14px]">
-        <div className="aspect-square overflow-hidden">
+        <div className="aspect-[1.28/1] overflow-hidden sm:aspect-[1.42/1] lg:aspect-[1.58/1]">
           { image ? (
             <img
               src={ image }

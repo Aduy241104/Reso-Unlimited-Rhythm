@@ -20,6 +20,7 @@ import ErrorState from '../../components/common/ErrorState';
 import ProfileSidebarMenu from '../../components/common/ProfileSidebarMenu';
 import FeaturedCollectionCard from '../../components/home/FeaturedCollectionCard';
 import { useAuth } from '../../hooks/useAuth';
+import { usePlayer } from '../../hooks/usePlayer';
 import homeService from '../../services/homeService';
 import { formatDateLabel, getInitials, resolveImageUri } from '../../utils/media';
 
@@ -29,6 +30,7 @@ const initialHomeState = {
   topTrackCollections: [],
   monthlyTopArtists: [],
   systemPlaylists: [],
+  recommendedPlaylists: [],
   recentAlbums: [],
   sectionErrors: {},
   query: {
@@ -122,6 +124,7 @@ export default function HomeScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { isAuthenticated, user, logout } = useAuth();
+  const { playQueue } = usePlayer();
   const [homeData, setHomeData] = useState(initialHomeState);
   const [isContentLoading, setIsContentLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -157,6 +160,7 @@ export default function HomeScreen() {
 
     try {
       const data = await homeService.getHomepageData({
+        includeRecommendations: isAuthenticated,
         topTrackPreviewLimit: 1,
         topArtistLimit: 10,
         playlistLimit: 10,
@@ -175,7 +179,7 @@ export default function HomeScreen() {
       setIsContentLoading(false);
       setIsRefreshing(false);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     loadHomepage();
@@ -240,6 +244,15 @@ export default function HomeScreen() {
       initialTitle: playlist.title || 'Chi tiết playlist',
     });
   }, [navigation]);
+
+  const handlePlayRecommendation = useCallback((mix) => {
+    if (!Array.isArray(mix?.tracks) || mix.tracks.length === 0) {
+      return;
+    }
+
+    playQueue(mix.tracks, 0);
+    navigation.navigate('PlayerSheet');
+  }, [navigation, playQueue]);
 
   const handleOpenSidebar = useCallback(() => {
     if (isAuthenticated) {
@@ -378,6 +391,37 @@ export default function HomeScreen() {
     );
   };
 
+  const renderRecommendationCard = ({ item, index }) => {
+    const accentColor = accentPalette[index % accentPalette.length];
+    const metaText = item?.basedOnLabel
+      ? `${item.subtitle} / ${item.basedOnLabel}`
+      : item.subtitle || 'Mix danh rieng cho ban';
+
+    return (
+      <TouchableOpacity
+        style={[styles.cardItem, styles.recommendationCard]}
+        activeOpacity={0.85}
+        onPress={() => handlePlayRecommendation(item)}
+      >
+        <Artwork
+          uri={item.coverImage}
+          label={item.title}
+          color={accentColor}
+          style={styles.recommendationArtwork}
+        />
+        <Text style={[styles.cardTitle, styles.recommendationTitle]} numberOfLines={1}>
+          {item.title}
+        </Text>
+        <Text style={[styles.cardSubTitle, styles.recommendationSubtitle]} numberOfLines={2}>
+          {item.description || 'Daily mix cap nhat theo thoi quen nghe cua ban.'}
+        </Text>
+        <Text style={styles.recommendationMeta} numberOfLines={2}>
+          {metaText}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
   const renderAlbumCard = ({ item, index }) => {
     const accentColor = accentPalette[index % accentPalette.length];
     const artistName = item?.artist?.name || 'Nghệ sĩ không xác định';
@@ -478,12 +522,22 @@ export default function HomeScreen() {
             emptyMessage="Chưa có playlist hệ thống."
           />
 
+          {isAuthenticated ? (
+            <HomeSection
+              title="Playlist goi y cho ban"
+              data={homeData.recommendedPlaylists}
+              errorMessage={homeData.sectionErrors.recommendedPlaylists}
+              renderItem={renderRecommendationCard}
+              emptyMessage="Chua co recommendation playlist cho hom nay."
+            />
+          ) : null}
+
           <HomeSection
-            title="Album mới phát hành"
+            title="Album moi phat hanh"
             data={homeData.recentAlbums}
             errorMessage={homeData.sectionErrors.recentAlbums}
             renderItem={renderAlbumCard}
-            emptyMessage="Chưa có album mới phát hành."
+            emptyMessage="Chua co album moi phat hanh."
           />
         </ScrollView>
       )}
@@ -611,11 +665,19 @@ const styles = StyleSheet.create({
     padding: 0,
     backgroundColor: 'transparent',
   },
+  recommendationCard: {
+    width: 156,
+  },
   artwork: {
     width: 102,
     height: 102,
     borderRadius: 8,
     backgroundColor: '#202020',
+  },
+  recommendationArtwork: {
+    width: 156,
+    height: 156,
+    borderRadius: 14,
   },
   artworkFallback: {
     alignItems: 'center',
@@ -645,6 +707,19 @@ const styles = StyleSheet.create({
     marginTop: 2,
     lineHeight: 14,
     minHeight: 26,
+  },
+  recommendationTitle: {
+    fontSize: 13,
+    marginTop: 10,
+  },
+  recommendationSubtitle: {
+    minHeight: 30,
+  },
+  recommendationMeta: {
+    color: '#6f6f6f',
+    fontSize: 10,
+    lineHeight: 14,
+    marginTop: 6,
   },
   sectionState: {
     marginHorizontal: 20,

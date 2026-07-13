@@ -1,4 +1,4 @@
-import { ArrowRight, BarChart3 } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import TrackChartCard from "./TrackChartCard";
 
@@ -66,16 +66,16 @@ const TrackChartSection = ({
       </div>
 
       { isLoading ? (
-        <div className="mt-1 flex gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mt-2 sm:gap-4">
-          { Array.from({ length: 3 }).map((_, index) => (
+        <div className="mt-1 grid grid-cols-1 gap-3 pb-2 sm:mt-2 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
+          { Array.from({ length: 4 }).map((_, index) => (
             <div
               key={ index }
               className="
-                w-[9rem] min-w-[9rem] animate-pulse rounded-[16px] border border-black/5 bg-white/70 p-2.5
-                dark:border-white/10 dark:bg-[#181818] sm:w-[11.25rem] sm:min-w-[11.25rem] sm:rounded-[18px] sm:p-3
+                min-w-0 animate-pulse rounded-[16px] border border-black/5 bg-white/70 p-2.5
+                dark:border-white/10 dark:bg-[#181818] sm:rounded-[18px] sm:p-3
               "
             >
-              <div className="relative aspect-square rounded-[12px] bg-[#e5e5e5] dark:bg-[#282828] sm:rounded-[14px]">
+              <div className="relative aspect-[1.28/1] rounded-[12px] bg-[#e5e5e5] dark:bg-[#282828] sm:aspect-[1.42/1] sm:rounded-[14px] lg:aspect-[1.58/1]">
                 <div className="absolute left-2 top-2 h-5 w-10 rounded-full bg-black/8 dark:bg-white/10 sm:left-2.5 sm:top-2.5 sm:h-6 sm:w-11" />
                 <div className="absolute right-2 top-2 h-5 w-14 rounded-full bg-black/8 dark:bg-white/10 sm:right-2.5 sm:top-2.5 sm:h-6 sm:w-16" />
               </div>
@@ -89,12 +89,9 @@ const TrackChartSection = ({
           )) }
         </div>
       ) : items.length > 0 ? (
-        <div className="mt-1 flex gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mt-2 sm:gap-4">
+        <div className="mt-1 grid grid-cols-1 gap-3 pb-2 sm:mt-2 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
           { items.map((item, index) => (
-            <div
-              key={ item.id }
-              className="w-[9rem] min-w-[9rem] sm:w-[11.25rem] sm:min-w-[11.25rem] lg:w-[13.25rem] lg:min-w-[13.25rem]"
-            >
+            <div key={ item.id } className="min-w-0">
               <TrackChartCard
                 index={ index + 1 }
                 image={ item.image }
