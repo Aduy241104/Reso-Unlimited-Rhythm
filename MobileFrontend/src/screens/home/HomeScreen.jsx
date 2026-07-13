@@ -274,7 +274,7 @@ export default function HomeScreen() {
         icon: 'mic-outline',
         onPress: () => runAfterSidebarClose(() => navigation.navigate('ArtistRegistrationRequest', { initialView: 'form' })),
       },
-      user?.role === 'user'
+      ['user', 'artist'].includes(user?.role)
         ? {
           key: 'report-list',
           label: 'Danh sách báo cáo',
