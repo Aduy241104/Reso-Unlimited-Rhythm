@@ -24,6 +24,7 @@ import ArtistRequestDetailPage from "../pages/artistRequests/ArtistRequestDetail
 import SystemArtistsListPage from "../pages/artist/SystemArtistsListPage";
 import SystemArtistDetailPage from "../pages/artist/ArtistDetailPage";
 import SystemTracksModerationPage from "../pages/systemTracks/SystemTracksModerationPage";
+import AlbumDetailPage from "../pages/albums/AlbumDetailPage";
 import CreateNotificationPage from "../pages/notification/CreateNotificationPage";
 import AdminListPage from "../pages/users/AdminListPage";
 import NotificationsListPage from "../pages/notification/NotificationListPage";
@@ -162,6 +163,10 @@ export const appRoutes = [
               {
                 path: "system-tracks/:id",
                 element: <TrackDetailPage />,
+              },
+              {
+                path: "system-albums/:id",
+                element: <AlbumDetailPage />,
               },
               {
                 path: "genres",

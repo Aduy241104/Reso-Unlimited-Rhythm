@@ -6,6 +6,7 @@
   artistRequests: "/artist-requests",
   artistRequestDetail: (requestId = ":requestId") => `/artist-requests/${requestId}`,
   trackDetail: (trackId = ":id") => `/system-tracks/${trackId}`,
+  albumDetail: (albumId = ":id") => `/system-albums/${albumId}`,
   systemPlaylists: "/system-playlists",
   genres: "/genres",
   genreNew: "/genres/new",
