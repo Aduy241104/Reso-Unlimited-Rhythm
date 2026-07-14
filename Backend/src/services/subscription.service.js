@@ -6,6 +6,7 @@ import Transaction from "../models/Transaction.js";
 import User from "../models/User.js";
 import { AppError } from "../utils/AppError.js";
 import { addDays } from "../utils/date.util.js";
+import { resolveUserPremiumState } from "../utils/premiumAccess.js";
 import vnpayService from "./vnpay.service.js";
 
 const PENDING_PAYMENT_TIMEOUT_MINUTES =
@@ -301,6 +302,7 @@ const getMySubscriptionStatus = async (userId) => {
         throw new AppError("User does not exist.", 404);
     }
 
+    const isPremium = await resolveUserPremiumState(user, now);
     const currentPlan =
         user.subscription?.currentPlanId && typeof user.subscription.currentPlanId === "object"
             ? {
@@ -316,9 +318,7 @@ const getMySubscriptionStatus = async (userId) => {
     const pricedCurrentPlan = enrichPlanPricing(currentPlan);
 
     return {
-        isPremium:
-            Boolean(user.subscription?.isPremium) &&
-            (!user.subscription?.premiumEndDate || new Date(user.subscription.premiumEndDate) > now),
+        isPremium,
         currentPlan: pricedCurrentPlan,
         premiumEndDate: user.subscription?.premiumEndDate || null,
         activeSubscription: activeSubscription

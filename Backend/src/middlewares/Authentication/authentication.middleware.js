@@ -6,6 +6,7 @@ import {
     sanitizeUser,
 } from "../../services/Authentication/authentication.helper.js";
 import { StatusCodes } from "http-status-codes";
+import { resolveUserPremiumState } from "../../utils/premiumAccess.js";
 
 const extractAccessToken = (req) => {
     const authorizationHeader = req.headers.authorization || "";
@@ -110,6 +111,31 @@ const optionalAuthenticate = () => {
             next(error);
         }
     };
+};
+
+export const requirePremiumAccess = async (req, res, next) => {
+    try {
+        if (!req.user) {
+            throw new AppError("Unauthorized.", StatusCodes.UNAUTHORIZED);
+        }
+
+        const isPremium = await resolveUserPremiumState(req.user);
+
+        if (!isPremium) {
+            throw new AppError(
+                "Premium subscription is required to access this resource.",
+                StatusCodes.FORBIDDEN,
+                {
+                    requiredPlan: "premium",
+                    redirectPath: "/premium",
+                }
+            );
+        }
+
+        next();
+    } catch (error) {
+        next(error);
+    }
 };
 
 export const authorizeRoles = (...roles) => authenticate(roles);

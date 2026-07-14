@@ -1,8 +1,8 @@
 import { StatusCodes } from "http-status-codes";
 import { AppError } from "../../utils/AppError.js";
-import Subscription from "../../models/Subscription.js";
 import { uploadImageBuffer, deleteImageByPublicId } from "../cloudinaryService.js";
 import { extractPublicIdFromUrl } from "../../utils/uploadCloud.js";
+import { resolveUserPremiumState } from "../../utils/premiumAccess.js";
 
 const ALLOWED_GENDERS = new Set([
     "male",
@@ -23,50 +23,6 @@ const normalizeId = (user = {}) => {
     return "";
 };
 
-const hasActivePremiumSubscription = async (userId) => {
-    if (!userId) {
-        return false;
-    }
-
-    const now = new Date();
-
-    const activeSubscription = await Subscription.exists({
-        userId,
-        status: "active",
-        $and: [
-            {
-                $or: [
-                    { startDate: null },
-                    { startDate: { $lte: now } },
-                ],
-            },
-            {
-                $or: [
-                    { endDate: null },
-                    { endDate: { $gt: now } },
-                ],
-            },
-        ],
-    });
-
-    return Boolean(activeSubscription);
-};
-
-const resolveCurrentUserPremiumState = async (user = {}) => {
-    const now = new Date();
-    const premiumEndDate = user.subscription?.premiumEndDate
-        ? new Date(user.subscription.premiumEndDate)
-        : null;
-    const hasPremiumFlag = Boolean(user.subscription?.isPremium) &&
-        (!premiumEndDate || premiumEndDate > now);
-
-    if (hasPremiumFlag) {
-        return true;
-    }
-
-    return hasActivePremiumSubscription(normalizeId(user));
-};
-
 export const formatCurrentUserProfile = async (user = {}) => ({
     id: normalizeId(user),
     email: user.email ?? "",
@@ -74,7 +30,7 @@ export const formatCurrentUserProfile = async (user = {}) => ({
     avatar: user.avatar ?? "",
     role: user.role ?? "",
     activeStatus: user.activeStatus ?? "",
-    isPremium: await resolveCurrentUserPremiumState(user),
+    isPremium: await resolveUserPremiumState(user),
 });
 
 const assertObjectPayload = (
