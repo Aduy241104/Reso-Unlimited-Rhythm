@@ -1,6 +1,7 @@
 {
   "expo": {
     "name": "MobileFrontend",
+    "owner": "thaiv",
     "slug": "MobileFrontend",
     "scheme": "resounlimitedrhythm",
     "version": "1.0.0",

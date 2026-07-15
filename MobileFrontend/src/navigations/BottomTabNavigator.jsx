@@ -16,6 +16,7 @@ import EntityDetailScreen from '../screens/detail/EntityDetailScreen';
 import FavoriteTracksScreen from '../screens/favorite/FavoriteTracksScreen';
 import PlaylistDetailScreen from '../screens/playlist/PlaylistDetailScreen';
 import PlayerSheetScreen from '../screens/player/PlayerSheetScreen';
+import NotificationsScreen from '../screens/notifications/NotificationsScreen';
 
 import PremiumScreen from '../screens/premium/PremiumScreen';
 
@@ -65,6 +66,14 @@ function SharedTabStack({ rootName, component: RootComponent }) {
       <Stack.Screen
         name="EntityDetail"
         component={EntityDetailScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="Notifications"
+        component={NotificationsScreen}
         options={{
           headerShown: false,
           animation: 'slide_from_right',
@@ -244,6 +253,3 @@ export const BottomTabNavigator = () => {
     </Tab.Navigator>
   );
 };
-
-
-

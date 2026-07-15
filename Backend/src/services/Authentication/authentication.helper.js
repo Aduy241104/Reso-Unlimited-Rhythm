@@ -115,16 +115,19 @@ export const createAuthSession = async (user, clientType) => {
 };
 
 export const verifyGoogleIdToken = async (token) => {
-    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientIds = (process.env.GOOGLE_CLIENT_IDS || process.env.GOOGLE_CLIENT_ID || "")
+        .split(",")
+        .map((clientId) => clientId.trim())
+        .filter(Boolean);
 
-    if (!clientId) {
+    if (clientIds.length === 0) {
         throw new AppError("Google login is not configured.", 500);
     }
 
     try {
         const ticket = await googleAuthClient.verifyIdToken({
             idToken: token,
-            audience: clientId,
+            audience: clientIds,
         });
         const payload = ticket.getPayload();
 
