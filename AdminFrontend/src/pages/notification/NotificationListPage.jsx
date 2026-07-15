@@ -71,9 +71,9 @@ const getAccentClasses = (type) => {
 };
 
 const HeaderStat = ({ label, value }) => (
-    <div className="rounded-xl bg-slate-100 px-4 py-2.5 min-w-[100px] text-center sm:text-left">
-        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">{label}</p>
-        <p className="mt-0.5 text-base font-bold text-slate-900">{value}</p>
+    <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4">
+        <p className="text-xs font-medium text-slate-500">{label}</p>
+        <p className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">{value}</p>
     </div>
 );
 
@@ -165,7 +165,7 @@ const NotificationListPage = () => {
     const currentPageItems = notifications.slice((query.page - 1) * query.limit, query.page * query.limit);
 
     return (
-        <section className="space-y-6 max-w-[1400px] mx-auto p-6 bg-slate-50/50 min-h-screen text-slate-800 font-sans antialiased">
+        <section className="space-y-6">
 
             {/* Khung 1: Header Dashboard */}
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -183,7 +183,7 @@ const NotificationListPage = () => {
 
                     <Link
                         to={routePaths.createNotification || "/notifications/new"}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 text-sm font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5 whitespace-nowrap"
+                        className="bg-slate-950 hover:bg-slate-800 text-white px-5 py-3 text-sm font-semibold rounded-xl transition flex items-center gap-1.5 whitespace-nowrap"
                     >
                         <Plus size={16} /> Tạo thông báo mới
                     </Link>
@@ -191,14 +191,14 @@ const NotificationListPage = () => {
             </div>
 
             {/* Khung 2: Thanh điều khiển bộ lọc */}
-            <form onSubmit={handleSearchSubmit} className="grid gap-3 rounded-2xl bg-white p-4 shadow-[0_12px_32px_rgba(15,23,42,0.06)] grid-cols-1 sm:grid-cols-2 md:grid-cols-[1.8fr_1fr_1fr_100px_100px]">
+            <form onSubmit={handleSearchSubmit} className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-[1.8fr_1fr_1fr_100px_100px]">
                 <label className="relative block">
                     <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         placeholder="Tìm theo tiêu đề hoặc nội dung thông báo..."
-                        className="w-full rounded-lg bg-slate-100 py-3 pl-11 pr-4 text-sm text-slate-900 outline-none transition focus:bg-sky-50"
+                        className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-900 outline-none transition focus:border-slate-400"
                     />
                 </label>
 
@@ -225,7 +225,7 @@ const NotificationListPage = () => {
                     Đặt lại
                 </button>
 
-                <button type="submit" className="rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 shadow-sm cursor-pointer">
+                <button type="submit" className="rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 cursor-pointer">
                     Tìm kiếm
                 </button>
             </form>
@@ -239,7 +239,7 @@ const NotificationListPage = () => {
                     <p className="mt-1 text-sm text-slate-400">Hồ sơ trống hoặc không có dữ liệu nào khớp từ khóa tìm kiếm.</p>
                 </div>
             ) : (
-                <div className="overflow-hidden rounded-2xl bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
                     {/* 🛠️ ĐÃ CẬP NHẬT: Định cấu hình cột cuối về 100px tinh gọn cho nút Chi tiết */}
                     <div className="grid min-w-[1020px] grid-cols-[180px_minmax(0,2fr)_180px_100px] gap-4 border-b border-slate-200 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
                         <span>Loại & Đối tượng</span>
@@ -258,7 +258,6 @@ const NotificationListPage = () => {
                                 currentPageItems.map((noti) => (
                                     <article key={noti._id} className="relative grid grid-cols-[180px_minmax(0,2fr)_180px_100px] gap-4 px-6 py-5 transition hover:bg-slate-50/60 items-center">
 
-                                        <div className={`absolute inset-y-2 left-0 w-1 rounded-r ${getAccentClasses(noti.type)}`} />
 
                                         <div className="space-y-1.5 pl-2">
                                             <p className="text-xs font-bold text-slate-900">{getTypeLabel(noti.type)}</p>
@@ -304,7 +303,7 @@ const NotificationListPage = () => {
 
             {/* Khung 4: Khối điều khiển Phân trang */}
             {pagination && total > 0 && (
-                <div className="flex flex-col gap-4 rounded-2xl bg-white px-6 py-5 sm:flex-row sm:items-center sm:justify-between shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+                <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-sm text-slate-500 font-medium">
                         Trang {currentPage} / {totalPages}
                         <span className="mx-2 text-slate-300">|</span>
