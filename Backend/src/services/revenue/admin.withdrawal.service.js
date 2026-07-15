@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+﻿import mongoose from "mongoose";
 import Artist from "../../models/Artist.js";
 import ArtistRevenueSummary from "../../models/ArtistRevenueSummary.js";
 import User from "../../models/User.js";
@@ -98,7 +98,7 @@ const getWithdrawalRequestsForAdmin = async (query = {}) => {
             .limit(limit)
             .populate({
                 path: "artistId",
-                select: "name avatar userId verificationStatus activeStatus revenue",
+                select: "name avatar userId activeStatus revenue",
                 populate: {
                     path: "userId",
                     select: "email avatar profile role activeStatus",
@@ -126,7 +126,7 @@ const getWithdrawalRequestsForAdmin = async (query = {}) => {
 const populateWithdrawalRequestForAdmin = (query) => query
     .populate({
         path: "artistId",
-        select: "name avatar userId verificationStatus activeStatus revenue",
+        select: "name avatar userId activeStatus revenue",
         populate: {
             path: "userId",
             select: "email avatar profile role activeStatus",
@@ -312,3 +312,4 @@ export default {
     markWithdrawalRequestAsPaid,
     getWithdrawalRequestDetailForAdmin,
 };
+

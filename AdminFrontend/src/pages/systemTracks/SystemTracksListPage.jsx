@@ -52,9 +52,9 @@ const getAccentClasses = (approvalStatus) => {
 };
 
 const HeaderStat = ({ label, value }) => (
-    <div className="rounded-xl bg-slate-100 px-4 py-3 min-w-[100px]">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400">{label}</p>
-        <p className="mt-1.5 text-lg font-semibold text-slate-900">{value}</p>
+    <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4">
+        <p className="text-xs font-medium text-slate-500">{label}</p>
+        <p className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">{value}</p>
     </div>
 );
 
@@ -113,7 +113,7 @@ const SystemTracksListPage = () => {
     const pageLabel = pagination ? `${pagination.page}/${pagination.totalPages}` : "1/1";
 
     return (
-        <section className="space-y-8 max-w-[1400px] mx-auto p-6 bg-slate-50/50 min-h-screen text-slate-800 font-sans antialiased">
+        <section className="space-y-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">Hệ thống nhạc kho</p>
@@ -128,17 +128,17 @@ const SystemTracksListPage = () => {
                     </div>
                     <Link 
                         to={routePaths.trackModeration || "/system-tracks/moderation"} 
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 text-sm font-semibold rounded-xl shadow-sm transition whitespace-nowrap inline-block text-center"
+                        className="bg-slate-950 hover:bg-slate-800 text-white px-5 py-3 text-sm font-semibold rounded-xl transition whitespace-nowrap inline-block text-center"
                     >
                         Hàng đợi duyệt →
                     </Link>
                 </div>
             </div>
 
-            <form onSubmit={handleSearchSubmit} className="grid gap-3 rounded-2xl bg-white p-4 shadow-[0_12px_32px_rgba(15,23,42,0.06)] grid-cols-1 sm:grid-cols-2 md:grid-cols-[1.5fr_1fr_1fr_100px_100px]">
+            <form onSubmit={handleSearchSubmit} className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-[1.5fr_1fr_1fr_100px_100px]">
                 <label className="relative block">
                     <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Tìm theo tên bài hát hoặc nghệ sĩ..." className="w-full rounded-lg bg-slate-100 py-3 pl-11 pr-4 text-sm text-slate-900 outline-none transition focus:bg-sky-50" />
+                    <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Tìm theo tên bài hát hoặc nghệ sĩ..." className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-900 outline-none transition focus:border-slate-400" />
                 </label>
 
                 <select value={filterApproval} onChange={(e) => setFilterApproval(e.target.value)} className="rounded-lg bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition focus:bg-sky-50 cursor-pointer">
@@ -157,7 +157,7 @@ const SystemTracksListPage = () => {
                     Đặt lại
                 </button>
 
-                <button type="submit" className="rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700">
+                <button type="submit" className="rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">
                     Tìm kiếm
                 </button>
             </form>
@@ -168,7 +168,7 @@ const SystemTracksListPage = () => {
                     <p className="mt-1 text-sm text-slate-400">Hồ sơ trống hoặc không có bản ghi nào khớp điều kiện lọc.</p>
                 </div>
             ) : (
-                <div className="overflow-hidden rounded-2xl bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
                     <div className="grid min-w-[1020px] grid-cols-[minmax(0,1.5fr)_minmax(0,1.2fr)_100px_140px_140px_120px] gap-4 border-b border-slate-200 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
                         <span>Bài hát</span>
                         <span>Nghệ sĩ</span>
@@ -182,7 +182,6 @@ const SystemTracksListPage = () => {
                         <div className="min-w-[1020px] divide-y divide-slate-100">
                             {tracks.map((track) => (
                                 <article key={track.id} className="relative grid grid-cols-[minmax(0,1.5fr)_minmax(0,1.2fr)_100px_140px_140px_120px] gap-4 px-6 py-4 transition hover:bg-slate-50/60 items-center">
-                                    <div className={`absolute inset-y-2 left-0 w-1 rounded-r ${getAccentClasses(track.approvalStatus)}`} />
 
                                     <div className="flex min-w-0 items-center gap-3 pl-2">
                                         {track.avatar ? (
@@ -212,7 +211,7 @@ const SystemTracksListPage = () => {
             )}
 
             {pagination && (
-                <div className="flex flex-col gap-4 rounded-2xl bg-white px-6 py-5 sm:flex-row sm:items-center sm:justify-between shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+                <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-sm text-slate-500 font-medium">
                         Trang {pagination.page} / {pagination.totalPages}
                         <span className="mx-2 text-slate-300">|</span>

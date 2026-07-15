@@ -17,7 +17,38 @@ export const AuthContext = createContext({
   login: async () => {},
   googleLogin: async () => {},
   logout: async () => {},
+  updateUser: async () => {},
 });
+
+const normalizeAuthUser = (value) => {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  if (value.user && typeof value.user === 'object') {
+    return value.user;
+  }
+
+  return value;
+};
+
+const mergeAuthUsers = (primaryUser = null, secondaryUser = null) => {
+  const preferredUser = normalizeAuthUser(primaryUser);
+  const fallbackUser = normalizeAuthUser(secondaryUser);
+
+  if (!preferredUser && !fallbackUser) {
+    return null;
+  }
+
+  return {
+    ...(fallbackUser || {}),
+    ...(preferredUser || {}),
+    profile: {
+      ...(fallbackUser?.profile || {}),
+      ...(preferredUser?.profile || {}),
+    },
+  };
+};
 
 export const AuthProvider = ({ children }) => {
   const [authState, setAuthState] = useState({
@@ -41,23 +72,26 @@ export const AuthProvider = ({ children }) => {
       await tokenStorage.setRefreshToken(refreshToken);
     }
 
-    if (user) {
-      await userStorage.setUserProfile(user);
+    const normalizedUser = normalizeAuthUser(user);
+
+    if (normalizedUser) {
+      await userStorage.setUserProfile(normalizedUser);
     }
   }, []);
 
   const syncCurrentUser = useCallback(async (fallbackUser = null) => {
     const response = await authService.getCurrentUser();
-    const freshUser = response?.data || response;
+    const freshUser = normalizeAuthUser(response?.data || response);
+    const mergedUser = mergeAuthUsers(freshUser, fallbackUser);
 
-    if (freshUser) {
-      await userStorage.setUserProfile(freshUser);
+    if (mergedUser) {
+      await userStorage.setUserProfile(mergedUser);
       setAuthState({
         isAuthenticated: true,
         isLoading: false,
-        user: freshUser,
+        user: mergedUser,
       });
-      return freshUser;
+      return mergedUser;
     }
 
     setAuthState({
@@ -80,7 +114,7 @@ export const AuthProvider = ({ children }) => {
         userStorage.getUserProfile(),
       ]);
 
-      storedUser = persistedUser;
+      storedUser = normalizeAuthUser(persistedUser);
       hasStoredSession = Boolean(accessToken || refreshToken);
 
       if (!hasStoredSession) {
@@ -135,7 +169,7 @@ export const AuthProvider = ({ children }) => {
         }
 
         const authPayload = normalizeAuthPayload(response?.data || response);
-        const sessionUser = authPayload.user || { email };
+        const sessionUser = normalizeAuthUser(authPayload.user) || { email };
 
         if (!authPayload.accessToken) {
           throw new Error('Dang nhap that bai: Server khong tra ve access token.');
@@ -144,7 +178,7 @@ export const AuthProvider = ({ children }) => {
         await persistSession({
           accessToken: authPayload.accessToken,
           refreshToken: authPayload.refreshToken,
-          user: authPayload.user,
+          user: sessionUser,
         });
 
         setAuthState({
@@ -225,14 +259,36 @@ export const AuthProvider = ({ children }) => {
     }
   }, [clearSession]);
 
+  const updateUser = useCallback(
+    async (nextUser) => {
+      const mergedUser = mergeAuthUsers(nextUser, authState.user);
+
+      if (!mergedUser) {
+        return null;
+      }
+
+      await userStorage.setUserProfile(mergedUser).catch(() => {});
+      setAuthState((prev) => ({
+        ...prev,
+        isAuthenticated: true,
+        isLoading: false,
+        user: mergedUser,
+      }));
+
+      return mergedUser;
+    },
+    [authState.user]
+  );
+
   const contextValue = useMemo(
     () => ({
       ...authState,
       login,
       googleLogin,
       logout,
+      updateUser,
     }),
-    [authState, login, googleLogin, logout]
+    [authState, login, googleLogin, logout, updateUser]
   );
 
   return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;

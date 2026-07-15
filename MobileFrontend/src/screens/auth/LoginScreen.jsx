@@ -75,7 +75,7 @@ export const LoginScreen = () => {
 
       navigation.navigate('MainTabs');
     } catch (err) {
-      setErrorMsg(err.message || 'Authentication failed. Please try again.');
+      setErrorMsg(err.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
     }
   };
 
@@ -162,10 +162,10 @@ export const LoginScreen = () => {
         
         {/* KHỐI BRANDING ĐẬM CHẤT MUSIC */}
         <View style={styles.headerContainer}>
-          <Text style={styles.tagline}>DARK SOUNDSCAPE</Text>
-          <Text style={styles.mainTitle}>FEEL THE</Text>
-          <Text style={styles.gradientTextPlaceholder}>RHYTHM</Text>
-          <Text style={styles.description}>Music is the voice of the soul.</Text>
+          <Text style={styles.tagline}>KHÔNG GIAN ÂM THANH</Text>
+          <Text style={styles.mainTitle}>CẢM NHẬN</Text>
+          <Text style={styles.gradientTextPlaceholder}>NHỊP ĐIỆU</Text>
+          <Text style={styles.description}>Âm nhạc là tiếng nói của tâm hồn.</Text>
         </View>
 
         {/* ĐỒNG BỘ DẢI SÓNG NHẠC (WAVE BARS) TỪ WEB XUỐNG MOBILE */}
@@ -191,8 +191,8 @@ export const LoginScreen = () => {
         {/* KHỐI FORM ĐĂNG NHẬP TRẮNG NỔI BẬT TRÊN NỀN TỐI (GIỐNG ẢNH WEB) */}
         <View style={styles.card}>
           <Text style={styles.subBrand}>RESO MUSIC</Text>
-          <Text style={styles.cardTitle}>Login</Text>
-          <Text style={styles.cardSubtitle}>Login to continue your music journey.</Text>
+          <Text style={styles.cardTitle}>Đăng nhập</Text>
+          <Text style={styles.cardSubtitle}>Đăng nhập để tiếp tục hành trình âm nhạc của bạn.</Text>
 
           {errorMsg && (
             <View style={styles.errorBox}>
@@ -212,7 +212,7 @@ export const LoginScreen = () => {
             render={({ field: { onChange, onBlur, value } }) => (
               <AppInput
                 label="Email"
-                placeholder="Email Address"
+                placeholder="Địa chỉ email"
                 autoCapitalize="none"
                 keyboardType="email-address"
                 onBlur={onBlur}
@@ -231,8 +231,8 @@ export const LoginScreen = () => {
             name="password"
             render={({ field: { onChange, onBlur, value } }) => (
               <AppInput
-                label="Password"
-                placeholder="Password"
+                label="Mật khẩu"
+                placeholder="Mật khẩu"
                 secureTextEntry
                 autoCapitalize="none"
                 onBlur={onBlur}
@@ -248,7 +248,7 @@ export const LoginScreen = () => {
 
           {/* NÚT SIGN IN CHUYỂN SẮC CAM CHÁY */}
           <AppButton 
-            title="Sign In" 
+            title="Đăng nhập" 
             onPress={handleSubmit(onSubmit)} 
             isLoading={isSubmitting} 
             buttonStyle={styles.signInBtn}
@@ -257,7 +257,7 @@ export const LoginScreen = () => {
 
           <View style={styles.dividerContainer}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>OR CONTINUE WITH</Text>
+            <Text style={styles.dividerText}>HOẶC TIẾP TỤC VỚI</Text>
             <View style={styles.dividerLine} />
           </View>
 
@@ -275,13 +275,17 @@ export const LoginScreen = () => {
 
           {/* FOOTER CHUYỂN ĐIỀU HƯỚNG */}
           <View style={styles.footerLinks}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
+
+            <Text style={styles.footerText}>Chưa có tài khoản? </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.linkTextBold}>Create one</Text>
+              <Text style={styles.linkTextBold}>Tạo ngay</Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.forgotBtn} onPress={() => navigation.navigate('ForgotPassword')}>
-            <Text style={styles.linkTextSmall}>Forgot password?</Text>
+          <TouchableOpacity
+            style={styles.forgotBtn}
+            onPress={() => navigation.navigate('ForgotPassword')}
+          >
+            <Text style={styles.linkTextSmall}>Quên mật khẩu?</Text>
           </TouchableOpacity>
         </View>
 

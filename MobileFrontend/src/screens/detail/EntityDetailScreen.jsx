@@ -1,11 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
-  Image,
-  Platform,
   ScrollView,
   StatusBar,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -14,20 +11,30 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppLoader from '../../components/common/AppLoader';
+import AddTrackToPlaylistModal from '../../components/detail/AddTrackToPlaylistModal';
+import ArtistFollowButton from '../../components/detail/ArtistFollowButton';
+import TrackFavoriteButton from '../../components/detail/TrackFavoriteButton';
 import TrackActionsBottomSheet from '../../components/detail/TrackActionsBottomSheet';
 import ErrorState from '../../components/common/ErrorState';
 import { useAuth } from '../../hooks/useAuth';
 import usePlayer from '../../hooks/usePlayer';
 import albumService from '../../services/albumService';
-import artistService from '../../services/artistService';
+import artistFollowService from '../../services/artistFollowService';
 import playlistService from '../../services/playlistService';
+import profileArtistService from '../../services/profileArtistService';
 import trackService from '../../services/trackService';
-import { getErrorMessage, getInitials, resolveImageUri } from '../../utils/media';
+import userFavoriteService from '../../services/userFavoriteService';
+import userPlaylistService from '../../services/userPlaylistService';
+import { formatCompactNumber, getErrorMessage, getInitials } from '../../utils/media';
 import { buildPlayableQueue, normalizePlayerTrack } from '../../utils/player';
+import { Artwork, TrackListItem } from './EntityDetailComponents';
+import { LinearGradient } from 'expo-linear-gradient';
+import styles from './EntityDetailScreen.styles';
+import { StyleSheet } from 'react-native';
 
 const detailFetchers = {
   album: ({ entityId }) => albumService.getAlbumDetail(entityId),
-  artist: ({ entityId }) => artistService.getArtistDetail(entityId),
+  artist: ({ entityId }) => profileArtistService.getArtistDetail(entityId),
   playlist: ({ entityId }) => playlistService.getPlaylistDetail(entityId),
   track: ({ entityId }) => trackService.getTrackDetail(entityId),
   topTrackCollection: (params) => trackService.getTopTrackCollectionDetail(params),
@@ -54,83 +61,30 @@ const getDisplayText = (value, fallback = '') => {
   return fallback;
 };
 
-const isExplicitTrack = (item) => {
-  return Boolean(
-    item?.explicit ||
-    item?.isExplicit ||
-    item?.isExplicitContent ||
-    item?.contentRating === 'explicit'
-  );
-};
+const normalizeInfoEntries = (entries = []) =>
+  (Array.isArray(entries) ? entries : [])
+    .map((entry) => {
+      if (!entry || typeof entry !== 'object') {
+        return null;
+      }
 
-const Artwork = ({ uri, label, style, textStyle, rounded = false }) => {
-  const imageUri = resolveImageUri(uri);
+      const label = getDisplayText(entry.label);
+      const value = getDisplayText(entry.value);
 
-  if (imageUri) {
-    return (
-      <Image
-        source={ { uri: imageUri } }
-        style={ [styles.artwork, rounded && styles.roundedArtwork, style] }
-        resizeMode="cover"
-      />
-    );
-  }
+      if (!label || !value) {
+        return null;
+      }
 
-  return (
-    <View style={ [styles.artwork, styles.artworkFallback, rounded && styles.roundedArtwork, style] }>
-      <Text style={ [styles.artworkFallbackText, textStyle] }>{ getInitials(label) }</Text>
-    </View>
-  );
-};
+      return {
+        label,
+        value,
+        entityType: entry.entityType || '',
+        entityId: entry.entityId || '',
+      };
+    })
+    .filter(Boolean);
 
-const TrackListItem = ({ item, index, onMorePress, onPress, showIndex = false }) => {
-  const title = getDisplayText(item?.title, 'Unknown item');
-  const subtitle = getDisplayText(item?.subtitle || item?.artistName);
-  const explicit = isExplicitTrack(item);
-
-  const handleMorePress = (event) => {
-    event.stopPropagation?.();
-    onMorePress?.();
-  };
-
-  return (
-    <TouchableOpacity style={ styles.listItem } onPress={ onPress } activeOpacity={ 0.75 }>
-      { showIndex ? (
-        <Text style={ styles.listIndex }>{ index + 1 }</Text>
-      ) : null }
-
-      <View style={ styles.listContent }>
-        <Text style={ styles.listTitle } numberOfLines={ 1 }>
-          { title }
-        </Text>
-
-        <View style={ styles.listSubtitleRow }>
-          { explicit ? (
-            <View style={ styles.explicitBadge }>
-              <Text style={ styles.explicitBadgeText }>E</Text>
-            </View>
-          ) : null }
-
-          { subtitle ? (
-            <Text style={ styles.listSubtitle } numberOfLines={ 1 }>
-              { subtitle }
-            </Text>
-          ) : null }
-        </View>
-      </View>
-
-      { onMorePress ? (
-        <TouchableOpacity
-          style={ styles.moreButton }
-          activeOpacity={ 0.7 }
-          onPress={ handleMorePress }
-        >
-          <Ionicons name="ellipsis-horizontal" size={ 18 } color="#9f9f9f" />
-        </TouchableOpacity>
-      ) : null }
-    </TouchableOpacity>
-  );
-};
+const getTrackId = (item) => String(item?.entityId || item?.id || '');
 
 export default function EntityDetailScreen() {
   const navigation = useNavigation();
@@ -140,6 +94,10 @@ export default function EntityDetailScreen() {
   const { playQueue } = usePlayer();
 
   const { entityId, entityType, initialTitle, period, date, month, limit } = route.params || {};
+  const navigationState = navigation.getState?.();
+  const currentRouteIndex = navigationState?.routes?.findIndex?.((item) => item.key === route.key) ?? -1;
+  const previousRoute = currentRouteIndex > 0 ? navigationState?.routes?.[currentRouteIndex - 1] : null;
+  const isOpenedFromPlayer = route.params?.source === 'player' || previousRoute?.name === 'PlayerSheet';
 
   const [detail, setDetail] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -147,15 +105,60 @@ export default function EntityDetailScreen() {
   const [isTrackActionsVisible, setIsTrackActionsVisible] = useState(false);
   const [isAlbumFollowing, setIsAlbumFollowing] = useState(false);
   const [isAlbumFollowUpdating, setIsAlbumFollowUpdating] = useState(false);
+  const [isArtistFollowing, setIsArtistFollowing] = useState(false);
+  const [isArtistFollowUpdating, setIsArtistFollowUpdating] = useState(false);
   const [selectedTrackAction, setSelectedTrackAction] = useState({
     index: 0,
     track: null,
   });
+  const [isPlaylistPickerVisible, setIsPlaylistPickerVisible] = useState(false);
+  const [isPlaylistPickerLoading, setIsPlaylistPickerLoading] = useState(false);
+  const [playlistPickerError, setPlaylistPickerError] = useState('');
+  const [myPlaylists, setMyPlaylists] = useState([]);
+  const [submittingPlaylistId, setSubmittingPlaylistId] = useState('');
+  const [favoriteStatusMap, setFavoriteStatusMap] = useState({});
+  const [favoriteUpdatingMap, setFavoriteUpdatingMap] = useState({});
+
+  const applyArtistFollowSnapshot = useCallback((nextIsFollowing, nextFollowers) => {
+    setDetail((previousDetail) => {
+      if (!previousDetail || previousDetail.type !== 'artist') {
+        return previousDetail;
+      }
+
+      const safeFollowers = Math.max(0, Number(nextFollowers) || 0);
+      const safeTrackCount = Math.max(
+        0,
+        Number(previousDetail?.trackCount) || (Array.isArray(previousDetail?.items) ? previousDetail.items.length : 0)
+      );
+      const nextDescription = safeFollowers > 0
+        ? `${formatCompactNumber(safeFollowers)} người theo dõi`
+        : safeTrackCount > 0
+          ? `${safeTrackCount} bài hát`
+          : 'Hồ sơ nghệ sĩ';
+
+      return {
+        ...previousDetail,
+        isFollowing: nextIsFollowing,
+        followersCount: safeFollowers,
+        description: nextDescription,
+        stats: Array.isArray(previousDetail?.stats)
+          ? previousDetail.stats.map((item) =>
+            item?.label === 'Người theo dõi'
+              ? {
+                ...item,
+                value: formatCompactNumber(safeFollowers),
+              }
+              : item
+          )
+          : previousDetail?.stats,
+      };
+    });
+  }, []);
 
   const loadDetail = useCallback(async () => {
     if (!entityId || !entityType || !detailFetchers[entityType]) {
       setDetail(null);
-      setErrorMessage('Detail information is missing.');
+      setErrorMessage('Thiếu thông tin chi tiết.');
       setIsLoading(false);
       return;
     }
@@ -176,6 +179,8 @@ export default function EntityDetailScreen() {
 
       const shouldLoadAlbumFollowState =
         (entityType === 'album' || result?.type === 'album') && isAuthenticated;
+      const shouldLoadArtistFollowState =
+        (entityType === 'artist' || result?.type === 'artist') && isAuthenticated;
 
       if (shouldLoadAlbumFollowState) {
         try {
@@ -185,20 +190,42 @@ export default function EntityDetailScreen() {
           if (followError?.status === 401) {
             setIsAlbumFollowing(false);
           } else {
-            console.log('Unable to load album follow status.', followError?.message || followError);
+            console.log('Không thể tải trạng thái theo dõi album.', followError?.message || followError);
           }
         }
       } else {
         setIsAlbumFollowing(false);
       }
+      if (shouldLoadArtistFollowState) {
+        try {
+          const followState = await artistFollowService.getArtistFollowStatus(result?.id || entityId);
+          const nextIsFollowing = Boolean(followState?.isFollowing);
+
+          setIsArtistFollowing(nextIsFollowing);
+          applyArtistFollowSnapshot(
+            nextIsFollowing,
+            Number(result?.followersCount) || Number(followState?.followers) || 0
+          );
+        } catch (followError) {
+          if (followError?.status === 401) {
+            setIsArtistFollowing(false);
+          } else {
+            console.log('KhĂ´ng thá»ƒ táº£i tráº¡ng thĂ¡i theo dĂµi nghá»‡ sÄ©.', followError?.message || followError);
+          }
+        }
+      } else {
+        setIsArtistFollowing(false);
+      }
     } catch (error) {
       setDetail(null);
       setIsAlbumFollowing(false);
-      setErrorMessage(getErrorMessage(error, 'Unable to load detail right now.'));
+      setIsArtistFollowing(false);
+      setIsArtistFollowUpdating(false);
+      setErrorMessage(getErrorMessage(error, 'Không thể tải nội dung chi tiết lúc này.'));
     } finally {
       setIsLoading(false);
     }
-  }, [date, entityId, entityType, isAuthenticated, limit, month, period]);
+  }, [applyArtistFollowSnapshot, date, entityId, entityType, isAuthenticated, limit, month, period]);
 
   useEffect(() => {
     loadDetail();
@@ -216,9 +243,47 @@ export default function EntityDetailScreen() {
     return buildPlayableQueue(detail.items);
   }, [detail]);
 
+  const detailStats = useMemo(() => normalizeInfoEntries(detail?.stats), [detail?.stats]);
+  const detailMeta = useMemo(() => normalizeInfoEntries(detail?.meta), [detail?.meta]);
+  const favoriteTrackIds = useMemo(() => {
+    const uniqueTrackIds = new Set();
+
+    if (detail?.type === 'track') {
+      const detailTrackId = getTrackId(detail);
+
+      if (detailTrackId) {
+        uniqueTrackIds.add(detailTrackId);
+      }
+    }
+
+    if (Array.isArray(detail?.items)) {
+      detail.items.forEach((item) => {
+        if (item?.entityType !== 'track') {
+          return;
+        }
+
+        const trackId = getTrackId(item);
+
+        if (trackId) {
+          uniqueTrackIds.add(trackId);
+        }
+      });
+    }
+
+    return Array.from(uniqueTrackIds);
+  }, [detail]);
+
   const handleOpenNestedDetail = useCallback(
     (nextType, nextId, nextTitle) => {
       if (!nextType || !nextId) {
+        return;
+      }
+
+      if (nextType === 'playlist') {
+        navigation.push('PlaylistDetail', {
+          playlistId: nextId,
+          initialTitle: nextTitle,
+        });
         return;
       }
 
@@ -226,9 +291,10 @@ export default function EntityDetailScreen() {
         entityType: nextType,
         entityId: nextId,
         initialTitle: nextTitle,
+        source: isOpenedFromPlayer ? 'player' : undefined,
       });
     },
-    [navigation]
+    [isOpenedFromPlayer, navigation]
   );
 
   const handlePlayAll = useCallback(
@@ -257,6 +323,75 @@ export default function EntityDetailScreen() {
   const closeTrackActions = useCallback(() => {
     setIsTrackActionsVisible(false);
   }, []);
+
+  const loadMyPlaylists = useCallback(async () => {
+    setIsPlaylistPickerLoading(true);
+    setPlaylistPickerError('');
+
+    try {
+      const result = await userPlaylistService.getMyPlaylists({
+        page: 1,
+        limit: 50,
+      });
+
+      setMyPlaylists(Array.isArray(result?.items) ? result.items : []);
+    } catch (error) {
+      setMyPlaylists([]);
+      setPlaylistPickerError(getErrorMessage(error, 'Không thể tải playlist của bạn lúc này.'));
+    } finally {
+      setIsPlaylistPickerLoading(false);
+    }
+  }, []);
+
+  const loadFavoriteStatuses = useCallback(async (trackIds = []) => {
+    if (!isAuthenticated || trackIds.length === 0) {
+      setFavoriteStatusMap({});
+      return;
+    }
+
+    const results = await Promise.allSettled(
+      trackIds.map(async (trackId) => {
+        const status = await userFavoriteService.getTrackFavoriteStatus(trackId);
+
+        return {
+          trackId,
+          isFavorite: Boolean(status?.isFavorite),
+        };
+      })
+    );
+
+    setFavoriteStatusMap((previousMap) => {
+      const nextMap = {};
+
+      trackIds.forEach((trackId) => {
+        nextMap[trackId] = previousMap[trackId] || false;
+      });
+
+      results.forEach((result) => {
+        if (result.status !== 'fulfilled') {
+          return;
+        }
+
+        nextMap[result.value.trackId] = result.value.isFavorite;
+      });
+
+      return nextMap;
+    });
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setFavoriteStatusMap({});
+      setFavoriteUpdatingMap({});
+      return;
+    }
+
+    if (favoriteTrackIds.length === 0) {
+      return;
+    }
+
+    loadFavoriteStatuses(favoriteTrackIds).catch(() => {});
+  }, [favoriteTrackIds, isAuthenticated, loadFavoriteStatuses]);
 
   const handleListItemPress = useCallback(
     (item, index) => {
@@ -311,11 +446,168 @@ export default function EntityDetailScreen() {
     [handleOpenNestedDetail]
   );
 
-  const headerTitle = getDisplayText(detail?.title, getDisplayText(initialTitle, 'Detail'));
+  const handleClosePlaylistPicker = useCallback(() => {
+    if (submittingPlaylistId) {
+      return;
+    }
+
+    setIsPlaylistPickerVisible(false);
+    setPlaylistPickerError('');
+  }, [submittingPlaylistId]);
+
+  const handleOpenAddToPlaylist = useCallback(async () => {
+    const targetTrack = selectedTrackAction.track;
+    const targetTrackId = targetTrack?.entityId || targetTrack?.id || '';
+
+    if (!targetTrackId) {
+      Alert.alert('Bài hát không khả dụng', 'Không thể thêm bài hát này vào playlist lúc này.');
+      return;
+    }
+
+    if (!isAuthenticated) {
+      navigation.navigate('Login');
+      return;
+    }
+
+    setIsPlaylistPickerVisible(true);
+    await loadMyPlaylists();
+  }, [isAuthenticated, loadMyPlaylists, navigation, selectedTrackAction.track]);
+
+  const handleAddTrackToPlaylist = useCallback(async (playlist) => {
+    const targetTrack = selectedTrackAction.track;
+    const playlistId = String(playlist?.id || playlist?._id || '');
+    const targetTrackId = targetTrack?.entityId || targetTrack?.id || '';
+
+    if (!playlistId || !targetTrackId) {
+      return;
+    }
+
+    Alert.alert(
+      'Thêm vào playlist',
+      `Bạn có muốn thêm "${getDisplayText(targetTrack?.title, 'bài hát này')}" vào "${getDisplayText(playlist?.title, 'playlist của bạn')}" không?`,
+      [
+        {
+          text: 'Hủy',
+          style: 'cancel',
+        },
+        {
+          text: 'Thêm',
+          onPress: async () => {
+            setSubmittingPlaylistId(playlistId);
+
+            try {
+              await userPlaylistService.addTrackToMyPlaylist(playlistId, targetTrackId);
+              setIsPlaylistPickerVisible(false);
+              Alert.alert(
+                'Đã thêm vào playlist',
+                `"${getDisplayText(targetTrack?.title, 'Bài hát này')}" đã được thêm vào "${getDisplayText(playlist?.title, 'playlist của bạn')}".`
+              );
+            } catch (error) {
+              Alert.alert('Thêm vào playlist thất bại', getErrorMessage(error, 'Không thể thêm bài hát này lúc này.'));
+            } finally {
+              setSubmittingPlaylistId('');
+            }
+          },
+        },
+      ]
+    );
+  }, [selectedTrackAction.track]);
+
+  const handleToggleTrackFavorite = useCallback(async (track) => {
+    const trackId = getTrackId(track);
+
+    if (!trackId) {
+      Alert.alert('Bài hát không khả dụng', 'Không thể cập nhật bài hát yêu thích lúc này.');
+      return;
+    }
+
+    if (!isAuthenticated) {
+      navigation.navigate('Login');
+      return;
+    }
+
+    if (favoriteUpdatingMap[trackId]) {
+      return;
+    }
+
+    const previousValue = Boolean(favoriteStatusMap[trackId]);
+    const nextValue = !previousValue;
+
+    Alert.alert(
+      previousValue ? 'Xóa khỏi yêu thích' : 'Thêm vào yêu thích',
+      previousValue
+        ? 'Bạn có muốn xóa bài hát này khỏi danh sách yêu thích không?'
+        : 'Bạn có muốn thêm bài hát này vào danh sách yêu thích không?',
+      [
+        {
+          text: 'Hủy',
+          style: 'cancel',
+        },
+        {
+          text: previousValue ? 'Xóa' : 'Thêm',
+          onPress: async () => {
+            setFavoriteUpdatingMap((previousMap) => ({
+              ...previousMap,
+              [trackId]: true,
+            }));
+            setFavoriteStatusMap((previousMap) => ({
+              ...previousMap,
+              [trackId]: nextValue,
+            }));
+
+            try {
+              const result = previousValue
+                ? await userFavoriteService.removeTrackFromFavorite(trackId)
+                : await userFavoriteService.addTrackToFavorite(trackId);
+
+              setFavoriteStatusMap((previousMap) => ({
+                ...previousMap,
+                [trackId]: Boolean(result?.isFavorite),
+              }));
+            } catch (error) {
+              setFavoriteStatusMap((previousMap) => ({
+                ...previousMap,
+                [trackId]: previousValue,
+              }));
+              Alert.alert(
+                'Cập nhật yêu thích thất bại',
+                getErrorMessage(
+                  error,
+                  previousValue
+                    ? 'Không thể xóa bài hát này khỏi danh sách yêu thích lúc này.'
+                    : 'Không thể thêm bài hát này vào danh sách yêu thích lúc này.'
+                )
+              );
+            } finally {
+              setFavoriteUpdatingMap((previousMap) => ({
+                ...previousMap,
+                [trackId]: false,
+              }));
+            }
+          },
+        },
+      ]
+    );
+  }, [favoriteStatusMap, favoriteUpdatingMap, isAuthenticated, navigation]);
+
+  const handleMetaItemPress = useCallback((item) => {
+    if (!item?.entityType || !item?.entityId) {
+      return;
+    }
+
+    handleOpenNestedDetail(item.entityType, item.entityId, item.value);
+  }, [handleOpenNestedDetail]);
+
+  const headerTitle = getDisplayText(detail?.title, getDisplayText(initialTitle, 'Chi tiết'));
   const detailTitle = getDisplayText(detail?.title, headerTitle);
   const detailSubtitle = getDisplayText(detail?.subtitle);
   const detailDescription = getDisplayText(detail?.description);
   const detailExtraText = getDisplayText(detail?.extraText);
+  const ownerName = getDisplayText(
+    detail?.owner?.fullName || detail?.owner?.name || detail?.owner?.email,
+    ''
+  );
+  const ownerRole = getDisplayText(detail?.owner?.role, detail?.type === 'playlist' ? 'Chủ playlist' : '');
 
   const selectedTrack = selectedTrackAction.track;
   const selectedTrackId = selectedTrack?.entityId || selectedTrack?.id || '';
@@ -325,40 +617,52 @@ export default function EntityDetailScreen() {
     detail?.type === 'track' && selectedTrackId && selectedTrackId === currentDetailTrackId;
 
   const canOpenHeroTrackActions = detail?.type === 'track';
+  const heroTrackId = getTrackId(detail);
+  const isHeroTrackFavorite = Boolean(heroTrackId && favoriteStatusMap[heroTrackId]);
+  const isHeroTrackFavoriteUpdating = Boolean(heroTrackId && favoriteUpdatingMap[heroTrackId]);
 
   const trackActionItems = useMemo(
     () => [
       {
         key: 'play-now',
-        label: 'Play now',
+        label: 'Phát ngay',
         icon: 'play',
-        description: 'Start playback from this track.',
+        description: 'Bắt đầu phát từ bài hát này.',
         onPress: handleTrackActionPlayNow,
+      },
+      {
+        key: 'add-to-playlist',
+        label: isAuthenticated ? 'Thêm vào playlist' : 'Đăng nhập để thêm vào playlist',
+        icon: 'add-circle-outline',
+        description: isAuthenticated
+          ? 'Chọn một playlist cá nhân để thêm bài hát này.'
+          : 'Hãy đăng nhập trước để lưu bài hát này vào playlist.',
+        onPress: handleOpenAddToPlaylist,
       },
       !isCurrentTrackDetail && selectedTrackId
         ? {
           key: 'open-track-detail',
-          label: 'Open track detail',
+          label: 'Mở chi tiết bài hát',
           icon: 'disc-outline',
-          description: 'View the full detail page for this track.',
+          description: 'Xem trang chi tiết đầy đủ của bài hát này.',
           onPress: handleTrackActionOpenTrackDetail,
         }
         : null,
       selectedTrack?.artistId
         ? {
           key: 'open-artist-detail',
-          label: 'Open artist detail',
+          label: 'Mở chi tiết nghệ sĩ',
           icon: 'person-outline',
-          description: 'Jump to the artist detail page.',
+          description: 'Chuyển đến trang chi tiết nghệ sĩ.',
           onPress: handleTrackActionOpenArtistDetail,
         }
         : null,
       selectedTrack?.albumId
         ? {
           key: 'open-album-detail',
-          label: 'Open album detail',
+          label: 'Mở chi tiết album',
           icon: 'albums-outline',
-          description: 'Jump to the album detail page.',
+          description: 'Chuyển đến trang chi tiết album.',
           onPress: handleTrackActionOpenAlbumDetail,
         }
         : null,
@@ -367,7 +671,9 @@ export default function EntityDetailScreen() {
       handleTrackActionOpenAlbumDetail,
       handleTrackActionOpenArtistDetail,
       handleTrackActionOpenTrackDetail,
+      handleOpenAddToPlaylist,
       handleTrackActionPlayNow,
+      isAuthenticated,
       isCurrentTrackDetail,
       selectedTrack?.albumId,
       selectedTrack?.artistId,
@@ -380,15 +686,42 @@ export default function EntityDetailScreen() {
     (entityType === 'album'
       ? 'Album'
       : entityType === 'artist'
-        ? 'Artist'
+        ? 'Nghệ sĩ'
         : entityType === 'playlist'
           ? 'Playlist'
           : entityType === 'topTrackCollection'
-            ? 'Chart'
-            : 'Track');
+            ? 'BXH'
+            : 'Bài hát');
 
   const isAlbum = detail?.type === 'album' || entityType === 'album';
   const isArtist = detail?.type === 'artist' || entityType === 'artist';
+  const isTrackDetail = detail?.type === 'track' || entityType === 'track';
+  const isReportableDetail = isAlbum || isArtist || isTrackDetail;
+
+  const handleOpenCreateReport = useCallback(() => {
+    const reportTargetId = String(detail?.entityId || detail?.id || entityId || '');
+    const reportTargetType = isTrackDetail ? 'track' : isAlbum ? 'album' : isArtist ? 'artist' : '';
+
+    if (!reportTargetId || !reportTargetType) {
+      Alert.alert('Không thể báo cáo', 'Nội dung này hiện chưa sẵn sàng để gửi báo cáo.');
+      return;
+    }
+
+    if (!isAuthenticated) {
+      navigation.navigate('Login');
+      return;
+    }
+
+    navigation.navigate('CreateReport', {
+      targetId: reportTargetId,
+      targetType: reportTargetType,
+      targetTitle: detailTitle,
+    });
+  }, [detail?.entityId, detail?.id, detailTitle, entityId, isAlbum, isArtist, isAuthenticated, isTrackDetail, navigation]);
+  const shouldShowDetailStats = !isAlbum && detailStats.length > 0;
+  const shouldShowDetailMeta = !isAlbum && detailMeta.length > 0;
+  const albumTrackCount = Number(detail?.trackCount) || (Array.isArray(detail?.items) ? detail.items.length : 0);
+  const albumTrackLabel = isAlbum && albumTrackCount > 0 ? `${albumTrackCount} bài hát` : '';
 
   const artistName = detailSubtitle || detail?.artistName || detail?.artist?.name || '';
   const artistImage =
@@ -397,7 +730,11 @@ export default function EntityDetailScreen() {
     detail?.artist?.avatar ||
     detail?.artist?.image;
 
-  const metaText = detailDescription || detailExtraText || '';
+  const metaLineParts = [
+    badgeLabel,
+    albumTrackLabel,
+    detailDescription || detailExtraText || '',
+  ].filter(Boolean);
 
   const handleToggleAlbumFollow = useCallback(async () => {
     const targetAlbumId = detail?.entityId || detail?.id || entityId;
@@ -412,18 +749,36 @@ export default function EntityDetailScreen() {
     }
 
     const previousValue = isAlbumFollowing;
-    setIsAlbumFollowing(!previousValue);
-    setIsAlbumFollowUpdating(true);
 
-    try {
-      const followState = await albumService.toggleAlbumFollow(targetAlbumId);
-      setIsAlbumFollowing(Boolean(followState?.isFollowing));
-    } catch (error) {
-      setIsAlbumFollowing(previousValue);
-      Alert.alert('Save album failed', getErrorMessage(error, 'Unable to update saved album right now.'));
-    } finally {
-      setIsAlbumFollowUpdating(false);
-    }
+    Alert.alert(
+      previousValue ? 'Bỏ lưu album' : 'Lưu album',
+      previousValue
+        ? 'Bạn có muốn bỏ lưu album này không?'
+        : 'Bạn có muốn lưu album này vào thư viện không?',
+      [
+        {
+          text: 'Hủy',
+          style: 'cancel',
+        },
+        {
+          text: previousValue ? 'Bỏ lưu' : 'Lưu',
+          onPress: async () => {
+            setIsAlbumFollowing(!previousValue);
+            setIsAlbumFollowUpdating(true);
+
+            try {
+              const followState = await albumService.toggleAlbumFollow(targetAlbumId);
+              setIsAlbumFollowing(Boolean(followState?.isFollowing));
+            } catch (error) {
+              setIsAlbumFollowing(previousValue);
+              Alert.alert('Lưu album thất bại', getErrorMessage(error, 'Không thể cập nhật album đã lưu lúc này.'));
+            } finally {
+              setIsAlbumFollowUpdating(false);
+            }
+          },
+        },
+      ]
+    );
   }, [
     detail?.entityId,
     detail?.id,
@@ -435,528 +790,418 @@ export default function EntityDetailScreen() {
     navigation,
   ]);
 
+  const handleToggleArtistFollow = useCallback(async () => {
+    const targetArtistId = detail?.entityId || detail?.id || entityId;
+
+    if (!isArtist || !targetArtistId || isArtistFollowUpdating) {
+      return;
+    }
+
+    if (!isAuthenticated) {
+      navigation.navigate('Login');
+      return;
+    }
+
+    const previousValue = isArtistFollowing;
+    const previousFollowers = Math.max(0, Number(detail?.followersCount) || 0);
+
+    Alert.alert(
+      previousValue ? 'Bỏ theo dõi nghệ sĩ' : 'Theo dõi nghệ sĩ',
+      previousValue
+        ? 'Bạn có muốn bỏ theo dõi nghệ sĩ này không?'
+        : 'Bạn có muốn theo dõi nghệ sĩ này để lưu lại trong thư viện không?',
+      [
+        {
+          text: 'Hủy',
+          style: 'cancel',
+        },
+        {
+          text: previousValue ? 'Bỏ theo dõi' : 'Theo dõi',
+          onPress: async () => {
+            const optimisticValue = !previousValue;
+            const optimisticFollowers = Math.max(previousFollowers + (previousValue ? -1 : 1), 0);
+
+            setIsArtistFollowing(optimisticValue);
+            setIsArtistFollowUpdating(true);
+            applyArtistFollowSnapshot(optimisticValue, optimisticFollowers);
+
+            try {
+              const followState = await artistFollowService.toggleArtistFollow(targetArtistId);
+              const resolvedFollowers = Number(followState?.followers) || optimisticFollowers;
+              const resolvedValue = Boolean(followState?.isFollowing);
+
+              setIsArtistFollowing(resolvedValue);
+              applyArtistFollowSnapshot(resolvedValue, resolvedFollowers);
+            } catch (error) {
+              setIsArtistFollowing(previousValue);
+              applyArtistFollowSnapshot(previousValue, previousFollowers);
+              Alert.alert(
+                previousValue ? 'Bỏ theo dõi thất bại' : 'Theo dõi thất bại',
+                getErrorMessage(
+                  error,
+                  previousValue
+                    ? 'Không thể bỏ theo dõi nghệ sĩ này lúc này.'
+                    : 'Không thể theo dõi nghệ sĩ này lúc này.'
+                )
+              );
+            } finally {
+              setIsArtistFollowUpdating(false);
+            }
+          },
+        },
+      ]
+    );
+  }, [
+    applyArtistFollowSnapshot,
+    detail?.entityId,
+    detail?.followersCount,
+    detail?.id,
+    entityId,
+    isArtist,
+    isArtistFollowUpdating,
+    isArtistFollowing,
+    isAuthenticated,
+    navigation,
+  ]);
+
   return (
-    <View style={ styles.container }>
+    <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#d9272b" />
 
       <TouchableOpacity
-        style={ [styles.backButton, { top: insets.top + 8 }] }
-        onPress={ () => navigation.goBack() }
-        activeOpacity={ 0.75 }
+        style={[styles.backButton, { top: insets.top + (isOpenedFromPlayer ? 2 : 8) }]}
+        onPress={() => navigation.goBack()}
+        activeOpacity={0.75}
       >
-        <Ionicons name="chevron-back" size={ 25 } color="#ffffff" />
+        <Ionicons name="chevron-back" size={25} color="#ffffff" />
       </TouchableOpacity>
 
-      { isLoading ? (
-        <View style={ styles.centerState }>
+      {isLoading ? (
+        <View style={styles.centerState}>
           <AppLoader size="large" />
         </View>
       ) : errorMessage ? (
-        <View style={ styles.centerState }>
-          <ErrorState message={ errorMessage } />
+        <View style={styles.centerState}>
+          <ErrorState message={errorMessage} />
 
-          <TouchableOpacity style={ styles.retryButton } onPress={ loadDetail } activeOpacity={ 0.8 }>
-            <Text style={ styles.retryButtonText }>Try Again</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={loadDetail} activeOpacity={0.8}>
+            <Text style={styles.retryButtonText}>Thử lại</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <ScrollView
-          contentContainerStyle={ [
+          contentContainerStyle={[
             styles.scrollBody,
             { paddingBottom: 40 + insets.bottom },
-          ] }
-          showsVerticalScrollIndicator={ false }
+          ]}
+          showsVerticalScrollIndicator={false}
         >
-          <View style={ [styles.heroSection, { paddingTop: insets.top + 48 }] }>
-            <View style={ styles.heroRedLayer } />
-            <View style={ styles.heroDarkLayer } />
-            <View style={ styles.heroBlackLayer } />
-
-            <Artwork
-              uri={ detail?.image }
-              label={ detailTitle }
-              rounded={ isArtist }
-              style={ [styles.heroImage, isArtist && styles.heroArtistImage] }
-              textStyle={ styles.heroFallbackText }
-            />
-
-            <Text style={ styles.heroTitle } numberOfLines={ 2 }>
-              { detailTitle }
-            </Text>
-
-            { artistName ? (
-              <View style={ styles.artistRow }>
-                <Artwork
-                  uri={ artistImage }
-                  label={ artistName }
-                  rounded
-                  style={ styles.artistAvatar }
-                  textStyle={ styles.artistAvatarText }
+          <View style={[styles.heroSection, { paddingTop: insets.top + (isOpenedFromPlayer ? 12 : 48) }]}>
+            {/* <View style={styles.heroRedLayer} />
+            <View style={styles.heroDarkLayer} />
+            <View style={styles.heroBlackLayer} /> */}
+                <LinearGradient
+                  colors={ [
+                    '#4338CA',
+                    '#312E81',
+                    '#1E1B4B',
+                    '#171717',
+                    '#131212ff',
+                  ] }
+                  locations={ [0, 0.25, 0.5, 0.78, 1] }
+                  start={ { x: 0.5, y: 0 } }
+                  end={ { x: 0.5, y: 1 } }
+                  style={ StyleSheet.absoluteFillObject }
                 />
 
-                <Text style={ styles.artistName } numberOfLines={ 1 }>
-                  { artistName }
-                </Text>
-              </View>
-            ) : null }
+            <Artwork
+              uri={detail?.image}
+              label={detailTitle}
+              rounded={isArtist}
+              style={[styles.heroImage, isArtist && styles.heroArtistImage]}
+              textStyle={styles.heroFallbackText}
+            />
 
-            <Text style={ styles.metaLine } numberOfLines={ 2 }>
-              { badgeLabel }
-              { metaText ? ` • ${metaText}` : '' }
+            <Text style={styles.heroTitle} numberOfLines={2}>
+              {detailTitle}
             </Text>
 
-            <View style={ styles.actionRow }>
-              <TouchableOpacity style={ styles.deviceButton } activeOpacity={ 0.75 }>
-                <Ionicons name="phone-portrait-outline" size={ 23 } color="#d6d6d6" />
-              </TouchableOpacity>
+            {artistName ? (
+              <View style={styles.artistRow}>
+                <Artwork
+                  uri={artistImage}
+                  label={artistName}
+                  rounded
+                  style={styles.artistAvatar}
+                  textStyle={styles.artistAvatarText}
+                />
 
-              { isAlbum ? (
+                <Text style={styles.artistName} numberOfLines={1}>
+                  {artistName}
+                </Text>
+              </View>
+            ) : null}
+
+            <Text style={styles.metaLine} numberOfLines={2}>
+              {metaLineParts.join(' - ')}
+            </Text>
+
+            <View style={styles.actionRow}>
+              {!isAlbum && !isArtist ? (
+                <TouchableOpacity style={styles.deviceButton} activeOpacity={0.75}>
+                  <Ionicons name="phone-portrait-outline" size={23} color="#d6d6d6" />
+                </TouchableOpacity>
+              ) : null}
+
+              {isAlbum ? (
                 <TouchableOpacity
-                  style={ [
+                  style={[
                     styles.iconActionButton,
                     isAlbumFollowUpdating && styles.iconActionButtonDisabled,
-                  ] }
-                  activeOpacity={ 0.75 }
-                  onPress={ handleToggleAlbumFollow }
-                  disabled={ isAlbumFollowUpdating }
+                  ]}
+                  activeOpacity={0.75}
+                  onPress={handleToggleAlbumFollow}
+                  disabled={isAlbumFollowUpdating}
                 >
                   <Ionicons
-                    name={ isAlbumFollowing ? 'checkmark-circle' : 'add-circle-outline' }
-                    size={ 25 }
-                    color={ isAlbumFollowing ? '#1ed760' : '#b3b3b3' }
+                    name={isAlbumFollowing ? 'checkmark-circle' : 'add-circle-outline'}
+                    size={25}
+                    color={isAlbumFollowing ? '#1ed760' : '#b3b3b3'}
                   />
                 </TouchableOpacity>
-              ) : null }
+              ) : null}
 
-              <TouchableOpacity style={ styles.iconActionButton } activeOpacity={ 0.75 }>
-                <Ionicons name="arrow-down-circle-outline" size={ 25 } color="#b3b3b3" />
+              {isArtist ? (
+                <ArtistFollowButton
+                  isFollowing={isArtistFollowing}
+                  isLoading={isArtistFollowUpdating}
+                  onPress={handleToggleArtistFollow}
+                />
+              ) : null}
+
+              <TouchableOpacity style={styles.iconActionButton} activeOpacity={0.75}>
+                <Ionicons name="arrow-down-circle-outline" size={25} color="#b3b3b3" />
               </TouchableOpacity>
+
+              {isReportableDetail ? (
+                <TouchableOpacity
+                  style={styles.iconActionButton}
+                  activeOpacity={0.75}
+                  onPress={handleOpenCreateReport}
+                >
+                  <Ionicons name="flag-outline" size={22} color="#b3b3b3" />
+                </TouchableOpacity>
+              ) : null}
+
+              {canOpenHeroTrackActions ? (
+                <TrackFavoriteButton
+                  style={styles.iconActionButton}
+                  size={24}
+                  isFavorite={isHeroTrackFavorite}
+                  isLoading={isHeroTrackFavoriteUpdating}
+                  onPress={() => handleToggleTrackFavorite(detail)}
+                />
+              ) : null}
 
               <TouchableOpacity
-                style={ styles.iconActionButton }
-                activeOpacity={ 0.75 }
-                onPress={ canOpenHeroTrackActions ? () => openTrackActions(detail, 0) : undefined }
+                style={styles.iconActionButton}
+                activeOpacity={0.75}
+                onPress={canOpenHeroTrackActions ? () => openTrackActions(detail, 0) : undefined}
               >
-                <Ionicons name="ellipsis-horizontal" size={ 24 } color="#b3b3b3" />
+                <Ionicons name="ellipsis-horizontal" size={24} color="#b3b3b3" />
               </TouchableOpacity>
 
-              <View style={ styles.actionSpacer } />
+              <View style={styles.actionSpacer} />
 
-              <TouchableOpacity style={ styles.shuffleButton } activeOpacity={ 0.75 }>
-                <Ionicons name="shuffle" size={ 26 } color="#1ed760" />
+              <TouchableOpacity style={styles.shuffleButton} activeOpacity={0.75}>
+                <Ionicons name="shuffle" size={26} color="#1ed760" />
               </TouchableOpacity>
 
-              { playableQueue.length > 0 ? (
+              {playableQueue.length > 0 ? (
                 <TouchableOpacity
-                  style={ styles.playCircleButton }
-                  onPress={ () => handlePlayAll() }
-                  activeOpacity={ 0.85 }
+                  style={styles.playCircleButton}
+                  onPress={() => handlePlayAll()}
+                  activeOpacity={0.85}
                 >
-                  <Ionicons name="play" size={ 30 } color="#000000" />
+                  <Ionicons name="play" size={30} color="#000000" />
                 </TouchableOpacity>
-              ) : null }
+              ) : null}
             </View>
           </View>
 
-          { Array.isArray(detail?.items) && detail.items.length > 0 ? (
-            <View style={ styles.trackList }>
-              { detail.items.map((item, index) => (
-                <TrackListItem
-                  key={ `${item.entityId || item.id}-${index}` }
-                  item={ item }
-                  index={ index }
-                  showIndex={ detail?.type === 'topTrackCollection' }
-                  onMorePress={
-                    item?.entityType === 'track'
-                      ? () => openTrackActions(item, index)
-                      : undefined
-                  }
-                  onPress={ () => handleListItemPress(item, index) }
-                />
-              )) }
-            </View>
-          ) : null }
-
-          { detail?.extraTitle && detailExtraText ? (
-            <View style={ styles.section }>
-              <Text style={ styles.sectionTitle }>{ getDisplayText(detail.extraTitle) }</Text>
-
-              <View style={ styles.infoPanel }>
-                <Text style={ styles.extraText }>{ detailExtraText }</Text>
-              </View>
-            </View>
-          ) : null }
-
-          { Array.isArray(detail?.tags) && detail.tags.length > 0 ? (
-            <View style={ styles.section }>
-              <Text style={ styles.sectionTitle }>Tags</Text>
-
-              <View style={ styles.tagsWrap }>
-                { detail.tags.map((tag, index) => (
-                  <View key={ `${getDisplayText(tag, 'tag')}-${index}` } style={ styles.tagPill }>
-                    <Text style={ styles.tagText }>{ getDisplayText(tag) }</Text>
+          {shouldShowDetailStats ? (
+            <View style={[styles.section, isTrackDetail ? styles.trackSectionCompact : null]}>
+              <View style={styles.statsGrid}>
+                {detailStats.map((item, index) => (
+                  <View
+                    key={`${item.label}-${index}`}
+                    style={[
+                      styles.statCard,
+                      isTrackDetail ? styles.trackStatCardPlain : null,
+                      index === detailStats.length - 1 && detailStats.length % 2 === 1
+                        ? styles.statCardFull
+                        : null,
+                    ]}
+                  >
+                    <Text style={styles.statValue} numberOfLines={1}>{item.value}</Text>
+                    <Text style={styles.statLabel}>{item.label}</Text>
                   </View>
-                )) }
+                ))}
               </View>
             </View>
-          ) : null }
+          ) : null}
+
+          {shouldShowDetailMeta ? (
+            <View style={[styles.section, isTrackDetail ? styles.trackSectionCompact : null]}>
+              <Text style={styles.sectionTitle}>Thông tin</Text>
+              <View style={[styles.panel, isTrackDetail ? styles.trackPanelPlain : null]}>
+                {detailMeta.map((item, index) => {
+                  const isPressable = Boolean(item.entityType && item.entityId);
+                  const RowComponent = isPressable ? TouchableOpacity : View;
+
+                  return (
+                    <RowComponent
+                      key={`${item.label}-${index}`}
+                      style={[
+                        styles.metaRow,
+                        isTrackDetail ? styles.trackMetaRowPlain : null,
+                        index === detailMeta.length - 1 ? styles.metaRowLast : null,
+                      ]}
+                      onPress={isPressable ? () => handleMetaItemPress(item) : undefined}
+                      activeOpacity={isPressable ? 0.8 : undefined}
+                    >
+                      <Text style={styles.metaLabel}>{item.label}</Text>
+                      <View style={styles.metaValueWrap}>
+                        <Text style={styles.metaValue}>{item.value}</Text>
+                        {isPressable ? (
+                          <Ionicons name="chevron-forward" size={14} color="#7d7d7d" />
+                        ) : null}
+                      </View>
+                    </RowComponent>
+                  );
+                })}
+              </View>
+            </View>
+          ) : null}
+
+          {detail?.type === 'playlist' && ownerName ? (
+            <View style={[styles.section, isTrackDetail ? styles.trackSectionCompact : null]}>
+              <Text style={styles.sectionTitle}>Tạo bởi</Text>
+              <View style={styles.ownerCard}>
+                <View style={styles.ownerAvatar}>
+                  <Text style={styles.ownerAvatarText}>{getInitials(ownerName)}</Text>
+                </View>
+                <View style={styles.ownerContent}>
+                  <Text style={styles.ownerName}>{ownerName}</Text>
+                  {ownerRole ? <Text style={styles.ownerRole}>{ownerRole}</Text> : null}
+                </View>
+              </View>
+            </View>
+          ) : null}
+
+          {Array.isArray(detail?.tags) && detail.tags.length > 0 ? (
+            <View style={[styles.section, isTrackDetail ? styles.trackSectionCompact : null]}>
+              <Text style={styles.sectionTitle}>Thẻ</Text>
+
+              <View style={styles.tagsWrap}>
+                {detail.tags.map((tag, index) => (
+                  <View
+                    key={`${getDisplayText(tag, 'tag')}-${index}`}
+                    style={[
+                      styles.tagPill,
+                      isAlbum ? styles.albumTagPlain : null,
+                      isTrackDetail ? styles.trackTagPlain : null,
+                    ]}
+                  >
+                    <Text style={styles.tagText}>{getDisplayText(tag)}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : null}
+
+          {detail?.extraTitle && detailExtraText ? (
+            <View style={[styles.section, isTrackDetail ? styles.trackSectionCompact : null]}>
+              <Text style={styles.sectionTitle}>{getDisplayText(detail.extraTitle)}</Text>
+
+              <View
+                style={[
+                  styles.infoPanel,
+                  isAlbum ? styles.albumInfoPlain : null,
+                  isTrackDetail ? styles.trackInfoPlain : null,
+                ]}
+              >
+                <Text style={styles.extraText}>{detailExtraText}</Text>
+              </View>
+            </View>
+          ) : null}
+
+          {Array.isArray(detail?.items) && detail.items.length > 0 ? (
+            <View style={[styles.section, isTrackDetail ? styles.trackSectionCompact : null]}>
+              <Text style={styles.sectionTitle}>{getDisplayText(detail.itemsTitle, 'Danh sách')}</Text>
+              <View
+                style={
+                  detail?.type === 'topTrackCollection'
+                    ? styles.trackList
+                    : [
+                      styles.panel,
+                      isAlbum ? styles.albumSurfacePlain : null,
+                      isTrackDetail ? styles.trackPanelPlain : null,
+                    ]
+                }
+              >
+                {detail.items.map((item, index) => (
+                  <TrackListItem
+                    key={`${item.entityId || item.id}-${index}`}
+                    item={item}
+                    index={index}
+                    showIndex={detail?.type === 'topTrackCollection'}
+                    isFavorite={Boolean(favoriteStatusMap[getTrackId(item)])}
+                    isFavoriteLoading={Boolean(favoriteUpdatingMap[getTrackId(item)])}
+                    onFavoritePress={
+                      item?.entityType === 'track'
+                        ? () => handleToggleTrackFavorite(item)
+                        : undefined
+                    }
+                    onMorePress={
+                      item?.entityType === 'track'
+                        ? () => openTrackActions(item, index)
+                        : undefined
+                    }
+                    onPress={() => handleListItemPress(item, index)}
+                  />
+                ))}
+              </View>
+            </View>
+          ) : detail?.type === 'playlist' ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{getDisplayText(detail.itemsTitle, 'Danh sách')}</Text>
+              <View style={styles.panel}>
+                <Text style={styles.emptyPanelText}>Playlist này chưa có bài hát nào.</Text>
+              </View>
+            </View>
+          ) : null}
         </ScrollView>
-      ) }
+      )}
 
       <TrackActionsBottomSheet
-        visible={ isTrackActionsVisible }
-        track={ selectedTrack }
-        actions={ trackActionItems }
-        onClose={ closeTrackActions }
+        visible={isTrackActionsVisible}
+        track={selectedTrack}
+        actions={trackActionItems}
+        onClose={closeTrackActions}
+      />
+
+      <AddTrackToPlaylistModal
+        visible={isPlaylistPickerVisible}
+        trackTitle={selectedTrack?.title}
+        playlists={myPlaylists}
+        isLoading={isPlaylistPickerLoading}
+        errorMessage={playlistPickerError}
+        submittingPlaylistId={submittingPlaylistId}
+        onClose={handleClosePlaylistPicker}
+        onRetry={loadMyPlaylists}
+        onSelectPlaylist={handleAddTrackToPlaylist}
       />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#121212',
-  },
-
-  centerState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    backgroundColor: '#121212',
-  },
-
-  retryButton: {
-    marginTop: 18,
-    borderRadius: 999,
-    paddingHorizontal: 22,
-    paddingVertical: 11,
-    backgroundColor: '#ffffff',
-  },
-
-  retryButtonText: {
-    color: '#000000',
-    fontSize: 13,
-    fontWeight: '800',
-  },
-
-  backButton: {
-    position: 'absolute',
-    left: 8,
-    zIndex: 30,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  scrollBody: {
-    backgroundColor: '#121212',
-  },
-
-  heroSection: {
-    position: 'relative',
-    overflow: 'hidden',
-    paddingHorizontal: 16,
-    paddingBottom: 10,
-    backgroundColor: '#121212',
-  },
-
-  heroRedLayer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 280,
-    backgroundColor: '#d9272b',
-  },
-
-  heroDarkLayer: {
-    position: 'absolute',
-    top: 185,
-    left: 0,
-    right: 0,
-    height: 170,
-    backgroundColor: '#3a1f1f',
-    opacity: 0.92,
-  },
-
-  heroBlackLayer: {
-    position: 'absolute',
-    top: 320,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#121212',
-  },
-
-  artwork: {
-    backgroundColor: '#282828',
-  },
-
-  artworkFallback: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  roundedArtwork: {
-    borderRadius: 999,
-  },
-
-  artworkFallbackText: {
-    color: '#ffffff',
-    fontWeight: '900',
-    letterSpacing: 1,
-  },
-
-  heroImage: {
-    alignSelf: 'center',
-    width: 224,
-    height: 224,
-    borderRadius: 4,
-    marginBottom: 14,
-    backgroundColor: '#282828',
-
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOpacity: 0.45,
-        shadowRadius: 18,
-        shadowOffset: { width: 0, height: 12 },
-      },
-      android: {
-        elevation: 12,
-      },
-    }),
-  },
-
-  heroArtistImage: {
-    borderRadius: 112,
-  },
-
-  heroFallbackText: {
-    fontSize: 42,
-    fontWeight: '900',
-    color: '#ffffff',
-  },
-
-  heroTitle: {
-    color: '#ffffff',
-    fontSize: 22,
-    lineHeight: 28,
-    fontWeight: '900',
-    letterSpacing: -0.4,
-    marginTop: 2,
-  },
-
-  artistRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 9,
-  },
-
-  artistAvatar: {
-    width: 23,
-    height: 23,
-    borderRadius: 12,
-    marginRight: 8,
-  },
-
-  artistAvatarText: {
-    fontSize: 9,
-    color: '#ffffff',
-    fontWeight: '900',
-  },
-
-  artistName: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '800',
-  },
-
-  metaLine: {
-    color: '#b7b7b7',
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: '600',
-    marginTop: 8,
-  },
-
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12,
-  },
-
-  deviceButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 4,
-    borderWidth: 1.4,
-    borderColor: '#bdbdbd',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 13,
-  },
-
-  iconActionButton: {
-    width: 34,
-    height: 34,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 13,
-  },
-
-  iconActionButtonDisabled: {
-    opacity: 0.6,
-  },
-
-  actionSpacer: {
-    flex: 1,
-  },
-
-  shuffleButton: {
-    width: 38,
-    height: 38,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 11,
-  },
-
-  playCircleButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1ed760',
-
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOpacity: 0.28,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 7 },
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
-  },
-
-  trackList: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    backgroundColor: '#121212',
-  },
-
-  listItem: {
-    minHeight: 52,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-  },
-
-  listIndex: {
-    width: 24,
-    marginRight: 8,
-    color: '#b3b3b3',
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-
-  listContent: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-
-  listTitle: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '500',
-    letterSpacing: -0.1,
-  },
-
-  listSubtitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-  },
-
-  explicitBadge: {
-    width: 13,
-    height: 13,
-    borderRadius: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#b3b3b3',
-    marginRight: 5,
-  },
-
-  explicitBadgeText: {
-    color: '#121212',
-    fontSize: 8,
-    fontWeight: '900',
-  },
-
-  listSubtitle: {
-    flexShrink: 1,
-    color: '#b3b3b3',
-    fontSize: 13,
-    fontWeight: '500',
-  },
-
-  moreButton: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 8,
-  },
-
-  section: {
-    paddingHorizontal: 16,
-    marginTop: 18,
-  },
-
-  sectionTitle: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '900',
-    marginBottom: 12,
-  },
-
-  infoPanel: {
-    borderRadius: 12,
-    padding: 14,
-    backgroundColor: '#181818',
-  },
-
-  extraText: {
-    color: '#d0d0d0',
-    fontSize: 13,
-    lineHeight: 20,
-  },
-
-  tagsWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-
-  tagPill: {
-    borderRadius: 999,
-    paddingHorizontal: 13,
-    paddingVertical: 8,
-    backgroundColor: '#242424',
-  },
-
-  tagText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-});

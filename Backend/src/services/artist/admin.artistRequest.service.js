@@ -1,75 +1,15 @@
-import mongoose from "mongoose";
 import Artist from "../../models/Artist.js";
 import ArtistRequest from "../../models/ArtistRequest.js";
 import User from "../../models/User.js";
 import { AppError } from "../../utils/AppError.js";
-
-const buildArtistRequestDetailQuery = (artistRequestId) =>
-    ArtistRequest.findById(artistRequestId)
-        .populate("userId", "_id email role activeStatus profile.fullName avatar")
-        .populate("reviewedBy", "_id email profile.fullName avatar")
-        .lean();
-
-const buildArtistDetailQuery = (artistId) =>
-    Artist.findById(artistId)
-        .populate("userId", "_id email role activeStatus profile.fullName avatar")
-        .lean();
-
-const CHECKLIST_KEYS = [
-    "profileComplete",
-    "identityVerified",
-    "hasMusicActivity",
-    "socialLinksValid",
-    "noImpersonation",
-    "acceptedCopyrightPolicy",
-];
-
-const normalizeChecklist = (checklist = {}) =>
-    CHECKLIST_KEYS.reduce((result, key) => {
-        result[key] = checklist[key] === true;
-        return result;
-    }, {});
-
-const applyReviewFields = (artistRequest, payload, adminUserId) => {
-    const currentReview = artistRequest.review?.toObject?.() ?? artistRequest.review ?? {};
-
-    artistRequest.review = {
-        ...currentReview,
-        adminNote: payload.adminNote?.trim() || "",
-        checklist: normalizeChecklist(payload.checklist),
-    };
-    artistRequest.reviewedBy = adminUserId;
-    artistRequest.reviewedAt = new Date();
-    artistRequest.markModified("review");
-};
-
-const assertApprovalChecklist = (checklist) => {
-    const failedKeys = CHECKLIST_KEYS.filter((key) => checklist[key] !== true);
-
-    if (failedKeys.length > 0) {
-        throw new AppError(
-            "All review checklist items must be accepted before approving this artist request.",
-            400,
-            failedKeys.map((key) => ({
-                field: `checklist.${key}`,
-                message: "This item must be checked before approval.",
-            }))
-        );
-    }
-};
-
-const buildArtistPayloadFromRequest = (artistRequest) => ({
-    userId: artistRequest.userId,
-    name: artistRequest.stageName,
-    bio: artistRequest.bio || "",
-    avatar: artistRequest.avatar || "",
-    socialLinks: {
-        facebook: artistRequest.socialLinks?.facebook || "",
-        instagram: artistRequest.socialLinks?.instagram || "",
-        youtube: artistRequest.socialLinks?.youtube || "",
-    },
-    activeStatus: "active",
-});
+import {
+    applyReviewFields,
+    assertApprovalChecklist,
+    assertArtistRequestId,
+    buildArtistDetailQuery,
+    buildArtistPayloadFromRequest,
+    buildArtistRequestDetailQuery,
+} from "./admin.artistRequest.service.helper.js";
 
 const getArtistRequests = async (query) => {
     const page = Math.max(1, parseInt(query.page, 10) || 1);
@@ -122,11 +62,7 @@ const getArtistRequests = async (query) => {
 };
 
 const getArtistRequestDetail = async (artistRequestId) => {
-    if (!mongoose.Types.ObjectId.isValid(artistRequestId)) {
-        throw new AppError("Artist request id is invalid.", 400, {
-            field: "id",
-        });
-    }
+    assertArtistRequestId(artistRequestId);
 
     const artistRequest = await buildArtistRequestDetailQuery(artistRequestId);
 
@@ -138,11 +74,7 @@ const getArtistRequestDetail = async (artistRequestId) => {
 };
 
 const reviewArtistRequest = async (artistRequestId, payload = {}, adminUserId) => {
-    if (!mongoose.Types.ObjectId.isValid(artistRequestId)) {
-        throw new AppError("Artist request id is invalid.", 400, {
-            field: "id",
-        });
-    }
+    assertArtistRequestId(artistRequestId);
 
     const artistRequest = await ArtistRequest.findById(artistRequestId);
 

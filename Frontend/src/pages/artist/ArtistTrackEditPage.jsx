@@ -589,7 +589,7 @@ const ArtistTrackEditPage = () => {
                 </label>
                 <input
                   type="file"
-                  accept="audio/*,video/mp4"
+                  accept=".mp3,.wav,.flac,.aac,.m4a,audio/mpeg,audio/wav,audio/flac,audio/aac,audio/mp4"
                   onChange={handleAudioChange}
                   className={`mt-2 w-full rounded-md border px-3 py-2 text-sm ${
                     fieldErrors.audio

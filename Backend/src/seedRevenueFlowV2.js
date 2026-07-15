@@ -19,6 +19,7 @@ dayjs.extend(timezone);
 const {
     User,
     Artist,
+    ArtistVerificationRequest,
     Plan,
     Track,
     Transaction,
@@ -44,6 +45,8 @@ const ids = {
 
     artistOne: oid("683300000000000000000101"),
     artistTwo: oid("683300000000000000000102"),
+    artistVerificationRequestOne: oid("683300000000000000000103"),
+    artistVerificationRequestTwo: oid("683300000000000000000104"),
 
     premiumPlan: oid("683300000000000000000201"),
 
@@ -151,6 +154,13 @@ const seedCollections = [
     {
         model: Track,
         ids: trackSeedCatalog.map((track) => track._id),
+    },
+    {
+        model: ArtistVerificationRequest,
+        ids: [
+            ids.artistVerificationRequestOne,
+            ids.artistVerificationRequestTwo,
+        ],
     },
     {
         model: Artist,
@@ -770,7 +780,6 @@ const seedArtists = async (expected) => {
             bio: "Artist seed de test chia doanh thu cho flow tinh va xac nhan.",
             avatar: "https://example.com/seed/flow-artist-one.jpg",
             coverImage: "https://example.com/seed/flow-artist-one-cover.jpg",
-            verificationStatus: "verified",
             activeStatus: "active",
             stats: {
                 followers: 12,
@@ -792,7 +801,6 @@ const seedArtists = async (expected) => {
             bio: "Artist seed de test chia doanh thu voi it du lieu nhung khop so.",
             avatar: "https://example.com/seed/flow-artist-two.jpg",
             coverImage: "https://example.com/seed/flow-artist-two-cover.jpg",
-            verificationStatus: "verified",
             activeStatus: "active",
             stats: {
                 followers: 7,
@@ -806,6 +814,23 @@ const seedArtists = async (expected) => {
                 pendingPayoutAmount: 0,
                 confirmedRevenueSummaryIds: [],
             },
+        },
+    ]);
+
+    await ArtistVerificationRequest.insertMany([
+        {
+            _id: ids.artistVerificationRequestOne,
+            artistId: ids.artistOne,
+            userId: ids.artistUserOne,
+            status: "closed",
+            note: "Seeded as previously verified artist profile.",
+        },
+        {
+            _id: ids.artistVerificationRequestTwo,
+            artistId: ids.artistTwo,
+            userId: ids.artistUserTwo,
+            status: "closed",
+            note: "Seeded as previously verified artist profile.",
         },
     ]);
 };
@@ -916,9 +941,8 @@ const logExpectedSummary = (context, expected) => {
     console.log("  1. npm run seed:revenue-flow");
     console.log(`  2. npm run revenue:sync -- ${context.targetMonth}`);
     console.log(`  3. GET /api/admin/revenue/periods?year=${context.year}&month=${context.month}`);
-    console.log("  4. POST /api/admin/revenue/periods/:id/close");
-    console.log("  5. POST /api/admin/revenue/periods/:id/calculate");
-    console.log("  6. POST /api/admin/revenue/periods/:id/confirm");
+    console.log("  4. POST /api/admin/revenue/periods/:id/actions");
+    console.log('     body: { "action": "close" | "calculate" | "confirm" }');
     console.log("  7. GET /api/artist/revenue/dashboard khi dang nhap artist de doi chieu so");
 };
 

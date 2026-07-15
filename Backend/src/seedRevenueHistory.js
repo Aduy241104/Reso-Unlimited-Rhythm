@@ -17,7 +17,13 @@ dotenv.config();
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-const { User, Artist, RevenuePeriod, ArtistRevenueSummary } = models;
+const {
+    User,
+    Artist,
+    ArtistVerificationRequest,
+    RevenuePeriod,
+    ArtistRevenueSummary,
+} = models;
 
 const oid = (value) => new mongoose.Types.ObjectId(value);
 
@@ -33,6 +39,10 @@ const ids = {
     artistTwo: oid("682900000000000000000102"),
     artistThree: oid("682900000000000000000103"),
     artistFour: oid("682900000000000000000104"),
+    artistVerificationRequestOne: oid("682900000000000000000105"),
+    artistVerificationRequestTwo: oid("682900000000000000000106"),
+    artistVerificationRequestThree: oid("682900000000000000000107"),
+    artistVerificationRequestFour: oid("682900000000000000000108"),
 
     revenuePeriodCurrent: oid("682900000000000000000201"),
     revenuePeriodLastMonth: oid("682900000000000000000202"),
@@ -77,6 +87,15 @@ const seedCollections = [
     {
         model: Artist,
         ids: [ids.artistOne, ids.artistTwo, ids.artistThree, ids.artistFour],
+    },
+    {
+        model: ArtistVerificationRequest,
+        ids: [
+            ids.artistVerificationRequestOne,
+            ids.artistVerificationRequestTwo,
+            ids.artistVerificationRequestThree,
+            ids.artistVerificationRequestFour,
+        ],
     },
     {
         model: User,
@@ -265,7 +284,6 @@ const seedArtists = async () => {
             bio: "Artist seed cho test doanh thu ky cu.",
             avatar: "https://example.com/seed/lunar-echo.jpg",
             coverImage: "https://example.com/seed/lunar-echo-cover.jpg",
-            verificationStatus: "verified",
             activeStatus: "active",
             stats: {
                 followers: 18300,
@@ -286,7 +304,6 @@ const seedArtists = async () => {
             bio: "Artist seed co doanh thu on dinh qua nhieu ky.",
             avatar: "https://example.com/seed/neon-drift.jpg",
             coverImage: "https://example.com/seed/neon-drift-cover.jpg",
-            verificationStatus: "verified",
             activeStatus: "active",
             stats: {
                 followers: 12800,
@@ -307,7 +324,6 @@ const seedArtists = async () => {
             bio: "Artist seed phu hop de test detail ky da tinh toan.",
             avatar: "https://example.com/seed/velvet-pulse.jpg",
             coverImage: "https://example.com/seed/velvet-pulse-cover.jpg",
-            verificationStatus: "verified",
             activeStatus: "active",
             stats: {
                 followers: 9100,
@@ -328,7 +344,6 @@ const seedArtists = async () => {
             bio: "Artist seed de test ky co trang thai confirmed.",
             avatar: "https://example.com/seed/solar-tide.jpg",
             coverImage: "https://example.com/seed/solar-tide-cover.jpg",
-            verificationStatus: "verified",
             activeStatus: "active",
             stats: {
                 followers: 7600,
@@ -341,6 +356,37 @@ const seedArtists = async () => {
                 availableAmount: 690000,
                 pendingPayoutAmount: 0,
             },
+        },
+    ]);
+
+    await ArtistVerificationRequest.insertMany([
+        {
+            _id: ids.artistVerificationRequestOne,
+            artistId: ids.artistOne,
+            userId: ids.artistUserOne,
+            status: "closed",
+            note: "Seeded as previously verified artist profile.",
+        },
+        {
+            _id: ids.artistVerificationRequestTwo,
+            artistId: ids.artistTwo,
+            userId: ids.artistUserTwo,
+            status: "closed",
+            note: "Seeded as previously verified artist profile.",
+        },
+        {
+            _id: ids.artistVerificationRequestThree,
+            artistId: ids.artistThree,
+            userId: ids.artistUserThree,
+            status: "closed",
+            note: "Seeded as previously verified artist profile.",
+        },
+        {
+            _id: ids.artistVerificationRequestFour,
+            artistId: ids.artistFour,
+            userId: ids.artistUserFour,
+            status: "closed",
+            note: "Seeded as previously verified artist profile.",
         },
     ]);
 };
