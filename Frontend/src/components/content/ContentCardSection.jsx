@@ -12,7 +12,7 @@ const ContentCardSection = ({
   playButtonAriaLabel = true,
 }) => {
   return (
-    <section className="space-y-3 sm:space-y-4">
+    <section className="min-w-0 space-y-3 sm:space-y-4">
       <div className="mx-px space-y-1 sm:mx-0 sm:space-y-1.5">
         { label ? (
           <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#71717a] dark:text-[#a1a1aa] sm:text-xs sm:tracking-[0.28em]">
@@ -31,19 +31,22 @@ const ContentCardSection = ({
       </div>
 
       { isLoading ? (
-        <div className="flex gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-4">
+        <div className="flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-4">
           { Array.from({ length: 5 }).map((_, index) => (
-            <div key={ index } className="w-[8.5rem] min-w-[8.5rem] sm:w-[10.75rem] sm:min-w-[10.75rem] lg:w-[12rem] lg:min-w-[12rem]">
+            <div
+              key={ index }
+              className="h-[12.75rem] w-[8.5rem] min-w-[8.5rem] shrink-0 snap-start sm:h-[15.25rem] sm:w-[10.75rem] sm:min-w-[10.75rem] lg:h-[17rem] lg:w-[12rem] lg:min-w-[12rem]"
+            >
               <ContentCardSkeleton />
             </div>
           )) }
         </div>
       ) : items.length > 0 ? (
-        <div className="mt-1 flex gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mt-2 sm:gap-4">
+        <div className="mt-1 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mt-2 sm:gap-4">
           { items.map((item) => (
             <div
               key={ item.id }
-              className="w-[8.5rem] min-w-[8.5rem] sm:w-[10.75rem] sm:min-w-[10.75rem] lg:w-[12.5rem] lg:min-w-[12.5rem]"
+              className="h-[12.75rem] w-[8.5rem] min-w-[8.5rem] shrink-0 snap-start sm:h-[15.25rem] sm:w-[10.75rem] sm:min-w-[10.75rem] lg:h-[17rem] lg:w-[12.5rem] lg:min-w-[12.5rem]"
             >
               <ContentCard
                 image={ item.image }

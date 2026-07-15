@@ -34,7 +34,7 @@ const TrackChartSection = ({
   };
 
   return (
-    <section className="space-y-3 sm:space-y-4">
+    <section className="min-w-0 space-y-3 sm:space-y-4">
       <div className="flex flex-col gap-2.5 md:flex-row md:items-end md:justify-between">
         <div className="space-y-1 sm:space-y-1.5">
           <h2 className="text-base font-semibold tracking-tight text-[#111111] dark:text-white sm:text-2xl">
@@ -66,13 +66,14 @@ const TrackChartSection = ({
       </div>
 
       { isLoading ? (
-        <div className="mt-1 grid grid-cols-1 gap-3 pb-2 sm:mt-2 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
+        <div className="mt-1 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mt-2 sm:gap-4">
           { Array.from({ length: 4 }).map((_, index) => (
             <div
               key={ index }
               className="
-                min-w-0 animate-pulse rounded-[16px] border border-black/5 bg-white/70 p-2.5
+                h-[16.75rem] w-[15rem] min-w-[15rem] shrink-0 snap-start animate-pulse rounded-[16px] border border-black/5 bg-white/70 p-2.5
                 dark:border-white/10 dark:bg-[#181818] sm:rounded-[18px] sm:p-3
+                sm:h-[18.5rem] sm:w-[17.5rem] sm:min-w-[17.5rem] lg:h-[20rem] lg:w-[19rem] lg:min-w-[19rem]
               "
             >
               <div className="relative aspect-[1.28/1] rounded-[12px] bg-[#e5e5e5] dark:bg-[#282828] sm:aspect-[1.42/1] sm:rounded-[14px] lg:aspect-[1.58/1]">
@@ -89,9 +90,12 @@ const TrackChartSection = ({
           )) }
         </div>
       ) : items.length > 0 ? (
-        <div className="mt-1 grid grid-cols-1 gap-3 pb-2 sm:mt-2 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
+        <div className="mt-1 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mt-2 sm:gap-4">
           { items.map((item, index) => (
-            <div key={ item.id } className="min-w-0">
+            <div
+              key={ item.id }
+              className="h-[16.75rem] w-[15rem] min-w-[15rem] shrink-0 snap-start sm:h-[18.5rem] sm:w-[17.5rem] sm:min-w-[17.5rem] lg:h-[20rem] lg:w-[19rem] lg:min-w-[19rem]"
+            >
               <TrackChartCard
                 index={ index + 1 }
                 image={ item.image }

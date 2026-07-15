@@ -23,7 +23,7 @@ const variantStyles = {
 };
 
 const cardClassName = `
-  group relative mt-1 flex h-full cursor-pointer flex-col gap-1.5 rounded-[14px]
+  group relative mt-1 flex h-full min-h-0 cursor-pointer flex-col gap-1.5 overflow-hidden rounded-[14px]
   p-2 text-left transition duration-300 sm:mt-2 sm:gap-3 sm:rounded-[16px] sm:p-3
   hover:-translate-y-1 hover:bg-[#f4f4f4] hover:shadow-[0_18px_40px_rgba(15,23,42,0.12)]
   dark:hover:bg-[#242424]
@@ -114,7 +114,7 @@ const TrackChartCard = ({
         ) : null }
       </div>
 
-      <div className="flex min-h-[3.2rem] flex-col justify-center sm:min-h-[3.8rem]">
+      <div className="flex min-h-[3.2rem] flex-1 flex-col justify-center sm:min-h-[3.8rem]">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <h3 className="truncate text-[13px] font-semibold text-[#18181b] dark:text-white sm:text-[15px]">

@@ -20,6 +20,29 @@ const toId = (value) => {
     return value.toString();
 };
 
+const getAlbumTrackIds = (album) => {
+    const seen = new Set();
+
+    return (album?.trackList || []).reduce((result, item) => {
+        const trackId = item?.trackId?._id || item?.trackId;
+
+        if (!trackId) {
+            return result;
+        }
+
+        const normalizedTrackId = String(trackId);
+
+        if (seen.has(normalizedTrackId)) {
+            return result;
+        }
+
+        seen.add(normalizedTrackId);
+        result.push(normalizedTrackId);
+
+        return result;
+    }, []);
+};
+
 const formatAdminAlbumListItem = (album) => ({
     id: toId(album._id),
     title: album.title,
@@ -314,27 +337,30 @@ const getAlbumDetailForAdmin = async (albumId) => {
         throw new AppError("Album not found.", 404, { field: "id" });
     }
 
-    const tracks = await Track.find({ album_albumId: album._id })
-        .select([
-            "title",
-            "duration",
-            "avatar",
-            "coverImage",
-            "releaseDate",
-            "approvalStatus",
-            "activeStatus",
-            "blockedReason",
-            "hiddenReason",
-            "hiddenAt",
-            "artist_artistId",
-            "createdAt",
-            "updatedAt",
-        ].join(" "))
-        .populate({
-            path: "artist_artistId",
-            select: "name avatar",
-        })
-        .lean();
+    const albumTrackIds = getAlbumTrackIds(album);
+    const tracks = albumTrackIds.length === 0
+        ? []
+        : await Track.find({ _id: { $in: albumTrackIds } })
+            .select([
+                "title",
+                "duration",
+                "avatar",
+                "coverImage",
+                "releaseDate",
+                "approvalStatus",
+                "activeStatus",
+                "blockedReason",
+                "hiddenReason",
+                "hiddenAt",
+                "artist_artistId",
+                "createdAt",
+                "updatedAt",
+            ].join(" "))
+            .populate({
+                path: "artist_artistId",
+                select: "name avatar",
+            })
+            .lean();
 
     return formatAdminAlbumDetailItem(album, tracks);
 };
@@ -375,13 +401,16 @@ const updateAlbumStatusForAdmin = async (
         album.blockedReason = reason;
         await album.save();
 
-        const tracks = await Track.find({ album_albumId: album._id }).select([
-            "_id",
-            "activeStatus",
-            "hiddenReason",
-            "hiddenAt",
-            "blockedByAlbumId",
-        ].join(" "));
+        const albumTrackIds = getAlbumTrackIds(album);
+        const tracks = albumTrackIds.length === 0
+            ? []
+            : await Track.find({ _id: { $in: albumTrackIds } }).select([
+                "_id",
+                "activeStatus",
+                "hiddenReason",
+                "hiddenAt",
+                "blockedByAlbumId",
+            ].join(" "));
 
         const operations = tracks.reduce((result, track) => {
             const isBlockedByThisAlbum =

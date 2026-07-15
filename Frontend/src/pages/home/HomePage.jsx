@@ -65,7 +65,7 @@ const HomePage = () => {
   const shouldShowRecommendationSection = isAuthenticated && !isAuthLoading;
 
   return (
-    <section className="space-y-6 p-5 sm:space-y-8 lg:space-y-10">
+    <section className="min-w-0 space-y-6 p-5 sm:space-y-8 lg:space-y-10">
       {albumsError ? (
         <div
           className="
