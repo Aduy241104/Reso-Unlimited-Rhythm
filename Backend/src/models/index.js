@@ -15,6 +15,7 @@ import Notification from "./Notification.js";
 import Plan from "./Plan.js";
 import Playlist from "./Playlist.js";
 import PlatformMonthlyStat from "./PlatformMonthlyStat.js";
+import PersonalizedMix from "./PersonalizedMix.js";
 import UserRecentListeningActivity from "./userRecentListeningActivity.model.js";
 import UserRecentListeningInsightsCache from "./userRecentListeningInsightsCache.model.js";
 import RefreshToken from "./RefreshToken.js";
@@ -52,6 +53,7 @@ export default {
     Plan,
     Playlist,
     PlatformMonthlyStat,
+    PersonalizedMix,
     UserRecentListeningActivity,
     UserRecentListeningInsightsCache,
     RecentListeningActivity: UserRecentListeningActivity,

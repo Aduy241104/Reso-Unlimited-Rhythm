@@ -1,6 +1,7 @@
 import axios from 'axios';
 import Constants from 'expo-constants';
 import { setupInterceptors } from './interceptors';
+import { API_BASE_URL } from '../config/api';
 
 const getExpoHostApiUrl = () => {
   const hostUri =

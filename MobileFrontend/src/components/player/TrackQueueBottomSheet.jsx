@@ -25,7 +25,7 @@ const QueueActionButton = ({ color = '#d0d0d0', disabled = false, icon, onPress 
 export default function TrackQueueBottomSheet({
   visible,
   onClose,
-  title = 'Track Queue',
+  title = 'Hàng chờ phát',
   subtitle = '',
 }) {
   const insets = useSafeAreaInsets();
@@ -58,7 +58,7 @@ export default function TrackQueueBottomSheet({
             <View style={styles.headerCopy}>
               <Text style={styles.title}>{title}</Text>
               <Text style={styles.subtitle}>
-                {subtitle || `${queue.length} track${queue.length === 1 ? '' : 's'} in queue`}
+                {subtitle || `${queue.length} bài hát trong hàng chờ`}
               </Text>
             </View>
 
@@ -69,16 +69,16 @@ export default function TrackQueueBottomSheet({
 
           <View style={styles.summaryRow}>
             <View>
-              <Text style={styles.summaryLabel}>Now Playing</Text>
+              <Text style={styles.summaryLabel}>Đang phát</Text>
               <Text style={styles.summaryValue}>
-                {currentIndex >= 0 ? `Track ${currentIndex + 1} of ${queue.length}` : 'No active track'}
+                {currentIndex >= 0 ? `Bài ${currentIndex + 1} / ${queue.length}` : 'Chưa có bài hát đang phát'}
               </Text>
             </View>
 
             {hasUpcoming ? (
               <Pressable style={styles.clearButton} onPress={clearUpcoming}>
                 <Ionicons name="trash-outline" size={14} color="#ffffff" />
-                <Text style={styles.clearButtonText}>Clear Next</Text>
+                <Text style={styles.clearButtonText}>Xóa bài tiếp theo</Text>
               </Pressable>
             ) : null}
           </View>
@@ -87,8 +87,8 @@ export default function TrackQueueBottomSheet({
             {queue.length === 0 ? (
               <View style={styles.emptyState}>
                 <Ionicons name="musical-notes-outline" size={22} color="#6f6f6f" />
-                <Text style={styles.emptyTitle}>Queue is empty</Text>
-                <Text style={styles.emptyText}>Play a playlist, artist, or track collection to manage the upcoming songs here.</Text>
+                <Text style={styles.emptyTitle}>Hàng chờ đang trống</Text>
+                <Text style={styles.emptyText}>Hãy phát playlist, nghệ sĩ hoặc bộ sưu tập bài hát để quản lý các bài sắp phát tại đây.</Text>
               </View>
             ) : (
               queue.map((item, index) => {
@@ -131,7 +131,7 @@ export default function TrackQueueBottomSheet({
                         {item.title}
                       </Text>
                       <Text style={styles.trackSubtitle} numberOfLines={1}>
-                        {item.artistName || 'Unknown artist'}
+                        {item.artistName || 'Nghệ sĩ không xác định'}
                       </Text>
                     </View>
 

@@ -172,12 +172,6 @@ const UserDetailPage = () => {
     );
   };
 
-  const getStatusBorderColor = () => {
-    if (user?.activeStatus === "active") return "border-l-[4px] border-l-emerald-500";
-    if (user?.activeStatus === "blocked") return "border-l-[4px] border-l-rose-500";
-    return "border-l-[4px] border-l-slate-300";
-  };
-
   return (
     <section className="mx-auto max-w-7xl space-y-6 p-6 bg-[#f8fafc] min-h-screen font-sans text-slate-800">
       
@@ -239,7 +233,7 @@ const UserDetailPage = () => {
       )}
 
       {/* KPI METRICS (STATS GỐC) */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div className="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
           <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tổng thời gian nghe</p>
           <p className="mt-2 text-2xl font-bold text-slate-900">{formatDuration(user?.stats?.totalListeningTime)}</p>
@@ -257,12 +251,6 @@ const UserDetailPage = () => {
             </span>
           </p>
         </div>
-        <div className="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Trạng thái gói hội viên</p>
-          <p className="mt-2 text-xl font-bold text-slate-900">
-            {user?.subscription?.isPremium ? "🎯 Gói Premium" : "🛡️ Gói miễn phí (Free)"}
-          </p>
-        </div>
       </div>
 
       {/* BỐ CỤC CHÍNH ĐẦY ĐỦ PHÂN CHIA GRID 2:1 */}
@@ -272,7 +260,7 @@ const UserDetailPage = () => {
         <div className="lg:col-span-2 space-y-6">
           
           {/* Card 1: Thông tin chi tiết tài khoản */}
-          <div className={`rounded-2xl bg-white p-6 shadow-sm border border-slate-100 transition-all ${getStatusBorderColor()}`}>
+          <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100 transition-all">
             <h2 className="text-base font-bold text-slate-900 border-b border-slate-50 pb-3">Thông tin chi tiết hồ sơ</h2>
             <div className="mt-4 grid gap-y-4 gap-x-6 sm:grid-cols-2">
               <div>
@@ -412,46 +400,6 @@ const UserDetailPage = () => {
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Mã liên kết Plan ID</p>
                 <p className="mt-1 font-mono text-xs text-slate-400 break-all">{user?.subscription?.currentPlanId || "Trống (Không định dạng)"}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* KHÔI PHỤC Card 3: Cấu hình ứng dụng cục bộ của User */}
-          <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
-            <h2 className="text-base font-bold text-slate-900 border-b border-slate-50 pb-3">Cấu hình ứng dụng</h2>
-            <div className="mt-4 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold text-slate-900">Ngôn ngữ hiển thị</p>
-                  <p className="text-[11px] text-slate-400">Hệ thống cục bộ</p>
-                </div>
-                <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold uppercase text-slate-700">
-                  {user?.settings?.language || "vi"}
-                </span>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold text-slate-900">Thông báo đẩy</p>
-                  <p className="text-[11px] text-slate-400">Tiếp thị và hệ thống</p>
-                </div>
-                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                  user?.settings?.notificationsEnabled ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"
-                }`}>
-                  {user?.settings?.notificationsEnabled ? "ĐANG BẬT" : "TẮT"}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold text-slate-900">Phát ngẫu nhiên mặc định</p>
-                  <p className="text-[11px] text-slate-400">Mặc định phát ngẫu nhiên</p>
-                </div>
-                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                  user?.settings?.shufflePlayDefault ? "bg-blue-50 text-blue-600" : "bg-slate-100 text-slate-500"
-                }`}>
-                  {user?.settings?.shufflePlayDefault ? "ĐANG BẬT" : "TẮT"}
-                </span>
               </div>
             </div>
           </div>

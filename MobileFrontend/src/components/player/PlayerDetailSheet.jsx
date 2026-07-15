@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppLoader from '../common/AppLoader';
 import { formatCompactNumber, formatDateLabel, formatDuration, getInitials, resolveImageUri } from '../../utils/media';
-import { formatPlayerTime, getPlayableDuration } from '../../utils/player';
+import { formatPlayerTime, getPlayableDuration, resolveTrackStaticLyrics } from '../../utils/player';
 
 const CLOSE_THRESHOLD = 120;
 const CLOSE_VELOCITY = 0.9;
@@ -46,7 +46,7 @@ const getLyricsPreview = (value) => {
     .slice(0, 6);
 
   if (lines.length === 0) {
-    return 'No lyrics available.';
+    return 'Chưa có lời bài hát.';
   }
 
   return lines.join('\n');
@@ -58,12 +58,12 @@ const buildSongInfoRows = (trackPayload) => {
   }
 
   return [
-    { label: 'Artist', value: trackPayload?.artist?.name || 'Unknown artist' },
-    { label: 'Album', value: trackPayload?.album?.title || 'Single track' },
-    { label: 'Duration', value: formatDuration(trackPayload?.duration) || '0s' },
-    { label: 'Released', value: formatDateLabel(trackPayload?.releaseDate) || 'Unknown' },
-    { label: 'Plays', value: formatCompactNumber(trackPayload?.stats?.totalPlay) },
-    { label: 'Likes', value: formatCompactNumber(trackPayload?.stats?.totalLike) },
+    { label: 'Nghệ sĩ', value: trackPayload?.artist?.name || 'Nghệ sĩ không xác định' },
+    { label: 'Album', value: trackPayload?.album?.title || 'Đĩa đơn' },
+    { label: 'Thời lượng', value: formatDuration(trackPayload?.duration) || '0s' },
+    { label: 'Phát hành', value: formatDateLabel(trackPayload?.releaseDate) || 'Không xác định' },
+    { label: 'Lượt phát', value: formatCompactNumber(trackPayload?.stats?.totalPlay) },
+    { label: 'Lượt thích', value: formatCompactNumber(trackPayload?.stats?.totalLike) },
   ].filter((item) => String(item.value || '').trim());
 };
 
@@ -75,10 +75,12 @@ export default function PlayerDetailSheet({
   detailErrorMessage = '',
   hasNext = false,
   hasPrevious = false,
+  hasSyncedLyrics = false,
   isDetailLoading = false,
   isBuffering = false,
   isPlaying = false,
   onClose,
+  onOpenLyrics,
   onOpenQueue,
   onPlayNext,
   onPlayPrevious,
@@ -95,8 +97,14 @@ export default function PlayerDetailSheet({
   const trackPayload = trackDetailResponse?.data?.track || null;
   const artistPayload = artistProfileResponse?.data?.artist || null;
   const songInfoRows = buildSongInfoRows(trackPayload);
-  const lyricsPreview = getLyricsPreview(trackPayload?.lyrics?.static || currentTrack?.lyrics);
+  const lyricsPreview = getLyricsPreview(
+    resolveTrackStaticLyrics(trackPayload) || resolveTrackStaticLyrics(currentTrack)
+  );
   const artistSummary = artistPayload?.bio || 'No artist introduction available.';
+  const queueStatusLabel = currentIndex >= 0
+    ? `Open playing queue. ${queueLength} tracks queued. Current track ${currentIndex + 1}.`
+    : `Open playing queue. ${queueLength} tracks queued.`;
+  const canOpenSyncedLyrics = hasSyncedLyrics && typeof onOpenLyrics === 'function';
   const translateY = useRef(new Animated.Value(screenHeight)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   const isClosingRef = useRef(false);
@@ -232,9 +240,9 @@ export default function PlayerDetailSheet({
         >
           {!currentTrack ? (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyTitle}>No track selected</Text>
+              <Text style={styles.emptyTitle}>Chưa chọn bài hát</Text>
               <Text style={styles.emptyText}>
-                Choose a song from a playlist, artist, or chart to show the player here.
+                Hãy chọn bài hát từ playlist, nghệ sĩ hoặc bảng xếp hạng để hiển thị trình phát tại đây.
               </Text>
             </View>
           ) : (
@@ -244,7 +252,7 @@ export default function PlayerDetailSheet({
               <Text style={styles.trackTitle}>{currentTrack.title}</Text>
               <Text style={styles.trackSubtitle}>{currentTrack.artistName}</Text>
               {currentError ? <Text style={styles.statusTextError}>{currentError}</Text> : null}
-              {!currentError && isBuffering ? <Text style={styles.statusText}>Loading audio...</Text> : null}
+              {!currentError && isBuffering ? <Text style={styles.statusText}>Đang tải âm thanh...</Text> : null}
 
               <View style={styles.progressBlock}>
                 <View style={styles.progressTrack}>
@@ -256,56 +264,87 @@ export default function PlayerDetailSheet({
                 </View>
               </View>
 
-              <View style={styles.controls}>
-                <Pressable
-                  style={[styles.secondaryButton, !hasPrevious && styles.secondaryButtonDisabled]}
-                  onPress={onPlayPrevious}
-                  disabled={!hasPrevious}
-                >
-                  <Ionicons name="play-skip-back" size={24} color={hasPrevious ? '#ffffff' : '#5f5f5f'} />
-                </Pressable>
+              <View style={styles.controlsRow}>
+                <View style={styles.controlsSideSpacer} />
 
-                <Pressable style={styles.primaryButton} onPress={onTogglePlayback}>
-                  <Ionicons name={isPlaying ? 'pause' : 'play'} size={30} color="#000000" />
-                </Pressable>
+                <View style={styles.controls}>
+                  <Pressable
+                    style={[styles.secondaryButton, !hasPrevious && styles.secondaryButtonDisabled]}
+                    onPress={onPlayPrevious}
+                    disabled={!hasPrevious}
+                  >
+                    <Ionicons name="play-skip-back" size={24} color={hasPrevious ? '#ffffff' : '#5f5f5f'} />
+                  </Pressable>
 
-                <Pressable
-                  style={[styles.secondaryButton, !hasNext && styles.secondaryButtonDisabled]}
-                  onPress={onPlayNext}
-                  disabled={!hasNext}
-                >
-                  <Ionicons name="play-skip-forward" size={24} color={hasNext ? '#ffffff' : '#5f5f5f'} />
-                </Pressable>
-              </View>
+                  <Pressable style={styles.primaryButton} onPress={onTogglePlayback}>
+                    <Ionicons name={isPlaying ? 'pause' : 'play'} size={30} color="#000000" />
+                  </Pressable>
 
-              <View style={styles.queuePanel}>
-                <View style={styles.queuePanelCopy}>
-                  <Text style={styles.queuePanelTitle}>Playing Queue</Text>
-                  <Text style={styles.queuePanelText}>
-                    {queueLength} tracks queued
-                    {currentIndex >= 0 ? ` - Track ${currentIndex + 1} selected` : ''}
-                  </Text>
+                  <Pressable
+                    style={[styles.secondaryButton, !hasNext && styles.secondaryButtonDisabled]}
+                    onPress={onPlayNext}
+                    disabled={!hasNext}
+                  >
+                    <Ionicons name="play-skip-forward" size={24} color={hasNext ? '#ffffff' : '#5f5f5f'} />
+                  </Pressable>
                 </View>
 
-                <Pressable style={styles.queuePanelButton} onPress={onOpenQueue}>
-                  <Ionicons name="list" size={16} color="#ffffff" />
-                  <Text style={styles.queuePanelButtonText}>Open</Text>
+                <Pressable
+                  style={styles.queueIconButton}
+                  onPress={onOpenQueue}
+                  accessibilityRole="button"
+                  accessibilityLabel={queueStatusLabel}
+                >
+                  <Ionicons name="reorder-three-outline" size={24} color="#ffffff" />
                 </Pressable>
               </View>
 
               {isDetailLoading ? (
                 <View style={styles.detailStateCard}>
                   <AppLoader size="small" />
-                  <Text style={styles.detailStateText}>Loading track detail...</Text>
+                  <Text style={styles.detailStateText}>Đang tải chi tiết bài hát...</Text>
                 </View>
               ) : null}
 
               {!isDetailLoading && detailErrorMessage ? (
                 <View style={styles.detailStateCard}>
-                  <Text style={styles.detailErrorTitle}>Track detail unavailable</Text>
+                  <Text style={styles.detailErrorTitle}>Không thể tải chi tiết bài hát</Text>
                   <Text style={styles.detailErrorText}>{detailErrorMessage}</Text>
                   <Pressable style={styles.retryButton} onPress={onRetryDetail}>
-                    <Text style={styles.retryButtonText}>Try again</Text>
+                    <Text style={styles.retryButtonText}>Thử lại</Text>
+                  </Pressable>
+                </View>
+              ) : null}
+
+              {!isDetailLoading ? (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Lyrics Preview</Text>
+
+                  <View style={styles.detailCard}>
+                    <Text style={styles.previewText}>{lyricsPreview}</Text>
+                    <Text style={styles.previewHintText}>
+                      {canOpenSyncedLyrics
+                        ? 'Open the synced lyric screen to follow the current playback line.'
+                        : 'Timed LRC is not available for this track yet.'}
+                    </Text>
+                  </View>
+
+                  <Pressable
+                    style={[
+                      styles.lyricsScreenButton,
+                      !canOpenSyncedLyrics && styles.lyricsScreenButtonDisabled,
+                    ]}
+                    onPress={onOpenLyrics}
+                    disabled={!canOpenSyncedLyrics}
+                  >
+                    <Text
+                      style={[
+                        styles.lyricsScreenButtonText,
+                        !canOpenSyncedLyrics && styles.lyricsScreenButtonTextDisabled,
+                      ]}
+                    >
+                      {canOpenSyncedLyrics ? 'Open Synced Lyrics' : 'Synced Lyrics Unavailable'}
+                    </Text>
                   </Pressable>
                 </View>
               ) : null}
@@ -313,7 +352,7 @@ export default function PlayerDetailSheet({
               {!isDetailLoading && !detailErrorMessage && trackPayload ? (
                 <>
                   <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Song Info</Text>
+                    <Text style={styles.sectionTitle}>Thông tin bài hát</Text>
 
                     <View style={styles.detailCard}>
                       {songInfoRows.map((item) => (
@@ -323,14 +362,7 @@ export default function PlayerDetailSheet({
                   </View>
 
                   <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Lyrics Preview</Text>
-
-                    <View style={styles.detailCard}>
-                      <Text style={styles.previewText}>{lyricsPreview}</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>About the Artist</Text>
                     <Text style={styles.sectionTitle}>About the Artist</Text>
 
                     <View style={styles.detailCard}>
@@ -346,12 +378,12 @@ export default function PlayerDetailSheet({
 
                         <View style={styles.artistIntroCopy}>
                           <Text style={styles.artistIntroName}>
-                            {artistPayload?.name || trackPayload?.artist?.name || 'Unknown artist'}
+                            {artistPayload?.name || trackPayload?.artist?.name || 'Nghệ sĩ không xác định'}
                           </Text>
                           <Text style={styles.artistIntroMeta}>
-                            {formatCompactNumber(artistPayload?.stats?.monthlyListeners)} monthly listeners
+                            {formatCompactNumber(artistPayload?.stats?.monthlyListeners)} người nghe mỗi tháng
                             {' - '}
-                            {formatCompactNumber(artistPayload?.stats?.followers || artistPayload?.stats?.totalFollowers)} followers
+                            {formatCompactNumber(artistPayload?.stats?.followers || artistPayload?.stats?.totalFollowers)} người theo dõi
                           </Text>
                         </View>
                       </View>
@@ -484,8 +516,17 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
   },
-  controls: {
+  controlsRow: {
     marginTop: 22,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  controlsSideSpacer: {
+    width: 52,
+    height: 52,
+  },
+  controls: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -512,48 +553,12 @@ const styles = StyleSheet.create({
   secondaryButtonDisabled: {
     opacity: 0.55,
   },
-  queuePanel: {
-    marginTop: 28,
-    flexDirection: 'row',
+  queueIconButton: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 15,
-    borderRadius: 20,
-    backgroundColor: '#131313',
-    borderWidth: 1,
-    borderColor: '#232323',
-  },
-  queuePanelCopy: {
-    flex: 1,
-    marginRight: 12,
-  },
-  queuePanelTitle: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  queuePanelText: {
-    color: '#8c8c8c',
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 4,
-  },
-  queuePanelButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-    backgroundColor: '#1f1f1f',
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#2d2d2d',
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-  },
-  queuePanelButtonText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '700',
+    justifyContent: 'center',
   },
   detailStateCard: {
     marginTop: 20,
@@ -637,6 +642,34 @@ const styles = StyleSheet.create({
     color: '#dddddd',
     fontSize: 14,
     lineHeight: 22,
+  },
+  previewHintText: {
+    color: '#8f8f8f',
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 12,
+  },
+  lyricsScreenButton: {
+    marginTop: 12,
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lyricsScreenButtonDisabled: {
+    backgroundColor: '#1b1b1b',
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+  },
+  lyricsScreenButtonText: {
+    color: '#000000',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  lyricsScreenButtonTextDisabled: {
+    color: '#777777',
   },
   artistIntroHeader: {
     flexDirection: 'row',

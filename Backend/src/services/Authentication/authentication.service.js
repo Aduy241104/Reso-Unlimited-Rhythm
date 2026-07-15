@@ -11,6 +11,10 @@ import {
     sendResetPasswordLinkEmail,
 } from "../../utils/mailer.js";
 import {
+    buildRefreshTokenClientTypeQuery,
+    normalizeAuthClientType,
+} from "../../constants/authClientTypes.js";
+import {
     buildRegistrationProfilePayload,
     createAuthSession,
     ensureActiveUser,
@@ -177,7 +181,13 @@ const register = async ({
     };
 };
 
-const login = async ({ email, password }) => {
+const buildStoredRefreshTokenQuery = ({ token, clientType }) => ({
+    token,
+    isRevoked: false,
+    ...buildRefreshTokenClientTypeQuery(clientType),
+});
+
+const login = async ({ email, password, clientType }) => {
     const normalizedEmail = email.trim().toLowerCase();
     const user = await User.findOne({ email: normalizedEmail });
 
@@ -192,14 +202,14 @@ const login = async ({ email, password }) => {
         throw new AppError("Email or password is incorrect.", 401);
     }
 
-    return createAuthSession(user);
+    return createAuthSession(user, clientType);
 };
 
-const googleLogin = async ({ token }) => {
+const googleLogin = async ({ token, clientType }) => {
     const googleProfile = await verifyGoogleIdToken(token);
     const user = await findOrCreateGoogleUser(googleProfile);
 
-    return createAuthSession(user);
+    return createAuthSession(user, clientType);
 };
 
 const requestForgotPassword = async ({ email }) => {
@@ -345,10 +355,16 @@ const resetPassword = async ({ token, email, otp, password }) => {
     ]);
 };
 
-const logout = async (token) => {
+const logout = async ({ token, clientType }) => {
+    if (!token) {
+        return;
+    }
+
     const storedToken = await RefreshToken.findOne({
-        token,
-        isRevoked: false,
+        ...buildStoredRefreshTokenQuery({
+            token,
+            clientType,
+        }),
     });
 
     if (!storedToken) {
@@ -359,10 +375,17 @@ const logout = async (token) => {
     await storedToken.save();
 };
 
-const refreshToken = async (token) => {
+const refreshToken = async ({ token, clientType }) => {
+    if (!token) {
+        throw new AppError("Refresh token is required.", 401);
+    }
+
+    const normalizedClientType = normalizeAuthClientType(clientType);
     const storedToken = await RefreshToken.findOne({
-        token,
-        isRevoked: false,
+        ...buildStoredRefreshTokenQuery({
+            token,
+            clientType: normalizedClientType,
+        }),
     }).populate("userId");
 
     if (!storedToken) {
@@ -379,6 +402,7 @@ const refreshToken = async (token) => {
     const user = storedToken.userId;
     ensureActiveUser(user);
 
+    storedToken.clientType = normalizedClientType;
     storedToken.token = createRefreshToken();
     storedToken.expiresAt = getRefreshExpireDate();
     await storedToken.save();

@@ -1,25 +1,29 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   FlatList,
+  Pressable,
   TouchableOpacity,
   StatusBar,
-  Platform,
   Image,
   RefreshControl,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppAvatar from '../../components/common/AppAvatar';
 import AppButton from '../../components/common/AppButton';
 import AppLoader from '../../components/common/AppLoader';
 import ErrorState from '../../components/common/ErrorState';
+import ProfileSidebarMenu from '../../components/common/ProfileSidebarMenu';
 import FeaturedCollectionCard from '../../components/home/FeaturedCollectionCard';
 import { useAuth } from '../../hooks/useAuth';
 import homeService from '../../services/homeService';
 import { formatDateLabel, getInitials, resolveImageUri } from '../../utils/media';
+
+const SIDEBAR_CLOSE_DELAY = 180;
 
 const initialHomeState = {
   topTrackCollections: [],
@@ -36,7 +40,7 @@ const initialHomeState = {
 const accentPalette = ['#111111', '#2f2f2f', '#4a4a4a', '#686868', '#8a8a8a'];
 
 const resolveUserDisplayName = (user) =>
-  user?.fullName || user?.name || user?.username || user?.displayName || user?.email || 'Music Lover';
+  user?.fullName || user?.name || user?.username || user?.displayName || user?.email || 'Người yêu nhạc';
 
 const resolveUserAvatar = (user) =>
   resolveImageUri(
@@ -75,7 +79,7 @@ const HomeSection = ({ title, data, errorMessage, renderItem, emptyMessage }) =>
     {errorMessage ? (
       <SectionState message={errorMessage} isError />
     ) : data.length === 0 ? (
-      <SectionState message={emptyMessage || 'No items available.'} />
+      <SectionState message={emptyMessage || 'Không có dữ liệu.'} />
     ) : (
       <FlatList
         data={data}
@@ -91,12 +95,12 @@ const HomeSection = ({ title, data, errorMessage, renderItem, emptyMessage }) =>
 
 const TopTrackSection = ({ data, errorMessage, onPressItem }) => (
   <View style={styles.sectionContainer}>
-    <Text style={styles.sectionTitle}>Top Track Charts</Text>
+    <Text style={styles.sectionTitle}>BXH bài hát nổi bật</Text>
 
     {errorMessage ? (
       <SectionState message={errorMessage} isError />
     ) : data.length === 0 ? (
-      <SectionState message="No top track charts available." />
+      <SectionState message="Chưa có bảng xếp hạng bài hát nổi bật." />
     ) : (
       <View style={styles.topTrackGrid}>
         {data.slice(0, 2).map((item) => (
@@ -116,13 +120,31 @@ const TopTrackSection = ({ data, errorMessage, onPressItem }) => (
 
 export default function HomeScreen() {
   const navigation = useNavigation();
-  const { isAuthenticated, logout, user } = useAuth();
+  const insets = useSafeAreaInsets();
+  const { isAuthenticated, user, logout } = useAuth();
   const [homeData, setHomeData] = useState(initialHomeState);
   const [isContentLoading, setIsContentLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [contentError, setContentError] = useState(null);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const hasLoadedOnceRef = useRef(false);
+  const sidebarActionTimeoutRef = useRef(null);
+
+  useEffect(
+    () => () => {
+      if (sidebarActionTimeoutRef.current) {
+        clearTimeout(sidebarActionTimeoutRef.current);
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setIsSidebarVisible(false);
+    }
+  }, [isAuthenticated]);
 
   const loadHomepage = useCallback(async (options = {}) => {
     const isRefresh = Boolean(options.refresh);
@@ -147,7 +169,7 @@ export default function HomeScreen() {
       setHasLoadedOnce(true);
     } catch (error) {
       if (!hasLoadedOnceRef.current) {
-        setContentError(error.message || 'Failed to load homepage data.');
+        setContentError(error.message || 'Không thể tải dữ liệu trang chủ.');
       }
     } finally {
       setIsContentLoading(false);
@@ -158,6 +180,26 @@ export default function HomeScreen() {
   useEffect(() => {
     loadHomepage();
   }, [loadHomepage]);
+
+  const closeSidebar = useCallback(() => {
+    setIsSidebarVisible(false);
+  }, []);
+
+  const runAfterSidebarClose = useCallback(
+    (callback) => {
+      closeSidebar();
+
+      if (sidebarActionTimeoutRef.current) {
+        clearTimeout(sidebarActionTimeoutRef.current);
+      }
+
+      sidebarActionTimeoutRef.current = setTimeout(() => {
+        sidebarActionTimeoutRef.current = null;
+        callback?.();
+      }, SIDEBAR_CLOSE_DELAY);
+    },
+    [closeSidebar]
+  );
 
   const handleOpenDetail = useCallback(
     (params) => {
@@ -188,17 +230,105 @@ export default function HomeScreen() {
     [handleOpenDetail]
   );
 
-  const handleHeaderAction = async () => {
+  const handleOpenPlaylistDetail = useCallback((playlist) => {
+    if (!playlist?.id) {
+      return;
+    }
+
+    navigation.navigate('PlaylistDetail', {
+      playlistId: playlist.id,
+      initialTitle: playlist.title || 'Chi tiết playlist',
+    });
+  }, [navigation]);
+
+  const handleOpenSidebar = useCallback(() => {
     if (isAuthenticated) {
-      await logout();
+      setIsSidebarVisible(true);
       return;
     }
 
     navigation.navigate('Login');
-  };
+  }, [isAuthenticated, navigation]);
+
+  const handleLogout = useCallback(() => {
+    runAfterSidebarClose(() => {
+      logout();
+    });
+  }, [logout, runAfterSidebarClose]);
 
   const displayName = resolveUserDisplayName(user);
   const avatarUri = resolveUserAvatar(user);
+  const userSubtitle = user?.email || 'Tài khoản đã đăng nhập';
+  const sidebarMenuItems = useMemo(
+    () => [
+      {
+        key: 'user-profile',
+        label: 'Hồ sơ của bạn',
+        icon: 'person-circle-outline',
+        onPress: () => runAfterSidebarClose(() => navigation.navigate('UserProfile')),
+      },
+      {
+        key: 'subscription-status',
+        label: 'Trạng thái đăng ký',
+        icon: 'diamond-outline',
+        onPress: () =>
+          runAfterSidebarClose(() =>
+            navigation.navigate('SubscriptionStatus')
+          ),
+      },
+      {
+        key: 'artist-registration',
+        label: 'Danh sách yêu cầu nghệ sĩ',
+        icon: 'document-text-outline',
+        onPress: () => runAfterSidebarClose(() => navigation.navigate('ArtistRegistrationRequest', { initialView: 'history' })),
+      },
+      {
+        key: 'artist-registration-form',
+        label: 'Đăng ký trở thành nghệ sĩ',
+        icon: 'mic-outline',
+        onPress: () => runAfterSidebarClose(() => navigation.navigate('ArtistRegistrationRequest', { initialView: 'form' })),
+      },
+      ['user', 'artist'].includes(user?.role)
+        ? {
+          key: 'report-list',
+          label: 'Danh sách báo cáo',
+          icon: 'flag-outline',
+          onPress: () => runAfterSidebarClose(() => navigation.navigate('ReportList')),
+        }
+        : null,
+      {
+        key: 'add-account',
+        label: 'Thêm tài khoản',
+        icon: 'add-circle-outline',
+        onPress: () => { },
+      },
+      {
+        key: 'listening-stats',
+        label: 'Số liệu hoạt động nghe',
+        icon: 'analytics-outline',
+        onPress: () => { },
+      },
+      {
+        key: 'recent',
+        label: 'Gần đây',
+        icon: 'time-outline',
+        onPress: () => { },
+      },
+      {
+        key: 'updates',
+        label: 'Tin cập nhật',
+        icon: 'megaphone-outline',
+        onPress: () => { },
+      },
+      {
+        key: 'settings-privacy',
+        label: 'Cài đặt và quyền riêng tư',
+        icon: 'settings-outline',
+        onPress: () => { },
+      },
+    ].filter(Boolean),
+    [navigation, runAfterSidebarClose, user?.role]
+  );
 
   const renderArtistCard = ({ item, index }) => {
     const accentColor = accentPalette[index % accentPalette.length];
@@ -211,7 +341,7 @@ export default function HomeScreen() {
           handleOpenDetail({
             entityType: 'artist',
             entityId: item.id,
-            initialTitle: item.name || 'Artist Detail',
+            initialTitle: item.name || 'Chi tiết nghệ sĩ',
           })
         }
       >
@@ -224,7 +354,7 @@ export default function HomeScreen() {
         />
         <Text style={styles.cardTitle} numberOfLines={1}>{item.name}</Text>
         <Text style={styles.cardSubTitle} numberOfLines={2}>
-          Featured artist in the monthly chart.
+          Nghệ sĩ nổi bật trong bảng xếp hạng tháng.
         </Text>
       </TouchableOpacity>
     );
@@ -232,24 +362,17 @@ export default function HomeScreen() {
 
   const renderPlaylistCard = ({ item, index }) => {
     const accentColor = accentPalette[index % accentPalette.length];
-    const playlistId = item?._id || item?.id;
 
     return (
       <TouchableOpacity
         style={styles.cardItem}
         activeOpacity={0.8}
-        onPress={() =>
-          handleOpenDetail({
-            entityType: 'playlist',
-            entityId: playlistId,
-            initialTitle: item.title || 'Playlist Detail',
-          })
-        }
+        onPress={() => handleOpenPlaylistDetail(item)}
       >
         <Artwork uri={item.coverImage} label={item.title} color={accentColor} />
         <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
         <Text style={styles.cardSubTitle} numberOfLines={2}>
-          {item.description || 'System curated playlist'}
+          {item.description || 'Playlist tuyển chọn từ hệ thống'}
         </Text>
       </TouchableOpacity>
     );
@@ -257,7 +380,7 @@ export default function HomeScreen() {
 
   const renderAlbumCard = ({ item, index }) => {
     const accentColor = accentPalette[index % accentPalette.length];
-    const artistName = item?.artist?.name || 'Unknown artist';
+    const artistName = item?.artist?.name || 'Nghệ sĩ không xác định';
     const releaseLabel = formatDateLabel(item?.releaseDate);
 
     return (
@@ -268,7 +391,7 @@ export default function HomeScreen() {
           handleOpenDetail({
             entityType: 'album',
             entityId: item.id,
-            initialTitle: item.title || 'Album Detail',
+            initialTitle: item.title || 'Chi tiết album',
           })
         }
       >
@@ -285,18 +408,30 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
 
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <View style={styles.headerIdentity}>
-          {isAuthenticated ? <AppAvatar uri={avatarUri} label={displayName} size={44} /> : null}
-          <View style={[styles.headerTextGroup, !isAuthenticated && styles.headerTextGroupGuest]}>
-            <Text style={styles.brandText}>RESO UNLIMITED RHYTHM</Text>
+          {isAuthenticated ? (
+            <Pressable style={styles.avatarButton} onPress={handleOpenSidebar} hitSlop={8}>
+              <AppAvatar uri={avatarUri} label={displayName} size={44} />
+            </Pressable>
+          ) : null}
+
+          <View style={styles.headerTextGroup}>
+            <Text style={styles.brandText}>RESO MUSIC</Text>
             <Text style={styles.welcomeText} numberOfLines={1}>
-              {isAuthenticated ? displayName : 'Login to personalize your music'}
+              {isAuthenticated ? displayName : 'Trang chủ'}
             </Text>
           </View>
         </View>
-        <TouchableOpacity style={styles.logoutBadge} onPress={handleHeaderAction} activeOpacity={0.7}>
-          <Text style={styles.logoutText}>{isAuthenticated ? 'Logout' : 'Login'}</Text>
+
+        <TouchableOpacity
+          style={[styles.logoutBadge, !isAuthenticated && styles.loginBadge]}
+          onPress={handleOpenSidebar}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.logoutText, !isAuthenticated && styles.loginText]}>
+            {isAuthenticated ? 'Tài khoản' : 'Đăng nhập'}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -307,7 +442,7 @@ export default function HomeScreen() {
       ) : contentError && !hasLoadedOnce ? (
         <View style={styles.centerState}>
           <ErrorState message={contentError} />
-          <AppButton title="Try Again" onPress={() => loadHomepage()} style={styles.retryButton} />
+          <AppButton title="Thử lại" onPress={() => loadHomepage()} style={styles.retryButton} />
         </View>
       ) : (
         <ScrollView
@@ -328,30 +463,45 @@ export default function HomeScreen() {
           />
 
           <HomeSection
-            title="Monthly Top Artists"
+            title="Nghệ sĩ nổi bật tháng"
             data={homeData.monthlyTopArtists}
             errorMessage={homeData.sectionErrors.monthlyTopArtists}
             renderItem={renderArtistCard}
-            emptyMessage="No monthly top artists available."
+            emptyMessage="Chưa có nghệ sĩ nổi bật theo tháng."
           />
 
           <HomeSection
-            title="System Playlists"
+            title="Playlist hệ thống"
             data={homeData.systemPlaylists}
             errorMessage={homeData.sectionErrors.systemPlaylists}
             renderItem={renderPlaylistCard}
-            emptyMessage="No system playlists available."
+            emptyMessage="Chưa có playlist hệ thống."
           />
 
           <HomeSection
-            title="New Album Releases"
+            title="Album mới phát hành"
             data={homeData.recentAlbums}
             errorMessage={homeData.sectionErrors.recentAlbums}
             renderItem={renderAlbumCard}
-            emptyMessage="No new album releases available."
+            emptyMessage="Chưa có album mới phát hành."
           />
         </ScrollView>
       )}
+
+      <ProfileSidebarMenu
+        visible={isSidebarVisible}
+        onClose={closeSidebar}
+        displayName={displayName}
+        subtitle={userSubtitle}
+        avatarUri={avatarUri}
+        menuItems={sidebarMenuItems}
+        footerItem={{
+          icon: 'log-out-outline',
+          label: 'Đăng xuất',
+          onPress: handleLogout,
+          tone: 'danger',
+        }}
+      />
     </View>
   );
 }
@@ -363,10 +513,9 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 60 : 30,
     paddingBottom: 14,
     borderBottomWidth: 1,
     borderColor: '#1f1f1f',
@@ -378,12 +527,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 12,
   },
+  avatarButton: {
+    borderRadius: 999,
+  },
   headerTextGroup: {
     flex: 1,
     marginLeft: 12,
-  },
-  headerTextGroupGuest: {
-    marginLeft: 0,
   },
   brandText: {
     fontSize: 9,
@@ -409,6 +558,13 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 11,
     fontWeight: '600',
+  },
+  loginBadge: {
+    backgroundColor: '#ffffff',
+    borderColor: '#ffffff',
+  },
+  loginText: {
+    color: '#000000',
   },
   centerState: {
     flex: 1,

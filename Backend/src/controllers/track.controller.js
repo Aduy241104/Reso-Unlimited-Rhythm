@@ -18,7 +18,8 @@ const getTrackDetail = async (req, res, next) => {
 
 const getTrackPlayback = async (req, res, next) => {
     try {
-        const track = await trackService.getTrackPlayback(req.params.id, req.user);
+        const playbackTrackId = req.params.id ?? req.query.trackId;
+        const track = await trackService.getTrackPlayback(playbackTrackId, req.user);
 
         return formatResponse.success(
             res,

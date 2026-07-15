@@ -80,9 +80,9 @@ const getRoleBadge = (role) => {
 };
 
 const HeaderStat = ({ label, value }) => (
-  <div className="rounded-xl bg-slate-100 px-4 py-2.5 min-w-[100px] text-center sm:text-left">
-    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">{label}</p>
-    <p className="mt-0.5 text-base font-bold text-slate-900">{value}</p>
+  <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4">
+    <p className="text-xs font-medium text-slate-500">{label}</p>
+    <p className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">{value}</p>
   </div>
 );
 
@@ -155,7 +155,7 @@ const UserListPage = () => {
   const pageLabel = pagination ? `${pagination.page}/${pagination.totalPages}` : "1/1";
 
   return (
-    <section className="space-y-6 max-w-[1400px] mx-auto p-6 bg-slate-50/50 min-h-screen text-slate-800 font-sans antialiased">
+    <section className="space-y-6">
 
       {/* Khung 1: Header Dashboard tích hợp khối thông số dồn phải kèm nút chuyển đổi Admin */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -182,14 +182,14 @@ const UserListPage = () => {
       </div>
 
       {/* Khung 2: Thanh điều khiển chứa đầy đủ bộ lọc phối hợp có nút Đặt lại */}
-      <form onSubmit={handleSearchSubmit} className="grid gap-3 rounded-2xl bg-white p-4 shadow-[0_12px_32px_rgba(15,23,42,0.06)] grid-cols-1 sm:grid-cols-2 md:grid-cols-[1.5fr_1fr_1fr_100px_100px]">
+      <form onSubmit={handleSearchSubmit} className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-[1.5fr_1fr_1fr_100px_100px]">
         <label className="relative block">
           <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Tìm theo tên hoặc địa chỉ email..."
-            className="w-full rounded-lg bg-slate-100 py-3 pl-11 pr-4 text-sm text-slate-900 outline-none transition focus:bg-sky-50"
+            className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-900 outline-none transition focus:border-slate-400"
           />
         </label>
 
@@ -211,7 +211,7 @@ const UserListPage = () => {
           Đặt lại
         </button>
 
-        <button type="submit" className="rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 shadow-sm">
+        <button type="submit" className="rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">
           Tìm kiếm
         </button>
       </form>
@@ -219,7 +219,7 @@ const UserListPage = () => {
       {message && <div className="border border-red-100 bg-red-50/50 px-4 py-3 text-sm rounded-xl text-red-600">{message}</div>}
 
       {/* Khung 3: Danh sách cấu trúc hàng Spaced Rows tuyệt đẹp */}
-      <div className="overflow-hidden rounded-2xl bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
         <div className="grid min-w-[1020px] grid-cols-[minmax(0,1.5fr)_minmax(0,1.2fr)_120px_160px_180px_120px] gap-4 border-b border-slate-200 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
           <span>Tài khoản email</span>
           <span>Họ và tên</span>
@@ -240,7 +240,6 @@ const UserListPage = () => {
                 <article key={user._id} className="relative grid grid-cols-[minmax(0,1.5fr)_minmax(0,1.2fr)_120px_160px_180px_120px] gap-4 px-6 py-4 transition hover:bg-slate-50/60 items-center">
 
                   {/* Vạch màu chỉ thị rìa trái đồng bộ trạng thái */}
-                  <div className={`absolute inset-y-2 left-0 w-1 rounded-r ${getAccentClasses(user.activeStatus)}`} />
 
                   <div className="flex min-w-0 items-center gap-3 pl-2">
                     <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-slate-900 text-[10px] font-black text-white uppercase tracking-wider shadow-sm">
@@ -285,7 +284,7 @@ const UserListPage = () => {
 
       {/* Khung 4: Khối điều khiển Phân trang */}
       {pagination && (
-        <div className="flex flex-col gap-4 rounded-2xl bg-white px-6 py-5 sm:flex-row sm:items-center sm:justify-between shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+        <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-slate-500 font-medium">
             Trang {pagination.page} / {pagination.totalPages}
             <span className="mx-2 text-slate-300">|</span>
