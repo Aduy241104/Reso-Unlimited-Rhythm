@@ -277,9 +277,14 @@ export const LoginScreen = () => {
           <View style={styles.footerLinks}>
 
             <Text style={styles.footerText}>Chưa có tài khoản? </Text>
-            <TouchableOpacity><Text style={styles.linkTextBold}>Tạo ngay</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+              <Text style={styles.linkTextBold}>Tạo ngay</Text>
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.forgotBtn}>
+          <TouchableOpacity
+            style={styles.forgotBtn}
+            onPress={() => navigation.navigate('ForgotPassword')}
+          >
             <Text style={styles.linkTextSmall}>Quên mật khẩu?</Text>
           </TouchableOpacity>
         </View>
