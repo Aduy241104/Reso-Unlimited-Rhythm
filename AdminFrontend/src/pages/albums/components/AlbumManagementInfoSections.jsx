@@ -3,7 +3,6 @@ import {
   Disc3,
   ListMusic,
   Mic2,
-  ShieldAlert,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { routePaths } from "../../../routes/routePaths";
@@ -14,23 +13,40 @@ import {
   formatNumber,
   getAlbumStatusBadge,
   getArtistStatusBadge,
+  getInitials,
   getTrackActiveStatusBadge,
   getTrackApprovalStatusBadge,
 } from "../utils";
 import { Field, Section, StatusBadge } from "./AlbumManagementPrimitives";
 
-const AlbumManagementInfoSections = ({ album }) => {
+const RestrictionNote = ({ label, value, timestamp }) => {
+  if (!value) return null;
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+        {label}
+      </p>
+      <p className="mt-1 text-sm leading-5 text-slate-800">{value}</p>
+      {timestamp ? (
+        <p className="mt-1 text-xs text-slate-500">{formatDateTime(timestamp)}</p>
+      ) : null}
+    </div>
+  );
+};
+
+const AlbumManagementInfoSections = ({ album, moderationSection = null }) => {
   const albumStatus = getAlbumStatusBadge(album?.status);
   const artistStatus = getArtistStatusBadge(album?.artist?.activeStatus);
 
   return (
     <div className="space-y-5">
-      <Section title="Tổng quan album" icon={Disc3}>
+      <Section title="Thông tin album" icon={Disc3}>
         <Link
           to={routePaths.systemAlbums}
           className="inline-flex text-sm font-medium text-slate-500 transition hover:text-slate-900"
         >
-          Quay lại danh sách
+          Quay lại danh sách album
         </Link>
 
         <div className="mt-5 flex min-w-0 flex-col gap-4 md:flex-row md:items-center">
@@ -38,49 +54,60 @@ const AlbumManagementInfoSections = ({ album }) => {
             <img
               src={album.coverImage}
               alt={album?.title || "Album cover"}
-              className="h-24 w-24 rounded-xl object-cover"
+              className="h-28 w-28 rounded-3xl object-cover"
             />
           ) : (
-            <div className="flex h-24 w-24 items-center justify-center rounded-xl bg-slate-900 text-lg font-semibold text-white">
-              AL
+            <div className="flex h-28 w-28 items-center justify-center rounded-3xl bg-slate-950 text-2xl font-semibold text-white">
+              {getInitials(album?.title)}
             </div>
           )}
 
-          <div className="min-w-0">
-            <h1 className="truncate text-2xl font-semibold tracking-tight text-slate-900">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+              Chi tiết album
+            </p>
+            <h1 className="mt-2 truncate text-3xl font-semibold tracking-tight text-slate-950">
               {album?.title || "Album"}
             </h1>
-            <p className="mt-1 truncate text-sm text-slate-500">
+            <p className="mt-2 truncate text-sm text-slate-500">
               {album?.artist?.name || "Chưa có nghệ sĩ"} · {album?.artist?.email || "-"}
             </p>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <StatusBadge config={albumStatus} />
-              {album?.artist ? <StatusBadge config={artistStatus} /> : null}
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <StatusBadge config={albumStatus} tone="neutral" />
+              {album?.artist ? (
+                <StatusBadge config={artistStatus} tone="neutral" />
+              ) : null}
             </div>
           </div>
         </div>
 
-        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <Field label="Album ID" value={album?.id} />
           <Field label="Ngày phát hành" value={formatDate(album?.releaseDate)} />
-          <Field label="Số track" value={formatNumber(album?.trackCount ?? 0)} />
+          <Field label="Số bài hát" value={formatNumber(album?.trackCount ?? 0)} />
           <Field
             label="Tổng thời lượng"
             value={formatDuration(album?.totalDuration)}
           />
-          <Field label="Cập nhật lần cuối" value={formatDateTime(album?.updatedAt)} />
+          <Field
+            label="Cập nhật lần cuối"
+            value={formatDateTime(album?.updatedAt)}
+          />
         </div>
 
         {album?.blockedReason ? (
-          <div className="mt-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-700">
-              Lý do chặn
+          <div className="mt-6 rounded-2xl border border-slate-300 bg-slate-100 px-4 py-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+              Lý do chặn hiện tại
             </p>
-            <p className="mt-2 text-sm leading-6 text-rose-700">
+            <p className="mt-2 text-sm leading-6 text-slate-800">
               {album.blockedReason}
             </p>
           </div>
         ) : null}
       </Section>
+
+      {moderationSection}
 
       <Section
         title="Thông tin nghệ sĩ"
@@ -89,7 +116,7 @@ const AlbumManagementInfoSections = ({ album }) => {
           album?.artist?.id ? (
             <Link
               to={routePaths.artistDetail(album.artist.id)}
-              className="inline-flex items-center rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-100 hover:text-slate-950"
+              className="inline-flex items-center rounded-2xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-950"
             >
               Xem hồ sơ nghệ sĩ
             </Link>
@@ -98,27 +125,27 @@ const AlbumManagementInfoSections = ({ album }) => {
       >
         {album?.artist ? (
           <div className="space-y-5">
-            <div className="grid gap-5 md:grid-cols-[160px_minmax(0,1fr)]">
+            <div className="grid gap-5 md:grid-cols-[180px_minmax(0,1fr)]">
               <div>
                 {album.artist.coverImage ? (
                   <img
                     src={album.artist.coverImage}
                     alt={album.artist.name || "Artist cover"}
-                    className="h-36 w-full rounded-xl object-cover"
+                    className="h-40 w-full rounded-3xl object-cover"
                   />
                 ) : (
-                  <div className="flex h-36 items-center justify-center rounded-xl bg-slate-100 text-sm text-slate-500">
-                    Không có ảnh cover
+                  <div className="flex h-40 items-center justify-center rounded-3xl border border-slate-200 bg-slate-100 text-sm font-medium text-slate-500">
+                    Không có ảnh
                   </div>
                 )}
               </div>
 
-              <div className="grid gap-5 md:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 <Field label="Tên nghệ sĩ" value={album.artist.name} />
                 <Field label="Email" value={album.artist.email} />
                 <Field label="Trạng thái" value={artistStatus.label} />
                 <Field
-                  label="Lượt theo dõi"
+                  label="Người theo dõi"
                   value={formatNumber(album.artist.stats?.followers ?? 0)}
                 />
                 <Field
@@ -126,45 +153,43 @@ const AlbumManagementInfoSections = ({ album }) => {
                   value={formatNumber(album.artist.stats?.totalStreams ?? 0)}
                 />
                 <Field
-                  label="Nghe hàng tháng"
+                  label="Người nghe hàng tháng"
                   value={formatNumber(album.artist.stats?.monthlyListeners ?? 0)}
                 />
               </div>
             </div>
 
-            <Field label="Tiểu sử" value={album.artist.bio} />
-
             {album.artist.blockedReason ? (
-              <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-700">
+              <div className="rounded-2xl border border-slate-300 bg-slate-100 px-4 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                   Lý do chặn nghệ sĩ
                 </p>
-                <p className="mt-2 text-sm leading-6 text-rose-700">
+                <p className="mt-2 text-sm leading-6 text-slate-800">
                   {album.artist.blockedReason}
                 </p>
               </div>
             ) : null}
           </div>
         ) : (
-          <p className="text-sm text-slate-500">Album này chưa có thông tin nghệ sĩ.</p>
+          <p className="text-sm text-slate-500">Không có dữ liệu nghệ sĩ.</p>
         )}
       </Section>
 
-      <Section title="Danh sách track" icon={ListMusic}>
+      <Section title="Danh sách bài hát" icon={ListMusic}>
         {album?.tracks?.length ? (
-          <div className="overflow-hidden rounded-xl border border-slate-200">
+          <div className="overflow-hidden rounded-3xl border border-slate-200">
             <div className="overflow-x-auto">
-              <table className="min-w-[1160px] w-full text-left">
+              <table className="min-w-[1060px] w-full text-left">
                 <thead className="border-b border-slate-200 bg-slate-50">
-                  <tr className="text-xs font-medium text-slate-500">
-                    <th className="px-5 py-4">Thứ tự</th>
-                    <th className="px-5 py-4">Track</th>
+                  <tr className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    <th className="px-5 py-4">STT</th>
+                    <th className="px-5 py-4">Bài hát</th>
                     <th className="px-5 py-4">Nghệ sĩ</th>
                     <th className="px-5 py-4">Thời lượng</th>
                     <th className="px-5 py-4">Phát hành</th>
                     <th className="px-5 py-4">Duyệt</th>
                     <th className="px-5 py-4">Hiển thị</th>
-                    <th className="px-5 py-4">Ghi chú moderation</th>
+                    <th className="px-5 py-4">Hạn chế</th>
                   </tr>
                 </thead>
 
@@ -189,11 +214,11 @@ const AlbumManagementInfoSections = ({ album }) => {
                               <img
                                 src={track?.avatar || track?.coverImage?.[0]}
                                 alt={track?.title || "Track cover"}
-                                className="h-11 w-11 rounded-xl object-cover"
+                                className="h-11 w-11 rounded-2xl object-cover"
                               />
                             ) : (
-                              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-xs font-semibold text-slate-600">
-                                TR
+                              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-xs font-semibold text-slate-600">
+                                {getInitials(track?.title || "Track")}
                               </div>
                             )}
                             <div className="min-w-0">
@@ -216,7 +241,7 @@ const AlbumManagementInfoSections = ({ album }) => {
                               />
                             ) : (
                               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-[10px] font-semibold text-slate-600">
-                                AR
+                                {getInitials(track?.artist?.name || "Artist")}
                               </div>
                             )}
                             <p className="truncate text-sm text-slate-700">
@@ -231,38 +256,22 @@ const AlbumManagementInfoSections = ({ album }) => {
                           {formatDate(track?.releaseDate)}
                         </td>
                         <td className="px-5 py-4">
-                          <StatusBadge config={approvalStatus} />
+                          <StatusBadge config={approvalStatus} tone="neutral" />
                         </td>
                         <td className="px-5 py-4">
-                          <StatusBadge config={activeStatus} />
+                          <StatusBadge config={activeStatus} tone="neutral" />
                         </td>
                         <td className="px-5 py-4">
                           <div className="space-y-2 text-sm text-slate-700">
-                            {track?.blockedReason ? (
-                              <div className="rounded-xl border border-rose-100 bg-rose-50 px-3 py-2">
-                                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-rose-700">
-                                  Blocked
-                                </p>
-                                <p className="mt-1 leading-5 text-rose-700">
-                                  {track.blockedReason}
-                                </p>
-                              </div>
-                            ) : null}
-                            {track?.hiddenReason ? (
-                              <div className="rounded-xl border border-amber-100 bg-amber-50 px-3 py-2">
-                                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-800">
-                                  Hidden
-                                </p>
-                                <p className="mt-1 leading-5 text-amber-800">
-                                  {track.hiddenReason}
-                                </p>
-                                {track?.hiddenAt ? (
-                                  <p className="mt-1 text-xs text-amber-700">
-                                    {formatDateTime(track.hiddenAt)}
-                                  </p>
-                                ) : null}
-                              </div>
-                            ) : null}
+                            <RestrictionNote
+                              label="Đã chặn"
+                              value={track?.blockedReason}
+                            />
+                            <RestrictionNote
+                              label="Đã ẩn"
+                              value={track?.hiddenReason}
+                              timestamp={track?.hiddenAt}
+                            />
                             {!track?.blockedReason && !track?.hiddenReason ? (
                               <span className="text-sm text-slate-400">-</span>
                             ) : null}
@@ -276,27 +285,21 @@ const AlbumManagementInfoSections = ({ album }) => {
             </div>
           </div>
         ) : (
-          <div className="rounded-xl border border-dashed border-slate-300 px-6 py-12 text-center text-sm text-slate-500">
-            Album này chưa có track nào.
+          <div className="rounded-2xl border border-dashed border-slate-300 px-6 py-12 text-center text-sm text-slate-500">
+            Không có bài hát trong album này.
           </div>
         )}
       </Section>
 
-      <Section title="Dấu thời gian hệ thống" icon={CalendarDays}>
-        <div className="grid gap-5 md:grid-cols-2">
+      <Section title="Thông tin hệ thống" icon={CalendarDays}>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <Field label="Ngày tạo album" value={formatDateTime(album?.createdAt)} />
           <Field
             label="Ngày cập nhật album"
             value={formatDateTime(album?.updatedAt)}
           />
-        </div>
-      </Section>
-
-      <Section title="Lưu ý moderation" icon={ShieldAlert}>
-        <div className="rounded-xl bg-slate-100 px-4 py-4 text-sm leading-6 text-slate-600">
-          Khi block album, backend sẽ block các track liên quan theo rule đã mô tả.
-          Khi unblock, hệ thống chỉ restore các track bị khóa bởi chính album này.
-          UI đang dùng thẳng dữ liệu trả về từ API để render và cập nhật state.
+          <Field label="Ngày phát hành" value={formatDate(album?.releaseDate)} />
+          <Field label="Trạng thái album" value={albumStatus.label} />
         </div>
       </Section>
     </div>
