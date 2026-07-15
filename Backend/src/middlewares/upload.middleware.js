@@ -3,24 +3,46 @@ import multer from "multer";
 // Store files in memory before uploading to Cloudinary
 const storage = multer.memoryStorage();
 
-const ALLOWED_AUDIO_FORMATS = [
-  "audio/mpeg",      // MP3
-  "audio/mp4",       // M4A, MP4 audio
-  "audio/wav",       // WAV
-  "audio/webm",      // WebM
-  "audio/ogg",       // OGG
-  "video/mp4",       // MP4 video container (for audio)
-];
+const ALLOWED_AUDIO_MIME_TYPES = new Set([
+  "audio/mpeg",
+  "audio/mp3",
+  "audio/mp4",
+  "audio/x-m4a",
+  "audio/aac",
+  "audio/x-aac",
+  "audio/wav",
+  "audio/wave",
+  "audio/x-wav",
+  "audio/vnd.wave",
+  "audio/flac",
+  "audio/x-flac",
+]);
+
+const ALLOWED_AUDIO_EXTENSIONS = new Set([
+  ".mp3",
+  ".m4a",
+  ".aac",
+  ".wav",
+  ".flac",
+]);
 
 const fileFilter = (req, file, cb) => {
+  const lowerFileName = String(file.originalname || "").toLowerCase();
+  const hasAllowedAudioExtension = [...ALLOWED_AUDIO_EXTENSIONS].some((extension) =>
+    lowerFileName.endsWith(extension)
+  );
+  const hasAllowedAudioMimeType = ALLOWED_AUDIO_MIME_TYPES.has(file.mimetype);
+
   // Accept audio files (for audioFiles)
-  if (file.fieldname === "audioFiles" && (file.mimetype.startsWith("audio/") || ALLOWED_AUDIO_FORMATS.includes(file.mimetype))) {
+  if (
+    file.fieldname === "audioFiles" &&
+    (hasAllowedAudioMimeType || hasAllowedAudioExtension)
+  ) {
     cb(null, true);
   }
-  // Sync o3ics: .lrc (timed text)
-  else if (file.fieldname === "o3icsSync") {
-    const name = (file.originalname || "").toLowerCase();
-    const extOk = name.endsWith(".lrc");
+  // Sync lyrics: .lrc (timed text)
+  else if (file.fieldname === "lyricsSync") {
+    const extOk = lowerFileName.endsWith(".lrc");
     const mimeOk =
       file.mimetype.startsWith("text/") ||
       file.mimetype === "application/octet-stream" ||
@@ -29,7 +51,7 @@ const fileFilter = (req, file, cb) => {
     if (extOk || mimeOk) {
       cb(null, true);
     } else {
-      cb(new Error("Sync o3ics must be a .lrc file (or plain text)."), false);
+      cb(new Error("Sync lyrics must be a .lrc file (or plain text)."), false);
     }
   }
   // Accept image files (for avatar and coverImages)
@@ -39,7 +61,14 @@ const fileFilter = (req, file, cb) => {
   ) {
     cb(null, true);
   } else {
-    cb(new Error(`Invalid file type for ${file.fieldname}. Allowed audio formats: ${ALLOWED_AUDIO_FORMATS.join(", ")}`), false);
+    cb(
+      new Error(
+        `Invalid file type for ${file.fieldname}. Allowed source audio formats: ${[
+          ...ALLOWED_AUDIO_EXTENSIONS,
+        ].join(", ")}`
+      ),
+      false
+    );
   }
 };
 

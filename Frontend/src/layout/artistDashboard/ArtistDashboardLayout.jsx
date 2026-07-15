@@ -1,21 +1,38 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { Bell, Menu, Search, X } from "lucide-react";
+import { useAuth } from "../../hooks/useAuth";
+import { useSocket } from "../../hooks/useSocket";
+import { getMyArtistNotificationsService } from "../../services/artist.notification.service";
 import { getMyArtistProfileService } from "../../services/artistService";
 import { routePaths } from "../../routes/routePaths";
-import {
-  artistNavigation,
-  artistPageTitles,
-  artistProfile,
-} from "./navigation";
+import { artistNavigation, artistProfile } from "./navigationConfig";
 
 const SIDEBAR_WIDTH = "264px";
+const ARTIST_NOTIFICATIONS_PATH = routePaths.artistNotifications;
 
 const ArtistDashboardLayout = () => {
-  const location = useLocation();
+  const navigate = useNavigate();
+  const { accessToken } = useAuth();
+  const socket = useSocket(accessToken);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [sidebarArtistName, setSidebarArtistName] = useState("");
   const [sidebarArtistSubtitle, setSidebarArtistSubtitle] = useState("");
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchUnreadCount = useCallback(async () => {
+    try {
+      const result = await getMyArtistNotificationsService({
+        page: 1,
+        limit: 1,
+        isRead: false,
+      });
+
+      setUnreadCount(Number(result?.meta?.unreadCount || 0));
+    } catch (error) {
+      console.error("Unable to load artist notification unread count:", error);
+    }
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -30,8 +47,8 @@ const ArtistDashboardLayout = () => {
         setSidebarArtistName(profile.name || artistProfile.name);
         const statusLabel =
           profile.verificationStatus === "verified"
-            ? "Verified artist"
-            : `Verification: ${profile.verificationStatus}`;
+            ? "Nghệ sĩ đã xác minh"
+            : `Trạng thái xác minh: ${profile.verificationStatus}`;
         setSidebarArtistSubtitle(statusLabel);
       } catch {
         if (isMounted) {
@@ -48,60 +65,81 @@ const ArtistDashboardLayout = () => {
     };
   }, []);
 
-  const pageTitle = useMemo(() => {
-    if (
-      location.pathname.startsWith("/artist/music/") &&
-      location.pathname.endsWith("/edit")
-    ) {
-      return artistPageTitles[routePaths.artistTrackEdit()] ?? "Edit Track";
+  useEffect(() => {
+    fetchUnreadCount();
+  }, [fetchUnreadCount]);
+
+  useEffect(() => {
+    if (!socket) {
+      return undefined;
     }
 
-    if (location.pathname.startsWith("/artist/music/") && location.pathname !== routePaths.artistMusic) {
-      return artistPageTitles[routePaths.artistTrackDetail()] ?? "Track Detail";
-    }
+    const handleNewNotification = () => {
+      setUnreadCount((previousCount) => previousCount + 1);
+    };
 
-    if (location.pathname === routePaths.artistProfileEdit) {
-      return artistPageTitles[routePaths.artistProfileEdit] ?? "Artist Dashboard";
-    }
+    const handleNotificationRefresh = () => {
+      fetchUnreadCount();
+    };
 
-    if (location.pathname === routePaths.artistProfile) {
-      return artistPageTitles[routePaths.artistProfile] ?? "Artist Dashboard";
-    }
+    socket.on("new_notification", handleNewNotification);
+    socket.on("update_notification", handleNotificationRefresh);
+    socket.on("delete_notification", handleNotificationRefresh);
 
-    const activeItem = artistNavigation.find((item) => {
-      if (item.to === "/artist") {
-        return location.pathname === item.to;
+    return () => {
+      socket.off("new_notification", handleNewNotification);
+      socket.off("update_notification", handleNotificationRefresh);
+      socket.off("delete_notification", handleNotificationRefresh);
+    };
+  }, [fetchUnreadCount, socket]);
+
+  useEffect(() => {
+    const handleUnreadDelta = (event) => {
+      const delta = Number(event.detail?.delta || 0);
+
+      if (!delta) {
+        return;
       }
 
-      return location.pathname.startsWith(item.to);
-    });
+      setUnreadCount((previousCount) => Math.max(0, previousCount + delta));
+    };
 
-    return artistPageTitles[activeItem?.to] ?? "Artist Dashboard";
-  }, [location.pathname]);
+    const handleNotificationRefresh = () => {
+      fetchUnreadCount();
+    };
 
-  const ProfileIcon = artistProfile.icon;
+    window.addEventListener("artist-notifications:unread-delta", handleUnreadDelta);
+    window.addEventListener("artist-notifications:refresh", handleNotificationRefresh);
+
+    return () => {
+      window.removeEventListener("artist-notifications:unread-delta", handleUnreadDelta);
+      window.removeEventListener("artist-notifications:refresh", handleNotificationRefresh);
+    };
+  }, [fetchUnreadCount]);
 
   const renderSidebar = () => (
-    <div className="flex h-full flex-col bg-[#171210] text-white">
+    <div className="flex h-full flex-col bg-[#2f2747] text-white">
       <div className="flex items-center justify-between border-b border-white/10 px-6 py-6 lg:justify-start">
         <div>
-          <p className="text-xs uppercase tracking-[0.45em] text-[#b08b65]">
+          <p className="text-xs font-semibold uppercase tracking-[0.45em] text-[#d6b48c]">
             RESO MUSIC
           </p>
-          <p className="mt-2 text-sm text-white/50">Artist Console</p>
+          <p className="mt-2 text-sm font-medium text-white/55">
+            Trung tâm nghệ sĩ
+          </p>
         </div>
 
         <button
           type="button"
           onClick={() => setIsSidebarOpen(false)}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-sm border border-white/10 text-white/70 transition hover:bg-white/5 hover:text-white lg:hidden"
-          aria-label="Close sidebar"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 text-white/60 transition hover:bg-white/10 hover:text-white lg:hidden"
+          aria-label="Đóng thanh điều hướng"
         >
           <X className="h-5 w-5" />
         </button>
       </div>
 
-      <nav className="flex-1 space-y-1 py-6">
+      <nav className="flex-1 space-y-1 py-5 pl-3 pr-0">
         {artistNavigation.map((item) => (
           <NavLink
             key={item.to}
@@ -110,43 +148,53 @@ const ArtistDashboardLayout = () => {
             onClick={() => setIsSidebarOpen(false)}
             className={({ isActive }) =>
               [
-                "mx-3 flex items-center gap-3 px-4 py-3 text-sm font-medium transition",
+                "relative flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-200",
                 isActive
-                  ? "rounded-r-md bg-[#f5efe7] text-[#2a2019]"
-                  : "text-white/70 hover:bg-white/5 hover:text-white",
+                  ? "mr-0 rounded-l-xl rounded-r-none bg-white text-[#5f4fe0]"
+                  : "mr-3 rounded-xl text-white/60 hover:bg-white/10 hover:text-white",
               ].join(" ")
             }
           >
-            <item.icon className="h-4 w-4 shrink-0" />
-            <span>{item.label}</span>
+            {({ isActive }) => (
+              <>
+                {isActive ? (
+                  <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-[#d6b48c]" />
+                ) : null}
+
+                <item.icon
+                  className={[
+                    "h-4 w-4 shrink-0 transition",
+                    isActive ? "text-[#5f4fe0]" : "text-white/45",
+                  ].join(" ")}
+                />
+
+                <span className="truncate">{item.label}</span>
+
+                {item.to === ARTIST_NOTIFICATIONS_PATH && unreadCount > 0 ? (
+                  <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-[#d6b48c] px-1.5 py-0.5 text-[11px] font-semibold leading-none text-[#2f2747]">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                ) : null}
+              </>
+            )}
           </NavLink>
         ))}
       </nav>
 
-      <div className="border-t border-white/10 px-4 py-5">
-        <div className="rounded-md border border-white/10 bg-[#201915] p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-sm bg-[#8b5e3c] text-white">
-              <ProfileIcon className="h-5 w-5" />
-            </div>
-
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-white">
-                {sidebarArtistName || artistProfile.name}
-              </p>
-              <p className="truncate text-xs text-white/55">
-                {sidebarArtistSubtitle || artistProfile.role}
-              </p>
-            </div>
+      <div className="border-t border-white/10 px-6 py-5">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-sm font-semibold text-[#d6b48c] ring-1 ring-white/10">
+            {(sidebarArtistName || artistProfile.name || "A").charAt(0).toUpperCase()}
           </div>
 
-          <Link
-            to={routePaths.artistProfile}
-            onClick={() => setIsSidebarOpen(false)}
-            className="mt-4 block w-full rounded-sm border border-[#8b5e3c]/45 px-3 py-2 text-center text-sm font-medium text-[#d0b290] transition hover:bg-[#8b5e3c] hover:text-white"
-          >
-            View Profile
-          </Link>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-white">
+              {sidebarArtistName || artistProfile.name}
+            </p>
+            <p className="mt-1 truncate text-xs text-white/50">
+              {sidebarArtistSubtitle || artistProfile.role}
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -155,11 +203,11 @@ const ArtistDashboardLayout = () => {
   return (
     <div
       data-artist-dashboard
-      className="scheme-light h-screen overflow-hidden bg-[#f6f0e8] text-[#221a14] [color-scheme:light]"
+      className="scheme-light h-screen overflow-hidden bg-white text-[#221a14] [color-scheme:light]"
     >
       <div className="flex h-full overflow-hidden">
         <aside
-          className="fixed inset-y-0 left-0 z-30 hidden border-r border-[#2f2721] lg:block"
+          className="fixed inset-y-0 left-0 z-30 hidden border-r border-[#ece8ff] lg:block"
           style={{ width: SIDEBAR_WIDTH }}
         >
           {renderSidebar()}
@@ -178,7 +226,7 @@ const ArtistDashboardLayout = () => {
 
         <aside
           className={[
-            "fixed inset-y-0 left-0 z-50 w-[264px] max-w-[85vw] border-r border-[#2f2721] transition-transform duration-200 lg:hidden",
+            "fixed inset-y-0 left-0 z-50 w-[264px] max-w-[85vw] border-r border-[#ece8ff] transition-transform duration-200 lg:hidden",
             isSidebarOpen ? "translate-x-0" : "-translate-x-full",
           ].join(" ")}
         >
@@ -186,26 +234,17 @@ const ArtistDashboardLayout = () => {
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col lg:pl-[264px]">
-          <header className="border-b border-neutral-200 bg-white">
+          <header className="border-b border-[#ece8ff] bg-white">
             <div className="flex items-center justify-between gap-4 px-6 py-4">
               <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => setIsSidebarOpen(true)}
                   className="inline-flex h-10 w-10 items-center justify-center rounded-sm border border-neutral-200 text-[#3a2d23] transition hover:bg-neutral-50 lg:hidden"
-                  aria-label="Open sidebar"
+                  aria-label="Mở thanh điều hướng"
                 >
                   <Menu className="h-5 w-5" />
                 </button>
-
-                <div>
-                  <h1 className="text-2xl font-semibold tracking-tight text-[#241b15]">
-                    {pageTitle}
-                  </h1>
-                  <p className="mt-1 text-sm text-neutral-500">
-                    Manage your catalog, audience, and performance in one place.
-                  </p>
-                </div>
               </div>
 
               <div className="flex items-center gap-3">
@@ -213,23 +252,29 @@ const ArtistDashboardLayout = () => {
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
                   <input
                     type="search"
-                    placeholder="Search releases or tracks"
-                    className="h-10 w-60 rounded-sm border border-neutral-200 bg-[#fffdf9] pl-9 pr-3 text-sm text-[#2a2019] outline-none transition placeholder:text-neutral-400 focus:border-[#8b5e3c]"
+                    placeholder="Tìm bản phát hành hoặc bài hát"
+                    className="h-10 w-60 rounded-sm border border-[#ece8ff] bg-white pl-9 pr-3 text-sm text-[#2f2747] outline-none transition placeholder:text-[#9a93b8] focus:border-[#7c6cf2]"
                   />
                 </label>
 
                 <button
                   type="button"
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-sm border border-neutral-200 text-[#3a2d23] transition hover:bg-neutral-50"
-                  aria-label="Notifications"
+                  onClick={() => navigate(routePaths.artistNotifications)}
+                  className="relative inline-flex h-10 w-10 items-center justify-center rounded-sm border border-[#ece8ff] text-[#5f4fe0] transition hover:bg-[#f8f6ff]"
+                  aria-label="Thông báo"
                 >
                   <Bell className="h-5 w-5" />
+                  {unreadCount > 0 ? (
+                    <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-[#5f4fe0] px-1.5 py-0.5 text-[11px] font-semibold leading-none text-white">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  ) : null}
                 </button>
               </div>
             </div>
           </header>
 
-          <main className="min-h-0 flex-1 overflow-y-auto bg-[#f8f4ef]">
+          <main className="min-h-0 flex-1 overflow-y-auto bg-white">
             <div className="p-6">
               <Outlet />
             </div>

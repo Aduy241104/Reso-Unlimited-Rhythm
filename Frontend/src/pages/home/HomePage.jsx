@@ -1,130 +1,244 @@
-import { useEffect, useState } from "react";
 import ContentCardSection from "../../components/content/ContentCardSection";
+import DailyTopArtistsSection from "../../components/home/DailyTopArtistsSection";
+import TrackChartSection from "../../components/home/TrackChartSection";
+import { useAuth } from "../../hooks/useAuth";
 import { useContentPlayback } from "../../hooks/useContentPlayback";
-import { getAlbumsService } from "../../services/albumService";
-import { getSystemPlaylistsService } from "../../services/playlistService";
-import { getApiErrorMessage } from "../../utils/apiError";
+import { useHomePageData } from "../../hooks/useHomePageData";
+import { useRecommendationMixes } from "../../hooks/useRecommendationMixes";
+import { routePaths } from "../../routes/routePaths";
+import { mapDailyTopTracksToContentCards } from "../../utils/dailyTopTracks";
 import {
   mapAlbumsToContentCards,
   mapSystemPlaylistsToContentCards,
 } from "../../utils/homeContent";
+import { mapMonthlyTopArtistsToContentCards } from "../../utils/monthlyTopArtists";
+import { mapMonthlyTopTracksToContentCards } from "../../utils/monthlyTopTracks";
+import {
+  getRecommendationUserDisplayName,
+  mapRecommendationMixesToContentCards,
+} from "../../utils/recommendation";
 
 const HomePage = () => {
-  const [albums, setAlbums] = useState([]);
-  const [systemPlaylists, setSystemPlaylists] = useState([]);
-  const [isLoadingAlbums, setIsLoadingAlbums] = useState(true);
-  const [isLoadingSystemPlaylists, setIsLoadingSystemPlaylists] = useState(true);
-  const [albumsError, setAlbumsError] = useState("");
-  const [systemPlaylistsError, setSystemPlaylistsError] = useState("");
-  const { playbackError, playAlbumItem, playPlaylistItem } = useContentPlayback();
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadHomeContent = async () => {
-      setIsLoadingAlbums(true);
-      setIsLoadingSystemPlaylists(true);
-      setAlbumsError("");
-      setSystemPlaylistsError("");
-
-      const [albumsResult, systemPlaylistsResult] = await Promise.allSettled([
-        getAlbumsService({ limit: 10 }),
-        getSystemPlaylistsService({ limit: 10 }),
-      ]);
-
-      if (!isMounted) {
-        return;
-      }
-
-      if (albumsResult.status === "fulfilled") {
-        setAlbums(albumsResult.value.albums);
-      } else {
-        setAlbums([]);
-        setAlbumsError(
-          getApiErrorMessage(
-            albumsResult.reason,
-            "Unable to load albums from the backend right now."
-          )
-        );
-      }
-
-      if (systemPlaylistsResult.status === "fulfilled") {
-        setSystemPlaylists(systemPlaylistsResult.value.playlists);
-      } else {
-        setSystemPlaylists([]);
-        setSystemPlaylistsError(
-          getApiErrorMessage(
-            systemPlaylistsResult.reason,
-            "Unable to load system playlists from the backend right now."
-          )
-        );
-      }
-
-      setIsLoadingAlbums(false);
-      setIsLoadingSystemPlaylists(false);
-    };
-
-    loadHomeContent();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  const { isAuthenticated, isLoading: isAuthLoading, user } = useAuth();
+  const {
+    albums,
+    systemPlaylists,
+    dailyTopTracks,
+    dailyTopTracksMeta,
+    monthlyTopTracks,
+    monthlyTopTracksMeta,
+    monthlyTopArtists,
+    monthlyTopArtistsMeta,
+    dailyTopArtists,
+    isLoadingAlbums,
+    isLoadingSystemPlaylists,
+    isLoadingDailyTopTracks,
+    isLoadingMonthlyTopTracks,
+    isLoadingMonthlyTopArtists,
+    isLoadingDailyTopArtists,
+    albumsError,
+    systemPlaylistsError,
+    dailyTopTracksError,
+    monthlyTopTracksError,
+    monthlyTopArtistsError,
+    dailyTopArtistsError,
+    dailyTopTracksDate,
+    monthlyTopTracksDate,
+    monthlyTopArtistsDate,
+    dailyTopTracksLimit,
+    monthlyTopTracksLimit,
+    monthlyTopArtistsLimit,
+  } = useHomePageData();
+  const {
+    mixes: recommendationMixes,
+    isLoading: isLoadingRecommendationMixes,
+    errorMessage: recommendationMixesError,
+  } = useRecommendationMixes({
+    enabled: isAuthenticated && !isAuthLoading,
+  });
+  const {
+    playbackError,
+    playAlbumItem,
+    playPlaylistItem,
+    playRecommendationMixItem,
+  } = useContentPlayback();
+  const recommendationUserName = getRecommendationUserDisplayName(user);
+  const shouldShowRecommendationSection = isAuthenticated && !isAuthLoading;
 
   return (
-    <section className="space-y-8 sm:space-y-10">
-      { albumsError ? (
+    <section className="space-y-6 sm:space-y-8 lg:space-y-10 p-5">
+      {albumsError ? (
         <div
           className="
             rounded-[18px] border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm
             text-amber-700 dark:text-amber-300
           "
         >
-          { albumsError }
+          {albumsError}
         </div>
-      ) : null }
+      ) : null}
 
-      { systemPlaylistsError ? (
+      {systemPlaylistsError ? (
         <div
           className="
             rounded-[18px] border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm
             text-amber-700 dark:text-amber-300
           "
         >
-          { systemPlaylistsError }
+          {systemPlaylistsError}
         </div>
-      ) : null }
+      ) : null}
 
-      { playbackError ? (
+      {recommendationMixesError ? (
+        <div
+          className="
+            rounded-[18px] border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm
+            text-amber-700 dark:text-amber-300
+          "
+        >
+          {recommendationMixesError}
+        </div>
+      ) : null}
+
+      {dailyTopTracksError ? (
+        <div
+          className="
+            rounded-[18px] border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm
+            text-amber-700 dark:text-amber-300
+          "
+        >
+          {dailyTopTracksError}
+        </div>
+      ) : null}
+
+      {monthlyTopTracksError ? (
+        <div
+          className="
+            rounded-[18px] border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm
+            text-amber-700 dark:text-amber-300
+          "
+        >
+          {monthlyTopTracksError}
+        </div>
+      ) : null}
+
+      {monthlyTopArtistsError ? (
+        <div
+          className="
+            rounded-[18px] border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm
+            text-amber-700 dark:text-amber-300
+          "
+        >
+          {monthlyTopArtistsError}
+        </div>
+      ) : null}
+
+      <TrackChartSection
+        label="Bảng xếp hạng"
+        title="Top nhạc nổi bật"
+        description="Theo dõi nhanh các bảng xếp hạng theo ngày, theo tháng và nghệ sĩ đang dẫn đầu."
+        items={[
+          ...(!dailyTopTracksError
+            ? mapDailyTopTracksToContentCards({
+                topTracks: dailyTopTracks,
+                meta: dailyTopTracksMeta || {},
+                date: dailyTopTracksDate,
+                limit: dailyTopTracksLimit,
+              }).map((item) => ({
+                ...item,
+                raw: {
+                  ...item.raw,
+                  period: "daily",
+                },
+              }))
+            : []),
+          ...(!monthlyTopTracksError
+            ? mapMonthlyTopTracksToContentCards({
+                topTracks: monthlyTopTracks,
+                meta: monthlyTopTracksMeta || {},
+                month: monthlyTopTracksDate,
+                limit: monthlyTopTracksLimit,
+              }).map((item) => ({
+                ...item,
+                raw: {
+                  ...item.raw,
+                  period: "monthly",
+                },
+              }))
+            : []),
+          ...(!monthlyTopArtistsError
+            ? mapMonthlyTopArtistsToContentCards({
+                topArtists: monthlyTopArtists,
+                meta: monthlyTopArtistsMeta || {},
+                month: monthlyTopArtistsDate,
+                limit: monthlyTopArtistsLimit,
+              })
+            : []),
+        ]}
+        isLoading={
+          isLoadingDailyTopTracks ||
+          isLoadingMonthlyTopTracks ||
+          isLoadingMonthlyTopArtists
+        }
+        emptyMessage="Hiện chưa có dữ liệu bảng xếp hạng."
+        showPlayButton={false}
+        actionLabel="Xem tất cả bảng xếp hạng"
+        actionHref={routePaths.dailyTopTracks}
+      />
+
+      <ContentCardSection
+        title="Playlist hệ thống"
+        description="Khám phá các playlist được tuyển chọn để phù hợp với từng khoảnh khắc nghe nhạc của bạn."
+        items={mapSystemPlaylistsToContentCards(systemPlaylists)}
+        isLoading={isLoadingSystemPlaylists}
+        emptyMessage="Hiện chưa có dữ liệu playlist hệ thống."
+        onPlay={playPlaylistItem}
+      />
+
+      {shouldShowRecommendationSection ? (
+        <ContentCardSection
+          label="Daily Mix"
+          title={`Dành cho ${recommendationUserName}`}
+          description="Những playlist gợi ý được làm mới mỗi ngày dựa trên lịch sử nghe, lượt thích và playlist của bạn."
+          items={mapRecommendationMixesToContentCards(
+            recommendationMixes,
+            recommendationUserName
+          )}
+          isLoading={isLoadingRecommendationMixes}
+          emptyMessage="Hôm nay chưa có playlist gợi ý cá nhân nào sẵn sàng."
+          onPlay={(item) => playRecommendationMixItem(item, user)}
+        />
+      ) : null}
+
+      <ContentCardSection
+        label="Album"
+        title="Album nổi bật"
+        description="Khám phá các album nổi bật và tuyển tập âm nhạc phù hợp với mọi tâm trạng."
+        items={mapAlbumsToContentCards(albums)}
+        isLoading={isLoadingAlbums}
+        emptyMessage="Hiện chưa có dữ liệu album."
+        onPlay={playAlbumItem}
+      />
+
+      <DailyTopArtistsSection
+        title="Top nghệ sĩ theo ngày"
+        description="Những nghệ sĩ được nghe nhiều nhất hôm nay."
+        items={dailyTopArtists}
+        isLoading={isLoadingDailyTopArtists}
+        errorMessage={dailyTopArtistsError}
+        emptyMessage="Hôm nay chưa có dữ liệu xếp hạng."
+      />
+
+      {playbackError ? (
         <div
           className="
             rounded-[18px] border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm
             text-rose-700 dark:text-rose-300
           "
         >
-          { playbackError }
+          {playbackError}
         </div>
-      ) : null }
-
-      <ContentCardSection
-        label="System playlists"
-        title="System Playlist"
-        description="This section is rendered directly from the system playlist API."
-        items={ mapSystemPlaylistsToContentCards(systemPlaylists) }
-        isLoading={ isLoadingSystemPlaylists }
-        emptyMessage="The system playlist endpoint returned no data yet."
-        onPlay={ playPlaylistItem }
-      />
-
-      <ContentCardSection
-        label="Backend albums"
-        title="Latest album data"
-        description="Album cards are loaded from the existing backend API through a dedicated service layer."
-        items={ mapAlbumsToContentCards(albums) }
-        isLoading={ isLoadingAlbums }
-        emptyMessage="The album endpoint returned no data yet."
-        onPlay={ playAlbumItem }
-      />
+      ) : null}
     </section>
   );
 };

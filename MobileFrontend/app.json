@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "MobileFrontend",
+    "slug": "MobileFrontend",
+    "scheme": "resounlimitedrhythm",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true,
+          "NSAllowsLocalMessaging": true
+        }
+      }
+    },
+    "android": {
+      "usesCleartextTraffic": true
+    },
+    "plugins": [
+      "expo-audio"
+    ]
+  }
+}

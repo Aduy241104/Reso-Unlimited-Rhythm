@@ -9,9 +9,9 @@ const PopularTracksSection = ({
   return (
     <section className="space-y-5">
       <SectionHeader
-        eyebrow="Most played"
-        title="Popular"
-        description="A focused view of the tracks pulling the strongest audience response right now."
+        eyebrow="Nghe nhiều"
+        title="Phổ biến"
+        description="Những bài hát đang nhận được nhiều sự quan tâm nhất từ người nghe."
         action={
           <button
             type="button"
@@ -24,7 +24,7 @@ const PopularTracksSection = ({
               hover:shadow-[0_0_24px_rgba(29,185,84,0.3)]
             "
           >
-            Coming Soon
+            Sắp ra mắt
           </button>
         }
       />
@@ -32,9 +32,9 @@ const PopularTracksSection = ({
       <div className="bg-transparent">
         <div className="grid grid-cols-[2.25rem_minmax(0,1fr)_auto] gap-3 px-3 pb-3 pt-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-white/34 sm:grid-cols-[2.25rem_minmax(0,1.2fr)_minmax(0,0.8fr)_4rem]">
           <span>#</span>
-          <span>Title</span>
-          <span className="hidden sm:block">Plays</span>
-          <span className="text-right">Time</span>
+          <span>Tiêu đề</span>
+          <span className="hidden sm:block">Lượt phát</span>
+          <span className="text-right">Thời lượng</span>
         </div>
 
         { isLoading ? (
@@ -72,7 +72,7 @@ const PopularTracksSection = ({
           </div>
         ) : (
           <div className="px-4 py-8 text-sm text-white/48">
-            No popular tracks available from the backend yet.
+            Chưa có bài hát phổ biến nào từ hệ thống.
           </div>
         ) }
       </div>

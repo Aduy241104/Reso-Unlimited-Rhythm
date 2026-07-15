@@ -1,19 +1,29 @@
-const AuthCard = ({ title, subtitle, children, footer, theme = "light" }) => {
+const AuthCard = ({
+  title,
+  subtitle,
+  children,
+  footer,
+  headerContent,
+  theme = "light",
+  className = "",
+  headerClassName = "",
+  footerClassName = "",
+}) => {
   const isDark = theme === "dark";
 
   return (
     <section
-      className={`relative overflow-hidden rounded-[28px] p-6 backdrop-blur sm:p-8 ${
+      className={`relative overflow-hidden rounded-2xl p-5 backdrop-blur sm:p-6 lg:p-7 ${
         isDark
-          ? "border border-[#f5b66f]/15 bg-[#121118]/82 shadow-[0_30px_100px_rgba(245,158,66,0.18)]"
-          : "border border-white/60 bg-white/90 shadow-[0_24px_80px_rgba(15,23,42,0.14)]"
-      }`}
+          ? "border border-white/10 bg-[#121118]/88 shadow-[0_24px_70px_rgba(0,0,0,0.34)]"
+          : "border border-black/10 bg-white/95 shadow-[0_24px_80px_rgba(15,23,42,0.08)]"
+      } ${className}`}
     >
       <div
-        className={`absolute inset-x-0 top-0 h-1.5 ${
+        className={`absolute inset-x-0 top-0 h-px ${
           isDark
             ? "bg-gradient-to-r from-[#f5b66f] via-[#d98235] to-[#4f7cff]"
-            : "bg-gradient-to-r from-emerald-500 via-cyan-500 to-sky-500"
+            : "bg-gradient-to-r from-black via-zinc-700 to-zinc-300"
         }`}
       />
       {isDark ? (
@@ -25,18 +35,15 @@ const AuthCard = ({ title, subtitle, children, footer, theme = "light" }) => {
       ) : null}
 
       <div className="relative">
-        <header className="mb-8">
-          <p
-            className={`mb-3 inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.28em] ${
-              isDark
-                ? "border border-[#f5b66f]/20 bg-white/5 text-[#f5b66f]"
-                : "border border-emerald-200 bg-emerald-50 text-emerald-700"
+        <header className={`mb-5 ${headerClassName}`}>
+          {headerContent ? <div className="mb-4">{headerContent}</div> : null}
+          <div
+            className={`auth-card-divider mb-3 h-px w-14 ${
+              isDark ? "bg-[#f5b66f]/70" : "bg-black/70"
             }`}
-          >
-            Capstone Account
-          </p>
+          />
           <h1
-            className={`text-3xl font-semibold tracking-tight ${
+            className={`text-2xl font-semibold tracking-tight sm:text-3xl ${
               isDark ? "text-white" : "text-slate-950"
             }`}
           >
@@ -44,7 +51,7 @@ const AuthCard = ({ title, subtitle, children, footer, theme = "light" }) => {
           </h1>
           {subtitle ? (
             <p
-              className={`mt-3 max-w-lg text-sm leading-6 ${
+              className={`auth-card-subtitle mt-3 max-w-xl text-sm leading-6 ${
                 isDark ? "text-[#d9d5cf]" : "text-slate-600"
               }`}
             >
@@ -57,7 +64,7 @@ const AuthCard = ({ title, subtitle, children, footer, theme = "light" }) => {
 
         {footer ? (
           <footer
-            className={`mt-6 text-sm ${isDark ? "text-[#d9d5cf]" : "text-slate-600"}`}
+            className={`mt-5 text-sm ${isDark ? "text-[#d9d5cf]" : "text-slate-600"} ${footerClassName}`}
           >
             {footer}
           </footer>

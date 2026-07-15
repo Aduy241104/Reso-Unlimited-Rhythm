@@ -8,29 +8,29 @@ dotenv.config();
 const {
     Album,
     Artist,
+    ArtistDailyRanking,
     ArtistMonthlyStat,
     ArtistRequest,
     ArtistStat,
-    AuditLog,
-    Episode,
+    ArtistVerificationRequest,
     Genre,
     Interaction,
     ListenEvent,
     Notification,
     Plan,
     Playlist,
-    Podcast,
     RefreshToken,
     ReleaseSchedule,
     Report,
     SearchEvent,
     Subscription,
     Track,
+    TrackDailyRanking,
     TrackDailyStat,
+    TrackMonthlyRanking,
     TrackMonthlyStat,
     Transaction,
     User,
-    UserListeningStat,
     VerificationToken,
 } = models;
 
@@ -50,9 +50,11 @@ const ids = {
     genreTalk: oid("681300000000000000000203"),
 
     artistMain: oid("681300000000000000000301"),
+    artistDailyRanking: oid("681300000000000000000305"),
     artistRequest: oid("681300000000000000000302"),
     artistStat: oid("681300000000000000000303"),
     artistMonthlyStat: oid("681300000000000000000304"),
+    artistVerificationRequestClosed: oid("681300000000000000000306"),
 
     albumMain: oid("681300000000000000000401"),
 
@@ -60,9 +62,8 @@ const ids = {
     trackCityLights: oid("681300000000000000000502"),
     trackDailyStat: oid("681300000000000000000503"),
     trackMonthlyStat: oid("681300000000000000000504"),
-
-    podcastMain: oid("681300000000000000000601"),
-    episodeFocus: oid("681300000000000000000701"),
+    trackDailyRanking: oid("681300000000000000000505"),
+    trackMonthlyRanking: oid("681300000000000000000506"),
 
     playlistMain: oid("681300000000000000000801"),
 
@@ -74,7 +75,6 @@ const ids = {
 
     searchEventMain: oid("681300000000000000000b01"),
     listenTrackMain: oid("681300000000000000000b02"),
-    listenEpisodeMain: oid("681300000000000000000b03"),
     interactionTrackLike: oid("681300000000000000000b04"),
     interactionArtistFollow: oid("681300000000000000000b05"),
 
@@ -83,20 +83,33 @@ const ids = {
 
     reportMain: oid("681300000000000000000d01"),
     releaseScheduleMain: oid("681300000000000000000d02"),
-
-    userListeningStatMain: oid("681300000000000000000e01"),
-    auditLogMain: oid("681300000000000000000f01"),
 };
 
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 const daysAgo = (days) => new Date(Date.now() - days * DAY_IN_MS);
 const daysFromNow = (days) => new Date(Date.now() + days * DAY_IN_MS);
+const buildPlanSnapshot = ({
+    _id,
+    name,
+    price,
+    durationDays,
+    description = "",
+    features = [],
+    status = "active",
+}) => ({
+    originalPlanId: _id,
+    name,
+    price,
+    durationDays,
+    description,
+    features,
+    status,
+});
 
 const seedCollections = [
-    { model: AuditLog, ids: [ids.auditLogMain] },
     { model: Notification, ids: [ids.notificationUser, ids.notificationGlobal] },
     { model: Interaction, ids: [ids.interactionTrackLike, ids.interactionArtistFollow] },
-    { model: ListenEvent, ids: [ids.listenTrackMain, ids.listenEpisodeMain] },
+    { model: ListenEvent, ids: [ids.listenTrackMain] },
     { model: SearchEvent, ids: [ids.searchEventMain] },
     { model: Report, ids: [ids.reportMain] },
     { model: ReleaseSchedule, ids: [ids.releaseScheduleMain] },
@@ -104,16 +117,20 @@ const seedCollections = [
     { model: VerificationToken, ids: [ids.verificationTokenMain] },
     { model: Transaction, ids: [ids.transactionMain] },
     { model: Subscription, ids: [ids.subscriptionMain] },
-    { model: UserListeningStat, ids: [ids.userListeningStatMain] },
+    { model: TrackDailyRanking, ids: [ids.trackDailyRanking] },
     { model: TrackDailyStat, ids: [ids.trackDailyStat] },
+    { model: TrackMonthlyRanking, ids: [ids.trackMonthlyRanking] },
     { model: TrackMonthlyStat, ids: [ids.trackMonthlyStat] },
     { model: Playlist, ids: [ids.playlistMain] },
-    { model: Episode, ids: [ids.episodeFocus] },
-    { model: Podcast, ids: [ids.podcastMain] },
     { model: Track, ids: [ids.trackSunrise, ids.trackCityLights] },
     { model: Album, ids: [ids.albumMain] },
+    { model: ArtistDailyRanking, ids: [ids.artistDailyRanking] },
     { model: ArtistMonthlyStat, ids: [ids.artistMonthlyStat] },
     { model: ArtistStat, ids: [ids.artistStat] },
+    {
+        model: ArtistVerificationRequest,
+        ids: [ids.artistVerificationRequestClosed],
+    },
     { model: ArtistRequest, ids: [ids.artistRequest] },
     { model: Artist, ids: [ids.artistMain] },
     { model: Genre, ids: [ids.genreLofi, ids.genrePop, ids.genreTalk] },
@@ -128,13 +145,25 @@ const connectDatabase = async () => {
     if (!process.env.DATABASE) {
         throw new Error("Missing DATABASE in .env");
     }
-
+    // 🛠️ GIẢI PHÁP 1: Tắt AutoIndex để ngăn chặn Mongoose tự ý kích hoạt lệnh lỗi khi vừa kết nối
+    mongoose.set('autoIndex', false); 
     await mongoose.connect(process.env.DATABASE);
 };
 
 const ensureIndexes = async () => {
     for (const { model } of seedCollections) {
-        await model.init();
+        try {
+            // Khởi chạy dọn dẹp an toàn các index cũ bị kẹt
+            if (model.collection) {
+                await model.collection.dropIndex("date_1").catch(() => {});
+            }
+            await model.init();
+        } catch (error) {
+            // 🛠️ GIẢI PHÁP 2: Khóa lỗi Code 86 (Xung đột Index) để script chạy mượt mà không bị ngắt quãng
+            if (error.code !== 86) {
+                throw error;
+            }
+        }
     }
 };
 
@@ -295,7 +324,7 @@ const seedGenres = async () => {
         {
             _id: ids.genreTalk,
             name: "Seed Talk",
-            description: "Noi dung podcast va talk show.",
+            description: "Noi dung talk show va chia se.",
             image: "https://images.unsplash.com/photo-1478737270239-2f02b77fc618",
             isActive: true,
         },
@@ -315,12 +344,19 @@ const seedArtistData = async () => {
             instagram: "https://instagram.com/seedwaves",
             youtube: "https://youtube.com/@seedwaves",
         },
-        verificationStatus: "verified",
         stats: {
             followers: 5200,
             totalStreams: 128450,
         },
         activeStatus: "active",
+    });
+
+    await ArtistVerificationRequest.create({
+        _id: ids.artistVerificationRequestClosed,
+        artistId: ids.artistMain,
+        userId: ids.userArtist,
+        status: "closed",
+        note: "Seeded as previously verified artist profile.",
     });
 
     await ArtistRequest.create({
@@ -394,7 +430,7 @@ const seedMusicCatalog = async () => {
         trackList: [],
         releaseDate: daysAgo(30),
         status: "active",
-        totalPlays: 21345,
+        totalDuration: 0,
     });
 
     await Track.insertMany([
@@ -409,11 +445,15 @@ const seedMusicCatalog = async () => {
                     url: "https://example.com/audio/sunrise-cache.mp4",
                     format: "mp4",
                     bitrate: 128,
+                    label: "original",
+                    priority: 1
                 },
                 {
                     url: "https://example.com/audio/sunrise-cache.mp3",
                     format: "mp3",
                     bitrate: 320,
+                    label: "high",
+                    priority: 2
                 },
             ],
             duration: 228,
@@ -421,7 +461,7 @@ const seedMusicCatalog = async () => {
             coverImage: [
                 "https://images.unsplash.com/photo-1501386761578-eac5c94b800a",
             ],
-            lyricsStatic: "Caching dreams until the city wakes up.",
+            lyricsStatic: "Caching dreams until the city wakes up.\nNeon horizons starting to glow.",
             lyricsSyncUrl: "https://example.com/lyrics/sunrise-cache.lrc",
             stats: {
                 totalLike: 950,
@@ -430,6 +470,35 @@ const seedMusicCatalog = async () => {
             releaseDate: daysAgo(21),
             activeStatus: "active",
             approvalStatus: "approved",
+
+            // 🔴 BÙ ĐẮP DỮ LIỆU BẢN QUYỀN CHUẨN ĐỂ ĐỔ LÊN TRANG CHI TIẾT FRONTEND
+            copyright: {
+                copyrightOwner: "Reso Unlimited Rhythm Publishing Ltd.",
+                recordingOwner: "Seed Waves Records Entertainment",
+                composer: "Le Minh Artist",
+                lyricist: "Nguyen Hoang Listener",
+                producer: "Seed Waves Production",
+                isOriginal: true,
+                isCover: false,
+                isRemix: false,
+                usesSample: false,
+                usesLicensedBeat: false,
+                originalTrackTitle: "",
+                originalArtistName: "",
+                licenseDocumentUrls: [
+                    "https://res.cloudinary.com/do5o9r18f/image/upload/v1779785319/reso/proofs/copyright_cert_sunrise.pdf"
+                ],
+                declarationAccepted: true,
+                copyrightStatus: "verified",
+                copyrightNote: "Chứng từ sở hữu trí tuệ hợp pháp đã được phê duyệt.",
+            },
+            moderation: {
+                submittedAt: daysAgo(25),
+                reviewedBy: ids.userAdmin,
+                reviewedAt: daysAgo(21),
+                adminNote: "Hồ sơ tác giả sạch sẽ, file âm thanh đạt chuẩn chất lượng phòng thu.",
+                violationFlags: []
+            }
         },
         {
             _id: ids.trackCityLights,
@@ -442,11 +511,15 @@ const seedMusicCatalog = async () => {
                     url: "https://example.com/audio/city-lights-commit.mp4",
                     format: "mp4",
                     bitrate: 128,
+                    label: "original",
+                    priority: 1
                 },
                 {
                     url: "https://example.com/audio/city-lights-commit.flac",
                     format: "flac",
                     bitrate: 1411,
+                    label: "high",
+                    priority: 2
                 },
             ],
             duration: 245,
@@ -463,6 +536,35 @@ const seedMusicCatalog = async () => {
             releaseDate: daysAgo(10),
             activeStatus: "active",
             approvalStatus: "approved",
+
+            // 🔴 BÙ ĐẮP DỮ LIỆU BẢN QUYỀN CHUẨN ĐỂ ĐỔ LÊN TRANG CHI TIẾT FRONTEND
+            copyright: {
+                copyrightOwner: "Sơn Thạch Media Group",
+                recordingOwner: "Indie Sound Lab",
+                composer: "Phạm Hải",
+                lyricist: "Anonymous Lyricist",
+                producer: "HypeBeast Beats",
+                isOriginal: false,
+                isCover: false,
+                isRemix: true,
+                usesSample: true,
+                usesLicensedBeat: true,
+                originalTrackTitle: "City Lights Silhouette (Retro Version 1998)",
+                originalArtistName: "The Vintage Synth Band",
+                licenseDocumentUrls: [
+                    "https://res.cloudinary.com/do5o9r18f/image/upload/v1779785319/reso/proofs/sample_clearance.pdf"
+                ],
+                declarationAccepted: true,
+                copyrightStatus: "disputed",
+                copyrightNote: "Đang có tranh chấp khiếu nại sample từ bên thứ ba.",
+            },
+            moderation: {
+                submittedAt: daysAgo(12),
+                reviewedBy: ids.userAdmin,
+                reviewedAt: daysAgo(10),
+                adminNote: "Phát hiện sai lệch metadata tác giả, tạm thời gắn cờ cảnh báo hệ thống.",
+                violationFlags: ["missing_rights_proof", "wrong_metadata"]
+            }
         },
     ]);
 
@@ -471,39 +573,7 @@ const seedMusicCatalog = async () => {
             { trackId: ids.trackSunrise, order: 1 },
             { trackId: ids.trackCityLights, order: 2 },
         ],
-    });
-};
-
-const seedPodcastData = async () => {
-    await Podcast.create({
-        _id: ids.podcastMain,
-        title: "Seed Stories",
-        artistId: ids.artistMain,
-        description: "Podcast mau de test episode, follow va nghe.",
-        coverImage: "https://images.unsplash.com/photo-1478737270239-2f02b77fc618",
-        trailerUrl: "https://example.com/audio/seed-stories-trailer.mp3",
-        stats: {
-            followers: 860,
-            totalPlays: 4410,
-        },
-        activeStatus: "active",
-    });
-
-    await Episode.create({
-        _id: ids.episodeFocus,
-        podcastId: ids.podcastMain,
-        title: "Focus Session 01",
-        description: "Tap podcast mau huong dan tap trung khi hoc va lam viec.",
-        thumbnailUrl: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3",
-        audioFiles: [
-            "https://example.com/audio/focus-session-01.mp3",
-        ],
-        duration: 1800,
-        stats: {
-            totalPlay: 1880,
-            totalLikes: 210,
-        },
-        activeStatus: "active",
+        totalDuration: 473,
     });
 };
 
@@ -527,10 +597,28 @@ const seedUserContent = async () => {
 };
 
 const seedCommerce = async () => {
+    const premiumPlanSnapshot = buildPlanSnapshot({
+        _id: ids.planPremium,
+        name: "Seed Premium",
+        price: 99000,
+        durationDays: 30,
+        description: "Goi premium mau de test thanh toan va subscription.",
+        features: [
+            "NO_ADS",
+            "HIGH_QUALITY_AUDIO",
+            "UNLIMITED_SKIP",
+            "OFFLINE_DOWNLOAD",
+            "BACKGROUND_PLAY",
+            "AI_SMART_PLAYLIST",
+        ],
+        status: "active",
+    });
+
     await Subscription.create({
         _id: ids.subscriptionMain,
         userId: ids.userListener,
         planId: ids.planPremium,
+        planSnapshot: premiumPlanSnapshot,
         status: "active",
         startDate: daysAgo(5),
         endDate: daysFromNow(25),
@@ -573,11 +661,6 @@ const seedAuthArtifacts = async (passwords) => {
         type: "verify_email",
         expiresAt: daysFromNow(2),
         isUsed: false,
-        payload: {
-            username: "",
-            password: passwords.pendingUser,
-            fullName: "Pending Seed User",
-        },
     });
 };
 
@@ -600,18 +683,6 @@ const seedActivity = async () => {
             completed: true,
             skipped: false,
             device: "web",
-            country: "Vietnam",
-        },
-        {
-            _id: ids.listenEpisodeMain,
-            userId: ids.userListener,
-            podcastId: ids.podcastMain,
-            episodeId: ids.episodeFocus,
-            listenedAt: daysAgo(2),
-            duration: 1320,
-            completed: false,
-            skipped: false,
-            device: "mobile",
             country: "Vietnam",
         },
     ]);
@@ -699,7 +770,47 @@ const seedModerationAndStats = async () => {
         date: daysAgo(1),
         playCount: 180,
         uniqueListeners: 124,
+        averageListenDuration: 204,
         skipCount: 18,
+    });
+
+    await TrackDailyRanking.create({
+        _id: ids.trackDailyRanking,
+        date: daysAgo(1),
+        rankings: [
+            {
+                trackId: ids.trackSunrise,
+                playCount: 180,
+                uniqueListeners: 124,
+                averageListenDuration: 204,
+                skipCount: 18,
+                rank: 1,
+            },
+            {
+                trackId: ids.trackCityLights,
+                playCount: 96,
+                uniqueListeners: 72,
+                averageListenDuration: 190,
+                skipCount: 11,
+                rank: 2,
+            },
+        ],
+    });
+
+    await ArtistDailyRanking.create({
+        _id: ids.artistDailyRanking,
+        date: daysAgo(1),
+        rankings: [
+            {
+                artistId: ids.artistMain,
+                playCount: 220,
+                uniqueListeners: 130,
+                completedPlayCount: 92,
+                totalTracksPlayed: 2,
+                score: 852,
+                rank: 1,
+            },
+        ],
     });
 
     const now = new Date();
@@ -712,69 +823,24 @@ const seedModerationAndStats = async () => {
         uniqueListeners: 2860,
     });
 
-    await UserListeningStat.create({
-        _id: ids.userListeningStatMain,
-        userId: ids.userListener,
+    await TrackMonthlyRanking.create({
+        _id: ids.trackMonthlyRanking,
         year: now.getFullYear(),
-        week: 18,
-        stats_totalListeningTime: 6840,
-        stats_totalTracksPlayed: 42,
-        topGenres: [
-            {
-                genreId: ids.genreLofi,
-                genreName: "Seed Lofi",
-                playCount: 24,
-                listeningTime: 3200,
-            },
-            {
-                genreId: ids.genrePop,
-                genreName: "Seed Pop",
-                playCount: 18,
-                listeningTime: 2100,
-            },
-        ],
-        topTracks: [
+        month: now.getMonth() + 1,
+        rankings: [
             {
                 trackId: ids.trackSunrise,
-                title: "Sunrise Cache",
-                playCount: 17,
-                listeningTime: 3876,
+                playCount: 4120,
+                uniqueListeners: 2860,
+                rank: 1,
             },
             {
                 trackId: ids.trackCityLights,
-                title: "City Lights Commit",
-                playCount: 12,
-                listeningTime: 2940,
+                playCount: 2810,
+                uniqueListeners: 1940,
+                rank: 2,
             },
         ],
-        topArtists: [
-            {
-                artistId: ids.artistMain,
-                name: "Seed Waves",
-                playCount: 29,
-            },
-        ],
-    });
-
-    await AuditLog.create({
-        _id: ids.auditLogMain,
-        actorId: ids.userAdmin,
-        action: "report.resolve",
-        targetType: "Report",
-        targetId: ids.reportMain,
-        reason: "Seed du lieu moderation cho he thong.",
-        metadata: {
-            before: {
-                status: "pending",
-            },
-            after: {
-                status: "resolved",
-                resolution: "warning",
-            },
-            note: "Du lieu mau duoc tao tu dong bang file seed.",
-        },
-        ipAddress: "127.0.0.1",
-        userAgent: "seed-script",
     });
 };
 
@@ -798,7 +864,6 @@ const main = async () => {
     await seedGenres();
     await seedArtistData();
     await seedMusicCatalog();
-    await seedPodcastData();
     await seedUserContent();
     await seedCommerce();
     await seedAuthArtifacts(passwords);

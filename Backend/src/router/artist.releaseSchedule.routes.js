@@ -1,0 +1,44 @@
+import express from "express";
+import artistReleaseScheduleController from "../controllers/artist.releaseSchedule.controller.js";
+import artistReleaseScheduleValidation from "../middlewares/artist.releaseSchedule.validation.js";
+import { requireArtist } from "../middlewares/Authentication/authentication.middleware.js";
+import validate from "../middlewares/validate.middleware.js";
+
+const router = express.Router();
+
+router.post(
+    "/",
+    requireArtist,
+    validate(artistReleaseScheduleValidation.createReleaseScheduleSchema),
+    artistReleaseScheduleController.createMyReleaseSchedule
+);
+
+router.get(
+    "/",
+    requireArtist,
+    artistReleaseScheduleController.getMyReleaseSchedules
+);
+
+router.patch(
+    "/:id/cancel",
+    requireArtist,
+    validate(artistReleaseScheduleValidation.releaseScheduleIdParamSchema, "params"),
+    artistReleaseScheduleController.cancelMyReleaseSchedule
+);
+
+router.patch(
+    "/:id",
+    requireArtist,
+    validate(artistReleaseScheduleValidation.releaseScheduleIdParamSchema, "params"),
+    validate(artistReleaseScheduleValidation.updateReleaseScheduleSchema),
+    artistReleaseScheduleController.updateMyReleaseSchedule
+);
+
+router.get(
+    "/:id",
+    requireArtist,
+    validate(artistReleaseScheduleValidation.releaseScheduleIdParamSchema, "params"),
+    artistReleaseScheduleController.getMyReleaseScheduleDetail
+);
+
+export default router;

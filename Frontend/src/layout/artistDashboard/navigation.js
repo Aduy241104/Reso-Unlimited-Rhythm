@@ -1,9 +1,12 @@
-import {
+﻿import {
+  Album,
   BarChart3,
+  Bell,
   Disc3,
+  FileText,
+  Landmark,
   LayoutDashboard,
   Music2,
-  Settings,
   Users,
   Wallet,
   Waves,
@@ -12,40 +15,82 @@ import { routePaths } from "../../routes/routePaths";
 
 export const artistNavigation = [
   {
-    label: "Overview",
+    label: "Tổng quan",
     to: routePaths.artistRoot,
     icon: LayoutDashboard,
   },
   {
-    label: "My Music",
+    label: "Nhạc của tôi",
     to: routePaths.artistMusic,
     icon: Music2,
   },
   {
-    label: "Releases",
+    label: "Lời nhạc",
+    to: routePaths.artistLyrics,
+    icon: FileText,
+  },
+  {
+    label: "Album",
+    to: routePaths.artistAlbums,
+    icon: Album,
+  },
+  {
+    label: "Phát hành",
     to: routePaths.artistReleases,
     icon: Disc3,
   },
   {
-    label: "Analytics",
+    label: "Phân tích",
     to: routePaths.artistAnalytics,
+    icon: BarChart3,
+  },
+  {
+    label: "Số dư",
+    to: routePaths.artistRoyalties,
+    icon: Wallet,
+  },
+  {
+    label: "Yêu cầu rút tiền",
+    to: routePaths.artistWithdrawalRequests,
+    icon: Landmark,
+  },
+  {
+    label: "Thông báo",
+    to: routePaths.artistNotifications,
+    icon: Bell,
+  },
+  {
+    label: "Người theo dõi",
+    to: routePaths.artistFollowers,
+    icon: Users,
+  },
+  {
+    label: "Hồ sơ nghệ sĩ",
+    to: routePaths.artistProfile,
     icon: BarChart3,
   },
 ];
 
 export const artistPageTitles = {
-  [routePaths.artistRoot]: "Artist Overview",
-  [routePaths.artistMusic]: "My Music",
-  [routePaths.artistTrackDetail()]: "Track Detail",
-  [routePaths.artistTrackEdit()]: "Edit Track",
-  [routePaths.artistReleases]: "Releases",
-  [routePaths.artistAnalytics]: "Analytics",
-  [routePaths.artistProfile]: "Artist Profile",
-  [routePaths.artistProfileEdit]: "Edit Artist Profile",
+  [routePaths.artistRoot]: "Tổng quan nghệ sĩ",
+  [routePaths.artistMusic]: "Nhạc của tôi",
+  [routePaths.artistTrackDetail()]: "Chi tiết bài hát",
+  [routePaths.artistTrackEdit()]: "Chỉnh sửa bài hát",
+  [routePaths.artistLyrics]: "Quản lý lời nhạc",
+  [routePaths.artistAlbums]: "Album của tôi",
+  [routePaths.artistReleases]: "Phát hành",
+  [routePaths.artistAnalytics]: "Phân tích bài hát",
+  [routePaths.artistRoyalties]: "Số dư khả dụng",
+  [routePaths.artistBalanceManagement]: "Quản lý số dư",
+  [routePaths.artistWithdrawalRequests]: "Yêu cầu rút tiền",
+  [routePaths.artistNotifications]: "Thông báo",
+  [routePaths.artistFollowers]: "Người theo dõi",
+  [routePaths.artistProfile]: "Hồ sơ nghệ sĩ",
+  [routePaths.artistProfileEdit]: "Chỉnh sửa hồ sơ nghệ sĩ",
 };
 
 export const artistProfile = {
-  name: "Artist",
-  role: "Artist account",
+  name: "Nghệ sĩ",
+  role: "Tài khoản nghệ sĩ",
   icon: Waves,
 };

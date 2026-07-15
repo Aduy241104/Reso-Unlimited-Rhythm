@@ -1,13 +1,104 @@
-import { Outlet } from "react-router-dom";
+﻿import { Outlet } from "react-router-dom";
+import {
+  Banknote,
+  Bell,
+  CircleDollarSign,
+  CreditCard,
+  Flag,
+  LayoutDashboard,
+  ListMusic,
+  Mic2,
+  Music2,
+  ReceiptText,
+  Tags,
+  UserCheck,
+  Users,
+} from "lucide-react";
 import AdminSidebar from "../components/layout/AdminSidebar";
 import { useAuth } from "../hooks/useAuth";
 import { routePaths } from "../routes/routePaths";
 
 const navigationItems = [
-  { to: routePaths.home, label: "Dashboard", end: true },
-  { to: routePaths.systemTracks, label: "Track moderation", end: false },
-  { to: routePaths.systemPlaylists, label: "System playlists", end: false },
-  { to: routePaths.users, label: "Users", end: false },
+  {
+    to: routePaths.home,
+    label: "Tổng quan",
+    icon: LayoutDashboard,
+    end: true,
+  },
+  {
+    to: routePaths.revenue,
+    label: "Doanh thu",
+    icon: CircleDollarSign,
+    end: false,
+  },
+  {
+    to: routePaths.withdrawals,
+    label: "Yêu cầu rút tiền",
+    icon: Banknote,
+    end: false,
+    matchPrefix: true,
+    activePaths: [routePaths.withdrawals, "/withdrawal-requests"],
+  },
+  {
+    to: routePaths.transactions,
+    label: "Giao dịch",
+    icon: ReceiptText,
+    end: false,
+  },
+  {
+    to: routePaths.systemTracks,
+    label: "Bài hát hệ thống",
+    icon: Music2,
+    end: false,
+  },
+  {
+    to: routePaths.artistRequests,
+    label: "Yêu cầu nghệ sĩ",
+    icon: UserCheck,
+    end: false,
+  },
+  {
+    to: routePaths.systemPlaylists,
+    label: "Playlist hệ thống",
+    icon: ListMusic,
+    end: false,
+  },
+  {
+    to: routePaths.systemArtists,
+    label: "Nghệ sĩ hệ thống",
+    icon: Mic2,
+    end: false,
+  },
+  {
+    to: routePaths.genres,
+    label: "Thể loại",
+    icon: Tags,
+    end: false,
+  },
+  {
+    to: routePaths.users,
+    label: "Người dùng",
+    icon: Users,
+    end: false,
+  },
+  {
+    to: routePaths.notifications,
+    label: "Thông báo",
+    icon: Bell,
+    end: false,
+  },
+  {
+    to: routePaths.reports,
+    label: "Báo cáo",
+    icon: Flag,
+    end: false,
+  },
+  {
+    to: routePaths.subscriptions,
+    label: "Gói đăng ký",
+    icon: CreditCard,
+    end: false,
+  },
 ];
 
 const AdminLayout = () => {

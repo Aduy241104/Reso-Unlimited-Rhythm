@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { setupAxiosInterceptors } from "../axios/setupAuthInterceptors";
 import {
+  googleLoginService,
   loginService,
   logoutService,
   refreshSessionService,
@@ -11,6 +12,7 @@ import {
   getStoredAuthSession,
   persistAuthSession,
 } from "../services/authStorage";
+import { getCurrentUserProfile } from "../services/userProfileService";
 import AuthContext from "./auth-context";
 
 const TOKEN_REFRESH_BUFFER_IN_SECONDS = 30;
@@ -142,6 +144,16 @@ export const AuthProvider = ({ children }) => {
     [applyAuthSession, clearAuthState]
   );
 
+  const refreshCurrentUser = useCallback(async () => {
+    const latestUser = await getCurrentUserProfile();
+
+    if (!latestUser) {
+      throw new Error("Current user profile response missing user data.");
+    }
+
+    return applyAuthSession({ user: latestUser })?.user ?? latestUser;
+  }, [applyAuthSession]);
+
   // Logout logic
   const logout = useCallback(async ({ redirectTo = "/login" } = {}) => {
     try {
@@ -163,6 +175,16 @@ export const AuthProvider = ({ children }) => {
     // thử apply vào session mới nhận được, nếu không có session data thì throw lỗi
     if (!applyAuthSession(authSession)) {
       throw new Error("Login success response missing session data.");
+    }
+
+    return authSession;
+  }, [applyAuthSession]);
+
+  const googleLogin = useCallback(async (token) => {
+    const authSession = await googleLoginService(token);
+
+    if (!applyAuthSession(authSession)) {
+      throw new Error("Google login success response missing session data.");
     }
 
     return authSession;
@@ -199,6 +221,12 @@ export const AuthProvider = ({ children }) => {
     const initializeAuth = async () => {
       if (hasStoredSession) {
         if (hasUsableStoredToken) {
+          try {
+            await refreshCurrentUser();
+          } catch {
+            // Keep the stored session if fetching the latest profile fails.
+          }
+
           setIsLoading(false);
           return;
         }
@@ -224,7 +252,33 @@ export const AuthProvider = ({ children }) => {
     };
 
     initializeAuth();
-  }, [hasStoredSession, hasUsableStoredToken, refreshSession]);
+  }, [hasStoredSession, hasUsableStoredToken, refreshCurrentUser, refreshSession]);
+
+  useEffect(() => {
+    if (!user || !accessToken) {
+      return undefined;
+    }
+
+    const syncCurrentUser = () => {
+      refreshCurrentUser().catch(() => {
+        // Ignore sync failures and keep the current in-memory session.
+      });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        syncCurrentUser();
+      }
+    };
+
+    window.addEventListener("focus", syncCurrentUser);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("focus", syncCurrentUser);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [accessToken, refreshCurrentUser, user]);
 
   const value = useMemo(
     () => ({
@@ -233,12 +287,23 @@ export const AuthProvider = ({ children }) => {
       isLoading,
       isAuthenticated: Boolean(user),
       login,
+      googleLogin,
       logout,
       refreshSession,
+      refreshCurrentUser,
       setUser,
       setAccessToken,
     }),
-    [user, accessToken, isLoading, login, logout, refreshSession]
+    [
+      user,
+      accessToken,
+      isLoading,
+      login,
+      googleLogin,
+      logout,
+      refreshSession,
+      refreshCurrentUser,
+    ]
   );
 
   return (

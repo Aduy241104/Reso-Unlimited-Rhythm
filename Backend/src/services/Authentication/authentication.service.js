@@ -11,8 +11,17 @@ import {
     sendResetPasswordLinkEmail,
 } from "../../utils/mailer.js";
 import {
+    buildRefreshTokenClientTypeQuery,
+    normalizeAuthClientType,
+} from "../../constants/authClientTypes.js";
+import {
+    buildRegistrationProfilePayload,
+    createAuthSession,
     ensureActiveUser,
+    ensureRegistrationAvailability,
+    findOrCreateGoogleUser,
     sanitizeUser,
+    verifyGoogleIdToken,
 } from "./authentication.helper.js";
 import {
     createAccessToken,
@@ -35,21 +44,8 @@ const getOtpExpireDate = () =>
 const getResetPasswordExpireDate = () =>
     new Date(Date.now() + RESET_PASSWORD_TTL_MINUTES * 60 * 1000);
 
-const ensureRegistrationAvailability = async (email) => {
-    const [existingEmail] = await Promise.all([
-        User.findOne({ email }),
-    ]);
-
-    if (existingEmail) {
-        throw new AppError("Email is already in use.", 409, {
-            field: "email",
-        });
-    }
-};
-
-const requestRegisterOtp = async ({ email, password, username, fullName }) => {
+const requestRegisterOtp = async ({ email }) => {
     const normalizedEmail = email.trim().toLowerCase();
-    const normalizedFullName = fullName?.trim() || "";
 
     await ensureRegistrationAvailability(normalizedEmail);
 
@@ -75,7 +71,6 @@ const requestRegisterOtp = async ({ email, password, username, fullName }) => {
         );
     }
 
-    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
     const otp = generateOtp();
 
     const verificationData = {
@@ -85,10 +80,6 @@ const requestRegisterOtp = async ({ email, password, username, fullName }) => {
         type: "verify_email",
         expiresAt: getOtpExpireDate(),
         isUsed: false,
-        payload: {
-            password: hashedPassword,
-            fullName: normalizedFullName,
-        },
     };
 
     let activeVerificationToken;
@@ -96,7 +87,6 @@ const requestRegisterOtp = async ({ email, password, username, fullName }) => {
         latestVerification.otp = verificationData.otp;
         latestVerification.token = verificationData.token;
         latestVerification.expiresAt = verificationData.expiresAt;
-        latestVerification.payload = verificationData.payload;
         latestVerification.isUsed = false;
         activeVerificationToken = await latestVerification.save();
     } else {
@@ -125,8 +115,22 @@ const requestRegisterOtp = async ({ email, password, username, fullName }) => {
     };
 };
 
-const register = async ({ email, otp }) => {
+const register = async ({
+    email,
+    otp,
+    password,
+    fullName,
+    gender,
+    dateOfBirth,
+    country,
+}) => {
     const normalizedEmail = email.trim().toLowerCase();
+    const registrationProfile = buildRegistrationProfilePayload({
+        fullName,
+        gender,
+        dateOfBirth,
+        country,
+    });
 
     const verificationToken = await VerificationToken.findOne({
         email: normalizedEmail,
@@ -150,21 +154,16 @@ const register = async ({ email, otp }) => {
         });
     }
 
-    const pendingRegistration = verificationToken.payload;
-    if (!pendingRegistration?.password) {
-        throw new AppError("Registration session is invalid.", 400);
-    }
-
     await ensureRegistrationAvailability(
         normalizedEmail
     );
 
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+
     const user = await User.create({
         email: normalizedEmail,
-        password: pendingRegistration.password,
-        profile: {
-            fullName: pendingRegistration.fullName || "",
-        },
+        password: hashedPassword,
+        profile: registrationProfile,
     });
 
     verificationToken.userId = user._id;
@@ -182,7 +181,13 @@ const register = async ({ email, otp }) => {
     };
 };
 
-const login = async ({ email, password }) => {
+const buildStoredRefreshTokenQuery = ({ token, clientType }) => ({
+    token,
+    isRevoked: false,
+    ...buildRefreshTokenClientTypeQuery(clientType),
+});
+
+const login = async ({ email, password, clientType }) => {
     const normalizedEmail = email.trim().toLowerCase();
     const user = await User.findOne({ email: normalizedEmail });
 
@@ -197,21 +202,14 @@ const login = async ({ email, password }) => {
         throw new AppError("Email or password is incorrect.", 401);
     }
 
-    const accessToken = createAccessToken(user);
-    const refreshToken = createRefreshToken();
+    return createAuthSession(user, clientType);
+};
 
-    await RefreshToken.create({
-        userId: user._id,
-        token: refreshToken,
-        expiresAt: getRefreshExpireDate(),
-        isRevoked: false,
-    });
+const googleLogin = async ({ token, clientType }) => {
+    const googleProfile = await verifyGoogleIdToken(token);
+    const user = await findOrCreateGoogleUser(googleProfile);
 
-    return {
-        accessToken,
-        refreshToken,
-        user: sanitizeUser(user),
-    };
+    return createAuthSession(user, clientType);
 };
 
 const requestForgotPassword = async ({ email }) => {
@@ -256,10 +254,6 @@ const requestForgotPassword = async ({ email }) => {
         type: "reset_password",
         expiresAt: getResetPasswordExpireDate(),
         isUsed: false,
-        payload: {
-            password: "",
-            fullName: "",
-        },
     };
 
     let activeVerificationToken;
@@ -269,7 +263,6 @@ const requestForgotPassword = async ({ email }) => {
         latestVerification.otp = undefined;
         latestVerification.expiresAt = verificationData.expiresAt;
         latestVerification.isUsed = false;
-        latestVerification.payload = verificationData.payload;
         activeVerificationToken = await latestVerification.save();
     } else {
         activeVerificationToken = await VerificationToken.create(
@@ -353,10 +346,16 @@ const resetPassword = async ({ token, password }) => {
     ]);
 };
 
-const logout = async (token) => {
+const logout = async ({ token, clientType }) => {
+    if (!token) {
+        return;
+    }
+
     const storedToken = await RefreshToken.findOne({
-        token,
-        isRevoked: false,
+        ...buildStoredRefreshTokenQuery({
+            token,
+            clientType,
+        }),
     });
 
     if (!storedToken) {
@@ -367,10 +366,17 @@ const logout = async (token) => {
     await storedToken.save();
 };
 
-const refreshToken = async (token) => {
+const refreshToken = async ({ token, clientType }) => {
+    if (!token) {
+        throw new AppError("Refresh token is required.", 401);
+    }
+
+    const normalizedClientType = normalizeAuthClientType(clientType);
     const storedToken = await RefreshToken.findOne({
-        token,
-        isRevoked: false,
+        ...buildStoredRefreshTokenQuery({
+            token,
+            clientType: normalizedClientType,
+        }),
     }).populate("userId");
 
     if (!storedToken) {
@@ -387,6 +393,7 @@ const refreshToken = async (token) => {
     const user = storedToken.userId;
     ensureActiveUser(user);
 
+    storedToken.clientType = normalizedClientType;
     storedToken.token = createRefreshToken();
     storedToken.expiresAt = getRefreshExpireDate();
     await storedToken.save();
@@ -402,6 +409,7 @@ export default {
     requestRegisterOtp,
     register,
     login,
+    googleLogin,
     requestForgotPassword,
     resetPassword,
     logout,
