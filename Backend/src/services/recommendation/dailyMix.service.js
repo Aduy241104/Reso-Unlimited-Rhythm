@@ -220,6 +220,380 @@ const buildTrendingScore = (trackId, rankingSignals) => {
     return roundScore(score);
 };
 
+const BEHAVIORAL_MIX_DEFINITIONS = [
+    {
+        title: "Daily Mix 1",
+        description:
+            "Replay-heavy picks built from the tracks you finish and revisit most.",
+        focus: "repeat_favorites",
+        artistSources: ["recentArtists", "topArtists"],
+        genreSources: ["recentGenres", "topGenres"],
+        targetSplit: {
+            familiar: 12,
+            similar: 5,
+            trending: 3,
+        },
+        weights: {
+            track: 1.45,
+            artist: 0.4,
+            genre: 0.2,
+            completion: 10,
+            repeat: 4.5,
+            liked: 5,
+            playlist: 3,
+            search: 1.5,
+            followedAlbum: 1.5,
+            followedArtist: 2,
+            keyword: 0.4,
+            clusterArtist: 5,
+            clusterGenre: 2,
+            popularity: 0.15,
+            freshness: 0.2,
+            recencyPenalty: 2.2,
+            skipPenalty: 6,
+            trendingBase: 0.55,
+        },
+    },
+    {
+        title: "Daily Mix 2",
+        description:
+            "Tracks with strong completion patterns and low skip behavior.",
+        focus: "completion_flow",
+        artistSources: ["topArtists", "recentArtists"],
+        genreSources: ["topGenres", "recentGenres"],
+        targetSplit: {
+            familiar: 10,
+            similar: 6,
+            trending: 4,
+        },
+        weights: {
+            track: 1.25,
+            artist: 0.45,
+            genre: 0.25,
+            completion: 12,
+            repeat: 2.5,
+            liked: 3.5,
+            playlist: 2,
+            search: 1,
+            followedAlbum: 1.5,
+            followedArtist: 2,
+            keyword: 0.35,
+            clusterArtist: 4,
+            clusterGenre: 3,
+            popularity: 0.2,
+            freshness: 0.3,
+            recencyPenalty: 1.8,
+            skipPenalty: 7,
+            trendingBase: 0.65,
+        },
+    },
+    {
+        title: "Daily Mix 3",
+        description:
+            "Comfort picks expanded from what you save into your own playlists.",
+        focus: "playlist_comfort",
+        artistSources: ["topArtists", "recentArtists"],
+        genreSources: ["recentGenres", "topGenres"],
+        targetSplit: {
+            familiar: 9,
+            similar: 7,
+            trending: 4,
+        },
+        weights: {
+            track: 1.2,
+            artist: 0.5,
+            genre: 0.3,
+            completion: 8,
+            repeat: 2.5,
+            liked: 4,
+            playlist: 5,
+            search: 1,
+            followedAlbum: 2,
+            followedArtist: 2,
+            keyword: 0.4,
+            clusterArtist: 4,
+            clusterGenre: 3.5,
+            popularity: 0.15,
+            freshness: 0.25,
+            recencyPenalty: 1.5,
+            skipPenalty: 5,
+            trendingBase: 0.55,
+        },
+    },
+    {
+        title: "Daily Mix 4",
+        description:
+            "Artist-led selections weighted by who you follow and return to often.",
+        focus: "artist_loyalty",
+        artistSources: ["followedArtists", "topArtists", "recentArtists"],
+        genreSources: ["topGenres", "recentGenres"],
+        targetSplit: {
+            familiar: 8,
+            similar: 8,
+            trending: 4,
+        },
+        weights: {
+            track: 1.1,
+            artist: 0.75,
+            genre: 0.2,
+            completion: 7,
+            repeat: 2,
+            liked: 3,
+            playlist: 2.5,
+            search: 1,
+            followedAlbum: 1.5,
+            followedArtist: 5.5,
+            keyword: 0.3,
+            clusterArtist: 7,
+            clusterGenre: 2,
+            popularity: 0.2,
+            freshness: 0.3,
+            recencyPenalty: 1.2,
+            skipPenalty: 5,
+            trendingBase: 0.6,
+        },
+    },
+    {
+        title: "Daily Mix 5",
+        description:
+            "Genre rotations shaped by the moods and styles dominating your recent plays.",
+        focus: "genre_rotation",
+        artistSources: ["recentArtists", "topArtists"],
+        genreSources: ["recentGenres", "topGenres"],
+        targetSplit: {
+            familiar: 8,
+            similar: 7,
+            trending: 5,
+        },
+        weights: {
+            track: 1.05,
+            artist: 0.35,
+            genre: 0.55,
+            completion: 6.5,
+            repeat: 1.8,
+            liked: 2.5,
+            playlist: 2.5,
+            search: 1.3,
+            followedAlbum: 1.5,
+            followedArtist: 1.5,
+            keyword: 0.45,
+            clusterArtist: 3,
+            clusterGenre: 5.5,
+            popularity: 0.2,
+            freshness: 0.35,
+            recencyPenalty: 1.1,
+            skipPenalty: 5,
+            trendingBase: 0.7,
+        },
+    },
+    {
+        title: "Daily Mix 6",
+        description:
+            "Discovery picks tuned by search intent, favorites, and current trending overlap.",
+        focus: "discovery_intent",
+        artistSources: ["recentArtists", "followedArtists", "topArtists"],
+        genreSources: ["recentGenres", "topGenres"],
+        targetSplit: {
+            familiar: 6,
+            similar: 8,
+            trending: 6,
+        },
+        weights: {
+            track: 0.95,
+            artist: 0.4,
+            genre: 0.35,
+            completion: 5.5,
+            repeat: 1.5,
+            liked: 2.5,
+            playlist: 2,
+            search: 3.5,
+            followedAlbum: 1.5,
+            followedArtist: 2,
+            keyword: 0.8,
+            clusterArtist: 3,
+            clusterGenre: 4,
+            popularity: 0.35,
+            freshness: 0.45,
+            recencyPenalty: 0.8,
+            skipPenalty: 4.5,
+            trendingBase: 0.95,
+        },
+    },
+];
+
+const rotateEntries = (entries, offset = 0, limit = 4) => {
+    if (!Array.isArray(entries) || entries.length === 0) {
+        return [];
+    }
+
+    const normalizedOffset = offset % entries.length;
+    return [...entries.slice(normalizedOffset), ...entries.slice(0, normalizedOffset)].slice(
+        0,
+        limit
+    );
+};
+
+const mergeUniqueEntries = (...groups) => {
+    const merged = [];
+    const usedIds = new Set();
+
+    for (const group of groups) {
+        for (const entry of group || []) {
+            if (!entry?.[0] || usedIds.has(entry[0])) {
+                continue;
+            }
+
+            usedIds.add(entry[0]);
+            merged.push(entry);
+        }
+    }
+
+    return merged;
+};
+
+const getTrackPreferenceContext = (track, tasteProfile, cluster) => {
+    const trackId = String(track._id);
+    const artistId = track.artist_artistId?._id
+        ? String(track.artist_artistId._id)
+        : String(track.artist_artistId || "");
+    const genreIds = (track.genreIds || []).map((genre) =>
+        genre?._id ? String(genre._id) : String(genre)
+    );
+    const behaviorMetrics = tasteProfile.trackBehaviorMetrics?.[trackId] || {};
+    const trackReason = tasteProfile.trackReasons?.[trackId] || {};
+    const playCount = behaviorMetrics.playCount || 0;
+    const completionRate = playCount
+        ? (behaviorMetrics.completedCount || 0) / playCount
+        : 0;
+    const skipRate = playCount ? (behaviorMetrics.skippedCount || 0) / playCount : 0;
+    const repeatCount = behaviorMetrics.repeatCount || 0;
+    const keywordBoost = calculateKeywordBoost(track, tasteProfile.searchKeywords);
+    const popularityBoost = Math.min(18, (track.stats?.totalPlay || 0) / 1000);
+    const releaseAgeInDays = track.releaseDate
+        ? Math.max(
+            0,
+            Math.floor(
+                (Date.now() - new Date(track.releaseDate).getTime()) / (24 * 60 * 60 * 1000)
+            )
+        )
+        : null;
+    const freshnessBoost =
+        releaseAgeInDays === null ? 0 : Math.max(0, 45 - releaseAgeInDays) / 15;
+    const recentIndex = (tasteProfile.recentlyPlayedTrackIds || []).indexOf(trackId);
+    const recentPenalty =
+        recentIndex === -1 ? 0 : Math.max(0.25, 1 - recentIndex / 50);
+    const matchedGenreCount = genreIds.filter((genreId) =>
+        cluster.genreIdSet.has(genreId)
+    ).length;
+    const clusterArtistMatch = cluster.artistIdSet.has(artistId) ? 1 : 0;
+    const clusterGenreMatch = matchedGenreCount;
+
+    return {
+        trackId,
+        artistId,
+        genreIds,
+        playCount,
+        completionRate,
+        skipRate,
+        repeatCount,
+        keywordBoost,
+        popularityBoost,
+        freshnessBoost,
+        recentPenalty,
+        clusterArtistMatch,
+        clusterGenreMatch,
+        trackReason,
+        followedArtistMatch: (tasteProfile.followedArtistIds || []).includes(artistId),
+    };
+};
+
+const resolveCandidateReason = (context) => {
+    if (context.trackReason?.liked) {
+        return "liked_track";
+    }
+
+    if (context.trackReason?.inPlaylist) {
+        return "user_playlist";
+    }
+
+    if (context.followedArtistMatch) {
+        return "followed_artist";
+    }
+
+    if (context.clusterArtistMatch > 0) {
+        return "same_artist";
+    }
+
+    if (context.trackReason?.frequentListen) {
+        return "frequent_listen";
+    }
+
+    if (context.clusterGenreMatch > 0 || context.trackReason?.searchClick) {
+        return "same_genre";
+    }
+
+    return "fallback_trending";
+};
+
+const scoreCandidateForCluster = ({
+    track,
+    tasteProfile,
+    cluster,
+    sourceType,
+    baseScore = 0,
+}) => {
+    const context = getTrackPreferenceContext(track, tasteProfile, cluster);
+    const weights = cluster.weights || {};
+    const trackScore = tasteProfile.trackScores?.[context.trackId] || 0;
+    const artistScore = tasteProfile.artistScores?.[context.artistId] || 0;
+    const genreScore = context.genreIds.reduce(
+        (sum, genreId) => sum + (tasteProfile.genreScores?.[genreId] || 0),
+        0
+    );
+    const affinityScore =
+        trackScore * (weights.track || 1) +
+        artistScore * (weights.artist || 0) +
+        genreScore * (weights.genre || 0);
+    const behaviorScore =
+        context.completionRate * (weights.completion || 0) +
+        Math.min(4, context.repeatCount) * (weights.repeat || 0) +
+        (context.trackReason?.liked ? weights.liked || 0 : 0) +
+        (context.trackReason?.inPlaylist ? weights.playlist || 0 : 0) +
+        (context.trackReason?.searchClick ? weights.search || 0 : 0) +
+        (context.trackReason?.followedAlbum ? weights.followedAlbum || 0 : 0) +
+        (context.followedArtistMatch ? weights.followedArtist || 0 : 0);
+    const clusterMatchScore =
+        context.clusterArtistMatch * (weights.clusterArtist || 0) +
+        context.clusterGenreMatch * (weights.clusterGenre || 0);
+    const discoveryScore =
+        context.keywordBoost * (weights.keyword || 0) +
+        context.popularityBoost * (weights.popularity || 0) +
+        context.freshnessBoost * (weights.freshness || 0);
+    const penaltyScore =
+        context.recentPenalty * (weights.recencyPenalty || 0) +
+        context.skipRate * (weights.skipPenalty || 0);
+    const sourceBoostByType = {
+        familiar: 1.1,
+        similar: 1,
+        trending: weights.trendingBase || 0.8,
+    };
+
+    return {
+        context,
+        score: roundScore(
+            baseScore * (sourceBoostByType[sourceType] || 1) +
+                affinityScore +
+                behaviorScore +
+                clusterMatchScore +
+                discoveryScore -
+                penaltyScore
+        ),
+        reason: resolveCandidateReason(context),
+    };
+};
+
+const getClusterTargetSplit = (cluster) => cluster.targetSplit || MIX_TRACK_SPLIT;
+
 const getFallbackCandidates = async ({
     tasteProfile,
     dateContext,
@@ -366,6 +740,7 @@ const buildFallbackMixBlueprints = async ({
     dateContext,
     mixCount = DAILY_MIX_COUNT,
     tracksPerMix = TRACKS_PER_MIX,
+    reservedTrackIds = [],
 }) => {
     const candidates = await getFallbackCandidates({
         tasteProfile,
@@ -378,6 +753,9 @@ const buildFallbackMixBlueprints = async ({
     }
 
     const blueprints = [];
+    const globallyUsedTrackIdSet = new Set(
+        reservedTrackIds.map((trackId) => String(trackId))
+    );
     const fallbackBasedOn = buildFallbackBasedOn(
         tasteProfile,
         candidates.slice(0, tracksPerMix)
@@ -392,12 +770,13 @@ const buildFallbackMixBlueprints = async ({
             const candidate = candidates[cursor];
             const trackId = String(candidate.track._id);
 
-            if (usedInMix.has(trackId)) {
+            if (usedInMix.has(trackId) || globallyUsedTrackIdSet.has(trackId)) {
                 continue;
             }
 
             usedInMix.add(trackId);
             selected.push(candidate);
+            globallyUsedTrackIdSet.add(trackId);
 
             if (selected.length >= tracksPerMix) {
                 break;
@@ -408,12 +787,13 @@ const buildFallbackMixBlueprints = async ({
             for (const candidate of candidates) {
                 const trackId = String(candidate.track._id);
 
-                if (usedInMix.has(trackId)) {
+                if (usedInMix.has(trackId) || globallyUsedTrackIdSet.has(trackId)) {
                     continue;
                 }
 
                 usedInMix.add(trackId);
                 selected.push(candidate);
+                globallyUsedTrackIdSet.add(trackId);
 
                 if (selected.length >= tracksPerMix) {
                     break;
@@ -531,28 +911,52 @@ const trackMatchesCluster = (track, cluster) => {
 };
 
 const buildMixClusters = (tasteProfile) => {
-    const topArtists = sortScoreEntries(tasteProfile.artistScores).slice(0, 12);
-    const topGenres = sortScoreEntries(tasteProfile.genreScores).slice(0, 12);
+    const topArtists = sortScoreEntries(tasteProfile.artistScores).slice(0, 24);
+    const topGenres = sortScoreEntries(tasteProfile.genreScores).slice(0, 24);
+    const recentArtists = (tasteProfile.recentArtistIds || []).map((artistId) => [
+        artistId,
+        roundScore((tasteProfile.artistScores?.[artistId] || 0) + 4),
+    ]);
+    const recentGenres = (tasteProfile.recentGenreIds || []).map((genreId) => [
+        genreId,
+        roundScore((tasteProfile.genreScores?.[genreId] || 0) + 3),
+    ]);
+    const followedArtists = (tasteProfile.followedArtistIds || []).map((artistId) => [
+        artistId,
+        roundScore((tasteProfile.artistScores?.[artistId] || 0) + 5),
+    ]);
+    const sourceEntries = {
+        topArtists,
+        topGenres,
+        recentArtists,
+        recentGenres,
+        followedArtists,
+    };
 
-    return Array.from({ length: DAILY_MIX_COUNT }, (_, index) => {
-        const artistEntries = topArtists
-            .filter((_, artistIndex) => artistIndex % DAILY_MIX_COUNT === index)
-            .slice(0, 4);
-        const genreEntries = topGenres
-            .filter((_, genreIndex) => genreIndex % DAILY_MIX_COUNT === index)
-            .slice(0, 4);
-        const fallbackArtistEntries =
-            artistEntries.length > 0 ? artistEntries : topArtists.slice(index, index + 3);
-        const fallbackGenreEntries =
-            genreEntries.length > 0 ? genreEntries : topGenres.slice(index, index + 3);
+    return BEHAVIORAL_MIX_DEFINITIONS.map((definition, index) => {
+        const artistEntries = mergeUniqueEntries(
+            ...(definition.artistSources || []).map((sourceKey) =>
+                rotateEntries(sourceEntries[sourceKey] || [], index, 4)
+            ),
+            rotateEntries(topArtists, index * 2, 4)
+        ).slice(0, 4);
+        const genreEntries = mergeUniqueEntries(
+            ...(definition.genreSources || []).map((sourceKey) =>
+                rotateEntries(sourceEntries[sourceKey] || [], index, 4)
+            ),
+            rotateEntries(topGenres, index * 2, 4)
+        ).slice(0, 4);
 
         return {
-            title: `Daily Mix ${index + 1}`,
-            description: "Based on your recent listening and favorites.",
-            artistEntries: fallbackArtistEntries,
-            genreEntries: fallbackGenreEntries,
-            artistIdSet: new Set(fallbackArtistEntries.map(([artistId]) => artistId)),
-            genreIdSet: new Set(fallbackGenreEntries.map(([genreId]) => genreId)),
+            title: definition.title,
+            description: definition.description,
+            focus: definition.focus,
+            targetSplit: definition.targetSplit,
+            weights: definition.weights,
+            artistEntries,
+            genreEntries,
+            artistIdSet: new Set(artistEntries.map(([artistId]) => artistId)),
+            genreIdSet: new Set(genreEntries.map(([genreId]) => genreId)),
         };
     });
 };
@@ -595,47 +999,29 @@ const buildFamiliarCandidates = async ({
     const recentlyPlayedTrackIdSet = new Set(tasteProfile.recentlyPlayedTrackIds || []);
     const tracks = await fetchValidTracksByIds(topTrackIds);
     const focusedTracks = tracks.filter((track) => trackMatchesCluster(track, cluster));
-    const sourceTracks = focusedTracks.length >= MIX_TRACK_SPLIT.familiar
+    const sourceTracks = focusedTracks.length >= getClusterTargetSplit(cluster).familiar
         ? focusedTracks
         : tracks;
 
     const candidates = sourceTracks
         .filter((track) => !skippedTrackIdSet.has(String(track._id)))
         .map((track) => {
-            const trackId = String(track._id);
-            const artistId = track.artist_artistId?._id
-                ? String(track.artist_artistId._id)
-                : String(track.artist_artistId || "");
-            const genreIds = (track.genreIds || []).map((genre) =>
-                genre?._id ? String(genre._id) : String(genre)
-            );
-            const baseTrackScore = tasteProfile.trackScores?.[trackId] || 0;
-            const artistScore = tasteProfile.artistScores?.[artistId] || 0;
-            const genreScore = genreIds.reduce(
-                (sum, genreId) => sum + (tasteProfile.genreScores?.[genreId] || 0),
-                0
-            );
-            const keywordBoost = calculateKeywordBoost(
+            const { context, score, reason } = scoreCandidateForCluster({
                 track,
-                tasteProfile.searchKeywords
-            );
-            const clusterBonus =
-                (cluster.artistIdSet.has(artistId) ? 6 : 0) +
-                genreIds.filter((genreId) => cluster.genreIdSet.has(genreId)).length * 3;
-            const recentPenalty = recentlyPlayedTrackIdSet.has(trackId) ? 1.5 : 0;
-            const score = roundScore(
-                baseTrackScore * 1.6 +
-                artistScore * 0.4 +
-                genreScore * 0.25 +
-                keywordBoost +
-                clusterBonus -
-                recentPenalty
-            );
+                tasteProfile,
+                cluster,
+                sourceType: "familiar",
+            });
 
             return {
                 track,
-                score,
-                reason: getFamiliarReason(tasteProfile, trackId),
+                score: roundScore(
+                    score - (recentlyPlayedTrackIdSet.has(context.trackId) ? 0.75 : 0)
+                ),
+                reason:
+                    reason === "fallback_trending"
+                        ? getFamiliarReason(tasteProfile, context.trackId)
+                        : reason,
             };
         })
         .sort((left, right) => {
@@ -695,40 +1081,19 @@ const buildSimilarCandidates = async ({
     const candidates = tracks
         .filter((track) => Boolean(track.artist_artistId))
         .map((track) => {
-            const artistId = track.artist_artistId?._id
-                ? String(track.artist_artistId._id)
-                : String(track.artist_artistId || "");
-            const genreIds = (track.genreIds || []).map((genre) =>
-                genre?._id ? String(genre._id) : String(genre)
-            );
-            const artistScore = tasteProfile.artistScores?.[artistId] || 0;
-            const genreScore = genreIds.reduce(
-                (sum, genreId) => sum + (tasteProfile.genreScores?.[genreId] || 0),
-                0
-            );
-            const keywordBoost = calculateKeywordBoost(
+            const { context, score } = scoreCandidateForCluster({
                 track,
-                tasteProfile.searchKeywords
-            );
-            const popularityBoost = Math.min(
-                12,
-                (track.stats?.totalPlay || 0) / 1000
-            );
-            const score = roundScore(
-                artistScore * 1.2 +
-                genreScore +
-                keywordBoost +
-                popularityBoost +
-                (cluster.artistIdSet.has(artistId) ? 5 : 0) +
-                genreIds.filter((genreId) => cluster.genreIdSet.has(genreId)).length * 4
-            );
+                tasteProfile,
+                cluster,
+                sourceType: "similar",
+            });
 
             return {
                 track,
                 score,
-                reason: followedArtistIdSet.has(artistId)
+                reason: followedArtistIdSet.has(context.artistId)
                     ? "followed_artist"
-                    : cluster.artistIdSet.has(artistId)
+                    : cluster.artistIdSet.has(context.artistId)
                         ? "same_artist"
                         : "same_genre",
             };
@@ -749,6 +1114,7 @@ const buildSimilarCandidates = async ({
 };
 
 const buildTrendingCandidatesForCluster = ({
+    tasteProfile,
     fallbackCandidates,
     cluster,
 }) => {
@@ -756,31 +1122,28 @@ const buildTrendingCandidatesForCluster = ({
         trackMatchesCluster(candidate.track, cluster)
     );
     const sourceCandidates =
-        matchedCandidates.length >= MIX_TRACK_SPLIT.trending
+        matchedCandidates.length >= getClusterTargetSplit(cluster).trending
             ? matchedCandidates
             : fallbackCandidates;
 
     return sourceCandidates
         .map((candidate) => {
-            const artistId = candidate.track.artist_artistId?._id
-                ? String(candidate.track.artist_artistId._id)
-                : String(candidate.track.artist_artistId || "");
-            const genreIds = (candidate.track.genreIds || []).map((genre) =>
-                genre?._id ? String(genre._id) : String(genre)
-            );
-            const clusterScore =
-                (cluster.artistIdSet.has(artistId) ? 4 : 0) +
-                genreIds.filter((genreId) => cluster.genreIdSet.has(genreId)).length * 2;
+            const { context, score, reason } = scoreCandidateForCluster({
+                track: candidate.track,
+                tasteProfile,
+                cluster,
+                sourceType: "trending",
+                baseScore: candidate.score,
+            });
 
             return {
-                ...candidate,
-                score: roundScore(candidate.score + clusterScore),
+                track: candidate.track,
+                score,
                 reason:
                     candidate.reason === "trending_match" &&
-                    (cluster.artistIdSet.has(artistId) ||
-                        genreIds.some((genreId) => cluster.genreIdSet.has(genreId)))
+                    (context.clusterArtistMatch > 0 || context.clusterGenreMatch > 0)
                         ? "trending_match"
-                        : candidate.reason,
+                        : reason,
             };
         })
         .sort((left, right) => {
@@ -798,7 +1161,6 @@ const pushCandidatesIntoSelection = ({
     selected,
     selectedTrackIdSet,
     globallyUsedTrackIdSet,
-    allowGlobalReuse = false,
 }) => {
     for (const candidate of pool) {
         const trackId = String(candidate.track._id);
@@ -807,7 +1169,7 @@ const pushCandidatesIntoSelection = ({
             continue;
         }
 
-        if (!allowGlobalReuse && globallyUsedTrackIdSet.has(trackId)) {
+        if (globallyUsedTrackIdSet.has(trackId)) {
             continue;
         }
 
@@ -831,10 +1193,62 @@ const buildPersistableMix = ({
     tracks: selectedCandidates.slice(0, TRACKS_PER_MIX).map((candidate, index) => ({
         trackId: candidate.track._id,
         order: index,
-        score: roundScore(candidate.score),
-        reason: candidate.reason,
+        score: roundScore(Math.max(0, candidate.score || 0)),
+        reason: candidate.reason || "fallback_trending",
     })),
 });
+
+const normalizeBlueprintTracks = (blueprint) => {
+    if (Array.isArray(blueprint.tracks)) {
+        return blueprint.tracks.map((track) => ({
+            trackId: track.trackId,
+            order: track.order,
+            score: roundScore(Math.max(0, track.score || 0)),
+            reason: track.reason || "fallback_trending",
+        }));
+    }
+
+    return (blueprint.candidates || []).map((candidate, index) => ({
+        trackId: candidate.track._id,
+        order: index,
+        score: roundScore(Math.max(0, candidate.score || 0)),
+        reason: candidate.reason || "fallback_trending",
+    }));
+};
+
+const ensureUniqueTracksAcrossBlueprints = (blueprints) => {
+    const globallyUsedTrackIdSet = new Set();
+
+    return blueprints.map((blueprint) => {
+        const locallyUsedTrackIdSet = new Set();
+        const dedupedTracks = normalizeBlueprintTracks(blueprint)
+            .filter((track) => {
+                const trackId = track?.trackId ? String(track.trackId) : "";
+
+                if (
+                    !trackId ||
+                    locallyUsedTrackIdSet.has(trackId) ||
+                    globallyUsedTrackIdSet.has(trackId)
+                ) {
+                    return false;
+                }
+
+                locallyUsedTrackIdSet.add(trackId);
+                globallyUsedTrackIdSet.add(trackId);
+                return true;
+            })
+            .slice(0, TRACKS_PER_MIX)
+            .map((track, index) => ({
+                ...track,
+                order: index,
+            }));
+
+        return {
+            ...blueprint,
+            tracks: dedupedTracks,
+        };
+    });
+};
 
 const upsertDailyMixBlueprints = async ({
     userId,
@@ -892,6 +1306,7 @@ const buildPersonalizedMixBlueprints = async ({
     const mixBlueprints = [];
 
     for (const cluster of clusters) {
+        const targetSplit = getClusterTargetSplit(cluster);
         const [familiarCandidates, similarCandidates] = await Promise.all([
             buildFamiliarCandidates({
                 tasteProfile,
@@ -903,6 +1318,7 @@ const buildPersonalizedMixBlueprints = async ({
             }),
         ]);
         const trendingCandidates = buildTrendingCandidatesForCluster({
+            tasteProfile,
             fallbackCandidates,
             cluster,
         });
@@ -911,21 +1327,22 @@ const buildPersonalizedMixBlueprints = async ({
 
         pushCandidatesIntoSelection({
             pool: familiarCandidates,
-            targetSize: MIX_TRACK_SPLIT.familiar,
+            targetSize: targetSplit.familiar,
             selected: selectedCandidates,
             selectedTrackIdSet,
             globallyUsedTrackIdSet,
         });
         pushCandidatesIntoSelection({
             pool: similarCandidates,
-            targetSize: MIX_TRACK_SPLIT.familiar + MIX_TRACK_SPLIT.similar,
+            targetSize: targetSplit.familiar + targetSplit.similar,
             selected: selectedCandidates,
             selectedTrackIdSet,
             globallyUsedTrackIdSet,
         });
         pushCandidatesIntoSelection({
             pool: trendingCandidates,
-            targetSize: TRACKS_PER_MIX,
+            targetSize:
+                targetSplit.familiar + targetSplit.similar + targetSplit.trending,
             selected: selectedCandidates,
             selectedTrackIdSet,
             globallyUsedTrackIdSet,
@@ -941,21 +1358,6 @@ const buildPersonalizedMixBlueprints = async ({
             selectedTrackIdSet,
             globallyUsedTrackIdSet,
         });
-
-        if (selectedCandidates.length < TRACKS_PER_MIX) {
-            pushCandidatesIntoSelection({
-                pool: [
-                    ...familiarCandidates,
-                    ...similarCandidates,
-                    ...trendingCandidates,
-                ],
-                targetSize: TRACKS_PER_MIX,
-                selected: selectedCandidates,
-                selectedTrackIdSet,
-                globallyUsedTrackIdSet,
-                allowGlobalReuse: true,
-            });
-        }
 
         if (selectedCandidates.length === 0) {
             continue;
@@ -999,17 +1401,24 @@ const buildAndStoreDailyMixes = async (userId, dateContext) => {
         });
 
         if (!hasExpectedMixCount(blueprints)) {
-            const fallbackBlueprints = await buildFallbackMixBlueprints({
-                tasteProfile,
-                dateContext,
-            });
-
             if (blueprints.length === 0) {
+                const fallbackBlueprints = await buildFallbackMixBlueprints({
+                    tasteProfile,
+                    dateContext,
+                });
                 source = "fallback";
                 blueprints = fallbackBlueprints;
             } else {
+                const reservedTrackIds = blueprints.flatMap((blueprint) =>
+                    normalizeBlueprintTracks(blueprint).map((track) => track.trackId)
+                );
+                const uniqueFallbackBlueprints = await buildFallbackMixBlueprints({
+                    tasteProfile,
+                    dateContext,
+                    reservedTrackIds,
+                });
                 const existingTitles = new Set(blueprints.map((blueprint) => blueprint.title));
-                for (const fallbackBlueprint of fallbackBlueprints) {
+                for (const fallbackBlueprint of uniqueFallbackBlueprints) {
                     if (!existingTitles.has(fallbackBlueprint.title)) {
                         blueprints.push({
                             title: fallbackBlueprint.title,
@@ -1040,20 +1449,14 @@ const buildAndStoreDailyMixes = async (userId, dateContext) => {
                 blueprint.description ||
                 "Based on your recent listening and favorites.",
             basedOn: blueprint.basedOn || { genres: [], artists: [] },
-            tracks: blueprint.tracks
-                ? blueprint.tracks.slice(0, TRACKS_PER_MIX)
-                : blueprint.candidates.slice(0, TRACKS_PER_MIX).map((candidate, trackIndex) => ({
-                    trackId: candidate.track._id,
-                    order: trackIndex,
-                    score: roundScore(candidate.score),
-                    reason: candidate.reason,
-                })),
+            tracks: normalizeBlueprintTracks(blueprint).slice(0, TRACKS_PER_MIX),
         }));
+    const uniqueBlueprints = ensureUniqueTracksAcrossBlueprints(normalizedBlueprints);
 
     await upsertDailyMixBlueprints({
         userId,
         dateContext,
-        blueprints: normalizedBlueprints,
+        blueprints: uniqueBlueprints,
     });
 
     const mixes = await loadStoredDailyMixes(userId, dateContext.dateKey);
@@ -1108,6 +1511,11 @@ export const rebuildDailyMixesForUser = async (userId, options = {}) =>
         ...options,
         forceRebuild: true,
     });
+
+export {
+    buildMixClusters,
+    ensureUniqueTracksAcrossBlueprints,
+};
 
 export const prebuildDailyMixesForActiveUsers = async (options = {}) => {
     const dateContext = getRecommendationDateContext(options.targetDateInput);
