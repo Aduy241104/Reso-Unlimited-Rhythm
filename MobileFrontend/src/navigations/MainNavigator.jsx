@@ -2,10 +2,13 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { BottomTabNavigator } from './BottomTabNavigator';
 import LoginScreen from '../screens/auth/LoginScreen';
+import RegisterScreen from '../screens/auth/RegisterScreen';
+import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 import EntityDetailScreen from '../screens/detail/EntityDetailScreen';
 import PremiumOverviewScreen from '../screens/premium/PremiumOverviewScreen';
 import PremiumPlanDetailScreen from '../screens/premium/PremiumPlanDetailScreen';
 import PremiumCheckoutScreen from '../screens/premium/PremiumCheckoutScreen';
+import NotificationsScreen from '../screens/notifications/NotificationsScreen';
 import PremiumPaymentResultScreen from '../screens/premium/PremiumPaymentResultScreen';
 import PaymentHistoryScreen from '../screens/Payment/PaymentHistoryScreen';
 import PaymentDetailScreen from '../screens/Payment/PaymentDetailScreen';
@@ -27,8 +30,34 @@ export const MainNavigator = () => {
         }}
       />
       <Stack.Screen
+        name="Register"
+        component={RegisterScreen}
+        options={{
+          headerShown: true,
+          title: 'Register',
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="ForgotPassword"
+        component={ForgotPasswordScreen}
+        options={{
+          headerShown: true,
+          title: 'Forgot Password',
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
         name="EntityDetail"
         component={EntityDetailScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="Notifications"
+        component={NotificationsScreen}
         options={{
           headerShown: false,
           animation: 'slide_from_right',
