@@ -16,6 +16,7 @@ import Plan from "./Plan.js";
 import Playlist from "./Playlist.js";
 import PlatformMonthlyStat from "./PlatformMonthlyStat.js";
 import UserRecentListeningActivity from "./userRecentListeningActivity.js";
+import PersonalizedMix from "./PersonalizedMix.js";
 import RefreshToken from "./RefreshToken.js";
 import ReleaseSchedule from "./ReleaseSchedule.js";
 import Report from "./Report.js";
@@ -50,6 +51,7 @@ export default {
     Plan,
     Playlist,
     PlatformMonthlyStat,
+    PersonalizedMix,
     UserRecentListeningActivity,
     RecentListeningActivity: UserRecentListeningActivity,
     RefreshToken,

@@ -1,6 +1,11 @@
 export const API_ENDPOINTS = {
   AUTH: {
     LOGIN: '/auth/login',
+    GOOGLE: '/auth/google',
+    REGISTER: '/auth/register',
+    REGISTER_SEND_OTP: '/auth/register/send-otp',
+    FORGOT_PASSWORD: '/auth/forgot-password',
+    RESET_PASSWORD: '/auth/reset-password',
     REFRESH_TOKEN: '/auth/refresh-token',
     LOGOUT: '/auth/logout',
     ME: '/auth/me',
@@ -16,6 +21,7 @@ export const API_ENDPOINTS = {
     PLAYBACK: '/tracks',
     TOP_DAILY: '/tracks/top/daily',
     TOP_MONTHLY: '/tracks/top/monthly',
+    BY_GENRE: '/browse/genres',
   },
   USER_FAVORITES: {
     TRACKS: '/users/favorites/tracks',
@@ -23,6 +29,17 @@ export const API_ENDPOINTS = {
   ARTISTS: {
     DETAIL: '/browse/artists',
     TOP_MONTHLY: '/browse/artists/top/monthly',
+  },
+  GENRES: {
+    LIST: '/browse/genres',
+    DETAIL: '/browse/genres',
+    TRACKS: '/browse/genres',
+  },
+  SEARCH: {
+    ALL: '/search',
+    SONGS: '/search/songs',
+    ARTISTS: '/search/artists',
+    ALBUMS: '/search/albums',
   },
   PLAYLISTS: {
     DETAIL: '/playlists/detail',
@@ -42,6 +59,14 @@ export const API_ENDPOINTS = {
   },
   PAYMENTS: {
     VNPAY_CREATE_ORDER: '/payments/vnpay/create-order',
+    HISTORY: '/users/payment-history',
+    DETAIL: '/users/payments',
+  },
+  NOTIFICATIONS: {
+    LIST: '/user/notifications',
+    DETAIL: '/user/notifications',
+    MARK_AS_READ: '/user/notifications',
+    DELETE: '/user/notifications',
   },
   LIBRARY: {
     FOLLOWED_ARTISTS: '/libary/followed-artists',

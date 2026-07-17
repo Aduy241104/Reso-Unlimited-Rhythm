@@ -2,8 +2,7 @@ import express from "express";
 import artistController from "../controllers/artistBrowse.controller.js";
 import artistBrowseValidation from "../middlewares/artistBrowse.validation.js";
 import validate from "../middlewares/validate.middleware.js";
-import authenticate from "../middlewares/Authentication/authentication.middleware.js";
-
+import authenticate, { requireUser } from "../middlewares/Authentication/authentication.middleware.js";
 const router = express.Router();
 
 router.get(

@@ -5,7 +5,6 @@ import {
     CalendarDays,
     ChevronRight,
     Headphones,
-    RefreshCw,
     Wallet,
 } from "lucide-react";
 import artistRevenueService from "../../../services/artistRevenueService";
@@ -14,7 +13,6 @@ import RevenueStatCard from "../../../components/artist/revenue/RevenueStatCard"
 import TrackRevenueTable from "../../../components/artist/revenue/TrackRevenueTable";
 import {
     formatCurrency,
-    formatDateTime,
     formatNumber,
 } from "../../../utils/revenueFormat";
 import { routePaths } from "../../../routes/routePaths";
@@ -114,7 +112,7 @@ const ArtistRevenueOverview = () => {
 
     if (errorMessage) {
         return (
-            <main className="min-h-screen bg-white px-2text-zinc-950 md:px-2 lg:px-2">
+            <main className="min-h-screen bg-white px-2 text-zinc-950 md:px-2 lg:px-2">
                 <div className="flex min-h-[420px] items-center justify-center">
                     <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 text-center shadow-sm">
                         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-600">
@@ -160,7 +158,7 @@ const ArtistRevenueOverview = () => {
                                     className="inline-flex items-center gap-2 rounded-xl bg-zinc-950 px-3 py-2 text-sm font-medium text-white transition hover:bg-zinc-800"
                                 >
                                     <Wallet className="h-4 w-4" />
-                                     Quản lý số dư
+                                    Quản lý số dư
                                 </Link>
 
                                 <Link
@@ -171,7 +169,6 @@ const ArtistRevenueOverview = () => {
                                     <ChevronRight className="h-4 w-4" />
                                 </Link>
                             </div>
-
                         </div>
                     </div>
                 </section>
@@ -211,79 +208,24 @@ const ArtistRevenueOverview = () => {
                     />
                 </section>
 
-                <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
-                    <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-                        <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                            <div>
-                                <h2 className="text-base font-semibold text-zinc-950">
-                                    Doanh thu 12 kỳ gần nhất
-                                </h2>
+                <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+                    <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                            <h2 className="text-base font-semibold text-zinc-950">
+                                Doanh thu 12 kỳ gần nhất
+                            </h2>
 
-                                <p className="mt-1 text-sm text-zinc-500">
-                                    Biểu đồ cột thể hiện doanh thu nghệ sĩ theo từng kỳ.
-                                </p>
-                            </div>
-
-                            <span className="w-fit rounded-full bg-violet-100 px-3 py-1 text-xs font-medium text-violet-700">
-                                VND
-                            </span>
+                            <p className="mt-1 text-sm text-zinc-500">
+                                Biểu đồ cột thể hiện doanh thu nghệ sĩ theo từng kỳ.
+                            </p>
                         </div>
 
-                        <RevenueBarChart data={ revenueChart } />
+                        <span className="w-fit rounded-full bg-violet-100 px-3 py-1 text-xs font-medium text-violet-700">
+                            VND
+                        </span>
                     </div>
 
-                    <aside className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-                        <h2 className="text-base font-semibold text-zinc-950">
-                            Thông tin xử lý kỳ
-                        </h2>
-
-                        <div className="mt-5 space-y-4">
-                            <div>
-                                <p className="text-xs font-medium uppercase tracking-[0.14em] text-zinc-500">
-                                    Trạng thái
-                                </p>
-
-                                <span
-                                    className={ `
-                    mt-2 inline-flex rounded-full px-3 py-1 text-xs font-semibold
-                    ${statusConfig.className}
-                  `}
-                                >
-                                    { statusConfig.label }
-                                </span>
-                            </div>
-
-                            <div className="border-t border-zinc-100 pt-4">
-                                <p className="text-xs font-medium uppercase tracking-[0.14em] text-zinc-500">
-                                    Thời gian tính
-                                </p>
-
-                                <p className="mt-2 text-sm font-medium text-zinc-900">
-                                    { formatDateTime(summary?.calculatedAt) }
-                                </p>
-                            </div>
-
-                            <div className="border-t border-zinc-100 pt-4">
-                                <p className="text-xs font-medium uppercase tracking-[0.14em] text-zinc-500">
-                                    Thời gian xác nhận
-                                </p>
-
-                                <p className="mt-2 text-sm font-medium text-zinc-900">
-                                    { formatDateTime(summary?.confirmedAt) }
-                                </p>
-                            </div>
-
-                            <div className="border-t border-zinc-100 pt-4">
-                                <p className="text-xs font-medium uppercase tracking-[0.14em] text-zinc-500">
-                                    Cập nhật gần nhất
-                                </p>
-
-                                <p className="mt-2 text-sm font-medium text-zinc-900">
-                                    { formatDateTime(summary?.updatedAt) }
-                                </p>
-                            </div>
-                        </div>
-                    </aside>
+                    <RevenueBarChart data={ revenueChart } />
                 </section>
 
                 <section className="space-y-4">

@@ -10,6 +10,7 @@ import http from "http";
 import { initSocket } from "./config/socket.js";
 import { connectRedis } from "./config/redisConfig.js";
 import { startDailyTopArtistCron } from "./jobs/dailyTopArtist.cron.js";
+import { startPersonalizedDailyMixCron } from "./jobs/personalizedDailyMix.cron.js";
 import { startMonthlyTopArtistCron } from "./jobs/monthlyTopArtist.cron.js";
 import { startDailyArtistOverviewStatCron } from "./jobs/dailyArtistOverviewStat.cron.js";
 import { startDailyTrackStatCron } from "./jobs/dailyTrackStat.cron.js";
@@ -24,6 +25,7 @@ import {
 } from "./middlewares/error.middleware.js";
 import model from "./models/index.js";
 import { startPlatformStreamingStatsCron } from "./jobs/platformStreamingStats.cron.js";
+import recommendationRoutes from "./router/recommendation.routes.js";
 import {
     runReleaseSchedulePublication,
     startReleaseScheduleCron,
@@ -51,6 +53,7 @@ app.use("/static", express.static("public"));
 app.use(morgan("combined"));
 
 route(app);
+app.use("/api/recommendations", recommendationRoutes);
 
 app.use(notFoundHandler);
 app.use(globalErrorHandler);
@@ -79,6 +82,7 @@ const startServer = async () => {
         startMonthlyTrackStatCron();
         startMonthlyTopTrackCron();
         startPlatformStreamingStatsCron();
+        startPersonalizedDailyMixCron();
         startListenEventSyncCron();
         startReleaseScheduleCron();
         startSubscriptionMaintenanceCron();

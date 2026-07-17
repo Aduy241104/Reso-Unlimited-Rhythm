@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppLoader from '../common/AppLoader';
 import { formatCompactNumber, formatDateLabel, formatDuration, getInitials, resolveImageUri } from '../../utils/media';
-import { formatPlayerTime, getPlayableDuration } from '../../utils/player';
+import { formatPlayerTime, getPlayableDuration, resolveTrackStaticLyrics } from '../../utils/player';
 
 const CLOSE_THRESHOLD = 120;
 const CLOSE_VELOCITY = 0.9;
@@ -75,10 +75,12 @@ export default function PlayerDetailSheet({
   detailErrorMessage = '',
   hasNext = false,
   hasPrevious = false,
+  hasSyncedLyrics = false,
   isDetailLoading = false,
   isBuffering = false,
   isPlaying = false,
   onClose,
+  onOpenLyrics,
   onOpenQueue,
   onPlayNext,
   onPlayPrevious,
@@ -95,8 +97,14 @@ export default function PlayerDetailSheet({
   const trackPayload = trackDetailResponse?.data?.track || null;
   const artistPayload = artistProfileResponse?.data?.artist || null;
   const songInfoRows = buildSongInfoRows(trackPayload);
-  const lyricsPreview = getLyricsPreview(trackPayload?.lyrics?.static || currentTrack?.lyrics);
-  const artistSummary = artistPayload?.bio || 'Chưa có phần giới thiệu nghệ sĩ.';
+  const lyricsPreview = getLyricsPreview(
+    resolveTrackStaticLyrics(trackPayload) || resolveTrackStaticLyrics(currentTrack)
+  );
+  const artistSummary = artistPayload?.bio || 'No artist introduction available.';
+  const queueStatusLabel = currentIndex >= 0
+    ? `Open playing queue. ${queueLength} tracks queued. Current track ${currentIndex + 1}.`
+    : `Open playing queue. ${queueLength} tracks queued.`;
+  const canOpenSyncedLyrics = hasSyncedLyrics && typeof onOpenLyrics === 'function';
   const translateY = useRef(new Animated.Value(screenHeight)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   const isClosingRef = useRef(false);
@@ -256,40 +264,38 @@ export default function PlayerDetailSheet({
                 </View>
               </View>
 
-              <View style={styles.controls}>
-                <Pressable
-                  style={[styles.secondaryButton, !hasPrevious && styles.secondaryButtonDisabled]}
-                  onPress={onPlayPrevious}
-                  disabled={!hasPrevious}
-                >
-                  <Ionicons name="play-skip-back" size={24} color={hasPrevious ? '#ffffff' : '#5f5f5f'} />
-                </Pressable>
+              <View style={styles.controlsRow}>
+                <View style={styles.controlsSideSpacer} />
 
-                <Pressable style={styles.primaryButton} onPress={onTogglePlayback}>
-                  <Ionicons name={isPlaying ? 'pause' : 'play'} size={30} color="#000000" />
-                </Pressable>
+                <View style={styles.controls}>
+                  <Pressable
+                    style={[styles.secondaryButton, !hasPrevious && styles.secondaryButtonDisabled]}
+                    onPress={onPlayPrevious}
+                    disabled={!hasPrevious}
+                  >
+                    <Ionicons name="play-skip-back" size={24} color={hasPrevious ? '#ffffff' : '#5f5f5f'} />
+                  </Pressable>
 
-                <Pressable
-                  style={[styles.secondaryButton, !hasNext && styles.secondaryButtonDisabled]}
-                  onPress={onPlayNext}
-                  disabled={!hasNext}
-                >
-                  <Ionicons name="play-skip-forward" size={24} color={hasNext ? '#ffffff' : '#5f5f5f'} />
-                </Pressable>
-              </View>
+                  <Pressable style={styles.primaryButton} onPress={onTogglePlayback}>
+                    <Ionicons name={isPlaying ? 'pause' : 'play'} size={30} color="#000000" />
+                  </Pressable>
 
-              <View style={styles.queuePanel}>
-                <View style={styles.queuePanelCopy}>
-                  <Text style={styles.queuePanelTitle}>Hàng chờ phát</Text>
-                  <Text style={styles.queuePanelText}>
-                    {queueLength} bài hát trong hàng chờ
-                    {currentIndex >= 0 ? ` - Đã chọn bài ${currentIndex + 1}` : ''}
-                  </Text>
+                  <Pressable
+                    style={[styles.secondaryButton, !hasNext && styles.secondaryButtonDisabled]}
+                    onPress={onPlayNext}
+                    disabled={!hasNext}
+                  >
+                    <Ionicons name="play-skip-forward" size={24} color={hasNext ? '#ffffff' : '#5f5f5f'} />
+                  </Pressable>
                 </View>
 
-                <Pressable style={styles.queuePanelButton} onPress={onOpenQueue}>
-                  <Ionicons name="list" size={16} color="#ffffff" />
-                  <Text style={styles.queuePanelButtonText}>Mở</Text>
+                <Pressable
+                  style={styles.queueIconButton}
+                  onPress={onOpenQueue}
+                  accessibilityRole="button"
+                  accessibilityLabel={queueStatusLabel}
+                >
+                  <Ionicons name="reorder-three-outline" size={24} color="#ffffff" />
                 </Pressable>
               </View>
 
@@ -310,6 +316,39 @@ export default function PlayerDetailSheet({
                 </View>
               ) : null}
 
+              {!isDetailLoading ? (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Lyrics Preview</Text>
+
+                  <View style={styles.detailCard}>
+                    <Text style={styles.previewText}>{lyricsPreview}</Text>
+                    <Text style={styles.previewHintText}>
+                      {canOpenSyncedLyrics
+                        ? 'Open the synced lyric screen to follow the current playback line.'
+                        : 'Timed LRC is not available for this track yet.'}
+                    </Text>
+                  </View>
+
+                  <Pressable
+                    style={[
+                      styles.lyricsScreenButton,
+                      !canOpenSyncedLyrics && styles.lyricsScreenButtonDisabled,
+                    ]}
+                    onPress={onOpenLyrics}
+                    disabled={!canOpenSyncedLyrics}
+                  >
+                    <Text
+                      style={[
+                        styles.lyricsScreenButtonText,
+                        !canOpenSyncedLyrics && styles.lyricsScreenButtonTextDisabled,
+                      ]}
+                    >
+                      {canOpenSyncedLyrics ? 'Open Synced Lyrics' : 'Synced Lyrics Unavailable'}
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : null}
+
               {!isDetailLoading && !detailErrorMessage && trackPayload ? (
                 <>
                   <View style={styles.section}>
@@ -323,15 +362,8 @@ export default function PlayerDetailSheet({
                   </View>
 
                   <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Xem nhanh lời bài hát</Text>
-
-                    <View style={styles.detailCard}>
-                      <Text style={styles.previewText}>{lyricsPreview}</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Về nghệ sĩ</Text>
+                    <Text style={styles.sectionTitle}>About the Artist</Text>
+                    <Text style={styles.sectionTitle}>About the Artist</Text>
 
                     <View style={styles.detailCard}>
                       <View style={styles.artistIntroHeader}>
@@ -484,8 +516,17 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
   },
-  controls: {
+  controlsRow: {
     marginTop: 22,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  controlsSideSpacer: {
+    width: 52,
+    height: 52,
+  },
+  controls: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -512,48 +553,12 @@ const styles = StyleSheet.create({
   secondaryButtonDisabled: {
     opacity: 0.55,
   },
-  queuePanel: {
-    marginTop: 28,
-    flexDirection: 'row',
+  queueIconButton: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 15,
-    borderRadius: 20,
-    backgroundColor: '#131313',
-    borderWidth: 1,
-    borderColor: '#232323',
-  },
-  queuePanelCopy: {
-    flex: 1,
-    marginRight: 12,
-  },
-  queuePanelTitle: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  queuePanelText: {
-    color: '#8c8c8c',
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 4,
-  },
-  queuePanelButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-    backgroundColor: '#1f1f1f',
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#2d2d2d',
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-  },
-  queuePanelButtonText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '700',
+    justifyContent: 'center',
   },
   detailStateCard: {
     marginTop: 20,
@@ -637,6 +642,34 @@ const styles = StyleSheet.create({
     color: '#dddddd',
     fontSize: 14,
     lineHeight: 22,
+  },
+  previewHintText: {
+    color: '#8f8f8f',
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 12,
+  },
+  lyricsScreenButton: {
+    marginTop: 12,
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lyricsScreenButtonDisabled: {
+    backgroundColor: '#1b1b1b',
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+  },
+  lyricsScreenButtonText: {
+    color: '#000000',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  lyricsScreenButtonTextDisabled: {
+    color: '#777777',
   },
   artistIntroHeader: {
     flexDirection: 'row',

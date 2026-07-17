@@ -1,4 +1,4 @@
-import { Navigate } from "react-router-dom";
+﻿import { Navigate } from "react-router-dom";
 import AdminLayout from "../layouts/AdminLayout";
 import SystemPlaylistsLayout from "../layouts/SystemPlaylistsLayout";
 import LoginPage from "../pages/auth/LoginPage";
@@ -24,6 +24,7 @@ import ArtistRequestDetailPage from "../pages/artistRequests/ArtistRequestDetail
 import SystemArtistsListPage from "../pages/artist/SystemArtistsListPage";
 import SystemArtistDetailPage from "../pages/artist/ArtistDetailPage";
 import SystemTracksModerationPage from "../pages/systemTracks/SystemTracksModerationPage";
+import AlbumDetailPage from "../pages/albums/AlbumDetailPage";
 import CreateNotificationPage from "../pages/notification/CreateNotificationPage";
 import AdminListPage from "../pages/users/AdminListPage";
 import NotificationsListPage from "../pages/notification/NotificationListPage";
@@ -35,6 +36,8 @@ import SubscriptionPlansPage from "../pages/subscriptions/SubscriptionPlansPage"
 import SubscriptionPlanDetailPage from "../pages/subscriptions/SubscriptionPlanDetailPage";
 import CreateSubscriptionPlanPage from "../pages/subscriptions/CreateSubscriptionPlanPage";
 import EditSubscriptionPlanPage from "../pages/subscriptions/EditSubscriptionPlanPage";
+import TransactionDetail from "../pages/transactions/TransactionDetail";
+import TransactionList from "../pages/transactions/TransactionList";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import RoleRoute from "./RoleRoute";
@@ -90,7 +93,6 @@ export const appRoutes = [
                 element: <RevenuePeriodDetailPage />,
               },
               {
-
                 path: "withdrawals",
                 element: <AdminWithdrawalRequestsPage />,
               },
@@ -116,11 +118,11 @@ export const appRoutes = [
               },
               {
                 path: "notifications",
-                element: <NotificationsListPage />, // Đổi thành List trang chủ thông báo
+                element: <NotificationsListPage />,
               },
               {
                 path: "notifications/new",
-                element: <CreateNotificationPage />, // Đổi thành /notifications/new để khớp với routePaths.createNotification
+                element: <CreateNotificationPage />,
               },
               {
                 path: "notifications/:id",
@@ -163,6 +165,10 @@ export const appRoutes = [
                 element: <TrackDetailPage />,
               },
               {
+                path: "system-albums/:id",
+                element: <AlbumDetailPage />,
+              },
+              {
                 path: "genres",
                 element: <GenresListPage />,
               },
@@ -197,6 +203,14 @@ export const appRoutes = [
               {
                 path: "subscriptions/:planId/edit",
                 element: <EditSubscriptionPlanPage />,
+              },
+              {
+                path: routePaths.transactions,
+                element: <TransactionList />,
+              },
+              {
+                path: routePaths.transactionDetail(),
+                element: <TransactionDetail />,
               },
             ],
           },

@@ -1,4 +1,4 @@
-export const routePaths = {
+﻿export const routePaths = {
   home: "/",
   login: "/login",
   systemTracks: "/system-tracks",
@@ -6,6 +6,7 @@ export const routePaths = {
   artistRequests: "/artist-requests",
   artistRequestDetail: (requestId = ":requestId") => `/artist-requests/${requestId}`,
   trackDetail: (trackId = ":id") => `/system-tracks/${trackId}`,
+  albumDetail: (albumId = ":id") => `/system-albums/${albumId}`,
   systemPlaylists: "/system-playlists",
   genres: "/genres",
   genreNew: "/genres/new",
@@ -41,4 +42,6 @@ export const routePaths = {
   subscriptionDetail: (planId = ":planId") => `/subscriptions/${planId}`,
   subscriptionEdit: (planId = ":planId") => `/subscriptions/${planId}/edit`,
   subscriptionNew: "/subscriptions/new",
+  transactions: "/transactions",
+  transactionDetail: (transactionId = ":id") => `/transactions/${transactionId}`,
 };

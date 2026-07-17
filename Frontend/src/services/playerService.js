@@ -221,7 +221,12 @@ export const resolveTrackMediaUrlForQuality = (track, preferredQuality = "") => 
 };
 
 export const getTrackPlaybackService = async (trackId) => {
-  const response = await axiosClient.get(`${TRACK_API_PREFIX}/${trackId}/playback`);
+  const normalizedTrackId =
+    trackId === null || trackId === undefined ? "" : String(trackId).trim();
+  const playbackEndpoint = normalizedTrackId
+    ? `${TRACK_API_PREFIX}/${normalizedTrackId}/playback`
+    : `${TRACK_API_PREFIX}/playback`;
+  const response = await axiosClient.get(playbackEndpoint);
   return response?.data?.data?.track ?? null;
 };
 
@@ -229,10 +234,6 @@ export const getTrackPlaybackSource = async (
   trackId,
   { preferredQualityLabel = "", preferredQualityUrl = "" } = {}
 ) => {
-  if (!trackId) {
-    throw new Error("Track id is required to resolve playback source.");
-  }
-
   const playbackTrack = await getTrackPlaybackService(trackId);
   const streamUrl = preferredQualityLabel || preferredQualityUrl
     ? resolveTrackMediaUrlForQuality(playbackTrack, {

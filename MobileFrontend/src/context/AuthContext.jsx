@@ -15,7 +15,9 @@ export const AuthContext = createContext({
   isLoading: true,
   user: null,
   login: async () => {},
+  googleLogin: async () => {},
   logout: async () => {},
+  updateUser: async () => {},
 });
 
 const normalizeAuthUser = (value) => {
@@ -28,6 +30,24 @@ const normalizeAuthUser = (value) => {
   }
 
   return value;
+};
+
+const mergeAuthUsers = (primaryUser = null, secondaryUser = null) => {
+  const preferredUser = normalizeAuthUser(primaryUser);
+  const fallbackUser = normalizeAuthUser(secondaryUser);
+
+  if (!preferredUser && !fallbackUser) {
+    return null;
+  }
+
+  return {
+    ...(fallbackUser || {}),
+    ...(preferredUser || {}),
+    profile: {
+      ...(fallbackUser?.profile || {}),
+      ...(preferredUser?.profile || {}),
+    },
+  };
 };
 
 export const AuthProvider = ({ children }) => {
@@ -62,15 +82,16 @@ export const AuthProvider = ({ children }) => {
   const syncCurrentUser = useCallback(async (fallbackUser = null) => {
     const response = await authService.getCurrentUser();
     const freshUser = normalizeAuthUser(response?.data || response);
+    const mergedUser = mergeAuthUsers(freshUser, fallbackUser);
 
-    if (freshUser) {
-      await userStorage.setUserProfile(freshUser);
+    if (mergedUser) {
+      await userStorage.setUserProfile(mergedUser);
       setAuthState({
         isAuthenticated: true,
         isLoading: false,
-        user: freshUser,
+        user: mergedUser,
       });
-      return freshUser;
+      return mergedUser;
     }
 
     setAuthState({
@@ -144,14 +165,14 @@ export const AuthProvider = ({ children }) => {
         const response = await authService.login(email, password);
 
         if (!response) {
-          throw new Error('Không nhận được phản hồi từ server.');
+          throw new Error('Khong nhan duoc phan hoi tu server.');
         }
 
         const authPayload = normalizeAuthPayload(response?.data || response);
         const sessionUser = normalizeAuthUser(authPayload.user) || { email };
 
         if (!authPayload.accessToken) {
-          throw new Error('Đăng nhập thất bại: Server không trả về access token.');
+          throw new Error('Dang nhap that bai: Server khong tra ve access token.');
         }
 
         await persistSession({
@@ -182,6 +203,52 @@ export const AuthProvider = ({ children }) => {
     [clearSession, persistSession, syncCurrentUser]
   );
 
+  const googleLogin = useCallback(
+    async (token) => {
+      setAuthState((prev) => ({ ...prev, isLoading: true }));
+
+      try {
+        const response = await authService.googleLogin(token);
+
+        if (!response) {
+          throw new Error('Khong nhan duoc phan hoi tu server.');
+        }
+
+        const authPayload = normalizeAuthPayload(response?.data || response);
+        const sessionUser = authPayload.user;
+
+        if (!authPayload.accessToken) {
+          throw new Error('Dang nhap Google that bai: Server khong tra ve access token.');
+        }
+
+        await persistSession({
+          accessToken: authPayload.accessToken,
+          refreshToken: authPayload.refreshToken,
+          user: authPayload.user,
+        });
+
+        setAuthState({
+          isAuthenticated: true,
+          isLoading: false,
+          user: sessionUser,
+        });
+
+        try {
+          await syncCurrentUser(sessionUser);
+        } catch (syncError) {
+          if (syncError?.status === 401) {
+            throw syncError;
+          }
+        }
+      } catch (error) {
+        await clearSession();
+        console.log('Google auth error:', error?.message || error);
+        throw error;
+      }
+    },
+    [clearSession, persistSession, syncCurrentUser]
+  );
+
   const logout = useCallback(async () => {
     setAuthState((prev) => ({ ...prev, isLoading: true }));
 
@@ -192,13 +259,36 @@ export const AuthProvider = ({ children }) => {
     }
   }, [clearSession]);
 
+  const updateUser = useCallback(
+    async (nextUser) => {
+      const mergedUser = mergeAuthUsers(nextUser, authState.user);
+
+      if (!mergedUser) {
+        return null;
+      }
+
+      await userStorage.setUserProfile(mergedUser).catch(() => {});
+      setAuthState((prev) => ({
+        ...prev,
+        isAuthenticated: true,
+        isLoading: false,
+        user: mergedUser,
+      }));
+
+      return mergedUser;
+    },
+    [authState.user]
+  );
+
   const contextValue = useMemo(
     () => ({
       ...authState,
       login,
+      googleLogin,
       logout,
+      updateUser,
     }),
-    [authState, login, logout]
+    [authState, login, googleLogin, logout, updateUser]
   );
 
   return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;

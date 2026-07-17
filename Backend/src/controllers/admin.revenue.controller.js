@@ -121,12 +121,38 @@ const confirmRevenueDistribution = async (req, res, next) => {
     }
 };
 
+const processRevenuePeriodAction = async (req, res, next) => {
+    try {
+        const { action } = req.body;
+        const result = await adminRevenueService.processRevenuePeriodAction(
+            req.params.id,
+            action,
+            req.user.id
+        );
+
+        const successMessages = {
+            close: "Revenue period closed successfully",
+            calculate: "Revenue distribution calculated successfully",
+            confirm: "Revenue distribution confirmed successfully",
+        };
+
+        return formatResponse.success(
+            res,
+            result,
+            successMessages[action] || "Revenue period processed successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getCurrentRevenuePeriod,
     getRevenueCharts,
     getRevenuePeriods,
     getRevenuePeriodDetail,
     triggerRevenueAggregation,
+    processRevenuePeriodAction,
     closeRevenuePeriod,
     calculateRevenueDistribution,
     confirmRevenueDistribution,
