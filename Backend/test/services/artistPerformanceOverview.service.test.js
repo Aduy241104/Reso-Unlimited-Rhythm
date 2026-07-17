@@ -90,7 +90,7 @@ describe("artistPerformanceOverviewService", () => {
         name: "Synth Horizon",
         stats: {
           followers: 1240,
-          totalStreams: 98765,
+          totalStreams: 0,
         },
       })
     );
@@ -113,6 +113,11 @@ describe("artistPerformanceOverviewService", () => {
         },
         {
           year: 2026,
+          streamCount: 115,
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
           streamCount: 115,
         },
       ]);
@@ -157,6 +162,11 @@ describe("artistPerformanceOverviewService", () => {
       .mockResolvedValueOnce([
         { year: 2026 },
         { year: 2025 },
+      ])
+      .mockResolvedValueOnce([
+        {
+          streamCount: 5,
+        },
       ]);
 
     mockTrackModel.countDocuments.mockResolvedValue(8);
@@ -182,7 +192,7 @@ describe("artistPerformanceOverviewService", () => {
     expect(result.summary).toEqual({
       followers: 1240,
       trackCount: 8,
-      totalStreams: 98765,
+      totalStreams: 120,
     });
     expect(result.availableYears).toEqual([2026, 2025]);
     expect(result.dailyStats).toHaveLength(7);
