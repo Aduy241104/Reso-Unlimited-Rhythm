@@ -9,7 +9,7 @@ const genderSchema = Joi.string()
     .trim()
     .valid("male", "female", "other", "prefer_not_to_say");
 
-const requestRegisterOtpSchema = Joi.object({
+const requestRegistrationOtpSchema = Joi.object({
     email: Joi.string().trim().email().required(),
 });
 
@@ -87,7 +87,7 @@ const refreshTokenSchema = Joi.object({
 });
 
 export default {
-    requestRegisterOtpSchema,
+    requestRegistrationOtpSchema,
     registerSchema,
     loginSchema,
     googleLoginSchema,

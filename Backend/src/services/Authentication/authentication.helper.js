@@ -46,6 +46,14 @@ export const ensureActiveUser = (user) => {
     }
 };
 
+export const isInactiveUnverifiedUser = (user) =>
+    Boolean(
+        user &&
+        user.authProvider === "local" &&
+        user.activeStatus === "inactive" &&
+        user.emailVerified !== true
+    );
+
 export const normalizeOptionalDate = (value) => {
     if (!value) {
         return undefined;
@@ -72,16 +80,22 @@ const buildGoogleProfilePayload = ({ fullName }) => ({
     fullName: fullName?.trim() || "",
 });
 
-export const ensureRegistrationAvailability = async (email) => {
+export const ensureEmailCanStartRegistration = async (email) => {
     const [existingEmail] = await Promise.all([
         User.findOne({ email }),
     ]);
+
+    if (isInactiveUnverifiedUser(existingEmail)) {
+        return existingEmail;
+    }
 
     if (existingEmail) {
         throw new AppError("Email is already in use.", 409, {
             field: "email",
         });
     }
+
+    return null;
 };
 
 export const createAuthSession = async (user, clientType) => {

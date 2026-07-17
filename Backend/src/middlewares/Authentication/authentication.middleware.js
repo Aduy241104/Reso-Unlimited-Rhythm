@@ -30,52 +30,52 @@ const normalizeAllowedRoles = (allowedRoles) => {
     return [allowedRoles];
 };
 
-const authenticate = (allowedRoles = []) => {
-    const normalizedAllowedRoles = normalizeAllowedRoles(allowedRoles);
+    const authenticate = (allowedRoles = []) => {
+        const normalizedAllowedRoles = normalizeAllowedRoles(allowedRoles);
 
-    return async (req, res, next) => {
-        try {
-            const accessToken = extractAccessToken(req);
-
-            if (!accessToken) {
-                throw new AppError("Access token is required.", StatusCodes.UNAUTHORIZED);
-            }
-
-            let decodedToken;
+        return async (req, res, next) => {
             try {
-                decodedToken = jwt.verify(accessToken, process.env.JWT_SECRET);
-            } catch (error) {
-                if (error.name === "TokenExpiredError") {
-                    throw new AppError("Access token has expired.", StatusCodes.UNAUTHORIZED);
+                const accessToken = extractAccessToken(req);
+
+                if (!accessToken) {
+                    throw new AppError("Access token is required.", StatusCodes.UNAUTHORIZED);
                 }
 
-                throw new AppError("Access token is invalid.", StatusCodes.UNAUTHORIZED);
+                let decodedToken;
+                try {
+                    decodedToken = jwt.verify(accessToken, process.env.JWT_SECRET);
+                } catch (error) {
+                    if (error.name === "TokenExpiredError") {
+                        throw new AppError("Access token has expired.", StatusCodes.UNAUTHORIZED);
+                    }
+
+                    throw new AppError("Access token is invalid.", StatusCodes.UNAUTHORIZED);
+                }
+
+                const user = await User.findById(decodedToken.id);
+                ensureActiveUser(user);
+
+                if (
+                    normalizedAllowedRoles.length > 0 &&
+                    !normalizedAllowedRoles.includes(user.role)
+                ) {
+                    throw new AppError("You do not have permission to access this resource.", StatusCodes.FORBIDDEN, {
+                        allowedRoles: normalizedAllowedRoles,
+                    });
+                }
+
+                req.user = sanitizeUser(user);
+                req.auth = {
+                    accessToken,
+                    tokenPayload: decodedToken,
+                };
+
+                next();
+            } catch (error) {
+                next(error);
             }
-
-            const user = await User.findById(decodedToken.id);
-            ensureActiveUser(user);
-
-            if (
-                normalizedAllowedRoles.length > 0 &&
-                !normalizedAllowedRoles.includes(user.role)
-            ) {
-                throw new AppError("You do not have permission to access this resource.", StatusCodes.FORBIDDEN, {
-                    allowedRoles: normalizedAllowedRoles,
-                });
-            }
-
-            req.user = sanitizeUser(user);
-            req.auth = {
-                accessToken,
-                tokenPayload: decodedToken,
-            };
-
-            next();
-        } catch (error) {
-            next(error);
-        }
+        };
     };
-};
 
 const optionalAuthenticate = () => {
     return async (req, res, next) => {

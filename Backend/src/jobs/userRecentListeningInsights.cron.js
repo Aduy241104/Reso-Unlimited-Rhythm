@@ -2,7 +2,7 @@ import cron from "node-cron";
 import userListeningAnalyticsService from "../services/user/userListeningAnalytics.service.js";
 import { getAnalyticsTimezone } from "../services/analytics/trackStatAggregation.service.js";
 
-const USER_RECENT_LISTENING_INSIGHTS_CRON_EXPRESSION = "*/30 * * * *";
+const USER_RECENT_LISTENING_INSIGHTS_CRON_EXPRESSION = "*/5 * * * *";
 
 let isJobRunning = false;
 
@@ -41,7 +41,7 @@ export const startUserRecentListeningInsightsCron = () => {
     );
 
     console.log(
-        `[Cron] User recent listening insights aggregation scheduled every 30 minutes (${analyticsTimezone}).`
+        `[Cron] User recent listening insights aggregation scheduled every 5 minutes (${analyticsTimezone}).`
     );
 
     return task;

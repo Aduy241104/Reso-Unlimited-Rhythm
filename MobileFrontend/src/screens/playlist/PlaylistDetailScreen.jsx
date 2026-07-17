@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppLoader from '../../components/common/AppLoader';
@@ -22,6 +23,8 @@ import ErrorState from '../../components/common/ErrorState';
 import EditPlaylistModal from '../../components/library/EditPlaylistModal';
 import { useAuth } from '../../hooks/useAuth';
 import usePlayer from '../../hooks/usePlayer';
+import { Artwork as DetailArtwork, TrackListItem } from '../detail/EntityDetailComponents';
+import detailScreenStyles from '../detail/EntityDetailScreen.styles';
 import playlistService from '../../services/playlistService';
 import userFavoriteService from '../../services/userFavoriteService';
 import userPlaylistService from '../../services/userPlaylistService';
@@ -40,6 +43,17 @@ const readText = (value, fallback = '') => {
 };
 
 const getTrackId = (item) => String(item?.entityId || item?.id || '');
+
+const shuffleItems = (items = []) => {
+  const nextItems = [...items];
+
+  for (let index = nextItems.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [nextItems[index], nextItems[randomIndex]] = [nextItems[randomIndex], nextItems[index]];
+  }
+
+  return nextItems;
+};
 
 const Artwork = ({ uri, label, style, textStyle }) => {
   const imageUri = resolveImageUri(uri);
@@ -228,6 +242,12 @@ export default function PlaylistDetailScreen() {
     { label: 'Cập nhật', value: updatedDate || 'Không xác định' },
   ];
 
+  const isSystemPlaylist = playlist?.playlistType === 'system';
+  const systemPlaylistMetaLine = [
+    readText(playlist?.badgeLabel, 'PLAYLIST HỆ THỐNG'),
+    totalTracks > 0 ? `${totalTracks} bài hát` : '',
+    readText(playlist?.description),
+  ].filter(Boolean);
   const activeTrackId = String(currentTrack?.entityId || currentTrack?.id || '');
   const favoriteTrackIds = useMemo(
     () => Array.from(new Set(tracks.map(getTrackId).filter(Boolean))),
@@ -240,6 +260,14 @@ export default function PlaylistDetailScreen() {
     }
 
     playQueue(playableQueue, 0);
+  }, [playQueue, playableQueue]);
+
+  const handleShuffleAll = useCallback(() => {
+    if (playableQueue.length === 0) {
+      return;
+    }
+
+    playQueue(shuffleItems(playableQueue), 0);
   }, [playQueue, playableQueue]);
 
   const handleTrackPress = useCallback((track, index) => {
@@ -616,14 +644,13 @@ export default function PlaylistDetailScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
 
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} activeOpacity={0.8}>
-          <Text style={styles.backButtonText}>Quay lại</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>{headerTitle}</Text>
-        <View style={styles.headerSpacer} />
-      </View>
-
+      <TouchableOpacity
+        style={[detailScreenStyles.backButton, styles.floatingBackButton, { top: insets.top + 8 }]}
+        onPress={() => navigation.goBack()}
+        activeOpacity={0.75}
+      >
+        <Ionicons name="chevron-back" size={25} color="#ffffff" />
+      </TouchableOpacity>
       {isLoading ? (
         <View style={styles.centerState}>
           <AppLoader size="large" />
@@ -635,9 +662,93 @@ export default function PlaylistDetailScreen() {
             <Text style={styles.retryButtonText}>Thử lại</Text>
           </TouchableOpacity>
         </View>
+      ) : isSystemPlaylist ? (
+        <ScrollView
+          contentContainerStyle={[
+            detailScreenStyles.scrollBody,
+            { paddingBottom: 40 + insets.bottom },
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={[detailScreenStyles.heroSection, styles.systemHeroSection, { paddingTop: insets.top + 48 }]}>
+            <LinearGradient
+              colors={['#d4d4d4', '#b0b0b0', '#707070', '#1a1a1a', '#121212']}
+              locations={[0, 0.24, 0.48, 0.78, 1]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={StyleSheet.absoluteFillObject}
+            />
+
+            <DetailArtwork
+              uri={playlist?.image}
+              label={headerTitle}
+              style={detailScreenStyles.heroImage}
+              textStyle={detailScreenStyles.heroFallbackText}
+            />
+
+            <Text style={detailScreenStyles.heroTitle} numberOfLines={2}>
+              {headerTitle}
+            </Text>
+
+            <Text style={detailScreenStyles.metaLine} numberOfLines={2}>
+              {systemPlaylistMetaLine.join(' - ')}
+            </Text>
+
+            <View style={detailScreenStyles.actionRow}>
+              <View style={detailScreenStyles.actionSpacer} />
+
+              <TouchableOpacity
+                style={[
+                  detailScreenStyles.shuffleButton,
+                  playableQueue.length === 0 ? styles.systemActionDisabled : null,
+                ]}
+                activeOpacity={0.75}
+                onPress={handleShuffleAll}
+                disabled={playableQueue.length === 0}
+              >
+                <Ionicons name="shuffle" size={26} color="#1ed760" />
+              </TouchableOpacity>
+
+              {playableQueue.length > 0 ? (
+                <TouchableOpacity
+                  style={detailScreenStyles.playCircleButton}
+                  onPress={handlePlayAll}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="play" size={30} color="#000000" />
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          </View>
+
+          <View style={detailScreenStyles.section}>
+            <Text style={detailScreenStyles.sectionTitle}>
+              {readText(playlist?.itemsTitle, 'Các bài hát trong playlist')}
+            </Text>
+
+            <View style={[detailScreenStyles.panel, detailScreenStyles.albumSurfacePlain]}>
+              {tracks.length > 0 ? (
+                tracks.map((track, index) => (
+                  <TrackListItem
+                    key={`${getTrackId(track) || index}`}
+                    item={track}
+                    index={index}
+                    isFavorite={Boolean(favoriteStatusMap[getTrackId(track)])}
+                    isFavoriteLoading={Boolean(favoriteUpdatingMap[getTrackId(track)])}
+                    onFavoritePress={() => handleToggleTrackFavorite(track)}
+                    onMorePress={() => openTrackActions(track, index)}
+                    onPress={() => handleTrackPress(track, index)}
+                  />
+                ))
+              ) : (
+                <Text style={detailScreenStyles.emptyPanelText}>Playlist này chưa có bài hát nào.</Text>
+              )}
+            </View>
+          </View>
+        </ScrollView>
       ) : (
         <ScrollView
-          contentContainerStyle={[styles.scrollBody, { paddingBottom: 32 + insets.bottom }]}
+          contentContainerStyle={[styles.scrollBody, { paddingTop: insets.top + 8, paddingBottom: 32 + insets.bottom }]}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.heroSection}>
@@ -824,35 +935,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1f1f1f',
-    backgroundColor: '#000000',
-  },
-  backButton: {
-    minWidth: 56,
-    paddingVertical: 8,
-  },
-  backButtonText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '700',
-    marginHorizontal: 12,
-  },
-  headerSpacer: {
-    width: 56,
+  floatingBackButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
   },
   centerState: {
     flex: 1,
@@ -1243,5 +1327,12 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '800',
+  },
+  systemHeroSection: {
+    paddingTop: 28,
+    paddingBottom: 18,
+  },
+  systemActionDisabled: {
+    opacity: 0.45,
   },
 });
