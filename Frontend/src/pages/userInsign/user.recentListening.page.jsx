@@ -10,8 +10,12 @@ import { hasPremiumAccess } from "../../utils/premiumAccess";
 const pageShellClassName =
   "min-h-screen bg-[#020202] px-4 py-8 text-white sm:px-6 lg:px-8";
 
+const lightGrayBorderClassName = "border border-[#d1d5db]/25";
+const lightGraySoftBorderClassName = "border border-[#d1d5db]/20";
+const lightGrayDividerClassName = "border-[#d1d5db]/18";
+
 const panelClassName =
-  "rounded-[30px] border border-white/10 bg-[#0b0b0b] shadow-[0_24px_70px_rgba(0,0,0,0.42)]";
+  `rounded-[30px] ${lightGrayBorderClassName} bg-[#0b0b0b] shadow-[0_24px_70px_rgba(0,0,0,0.42)]`;
 
 const chartViewBox = { width: 940, height: 280 };
 const chartPadding = { top: 18, right: 18, bottom: 42, left: 44 };
@@ -33,6 +37,14 @@ const formatMinutesAsVietnameseDuration = (minutesValue) => {
 };
 
 const formatCount = (value) => `${Math.max(Math.round(Number(value) || 0), 0)}`;
+
+const formatPercentage = (value) => {
+  const percentage = Math.min(Math.max(Number(value) || 0, 0), 100);
+
+  return Number.isInteger(percentage)
+    ? `${percentage}%`
+    : `${percentage.toFixed(1)}%`;
+};
 
 const formatComparisonMessage = (comparison = {}) => {
   const listenComparison = comparison?.listenCount || {};
@@ -82,9 +94,9 @@ const buildChartDateLabel = (item) => {
 };
 
 const StatCard = ({ icon: Icon, label, value, hint }) => (
-  <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-5 py-4">
+  <div className={`rounded-[22px] ${lightGraySoftBorderClassName} bg-white/[0.03] px-5 py-4`}>
     <div className="flex items-center gap-3">
-      <div className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/88">
+      <div className={`flex h-11 w-11 items-center justify-center rounded-full ${lightGraySoftBorderClassName} bg-white/[0.04] text-white/88`}>
         <Icon className="h-5 w-5" />
       </div>
       <div className="min-w-0">
@@ -149,7 +161,7 @@ const ListeningBarChart = ({ chartData, chartMaxListenCount }) => {
   }, [chartMaxListenCount]);
 
   return (
-    <div className="rounded-[26px] border border-white/12 bg-[#060606] px-4 py-5 sm:px-5">
+    <div className={`rounded-[26px] ${lightGrayBorderClassName} bg-[#060606] px-4 py-5 sm:px-5`}>
       <svg
         viewBox={`0 0 ${chartViewBox.width} ${chartViewBox.height}`}
         className="h-[240px] w-full"
@@ -220,7 +232,7 @@ const ListeningBarChart = ({ chartData, chartMaxListenCount }) => {
 };
 
 const EmptyState = ({ title, description }) => (
-  <section className="rounded-[26px] border border-dashed border-white/15 bg-[#080808] px-6 py-14 text-center">
+  <section className="rounded-[26px] border border-dashed border-[#d1d5db]/25 bg-[#080808] px-6 py-14 text-center">
     <p className="text-lg font-semibold text-white">{title}</p>
     <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-white/58">
       {description}
@@ -278,7 +290,7 @@ const PremiumRequiredState = () => (
 );
 
 const InsightBadge = ({ icon: Icon, label, value, hint }) => (
-  <div className="rounded-[20px] border border-white/8 bg-white/[0.03] p-4">
+  <div className={`rounded-[20px] ${lightGraySoftBorderClassName} bg-white/[0.03] p-4`}>
     <div className="flex items-start justify-between gap-3">
       <div>
         <p className="text-xs uppercase tracking-[0.18em] text-white/35">
@@ -286,7 +298,7 @@ const InsightBadge = ({ icon: Icon, label, value, hint }) => (
         </p>
         <p className="mt-2 text-lg font-semibold text-white">{value}</p>
       </div>
-      <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/88">
+      <div className={`flex h-10 w-10 items-center justify-center rounded-full ${lightGraySoftBorderClassName} bg-white/[0.04] text-white/88`}>
         <Icon className="h-5 w-5" />
       </div>
     </div>
@@ -300,7 +312,7 @@ const UserInsightSection = ({ activity }) => {
 
   return (
     <section className={`${panelClassName} overflow-hidden p-6 sm:p-7 lg:p-8`}>
-      <div className="flex flex-col gap-4 border-b border-white/8 pb-6 lg:flex-row lg:items-end lg:justify-between">
+      <div className={`flex flex-col gap-4 border-b ${lightGrayDividerClassName} pb-6 lg:flex-row lg:items-end lg:justify-between`}>
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-white/35">
             Insight gần đây
@@ -331,7 +343,7 @@ const UserInsightSection = ({ activity }) => {
       </div>
 
       <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
-        <section className="rounded-[24px] border border-white/8 bg-[#050505] p-5">
+        <section className={`rounded-[24px] ${lightGraySoftBorderClassName} bg-[#050505] p-5`}>
           <div>
             <p className="text-xs uppercase tracking-[0.24em] text-white/35">
               Top thể loại
@@ -359,7 +371,7 @@ const UserInsightSection = ({ activity }) => {
                       </p>
                     </div>
                     <p className="shrink-0 text-white/72">
-                      {formatCount(genre.listenCount)} lượt
+                      {formatPercentage(genre.percentage)}
                     </p>
                   </div>
 
@@ -380,7 +392,7 @@ const UserInsightSection = ({ activity }) => {
           )}
         </section>
 
-        <section className="rounded-[24px] border border-white/8 bg-[#050505] p-5">
+        <section className={`rounded-[24px] ${lightGraySoftBorderClassName} bg-[#050505] p-5`}>
           <div>
             <p className="text-xs uppercase tracking-[0.24em] text-white/35">
               Top bài hát
@@ -399,10 +411,10 @@ const UserInsightSection = ({ activity }) => {
               {topTracks.map((track, index) => (
                 <article
                   key={track.id || `${track.title}-${index}`}
-                  className="flex flex-col gap-4 rounded-[20px] border border-white/8 bg-white/[0.03] p-4 md:flex-row md:items-center md:justify-between"
+                  className={`flex flex-col gap-4 rounded-[20px] ${lightGraySoftBorderClassName} bg-white/[0.03] p-4 md:flex-row md:items-center md:justify-between`}
                 >
                   <div className="flex min-w-0 items-center gap-4">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-sm font-semibold text-white/88">
+                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${lightGraySoftBorderClassName} bg-white/[0.04] text-sm font-semibold text-white/88`}>
                       {index + 1}
                     </div>
 
@@ -413,7 +425,7 @@ const UserInsightSection = ({ activity }) => {
                         className="h-14 w-14 shrink-0 rounded-2xl object-cover"
                       />
                     ) : (
-                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-white/70">
+                      <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${lightGraySoftBorderClassName} bg-white/[0.04] text-white/70`}>
                         <Music2 className="h-6 w-6" />
                       </div>
                     )}
@@ -431,7 +443,7 @@ const UserInsightSection = ({ activity }) => {
                   </div>
 
                   <div className="grid gap-3 sm:grid-cols-2 md:min-w-[240px]">
-                    <div className="rounded-[16px] border border-white/8 bg-[#090909] px-4 py-3">
+                    <div className={`rounded-[16px] ${lightGraySoftBorderClassName} bg-[#090909] px-4 py-3`}>
                       <p className="text-xs uppercase tracking-[0.16em] text-white/34">
                         Lượt nghe
                       </p>
@@ -439,7 +451,7 @@ const UserInsightSection = ({ activity }) => {
                         {formatCount(track.listenCount)}
                       </p>
                     </div>
-                    <div className="rounded-[16px] border border-white/8 bg-[#090909] px-4 py-3">
+                    <div className={`rounded-[16px] ${lightGraySoftBorderClassName} bg-[#090909] px-4 py-3`}>
                       <p className="text-xs uppercase tracking-[0.16em] text-white/34">
                         Thời gian nghe
                       </p>
@@ -653,7 +665,7 @@ const UserRecentListeningPage = () => {
     <main className={pageShellClassName}>
       <section className="mx-auto w-full max-w-7xl space-y-6">
         <section className={`${panelClassName} overflow-hidden p-6 sm:p-7 lg:p-8`}>
-          <div className="flex flex-col gap-4 border-b border-white/8 pb-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className={`flex flex-col gap-4 border-b ${lightGrayDividerClassName} pb-6 lg:flex-row lg:items-end lg:justify-between`}>
             <div>
               <p className="text-xs uppercase tracking-[0.3em] text-white/35">
                 Hoạt động nghe gần đây
@@ -668,7 +680,7 @@ const UserRecentListeningPage = () => {
               </p>
             </div>
 
-            <div className="rounded-[20px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-white/60">
+            <div className={`rounded-[20px] ${lightGraySoftBorderClassName} bg-white/[0.03] px-4 py-3 text-sm text-white/60`}>
               So sánh hôm nay với hôm qua vẫn được tính theo dữ liệu nghe hiện tại.
             </div>
           </div>
@@ -712,7 +724,7 @@ const UserRecentListeningPage = () => {
         </section>
 
         {errorMessage ? (
-          <section className="rounded-[24px] border border-white/10 bg-[#111111] px-5 py-4 text-sm text-white/78">
+          <section className={`rounded-[24px] ${lightGrayBorderClassName} bg-[#111111] px-5 py-4 text-sm text-white/78`}>
             {errorMessage}
           </section>
         ) : null}

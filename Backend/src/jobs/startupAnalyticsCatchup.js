@@ -8,16 +8,13 @@ import ArtistRanking, {
     buildMonthlyArtistRankingFilter,
 } from "../models/ArtistRanking.js";
 import ListenEvent from "../models/ListenEvent.js";
-import UserRecentListeningActivity from "../models/userRecentListeningActivity.model.js";
 import TrackDailyRanking from "../models/TrackDailyRanking.js";
 import TrackDailyStat from "../models/TrackDailyStat.js";
 import TrackMonthlyRanking from "../models/TrackMonthlyRanking.js";
 import TrackMonthlyStat from "../models/TrackMonthlyStat.js";
-import UserListeningDailyStat from "../models/UserListeningDailyStat.js";
 import { runDailyTopArtistAggregation } from "./dailyTopArtist.cron.js";
 import { runDailyArtistOverviewStatAggregation } from "./dailyArtistOverviewStat.cron.js";
 import { runDailyTrackStatAggregation } from "./dailyTrackStat.cron.js";
-import { runUserListeningDailyStatAggregation } from "./dailyUserListeningStat.cron.js";
 import { runDailyTopTrackAggregation } from "./dailyTopTrack.cron.js";
 import { runMonthlyTopArtistAggregation } from "./monthlyTopArtist.cron.js";
 import { runMonthlyTrackStatAggregation } from "./monthlyTrackStat.cron.js";
@@ -48,13 +45,6 @@ const hasArtistListenEventsInRange = async (startDate, endDate) =>
         })
     );
 
-const hasRecentListeningActivitiesInRange = async (startDate, endDate) =>
-    Boolean(
-        await UserRecentListeningActivity.exists({
-            listenedAt: { $gte: startDate, $lt: endDate },
-        })
-    );
-
 const runStartupAnalyticsCatchup = async () => {
     const analyticsTimezone = getAnalyticsTimezone();
     const now = dayjs().tz(analyticsTimezone);
@@ -78,7 +68,6 @@ const runStartupAnalyticsCatchup = async () => {
 
     const [
         hasArtistDailyStats,
-        hasUserListeningDailyStats,
         hasTrackDailyStats,
         hasTrackDailyRanking,
         hasTrackMonthlyStats,
@@ -88,14 +77,10 @@ const runStartupAnalyticsCatchup = async () => {
         hasTrackDailySourceData,
         hasTrackMonthlySourceData,
         hasArtistDailySourceData,
-        hasUserListeningDailySourceData,
         hasArtistMonthlySourceData,
         hasActiveArtists,
     ] = await Promise.all([
         ArtistDailyStat.exists({
-            date: { $gte: targetDayDate, $lt: nextDayDate },
-        }),
-        UserListeningDailyStat.exists({
             date: { $gte: targetDayDate, $lt: nextDayDate },
         }),
         TrackDailyStat.exists({
@@ -125,7 +110,6 @@ const runStartupAnalyticsCatchup = async () => {
             nextCompletedTrackMonthDate
         ),
         hasArtistListenEventsInRange(targetDayDate, nextDayDate),
-        hasRecentListeningActivitiesInRange(targetDayDate, nextDayDate),
         hasArtistListenEventsInRange(
             artistMonthlyTarget.toDate(),
             nextArtistMonthlyTarget.toDate()
@@ -141,18 +125,6 @@ const runStartupAnalyticsCatchup = async () => {
         );
         summary.push("dailyArtistOverviewStat");
         await runDailyArtistOverviewStatAggregation();
-    }
-
-    if (
-        shouldRunArtistDailyStatisticCatchup &&
-        hasUserListeningDailySourceData &&
-        !hasUserListeningDailyStats
-    ) {
-        console.log(
-            `[Startup Catch-up] Missing daily user listening stats for ${targetDay.format("YYYY-MM-DD")}, running catch-up.`
-        );
-        summary.push("dailyUserListeningStat");
-        await runUserListeningDailyStatAggregation();
     }
 
     if (shouldRunStatisticCatchup && hasTrackDailySourceData && !hasTrackDailyStats) {
