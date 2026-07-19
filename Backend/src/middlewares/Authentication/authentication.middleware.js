@@ -53,7 +53,7 @@ const normalizeAllowedRoles = (allowedRoles) => {
                 }
 
                 const user = await User.findById(decodedToken.id);
-                ensureActiveUser(user);
+                await ensureActiveUser(user);
 
                 if (
                     normalizedAllowedRoles.length > 0 &&
@@ -98,7 +98,7 @@ const optionalAuthenticate = () => {
             }
 
             const user = await User.findById(decodedToken.id);
-            ensureActiveUser(user);
+            await ensureActiveUser(user);
 
             req.user = sanitizeUser(user);
             req.auth = {
@@ -141,7 +141,7 @@ export const requirePremiumAccess = async (req, res, next) => {
 export const authorizeRoles = (...roles) => authenticate(roles);
 export const requireAdmin = authenticate("admin");
 export const requireArtist = authenticate("artist");
-export const requireUser = authenticate("user");
+export const requireUser = authenticate(["user", "artist"]);
 export { optionalAuthenticate };
 
 export default authenticate;

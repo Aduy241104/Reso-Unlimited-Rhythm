@@ -25,6 +25,10 @@ const mockUserModel = {
     create: jest.fn(),
 };
 
+const mockArtistModel = {
+    findOne: jest.fn(),
+};
+
 const mockRefreshTokenModel = {
     findOne: jest.fn(),
     create: jest.fn(),
@@ -79,6 +83,12 @@ const createSavableUser = (overrides = {}) => ({
     save: jest.fn().mockResolvedValue(true),
 });
 
+const createArtistStatusQuery = (artist) => ({
+    select: jest.fn().mockReturnValue({
+        lean: jest.fn().mockResolvedValue(artist),
+    }),
+});
+
 const createVerificationTokenQuery = (token) => ({
     sort: jest.fn().mockResolvedValue(token),
 });
@@ -128,6 +138,9 @@ const loadAuthenticationService = async () => {
     }));
     jest.unstable_mockModule("../../src/models/User.js", () => ({
         default: mockUserModel,
+    }));
+    jest.unstable_mockModule("../../src/models/Artist.js", () => ({
+        default: mockArtistModel,
     }));
     jest.unstable_mockModule("../../src/models/RefreshToken.js", () => ({
         default: mockRefreshTokenModel,
@@ -393,6 +406,36 @@ describe("authenticationService.login", () => {
         expect(mockBcrypt.compare).not.toHaveBeenCalled();
         expect(mockRefreshTokenModel.updateMany).not.toHaveBeenCalled();
         expect(mockRefreshTokenModel.create).not.toHaveBeenCalled();
+    });
+
+    test("allows login when the artist profile is blocked", async () => {
+        const artistUser = createUser({
+            role: "artist",
+        });
+        mockUserModel.findOne.mockResolvedValue(artistUser);
+        mockBcrypt.compare.mockResolvedValue(true);
+        mockRefreshTokenModel.updateMany.mockResolvedValue({
+            acknowledged: true,
+            modifiedCount: 1,
+        });
+        mockRefreshTokenModel.create.mockResolvedValue({
+            token: "refresh-token",
+        });
+
+        const result = await authenticationService.login({
+            email: "member@example.com",
+            password: "Secret123",
+        });
+
+        expect(mockArtistModel.findOne).not.toHaveBeenCalled();
+        expect(result).toMatchObject({
+            accessToken: "access-token",
+            refreshToken: "refresh-token",
+            user: {
+                id: "user-123",
+                role: "artist",
+            },
+        });
     });
 
     test("creates an isolated mobile session without affecting web session lookup", async () => {
@@ -741,6 +784,45 @@ describe("authenticationService.googleLogin", () => {
         expect(mockRefreshTokenModel.updateMany).not.toHaveBeenCalled();
         expect(mockRefreshTokenModel.create).not.toHaveBeenCalled();
     });
+
+    test("allows Google login when the existing artist profile is blocked", async () => {
+        mockGoogleAuthClient.verifyIdToken.mockResolvedValue(
+            createGoogleTicket({
+                sub: "google-user-artist-1",
+                email: "artist@example.com",
+                email_verified: true,
+                iss: "https://accounts.google.com",
+                exp: Math.floor(Date.now() / 1000) + 3600,
+            })
+        );
+        mockUserModel.findOne.mockResolvedValue(
+            createUser({
+                email: "artist@example.com",
+                role: "artist",
+            })
+        );
+        mockRefreshTokenModel.updateMany.mockResolvedValue({
+            acknowledged: true,
+            modifiedCount: 1,
+        });
+        mockRefreshTokenModel.create.mockResolvedValue({
+            token: "refresh-token",
+        });
+
+        const result = await authenticationService.googleLogin({
+            token: "google-id-token",
+        });
+
+        expect(mockArtistModel.findOne).not.toHaveBeenCalled();
+        expect(result).toMatchObject({
+            accessToken: "access-token",
+            refreshToken: "refresh-token",
+            user: {
+                email: "artist@example.com",
+                role: "artist",
+            },
+        });
+    });
 });
 
 describe("authenticationService.refreshToken", () => {
@@ -790,6 +872,38 @@ describe("authenticationService.refreshToken", () => {
             refreshToken: "new-refresh-token",
             user: {
                 id: "user-123",
+            },
+        });
+    });
+
+    test("rotates refresh token when it belongs to an artist with a blocked artist profile", async () => {
+        const artistUser = createUser({
+            role: "artist",
+        });
+        const storedToken = {
+            userId: artistUser,
+            token: "artist-refresh-token",
+            expiresAt: new Date(Date.now() + 60 * 1000),
+            save: jest.fn().mockResolvedValue(true),
+        };
+
+        mockRefreshTokenModel.findOne.mockReturnValue({
+            populate: jest.fn().mockResolvedValue(storedToken),
+        });
+
+        const result = await authenticationService.refreshToken({
+            token: "artist-refresh-token",
+            clientType: "web",
+        });
+
+        expect(mockArtistModel.findOne).not.toHaveBeenCalled();
+        expect(storedToken.save).toHaveBeenCalled();
+        expect(result).toMatchObject({
+            accessToken: "new-access-token",
+            refreshToken: "new-refresh-token",
+            user: {
+                id: "user-123",
+                role: "artist",
             },
         });
     });

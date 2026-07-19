@@ -8,6 +8,7 @@ import validate from "../middlewares/validate.middleware.js";
 const router = express.Router();
 
 router.get("/me", requireArtist, artistController.getMyProfile);
+router.get("/me/block-status", requireArtist, artistController.getMyBlockStatus);
 
 router.post(
     "/me/verification-request",

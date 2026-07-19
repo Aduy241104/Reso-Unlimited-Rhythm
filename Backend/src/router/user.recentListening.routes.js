@@ -8,7 +8,7 @@ const router = express.Router();
 
 router.get(
     "/me/recent-listening-activity",
-    authenticate(["user"]),
+    authenticate(["user", "artist"]),
     requirePremiumAccess,
     userRecentListeningController.getMyRecentListeningActivity
 );

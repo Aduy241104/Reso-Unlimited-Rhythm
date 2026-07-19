@@ -32,7 +32,7 @@ export const sanitizeUser = (user) => ({
     updatedAt: user.updatedAt,
 });
 
-export const ensureActiveUser = (user) => {
+export const ensureActiveUser = async (user) => {
     if (!user) {
         throw new AppError("User does not exist.", 404);
     }
@@ -214,7 +214,7 @@ export const findOrCreateGoogleUser = async (googleProfile) => {
     const existingUser = await User.findOne({ email: googleProfile.email });
 
     if (existingUser) {
-        ensureActiveUser(existingUser);
+        await ensureActiveUser(existingUser);
         return hydrateExistingGoogleUser(existingUser, googleProfile);
     }
 

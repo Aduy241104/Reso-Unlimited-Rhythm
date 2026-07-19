@@ -365,7 +365,7 @@ const getAlbumDetailForAdmin = async (albumId) => {
     return formatAdminAlbumDetailItem(album, tracks);
 };
 
-const updateAlbumStatusForAdmin = async (
+const  updateAlbumStatusForAdmin = async (
     albumId,
     payload = {},
     adminUserId = null,

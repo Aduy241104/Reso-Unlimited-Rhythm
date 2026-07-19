@@ -4,7 +4,7 @@ import adminGenreController from "../controllers/admin.genre.controller.js";
 import adminDashboardController from "../controllers/admin.dashboard.controller.js";
 import adminArtistRequestRouter from "./adminArtistRequest.routes.js";
 import adminTrackRouter from "./admin.track.routes.js";
-import adminAlbumRouter from "./admin.album.router.js";
+import adminAlbumRouter from "./admin.album.routes.js";
 import adminReportRouter from "./admin.report.routes.js";
 import adminSubscriptionRouter from "./admin.subscription.routes.js";
 import adminWithdrawalRouter, { withdrawalRequestRouter } from "./admin.withdrawal.routes.js";

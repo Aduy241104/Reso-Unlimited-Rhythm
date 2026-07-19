@@ -228,7 +228,7 @@ const login = async ({ email, password, clientType }) => {
         throw new AppError("Email or password is incorrect.", 401);
     }
 
-    ensureActiveUser(user);
+    await ensureActiveUser(user);
 
     const isPasswordMatched = await bcrypt.compare(password, user.password);
     if (!isPasswordMatched) {
@@ -357,7 +357,7 @@ const resetPassword = async ({ token, email, otp, password }) => {
             (await User.findById(verificationToken.userId))) ||
         (await User.findOne({ email: verificationToken.email }));
 
-    ensureActiveUser(user);
+    await ensureActiveUser(user);
 
     const isSamePassword = await bcrypt.compare(password, user.password);
     if (isSamePassword) {
@@ -433,7 +433,7 @@ const refreshToken = async ({ token, clientType }) => {
     }
 
     const user = storedToken.userId;
-    ensureActiveUser(user);
+    await ensureActiveUser(user);
 
     storedToken.clientType = normalizedClientType;
     storedToken.token = createRefreshToken();
