@@ -7,6 +7,8 @@
   monthlyTopTracks: "/charts/monthly-top-tracks",
   albumDetail: (albumId = ":id") => `/albums/${albumId}`,
   playlistDetail: (playlistId = ":id") => `/playlists/${playlistId}`,
+  recommendationMixDetail: (mixId = ":id") =>
+    `/recommendations/daily-mixes/${mixId}`,
   lyrics: "/lyrics",
   trackDetail: (trackId = ":id") => `/tracks/${trackId}`,
   artistTrackDetail: (trackId = ":id") => `/artist/music/${trackId}`,
@@ -43,6 +45,7 @@
   artistFollowers: "/artist/followers",
   artistNotificationDetail: (notificationId = ":id") => `/artist/notifications/${notificationId}`,
   artistRoyalties: "/artist/royalties",
+  artistBalanceManagement: "/artist/royalties/balance",
   artistRevenueHistory: "/artist/royalties/history",
   artistRevenuePeriodDetail: (periodId = ":id") => `/artist/royalties/history/${periodId}`,
   artistWithdrawalRequests: "/artist/withdrawal-requests",

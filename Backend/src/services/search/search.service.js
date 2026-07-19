@@ -1,4 +1,4 @@
-import Album from "../../models/Album.js";
+﻿import Album from "../../models/Album.js";
 import Artist from "../../models/Artist.js";
 import Track from "../../models/Track.js";
 import {
@@ -141,3 +141,4 @@ export default {
     searchAlbums,
     searchAll,
 };
+

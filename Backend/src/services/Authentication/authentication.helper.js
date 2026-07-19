@@ -3,6 +3,10 @@ import RefreshToken from "../../models/RefreshToken.js";
 import User from "../../models/User.js";
 import { AppError } from "../../utils/AppError.js";
 import {
+    buildRefreshTokenClientTypeQuery,
+    normalizeAuthClientType,
+} from "../../constants/authClientTypes.js";
+import {
     createAccessToken,
     createRefreshToken,
     getRefreshExpireDate,
@@ -80,14 +84,26 @@ export const ensureRegistrationAvailability = async (email) => {
     }
 };
 
-export const createAuthSession = async (user) => {
+export const createAuthSession = async (user, clientType) => {
+    const normalizedClientType = normalizeAuthClientType(clientType);
     const accessToken = createAccessToken(user);
     const refreshToken = createRefreshToken();
+    const expiresAt = getRefreshExpireDate();
+
+    await RefreshToken.updateMany(
+        {
+            userId: user._id,
+            isRevoked: false,
+            ...buildRefreshTokenClientTypeQuery(normalizedClientType),
+        },
+        { $set: { isRevoked: true } }
+    );
 
     await RefreshToken.create({
         userId: user._id,
+        clientType: normalizedClientType,
         token: refreshToken,
-        expiresAt: getRefreshExpireDate(),
+        expiresAt,
         isRevoked: false,
     });
 
@@ -99,16 +115,19 @@ export const createAuthSession = async (user) => {
 };
 
 export const verifyGoogleIdToken = async (token) => {
-    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientIds = (process.env.GOOGLE_CLIENT_IDS || process.env.GOOGLE_CLIENT_ID || "")
+        .split(",")
+        .map((clientId) => clientId.trim())
+        .filter(Boolean);
 
-    if (!clientId) {
+    if (clientIds.length === 0) {
         throw new AppError("Google login is not configured.", 500);
     }
 
     try {
         const ticket = await googleAuthClient.verifyIdToken({
             idToken: token,
-            audience: clientId,
+            audience: clientIds,
         });
         const payload = ticket.getPayload();
 
@@ -138,7 +157,7 @@ export const verifyGoogleIdToken = async (token) => {
         if (error instanceof AppError) {
             throw error;
         }
-7
+
         throw new AppError("Google token is invalid.", 401);
     }
 };

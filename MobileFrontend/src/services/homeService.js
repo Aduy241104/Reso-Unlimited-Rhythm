@@ -76,26 +76,26 @@ export const homeService = {
       const trackErrors = [];
 
       if (dailyTopTracks.status === 'rejected') {
-        trackErrors.push(getErrorMessage(dailyTopTracks.reason, 'Failed to load daily top tracks.'));
+        trackErrors.push(getErrorMessage(dailyTopTracks.reason, 'Không thể tải top bài hát ngày.'));
       }
 
       if (monthlyTopTracks.status === 'rejected') {
-        trackErrors.push(getErrorMessage(monthlyTopTracks.reason, 'Failed to load monthly top tracks.'));
+        trackErrors.push(getErrorMessage(monthlyTopTracks.reason, 'Không thể tải top bài hát tháng.'));
       }
 
       sectionErrors.topTrackCollections = trackErrors.join(' ');
     }
 
     if (monthlyTopArtists.status === 'rejected') {
-      sectionErrors.monthlyTopArtists = getErrorMessage(monthlyTopArtists.reason, 'Failed to load monthly top artists.');
+      sectionErrors.monthlyTopArtists = getErrorMessage(monthlyTopArtists.reason, 'Không thể tải nghệ sĩ nổi bật theo tháng.');
     }
 
     if (systemPlaylists.status === 'rejected') {
-      sectionErrors.systemPlaylists = getErrorMessage(systemPlaylists.reason, 'Failed to load system playlists.');
+      sectionErrors.systemPlaylists = getErrorMessage(systemPlaylists.reason, 'Không thể tải playlist hệ thống.');
     }
 
     if (recentAlbums.status === 'rejected') {
-      sectionErrors.recentAlbums = getErrorMessage(recentAlbums.reason, 'Failed to load recent albums.');
+      sectionErrors.recentAlbums = getErrorMessage(recentAlbums.reason, 'Không thể tải album mới.');
     }
 
     if (
@@ -105,7 +105,7 @@ export const homeService = {
       result.recentAlbums.length === 0 &&
       Object.keys(sectionErrors).length > 0
     ) {
-      throw new Error('Homepage data could not be loaded.');
+      throw new Error('Không thể tải dữ liệu trang chủ.');
     }
 
     return result;

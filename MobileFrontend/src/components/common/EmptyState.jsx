@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import theme from '../../theme';
 
 export const EmptyState = () => (
-  <View style={styles.box}><Text style={styles.text}>No items available</Text></View>
+  <View style={styles.box}><Text style={styles.text}>Không có dữ liệu</Text></View>
 );
 const styles = StyleSheet.create({
   box: { padding: theme.spacing.xl, alignItems: 'center' },

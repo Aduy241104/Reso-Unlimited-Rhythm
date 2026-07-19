@@ -23,6 +23,7 @@ import ArtistNotificationDetailPage from "../pages/artist/ArtistNotificationDeta
 import ArtistNotificationsPage from "../pages/artist/ArtistNotificationsPage";
 import ArtistFollowerPage from "../pages/artist/ArtistFollowerPage";
 import ArtistTrackInsightsPage from "../pages/artist/ArtistTrackInsightsPage";
+import ArtistRevenueOverview from "../pages/artist/revenue/ArtistRevenueOverview";
 import ArtistRevenueHistory from "../pages/artist/revenue/ArtistRevenueHistory";
 import ArtistRevenuePeriodDetail from "../pages/artist/revenue/ArtistRevenuePeriodDetail";
 import {
@@ -54,6 +55,7 @@ import UserRecentListeningPage from "../pages/userInsign/user.recentListening.pa
 import UserFavoriteTracksPage from "../pages/userFavorite/UserFavoriteTracksPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
+import { recommendationRoutes } from "./recommendationRoutes";
 import RoleRoute from "./RoleRoute";
 import { libaryRoutes } from "./libaryRoutes";
 import { routePaths } from "./routePaths";
@@ -208,6 +210,10 @@ export const appRoutes = [
   },
   {
     element: <ProtectedRoute />,
+    children: recommendationRoutes,
+  },
+  {
+    element: <ProtectedRoute />,
     children: libaryRoutes,
   },
   {
@@ -294,6 +300,10 @@ export const appRoutes = [
               },
               {
                 path: routePaths.artistRoyalties,
+                element: <ArtistRevenueOverview />,
+              },
+              {
+                path: routePaths.artistBalanceManagement,
                 element: <ArtistRoyaltiesPage />,
               },
               {

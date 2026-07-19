@@ -17,13 +17,6 @@ const ArtistSchema = new Schema(
             youtube: { type: String, default: "" },
         },
 
-        verificationStatus: {
-            type: String,
-            enum: ["pending", "verified", "rejected"],
-            default: "pending",
-            index: true,
-        },
-
         stats: {
             followers: { type: Number, default: 0, min: 0 },
             totalStreams: { type: Number, default: 0, min: 0 },

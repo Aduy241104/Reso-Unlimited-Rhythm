@@ -1,8 +1,7 @@
+import { getApiBaseUrl } from '../config/api';
 import { formatDuration, resolveImageUri } from './media';
 
 const fallbackDuration = 30;
-const apiBaseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.248:8080/api';
-const apiBaseUrlWithSlash = apiBaseUrl.endsWith('/') ? apiBaseUrl : `${apiBaseUrl}/`;
 
 const readStringCandidate = (value) => {
   if (typeof value === 'string' && value.trim()) {
@@ -10,6 +9,13 @@ const readStringCandidate = (value) => {
   }
 
   return '';
+};
+
+const timedLrcPattern = /\[\d{1,2}:\d{1,2}(?:\.\d{1,3})?\]/;
+const isLoopbackHostname = (value = '') => ['localhost', '127.0.0.1', '::1'].includes(String(value).toLowerCase());
+const getApiBaseUrlWithSlash = () => {
+  const apiBaseUrl = getApiBaseUrl();
+  return apiBaseUrl.endsWith('/') ? apiBaseUrl : `${apiBaseUrl}/`;
 };
 
 const readNestedUri = (value) => {
@@ -50,11 +56,28 @@ const toAbsoluteAudioUri = (value) => {
   }
 
   if (/^https?:\/\//i.test(candidate) || /^file:\/\//i.test(candidate) || /^asset:\/\//i.test(candidate)) {
-    return candidate;
+    if (!/^https?:\/\//i.test(candidate)) {
+      return candidate;
+    }
+
+    try {
+      const candidateUrl = new URL(candidate);
+      const apiUrl = new URL(getApiBaseUrl());
+
+      if (isLoopbackHostname(candidateUrl.hostname) && !isLoopbackHostname(apiUrl.hostname)) {
+        candidateUrl.protocol = apiUrl.protocol;
+        candidateUrl.hostname = apiUrl.hostname;
+        candidateUrl.port = apiUrl.port;
+      }
+
+      return candidateUrl.toString();
+    } catch {
+      return candidate;
+    }
   }
 
   try {
-    return new URL(candidate, apiBaseUrlWithSlash).toString();
+    return new URL(candidate, getApiBaseUrlWithSlash()).toString();
   } catch {
     return candidate;
   }
@@ -66,6 +89,7 @@ const shouldAttachAuthHeader = (uri) => {
   }
 
   try {
+    const apiBaseUrl = getApiBaseUrl();
     const apiOrigin = new URL(apiBaseUrl).origin;
     const targetOrigin = new URL(uri, apiBaseUrl).origin;
 
@@ -88,18 +112,25 @@ export const normalizePlayerTrack = (item, index = 0) => {
   const audioUri = resolveTrackAudioUri(item);
 
   return {
+    ...(item && typeof item === 'object' ? item : {}),
     id: item?.id || item?.entityId || `track-${index}`,
-    title: item?.title || 'Unknown track',
-    artistName: item?.artistName || item?.subtitle || item?.artist || 'Unknown artist',
+    title: item?.title || 'Bài hát không xác định',
+    artistName: item?.artistName || item?.subtitle || item?.artist?.name || item?.artist || 'Nghệ sĩ không xác định',
     image: resolveImageUri(item?.image || item?.coverImage || item?.avatar),
     duration,
-    durationLabel: item?.meta || formatDuration(duration || fallbackDuration),
+    durationLabel:
+      item?.durationLabel ||
+      (typeof item?.meta === 'string' ? item.meta : '') ||
+      formatDuration(duration || fallbackDuration),
     description: item?.description || '',
-    lyrics: item?.lyrics || item?.extraText || '',
+    lyrics: item?.lyrics ?? resolveTrackStaticLyrics(item),
+    lrc: item?.lrc || resolveTrackLrc(item),
+    lyricsSyncUrl: item?.lyricsSyncUrl || resolveTrackLyricsSyncUrl(item),
     entityId: item?.entityId || item?.id || '',
     entityType: item?.entityType || 'track',
-    audioUri,
+    audioUri: item?.audioUri || audioUri,
     audioHeaders: item?.audioHeaders || null,
+    raw: item?.raw || item,
   };
 };
 
@@ -176,6 +207,70 @@ export const resolveTrackAudioUri = (item) => {
   }
 
   return '';
+};
+
+export const resolveTrackStaticLyrics = (item) => {
+  if (!item) {
+    return '';
+  }
+
+  return (
+    readStringCandidate(item?.lyrics) ||
+    readStringCandidate(item?.extraText) ||
+    readStringCandidate(item?.lyrics?.static) ||
+    readStringCandidate(item?.lyricsStatic) ||
+    readStringCandidate(item?.raw?.lyrics?.static) ||
+    readStringCandidate(item?.raw?.lyricsStatic) ||
+    ''
+  );
+};
+
+export const resolveTrackLyricsSyncUrl = (item) => {
+  if (!item) {
+    return '';
+  }
+
+  return (
+    toAbsoluteAudioUri(item?.lyricsSyncUrl) ||
+    toAbsoluteAudioUri(item?.o3icsSyncUrl) ||
+    toAbsoluteAudioUri(item?.lyrics?.syncUrl) ||
+    toAbsoluteAudioUri(item?.o3ics?.syncUrl) ||
+    toAbsoluteAudioUri(item?.playback?.lyricsSyncUrl) ||
+    toAbsoluteAudioUri(item?.playback?.o3icsSyncUrl) ||
+    toAbsoluteAudioUri(item?.playback?.lyrics?.syncUrl) ||
+    toAbsoluteAudioUri(item?.playback?.o3ics?.syncUrl) ||
+    toAbsoluteAudioUri(item?.raw?.lyricsSyncUrl) ||
+    toAbsoluteAudioUri(item?.raw?.o3icsSyncUrl) ||
+    toAbsoluteAudioUri(item?.raw?.lyrics?.syncUrl) ||
+    toAbsoluteAudioUri(item?.raw?.o3ics?.syncUrl) ||
+    ''
+  );
+};
+
+export const resolveTrackLrc = (item) => {
+  if (!item) {
+    return '';
+  }
+
+  return (
+    readStringCandidate(item?.lrc) ||
+    readStringCandidate(item?.lrcText) ||
+    readStringCandidate(item?.lyricsLrc) ||
+    readStringCandidate(item?.syncedLyrics) ||
+    readStringCandidate(item?.lyrics?.lrc) ||
+    readStringCandidate(item?.lyrics?.sync) ||
+    readStringCandidate(item?.lyrics?.synced) ||
+    readStringCandidate(item?.playback?.lrc) ||
+    readStringCandidate(item?.playback?.lyrics?.lrc) ||
+    readStringCandidate(item?.raw?.lrc) ||
+    readStringCandidate(item?.raw?.lyrics?.lrc) ||
+    ''
+  );
+};
+
+export const hasSyncedLrc = (value) => {
+  const lrc = typeof value === 'string' ? value : resolveTrackLrc(value);
+  return timedLrcPattern.test(lrc);
 };
 
 export const buildExpoAudioSource = (track, accessToken) => {

@@ -18,66 +18,75 @@ const toId = (value) => {
     return value.toString();
 };
 
-const formatAdminArtistListItem = (artist) => {
-    return {
-        id: toId(artist._id),
-        userId: toId(artist.userId),
-        name: artist.name,
-        avatar: artist.avatar || "",
-        bio: artist.bio || "",
-        verificationStatus: artist.verificationStatus || "pending",
-        activeStatus: artist.activeStatus || "active",
-        email: artist.email || "—",
-        totalTracks: artist.totalTracks || 0,
-        stats: artist.stats || { followers: 0, totalStreams: 0 },
-        createdAt: artist.createdAt,
-    };
-};
+const formatAdminArtistListItem = (artist) => ({
+    id: toId(artist._id),
+    userId: toId(artist.userId),
+    name: artist.name,
+    avatar: artist.avatar || "",
+    bio: artist.bio || "",
+    activeStatus: artist.activeStatus || "active",
+    email: artist.email || "-",
+    totalTracks: artist.totalTracks || 0,
+    stats: artist.stats || { followers: 0, totalStreams: 0 },
+    createdAt: artist.createdAt,
+});
 
-const formatAdminArtistDetailItem = (artist, trackCount, albumCount, advancedStats, revenueSummary) => {
+const formatAdminArtistDetailItem = (
+    artist,
+    trackCount,
+    albumCount,
+    advancedStats,
+    revenueSummary
+) => {
     const hasActiveTracks = trackCount > 0;
-    const isPopular = (artist.stats?.followers || 0) > 100 || (artist.stats?.totalStreams || 0) > 1000;
-    const hasLinkedSocials = !!(artist.socialLinks?.facebook || artist.socialLinks?.instagram || artist.socialLinks?.youtube);
+    const isPopular =
+        (artist.stats?.followers || 0) > 100 ||
+        (artist.stats?.totalStreams || 0) > 1000;
+    const hasLinkedSocials = Boolean(
+        artist.socialLinks?.facebook ||
+            artist.socialLinks?.instagram ||
+            artist.socialLinks?.youtube
+    );
 
     return {
         name: artist.name,
-        email: artist.userId?.email || "—",
-        bio: artist.bio || "Nghệ sĩ chưa cập nhật tiểu sử.",
+        email: artist.userId?.email || "-",
+        bio: artist.bio || "Artist has not updated a bio yet.",
         avatar: artist.avatar || "",
         coverImage: artist.coverImage || "",
-        verificationStatus: artist.verificationStatus || "pending",
         activeStatus: artist.activeStatus || "active",
         createdAt: artist.createdAt,
         updatedAt: artist.updatedAt,
         blockedReason: artist.blockedReason || "",
-        
         metrics: {
             followers: artist.stats?.followers || 0,
             totalStreams: artist.stats?.totalStreams || 0,
             monthlyListeners: advancedStats?.monthlyListeners || 0,
             totalTracks: trackCount,
-            totalAlbums: albumCount
+            totalAlbums: albumCount,
         },
         demographics: advancedStats?.demographics?.countries || {},
-
-        finance: revenueSummary ? {
-            availableAmount: revenueSummary.availableAmount || 0,
-            withdrawnAmount: revenueSummary.withdrawnAmount || 0,
-            grossRevenueAmount: revenueSummary.grossRevenueAmount || 0,
-            lastCalculatedPeriod: `Tháng ${revenueSummary.month}/${revenueSummary.year}`,
-            status: revenueSummary.status
-        } : null,
-
+        finance: revenueSummary
+            ? {
+                availableAmount: revenueSummary.availableAmount || 0,
+                withdrawnAmount: revenueSummary.withdrawnAmount || 0,
+                grossRevenueAmount: revenueSummary.grossRevenueAmount || 0,
+                lastCalculatedPeriod: `Month ${revenueSummary.month}/${revenueSummary.year}`,
+                status: revenueSummary.status,
+            }
+            : null,
         checklist: {
             hasMusicActivity: hasActiveTracks ? "pass" : "fail",
-            isIdentityVerified: artist.verificationStatus === "verified" ? "pass" : "fail",
             isAudienceGrowing: isPopular ? "pass" : "fail",
             hasSocialNodes: hasLinkedSocials ? "pass" : "fail",
             isFinanceActive: revenueSummary ? "pass" : "fail",
-            isAccountClean: artist.activeStatus === "active" ? "pass" : "fail"
+            isAccountClean: artist.activeStatus === "active" ? "pass" : "fail",
         },
-
-        socialLinks: artist.socialLinks || { facebook: "", instagram: "", youtube: "" }
+        socialLinks: artist.socialLinks || {
+            facebook: "",
+            instagram: "",
+            youtube: "",
+        },
     };
 };
 
@@ -94,14 +103,23 @@ const getArtistDetailForAdmin = async (artistId) => {
         throw new AppError("Artist not found.", 404, { field: "id" });
     }
 
-    const [trackCount, albumCount, advancedStats, revenueSummary] = await Promise.all([
-        Track.countDocuments({ artist_artistId: artistId }),
-        Album.countDocuments({ artistId: artistId }),
-        ArtistStat.findOne({ artistId: artistId }).lean(),
-        ArtistRevenueSummary.findOne({ artistId: artistId }).sort({ year: -1, month: -1 }).lean()
-    ]);
+    const [trackCount, albumCount, advancedStats, revenueSummary] =
+        await Promise.all([
+            Track.countDocuments({ artist_artistId: artistId }),
+            Album.countDocuments({ artistId }),
+            ArtistStat.findOne({ artistId }).lean(),
+            ArtistRevenueSummary.findOne({ artistId })
+                .sort({ year: -1, month: -1 })
+                .lean(),
+        ]);
 
-    return formatAdminArtistDetailItem(artist, trackCount, albumCount, advancedStats, revenueSummary);
+    return formatAdminArtistDetailItem(
+        artist,
+        trackCount,
+        albumCount,
+        advancedStats,
+        revenueSummary
+    );
 };
 
 const listArtistsForAdmin = async (query = {}) => {
@@ -109,23 +127,13 @@ const listArtistsForAdmin = async (query = {}) => {
     const requestedLimit = normalizePositiveInteger(query.limit, DEFAULT_LIMIT);
     const limit = Math.min(requestedLimit, MAX_LIMIT);
     const skip = (page - 1) * limit;
-    
     const rawSearch = typeof query.q === "string" ? query.q.trim() : "";
-    const { verificationStatus, activeStatus } = query;
+    const { activeStatus } = query;
 
-    // 1. Tạo Match Stage ban đầu cho bảng Artist
     const matchStage = {};
-    
-    if (verificationStatus) {
-        matchStage.verificationStatus = verificationStatus;
-    }
+
     if (activeStatus) {
         matchStage.activeStatus = activeStatus;
-    }
-
-    // Nếu tìm kiếm theo tên
-    if (rawSearch) {
-        matchStage.name = new RegExp(escapeRegex(rawSearch), "i");
     }
 
     const aggregateQuery = [
@@ -135,8 +143,8 @@ const listArtistsForAdmin = async (query = {}) => {
                 from: "users",
                 localField: "userId",
                 foreignField: "_id",
-                as: "userContext"
-            }
+                as: "userContext",
+            },
         },
         { $unwind: { path: "$userContext", preserveNullAndEmptyArrays: true } },
         {
@@ -144,42 +152,47 @@ const listArtistsForAdmin = async (query = {}) => {
                 from: "tracks",
                 localField: "_id",
                 foreignField: "artist_artistId",
-                as: "tracksData"
-            }
+                as: "tracksData",
+            },
         },
         {
             $addFields: {
                 email: "$userContext.email",
-                totalTracks: { $size: "$tracksData" }
-            }
+                totalTracks: { $size: "$tracksData" },
+            },
         },
         {
             $project: {
                 tracksData: 0,
-                userContext: 0
-            }
+                userContext: 0,
+            },
         },
-        // 2. Sau khi đã có trường 'email' từ lookup, nếu có tìm kiếm text, 
-        // ta bổ sung lọc OR (hoặc khớp Name từ trước, hoặc khớp Email ở đây)
-        ...(rawSearch ? [{
-            $match: {
-                $or: [
-                    { name: new RegExp(escapeRegex(rawSearch), "i") },
-                    { email: new RegExp(escapeRegex(rawSearch), "i") }
-                ]
-            }
-        }] : []),
+        ...(rawSearch
+            ? [
+                {
+                    $match: {
+                        $or: [
+                            {
+                                name: new RegExp(escapeRegex(rawSearch), "i"),
+                            },
+                            {
+                                email: new RegExp(escapeRegex(rawSearch), "i"),
+                            },
+                        ],
+                    },
+                },
+            ]
+            : []),
         { $sort: { createdAt: -1, _id: 1 } },
         {
             $facet: {
                 metadata: [{ $count: "total" }],
-                data: [{ $skip: skip }, { $limit: limit }]
-            }
-        }
+                data: [{ $skip: skip }, { $limit: limit }],
+            },
+        },
     ];
 
     const result = await Artist.aggregate(aggregateQuery);
-
     const rawArtists = result[0]?.data ?? [];
     const total = result[0]?.metadata[0]?.total ?? 0;
 
@@ -194,21 +207,29 @@ const listArtistsForAdmin = async (query = {}) => {
     };
 };
 
-const updateArtistStatusForAdmin = async (artistId, { activeStatus, blockedReason }) => {
+const updateArtistStatusForAdmin = async (
+    artistId,
+    { activeStatus, blockedReason }
+) => {
     if (!mongoose.Types.ObjectId.isValid(artistId)) {
         throw new AppError("Artist id is invalid.", 400, { field: "id" });
     }
 
     if (!["active", "blocked"].includes(activeStatus)) {
-        throw new AppError("Invalid active status. Allowed: active, blocked", 400, { field: "activeStatus" });
+        throw new AppError(
+            "Invalid active status. Allowed: active, blocked",
+            400,
+            { field: "activeStatus" }
+        );
     }
 
     const updateData = { activeStatus };
-    
+
     if (activeStatus === "blocked") {
-        updateData.blockedReason = blockedReason || "Vi phạm điều khoản hệ thống.";
+        updateData.blockedReason =
+            blockedReason || "Vi pham dieu khoan he thong.";
     } else {
-        updateData.blockedReason = ""; // Xóa lý do khi unblock
+        updateData.blockedReason = "";
     }
 
     const updatedArtist = await Artist.findByIdAndUpdate(
@@ -224,10 +245,9 @@ const updateArtistStatusForAdmin = async (artistId, { activeStatus, blockedReaso
     return {
         id: updatedArtist._id.toString(),
         activeStatus: updatedArtist.activeStatus,
-        blockedReason: updatedArtist.blockedReason
+        blockedReason: updatedArtist.blockedReason,
     };
 };
-
 
 export default {
     listArtistsForAdmin,

@@ -63,12 +63,6 @@ export const CHART_METRICS = {
     description: "Số người nghe theo từng ngày",
     formatter: (value) => formatNumber(value),
   },
-  averageListenDuration: {
-    label: "Nghe trung bình",
-    color: "#34caa5",
-    description: "Thời lượng nghe trung bình mỗi ngày",
-    formatter: (value) => displayRawValue(value),
-  },
   skipCount: {
     label: "Lượt bỏ qua",
     color: "#f17171",
@@ -94,12 +88,6 @@ export const MONTHLY_CHART_METRICS = {
     label: "Stream hợp lệ",
     color: "#34caa5",
     description: "Số stream hợp lệ trong từng tháng",
-    formatter: (value) => formatNumber(value),
-  },
-  artistRevenueAmount: {
-    label: "Doanh thu",
-    color: "#f17171",
-    description: "Doanh thu ước tính theo từng tháng",
     formatter: (value) => formatNumber(value),
   },
 };

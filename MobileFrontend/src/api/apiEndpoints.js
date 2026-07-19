@@ -1,6 +1,11 @@
 export const API_ENDPOINTS = {
   AUTH: {
     LOGIN: '/auth/login',
+    GOOGLE: '/auth/google',
+    REGISTER: '/auth/register',
+    REGISTER_SEND_OTP: '/auth/register/send-otp',
+    FORGOT_PASSWORD: '/auth/forgot-password',
+    RESET_PASSWORD: '/auth/reset-password',
     REFRESH_TOKEN: '/auth/refresh-token',
     LOGOUT: '/auth/logout',
     ME: '/auth/me',
@@ -8,20 +13,63 @@ export const API_ENDPOINTS = {
   ALBUMS: {
     LIST: '/albums',
     DETAIL: '/albums',
+    FOLLOW_STATUS: '/albums',
+    TOGGLE_FOLLOW: '/albums',
   },
   TRACKS: {
     DETAIL: '/tracks',
     PLAYBACK: '/tracks',
     TOP_DAILY: '/tracks/top/daily',
     TOP_MONTHLY: '/tracks/top/monthly',
+    BY_GENRE: '/browse/genres',
+  },
+  USER_FAVORITES: {
+    TRACKS: '/users/favorites/tracks',
   },
   ARTISTS: {
     DETAIL: '/browse/artists',
     TOP_MONTHLY: '/browse/artists/top/monthly',
   },
+  GENRES: {
+    LIST: '/browse/genres',
+    DETAIL: '/browse/genres',
+    TRACKS: '/browse/genres',
+  },
+  SEARCH: {
+    ALL: '/search',
+    SONGS: '/search/songs',
+    ARTISTS: '/search/artists',
+    ALBUMS: '/search/albums',
+  },
   PLAYLISTS: {
     DETAIL: '/playlists/detail',
     SYSTEM: '/playlists/system',
     SYSTEM_DETAIL: '/playlists/system/detail',
+  },
+  USER_PLAYLISTS: {
+    LIST: '/users/playlists',
+    DETAIL: '/users/playlists/detail',
+    CREATE: '/users/playlists',
+    UPDATE: '/users/playlists',
+    TRACKS: '/users/playlists',
+  },
+  PREMIUM: {
+    PLANS: '/subscription-plans',
+    MY_SUBSCRIPTION: '/subscriptions/me',
+  },
+  PAYMENTS: {
+    VNPAY_CREATE_ORDER: '/payments/vnpay/create-order',
+    HISTORY: '/users/payment-history',
+    DETAIL: '/users/payments',
+  },
+  NOTIFICATIONS: {
+    LIST: '/user/notifications',
+    DETAIL: '/user/notifications',
+    MARK_AS_READ: '/user/notifications',
+    DELETE: '/user/notifications',
+  },
+  LIBRARY: {
+    FOLLOWED_ARTISTS: '/libary/followed-artists',
+    FOLLOWED_ALBUMS: '/libary/followed-albums',
   },
 };
