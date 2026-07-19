@@ -18,6 +18,7 @@
     "seed:revenue-history": "node src/seedRevenueHistory.js",
     "seed:revenue-flow": "node src/seedRevenueFlowV2.js",
     "seed:artist-overview": "node src/seedArtistPerformanceOverview.js"
+
   },
   "author": "",
   "license": "ISC",
