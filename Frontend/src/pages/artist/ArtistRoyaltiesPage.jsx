@@ -82,17 +82,12 @@ const ArtistRoyaltiesPage = () => {
   }, [loadRevenue]);
 
   const balance = revenue?.balance || null;
-  const monthlySummaries = revenue?.monthlySummaries || [];
+  const withdrawalSummary = revenue?.withdrawalSummary || null;
 
   const latestPeriodLabel = balance?.latestPeriod
     ? formatPeriodLabel(balance.latestPeriod.year, balance.latestPeriod.month)
     : "--";
-  const pendingAmount = monthlySummaries
-    .filter((summary) => summary.status === "pending")
-    .reduce(
-      (total, summary) => total + (Number(summary.artistRevenueAmount) || 0),
-      0
-    );
+  const pendingPayoutAmount = Number(withdrawalSummary?.pendingAmount || 0);
   const latestStatusLabel =
     balance?.latestStatus === "calculated"
       ? "Sẵn sàng"
@@ -129,7 +124,7 @@ const ArtistRoyaltiesPage = () => {
             Số dư khả dụng
           </h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-[#6a647d]">
-            Theo dõi số tiền hiện có thể rút về, các kỳ đang chờ đối soát và toàn bộ doanh thu đã được ghi nhận.
+            Theo dõi số tiền hiện có thể rút về, số tiền đang chờ chi trả và toàn bộ doanh thu đã được ghi nhận.
           </p>
         </div>
 
@@ -175,19 +170,11 @@ const ArtistRoyaltiesPage = () => {
             <div>
               <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7c7891]">
                 <Clock3 className="h-4 w-4 text-amber-500" />
-                Số dư chờ đối soát
+                Số dư cần chi trả
               </div>
               <p className="mt-4 text-3xl font-semibold tracking-tight text-[#241b15]">
-                {formatCurrency(pendingAmount)}
+                {formatCurrency(pendingPayoutAmount)}
               </p>
-              <button
-                type="button"
-                onClick={handleScrollToHistory}
-                className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-[#6f5cf1] transition hover:text-[#5842e8]"
-              >
-                Xem các kỳ đang chờ
-                <ArrowUpRight className="h-4 w-4" />
-              </button>
             </div>
 
             <div className="flex flex-col gap-3">
@@ -199,13 +186,13 @@ const ArtistRoyaltiesPage = () => {
                 Sang trang rút tiền
               </Link>
 
-              <div className="rounded-2xl border border-[#ece8ff] bg-white/90 px-4 py-3 text-sm text-[#6a647d]">
+              {/* <div className="rounded-2xl border border-[#ece8ff] bg-white/90 px-4 py-3 text-sm text-[#6a647d]">
                 <p className="font-medium text-[#2f2747]">Kỳ đối soát gần nhất</p>
                 <p className="mt-1">{latestPeriodLabel}</p>
                 <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[#8b84a6]">
                   {latestStatusLabel}
                 </p>
-              </div>
+              </div> */}
             </div>
           </div>
         </div>
@@ -226,7 +213,6 @@ const ArtistRoyaltiesPage = () => {
           </div>
         </div>
       </section>
-
     </section>
   );
 };

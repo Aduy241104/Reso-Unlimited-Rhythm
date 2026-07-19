@@ -180,6 +180,11 @@ const resolveCurrentYearPeriod = () => {
     };
 };
 
+const resolveAllTimeSummaryPeriod = () => ({
+    startDate: new Date(0),
+    endDateExclusive: getTodayInAnalyticsTimezone().add(1, "day").toDate(),
+});
+
 const aggregatePeriodSummary = async ({ artistId, startDate, endDateExclusive }) => {
     const [summary] = await ListenEvent.aggregate([
         {
@@ -833,6 +838,7 @@ export const getArtistPerformanceOverview = async ({
     const monthlyPeriod = resolveMonthlyPeriod(selectedYear);
     const currentYear = getTodayInAnalyticsTimezone().year();
     const yearlyPeriod = resolveYearlyPeriod(currentYear);
+    const allTimeSummaryPeriod = resolveAllTimeSummaryPeriod();
     const yearSeries = buildYearSeries(currentYear);
 
     const [
@@ -841,6 +847,7 @@ export const getArtistPerformanceOverview = async ({
         yearlyStats,
         availableYears,
         trackCount,
+        totalStreams,
     ] = await Promise.all([
         aggregateDailyStats({
             artistId: artist._id,
@@ -862,6 +869,11 @@ export const getArtistPerformanceOverview = async ({
         }),
         Track.countDocuments({
             artist_artistId: artist._id,
+        }),
+        aggregatePeriodStreamCount({
+            artistId: artist._id,
+            startDate: allTimeSummaryPeriod.startDate,
+            endDateExclusive: allTimeSummaryPeriod.endDateExclusive,
         }),
     ]);
 
@@ -894,7 +906,7 @@ export const getArtistPerformanceOverview = async ({
         summary: {
             followers: Number(artist?.stats?.followers || 0),
             trackCount: Number(trackCount || 0),
-            totalStreams: Number(artist?.stats?.totalStreams || 0),
+            totalStreams: Number(totalStreams || 0),
         },
         dailyStats: filledDailyStats,
         monthlyStats: filledMonthlyStats,

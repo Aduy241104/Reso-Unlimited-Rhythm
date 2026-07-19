@@ -4,9 +4,7 @@ import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 import Genre from "../../models/Genre.js";
 import Track from "../../models/Track.js";
-import UserRecentListeningActivity from "../../models/userRecentListeningActivity.model.js";
-import UserRecentListeningInsightsCache from "../../models/userRecentListeningInsightsCache.model.js";
-import UserListeningDailyStat from "../../models/UserListeningDailyStat.js";
+import UserRecentListeningActivity from "../../models/userRecentListeningActivity.js";
 import { getAnalyticsTimezone } from "../analytics/trackStatAggregation.service.js";
 
 dayjs.extend(utc);
@@ -15,7 +13,9 @@ dayjs.extend(timezone);
 const RECENT_ACTIVITY_CHART_DAYS = 7;
 const RECENT_ACTIVITY_LIST_LIMIT = 10;
 const RECENT_ACTIVITY_TOP_LIMIT = 5;
+const RECENT_ACTIVITY_TOP_GENRE_LIMIT = 5;
 const UNCLASSIFIED_GENRE_LABEL = "Chua phan loai";
+const OTHER_GENRE_LABEL = "Khac";
 
 const normalizeId = (value) => {
     if (!value) {
@@ -99,6 +99,40 @@ const buildRecentPeriod = () => {
         timezone: analyticsTimezone,
     };
 };
+
+const aggregateDailyListeningStatsForUser = async ({
+    userId,
+    startDate,
+    endDate,
+    analyticsTimezone,
+}) =>
+    UserRecentListeningActivity.aggregate([
+        {
+            $match: {
+                userId,
+                listenedAt: {
+                    $gte: startDate,
+                    $lt: endDate,
+                },
+            },
+        },
+        {
+            $group: {
+                _id: {
+                    $dateToString: {
+                        format: "%Y-%m-%d",
+                        date: "$listenedAt",
+                        timezone: analyticsTimezone,
+                    },
+                },
+                listenCount: { $sum: 1 },
+                totalListenedDuration: {
+                    $sum: { $ifNull: ["$listenedDuration", 0] },
+                },
+            },
+        },
+        { $sort: { _id: 1 } },
+    ]);
 
 const normalizeTopGenres = (genres = []) =>
     genres.map((genre) => ({
@@ -267,34 +301,40 @@ export const buildRecentListeningInsightsPayloadForUser = async (userId) => {
         .map(({ latestListenedAt, ...track }) => track);
 
     const genreTotalsMap = new Map();
+    const otherGenreTotals = {
+        listenCount: 0,
+        trackIds: new Set(),
+    };
 
     groupedTrackStats.forEach((item) => {
         const trackId = normalizeId(item?._id);
         const listenCount = Number(item?.listenCount || 0);
         const matchedTrack = trackById.get(trackId);
         const genreIds = Array.isArray(matchedTrack?.genreIds)
-            ? matchedTrack.genreIds
+            ? [...new Set(matchedTrack.genreIds.map((genreId) => String(genreId)))]
             : [];
 
+        if (genreIds.length === 0) {
+            otherGenreTotals.listenCount += listenCount;
+            otherGenreTotals.trackIds.add(trackId);
+            return;
+        }
+
+        const weightedListenCount = listenCount / genreIds.length;
+
         genreIds.forEach((genreId) => {
-            const normalizedGenreId = String(genreId);
-            const currentTotals = genreTotalsMap.get(normalizedGenreId) || {
+            const currentTotals = genreTotalsMap.get(genreId) || {
                 listenCount: 0,
                 trackIds: new Set(),
             };
 
-            currentTotals.listenCount += listenCount;
+            currentTotals.listenCount += weightedListenCount;
             currentTotals.trackIds.add(trackId);
-            genreTotalsMap.set(normalizedGenreId, currentTotals);
+            genreTotalsMap.set(genreId, currentTotals);
         });
     });
 
-    const totalGenreListens = [...genreTotalsMap.values()].reduce(
-        (sum, item) => sum + Number(item.listenCount || 0),
-        0
-    );
-
-    const topGenres = [...genreTotalsMap.entries()]
+    const rankedGenres = [...genreTotalsMap.entries()]
         .map(([genreId, item]) => {
             const genre = genreById.get(genreId);
 
@@ -303,14 +343,7 @@ export const buildRecentListeningInsightsPayloadForUser = async (userId) => {
                 name: sanitizeText(genre?.name, UNCLASSIFIED_GENRE_LABEL),
                 listenCount: Number(item.listenCount || 0),
                 trackCount: item.trackIds.size,
-                percentage: totalGenreListens
-                    ? Number(
-                        (
-                            (Number(item.listenCount || 0) / totalGenreListens) *
-                            100
-                        ).toFixed(2)
-                    )
-                    : 0,
+                trackIds: item.trackIds,
             };
         })
         .filter((item) => item.listenCount > 0)
@@ -320,8 +353,45 @@ export const buildRecentListeningInsightsPayloadForUser = async (userId) => {
             }
 
             return right.trackCount - left.trackCount;
-        })
-        .slice(0, RECENT_ACTIVITY_TOP_LIMIT);
+        });
+
+    const topRankedGenres = rankedGenres.slice(0, RECENT_ACTIVITY_TOP_GENRE_LIMIT);
+    const remainingGenres = rankedGenres.slice(RECENT_ACTIVITY_TOP_GENRE_LIMIT);
+
+    if (remainingGenres.length > 0) {
+        remainingGenres.forEach((genre) => {
+            otherGenreTotals.listenCount += Number(genre.listenCount || 0);
+            genre.trackIds.forEach((trackId) => otherGenreTotals.trackIds.add(trackId));
+        });
+    }
+
+    const topGenrePayload = topRankedGenres.map(({ trackIds, ...genre }) => genre);
+
+    if (otherGenreTotals.listenCount > 0) {
+        topGenrePayload.push({
+            genreId: null,
+            name: OTHER_GENRE_LABEL,
+            listenCount: Number(otherGenreTotals.listenCount || 0),
+            trackCount: otherGenreTotals.trackIds.size,
+        });
+    }
+
+    const totalGenreListens = topGenrePayload.reduce(
+        (sum, item) => sum + Number(item.listenCount || 0),
+        0
+    );
+
+    const topGenres = topGenrePayload.map((genre) => ({
+        ...genre,
+        percentage: totalGenreListens
+            ? Number(
+                (
+                    (Number(genre.listenCount || 0) / totalGenreListens) *
+                    100
+                ).toFixed(2)
+            )
+            : 0,
+    }));
 
     return {
         userId: normalizedUserId,
@@ -339,19 +409,6 @@ export const getRecentListeningInsightsByUserId = async (
     userId,
     { allowLiveFallback = true } = {}
 ) => {
-    const cachedInsights = await UserRecentListeningInsightsCache.findOne({
-        userId: new mongoose.Types.ObjectId(String(userId)),
-    }).lean();
-
-    if (cachedInsights) {
-        return {
-            range: cachedInsights.range,
-            topGenres: normalizeTopGenres(cachedInsights.topGenres || []),
-            topTracks: normalizeTopTracks(cachedInsights.topTracks || []),
-            lastCalculatedAt: cachedInsights.lastCalculatedAt || null,
-        };
-    }
-
     const period = buildRecentPeriod();
 
     if (!allowLiveFallback) {
@@ -376,124 +433,20 @@ export const getRecentListeningInsightsByUserId = async (
     };
 };
 
-export const refreshRecentListeningInsightsCache = async () => {
-    const period = buildRecentPeriod();
-    const activeUsers = await UserRecentListeningActivity.aggregate([
-        {
-            $match: {
-                listenedAt: {
-                    $gte: period.from.toDate(),
-                    $lt: period.to.add(1, "day").toDate(),
-                },
-            },
-        },
-        {
-            $group: {
-                _id: "$userId",
-            },
-        },
-    ]);
-
-    const userIds = activeUsers.map((item) => item._id).filter(Boolean);
-
-    if (userIds.length === 0) {
-        const deleteResult = await UserRecentListeningInsightsCache.deleteMany({});
-
-        return {
-            userCount: 0,
-            deletedCount: deleteResult.deletedCount || 0,
-            upsertedCount: 0,
-            range: {
-                from: period.from.format("YYYY-MM-DD"),
-                to: period.to.format("YYYY-MM-DD"),
-            },
-        };
-    }
-
-    const payloads = [];
-
-    for (const userId of userIds) {
-        payloads.push(await buildRecentListeningInsightsPayloadForUser(userId));
-    }
-
-    const bulkResult = await UserRecentListeningInsightsCache.bulkWrite(
-        payloads.map((payload) => ({
-            updateOne: {
-                filter: { userId: payload.userId },
-                update: {
-                    $set: payload,
-                },
-                upsert: true,
-            },
-        }))
-    );
-
-    const deleteResult = await UserRecentListeningInsightsCache.deleteMany({
-        userId: { $nin: userIds },
-    });
-
-    return {
-        userCount: payloads.length,
-        deletedCount: deleteResult.deletedCount || 0,
-        upsertedCount: bulkResult.upsertedCount || 0,
-        modifiedCount: bulkResult.modifiedCount || 0,
-        range: {
-            from: period.from.format("YYYY-MM-DD"),
-            to: period.to.format("YYYY-MM-DD"),
-        },
-    };
-};
-
 export const getRecentListeningActivityByUserId = async (userId) => {
     const analyticsTimezone = getAnalyticsTimezone();
     const today = dayjs().tz(analyticsTimezone).startOf("day");
-    const yesterday = today.subtract(1, "day");
     const startDay = today.subtract(RECENT_ACTIVITY_CHART_DAYS - 1, "day");
     const endDay = today.add(1, "day");
     const normalizedUserId = new mongoose.Types.ObjectId(String(userId));
 
-    const [
-        storedDailyStats,
-        liveTodayAndYesterdayStats,
-        recentItems,
-        liveInsights,
-    ] = await Promise.all([
-        UserListeningDailyStat.find({
+    const [dailyStats, recentItems, liveInsights] = await Promise.all([
+        aggregateDailyListeningStatsForUser({
             userId: normalizedUserId,
-            date: {
-                $gte: startDay.toDate(),
-                $lt: endDay.toDate(),
-            },
-        })
-            .sort({ date: 1 })
-            .lean(),
-        UserRecentListeningActivity.aggregate([
-            {
-                $match: {
-                    userId: normalizedUserId,
-                    listenedAt: {
-                        $gte: yesterday.toDate(),
-                        $lt: endDay.toDate(),
-                    },
-                },
-            },
-            {
-                $group: {
-                    _id: {
-                        $dateToString: {
-                            format: "%Y-%m-%d",
-                            date: "$listenedAt",
-                            timezone: analyticsTimezone,
-                        },
-                    },
-                    listenCount: { $sum: 1 },
-                    totalListenedDuration: {
-                        $sum: { $ifNull: ["$listenedDuration", 0] },
-                    },
-                },
-            },
-            { $sort: { _id: 1 } },
-        ]),
+            startDate: startDay.toDate(),
+            endDate: endDay.toDate(),
+            analyticsTimezone,
+        }),
         UserRecentListeningActivity.find({ userId: normalizedUserId })
             .sort({ listenedAt: -1 })
             .limit(RECENT_ACTIVITY_LIST_LIMIT)
@@ -501,18 +454,13 @@ export const getRecentListeningActivityByUserId = async (userId) => {
         buildRecentListeningInsightsPayloadForUser(userId),
     ]);
 
-    const storedStatByDate = new Map(
-        storedDailyStats.map((stat) => [stat.dateKey, stat])
-    );
-    const liveStatByDate = new Map(
-        liveTodayAndYesterdayStats.map((stat) => [stat._id, stat])
-    );
+    const statByDate = new Map(dailyStats.map((stat) => [stat._id, stat]));
 
     const chart = Array.from({ length: RECENT_ACTIVITY_CHART_DAYS }, (_, index) => {
         const day = startDay.add(index, "day");
         const dateKey = day.format("YYYY-MM-DD");
 
-        return buildChartPoint(day, storedStatByDate.get(dateKey));
+        return buildChartPoint(day, statByDate.get(dateKey));
     });
 
     const totalListens = chart.reduce(
@@ -526,15 +474,15 @@ export const getRecentListeningActivityByUserId = async (userId) => {
     );
     const activeDays = chart.filter((item) => item.listenCount > 0).length;
 
-    const liveTodaySummary = liveStatByDate.get(today.format("YYYY-MM-DD")) || {
+    const yesterday = today.subtract(1, "day");
+    const liveTodaySummary = statByDate.get(today.format("YYYY-MM-DD")) || {
         listenCount: 0,
         totalListenedDuration: 0,
     };
-    const liveYesterdaySummary =
-        liveStatByDate.get(yesterday.format("YYYY-MM-DD")) || {
-            listenCount: 0,
-            totalListenedDuration: 0,
-        };
+    const liveYesterdaySummary = statByDate.get(yesterday.format("YYYY-MM-DD")) || {
+        listenCount: 0,
+        totalListenedDuration: 0,
+    };
 
     const todayListenedMinutes = resolveMinutes(
         liveTodaySummary.totalListenedDuration || 0
@@ -610,6 +558,5 @@ export default {
     buildRecentListeningInsightsPayloadForUser,
     getRecentListeningActivityByUserId,
     getRecentListeningInsightsByUserId,
-    refreshRecentListeningInsightsCache,
     storeRecentListeningActivity,
 };

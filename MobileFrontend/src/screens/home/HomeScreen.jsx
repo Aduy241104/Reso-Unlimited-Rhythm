@@ -11,6 +11,7 @@ import {
   Image,
   RefreshControl,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppAvatar from '../../components/common/AppAvatar';
@@ -256,6 +257,15 @@ export default function HomeScreen() {
     });
   }, [logout, runAfterSidebarClose]);
 
+  const handleOpenNotifications = () => {
+    if (!isAuthenticated) {
+      navigation.navigate('Login');
+      return;
+    }
+
+    navigation.navigate('Notifications');
+  };
+
   const displayName = resolveUserDisplayName(user);
   const avatarUri = resolveUserAvatar(user);
   const userSubtitle = user?.email || 'Tài khoản đã đăng nhập';
@@ -424,15 +434,24 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <TouchableOpacity
-          style={[styles.logoutBadge, !isAuthenticated && styles.loginBadge]}
-          onPress={handleOpenSidebar}
-          activeOpacity={0.8}
-        >
-          <Text style={[styles.logoutText, !isAuthenticated && styles.loginText]}>
-            {isAuthenticated ? 'Tài khoản' : 'Đăng nhập'}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.iconBadge}
+            onPress={handleOpenNotifications}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="notifications-outline" size={18} color="#ffffff" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.logoutBadge, !isAuthenticated && styles.loginBadge]}
+            onPress={handleOpenSidebar}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.logoutText, !isAuthenticated && styles.loginText]}>
+              {isAuthenticated ? 'Tài khoản' : 'Đăng nhập'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {isContentLoading && !hasLoadedOnce ? (
@@ -551,6 +570,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     paddingVertical: 6,
     borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#2d2d2d',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  iconBadge: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 16,
+    backgroundColor: '#111111',
     borderWidth: 1,
     borderColor: '#2d2d2d',
   },

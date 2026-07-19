@@ -2,16 +2,24 @@ import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import theme from '../../theme';
 
-export const AppButton = ({ title, onPress, isLoading = false, disabled = false, style }) => {
+export const AppButton = ({
+  title,
+  onPress,
+  isLoading = false,
+  disabled = false,
+  style,
+  buttonStyle,
+  textStyle,
+}) => {
   const isDisabled = disabled || isLoading;
   return (
     <TouchableOpacity
       onPress={onPress}
       disabled={isDisabled}
-      style={[styles.btn, isDisabled && styles.disabled, style]}
+      style={[styles.btn, style, buttonStyle, isDisabled && styles.disabled]}
       activeOpacity={0.8}
     >
-      {isLoading ? <ActivityIndicator color={theme.colors.text} /> : <Text style={styles.text}>{title}</Text>}
+      {isLoading ? <ActivityIndicator color={theme.colors.text} /> : <Text style={[styles.text, textStyle]}>{title}</Text>}
     </TouchableOpacity>
   );
 };

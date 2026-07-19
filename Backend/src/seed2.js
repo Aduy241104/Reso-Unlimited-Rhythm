@@ -24,7 +24,6 @@ const {
     Album,
     Track,
     UserRecentListeningActivity,
-    UserListeningDailyStat,
 } = models;
 
 const oid = (value) => new mongoose.Types.ObjectId(value);
@@ -62,11 +61,6 @@ const daysAgoAt = (days, hours = 9, minutes = 0) => {
     const date = dayjs().tz(analyticsTimezone).subtract(days, "day");
     return date.hour(hours).minute(minutes).second(0).millisecond(0).toDate();
 };
-const dateKeyDaysAgo = (days) =>
-    dayjs().tz(analyticsTimezone).subtract(days, "day").format("YYYY-MM-DD");
-const storedDayDateDaysAgo = (days) =>
-    dayjs.utc(`${dateKeyDaysAgo(days)}T00:00:00Z`).toDate();
-
 const seedCollections = [
     {
         model: UserRecentListeningActivity,
@@ -109,7 +103,7 @@ const seedCollections = [
         ids: [ids.artistUser],
     },
 ];
-const indexedModels = [...seedCollections.map((entry) => entry.model), UserListeningDailyStat];
+const indexedModels = seedCollections.map((entry) => entry.model);
 
 const connectDatabase = async () => {
     if (!process.env.DATABASE) {
@@ -500,75 +494,6 @@ const seedRecentListeningActivity = async () => {
     ]);
 };
 
-const seedDailyListeningStats = async () => {
-    const dailyStats = [
-        {
-            dateKey: dateKeyDaysAgo(6),
-            date: storedDayDateDaysAgo(6),
-            listenCount: 21,
-            totalListenedDuration: 4380,
-            uniqueTracks: 4,
-        },
-        {
-            dateKey: dateKeyDaysAgo(5),
-            date: storedDayDateDaysAgo(5),
-            listenCount: 34,
-            totalListenedDuration: 7440,
-            uniqueTracks: 4,
-        },
-        {
-            dateKey: dateKeyDaysAgo(4),
-            date: storedDayDateDaysAgo(4),
-            listenCount: 37,
-            totalListenedDuration: 8280,
-            uniqueTracks: 4,
-        },
-        {
-            dateKey: dateKeyDaysAgo(3),
-            date: storedDayDateDaysAgo(3),
-            listenCount: 23,
-            totalListenedDuration: 4860,
-            uniqueTracks: 3,
-        },
-        {
-            dateKey: dateKeyDaysAgo(2),
-            date: storedDayDateDaysAgo(2),
-            listenCount: 28,
-            totalListenedDuration: 5760,
-            uniqueTracks: 4,
-        },
-        {
-            dateKey: dateKeyDaysAgo(1),
-            date: storedDayDateDaysAgo(1),
-            listenCount: 31,
-            totalListenedDuration: 6720,
-            uniqueTracks: 4,
-        },
-    ];
-
-    await UserListeningDailyStat.bulkWrite(
-        dailyStats.map((item) => ({
-            updateOne: {
-                filter: {
-                    userId: ids.targetUser,
-                    dateKey: item.dateKey,
-                },
-                update: {
-                    $set: {
-                        userId: ids.targetUser,
-                        dateKey: item.dateKey,
-                        date: item.date,
-                        listenCount: item.listenCount,
-                        totalListenedDuration: item.totalListenedDuration,
-                        uniqueTracks: item.uniqueTracks,
-                    },
-                },
-                upsert: true,
-            },
-        }))
-    );
-};
-
 const main = async () => {
     const passwords = await buildPasswords();
 
@@ -578,7 +503,6 @@ const main = async () => {
     await seedUsers(passwords);
     await seedArtistCatalog();
     await seedRecentListeningActivity();
-    await seedDailyListeningStats();
 
     console.log("Recent listening activity seed completed successfully.");
     console.log("Target user ID:");
@@ -588,7 +512,6 @@ const main = async () => {
     console.log("Open this route after login:");
     console.log("  /user/recent-listening-activity");
     console.log("Seeded recent activities: 10");
-    console.log("Seeded daily stat days: 6");
     console.log("Seeded tracks: 4");
 };
 

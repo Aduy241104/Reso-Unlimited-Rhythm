@@ -44,7 +44,9 @@ const forgotPasswordSchema = Joi.object({
 });
 
 const resetPasswordSchema = Joi.object({
-    token: Joi.string().trim().required(),
+    token: Joi.string().trim(),
+    email: Joi.string().trim().email(),
+    otp: Joi.string().trim().length(6).pattern(/^\d+$/),
     password: Joi.string().min(6).max(128).required(),
     confirmPassword: Joi.string()
         .valid(Joi.ref("password"))
@@ -52,7 +54,15 @@ const resetPasswordSchema = Joi.object({
         .messages({
             "any.only": "Confirm password does not match.",
         }),
-});
+}).custom((value, helpers) => {
+    if (value.token || (value.email && value.otp)) {
+        return value;
+    }
+
+    return helpers.error("any.custom", {
+        message: "Token or email with OTP is required.",
+    });
+}, "reset password credential validation");
 
 const logoutSchema = Joi.object({
     clientType: clientTypeSchema,
