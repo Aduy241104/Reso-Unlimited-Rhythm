@@ -14,6 +14,7 @@ import {
   resolveTrackMediaUrlForQuality,
   recordListenService,
 } from "../services/playerService";
+import { isBlockedTrack } from "../utils/trackStatus";
 
 const DEFAULT_VOLUME = 0.75;
 const FREE_SKIP_LIMIT = 6;
@@ -238,6 +239,7 @@ const normalizeQueueTrack = (item, options = {}) => {
     listenSource: resolveListenSource(
       track?.listenSource || options.listenSource || options.collectionType
     ),
+    isBlocked: isBlockedTrack(item),
     playback: track?.playback || null,
     raw: track?.raw || track,
   };
@@ -256,7 +258,7 @@ const normalizeQueue = (tracks, collection = null) =>
         queueSource: CONTEXT_QUEUE_SOURCE,
       })
     )
-    .filter((track) => Boolean(track?.id));
+    .filter((track) => Boolean(track?.id) && !isBlockedTrack(track));
 
 const createPersistedQueueTrack = (trackId, playbackTrackId, index) =>
   normalizeQueueTrack(
@@ -1221,6 +1223,11 @@ export const PlayerProvider = ({ children }) => {
       return;
     }
 
+    if (isBlockedTrack(nextTrack)) {
+      setErrorMessage("This track is blocked and cannot be played.");
+      return;
+    }
+
     if (shouldFlushCurrentListen) {
       await flushCurrentListenAttempt();
     }
@@ -1439,7 +1446,7 @@ export const PlayerProvider = ({ children }) => {
   const addTrackToQueue = (track, options = {}) => {
     const baseTrack = track?.track ?? track ?? null;
 
-    if (!baseTrack || !getTrackId(baseTrack)) {
+    if (!baseTrack || !getTrackId(baseTrack) || isBlockedTrack(track)) {
       return;
     }
 
@@ -1470,6 +1477,15 @@ export const PlayerProvider = ({ children }) => {
         ? options.queue
         : [track];
 
+    if (isBlockedTrack(track)) {
+      setErrorMessage("This track is blocked and cannot be played.");
+      return;
+    }
+
+    const playableQueue = queueToPlay.filter(
+      (queueItem) => !isBlockedTrack(queueItem)
+    );
+
     const normalizedTrack = normalizeQueueTrack(track, {
       image: options.collection?.image,
       artistName: options.collection?.artistName,
@@ -1486,9 +1502,16 @@ export const PlayerProvider = ({ children }) => {
       return getTrackId(candidate) === normalizedTrack.id;
     });
 
-    await playCollection(queueToPlay, {
+    const playableStartIndex = playableQueue.findIndex((queueItem) => {
+      const candidate = queueItem?.track ?? queueItem;
+      return getTrackId(candidate) === normalizedTrack.id;
+    });
+
+    await playCollection(playableQueue, {
       startIndex:
-        explicitStartIndex >= 0
+        playableStartIndex >= 0
+          ? playableStartIndex
+          : explicitStartIndex >= 0
           ? explicitStartIndex
           : Math.max(fallbackStartIndex, 0),
       collection: options.collection || null,

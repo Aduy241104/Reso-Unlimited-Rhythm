@@ -29,6 +29,7 @@ import {
   formatTrackDuration,
 } from "../../utils/albumDetail";
 import { getApiErrorMessage } from "../../utils/apiError";
+import { isBlockedTrack } from "../../utils/trackStatus";
 
 const actionButtonClassName = `
   inline-flex h-10 w-10 items-center justify-center rounded-full border border-black/8
@@ -428,6 +429,7 @@ const AlbumDetailPage = () => {
           >
             { trackItems.map((trackItem, index) => {
               const track = trackItem?.track;
+              const isTrackBlocked = isBlockedTrack(trackItem);
 
               return (
                 <TrackCard
@@ -445,6 +447,7 @@ const AlbumDetailPage = () => {
                   duration={ formatTrackDuration(track?.duration) }
                   explicit={ false }
                   liked={ false }
+                  isBlocked={ isTrackBlocked }
                   href={ track?.id ? routePaths.trackDetail(track.id) : undefined }
                   isPlaybackActive={ currentTrack?.id === track?.id }
                   isPlaying={ isPlaying }

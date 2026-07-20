@@ -16,6 +16,8 @@ const toId = (value) => {
     return value.toString();
 };
 
+const isBlockedTrack = (track) => track?.activeStatus === "blocked";
+
 const formatAlbumItem = (album) => ({
     id: toId(album._id),
     title: album.title,
@@ -55,6 +57,7 @@ const formatAlbumTrack = (trackItem) => {
                 releaseDate: track.releaseDate,
                 activeStatus: track.activeStatus,
                 approvalStatus: track.approvalStatus,
+                isBlocked: isBlockedTrack(track),
                 artist: track.artist_artistId
                     ? {
                         id: toId(track.artist_artistId._id),

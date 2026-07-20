@@ -34,6 +34,7 @@ import {
   formatPlaylistDate,
   formatPlaylistDuration,
 } from "../../utils/playlistDetail";
+import { isBlockedTrack } from "../../utils/trackStatus";
 
 const actionButtonClassName = `
   inline-flex h-10 w-10 items-center justify-center rounded-full border border-black/8
@@ -491,7 +492,7 @@ const UserPlaylistDetailPage = () => {
   };
 
   const handlePlayTrack = async (track, index) => {
-    if (!track) {
+    if (!track || isBlockedTrack(track)) {
       return;
     }
 
@@ -563,7 +564,12 @@ const UserPlaylistDetailPage = () => {
     const targetPlaylistId = getPlaylistIdValue(targetPlaylist);
     const trackId = getTrackId(track);
 
-    if (!targetPlaylistId || !trackId || submittingTrackActionId) {
+    if (
+      !targetPlaylistId ||
+      !trackId ||
+      submittingTrackActionId ||
+      isBlockedTrack(track)
+    ) {
       return;
     }
 
@@ -617,7 +623,7 @@ const UserPlaylistDetailPage = () => {
   const handleToggleTrackQueue = async (track) => {
     const trackId = getTrackId(track);
 
-    if (!trackId || submittingTrackActionId) {
+    if (!trackId || submittingTrackActionId || isBlockedTrack(track)) {
       return;
     }
 
@@ -656,7 +662,7 @@ const UserPlaylistDetailPage = () => {
   const handleOpenRemoveTrackModal = (track) => {
     const trackId = getTrackId(track);
 
-    if (!trackId) {
+    if (!trackId || isBlockedTrack(track)) {
       return;
     }
 
@@ -983,6 +989,7 @@ const UserPlaylistDetailPage = () => {
               const isTrackMenuOpen = openTrackMenuId === trackActionKey;
               const queuedTrackIndex = getQueuedTrackIndex(track);
               const isTrackQueued = queuedTrackIndex >= 0;
+              const isTrackBlocked = isBlockedTrack(trackItem);
               const isSubmittingQueueAction =
                 submittingTrackActionId === `queue:${trackId}`;
 
@@ -998,6 +1005,7 @@ const UserPlaylistDetailPage = () => {
                   duration={formatTrackDuration(track?.duration)}
                   explicit={false}
                   liked={false}
+                  isBlocked={isTrackBlocked}
                   href={trackId ? routePaths.trackDetail(trackId) : undefined}
                   isPlaybackActive={currentTrack?.id === trackId}
                   isPlaying={isPlaying}
@@ -1010,7 +1018,7 @@ const UserPlaylistDetailPage = () => {
                       content: formatTrackDuration(track?.duration),
                     },
                     {
-                      content: (
+                      content: isTrackBlocked ? null : (
                         <div
                           ref={isTrackMenuOpen ? trackMenuRef : null}
                           className="relative flex items-center justify-end"

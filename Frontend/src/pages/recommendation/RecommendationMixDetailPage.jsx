@@ -285,6 +285,7 @@ const RecommendationMixDetailPage = () => {
                 <TrackCard
                   key={trackId || `${track?.title}-${index}`}
                   index={index + 1}
+                  track={track}
                   image={trackImage}
                   title={track?.title || ""}
                   artist={track?.artist?.name || ""}

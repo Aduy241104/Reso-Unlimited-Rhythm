@@ -168,6 +168,8 @@ const getTrackCoverImage = (track) => {
     return track.coverImage || track.avatar || "";
 };
 
+const isBlockedTrack = (track) => track?.activeStatus === "blocked";
+
 const formatPlaylistTrack = (playlistTrack) => {
     const track = playlistTrack.trackId;
 
@@ -190,6 +192,9 @@ const formatPlaylistTrack = (playlistTrack) => {
             lyricsSyncUrl: track.lyricsSyncUrl || "",
             stats: track.stats || {},
             releaseDate: track.releaseDate,
+            activeStatus: track.activeStatus,
+            approvalStatus: track.approvalStatus,
+            isBlocked: isBlockedTrack(track),
             artist: track.artist_artistId
                 ? {
                     id: toId(track.artist_artistId._id),

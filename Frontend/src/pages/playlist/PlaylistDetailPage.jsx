@@ -19,6 +19,7 @@ import {
   formatPlaylistDuration,
   getPlaylistOwnerLabel,
 } from "../../utils/playlistDetail";
+import { isBlockedTrack } from "../../utils/trackStatus";
 
 const actionButtonClassName = `
   inline-flex h-10 w-10 items-center justify-center rounded-full border border-black/8
@@ -287,6 +288,7 @@ const PlaylistDetailPage = () => {
           >
             { trackItems.map((trackItem, index) => {
               const track = trackItem?.track;
+              const isTrackBlocked = isBlockedTrack(trackItem);
               const trackImage =
                 track?.coverImage ||
                 track?.album?.coverImage ||
@@ -307,6 +309,7 @@ const PlaylistDetailPage = () => {
                   duration={ formatTrackDuration(track?.duration) }
                   explicit={ false }
                   liked={ false }
+                  isBlocked={ isTrackBlocked }
                   href={ track?.id ? routePaths.trackDetail(track.id) : undefined }
                   isPlaybackActive={ currentTrack?.id === track?.id }
                   isPlaying={ isPlaying }
