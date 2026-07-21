@@ -8,7 +8,6 @@ import {
   Pressable,
   TouchableOpacity,
   StatusBar,
-  Image,
   RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,12 +22,14 @@ import FeaturedCollectionCard from '../../components/home/FeaturedCollectionCard
 import { useAuth } from '../../hooks/useAuth';
 import { usePlayer } from '../../hooks/usePlayer';
 import homeService from '../../services/homeService';
-import { formatDateLabel, getInitials, resolveImageUri } from '../../utils/media';
+import { formatCompactNumber, formatDateLabel, resolveImageUri } from '../../utils/media';
 
 const SIDEBAR_CLOSE_DELAY = 180;
 
 const initialHomeState = {
-  topTrackCollections: [],
+  dailyTopTracks: [],
+  monthlyTopTracks: [],
+  dailyTopArtists: [],
   monthlyTopArtists: [],
   systemPlaylists: [],
   recommendedPlaylists: [],
@@ -39,8 +40,6 @@ const initialHomeState = {
     month: '',
   },
 };
-
-const accentPalette = ['#111111', '#2f2f2f', '#4a4a4a', '#686868', '#8a8a8a'];
 
 const resolveUserDisplayName = (user) =>
   user?.fullName || user?.name || user?.username || user?.displayName || user?.email || 'Người yêu nhạc';
@@ -55,29 +54,40 @@ const resolveUserAvatar = (user) =>
     user?.picture
   );
 
-const Artwork = ({ uri, label, color, style, textStyle }) => {
-  const imageUri = resolveImageUri(uri);
-
-  if (imageUri) {
-    return <Image source={{ uri: imageUri }} style={[styles.artwork, style]} resizeMode="cover" />;
-  }
-
-  return (
-    <View style={[styles.artwork, styles.artworkFallback, { backgroundColor: color }, style]}>
-      <Text style={[styles.artworkText, textStyle]}>{getInitials(label)}</Text>
-    </View>
-  );
-};
-
 const SectionState = ({ message, isError = false }) => (
   <View style={[styles.sectionState, isError && styles.sectionStateError]}>
     <Text style={[styles.sectionStateText, isError && styles.sectionStateTextError]}>{message}</Text>
   </View>
 );
 
-const HomeSection = ({ title, data, errorMessage, renderItem, emptyMessage }) => (
+const CardSeparator = () => <View style={styles.cardSeparator} />;
+
+const HomeSection = ({
+  title,
+  data,
+  errorMessage,
+  renderItem,
+  emptyMessage,
+  actionLabel,
+  onActionPress,
+}) => (
   <View style={styles.sectionContainer}>
-    <Text style={styles.sectionTitle}>{title}</Text>
+    <View style={styles.sectionHeadingRow}>
+      <View style={styles.sectionHeadingCopy}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+      </View>
+
+      {actionLabel && onActionPress ? (
+        <TouchableOpacity
+          style={styles.sectionAction}
+          activeOpacity={0.7}
+          onPress={onActionPress}
+        >
+          <Text style={styles.sectionActionText}>{actionLabel}</Text>
+          <Ionicons name="chevron-forward" size={14} color="#ffffff" />
+        </TouchableOpacity>
+      ) : null}
+    </View>
 
     {errorMessage ? (
       <SectionState message={errorMessage} isError />
@@ -89,34 +99,10 @@ const HomeSection = ({ title, data, errorMessage, renderItem, emptyMessage }) =>
         renderItem={renderItem}
         keyExtractor={(item, index) => item.id || item._id || `${title}-${index}`}
         horizontal
+        style={styles.horizontalListViewport}
+        ItemSeparatorComponent={CardSeparator}
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.horizontalList}
       />
-    )}
-  </View>
-);
-
-const TopTrackSection = ({ data, errorMessage, onPressItem }) => (
-  <View style={styles.sectionContainer}>
-    <Text style={styles.sectionTitle}>BXH bài hát nổi bật</Text>
-
-    {errorMessage ? (
-      <SectionState message={errorMessage} isError />
-    ) : data.length === 0 ? (
-      <SectionState message="Chưa có bảng xếp hạng bài hát nổi bật." />
-    ) : (
-      <View style={styles.topTrackGrid}>
-        {data.slice(0, 2).map((item) => (
-          <FeaturedCollectionCard
-            key={item.id || item._id}
-            title={item.title}
-            description={item.description}
-            image={item.image}
-            style={styles.topTrackCard}
-            onPress={() => onPressItem(item)}
-          />
-        ))}
-      </View>
     )}
   </View>
 );
@@ -162,8 +148,8 @@ export default function HomeScreen() {
     try {
       const data = await homeService.getHomepageData({
         includeRecommendations: isAuthenticated,
-        topTrackPreviewLimit: 1,
-        topArtistLimit: 10,
+        topTrackLimit: 5,
+        topArtistLimit: 5,
         playlistLimit: 10,
         albumLimit: 10,
       });
@@ -217,24 +203,6 @@ export default function HomeScreen() {
     [navigation]
   );
 
-  const handleOpenTopTrackCollection = useCallback(
-    (item) => {
-      if (!item?.id) {
-        return;
-      }
-
-      handleOpenDetail({
-        entityType: item.entityType,
-        entityId: item.id,
-        initialTitle: item.title,
-        period: item.period,
-        date: item.date,
-        month: item.month,
-      });
-    },
-    [handleOpenDetail]
-  );
-
   const handleOpenPlaylistDetail = useCallback((playlist) => {
     if (!playlist?.id) {
       return;
@@ -245,6 +213,15 @@ export default function HomeScreen() {
       initialTitle: playlist.title || 'Chi tiết playlist',
     });
   }, [navigation]);
+
+  const handleOpenRanking = useCallback((contentType, period) => {
+    navigation.navigate('RankingList', {
+      contentType,
+      period,
+      date: homeData.query.date,
+      month: homeData.query.month,
+    });
+  }, [homeData.query.date, homeData.query.month, navigation]);
 
   const handlePlayRecommendation = useCallback((mix) => {
     if (!Array.isArray(mix?.tracks) || mix.tracks.length === 0) {
@@ -353,94 +330,68 @@ export default function HomeScreen() {
     [navigation, runAfterSidebarClose, user?.role]
   );
 
-  const renderArtistCard = ({ item, index }) => {
-    const accentColor = accentPalette[index % accentPalette.length];
+  const renderTrackCard = ({ item }) => (
+    <FeaturedCollectionCard
+      title={item.title}
+      description={`#${item.rank || '-'} · ${item.artistName} · ${formatCompactNumber(item.playCount)} lượt phát`}
+      image={item.image}
+      style={styles.cardItem}
+      onPress={() =>
+        handleOpenDetail({
+          entityType: 'track',
+          entityId: item.entityId || item.id,
+          initialTitle: item.title || 'Chi tiết bài hát',
+        })
+      }
+    />
+  );
 
-    return (
-      <TouchableOpacity
-        style={styles.cardItem}
-        activeOpacity={0.8}
-        onPress={() =>
-          handleOpenDetail({
-            entityType: 'artist',
-            entityId: item.id,
-            initialTitle: item.name || 'Chi tiết nghệ sĩ',
-          })
-        }
-      >
-        <Artwork
-          uri={item.avatar}
-          label={item.name}
-          color={accentColor}
-          style={styles.artistArtwork}
-          textStyle={styles.artistArtworkText}
-        />
-        <Text style={styles.cardTitle} numberOfLines={1}>{item.name}</Text>
-        <Text style={styles.cardSubTitle} numberOfLines={2}>
-          Nghệ sĩ nổi bật trong bảng xếp hạng tháng.
-        </Text>
-      </TouchableOpacity>
-    );
-  };
+  const renderArtistCard = ({ item }) => (
+    <FeaturedCollectionCard
+      title={item.name}
+      description={`#${item.rank || '-'} · ${formatCompactNumber(item.playCount)} lượt phát · ${formatCompactNumber(item.uniqueListeners)} người nghe`}
+      image={item.avatar}
+      style={styles.cardItem}
+      onPress={() =>
+        handleOpenDetail({
+          entityType: 'artist',
+          entityId: item.id,
+          initialTitle: item.name || 'Chi tiết nghệ sĩ',
+        })
+      }
+    />
+  );
 
-  const renderPlaylistCard = ({ item, index }) => {
-    const accentColor = accentPalette[index % accentPalette.length];
+  const renderPlaylistCard = ({ item }) => (
+    <FeaturedCollectionCard
+      title={item.title}
+      description={item.description || 'Playlist tuyển chọn từ hệ thống'}
+      image={item.coverImage}
+      style={styles.cardItem}
+      onPress={() => handleOpenPlaylistDetail(item)}
+    />
+  );
 
-    return (
-      <TouchableOpacity
-        style={styles.cardItem}
-        activeOpacity={0.8}
-        onPress={() => handleOpenPlaylistDetail(item)}
-      >
-        <Artwork uri={item.coverImage} label={item.title} color={accentColor} />
-        <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
-        <Text style={styles.cardSubTitle} numberOfLines={2}>
-          {item.description || 'Playlist tuyển chọn từ hệ thống'}
-        </Text>
-      </TouchableOpacity>
-    );
-  };
+  const renderRecommendationCard = ({ item }) => (
+    <FeaturedCollectionCard
+      title={item.title}
+      description={item.description || item.subtitle || 'Daily Mix dành riêng cho bạn.'}
+      image={item.coverImage}
+      style={styles.cardItem}
+      onPress={() => handlePlayRecommendation(item)}
+    />
+  );
 
-  const renderRecommendationCard = ({ item, index }) => {
-    const accentColor = accentPalette[index % accentPalette.length];
-    const metaText = item?.basedOnLabel
-      ? `${item.subtitle} / ${item.basedOnLabel}`
-      : item.subtitle || 'Mix danh rieng cho ban';
-
-    return (
-      <TouchableOpacity
-        style={[styles.cardItem, styles.recommendationCard]}
-        activeOpacity={0.85}
-        onPress={() => handlePlayRecommendation(item)}
-      >
-        <Artwork
-          uri={item.coverImage}
-          label={item.title}
-          color={accentColor}
-          style={styles.recommendationArtwork}
-        />
-        <Text style={[styles.cardTitle, styles.recommendationTitle]} numberOfLines={1}>
-          {item.title}
-        </Text>
-        <Text style={[styles.cardSubTitle, styles.recommendationSubtitle]} numberOfLines={2}>
-          {item.description || 'Daily mix cap nhat theo thoi quen nghe cua ban.'}
-        </Text>
-        <Text style={styles.recommendationMeta} numberOfLines={2}>
-          {metaText}
-        </Text>
-      </TouchableOpacity>
-    );
-  };
-
-  const renderAlbumCard = ({ item, index }) => {
-    const accentColor = accentPalette[index % accentPalette.length];
+  const renderAlbumCard = ({ item }) => {
     const artistName = item?.artist?.name || 'Nghệ sĩ không xác định';
     const releaseLabel = formatDateLabel(item?.releaseDate);
 
     return (
-      <TouchableOpacity
+      <FeaturedCollectionCard
+        title={item.title}
+        description={releaseLabel ? `${artistName} · ${releaseLabel}` : artistName}
+        image={item.coverImage}
         style={styles.cardItem}
-        activeOpacity={0.8}
         onPress={() =>
           handleOpenDetail({
             entityType: 'album',
@@ -448,13 +399,7 @@ export default function HomeScreen() {
             initialTitle: item.title || 'Chi tiết album',
           })
         }
-      >
-        <Artwork uri={item.coverImage} label={item.title} color={accentColor} />
-        <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
-        <Text style={styles.cardSubTitle} numberOfLines={2}>
-          {releaseLabel ? `${artistName} - ${releaseLabel}` : artistName}
-        </Text>
-      </TouchableOpacity>
+      />
     );
   };
 
@@ -519,18 +464,44 @@ export default function HomeScreen() {
             />
           }
         >
-          <TopTrackSection
-            data={homeData.topTrackCollections}
-            errorMessage={homeData.sectionErrors.topTrackCollections}
-            onPressItem={handleOpenTopTrackCollection}
+          <HomeSection
+            title="Top bài hát theo ngày"
+            data={homeData.dailyTopTracks}
+            errorMessage={homeData.sectionErrors.dailyTopTracks}
+            renderItem={renderTrackCard}
+            emptyMessage="Hiện chưa có dữ liệu bảng xếp hạng bài hát theo ngày."
+            actionLabel="Xem thêm"
+            onActionPress={() => handleOpenRanking('track', 'daily')}
           />
 
           <HomeSection
-            title="Nghệ sĩ nổi bật tháng"
+            title="Top bài hát theo tháng"
+            data={homeData.monthlyTopTracks}
+            errorMessage={homeData.sectionErrors.monthlyTopTracks}
+            renderItem={renderTrackCard}
+            emptyMessage="Hiện chưa có dữ liệu bảng xếp hạng bài hát theo tháng."
+            actionLabel="Xem thêm"
+            onActionPress={() => handleOpenRanking('track', 'monthly')}
+          />
+
+          <HomeSection
+            title="Top nghệ sĩ theo ngày"
+            data={homeData.dailyTopArtists}
+            errorMessage={homeData.sectionErrors.dailyTopArtists}
+            renderItem={renderArtistCard}
+            emptyMessage="Hiện chưa có dữ liệu bảng xếp hạng nghệ sĩ theo ngày."
+            actionLabel="Xem thêm"
+            onActionPress={() => handleOpenRanking('artist', 'daily')}
+          />
+
+          <HomeSection
+            title="Top nghệ sĩ theo tháng"
             data={homeData.monthlyTopArtists}
             errorMessage={homeData.sectionErrors.monthlyTopArtists}
             renderItem={renderArtistCard}
-            emptyMessage="Chưa có nghệ sĩ nổi bật theo tháng."
+            emptyMessage="Hiện chưa có dữ liệu bảng xếp hạng nghệ sĩ theo tháng."
+            actionLabel="Xem thêm"
+            onActionPress={() => handleOpenRanking('artist', 'monthly')}
           />
 
           <HomeSection
@@ -543,20 +514,20 @@ export default function HomeScreen() {
 
           {isAuthenticated ? (
             <HomeSection
-              title="Playlist goi y cho ban"
+              title={`Dành cho ${displayName}`}
               data={homeData.recommendedPlaylists}
               errorMessage={homeData.sectionErrors.recommendedPlaylists}
               renderItem={renderRecommendationCard}
-              emptyMessage="Chua co recommendation playlist cho hom nay."
+              emptyMessage="Hôm nay chưa có playlist gợi ý cá nhân nào sẵn sàng."
             />
           ) : null}
 
           <HomeSection
-            title="Album moi phat hanh"
+            title="Album nổi bật"
             data={homeData.recentAlbums}
             errorMessage={homeData.sectionErrors.recentAlbums}
             renderItem={renderAlbumCard}
-            emptyMessage="Chua co album moi phat hanh."
+            emptyMessage="Hiện chưa có dữ liệu album."
           />
         </ScrollView>
       )}
@@ -588,7 +559,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-start',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
     paddingBottom: 14,
     borderBottomWidth: 1,
     borderColor: '#1f1f1f',
@@ -668,95 +639,52 @@ const styles = StyleSheet.create({
     borderColor: '#2c2c2c',
   },
   scrollBody: {
-    paddingVertical: 16,
+    paddingVertical: 20,
   },
   sectionContainer: {
-    marginBottom: 24,
+    marginBottom: 36,
   },
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: '#ffffff',
-    paddingHorizontal: 20,
-    marginBottom: 12,
-  },
-  horizontalList: {
-    paddingHorizontal: 15,
-  },
-  topTrackGrid: {
+  sectionHeadingRow: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    gap: 10,
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    marginBottom: 14,
   },
-  topTrackCard: {
+  sectionHeadingCopy: {
     flex: 1,
     minWidth: 0,
-    marginHorizontal: 0,
+    marginRight: 12,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  sectionAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  sectionActionText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '600',
+    marginRight: 2,
+  },
+  horizontalListViewport: {
+    marginHorizontal: 12,
+    overflow: 'hidden',
   },
   cardItem: {
-    width: 102,
-    marginHorizontal: 5,
-    padding: 0,
-    backgroundColor: 'transparent',
+    width: 104,
+    marginHorizontal: 0,
   },
-  recommendationCard: {
-    width: 156,
-  },
-  artwork: {
-    width: 102,
-    height: 102,
-    borderRadius: 8,
-    backgroundColor: '#202020',
-  },
-  recommendationArtwork: {
-    width: 156,
-    height: 156,
-    borderRadius: 14,
-  },
-  artworkFallback: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  artworkText: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#ffffff',
-    letterSpacing: 1,
-  },
-  artistArtwork: {
-    borderRadius: 51,
-  },
-  artistArtworkText: {
-    fontSize: 18,
-  },
-  cardTitle: {
-    color: '#ffffff',
-    fontSize: 11,
-    fontWeight: '700',
-    marginTop: 5,
-  },
-  cardSubTitle: {
-    color: '#9a9a9a',
-    fontSize: 10,
-    marginTop: 2,
-    lineHeight: 14,
-    minHeight: 26,
-  },
-  recommendationTitle: {
-    fontSize: 13,
-    marginTop: 10,
-  },
-  recommendationSubtitle: {
-    minHeight: 30,
-  },
-  recommendationMeta: {
-    color: '#6f6f6f',
-    fontSize: 10,
-    lineHeight: 14,
-    marginTop: 6,
+  cardSeparator: {
+    width: 16,
   },
   sectionState: {
-    marginHorizontal: 20,
+    marginHorizontal: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderRadius: 12,

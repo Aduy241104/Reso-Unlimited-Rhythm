@@ -1,7 +1,19 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  AudioLines,
+  ClipboardList,
+  Crown,
+  Disc3,
+  Flag,
+  History,
+  ListMusic,
+  LogOut,
+  MicVocal,
+  ReceiptText,
+  UserRound,
+  UserRoundCheck,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import ThemeToggle from "../../components/common/ThemeToggle";
-import { useTheme } from "../../hooks/useTheme";
 import { routePaths } from "../../routes/routePaths";
 import { hasPremiumAccess } from "../../utils/premiumAccess";
 
@@ -15,7 +27,6 @@ const DEFAULT_AVATAR =
 
 const AccountMenu = ({ user, onLogout }) => {
   const navigate = useNavigate();
-  const { isDark } = useTheme();
   const menuRef = useRef(null);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -33,37 +44,74 @@ const AccountMenu = ({ user, onLogout }) => {
 
   const menuItems = useMemo(
     () => [
-      { label: "Hồ sơ cá nhân", to: routePaths.userProfile },
-      { label: "Nghe gần đây", to: routePaths.userRecentListeningActivity },
+      { label: "Hồ sơ cá nhân", to: routePaths.userProfile, icon: UserRound },
+      {
+        label: "Nghe gần đây",
+        to: routePaths.userRecentListeningActivity,
+        icon: History,
+      },
 
       ...(userRole === "user"
         ? [
             {
               label: "Đăng ký nghệ sĩ",
               to: routePaths.artistRegistrationRequest,
+              icon: MicVocal,
             },
             {
               label: "Yêu cầu của tôi",
               to: routePaths.artistRegistrationRequestsList,
+              icon: ClipboardList,
             },
           ]
         : []),
 
       ...(userRole === "artist"
         ? [
-            { label: "Khu vực nghệ sĩ", to: routePaths.artistRoot },
+            {
+              label: "Khu vực nghệ sĩ",
+              to: routePaths.artistRoot,
+              icon: AudioLines,
+            },
           ]
         : []),
 
       ...(!isPremiumUser
-        ? [{ label: "Nâng cấp Premium", to: routePaths.premium, premium: true }]
+        ? [
+            {
+              label: "Nâng cấp Premium",
+              to: routePaths.premium,
+              icon: Crown,
+              premium: true,
+            },
+          ]
         : []),
 
-      { label: "Nghệ sĩ đang theo dõi", to: routePaths.libraryFollowedArtists },
-      { label: "Album đang theo dõi", to: routePaths.libraryFollowedAlbums },
-      { label: "Playlist của tôi", to: routePaths.userPlaylist },
-      { label: "Lịch sử thanh toán", to: routePaths.userPaymentHistory },
-      { label: "Danh sách báo cáo", to: routePaths.userReportList },
+      {
+        label: "Nghệ sĩ đang theo dõi",
+        to: routePaths.libraryFollowedArtists,
+        icon: UserRoundCheck,
+      },
+      {
+        label: "Album đang theo dõi",
+        to: routePaths.libraryFollowedAlbums,
+        icon: Disc3,
+      },
+      {
+        label: "Playlist của tôi",
+        to: routePaths.userPlaylist,
+        icon: ListMusic,
+      },
+      {
+        label: "Lịch sử thanh toán",
+        to: routePaths.userPaymentHistory,
+        icon: ReceiptText,
+      },
+      {
+        label: "Danh sách báo cáo",
+        to: routePaths.userReportList,
+        icon: Flag,
+      },
     ],
     [isPremiumUser, userRole]
   );
@@ -119,22 +167,14 @@ const AccountMenu = ({ user, onLogout }) => {
 
       <div
         className={[
-          "absolute right-0 top-full z-[120] mt-2 w-56 origin-top-right rounded-lg border p-1.5 shadow-xl backdrop-blur-xl",
+          "absolute right-0 top-full z-[120] mt-2 w-64 origin-top-right rounded-lg border border-white/10 bg-[#151515]/95 p-1.5 shadow-xl backdrop-blur-xl",
           "transition-all duration-200 ease-out",
           isOpen
             ? "visible translate-y-0 scale-100 opacity-100"
             : "pointer-events-none invisible -translate-y-1 scale-95 opacity-0",
-          isDark
-            ? "border-white/10 bg-[#151515]/95"
-            : "border-[#eeeeee] bg-white/95",
         ].join(" ")}
       >
-        <div
-          className={[
-            "mb-1 flex items-center gap-2 rounded-md px-2.5 py-2",
-            isDark ? "bg-white/[0.04]" : "bg-[#f9fafb]",
-          ].join(" ")}
-        >
+        <div className="mb-1 flex items-center gap-2 rounded-md bg-white/[0.04] px-2.5 py-2">
           <img
             src={avatarSrc}
             alt={displayName}
@@ -143,74 +183,53 @@ const AccountMenu = ({ user, onLogout }) => {
           />
 
           <div className="min-w-0 flex-1">
-            <p
-              className={[
-                "truncate text-[13px] font-semibold",
-                isDark ? "text-white" : "text-[#111111]",
-              ].join(" ")}
-            >
+            <p className="truncate text-sm font-semibold text-white">
               {displayName}
             </p>
 
-            <p
-              className={[
-                "mt-0.5 truncate text-[11px]",
-                isDark ? "text-white/45" : "text-[#6b7280]",
-              ].join(" ")}
-            >
+            <p className="mt-0.5 truncate text-xs text-white/55">
               {displayEmail || ROLE_LABELS[userRole] || "Thành viên"}
             </p>
           </div>
         </div>
 
-        <div className="max-h-[320px] overflow-y-auto py-0.5">
-          {menuItems.map((item) => (
-            <button
-              key={item.to}
-              type="button"
-              onClick={() => handleNavigate(item.to)}
-              className={[
-                "flex w-full rounded-md px-2.5 py-2 text-left text-[13px] font-normal transition-all duration-150",
-                item.premium
-                  ? isDark
-                    ? "text-[#f5b66f] hover:bg-[#f5b66f]/10"
-                    : "text-[#b45309] hover:bg-[#fff7ed]"
-                  : isDark
-                    ? "text-white/80 hover:bg-white/[0.06] hover:text-white"
-                    : "text-[#2f2f2f] hover:bg-[#f5f5f5] hover:text-black",
-              ].join(" ")}
-            >
-              {item.label}
-            </button>
-          ))}
+        <div className="max-h-[320px] overflow-y-auto py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+
+            return (
+              <button
+                key={item.to}
+                type="button"
+                onClick={() => handleNavigate(item.to)}
+                className="group flex w-full items-center gap-3 rounded-md px-2.5 py-2.5 text-left text-sm font-medium text-white transition-all duration-150 hover:bg-white/[0.08]"
+              >
+                <Icon
+                  aria-hidden="true"
+                  className={[
+                    "h-4 w-4 shrink-0 transition-colors",
+                    item.premium
+                      ? "text-[#f5b66f]"
+                      : "text-white/65 group-hover:text-white",
+                  ].join(" ")}
+                />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
         </div>
 
-        <div
-          className={[
-            "mt-1 border-t px-1 py-1",
-            isDark ? "border-white/10" : "border-[#f1f1f1]",
-          ].join(" ")}
-        >
-          <ThemeToggle variant="menu" />
-        </div>
-
-        <div
-          className={[
-            "border-t px-1 pt-1",
-            isDark ? "border-white/10" : "border-[#f1f1f1]",
-          ].join(" ")}
-        >
+        <div className="mt-1 border-t border-white/10 px-1 pt-1">
           <button
             type="button"
             onClick={handleLogout}
-            className={[
-              "flex w-full rounded-md px-2.5 py-2 text-left text-[13px] font-normal transition-all duration-150",
-              isDark
-                ? "text-red-300 hover:bg-red-500/10"
-                : "text-red-600 hover:bg-red-50",
-            ].join(" ")}
+            className="group flex w-full items-center gap-3 rounded-md px-2.5 py-2.5 text-left text-sm font-medium text-white transition-all duration-150 hover:bg-red-500/10"
           >
-            Đăng xuất
+            <LogOut
+              aria-hidden="true"
+              className="h-4 w-4 shrink-0 text-red-300 transition-colors group-hover:text-red-200"
+            />
+            <span>Đăng xuất</span>
           </button>
         </div>
       </div>

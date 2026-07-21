@@ -28,6 +28,7 @@ export const API_ENDPOINTS = {
   },
   ARTISTS: {
     DETAIL: '/browse/artists',
+    TOP_DAILY: '/browse/artists/top/daily',
     TOP_MONTHLY: '/browse/artists/top/monthly',
   },
   GENRES: {
