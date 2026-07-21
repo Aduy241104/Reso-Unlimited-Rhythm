@@ -4,6 +4,7 @@ import {
   Bell,
   CircleDollarSign,
   CreditCard,
+  Disc3,
   Flag,
   LayoutDashboard,
   ListMusic,
@@ -49,6 +50,12 @@ const navigationItems = [
     to: routePaths.systemTracks,
     label: "Bài hát hệ thống",
     icon: Music2,
+    end: false,
+  },
+  {
+    to: routePaths.systemAlbums,
+    label: "Album h\u1ec7 th\u1ed1ng",
+    icon: Disc3,
     end: false,
   },
   {

@@ -94,6 +94,25 @@ const TrackSchema = new Schema(
             default: "",
         },
 
+        blockedByAlbumId: {
+            type: Schema.Types.ObjectId,
+            ref: "Album",
+            default: null,
+            index: true,
+        },
+        previousActiveStatusBeforeAlbumBlock: {
+            type: String,
+            enum: ["draft", "active", "hidden", null],
+            default: null,
+        },
+        previousHiddenReasonBeforeAlbumBlock: {
+            type: String,
+            default: "",
+        },
+        previousHiddenAtBeforeAlbumBlock: {
+            type: Date,
+            default: null,
+        },
         blockedReason: { type: String, default: "" },
         hiddenReason: { type: String, default: "" },
         hiddenAt: { type: Date },

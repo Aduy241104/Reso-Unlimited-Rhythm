@@ -4,8 +4,10 @@ import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 import Album from "../../models/Album.js";
 import Artist from "../../models/Artist.js";
-import ArtistDailyRanking from "../../models/ArtistDailyRanking.js";
-import ArtistMonthlyRanking from "../../models/ArtistMonthlyRanking.js";
+import ArtistRanking, {
+    buildDailyArtistRankingFilter,
+    buildMonthlyArtistRankingFilter,
+} from "../../models/ArtistRanking.js";
 import Interaction from "../../models/Interaction.js";
 import ReleaseSchedule from "../../models/ReleaseSchedule.js";
 import ArtistStat from "../../models/ArtistStat.js";
@@ -143,19 +145,6 @@ const parseDailyTopArtistsDate = (dateInput) => {
         dateKey: startDay.format("YYYY-MM-DD"),
     };
 };
-
-const buildDailyDateQuery = ({ dateKey, startDate, endDate }) => ({
-    $or: [
-        { dateKey },
-        {
-            date: {
-                $gte: startDate,
-                $lt: endDate,
-            },
-        },
-    ],
-});
-
 const parseMonthlyTopArtistsMonth = (monthInput) => {
     const match = /^(\d{4})-(\d{2})$/.exec(monthInput);
     if (!match) {
@@ -421,8 +410,8 @@ const getDailyTopArtists = async (query = {}) => {
         }
     }
 
-    const rankingDocument = await ArtistDailyRanking.findOne(
-        buildDailyDateQuery({ dateKey, startDate, endDate })
+    const rankingDocument = await ArtistRanking.findOne(
+        buildDailyArtistRankingFilter({ dateKey, startDate, endDate })
     )
         .populate({
             path: "rankings.artistId",
@@ -495,7 +484,9 @@ const getMonthlyTopArtists = async (query = {}) => {
         }
     }
 
-    const rankingDocument = await ArtistMonthlyRanking.findOne({ year, month })
+    const rankingDocument = await ArtistRanking.findOne(
+        buildMonthlyArtistRankingFilter({ year, month })
+    )
         .populate({
             path: "rankings.artistId",
             select: "_id name avatar activeStatus",

@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { Clock3, Headphones, LoaderCircle, Music2, Tags } from "lucide-react";
+import { useAuth } from "../../hooks/useAuth";
+import { routePaths } from "../../routes/routePaths";
 import { getCurrentUserRecentListeningActivity } from "../../services/user.recentListening.service";
 import { getApiErrorMessage } from "../../utils/apiError";
+import { hasPremiumAccess } from "../../utils/premiumAccess";
 
 const pageShellClassName =
   "min-h-screen bg-[#020202] px-4 py-8 text-white sm:px-6 lg:px-8";
@@ -236,6 +240,55 @@ const EmptyState = ({ title, description }) => (
   </section>
 );
 
+const isPremiumAccessDeniedError = (error) => {
+  const status = Number(error?.response?.status || 0);
+  const requiredPlan = error?.response?.data?.errors?.requiredPlan;
+  const message = String(error?.response?.data?.message || "").toLowerCase();
+
+  return (
+    status === 403 &&
+    (requiredPlan === "premium" || message.includes("premium"))
+  );
+};
+
+const PremiumRequiredState = () => (
+  <main className={pageShellClassName}>
+    <section className="mx-auto flex w-full max-w-3xl items-center justify-center">
+      <div
+        className={`${panelClassName} w-full overflow-hidden border border-[#f1c27d]/20 bg-[radial-gradient(circle_at_top,rgba(241,194,125,0.18),transparent_52%),#0b0b0b] p-7 sm:p-8`}
+      >
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="text-xs uppercase tracking-[0.32em] text-[#f1c27d]/78">
+            Premium Required
+          </p>
+          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-[2.7rem] sm:leading-[1.06]">
+            Tinh nang user insight chi danh cho tai khoan Premium
+          </h1>
+          <p className="mt-5 text-sm leading-7 text-white/62 sm:text-base">
+            Ban can nang cap Premium de xem thong ke nghe gan day, top the loai
+            va top bai hat ca nhan trong 7 ngay qua.
+          </p>
+
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link
+              to={routePaths.premium}
+              className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#f1c27d] px-6 text-sm font-semibold text-[#18120a] transition hover:bg-[#f4cf95]"
+            >
+              Xem cac goi Premium
+            </Link>
+            <Link
+              to={routePaths.home}
+              className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/12 px-6 text-sm font-semibold text-white/76 transition hover:border-white/20 hover:text-white"
+            >
+              Ve trang chu
+            </Link>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+);
+
 const InsightBadge = ({ icon: Icon, label, value, hint }) => (
   <div className={`rounded-[20px] ${lightGraySoftBorderClassName} bg-white/[0.03] p-4`}>
     <div className="flex items-start justify-between gap-3">
@@ -418,9 +471,16 @@ const UserInsightSection = ({ activity }) => {
 };
 
 const UserRecentListeningPage = () => {
+  const {
+    user,
+    isLoading: isAuthLoading,
+    refreshCurrentUser,
+  } = useAuth();
   const [activity, setActivity] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isPremiumResolved, setIsPremiumResolved] = useState(false);
+  const [hasPremiumPermission, setHasPremiumPermission] = useState(false);
 
   const loadActivity = useCallback(async ({ silent = false } = {}) => {
     if (!silent) {
@@ -433,6 +493,13 @@ const UserRecentListeningPage = () => {
       const nextActivity = await getCurrentUserRecentListeningActivity();
       setActivity(nextActivity);
     } catch (error) {
+      if (isPremiumAccessDeniedError(error)) {
+        setActivity(null);
+        setErrorMessage("");
+        setHasPremiumPermission(false);
+        return;
+      }
+
       if (!silent) {
         setActivity(null);
       }
@@ -451,10 +518,62 @@ const UserRecentListeningPage = () => {
   }, []);
 
   useEffect(() => {
-    loadActivity();
-  }, [loadActivity]);
+    let isMounted = true;
+
+    const resolvePremiumPermission = async () => {
+      if (!user) {
+        if (isMounted) {
+          setHasPremiumPermission(false);
+          setIsPremiumResolved(true);
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      setIsPremiumResolved(false);
+
+      try {
+        const latestUser = await refreshCurrentUser();
+
+        if (!isMounted) {
+          return;
+        }
+
+        setHasPremiumPermission(hasPremiumAccess(latestUser));
+      } catch {
+        if (!isMounted) {
+          return;
+        }
+
+        setHasPremiumPermission(hasPremiumAccess(user));
+      } finally {
+        if (isMounted) {
+          setIsPremiumResolved(true);
+        }
+      }
+    };
+
+    resolvePremiumPermission();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [refreshCurrentUser, user]);
 
   useEffect(() => {
+    if (!isPremiumResolved || !hasPremiumPermission) {
+      setIsLoading(false);
+      return;
+    }
+
+    loadActivity();
+  }, [hasPremiumPermission, isPremiumResolved, loadActivity]);
+
+  useEffect(() => {
+    if (!hasPremiumPermission) {
+      return undefined;
+    }
+
     const intervalId = window.setInterval(() => {
       loadActivity({ silent: true });
     }, 30000);
@@ -469,7 +588,7 @@ const UserRecentListeningPage = () => {
       window.clearInterval(intervalId);
       window.removeEventListener("focus", handleWindowFocus);
     };
-  }, [loadActivity]);
+  }, [hasPremiumPermission, loadActivity]);
 
   const chartData = useMemo(() => activity?.chart || [], [activity]);
   const summary = activity?.summary || {
@@ -523,7 +642,7 @@ const UserRecentListeningPage = () => {
     [summary.comparison]
   );
 
-  if (isLoading) {
+  if (isAuthLoading || !isPremiumResolved || isLoading) {
     return (
       <main className={pageShellClassName}>
         <section
@@ -536,6 +655,10 @@ const UserRecentListeningPage = () => {
         </section>
       </main>
     );
+  }
+
+  if (!hasPremiumPermission) {
+    return <PremiumRequiredState />;
   }
 
   return (

@@ -16,6 +16,8 @@ const normalizePositiveInteger = (value, fallback) => {
     return parsedValue;
 };
 
+const isBlockedTrack = (track) => track?.activeStatus === "blocked";
+
 const formatPlaylistTrack = (playlistTrack) => {
     const rawRef = playlistTrack.trackId;
     const isPopulatedTrack =
@@ -44,6 +46,7 @@ const formatPlaylistTrack = (playlistTrack) => {
                 releaseDate: trackDoc.releaseDate,
                 activeStatus: trackDoc.activeStatus,
                 approvalStatus: trackDoc.approvalStatus,
+                isBlocked: isBlockedTrack(trackDoc),
                 artist: trackDoc.artist_artistId
                     ? {
                         id: toId(trackDoc.artist_artistId._id),

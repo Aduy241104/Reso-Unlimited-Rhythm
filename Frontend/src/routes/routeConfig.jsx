@@ -41,6 +41,7 @@ import GenreListPage from "../pages/usergenre/GenreListPage";
 import GenreDetailPage from "../pages/usergenre/GenreDetailPage";
 import DailyTopTracksPage from "../pages/track/DailyTopTracksPage";
 import MonthlyTopTracksPage from "../pages/track/MonthlyTopTracksPage";
+import TopArtistsPage from "../pages/artist/TopArtistsPage";
 import NotificationsPage from "../pages/notifications/NotificationsPage";
 import ArtistProfilePageView from "../pages/profile/ArtistProfilePage";
 import ArtistRegistrationRequestPage from "../pages/artistRegistrationRequest/ArtistRegistrationRequestPage";
@@ -94,6 +95,14 @@ export const appRoutes = [
       {
         path: routePaths.monthlyTopTracks,
         element: <MonthlyTopTracksPage />,
+      },
+      {
+        path: routePaths.dailyTopArtists,
+        element: <TopArtistsPage period="daily" />,
+      },
+      {
+        path: routePaths.monthlyTopArtists,
+        element: <TopArtistsPage period="monthly" />,
       },
       {
         path: routePaths.albumDetail(),

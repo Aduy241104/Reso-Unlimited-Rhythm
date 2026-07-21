@@ -62,9 +62,9 @@ const clearCookieOptions = {
 };
 
 
-const register = async (req, res, next) => {
+const completeRegistration = async (req, res, next) => {
     try {
-        const authResult = await authenticationService.register(req.body);
+        const authResult = await authenticationService.completeRegistration(req.body);
 
         return formatResponse.success(
             res,
@@ -76,9 +76,9 @@ const register = async (req, res, next) => {
     }
 };
 
-const requestRegisterOtp = async (req, res, next) => {
+const requestRegistrationOtp = async (req, res, next) => {
     try {
-        const otpResult = await authenticationService.requestRegisterOtp(
+        const otpResult = await authenticationService.requestRegistrationOtp(
             req.body
         );
 
@@ -217,8 +217,8 @@ const me = async (req, res, next) => {
 };
 
 export default {
-    requestRegisterOtp,
-    register,
+    requestRegistrationOtp,
+    completeRegistration,
     login,
     googleLogin,
     forgotPassword,

@@ -1,18 +1,18 @@
 import ContentCardSection from "../../components/content/ContentCardSection";
-import DailyTopArtistsSection from "../../components/home/DailyTopArtistsSection";
 import TrackChartSection from "../../components/home/TrackChartSection";
 import { useAuth } from "../../hooks/useAuth";
 import { useContentPlayback } from "../../hooks/useContentPlayback";
 import { useHomePageData } from "../../hooks/useHomePageData";
 import { useRecommendationMixes } from "../../hooks/useRecommendationMixes";
 import { routePaths } from "../../routes/routePaths";
-import { mapDailyTopTracksToContentCards } from "../../utils/dailyTopTracks";
 import {
   mapAlbumsToContentCards,
   mapSystemPlaylistsToContentCards,
 } from "../../utils/homeContent";
-import { mapMonthlyTopArtistsToContentCards } from "../../utils/monthlyTopArtists";
-import { mapMonthlyTopTracksToContentCards } from "../../utils/monthlyTopTracks";
+import {
+  mapTopArtistsToRankingCards,
+  mapTopTracksToRankingCards,
+} from "../../utils/homeRankings";
 import {
   getRecommendationUserDisplayName,
   mapRecommendationMixesToContentCards,
@@ -24,11 +24,8 @@ const HomePage = () => {
     albums,
     systemPlaylists,
     dailyTopTracks,
-    dailyTopTracksMeta,
     monthlyTopTracks,
-    monthlyTopTracksMeta,
     monthlyTopArtists,
-    monthlyTopArtistsMeta,
     dailyTopArtists,
     isLoadingAlbums,
     isLoadingSystemPlaylists,
@@ -42,12 +39,6 @@ const HomePage = () => {
     monthlyTopTracksError,
     monthlyTopArtistsError,
     dailyTopArtistsError,
-    dailyTopTracksDate,
-    monthlyTopTracksDate,
-    monthlyTopArtistsDate,
-    dailyTopTracksLimit,
-    monthlyTopTracksLimit,
-    monthlyTopArtistsLimit,
   } = useHomePageData();
   const {
     mixes: recommendationMixes,
@@ -66,7 +57,7 @@ const HomePage = () => {
   const shouldShowRecommendationSection = isAuthenticated && !isAuthLoading;
 
   return (
-    <section className="space-y-6 sm:space-y-8 lg:space-y-10 p-5">
+    <section className="min-w-0 space-y-6 p-5 sm:space-y-8 lg:space-y-10">
       {albumsError ? (
         <div
           className="
@@ -133,62 +124,63 @@ const HomePage = () => {
         </div>
       ) : null}
 
+      {dailyTopArtistsError ? (
+        <div
+          className="
+            rounded-[18px] border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm
+            text-amber-700 dark:text-amber-300
+          "
+        >
+          {dailyTopArtistsError}
+        </div>
+      ) : null}
+
       <TrackChartSection
-        label="Bảng xếp hạng"
-        title="Top nhạc nổi bật"
-        description="Theo dõi nhanh các bảng xếp hạng theo ngày, theo tháng và nghệ sĩ đang dẫn đầu."
-        items={[
-          ...(!dailyTopTracksError
-            ? mapDailyTopTracksToContentCards({
-                topTracks: dailyTopTracks,
-                meta: dailyTopTracksMeta || {},
-                date: dailyTopTracksDate,
-                limit: dailyTopTracksLimit,
-              }).map((item) => ({
-                ...item,
-                raw: {
-                  ...item.raw,
-                  period: "daily",
-                },
-              }))
-            : []),
-          ...(!monthlyTopTracksError
-            ? mapMonthlyTopTracksToContentCards({
-                topTracks: monthlyTopTracks,
-                meta: monthlyTopTracksMeta || {},
-                month: monthlyTopTracksDate,
-                limit: monthlyTopTracksLimit,
-              }).map((item) => ({
-                ...item,
-                raw: {
-                  ...item.raw,
-                  period: "monthly",
-                },
-              }))
-            : []),
-          ...(!monthlyTopArtistsError
-            ? mapMonthlyTopArtistsToContentCards({
-                topArtists: monthlyTopArtists,
-                meta: monthlyTopArtistsMeta || {},
-                month: monthlyTopArtistsDate,
-                limit: monthlyTopArtistsLimit,
-              })
-            : []),
-        ]}
-        isLoading={
-          isLoadingDailyTopTracks ||
-          isLoadingMonthlyTopTracks ||
-          isLoadingMonthlyTopArtists
-        }
-        emptyMessage="Hiện chưa có dữ liệu bảng xếp hạng."
+        label="Bảng xếp hạng ngày"
+        title="Top bài hát theo ngày"
+        items={ mapTopTracksToRankingCards(dailyTopTracks, { period: "daily" }) }
+        isLoading={ isLoadingDailyTopTracks }
+        emptyMessage="Hiện chưa có dữ liệu bảng xếp hạng bài hát theo ngày."
         showPlayButton={false}
-        actionLabel="Xem tất cả bảng xếp hạng"
+        actionLabel="Xem thêm"
         actionHref={routePaths.dailyTopTracks}
+      />
+
+      <TrackChartSection
+        label="Bảng xếp hạng tháng"
+        title="Top bài hát theo tháng"
+        items={ mapTopTracksToRankingCards(monthlyTopTracks, { period: "monthly" }) }
+        isLoading={ isLoadingMonthlyTopTracks }
+        emptyMessage="Hiện chưa có dữ liệu bảng xếp hạng bài hát theo tháng."
+        showPlayButton={ false }
+        actionLabel="Xem thêm"
+        actionHref={ routePaths.monthlyTopTracks }
+      />
+
+      <TrackChartSection
+        label="Nghệ sĩ nổi bật"
+        title="Top nghệ sĩ theo ngày"
+        items={ mapTopArtistsToRankingCards(dailyTopArtists, { period: "daily" }) }
+        isLoading={ isLoadingDailyTopArtists }
+        emptyMessage="Hiện chưa có dữ liệu bảng xếp hạng nghệ sĩ theo ngày."
+        showPlayButton={ false }
+        actionLabel="Xem thêm"
+        actionHref={ routePaths.dailyTopArtists }
+      />
+
+      <TrackChartSection
+        label="Nghệ sĩ nổi bật"
+        title="Top nghệ sĩ theo tháng"
+        items={ mapTopArtistsToRankingCards(monthlyTopArtists, { period: "monthly" }) }
+        isLoading={ isLoadingMonthlyTopArtists }
+        emptyMessage="Hiện chưa có dữ liệu bảng xếp hạng nghệ sĩ theo tháng."
+        showPlayButton={ false }
+        actionLabel="Xem thêm"
+        actionHref={ routePaths.monthlyTopArtists }
       />
 
       <ContentCardSection
         title="Playlist hệ thống"
-        description="Khám phá các playlist được tuyển chọn để phù hợp với từng khoảnh khắc nghe nhạc của bạn."
         items={mapSystemPlaylistsToContentCards(systemPlaylists)}
         isLoading={isLoadingSystemPlaylists}
         emptyMessage="Hiện chưa có dữ liệu playlist hệ thống."
@@ -199,7 +191,6 @@ const HomePage = () => {
         <ContentCardSection
           label="Daily Mix"
           title={`Dành cho ${recommendationUserName}`}
-          description="Những playlist gợi ý được làm mới mỗi ngày dựa trên lịch sử nghe, lượt thích và playlist của bạn."
           items={mapRecommendationMixesToContentCards(
             recommendationMixes,
             recommendationUserName
@@ -213,20 +204,10 @@ const HomePage = () => {
       <ContentCardSection
         label="Album"
         title="Album nổi bật"
-        description="Khám phá các album nổi bật và tuyển tập âm nhạc phù hợp với mọi tâm trạng."
         items={mapAlbumsToContentCards(albums)}
         isLoading={isLoadingAlbums}
         emptyMessage="Hiện chưa có dữ liệu album."
         onPlay={playAlbumItem}
-      />
-
-      <DailyTopArtistsSection
-        title="Top nghệ sĩ theo ngày"
-        description="Những nghệ sĩ được nghe nhiều nhất hôm nay."
-        items={dailyTopArtists}
-        isLoading={isLoadingDailyTopArtists}
-        errorMessage={dailyTopArtistsError}
-        emptyMessage="Hôm nay chưa có dữ liệu xếp hạng."
       />
 
       {playbackError ? (

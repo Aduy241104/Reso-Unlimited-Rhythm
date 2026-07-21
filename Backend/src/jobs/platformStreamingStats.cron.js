@@ -8,7 +8,7 @@ import { getAnalyticsTimezone } from "../services/analytics/trackStatAggregation
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-const THIRTY_MIN_CRON_EXPRESSION = "*/30 * * * *"; // every 30 minutes
+const FIVE_MINUTE_CRON_EXPRESSION = "*/5 * * * *"; // every 5 minutes
 
 let isJobRunning = false;
 
@@ -43,8 +43,8 @@ export const runPlatformStreamingStatsAggregation = async (targetDateInput) => {
 export const startPlatformStreamingStatsCron = () => {
     const analyticsTimezone = getAnalyticsTimezone();
 
-    const halfHourTask = cron.schedule(
-        THIRTY_MIN_CRON_EXPRESSION,
+    const fiveMinuteTask = cron.schedule(
+        FIVE_MINUTE_CRON_EXPRESSION,
         () => {
             void runPlatformStreamingStatsAggregation();
         },
@@ -54,10 +54,10 @@ export const startPlatformStreamingStatsCron = () => {
     );
 
     console.log(
-        `[Cron] Platform streaming stats aggregation scheduled every 30 minutes (${analyticsTimezone}).`
+        `[Cron] Platform streaming stats aggregation scheduled every 5 minutes (${analyticsTimezone}).`
     );
 
-    return { halfHourTask };
+    return { fiveMinuteTask };
 };
 
 export default {

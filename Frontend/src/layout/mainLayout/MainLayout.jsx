@@ -208,7 +208,7 @@ const MainLayout = () => {
           ].join(" ")}
         >
           <div className="flex h-full min-w-0 pb-[81px]">
-            <div className="flex-1 p-3 sm:p-1 lg:p-1">
+            <div className="min-w-0 flex-1 p-3 sm:p-1 lg:p-1">
               <div
                 className="
                           h-full overflow-y-auto

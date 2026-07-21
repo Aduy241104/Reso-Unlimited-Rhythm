@@ -1,4 +1,3 @@
-import { ArrowRight, BarChart3 } from "lucide-react";
 import { Link } from "react-router-dom";
 import TrackChartCard from "./TrackChartCard";
 
@@ -22,7 +21,7 @@ const TrackChartSection = ({
   };
 
   const getVariant = (item) => {
-    if (item?.raw?.topArtists) {
+    if (item?.raw?.contentType === "artist" || item?.raw?.topArtists) {
       return "artist";
     }
 
@@ -34,9 +33,14 @@ const TrackChartSection = ({
   };
 
   return (
-    <section className="space-y-3 sm:space-y-4">
+    <section className="min-w-0 space-y-3 sm:space-y-4">
       <div className="flex flex-col gap-2.5 md:flex-row md:items-end md:justify-between">
         <div className="space-y-1 sm:space-y-1.5">
+          { label ? (
+            <p className="text-[9px] font-normal uppercase tracking-[0.18em] text-[#71717a] dark:text-[#a1a1aa] sm:text-[10px] sm:tracking-[0.2em]">
+              { label }
+            </p>
+          ) : null }
           <h2 className="text-base font-semibold tracking-tight text-[#111111] dark:text-white sm:text-2xl">
             { title }
           </h2>
@@ -51,31 +55,27 @@ const TrackChartSection = ({
           <Link
             to={ actionHref }
             className="
-              inline-flex items-center gap-2 self-start rounded-full border border-black/8
-              bg-black/[0.02] px-2.5 py-1.5 text-xs font-medium text-[#18181b] transition
-              hover:bg-black/[0.04] dark:border-white/[0.08] dark:bg-white/[0.03]
-              dark:text-white/86 dark:hover:bg-white/[0.05] sm:px-3 sm:py-2 sm:text-[13px]
+              inline-flex self-start text-xs font-medium text-white transition hover:text-white/70
+              sm:text-[13px]
             "
           >
             { actionLabel }
-            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#8b7bff]/12 text-[#6d5efc] dark:text-[#c9c2ff] sm:h-6 sm:w-6">
-              <ArrowRight className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-            </span>
           </Link>
         ) : null }
       </div>
 
       { isLoading ? (
-        <div className="mt-1 flex gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mt-2 sm:gap-4">
-          { Array.from({ length: 3 }).map((_, index) => (
+        <div className="mt-1 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mt-2 sm:gap-4">
+          { Array.from({ length: 5 }).map((_, index) => (
             <div
               key={ index }
               className="
-                w-[9rem] min-w-[9rem] animate-pulse rounded-[16px] border border-black/5 bg-white/70 p-2.5
-                dark:border-white/10 dark:bg-[#181818] sm:w-[11.25rem] sm:min-w-[11.25rem] sm:rounded-[18px] sm:p-3
+                h-[16.75rem] w-[15rem] min-w-[15rem] shrink-0 snap-start animate-pulse rounded-[16px] border border-black/5 bg-white/70 p-2.5
+                dark:border-white/10 dark:bg-[#181818] sm:rounded-[18px] sm:p-3
+                sm:h-[18.5rem] sm:w-[17.5rem] sm:min-w-[17.5rem] lg:h-[20rem] lg:w-[19rem] lg:min-w-[19rem]
               "
             >
-              <div className="relative aspect-square rounded-[12px] bg-[#e5e5e5] dark:bg-[#282828] sm:rounded-[14px]">
+              <div className="relative aspect-[1.28/1] rounded-[12px] bg-[#e5e5e5] dark:bg-[#282828] sm:aspect-[1.42/1] sm:rounded-[14px] lg:aspect-[1.58/1]">
                 <div className="absolute left-2 top-2 h-5 w-10 rounded-full bg-black/8 dark:bg-white/10 sm:left-2.5 sm:top-2.5 sm:h-6 sm:w-11" />
                 <div className="absolute right-2 top-2 h-5 w-14 rounded-full bg-black/8 dark:bg-white/10 sm:right-2.5 sm:top-2.5 sm:h-6 sm:w-16" />
               </div>
@@ -89,14 +89,14 @@ const TrackChartSection = ({
           )) }
         </div>
       ) : items.length > 0 ? (
-        <div className="mt-1 flex gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mt-2 sm:gap-4">
+        <div className="mt-1 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mt-2 sm:gap-4">
           { items.map((item, index) => (
             <div
               key={ item.id }
-              className="w-[9rem] min-w-[9rem] sm:w-[11.25rem] sm:min-w-[11.25rem] lg:w-[13.25rem] lg:min-w-[13.25rem]"
+              className="h-[16.75rem] w-[15rem] min-w-[15rem] shrink-0 snap-start sm:h-[18.5rem] sm:w-[17.5rem] sm:min-w-[17.5rem] lg:h-[20rem] lg:w-[19rem] lg:min-w-[19rem]"
             >
               <TrackChartCard
-                index={ index + 1 }
+                index={ item.rank || index + 1 }
                 image={ item.image }
                 title={ item.title }
                 subtitle={ item.subtitle }
@@ -113,8 +113,7 @@ const TrackChartSection = ({
       ) : (
         <div
           className="
-            rounded-[18px] border border-dashed border-black/10 bg-black/[0.03] px-4 py-6
-            text-sm text-[#52525b] dark:border-white/10 dark:bg-white/[0.03] dark:text-[#a1a1aa]
+            px-4 py-6 text-center text-sm text-[#52525b] dark:text-[#a1a1aa]
           "
         >
           { emptyMessage }

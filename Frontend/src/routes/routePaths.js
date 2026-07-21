@@ -5,6 +5,8 @@
   userGenreDetail: (genreId = ":id") => `/genres/${genreId}`,
   dailyTopTracks: "/charts/daily-top-tracks",
   monthlyTopTracks: "/charts/monthly-top-tracks",
+  dailyTopArtists: "/charts/daily-top-artists",
+  monthlyTopArtists: "/charts/monthly-top-artists",
   albumDetail: (albumId = ":id") => `/albums/${albumId}`,
   playlistDetail: (playlistId = ":id") => `/playlists/${playlistId}`,
   recommendationMixDetail: (mixId = ":id") =>

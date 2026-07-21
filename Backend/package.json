@@ -6,7 +6,11 @@
   "scripts": {
     "start": "nodemon --inspect src/server.js",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand",
-    "seed": "node src/seed.js",
+    "seed": "node src/seedComprehensive.js",
+    "seed:comprehensive": "node src/seedComprehensive.js",
+    "seed:comprehensive:check": "node src/seedComprehensive.js --dry-run",
+    "seed:system-content": "node src/seedSystemPlaylistsAndDailyTopArtists.js",
+    "seed:system-content:check": "node src/seedSystemPlaylistsAndDailyTopArtists.js --validate-only",
     "seed:recent-listening-activity": "node src/seed2.js",
     "seed:withdrawal-balance": "node src/seedWithdrawalBalance.js",
     "seed:artist-overview": "node src/seedArtistPerformanceOverview.js",

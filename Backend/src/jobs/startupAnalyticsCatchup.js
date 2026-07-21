@@ -3,8 +3,10 @@ import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 import Artist from "../models/Artist.js";
 import ArtistDailyStat from "../models/ArtistDailyStat.js";
-import ArtistDailyRanking from "../models/ArtistDailyRanking.js";
-import ArtistMonthlyRanking from "../models/ArtistMonthlyRanking.js";
+import ArtistRanking, {
+    buildDailyArtistRankingFilter,
+    buildMonthlyArtistRankingFilter,
+} from "../models/ArtistRanking.js";
 import ListenEvent from "../models/ListenEvent.js";
 import TrackDailyRanking from "../models/TrackDailyRanking.js";
 import TrackDailyStat from "../models/TrackDailyStat.js";
@@ -89,13 +91,19 @@ const runStartupAnalyticsCatchup = async () => {
         }),
         TrackMonthlyStat.exists({ year: trackMonthlyYear, month: trackMonthlyMonth }),
         TrackMonthlyRanking.exists({ year: trackMonthlyYear, month: trackMonthlyMonth }),
-        ArtistDailyRanking.exists({
-            date: { $gte: targetDayDate, $lt: nextDayDate },
-        }),
-        ArtistMonthlyRanking.exists({
-            year: artistMonthlyTarget.year(),
-            month: artistMonthlyTarget.month() + 1,
-        }),
+        ArtistRanking.exists(
+            buildDailyArtistRankingFilter({
+                dateKey: targetDay.format("YYYY-MM-DD"),
+                startDate: targetDayDate,
+                endDate: nextDayDate,
+            })
+        ),
+        ArtistRanking.exists(
+            buildMonthlyArtistRankingFilter({
+                year: artistMonthlyTarget.year(),
+                month: artistMonthlyTarget.month() + 1,
+            })
+        ),
         hasTrackListenEventsInRange(targetDayDate, nextDayDate),
         hasTrackListenEventsInRange(
             completedTrackMonthDate,

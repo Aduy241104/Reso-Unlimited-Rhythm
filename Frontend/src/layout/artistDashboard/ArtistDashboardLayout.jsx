@@ -4,12 +4,18 @@ import { Bell, Menu, Search, X } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useSocket } from "../../hooks/useSocket";
 import { getMyArtistNotificationsService } from "../../services/artist.notification.service";
-import { getMyArtistProfileService } from "../../services/artistService";
+import {
+  getMyArtistBlockStatusService,
+  getMyArtistProfileService,
+} from "../../services/artistService";
 import { routePaths } from "../../routes/routePaths";
+import ArtistBlockedModal from "../../components/artist/ArtistBlockedModal";
 import { artistNavigation, artistProfile } from "./navigationConfig";
 
 const SIDEBAR_WIDTH = "264px";
 const ARTIST_NOTIFICATIONS_PATH = routePaths.artistNotifications;
+const ARTIST_ADMIN_EMAIL =
+  import.meta.env.VITE_ARTIST_ADMIN_EMAIL || "admin.seed@reso.local";
 
 const ArtistDashboardLayout = () => {
   const navigate = useNavigate();
@@ -19,6 +25,8 @@ const ArtistDashboardLayout = () => {
   const [sidebarArtistName, setSidebarArtistName] = useState("");
   const [sidebarArtistSubtitle, setSidebarArtistSubtitle] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isCheckingBlockStatus, setIsCheckingBlockStatus] = useState(true);
+  const [artistBlockStatus, setArtistBlockStatus] = useState(null);
 
   const fetchUnreadCount = useCallback(async () => {
     try {
@@ -32,6 +40,40 @@ const ArtistDashboardLayout = () => {
     } catch (error) {
       console.error("Unable to load artist notification unread count:", error);
     }
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const checkArtistBlockStatus = async () => {
+      setIsCheckingBlockStatus(true);
+
+      try {
+        const blockStatus = await getMyArtistBlockStatusService();
+
+        if (!isMounted) {
+          return;
+        }
+
+        setArtistBlockStatus(blockStatus);
+      } catch (error) {
+        console.error("Unable to load artist block status:", error);
+
+        if (isMounted) {
+          setArtistBlockStatus(null);
+        }
+      } finally {
+        if (isMounted) {
+          setIsCheckingBlockStatus(false);
+        }
+      }
+    };
+
+    checkArtistBlockStatus();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -205,6 +247,13 @@ const ArtistDashboardLayout = () => {
       data-artist-dashboard
       className="scheme-light h-screen overflow-hidden bg-white text-[#221a14] [color-scheme:light]"
     >
+      <ArtistBlockedModal
+        isOpen={Boolean(artistBlockStatus?.isBlocked)}
+        blockedReason={artistBlockStatus?.blockedReason || ""}
+        adminEmail={ARTIST_ADMIN_EMAIL}
+        onLeave={() => navigate(routePaths.home, { replace: true })}
+      />
+
       <div className="flex h-full overflow-hidden">
         <aside
           className="fixed inset-y-0 left-0 z-30 hidden border-r border-[#ece8ff] lg:block"
@@ -275,9 +324,26 @@ const ArtistDashboardLayout = () => {
           </header>
 
           <main className="min-h-0 flex-1 overflow-y-auto bg-white">
-            <div className="p-6">
-              <Outlet />
-            </div>
+            {isCheckingBlockStatus ? (
+              <div className="flex min-h-full items-center justify-center p-6">
+                <div className="w-full max-w-md rounded-3xl border border-neutral-200 bg-white px-6 py-8 text-center shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-500">
+                    Artist Access
+                  </p>
+                  <h2 className="mt-3 text-xl font-semibold text-black">
+                    Dang kiem tra trang thai tai khoan
+                  </h2>
+                  <p className="mt-2 text-sm leading-6 text-neutral-600">
+                    He thong dang xac minh quyen truy cap khu vuc artist truoc
+                    khi hien thi noi dung.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="p-6">
+                <Outlet />
+              </div>
+            )}
           </main>
         </div>
       </div>

@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
   artwork: {
     width: '100%',
     aspectRatio: 1,
-    borderRadius: 8,
+    borderRadius: 4,
     backgroundColor: '#202020',
   },
   artworkFallback: {
