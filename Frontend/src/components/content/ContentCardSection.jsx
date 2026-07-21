@@ -15,7 +15,7 @@ const ContentCardSection = ({
     <section className="min-w-0 space-y-3 sm:space-y-4">
       <div className="mx-px space-y-1 sm:mx-0 sm:space-y-1.5">
         { label ? (
-          <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#71717a] dark:text-[#a1a1aa] sm:text-xs sm:tracking-[0.28em]">
+          <p className="text-[9px] font-normal uppercase tracking-[0.18em] text-[#71717a] dark:text-[#a1a1aa] sm:text-[10px] sm:tracking-[0.2em]">
             { label }
           </p>
         ) : null }
