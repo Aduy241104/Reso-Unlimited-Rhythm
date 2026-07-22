@@ -118,13 +118,18 @@ export default function SearchScreen({ navigation }) {
 
   const handlePressTrack = useCallback(
     (item) => {
-      const trackId = item?._id || item?.id;
+      const trackId = item?.entityId || item?._id || item?.id;
 
       if (!trackId) {
         return;
       }
 
-      navigation.navigate('TrackDetail', { trackId });
+      navigation.navigate('TrackDetail', {
+        trackId,
+        entityId: trackId,
+        entityType: 'track',
+        initialTitle: item?.title || 'Chi tiết bài hát',
+      });
     },
     [navigation]
   );
