@@ -142,7 +142,7 @@ const AccountMenu = ({ user, onLogout }) => {
 
   const handleLogout = async () => {
     setIsOpen(false);
-    await onLogout({ redirectTo: "/login" });
+    await onLogout({ redirectTo: routePaths.home });
   };
 
   return (
@@ -167,7 +167,7 @@ const AccountMenu = ({ user, onLogout }) => {
 
       <div
         className={[
-          "absolute right-0 top-full z-[120] mt-2 w-64 origin-top-right rounded-lg border border-white/10 bg-[#151515]/95 p-1.5 shadow-xl backdrop-blur-xl",
+          "absolute right-0 top-full z-[120] mt-2 w-[min(16rem,calc(100vw-1rem))] max-h-[calc(100dvh-4.5rem)] origin-top-right overflow-hidden rounded-lg border border-white/10 bg-[#151515]/95 p-1.5 shadow-xl backdrop-blur-xl",
           "transition-all duration-200 ease-out",
           isOpen
             ? "visible translate-y-0 scale-100 opacity-100"
@@ -193,7 +193,7 @@ const AccountMenu = ({ user, onLogout }) => {
           </div>
         </div>
 
-        <div className="max-h-[320px] overflow-y-auto py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="max-h-[calc(100dvh-10rem)] overflow-y-auto overscroll-contain py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:max-h-[320px]">
           {menuItems.map((item) => {
             const Icon = item.icon;
 

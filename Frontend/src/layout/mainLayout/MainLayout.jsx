@@ -150,7 +150,7 @@ const MainLayout = () => {
 
   return (
     <div className={[
-      "h-screen overflow-hidden text-[#f7f1ea]",
+      "h-screen min-h-0 w-full overflow-hidden text-[#f7f1ea]",
       isDark ? "bg-black" : "bg-white",
     ].join(" ")}>
       <aside
@@ -178,7 +178,7 @@ const MainLayout = () => {
 
       <aside
         className={[
-          "fixed inset-y-0 left-0 z-50 w-[285px] max-w-[85vw] transition-transform duration-200 lg:hidden",
+          "fixed inset-y-0 left-0 z-50 h-[100dvh] w-[285px] max-w-[85vw] transition-transform duration-200 lg:hidden",
           isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full",
         ].join(" ")}
       >
@@ -207,12 +207,12 @@ const MainLayout = () => {
             isDark ? "bg-black text-[#f7f1ea]" : "bg-white text-[#111111]",
           ].join(" ")}
         >
-          <div className="flex h-full min-w-0 pb-[81px]">
-            <div className="min-w-0 flex-1 p-3 sm:p-1 lg:p-1">
+          <div className="flex h-full min-w-0 pb-[calc(82px+env(safe-area-inset-bottom))] sm:pb-[81px]">
+            <div className="min-w-0 flex-1 p-1 sm:p-1 lg:p-1">
               <div
                 className="
-                          h-full overflow-y-auto
-                          rounded-xl
+                          h-full overflow-x-hidden overflow-y-auto overscroll-contain
+                          rounded-lg sm:rounded-xl
                           bg-[#121212]
                           [-ms-overflow-style:none]
                           [scrollbar-width:none]

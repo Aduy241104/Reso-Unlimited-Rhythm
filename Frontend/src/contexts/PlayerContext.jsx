@@ -468,11 +468,23 @@ const waitForAudioMetadata = (audio, timeoutMs = 1500) =>
 
 const getTrackQualityOptions = (track) => resolveTrackAudioQualityOptions(track);
 
-const resolveSelectedQualityLabel = (track, streamUrl = "") => {
+const resolveSelectedQuality = (track, streamUrl = "", preferredBitrate = 0) => {
   const qualityOptions = getTrackQualityOptions(track);
 
   if (qualityOptions.length === 0) {
-    return "";
+    return null;
+  }
+
+  const normalizedPreferredBitrate = Number(preferredBitrate) || 0;
+
+  if (normalizedPreferredBitrate > 0) {
+    const bitrateMatch = qualityOptions.find(
+      (quality) => quality.bitrate === normalizedPreferredBitrate
+    );
+
+    if (bitrateMatch) {
+      return bitrateMatch;
+    }
   }
 
   if (streamUrl) {
@@ -480,15 +492,12 @@ const resolveSelectedQualityLabel = (track, streamUrl = "") => {
       (quality) => quality.url === streamUrl
     );
 
-    if (matchedQuality?.label) {
-      return matchedQuality.label;
+    if (matchedQuality) {
+      return matchedQuality;
     }
   }
 
-  const defaultQuality =
-    qualityOptions.find((quality) => quality.isDefault) || qualityOptions[0];
-
-  return defaultQuality?.label || "";
+  return qualityOptions.find((quality) => quality.isDefault) || qualityOptions[0];
 };
 
 export const PlayerProvider = ({ children }) => {
@@ -517,6 +526,7 @@ export const PlayerProvider = ({ children }) => {
   const [lyricsErrorMessage, setLyricsErrorMessage] = useState("");
   const [availableAudioQualities, setAvailableAudioQualities] = useState([]);
   const [selectedQualityLabel, setSelectedQualityLabel] = useState("");
+  const [selectedQualityBitrate, setSelectedQualityBitrate] = useState(0);
   const [isShuffleEnabled, setIsShuffleEnabled] = useState(
     initialStoredPlaybackStateRef.current?.shuffle ?? false
   );
@@ -539,6 +549,7 @@ export const PlayerProvider = ({ children }) => {
   const lyricsReadyRef = useRef(false);
   const currentLyricsThemeIndexRef = useRef(-1);
   const selectedQualityLabelRef = useRef("");
+  const selectedQualityBitrateRef = useRef(0);
   const isPremiumRef = useRef(false);
   const isShuffleEnabledRef = useRef(false);
   const repeatModeRef = useRef("off");
@@ -567,13 +578,21 @@ export const PlayerProvider = ({ children }) => {
     orderedQueueRef.current = nextQueue;
   };
 
-  const syncQualityState = (track, streamUrl = "") => {
+  const syncQualityState = (track, streamUrl = "", preferredBitrate = 0) => {
     const qualityOptions = getTrackQualityOptions(track);
-    const nextQualityLabel = resolveSelectedQualityLabel(track, streamUrl);
+    const nextQuality = resolveSelectedQuality(
+      track,
+      streamUrl,
+      preferredBitrate
+    );
+    const nextQualityLabel = nextQuality?.label || "";
+    const nextQualityBitrate = nextQuality?.bitrate || 0;
 
     setAvailableAudioQualities(qualityOptions);
     setSelectedQualityLabel(nextQualityLabel);
+    setSelectedQualityBitrate(nextQualityBitrate);
     selectedQualityLabelRef.current = nextQualityLabel;
+    selectedQualityBitrateRef.current = nextQualityBitrate;
   };
 
   const createManualQueueTrack = (track, options = {}) => {
@@ -659,7 +678,9 @@ export const PlayerProvider = ({ children }) => {
     setActiveCollection(null);
     setAvailableAudioQualities([]);
     setSelectedQualityLabel("");
+    setSelectedQualityBitrate(0);
     selectedQualityLabelRef.current = "";
+    selectedQualityBitrateRef.current = 0;
   };
 
   const getLatestFreeSkipWindow = (now = Date.now()) => {
@@ -854,6 +875,10 @@ export const PlayerProvider = ({ children }) => {
   useEffect(() => {
     selectedQualityLabelRef.current = selectedQualityLabel;
   }, [selectedQualityLabel]);
+
+  useEffect(() => {
+    selectedQualityBitrateRef.current = selectedQualityBitrate;
+  }, [selectedQualityBitrate]);
 
   useEffect(() => {
     isShuffleEnabledRef.current = isShuffleEnabled;
@@ -1243,6 +1268,11 @@ export const PlayerProvider = ({ children }) => {
     const preferredQualityUrl = isPremiumRef.current
       ? options.preferredQualityUrl || ""
       : "";
+    const preferredQualityBitrate = isPremiumRef.current
+      ? Number(options.preferredQualityBitrate) ||
+        selectedQualityBitrateRef.current ||
+        0
+      : 0;
 
     currentIndexRef.current = nextIndex;
     currentLyricsThemeIndexRef.current = lyricsThemeIndex;
@@ -1266,10 +1296,11 @@ export const PlayerProvider = ({ children }) => {
 
       if (!shouldHydratePlayback && nextTrack.streamUrl) {
         source = {
-          url: (preferredQualityLabel || preferredQualityUrl)
+          url: (preferredQualityLabel || preferredQualityUrl || preferredQualityBitrate)
             ? resolveTrackMediaUrlForQuality(nextTrack, {
                 label: preferredQualityLabel,
                 url: preferredQualityUrl,
+                bitrate: preferredQualityBitrate,
               }) || nextTrack.streamUrl
             : nextTrack.streamUrl,
           revokeOnChange: false,
@@ -1279,6 +1310,7 @@ export const PlayerProvider = ({ children }) => {
         source = await getTrackPlaybackSource(getPlaybackRequestTrackId(nextTrack), {
           preferredQualityLabel,
           preferredQualityUrl,
+          preferredQualityBitrate,
         });
       }
 
@@ -1295,9 +1327,10 @@ export const PlayerProvider = ({ children }) => {
       }
 
       const hydratedTrackSource = source.track || nextTrack.raw || nextTrack;
-      const activeQualityLabel = resolveSelectedQualityLabel(
+      const activeQuality = resolveSelectedQuality(
         hydratedTrackSource,
-        source.url
+        source.url,
+        preferredQualityBitrate
       );
       const hydratedTrack = {
         ...nextTrack,
@@ -1317,7 +1350,8 @@ export const PlayerProvider = ({ children }) => {
           resolveTrackLyricsSyncUrl(source.track) || nextTrack.lyricsSyncUrl,
         raw: source.track || nextTrack.raw,
         streamUrl: source.url,
-        activeQualityLabel,
+        activeQualityLabel: activeQuality?.label || "",
+        activeQualityBitrate: activeQuality?.bitrate || 0,
       };
 
       const hydratedQueue = replaceQueueTrack(
@@ -1357,7 +1391,7 @@ export const PlayerProvider = ({ children }) => {
       syncQueueState(hydratedQueue);
       syncOrderedQueueState(hydratedOrderedQueue);
       setCurrentTrack(hydratedTrack);
-      syncQualityState(hydratedTrack, source.url);
+      syncQualityState(hydratedTrack, source.url, preferredQualityBitrate);
       releaseCurrentObjectUrl();
       objectUrlRef.current = source.revokeOnChange ? source.url : "";
       audio.pause();
@@ -1686,10 +1720,21 @@ export const PlayerProvider = ({ children }) => {
       typeof nextQuality === "object" && nextQuality !== null
         ? nextQuality.url || ""
         : "";
+    const normalizedBitrate =
+      typeof nextQuality === "object" && nextQuality !== null
+        ? Number(nextQuality.bitrate) || 0
+        : 0;
 
     const qualityOptions = getTrackQualityOptions(currentTrack);
     const targetQuality =
-      qualityOptions.find((quality) => quality.url === normalizedUrl) ||
+      qualityOptions.find(
+        (quality) =>
+          normalizedBitrate > 0 && quality.bitrate === normalizedBitrate
+      ) ||
+      qualityOptions.find(
+        (quality) =>
+          !normalizedBitrate && quality.url === normalizedUrl
+      ) ||
       qualityOptions.find((quality) => quality.label === normalizedLabel);
 
     if (!targetQuality) {
@@ -1698,9 +1743,9 @@ export const PlayerProvider = ({ children }) => {
     }
 
     if (
-      targetQuality.url === currentTrack.streamUrl ||
+      targetQuality.bitrate === selectedQualityBitrateRef.current ||
       (
-        !normalizedUrl &&
+        !normalizedBitrate &&
         normalizedLabel &&
         normalizedLabel === selectedQualityLabelRef.current &&
         qualityOptions.filter((quality) => quality.label === normalizedLabel).length === 1
@@ -1717,6 +1762,7 @@ export const PlayerProvider = ({ children }) => {
     await playTrackByIndexRef.current?.(currentIndexRef.current, queueRef.current, {
       preferredQualityLabel: targetQuality.label,
       preferredQualityUrl: targetQuality.url,
+      preferredQualityBitrate: targetQuality.bitrate,
       resumeTime,
       autoplay: wasPlaying,
       skipListenFlush: true,
@@ -1889,6 +1935,7 @@ export const PlayerProvider = ({ children }) => {
     canSeek: isPremium,
     availableAudioQualities,
     selectedQualityLabel,
+    selectedQualityBitrate,
     isShuffleEnabled,
     repeatMode,
     freeSkipsRemaining,

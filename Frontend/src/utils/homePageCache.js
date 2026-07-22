@@ -17,7 +17,7 @@ const homePageCache = {
   dailyTopArtists: null,
 };
 
-export const DAILY_TOP_ARTISTS_DATE = "2026-06-01";
+export const DAILY_TOP_ARTISTS_DATE = getPreviousDateValue();
 export const DAILY_TOP_ARTISTS_LIMIT = 9;
 export const DAILY_TOP_TRACKS_DATE = getPreviousDateValue();
 export const MONTHLY_TOP_TRACKS_DATE = getCurrentMonthValue();

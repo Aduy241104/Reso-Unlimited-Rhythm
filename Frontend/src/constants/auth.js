@@ -7,3 +7,5 @@ export const AUTH_WEB_CLIENT_TYPE = "web";
 export const AUTH_USER_STORAGE_KEY = "capstone.auth.user";
 
 export const AUTH_ACCESS_TOKEN_STORAGE_KEY = "capstone.auth.access_token";
+
+export const AUTH_LOGOUT_INTENT_STORAGE_KEY = "capstone.auth.logged_out";

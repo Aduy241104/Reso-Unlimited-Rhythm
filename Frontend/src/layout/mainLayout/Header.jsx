@@ -18,7 +18,7 @@ const Header = ({ onToggleSidebar, isDesktopSidebarVisible }) => {
     return (
         <header
             className={[
-                "relative z-50 flex h-full items-center gap-2 border-b px-3 backdrop-blur-xl sm:gap-3 sm:px-4 lg:px-5",
+                "relative z-50 flex h-full min-w-0 items-center gap-1.5 border-b px-2 backdrop-blur-xl sm:gap-3 sm:px-4 lg:px-5",
                 isDark
                     ? "border-[#f5b66f]/10 bg-black text-[#f7f1ea]"
                     : "border-[#eeeeee] bg-white text-[#111111]",

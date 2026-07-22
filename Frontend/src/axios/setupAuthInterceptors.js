@@ -36,6 +36,7 @@ const processQueue = (error, token = null) => {
 
 export const setupAxiosInterceptors = ({
   getAccessToken,
+  shouldRefreshSession,
   onRefreshSuccess,
   onAuthFailed,
 }) => {
@@ -83,6 +84,10 @@ export const setupAxiosInterceptors = ({
         return Promise.reject(error);
       }
 
+      if (shouldRefreshSession && !shouldRefreshSession()) {
+        return Promise.reject(error);
+      }
+
       if (isRefreshRequest || originalRequest._retry) {
         onAuthFailed?.();
         return Promise.reject(error);
@@ -111,6 +116,12 @@ export const setupAxiosInterceptors = ({
           throw new Error("No access token returned from refresh endpoint.");
         }
 
+        if (shouldRefreshSession && !shouldRefreshSession()) {
+          throw new Error(
+            "Session refresh was cancelled because the user logged out."
+          );
+        }
+
         onRefreshSuccess?.(refreshedSession);
         processQueue(null, newAccessToken);
 
@@ -120,7 +131,9 @@ export const setupAxiosInterceptors = ({
         return axiosClient(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        onAuthFailed?.();
+        if (!shouldRefreshSession || shouldRefreshSession()) {
+          onAuthFailed?.();
+        }
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
