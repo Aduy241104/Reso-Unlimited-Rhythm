@@ -28,21 +28,23 @@ const formatQualityLabel = (value = "") => {
 const PlayerQualityMenu = ({
   qualities = [],
   selectedQualityLabel = "",
-  selectedQualityUrl = "",
-  pendingQualityUrl = "",
+  selectedQualityBitrate = 0,
+  pendingQualityBitrate = 0,
   isChangingQuality = false,
   onSelectQuality,
   onClose,
   className = "",
 }) => {
   const selectedQuality =
-    qualities.find((quality) => quality.url === selectedQualityUrl) ||
+    qualities.find(
+      (quality) =>
+        selectedQualityBitrate > 0 &&
+        quality.bitrate === selectedQualityBitrate
+    ) ||
     qualities.find((quality) => quality.label === selectedQualityLabel) ||
     qualities.find((quality) => quality.isDefault) ||
     qualities[0] ||
     null;
-
-  const activeQualityUrl = selectedQuality?.url || "";
 
   const selectedQualityText = selectedQuality
     ? `${formatQualityLabel(selectedQuality.label)}${selectedQuality.bitrate ? ` - ${selectedQuality.bitrate} kbps` : ""
@@ -80,16 +82,22 @@ const PlayerQualityMenu = ({
       </div>
 
       <div className="mt-1">
-        { qualities.map((quality) => {
-          const isSelected = quality.url === activeQualityUrl;
-          const isPending = quality.url === pendingQualityUrl;
+        { qualities.map((quality, qualityIndex) => {
+          // The selected option is resolved by bitrate first because different
+          // quality levels can point to the same media URL.
+          const isSelected = quality === selectedQuality;
+          const isPending =
+            pendingQualityBitrate > 0 &&
+            quality.bitrate === pendingQualityBitrate;
 
           return (
             <button
-              key={ quality.url || quality.label }
+              key={ `${quality.label || "quality"}:${quality.url || qualityIndex}:${quality.index ?? qualityIndex}` }
               type="button"
               onClick={ () => onSelectQuality?.(quality) }
               disabled={ isChangingQuality }
+              role="menuitemradio"
+              aria-checked={ isSelected }
               className={ [
                 "flex w-full items-center gap-1.5 rounded-sm px-1.5 py-1.5 text-left transition",
                 "disabled:cursor-not-allowed disabled:opacity-50",

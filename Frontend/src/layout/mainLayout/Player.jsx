@@ -76,7 +76,7 @@ const Player = ({
   const [isDesktopQualityOpen, setIsDesktopQualityOpen] = useState(false);
   const [removingQueueTrackIndex, setRemovingQueueTrackIndex] = useState(-1);
   const [isChangingQuality, setIsChangingQuality] = useState(false);
-  const [pendingQualityUrl, setPendingQualityUrl] = useState("");
+  const [pendingQualityBitrate, setPendingQualityBitrate] = useState(0);
   const {
     queue,
     currentIndex,
@@ -95,6 +95,7 @@ const Player = ({
     canSeek,
     availableAudioQualities,
     selectedQualityLabel,
+    selectedQualityBitrate,
     playFromQueueIndex,
     togglePlayPause,
     playNext,
@@ -173,7 +174,9 @@ const Player = ({
   const progressDisabled = progressMax === 0 || !canSeek;
   const selectedQuality =
     availableAudioQualities.find(
-      (quality) => quality.url === currentTrack?.streamUrl
+      (quality) =>
+        selectedQualityBitrate > 0 &&
+        quality.bitrate === selectedQualityBitrate
     ) ||
     availableAudioQualities.find(
       (quality) => quality.label === selectedQualityLabel
@@ -182,7 +185,6 @@ const Player = ({
     availableAudioQualities[0] ||
     null;
   const effectiveSelectedQualityLabel = selectedQuality?.label || "";
-  const effectiveSelectedQualityUrl = selectedQuality?.url || "";
   const selectedQualityText = selectedQuality
     ? `${formatQualityLabel(selectedQuality.label)}${selectedQuality.bitrate ? ` - ${selectedQuality.bitrate} kbps` : ""}`
     : formatQualityLabel(selectedQualityLabel);
@@ -282,7 +284,7 @@ const Player = ({
     }
 
     setIsChangingQuality(true);
-    setPendingQualityUrl(nextQuality?.url || "");
+    setPendingQualityBitrate(Number(nextQuality?.bitrate) || 0);
 
     try {
       await changeAudioQuality(nextQuality);
@@ -290,7 +292,7 @@ const Player = ({
       setIsMobileQualityOpen(false);
     } finally {
       setIsChangingQuality(false);
-      setPendingQualityUrl("");
+      setPendingQualityBitrate(0);
     }
   };
 
@@ -347,8 +349,8 @@ const Player = ({
             <PlayerQualityMenu
               qualities={ availableAudioQualities }
               selectedQualityLabel={ effectiveSelectedQualityLabel }
-              selectedQualityUrl={ effectiveSelectedQualityUrl }
-              pendingQualityUrl={ pendingQualityUrl }
+              selectedQualityBitrate={ selectedQualityBitrate }
+              pendingQualityBitrate={ pendingQualityBitrate }
               isChangingQuality={ isChangingQuality }
               onSelectQuality={ handleSelectQuality }
               onClose={ () => setIsDesktopQualityOpen(false) }
@@ -392,8 +394,8 @@ const Player = ({
             <PlayerQualityMenu
               qualities={ availableAudioQualities }
               selectedQualityLabel={ effectiveSelectedQualityLabel }
-              selectedQualityUrl={ effectiveSelectedQualityUrl }
-              pendingQualityUrl={ pendingQualityUrl }
+              selectedQualityBitrate={ selectedQualityBitrate }
+              pendingQualityBitrate={ pendingQualityBitrate }
               isChangingQuality={ isChangingQuality }
               onSelectQuality={ handleSelectQuality }
               className="max-h-[22rem] overflow-hidden p-2"
@@ -453,7 +455,7 @@ const Player = ({
     <footer
       className={[
         `
-        fixed inset-x-0 bottom-0 z-30
+        mobile-safe-bottom fixed inset-x-0 bottom-0 z-30
         grid grid-cols-1 gap-1.5
         border-t border-white/10
         bg-zinc-800/95 px-3 py-1.5 text-white shadow-[0_-10px_28px_rgba(0,0,0,0.24)]
@@ -544,7 +546,7 @@ const Player = ({
           </button>
 
           { isMobileMenuOpen ? (
-            <div className="absolute bottom-full right-0 z-10 mb-2 w-56 rounded-2xl border border-white/10 bg-[#151218]/95 p-2 shadow-[0_20px_50px_rgba(0,0,0,0.32)] backdrop-blur-xl">
+            <div className="absolute bottom-full right-0 z-10 mb-2 max-h-[calc(100dvh-6rem)] w-[min(14rem,calc(100vw-1rem))] overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#151218]/95 p-2 shadow-[0_20px_50px_rgba(0,0,0,0.32)] backdrop-blur-xl">
               <button
                 type="button"
                 onClick={ handleToggleMobileQueue }
@@ -573,7 +575,7 @@ const Player = ({
                     onPlayTrack={ handlePlayQueueTrack }
                     onRemoveTrack={ handleRemoveTrackFromQueue }
                     removingTrackIndex={ removingQueueTrackIndex }
-                    className="max-h-[22rem] overflow-hidden p-2"
+                    className="max-h-[40dvh] overflow-hidden p-2"
                   />
                 </div>
               ) : null }

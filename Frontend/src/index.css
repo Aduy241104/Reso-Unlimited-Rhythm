@@ -24,6 +24,9 @@
   html {
     font-family: "SpotifyMixUI", sans-serif;
     scroll-behavior: smooth;
+    width: 100%;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
   }
 
   html,
@@ -31,6 +34,8 @@
   #root {
     font-family: "SpotifyMixUI", sans-serif;
     height: 100%;
+    min-width: 0;
+    width: 100%;
   }
 
   h1,
@@ -48,6 +53,48 @@
 
   body {
     margin: 0;
+    overflow-x: hidden;
+    background: #000;
+    overscroll-behavior-x: none;
+  }
+
+  img,
+  picture,
+  video,
+  canvas {
+    max-width: 100%;
+  }
+
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
+  }
+}
+
+/* Keep full-screen user pages stable when mobile browser toolbars expand/collapse. */
+@supports (height: 100dvh) {
+  .h-screen {
+    height: 100dvh;
+  }
+
+  .min-h-screen {
+    min-height: 100dvh;
+  }
+}
+
+@media (max-width: 639px) {
+  /* Prevent iOS from zooming the whole page when a form field receives focus. */
+  input:not([type="range"]):not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  .mobile-safe-bottom {
+    padding-bottom: max(0.375rem, env(safe-area-inset-bottom));
   }
 }
 
