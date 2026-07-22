@@ -1,5 +1,6 @@
 import {
   AUTH_ACCESS_TOKEN_STORAGE_KEY,
+  AUTH_LOGOUT_INTENT_STORAGE_KEY,
   AUTH_USER_STORAGE_KEY,
 } from "../constants/auth";
 
@@ -58,6 +59,23 @@ export const persistAuthSession = ({ user, accessToken }) => {
 
   window.localStorage.setItem(AUTH_USER_STORAGE_KEY, JSON.stringify(user));
   window.localStorage.setItem(AUTH_ACCESS_TOKEN_STORAGE_KEY, accessToken);
+  window.localStorage.removeItem(AUTH_LOGOUT_INTENT_STORAGE_KEY);
+};
+
+export const hasStoredLogoutIntent = () => {
+  if (!isBrowser) {
+    return false;
+  }
+
+  return window.localStorage.getItem(AUTH_LOGOUT_INTENT_STORAGE_KEY) === "true";
+};
+
+export const persistLogoutIntent = () => {
+  if (!isBrowser) {
+    return;
+  }
+
+  window.localStorage.setItem(AUTH_LOGOUT_INTENT_STORAGE_KEY, "true");
 };
 
 export const clearStoredAuthSession = () => {
