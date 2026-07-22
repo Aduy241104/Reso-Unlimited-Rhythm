@@ -52,6 +52,7 @@ const HomePage = () => {
     playAlbumItem,
     playPlaylistItem,
     playRecommendationMixItem,
+    playTrackItem,
   } = useContentPlayback();
   const recommendationUserName = getRecommendationUserDisplayName(user);
   const shouldShowRecommendationSection = isAuthenticated && !isAuthLoading;
@@ -141,7 +142,7 @@ const HomePage = () => {
         items={ mapTopTracksToRankingCards(dailyTopTracks, { period: "daily" }) }
         isLoading={ isLoadingDailyTopTracks }
         emptyMessage="Hiện chưa có dữ liệu bảng xếp hạng bài hát theo ngày."
-        showPlayButton={false}
+        onPlay={ (item) => playTrackItem(item, dailyTopTracks) }
         actionLabel="Xem thêm"
         actionHref={routePaths.dailyTopTracks}
       />
@@ -152,7 +153,7 @@ const HomePage = () => {
         items={ mapTopTracksToRankingCards(monthlyTopTracks, { period: "monthly" }) }
         isLoading={ isLoadingMonthlyTopTracks }
         emptyMessage="Hiện chưa có dữ liệu bảng xếp hạng bài hát theo tháng."
-        showPlayButton={ false }
+        onPlay={ (item) => playTrackItem(item, monthlyTopTracks) }
         actionLabel="Xem thêm"
         actionHref={ routePaths.monthlyTopTracks }
       />
@@ -166,6 +167,7 @@ const HomePage = () => {
         showPlayButton={ false }
         actionLabel="Xem thêm"
         actionHref={ routePaths.dailyTopArtists }
+        isArtistSection
       />
 
       <TrackChartSection
@@ -177,6 +179,7 @@ const HomePage = () => {
         showPlayButton={ false }
         actionLabel="Xem thêm"
         actionHref={ routePaths.monthlyTopArtists }
+        isArtistSection
       />
 
       <ContentCardSection
