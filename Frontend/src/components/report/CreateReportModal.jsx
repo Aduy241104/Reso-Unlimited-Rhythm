@@ -212,7 +212,7 @@ const CreateReportModal = ({
   return createPortal(
     <div
       className={[
-        "fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm",
+        "fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-black/60 p-3 backdrop-blur-sm sm:p-4",
         "transition-all duration-300",
         isVisible ? "opacity-100" : "opacity-0",
       ].join(" ")}
@@ -221,7 +221,7 @@ const CreateReportModal = ({
     >
       <div
         className={[
-          "flex w-full max-w-[580px] flex-col rounded-3xl border border-white/10 bg-[#1e1e1e] shadow-2xl",
+          "flex max-h-[calc(100dvh-1.5rem)] w-full max-w-[580px] flex-col overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#1e1e1e] shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:rounded-3xl",
           "transition-all duration-300",
           isVisible ? "scale-100 opacity-100" : "scale-95 opacity-0",
         ].join(" ")}
@@ -230,7 +230,7 @@ const CreateReportModal = ({
         aria-modal="true"
         aria-labelledby="create-report-modal-title"
       >
-        <div className="flex items-center justify-between px-6 pb-4 pt-6 sm:px-8">
+        <div className="flex items-center justify-between gap-3 px-4 pb-4 pt-4 sm:px-8 sm:pt-6">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#f5b66f]/20 bg-[#f5b66f]/10 text-[#f5b66f]">
               <ShieldAlert className="h-5 w-5" aria-hidden />
@@ -259,7 +259,7 @@ const CreateReportModal = ({
         </div>
 
         {isSubmitted ? (
-          <div className="flex flex-col items-center px-6 pb-8 pt-4 text-center sm:px-8">
+          <div className="flex flex-col items-center px-4 pb-6 pt-3 text-center sm:px-8 sm:pb-8 sm:pt-4">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-400/15 text-emerald-300">
               <CheckCircle className="h-8 w-8" aria-hidden />
             </div>
@@ -282,7 +282,7 @@ const CreateReportModal = ({
           <form
             onSubmit={handleSubmit}
             noValidate
-            className="flex flex-col gap-5 px-6 pb-6 sm:px-8"
+            className="flex flex-col gap-4 px-4 pb-4 sm:gap-5 sm:px-8 sm:pb-6"
           >
             <div>
               <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-white/60">

@@ -284,7 +284,7 @@ const EditPlaylistModal = ({
     <div
       className={[
         "fixed inset-0 z-50 bg-black/60 backdrop-blur-sm",
-        "flex items-center justify-center p-4",
+        "flex items-center justify-center overflow-y-auto overscroll-contain p-3 sm:p-4",
         "transition-all duration-300",
         isVisible ? "opacity-100" : "opacity-0",
       ].join(" ")}
@@ -293,7 +293,7 @@ const EditPlaylistModal = ({
     >
       <div
         className={[
-          "w-full max-w-[720px] rounded-3xl border border-white/10 bg-[#1e1e1e] shadow-2xl",
+          "max-h-[calc(100dvh-1.5rem)] w-full max-w-[720px] overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#1e1e1e] shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:rounded-3xl",
           "transition-all duration-300",
           isVisible ? "scale-100 opacity-100" : "scale-95 opacity-0",
         ].join(" ")}
@@ -302,10 +302,10 @@ const EditPlaylistModal = ({
         aria-modal="true"
         aria-labelledby="edit-playlist-modal-title"
       >
-        <div className="flex items-center justify-between px-6 pb-2 pt-6 sm:px-8">
+        <div className="flex items-center justify-between gap-3 px-4 pb-2 pt-4 sm:px-8 sm:pt-6">
           <h2
             id="edit-playlist-modal-title"
-            className="text-3xl font-bold tracking-tight text-white"
+            className="text-xl font-bold tracking-tight text-white sm:text-3xl"
           >
             Sửa thông tin Playlist
           </h2>
@@ -321,9 +321,9 @@ const EditPlaylistModal = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="px-6 pb-6 pt-4 sm:px-8">
+        <form onSubmit={handleSubmit} className="px-4 pb-4 pt-3 sm:px-8 sm:pb-6 sm:pt-4">
           <div className="grid gap-5 md:grid-cols-[224px_minmax(0,1fr)]">
-            <div className="space-y-3">
+            <div className="mx-auto w-full max-w-[180px] space-y-3 md:max-w-none">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -387,7 +387,7 @@ const EditPlaylistModal = ({
                       }
                     }}
                     placeholder="Nhâp tên playlist"
-                    className="w-full rounded-xl border border-white/8 bg-[#464646] px-5 py-4 text-2xl font-semibold text-white placeholder:text-white/45 focus:border-white/20 focus:outline-none"
+                    className="w-full rounded-xl border border-white/8 bg-[#464646] px-4 py-3 text-lg font-semibold text-white placeholder:text-white/45 focus:border-white/20 focus:outline-none sm:px-5 sm:py-4 sm:text-2xl"
                     maxLength={120}
                     disabled={isSubmitting}
                   />
@@ -411,7 +411,7 @@ const EditPlaylistModal = ({
                       }
                     }}
                     placeholder="Thêm phần mô tả không bắt buộc"
-                    className="min-h-[154px] w-full resize-none rounded-xl border border-white/8 bg-[#464646] px-5 py-4 text-base text-white placeholder:text-white/35 focus:border-white/20 focus:outline-none"
+                    className="min-h-[120px] w-full resize-none rounded-xl border border-white/8 bg-[#464646] px-4 py-3 text-base text-white placeholder:text-white/35 focus:border-white/20 focus:outline-none sm:min-h-[154px] sm:px-5 sm:py-4"
                     maxLength={500}
                     disabled={isSubmitting}
                   />
@@ -431,7 +431,7 @@ const EditPlaylistModal = ({
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="inline-flex min-w-[132px] items-center justify-center rounded-full bg-white px-8 py-4 text-xl font-semibold text-[#111111] transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex min-w-[132px] items-center justify-center rounded-full bg-white px-7 py-3 text-base font-semibold text-[#111111] transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60 sm:px-8 sm:py-4 sm:text-xl"
                 >
                   {isSubmitting ? (
                     <span className="inline-flex items-center gap-2">
