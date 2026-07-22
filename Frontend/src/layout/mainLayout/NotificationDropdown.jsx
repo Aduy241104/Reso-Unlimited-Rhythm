@@ -86,7 +86,7 @@ const NotificationDropdown = () => {
             type="button"
             onClick={handleBellClick}
             className={[
-                "relative z-[60] inline-flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-white/10",
+                "relative z-[60] inline-flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-white/10 sm:h-10 sm:w-10",
                 isNotificationsPage ? "bg-white/10 text-white" : "text-neutral-200",
             ].join(" ")}
             aria-label="Thông báo"

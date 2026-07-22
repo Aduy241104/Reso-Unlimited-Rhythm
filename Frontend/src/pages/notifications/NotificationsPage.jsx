@@ -559,9 +559,9 @@ const NotificationsPage = () => {
             </style>
 
             <section
-                className="spotify-notification-scroll h-[calc(100vh-176px)] min-h-[520px] overflow-y-auto overflow-x-hidden rounded-3xl bg-[#121212] text-white shadow-[0_24px_80px_rgba(0,0,0,0.28)] max-sm:h-[calc(100vh-150px)] max-sm:min-h-[420px]"
+                className="spotify-notification-scroll h-[calc(100dvh-150px)] min-h-0 overflow-y-auto overflow-x-hidden rounded-2xl bg-[#121212] text-white shadow-[0_24px_80px_rgba(0,0,0,0.28)] sm:h-[calc(100dvh-176px)] sm:min-h-[520px] sm:rounded-3xl"
             >
-                <div className="mx-auto flex min-h-[calc(100vh-190px)] w-full max-w-[760px] flex-col px-5 pb-12 pt-8 max-sm:px-4">
+                <div className="mx-auto flex min-h-full w-full max-w-[760px] flex-col px-4 pb-8 pt-6 sm:px-5 sm:pb-12 sm:pt-8">
                     <header className="shrink-0 bg-[#121212] pb-6">
                         <div className="flex items-start justify-between gap-5">
                             <div className="min-w-0">
