@@ -1,9 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   FlatList,
   Pressable,
   TouchableOpacity,
@@ -20,11 +19,13 @@ import ErrorState from '../../components/common/ErrorState';
 import ProfileSidebarMenu from '../../components/common/ProfileSidebarMenu';
 import FeaturedCollectionCard from '../../components/home/FeaturedCollectionCard';
 import { useAuth } from '../../hooks/useAuth';
-import { usePlayer } from '../../hooks/usePlayer';
+import { usePlayQueue } from '../../hooks/usePlayer';
 import homeService from '../../services/homeService';
 import { formatCompactNumber, formatDateLabel, resolveImageUri } from '../../utils/media';
 
 const SIDEBAR_CLOSE_DELAY = 180;
+const CARD_WIDTH = 104;
+const CARD_GAP = 16;
 
 const initialHomeState = {
   dailyTopTracks: [],
@@ -54,15 +55,20 @@ const resolveUserAvatar = (user) =>
     user?.picture
   );
 
-const SectionState = ({ message, isError = false }) => (
+const SectionState = memo(({ message, isError = false }) => (
   <View style={[styles.sectionState, isError && styles.sectionStateError]}>
     <Text style={[styles.sectionStateText, isError && styles.sectionStateTextError]}>{message}</Text>
   </View>
-);
+));
 
 const CardSeparator = () => <View style={styles.cardSeparator} />;
+const getCardLayout = (_, index) => ({
+  length: CARD_WIDTH + CARD_GAP,
+  offset: (CARD_WIDTH + CARD_GAP) * index,
+  index,
+});
 
-const HomeSection = ({
+const HomeSection = memo(({
   title,
   data,
   errorMessage,
@@ -102,16 +108,24 @@ const HomeSection = ({
         style={styles.horizontalListViewport}
         ItemSeparatorComponent={CardSeparator}
         showsHorizontalScrollIndicator={false}
+        initialNumToRender={4}
+        maxToRenderPerBatch={4}
+        windowSize={3}
+        removeClippedSubviews
+        getItemLayout={getCardLayout}
       />
     )}
   </View>
-);
+));
+
+const renderHomeSection = ({ item }) => <HomeSection {...item} />;
+const homeSectionKeyExtractor = (item) => item.sectionKey;
 
 export default function HomeScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { isAuthenticated, user, logout } = useAuth();
-  const { playQueue } = usePlayer();
+  const playQueue = usePlayQueue();
   const [homeData, setHomeData] = useState(initialHomeState);
   const [isContentLoading, setIsContentLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -330,7 +344,7 @@ export default function HomeScreen() {
     [navigation, runAfterSidebarClose, user?.role]
   );
 
-  const renderTrackCard = ({ item }) => (
+  const renderTrackCard = useCallback(({ item }) => (
     <FeaturedCollectionCard
       title={item.title}
       description={`#${item.rank || '-'} · ${item.artistName} · ${formatCompactNumber(item.playCount)} lượt phát`}
@@ -344,13 +358,14 @@ export default function HomeScreen() {
         })
       }
     />
-  );
+  ), [handleOpenDetail]);
 
-  const renderArtistCard = ({ item }) => (
+  const renderArtistCard = useCallback(({ item }) => (
     <FeaturedCollectionCard
       title={item.name}
       description={`#${item.rank || '-'} · ${formatCompactNumber(item.playCount)} lượt phát · ${formatCompactNumber(item.uniqueListeners)} người nghe`}
       image={item.avatar}
+      rounded
       style={styles.cardItem}
       onPress={() =>
         handleOpenDetail({
@@ -360,9 +375,9 @@ export default function HomeScreen() {
         })
       }
     />
-  );
+  ), [handleOpenDetail]);
 
-  const renderPlaylistCard = ({ item }) => (
+  const renderPlaylistCard = useCallback(({ item }) => (
     <FeaturedCollectionCard
       title={item.title}
       description={item.description || 'Playlist tuyển chọn từ hệ thống'}
@@ -370,9 +385,9 @@ export default function HomeScreen() {
       style={styles.cardItem}
       onPress={() => handleOpenPlaylistDetail(item)}
     />
-  );
+  ), [handleOpenPlaylistDetail]);
 
-  const renderRecommendationCard = ({ item }) => (
+  const renderRecommendationCard = useCallback(({ item }) => (
     <FeaturedCollectionCard
       title={item.title}
       description={item.description || item.subtitle || 'Daily Mix dành riêng cho bạn.'}
@@ -380,9 +395,9 @@ export default function HomeScreen() {
       style={styles.cardItem}
       onPress={() => handlePlayRecommendation(item)}
     />
-  );
+  ), [handlePlayRecommendation]);
 
-  const renderAlbumCard = ({ item }) => {
+  const renderAlbumCard = useCallback(({ item }) => {
     const artistName = item?.artist?.name || 'Nghệ sĩ không xác định';
     const releaseLabel = formatDateLabel(item?.releaseDate);
 
@@ -401,26 +416,109 @@ export default function HomeScreen() {
         }
       />
     );
-  };
+  }, [handleOpenDetail]);
+
+  const homeSections = useMemo(() => [
+    {
+      sectionKey: 'daily-tracks',
+      title: 'Top bài hát theo ngày',
+      data: homeData.dailyTopTracks,
+      errorMessage: homeData.sectionErrors.dailyTopTracks,
+      renderItem: renderTrackCard,
+      emptyMessage: 'Hiện chưa có dữ liệu bảng xếp hạng bài hát theo ngày.',
+      actionLabel: 'Xem thêm',
+      onActionPress: () => handleOpenRanking('track', 'daily'),
+    },
+    {
+      sectionKey: 'monthly-tracks',
+      title: 'Top bài hát theo tháng',
+      data: homeData.monthlyTopTracks,
+      errorMessage: homeData.sectionErrors.monthlyTopTracks,
+      renderItem: renderTrackCard,
+      emptyMessage: 'Hiện chưa có dữ liệu bảng xếp hạng bài hát theo tháng.',
+      actionLabel: 'Xem thêm',
+      onActionPress: () => handleOpenRanking('track', 'monthly'),
+    },
+    {
+      sectionKey: 'daily-artists',
+      title: 'Top nghệ sĩ theo ngày',
+      data: homeData.dailyTopArtists,
+      errorMessage: homeData.sectionErrors.dailyTopArtists,
+      renderItem: renderArtistCard,
+      emptyMessage: 'Hiện chưa có dữ liệu bảng xếp hạng nghệ sĩ theo ngày.',
+      actionLabel: 'Xem thêm',
+      onActionPress: () => handleOpenRanking('artist', 'daily'),
+    },
+    {
+      sectionKey: 'monthly-artists',
+      title: 'Top nghệ sĩ theo tháng',
+      data: homeData.monthlyTopArtists,
+      errorMessage: homeData.sectionErrors.monthlyTopArtists,
+      renderItem: renderArtistCard,
+      emptyMessage: 'Hiện chưa có dữ liệu bảng xếp hạng nghệ sĩ theo tháng.',
+      actionLabel: 'Xem thêm',
+      onActionPress: () => handleOpenRanking('artist', 'monthly'),
+    },
+    {
+      sectionKey: 'system-playlists',
+      title: 'Playlist hệ thống',
+      data: homeData.systemPlaylists,
+      errorMessage: homeData.sectionErrors.systemPlaylists,
+      renderItem: renderPlaylistCard,
+      emptyMessage: 'Chưa có playlist hệ thống.',
+    },
+    isAuthenticated
+      ? {
+        sectionKey: 'recommendations',
+        title: `Dành cho ${displayName}`,
+        data: homeData.recommendedPlaylists,
+        errorMessage: homeData.sectionErrors.recommendedPlaylists,
+        renderItem: renderRecommendationCard,
+        emptyMessage: 'Hôm nay chưa có playlist gợi ý cá nhân nào sẵn sàng.',
+      }
+      : null,
+    {
+      sectionKey: 'recent-albums',
+      title: 'Album nổi bật',
+      data: homeData.recentAlbums,
+      errorMessage: homeData.sectionErrors.recentAlbums,
+      renderItem: renderAlbumCard,
+      emptyMessage: 'Hiện chưa có dữ liệu album.',
+    },
+  ].filter(Boolean), [
+    displayName,
+    handleOpenRanking,
+    homeData,
+    isAuthenticated,
+    renderAlbumCard,
+    renderArtistCard,
+    renderPlaylistCard,
+    renderRecommendationCard,
+    renderTrackCard,
+  ]);
+
+  const handleRefresh = useCallback(() => {
+    loadHomepage({ refresh: true });
+  }, [loadHomepage]);
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
 
-      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerIdentity}>
           {isAuthenticated ? (
             <Pressable style={styles.avatarButton} onPress={handleOpenSidebar} hitSlop={8}>
-              <AppAvatar uri={avatarUri} label={displayName} size={44} />
+              <AppAvatar uri={avatarUri} label={displayName} size={40} />
             </Pressable>
           ) : null}
 
-          <View style={styles.headerTextGroup}>
-            <Text style={styles.brandText}>RESO MUSIC</Text>
-            <Text style={styles.welcomeText} numberOfLines={1}>
-              {isAuthenticated ? displayName : 'Trang chủ'}
-            </Text>
-          </View>
+          {!isAuthenticated ? (
+            <View style={styles.headerTextGroup}>
+              <Text style={styles.brandText}>RESO MUSIC</Text>
+              <Text style={styles.welcomeText} numberOfLines={1}>Trang chủ</Text>
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.headerActions}>
@@ -429,7 +527,7 @@ export default function HomeScreen() {
             onPress={handleOpenNotifications}
             activeOpacity={0.7}
           >
-            <Ionicons name="notifications-outline" size={18} color="#ffffff" />
+            <Ionicons name="notifications-outline" size={20} color="#F3F4F6" />
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.logoutBadge, !isAuthenticated && styles.loginBadge]}
@@ -453,83 +551,25 @@ export default function HomeScreen() {
           <AppButton title="Thử lại" onPress={() => loadHomepage()} style={styles.retryButton} />
         </View>
       ) : (
-        <ScrollView
+        <FlatList
+          data={homeSections}
+          renderItem={renderHomeSection}
+          keyExtractor={homeSectionKeyExtractor}
+          style={styles.homeList}
           contentContainerStyle={styles.scrollBody}
           showsVerticalScrollIndicator={false}
+          initialNumToRender={3}
+          maxToRenderPerBatch={2}
+          windowSize={5}
+          removeClippedSubviews
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
-              onRefresh={() => loadHomepage({ refresh: true })}
+              onRefresh={handleRefresh}
               tintColor="#ffffff"
             />
           }
-        >
-          <HomeSection
-            title="Top bài hát theo ngày"
-            data={homeData.dailyTopTracks}
-            errorMessage={homeData.sectionErrors.dailyTopTracks}
-            renderItem={renderTrackCard}
-            emptyMessage="Hiện chưa có dữ liệu bảng xếp hạng bài hát theo ngày."
-            actionLabel="Xem thêm"
-            onActionPress={() => handleOpenRanking('track', 'daily')}
-          />
-
-          <HomeSection
-            title="Top bài hát theo tháng"
-            data={homeData.monthlyTopTracks}
-            errorMessage={homeData.sectionErrors.monthlyTopTracks}
-            renderItem={renderTrackCard}
-            emptyMessage="Hiện chưa có dữ liệu bảng xếp hạng bài hát theo tháng."
-            actionLabel="Xem thêm"
-            onActionPress={() => handleOpenRanking('track', 'monthly')}
-          />
-
-          <HomeSection
-            title="Top nghệ sĩ theo ngày"
-            data={homeData.dailyTopArtists}
-            errorMessage={homeData.sectionErrors.dailyTopArtists}
-            renderItem={renderArtistCard}
-            emptyMessage="Hiện chưa có dữ liệu bảng xếp hạng nghệ sĩ theo ngày."
-            actionLabel="Xem thêm"
-            onActionPress={() => handleOpenRanking('artist', 'daily')}
-          />
-
-          <HomeSection
-            title="Top nghệ sĩ theo tháng"
-            data={homeData.monthlyTopArtists}
-            errorMessage={homeData.sectionErrors.monthlyTopArtists}
-            renderItem={renderArtistCard}
-            emptyMessage="Hiện chưa có dữ liệu bảng xếp hạng nghệ sĩ theo tháng."
-            actionLabel="Xem thêm"
-            onActionPress={() => handleOpenRanking('artist', 'monthly')}
-          />
-
-          <HomeSection
-            title="Playlist hệ thống"
-            data={homeData.systemPlaylists}
-            errorMessage={homeData.sectionErrors.systemPlaylists}
-            renderItem={renderPlaylistCard}
-            emptyMessage="Chưa có playlist hệ thống."
-          />
-
-          {isAuthenticated ? (
-            <HomeSection
-              title={`Dành cho ${displayName}`}
-              data={homeData.recommendedPlaylists}
-              errorMessage={homeData.sectionErrors.recommendedPlaylists}
-              renderItem={renderRecommendationCard}
-              emptyMessage="Hôm nay chưa có playlist gợi ý cá nhân nào sẵn sàng."
-            />
-          ) : null}
-
-          <HomeSection
-            title="Album nổi bật"
-            data={homeData.recentAlbums}
-            errorMessage={homeData.sectionErrors.recentAlbums}
-            renderItem={renderAlbumCard}
-            emptyMessage="Hiện chưa có dữ liệu album."
-          />
-        </ScrollView>
+        />
       )}
 
       <ProfileSidebarMenu
@@ -559,11 +599,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-start',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderColor: '#1f1f1f',
-    backgroundColor: '#000000',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: '#0D0C10',
   },
   headerIdentity: {
     flex: 1,
@@ -576,27 +616,30 @@ const styles = StyleSheet.create({
   },
   headerTextGroup: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 10,
   },
   brandText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#ffffff',
-    letterSpacing: 2,
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#A78BFA',
+    letterSpacing: 1.7,
   },
   welcomeText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '800',
-    color: '#ffffff',
-    marginTop: 3,
+    color: '#F3F4F6',
+    marginTop: 2,
+    letterSpacing: -0.3,
   },
   logoutBadge: {
-    backgroundColor: '#111111',
-    paddingHorizontal: 11,
-    paddingVertical: 6,
+    minHeight: 40,
+    justifyContent: 'center',
+    backgroundColor: '#1F1B24',
+    paddingHorizontal: 13,
+    paddingVertical: 8,
     borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#2d2d2d',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   headerActions: {
     flexDirection: 'row',
@@ -604,26 +647,26 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   iconBadge: {
-    width: 32,
-    height: 32,
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 16,
-    backgroundColor: '#111111',
-    borderWidth: 1,
-    borderColor: '#2d2d2d',
+    borderRadius: 20,
+    backgroundColor: '#1F1B24',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   logoutText: {
-    color: '#ffffff',
-    fontSize: 11,
-    fontWeight: '600',
+    color: '#F3F4F6',
+    fontSize: 12,
+    fontWeight: '700',
   },
   loginBadge: {
-    backgroundColor: '#ffffff',
-    borderColor: '#ffffff',
+    backgroundColor: '#8B5CF6',
+    borderColor: '#8B5CF6',
   },
   loginText: {
-    color: '#000000',
+    color: '#ffffff',
   },
   centerState: {
     flex: 1,
@@ -640,6 +683,9 @@ const styles = StyleSheet.create({
   },
   scrollBody: {
     paddingVertical: 20,
+  },
+  homeList: {
+    flex: 1,
   },
   sectionContainer: {
     marginBottom: 36,
@@ -677,11 +723,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   cardItem: {
-    width: 104,
+    width: CARD_WIDTH,
     marginHorizontal: 0,
   },
   cardSeparator: {
-    width: 16,
+    width: CARD_GAP,
   },
   sectionState: {
     marginHorizontal: 12,

@@ -15,6 +15,7 @@ import TrackCard from "../../components/TrackCard";
 import TrackListSection from "../../components/trackList/TrackListSection";
 import { useAuth } from "../../hooks/useAuth";
 import { usePlayer } from "../../hooks/usePlayer";
+import useDominantColorGradient from "../../hooks/useDominantColorGradient";
 import { routePaths } from "../../routes/routePaths";
 import {
   followAlbumService,
@@ -188,6 +189,7 @@ const AlbumDetailPage = () => {
 
   const albumCoverImage =
     album?.coverImage || createPlaceholderImage(album?.title);
+  const headerGradient = useDominantColorGradient(albumCoverImage);
 
   const trackItems = album?.tracks ?? [];
   const albumArtistName = album?.artist?.name || "Nghệ sĩ không xác định";
@@ -311,11 +313,8 @@ const AlbumDetailPage = () => {
         "
       >
         <div
-          className="
-            bg-gradient-to-b from-[#d97706] via-[#7c3f00] to-transparent
-            px-4 pb-5 pt-6 dark:from-[#f59e0b] dark:via-[#8f4b13] dark:to-[#121212]
-            sm:px-8 sm:pb-8 sm:pt-10
-          "
+          className="px-4 pb-5 pt-6 transition-[background-image] duration-500 sm:px-8 sm:pb-8 sm:pt-10"
+          style={{ backgroundImage: headerGradient }}
         >
           
           { isLoading ? (

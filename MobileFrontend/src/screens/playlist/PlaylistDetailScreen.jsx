@@ -231,13 +231,13 @@ export default function PlaylistDetailScreen() {
     ownerLabel,
     createdDate,
     totalTracks > 0 ? `${totalTracks} bài hát` : '',
-    Number(playlist?.totalDuration) > 0 ? totalDuration : '',
+    totalDuration,
     visibilityLabel,
   ].filter(Boolean);
 
   const stats = [
     { label: 'Bài hát', value: `${totalTracks}` },
-    { label: 'Thời lượng', value: Number(playlist?.totalDuration) > 0 ? totalDuration : '0s' },
+    { label: 'Thời lượng', value: totalDuration },
     { label: 'Hiển thị', value: visibilityLabel },
     { label: 'Cập nhật', value: updatedDate || 'Không xác định' },
   ];
@@ -246,6 +246,7 @@ export default function PlaylistDetailScreen() {
   const systemPlaylistMetaLine = [
     readText(playlist?.badgeLabel, 'PLAYLIST HỆ THỐNG'),
     totalTracks > 0 ? `${totalTracks} bài hát` : '',
+    totalDuration,
     readText(playlist?.description),
   ].filter(Boolean);
   const activeTrackId = String(currentTrack?.entityId || currentTrack?.id || '');

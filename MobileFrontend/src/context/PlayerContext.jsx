@@ -36,6 +36,10 @@ export const PlayerContext = createContext({
   clearUpcoming: () => {},
 });
 
+// Commands that do not need playback progress live in a separate context so
+// screens using them are not re-rendered by the 250 ms audio status updates.
+export const PlayerQueueCommandContext = createContext(() => {});
+
 export const PlayerProvider = ({ children }) => {
   const player = useAudioPlayer(null, {
     updateInterval: 250,
@@ -475,8 +479,10 @@ export const PlayerProvider = ({ children }) => {
   ]);
 
   return (
-    <PlayerContext.Provider value={contextValue}>
-      {children}
-    </PlayerContext.Provider>
+    <PlayerQueueCommandContext.Provider value={playQueue}>
+      <PlayerContext.Provider value={contextValue}>
+        {children}
+      </PlayerContext.Provider>
+    </PlayerQueueCommandContext.Provider>
   );
 };

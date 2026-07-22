@@ -6,6 +6,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#121212',
   },
 
+  statusBarBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 25,
+    backgroundColor: '#121212',
+  },
+
   centerState: {
     flex: 1,
     justifyContent: 'center',
@@ -78,8 +87,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: '#121212',
   },
-
-  artwork: {
+artwork: {
     backgroundColor: '#282828',
   },
 
@@ -120,7 +128,11 @@ const styles = StyleSheet.create({
   },
 
   heroArtistImage: {
-    borderRadius: 112,
+    alignSelf: 'stretch',
+    width: 'auto',
+    height: 360,
+    marginHorizontal: -16,
+    borderRadius: 0,
   },
 
   heroFallbackText: {
@@ -220,15 +232,30 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
 
-  deviceButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 4,
-    borderWidth: 1.4,
-    borderColor: '#bdbdbd',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 13,
+  artistStatsList: {
+    marginTop: 16,
+    gap: 10,
+  },
+
+  artistStatRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+
+  artistStatValue: {
+    minWidth: 54,
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '800',
+    marginRight: 10,
+  },
+
+  artistStatLabel: {
+    flex: 1,
+    color: '#b3b3b3',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600',
   },
 
   iconActionButton: {
@@ -276,6 +303,10 @@ const styles = StyleSheet.create({
     }),
   },
 
+  trackPlayCircleButton: {
+    backgroundColor: '#ffffff',
+  },
+
   trackList: {
     paddingHorizontal: 16,
     paddingTop: 8,
@@ -286,8 +317,8 @@ const styles = StyleSheet.create({
     minHeight: 52,
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
-    paddingHorizontal: 8,
+    borderRadius: 6,
+    paddingHorizontal: 0,
     paddingVertical: 6,
   },
 
@@ -307,7 +338,7 @@ const styles = StyleSheet.create({
   listArtwork: {
     width: 44,
     height: 44,
-    borderRadius: 10,
+    borderRadius: 4,
     marginRight: 12,
   },
 
@@ -415,6 +446,30 @@ const styles = StyleSheet.create({
     borderWidth: 0,
   },
 
+  artistTrackPanelPlain: {
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    borderRadius: 0,
+  },
+
+  artistTrackListItem: {
+    paddingHorizontal: 0,
+  },
+
+  artistTrackArtwork: {
+    borderRadius: 4,
+  },
+
+  artistAlbumList: {
+    paddingRight: 16,
+    gap: 14,
+  },
+
+  artistAlbumCard: {
+    width: 128,
+    marginHorizontal: 0,
+  },
+
   infoPanel: {
     borderRadius: 12,
     padding: 14,
@@ -422,6 +477,12 @@ const styles = StyleSheet.create({
   },
 
   albumInfoPlain: {
+    backgroundColor: 'transparent',
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+  },
+
+  artistInfoPlain: {
     backgroundColor: 'transparent',
     paddingHorizontal: 0,
     paddingVertical: 0,
