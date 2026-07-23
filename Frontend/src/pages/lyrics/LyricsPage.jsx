@@ -1,165 +1,92 @@
-import {
-  ArrowLeft,
-  LoaderCircle,
-} from "lucide-react";
-import {
-  useEffect,
-  useRef,
-} from "react";
+import { ArrowLeft, Expand, Mic2, Radio } from "lucide-react";
 import { Link } from "react-router-dom";
+import SyncedLyrics from "../../components/lyrics/SyncedLyrics";
 import { usePlayer } from "../../hooks/usePlayer";
 import { routePaths } from "../../routes/routePaths";
 import { getLyricsThemeByIndex } from "../../utils/lyricsTheme";
 
 const LyricsPage = () => {
-  const {
-    currentTrack,
-    lyricsLines,
-    activeLyricLineIndex,
-    activeLyricWordIndex,
-    isLyricsLoading,
-    lyricsErrorMessage,
-  } = usePlayer();
-  const activeLyricLineRef = useRef(null);
-
-  useEffect(() => {
-    if (!activeLyricLineRef.current) {
-      return;
-    }
-
-    activeLyricLineRef.current.scrollIntoView({
-      block: "center",
-      behavior: "smooth",
-    });
-  }, [activeLyricLineIndex, currentTrack?.id]);
-
-  const hasLyrics = lyricsLines.length > 0;
-  const hasLyricsSource = Boolean(currentTrack?.lyricsSyncUrl);
+  const { currentTrack, isPlaying } = usePlayer();
   const trackTitle = currentTrack?.title || "Chưa chọn bài hát";
-  const trackArtistName = currentTrack?.artistName || "Nghệ sĩ không xác định";
+  const trackArtistName = currentTrack?.artistName || "Nghệ sĩ chưa xác định";
   const lyricTheme = getLyricsThemeByIndex(currentTrack?.lyricsThemeIndex);
 
   return (
-    <section className="flex w-full max-w-6xl flex-col gap-4 sm:gap-5">
-      <div className="flex items-center justify-between gap-1">
-        <Link
-          to={ routePaths.home }
-          className="inline-flex items-center 
-          gap-2 rounded-full bg-gradient-to-br 
-          from-[#ff8a3d] via-[#ff4fd8] to-[#7b61ff] px-3 
-          py-2 text-xs font-medium text-inherit sm:text-sm"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          <span>Quay lại</span>
-        </Link>
-      </div>
+    <section className="relative h-full min-h-0 w-full overflow-hidden">
+      <div
+        className="pointer-events-none absolute -left-24 top-10 h-72 w-72 rounded-full opacity-35 blur-[100px]"
+        style={{ backgroundColor: lyricTheme.accentText }}
+      />
 
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,2.0fr)_minmax(260px,0.9fr)]">
+      <div className="relative h-full min-h-0 w-full">
         <div
-          className="rounded-[13px] border p-4 sm:p-7"
+          className="relative isolate flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-white/15 shadow-2xl"
           style={{
             backgroundColor: lyricTheme.background,
-            borderColor: lyricTheme.border,
             boxShadow: lyricTheme.shadow,
           }}
         >
-          <div className="max-h-[55vh] overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            { !currentTrack ? (
-              <p
-                className="text-base leading-8"
-                style={{ color: lyricTheme.emptyText }}
-              >
-                Hiện chưa có bài hát nào đang phát.
-              </p>
-            ) : isLyricsLoading ? (
-              <div
-                className="flex items-center gap-3 text-base"
-                style={{ color: lyricTheme.supportText }}
-              >
-                <LoaderCircle className="h-5 w-5 animate-spin" />
-                <span>Đang tải lời bài hát đồng bộ...</span>
-              </div>
-            ) : lyricsErrorMessage ? (
-              <p className="text-base leading-8 text-[#fca5a5]">{ lyricsErrorMessage }</p>
-            ) : !hasLyricsSource ? (
-              <p
-                className="text-base leading-8"
-                style={{ color: lyricTheme.emptyText }}
-              >
-                Bài hát này chưa có `lyricsSyncUrl`.
-              </p>
-            ) : !hasLyrics ? (
-              <p
-                className="text-base leading-8"
-                style={{ color: lyricTheme.emptyText }}
-              >
-                Đã tải lời bài hát đồng bộ nhưng tệp LRC chưa có dòng lời nào.
-              </p>
-            ) : (
-              <div className="space-y-3 pb-8 pt-2">
-                { lyricsLines.map((line, index) => {
-                  const isActive = index === activeLyricLineIndex;
+          {currentTrack?.image ? (
+            <div
+              className="pointer-events-none absolute inset-0 -z-20 bg-cover bg-center opacity-20 blur-3xl scale-110"
+              style={{ backgroundImage: `url(${currentTrack.image})` }}
+            />
+          ) : null}
+          <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-black/5 via-transparent to-black/45" />
 
-                  return (
-                    <p
-                      key={ `${line.time}-${index}` }
-                      ref={ isActive ? activeLyricLineRef : null }
-                      className={
-                        isActive
-                          ? "text-2xl font-semibold leading-8 sm:text-3xl sm:leading-[3rem]"
-                          : "text-xl font-medium leading-8 sm:text-2xl sm:leading-9"
-                      }
-                      style={{
-                        color: isActive ? lyricTheme.primaryText : lyricTheme.secondaryText,
-                      }}
-                    >
-                      { isActive && Array.isArray(line.words) && line.words.length > 0
-                        ? line.words.map((word, wordIndex) => (
-                          <span
-                            key={ `${line.time}-${word.time}-${wordIndex}` }
-                            style={{
-                              color:
-                                wordIndex === activeLyricWordIndex
-                                  ? lyricTheme.accentText
-                                  : lyricTheme.primaryText,
-                            }}
-                          >
-                            { word.text }{ " " }
-                          </span>
-                        ))
-                        : line.text }
-                    </p>
-                  );
-                }) }
+          <header className="flex shrink-0 flex-nowrap items-center justify-between gap-2 overflow-hidden border-b border-white/10 px-3 py-3 sm:gap-3 sm:px-6 sm:py-4">
+            <Link
+              to={routePaths.home}
+              className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-white/25 px-3 py-2 text-xs font-semibold text-white transition hover:-translate-y-0.5 hover:border-white/50 sm:gap-2 sm:px-4 sm:py-2.5 sm:text-sm"
+            >
+              <ArrowLeft className="h-4 w-4 shrink-0" />
+              Quay lại
+            </Link>
+
+            <Link
+              to={routePaths.lyricsFullscreen}
+              className="inline-flex min-w-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-white/25 px-3 py-2 text-xs font-bold text-white transition hover:scale-[1.02] hover:border-white/50 sm:gap-2 sm:px-4 sm:py-2.5 sm:text-sm"
+            >
+              <Expand className="h-4 w-4 shrink-0" />
+              Toàn màn hình
+            </Link>
+          </header>
+
+          <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto] lg:grid-cols-[minmax(0,1.8fr)_minmax(230px,0.72fr)] lg:grid-rows-1">
+            <main className="min-h-0 overflow-hidden">
+              <SyncedLyrics theme={lyricTheme} />
+            </main>
+
+            <aside className="flex border-t border-white/10 p-4 sm:p-5 lg:flex-col lg:justify-between lg:border-l lg:border-t-0 lg:p-7">
+              <div className="flex min-w-0 flex-1 items-center gap-4 lg:block">
+                {currentTrack?.image ? (
+                  <img
+                    src={currentTrack.image}
+                    alt={trackTitle}
+                    className="h-20 w-20 shrink-0 rounded-xl object-cover shadow-[0_24px_55px_rgba(0,0,0,0.35)] sm:h-24 sm:w-24 lg:aspect-square lg:h-auto lg:w-full lg:rounded-2xl"
+                  />
+                ) : (
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl bg-white/10 sm:h-24 sm:w-24 lg:aspect-square lg:h-auto lg:w-full lg:rounded-2xl">
+                    <Mic2 className="h-10 w-10 text-white/70" />
+                  </div>
+                )}
+
+                <div className="min-w-0 lg:mt-6">
+                  <div className="mb-3 hidden items-center gap-2 text-[11px] font-bold uppercase tracking-[0.22em] text-white/65 lg:flex">
+                    <Radio className={`h-3.5 w-3.5 ${isPlaying ? "animate-pulse" : ""}`} />
+                    {isPlaying ? "Đang phát" : "Đang tạm dừng"}
+                  </div>
+                  <h1 className="truncate text-xl font-bold tracking-[-0.03em] text-white sm:text-2xl lg:whitespace-normal lg:text-4xl">
+                    {trackTitle}
+                  </h1>
+                  <p className="mt-2 truncate text-sm font-medium text-white/65 sm:text-base lg:whitespace-normal">
+                    {trackArtistName}
+                  </p>
+                </div>
               </div>
-            ) }
+            </aside>
           </div>
         </div>
-
-        <aside className="h-fit rounded-[13px] border border-white/10 bg-white/[0.03] p-4 sm:p-5 lg:sticky lg:top-6">
-          <div className="mt-3 space-y-3">
-            { currentTrack?.image ? (
-              <img
-                src={ currentTrack.image }
-                alt={ trackTitle }
-                className="aspect-square w-full rounded-[16px] object-cover shadow-[0_20px_45px_rgba(0,0,0,0.28)]"
-              />
-            ) : (
-              <div className="flex aspect-square w-full items-center justify-center rounded-[18px] bg-white/5 text-5xl font-semibold uppercase text-[#f5e7d6] shadow-[0_20px_45px_rgba(0,0,0,0.2)]">
-                { trackTitle.charAt(0) || "M" }
-              </div>
-            ) }
-
-            <div className="space-y-2">
-              <h2 className="text-2xl font-semibold leading-tight text-white">
-                { trackTitle }
-              </h2>
-              <p className="text-sm leading-6 text-[#ccbfb2]">
-                { trackArtistName }
-              </p>
-            </div>
-          </div>
-        </aside>
       </div>
     </section>
   );

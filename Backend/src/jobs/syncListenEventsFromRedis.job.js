@@ -60,8 +60,6 @@ const transformQueuedEntryToDocument = (entry) => {
         dailyListenOrder: toNumber(message.dailyListenOrder, null),
         requiredPercent: toNumber(message.requiredPercent, null),
         source: normalizeListenEventSource(message.source),
-        device: message.device || "",
-        country: message.country || "",
         isValidStream: parseBoolean(message.isValidStream, true),
         duration: toNumber(message.duration, toNumber(message.listenedDuration, 0)),
         completed: parseBoolean(message.completed, true),

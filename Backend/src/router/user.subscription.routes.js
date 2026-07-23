@@ -9,5 +9,10 @@ router.get(
     authenticate(),
     userSubscriptionController.getSubscriptionStatus
 );
+router.get(
+    "/check-premium",
+    authenticate(),
+    userSubscriptionController.checkPremiumStatus
+);
 
 export default router;
