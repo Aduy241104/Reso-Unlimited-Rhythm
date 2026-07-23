@@ -12,6 +12,7 @@
   recommendationMixDetail: (mixId = ":id") =>
     `/recommendations/daily-mixes/${mixId}`,
   lyrics: "/lyrics",
+  lyricsFullscreen: "/lyrics/fullscreen",
   trackDetail: (trackId = ":id") => `/tracks/${trackId}`,
   artistTrackDetail: (trackId = ":id") => `/artist/music/${trackId}`,
   artistTrackEdit: (trackId = ":id") => `/artist/music/${trackId}/edit`,

@@ -307,10 +307,12 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   screenTitle: {
-    color: '#ffffff',
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 20,
+    color: theme.colors.text,
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: theme.typography.weights.bold,
+    letterSpacing: -0.45,
+    marginBottom: 18,
   },
   searchBar: {
     flexDirection: 'row',

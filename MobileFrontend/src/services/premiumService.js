@@ -69,7 +69,10 @@ export const premiumService = {
   },
 
   async createVnpayOrder(planId) {
-    const response = await axiosClient.post(API_ENDPOINTS.PAYMENTS.VNPAY_CREATE_ORDER, { planId });
+    const response = await axiosClient.post(API_ENDPOINTS.PAYMENTS.VNPAY_CREATE_ORDER, {
+      planId,
+      clientPlatform: 'mobile',
+    });
     const payload = getPayload(response);
     const result = payload?.data || payload;
 

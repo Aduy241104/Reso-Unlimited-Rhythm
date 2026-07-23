@@ -286,7 +286,6 @@ const TRACK_TITLES = [
     "Home Again",
 ];
 const COUNTRIES = ["Việt Nam", "Singapore", "Nhật Bản", "Hàn Quốc", "Thái Lan"];
-const DEVICES = ["Chrome / Windows", "Safari / iPhone", "Reso Android", "Edge / Windows", "Safari / macOS"];
 const SOURCES = ["track_detail", "album", "playlist", "search", "artist_profile"];
 
 const dateContext = () => {
@@ -606,8 +605,6 @@ const buildSeedData = async () => {
                     duration: listenedDuration,
                     completed: listenPercent >= 90,
                     skipped: !isValidStream && listenPercent < 30,
-                    device: DEVICES[(userIndex + order) % DEVICES.length],
-                    country: user.profile.country,
                     createdAt: listenedAt,
                     updatedAt: listenedAt,
                 };

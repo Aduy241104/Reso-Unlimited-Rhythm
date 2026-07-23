@@ -23,6 +23,16 @@ const pickNumber = (...values) => {
 const getPayload = (response) => response?.data || response || {};
 const resolveProfileSource = (payload) => payload?.artist || payload?.profile || payload?.user || payload || null;
 const resolveArtistTracksSource = (payload) => payload?.tracks || payload?.data?.tracks || payload?.items || payload?.data || [];
+const resolveArtistAlbumsSource = (payload) => {
+  const candidates = [
+    payload?.albums,
+    payload?.data?.albums,
+    payload?.artist?.albums,
+    payload?.profile?.albums,
+  ];
+
+  return candidates.find((value) => Array.isArray(value) && value.length > 0) || [];
+};
 const resolveComingReleasesSource = (payload) =>
   payload?.comingReleases || payload?.data?.comingReleases || payload?.items || payload?.data || [];
 const resolvePaginationSource = (payload, response) =>
@@ -74,10 +84,27 @@ const normalizeArtistTrack = (item, index = 0, artistProfile = {}) => {
   };
 };
 
+const normalizeArtistAlbum = (item) => {
+  const album = item?.album || item || {};
+  const albumId = album?.id || album?._id || '';
+  const trackCount = pickNumber(album?.trackCount, asArray(album?.tracks).length);
+
+  return {
+    id: albumId,
+    entityId: albumId,
+    entityType: 'album',
+    title: album?.title || 'Album chưa có tên',
+    image: resolveImageUri(album?.coverImage || album?.image),
+    coverImage: resolveImageUri(album?.coverImage || album?.image),
+    description: trackCount > 0 ? `${trackCount} bài hát` : 'Album',
+    trackCount,
+  };
+};
+
 const normalizeArtistDetail = (payload, tracks = []) => {
   const rawPayload = asObject(payload);
   const profile = asObject(resolveProfileSource(rawPayload));
-  const albums = asArray(rawPayload?.albums);
+  const albums = asArray(resolveArtistAlbumsSource(rawPayload)).map(normalizeArtistAlbum);
   const artistName =
     profile?.stageName ||
     profile?.artistName ||
@@ -127,6 +154,7 @@ const normalizeArtistDetail = (payload, tracks = []) => {
     extraText: bio,
     itemsTitle: 'Tất cả bài hát',
     items: tracks,
+    albums,
   };
 };
 
