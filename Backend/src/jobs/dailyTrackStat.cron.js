@@ -4,7 +4,7 @@ import {
     syncTrackStatsForDay,
 } from "../services/analytics/trackStatAggregation.service.js";
 
-const DAILY_TRACK_STAT_CRON_EXPRESSION = "*/10 * * * *";
+const DAILY_TRACK_STAT_CRON_EXPRESSION = "*/5 * * * *";
 
 let isJobRunning = false;
 
@@ -62,7 +62,7 @@ export const startDailyTrackStatCron = () => {
     );
 
     console.log(
-        `[Cron] Current track stat aggregation scheduled every 10 minutes (${analyticsTimezone}).`
+        `[Cron] Current track stat aggregation scheduled every 5 minutes (${analyticsTimezone}).`
     );
 
     return task;

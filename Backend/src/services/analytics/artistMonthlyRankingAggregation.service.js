@@ -1,129 +1,28 @@
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
-import Artist from "../../models/Artist.js";
-import ArtistMonthlyRanking from "../../models/ArtistMonthlyRanking.js";
+import ArtistRanking, {
+    ARTIST_RANKING_PERIOD_TYPES,
+    buildMonthlyArtistRankingFilter,
+} from "../../models/ArtistRanking.js";
 import ListenEvent from "../../models/ListenEvent.js";
 import { getAnalyticsTimezone } from "./trackStatAggregation.service.js";
+import {
+    buildArtistAggregationPipeline,
+    buildTopArtistRankings,
+    fillMissingArtistRankings,
+} from "./artistRanking.shared.js";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-const MONTHLY_TOP_ARTISTS_LIMIT = 20;
-
-const buildMonthlyArtistAggregationPipeline = ({ startDate, endDate }) => ([
-    {
-        $match: {
-            artistId: { $exists: true, $ne: null },
-            isValidStream: true,
-            listenedAt: { $gte: startDate, $lt: endDate },
-        },
-    },
-    {
-        $group: {
-            _id: "$artistId",
-            playCount: { $sum: 1 },
-            uniqueListeners: { $addToSet: "$userId" },
-            totalTracksPlayed: { $addToSet: "$trackId" },
-            completedPlayCount: {
-                $sum: {
-                    $cond: [{ $eq: ["$completed", true] }, 1, 0],
-                },
-            },
-        },
-    },
-    {
-        $project: {
-            _id: 0,
-            artistId: "$_id",
-            playCount: 1,
-            uniqueListeners: { $size: "$uniqueListeners" },
-            completedPlayCount: 1,
-            totalTracksPlayed: {
-                $size: {
-                    $filter: {
-                        input: "$totalTracksPlayed",
-                        as: "trackId",
-                        cond: { $ne: ["$$trackId", null] },
-                    },
-                },
-            },
-            score: {
-                $add: [
-                    { $multiply: [{ $size: "$uniqueListeners" }, 5] },
-                    "$completedPlayCount",
-                    { $multiply: ["$playCount", 0.5] },
-                ],
-            },
-        },
-    },
-]);
-
-const buildTopRankings = (monthlyStats) =>
-    [...monthlyStats]
-        .sort((left, right) => {
-            if (right.score !== left.score) {
-                return right.score - left.score;
-            }
-
-            if (right.uniqueListeners !== left.uniqueListeners) {
-                return right.uniqueListeners - left.uniqueListeners;
-            }
-
-            if (right.playCount !== left.playCount) {
-                return right.playCount - left.playCount;
-            }
-
-            return String(left.artistId).localeCompare(String(right.artistId));
-        })
-        .slice(0, MONTHLY_TOP_ARTISTS_LIMIT)
-        .map((stat, index) => ({
-            artistId: stat.artistId,
-            playCount: stat.playCount,
-            uniqueListeners: stat.uniqueListeners,
-            completedPlayCount: stat.completedPlayCount,
-            totalTracksPlayed: stat.totalTracksPlayed,
-            score: stat.score,
-            rank: index + 1,
-        }));
-
-const fillMissingRankings = async (rankings) => {
-    if (rankings.length >= MONTHLY_TOP_ARTISTS_LIMIT) {
-        return rankings;
-    }
-
-    const existingArtistIds = rankings.map((ranking) => ranking.artistId);
-    const fillerArtists = await Artist.find({
-        _id: { $nin: existingArtistIds },
-        activeStatus: "active",
-    })
-        .sort({ "stats.totalStreams": -1, "stats.followers": -1, _id: 1 })
-        .limit(MONTHLY_TOP_ARTISTS_LIMIT - rankings.length)
-        .select("_id")
-        .lean();
-
-    const fillerRankings = fillerArtists.map((artist) => ({
-        artistId: artist._id,
-        playCount: 0,
-        uniqueListeners: 0,
-        completedPlayCount: 0,
-        totalTracksPlayed: 0,
-        score: 0,
-        rank: 0,
-    }));
-
-    return [...rankings, ...fillerRankings].map((ranking, index) => ({
-        ...ranking,
-        rank: index + 1,
-    }));
-};
-
 const syncMonthlyArtistRankings = async ({ year, month, monthlyStats }) => {
-    const baseRankings = buildTopRankings(monthlyStats);
-    const rankings = await fillMissingRankings(baseRankings);
+    const baseRankings = buildTopArtistRankings(monthlyStats);
+    const rankings = await fillMissingArtistRankings(baseRankings);
+    const rankingFilter = buildMonthlyArtistRankingFilter({ year, month });
 
     if (rankings.length === 0) {
-        const deleteResult = await ArtistMonthlyRanking.deleteMany({ year, month });
+        const deleteResult = await ArtistRanking.deleteMany(rankingFilter);
 
         return {
             matchedArtists: 0,
@@ -132,9 +31,10 @@ const syncMonthlyArtistRankings = async ({ year, month, monthlyStats }) => {
         };
     }
 
-    const deleteResult = await ArtistMonthlyRanking.deleteMany({ year, month });
+    const deleteResult = await ArtistRanking.deleteMany(rankingFilter);
 
-    await ArtistMonthlyRanking.create({
+    await ArtistRanking.create({
+        periodType: ARTIST_RANKING_PERIOD_TYPES.MONTHLY,
         year,
         month,
         rankings,
@@ -157,7 +57,7 @@ export const syncArtistMonthlyRankingsForMonth = async (targetMonthInput) => {
 
     const nextMonth = targetMonth.add(1, "month");
     const monthlyStats = await ListenEvent.aggregate(
-        buildMonthlyArtistAggregationPipeline({
+        buildArtistAggregationPipeline({
             startDate: targetMonth.toDate(),
             endDate: nextMonth.toDate(),
         })

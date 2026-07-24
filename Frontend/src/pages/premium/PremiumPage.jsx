@@ -180,12 +180,12 @@ const PlanDetailModal = ({ isOpen, plan, onClose, onPurchase }) => {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/82 p-4 backdrop-blur-sm [animation:premiumModalOverlayIn_180ms_ease-out]"
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-black/82 p-3 backdrop-blur-sm [animation:premiumModalOverlayIn_180ms_ease-out] sm:p-4"
       onClick={onClose}
       aria-hidden="true"
     >
       <div
-        className="w-full max-w-[760px] rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,#181818_0%,#101010_100%)] p-6 text-white shadow-[0_32px_120px_rgba(0,0,0,0.62)] [animation:premiumModalContentIn_220ms_ease-out_both] sm:p-7"
+        className="max-h-[calc(100dvh-1.5rem)] w-full max-w-[760px] overflow-y-auto overscroll-contain rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,#181818_0%,#101010_100%)] p-4 text-white shadow-[0_32px_120px_rgba(0,0,0,0.62)] [animation:premiumModalContentIn_220ms_ease-out_both] sm:max-h-[calc(100dvh-2rem)] sm:rounded-[30px] sm:p-7"
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -309,12 +309,12 @@ const PurchaseConfirmationModal = ({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/84 p-4 backdrop-blur-sm [animation:premiumModalOverlayIn_180ms_ease-out]"
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-black/84 p-3 backdrop-blur-sm [animation:premiumModalOverlayIn_180ms_ease-out] sm:p-4"
       onClick={isProcessing ? undefined : onClose}
       aria-hidden="true"
     >
       <div
-        className="w-full max-w-[620px] rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,#1a1a1a_0%,#111111_100%)] p-6 text-white shadow-[0_32px_120px_rgba(0,0,0,0.65)] [animation:premiumModalContentIn_220ms_ease-out_both] sm:p-7"
+        className="max-h-[calc(100dvh-1.5rem)] w-full max-w-[620px] overflow-y-auto overscroll-contain rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,#1a1a1a_0%,#111111_100%)] p-4 text-white shadow-[0_32px_120px_rgba(0,0,0,0.65)] [animation:premiumModalContentIn_220ms_ease-out_both] sm:max-h-[calc(100dvh-2rem)] sm:rounded-[30px] sm:p-7"
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"

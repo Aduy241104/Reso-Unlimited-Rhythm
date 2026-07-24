@@ -87,8 +87,6 @@ const buildQueuedEventPayload = ({
     isValidStream,
     dailyListenOrder,
     requiredPercent,
-    device,
-    country,
     source,
 }) => {
     const payload = {
@@ -103,8 +101,6 @@ const buildQueuedEventPayload = ({
         completed: String(Boolean(completed)),
         skipped: String(Boolean(skipped)),
         isValidStream: String(Boolean(isValidStream)),
-        device: device || "",
-        country: country || "",
         source: normalizeListenEventSource(source),
     };
 
@@ -136,8 +132,6 @@ const queueSkippedListenInRedis = async ({
     trackDuration,
     listenedDuration,
     listenPercent,
-    device,
-    country,
     source,
 }) => {
     const queuedEventPayload = buildQueuedEventPayload({
@@ -151,8 +145,6 @@ const queueSkippedListenInRedis = async ({
         completed: false,
         skipped: true,
         isValidStream: false,
-        device,
-        country,
         source,
     });
 
@@ -168,8 +160,6 @@ const queueValidStreamInRedis = async ({
     trackDuration,
     listenedDuration,
     listenPercent,
-    device,
-    country,
     source,
 }) => {
     ensureRedisReady();
@@ -207,8 +197,6 @@ const queueValidStreamInRedis = async ({
                 isValidStream: true,
                 dailyListenOrder,
                 requiredPercent,
-                device,
-                country,
                 source,
             });
 
@@ -240,8 +228,6 @@ export const recordCompletedListenAttempt = async ({
     userId,
     trackId,
     listenedDuration,
-    device = "",
-    country = "",
     source = "unknown",
 }) => {
     if (!userId) {
@@ -319,8 +305,6 @@ export const recordCompletedListenAttempt = async ({
             trackDuration,
             listenedDuration: clampedListenedDuration,
             listenPercent,
-            device,
-            country,
             source,
         });
 
@@ -349,8 +333,6 @@ export const recordCompletedListenAttempt = async ({
         trackDuration,
         listenedDuration: clampedListenedDuration,
         listenPercent,
-        device,
-        country,
         source,
     });
 

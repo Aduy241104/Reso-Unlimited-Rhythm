@@ -1,7 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import {
   Animated,
-  Image,
   PanResponder,
   Pressable,
   ScrollView,
@@ -11,6 +10,8 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppLoader from '../common/AppLoader';
 import { formatCompactNumber, formatDateLabel, formatDuration, getInitials, resolveImageUri } from '../../utils/media';
@@ -19,13 +20,23 @@ import { formatPlayerTime, getPlayableDuration, resolveTrackStaticLyrics } from 
 const CLOSE_THRESHOLD = 120;
 const CLOSE_VELOCITY = 0.9;
 
-const Artwork = ({ track }) => {
+const Artwork = ({ track, style }) => {
   if (track?.image) {
-    return <Image source={{ uri: track.image }} style={styles.heroArtwork} resizeMode="cover" />;
+    return (
+      <Image
+        source={track.image}
+        style={[styles.heroArtwork, style]}
+        contentFit="cover"
+        cachePolicy="memory-disk"
+        recyclingKey={track.image}
+        allowDownscaling
+        enforceEarlyResizing
+      />
+    );
   }
 
   return (
-    <View style={[styles.heroArtwork, styles.heroArtworkFallback]}>
+    <View style={[styles.heroArtwork, styles.heroArtworkFallback, style]}>
       <Text style={styles.heroArtworkFallbackText}>{getInitials(track?.title)}</Text>
     </View>
   );
@@ -92,7 +103,8 @@ export default function PlayerDetailSheet({
   trackDetailResponse,
 }) {
   const insets = useSafeAreaInsets();
-  const { height: screenHeight } = useWindowDimensions();
+  const { height: screenHeight, width: screenWidth } = useWindowDimensions();
+  const artworkSize = Math.min(screenWidth - 44, screenHeight * 0.42, 390);
   const duration = getPlayableDuration(currentTrack);
   const trackPayload = trackDetailResponse?.data?.track || null;
   const artistPayload = artistProfileResponse?.data?.artist || null;
@@ -100,7 +112,7 @@ export default function PlayerDetailSheet({
   const lyricsPreview = getLyricsPreview(
     resolveTrackStaticLyrics(trackPayload) || resolveTrackStaticLyrics(currentTrack)
   );
-  const artistSummary = artistPayload?.bio || 'No artist introduction available.';
+  const artistSummary = artistPayload?.bio || 'Chưa có phần giới thiệu cho nghệ sĩ này.';
   const queueStatusLabel = currentIndex >= 0
     ? `Open playing queue. ${queueLength} tracks queued. Current track ${currentIndex + 1}.`
     : `Open playing queue. ${queueLength} tracks queued.`;
@@ -221,14 +233,39 @@ export default function PlayerDetailSheet({
           },
         ]}
       >
+        <LinearGradient
+          colors={['#24133F', '#110D1B', '#09080D', '#09080D']}
+          locations={[0, 0.28, 0.58, 1]}
+          style={StyleSheet.absoluteFillObject}
+        />
+        <View pointerEvents="none" style={styles.ambientGlowLeft} />
+        <View pointerEvents="none" style={styles.ambientGlowRight} />
+
         <View style={styles.dragArea} {...panResponder.panHandlers}>
           <View style={styles.handle} />
         </View>
 
         <View style={styles.header}>
-          <View style={styles.headerSpacer} />
           <Pressable style={styles.closeButton} onPress={closeWithAnimation}>
             <Ionicons name="chevron-down" size={22} color="#ffffff" />
+          </Pressable>
+
+          <View style={styles.headerCopy}>
+            <Text style={styles.headerEyebrow}>ĐANG PHÁT</Text>
+            <Text style={styles.headerMeta} numberOfLines={1}>
+              {currentIndex >= 0
+                ? `${currentIndex + 1} / ${queueLength} trong hàng chờ`
+                : 'Trình phát nhạc'}
+            </Text>
+          </View>
+
+          <Pressable
+            style={styles.headerQueueButton}
+            onPress={onOpenQueue}
+            accessibilityRole="button"
+            accessibilityLabel={queueStatusLabel}
+          >
+            <Ionicons name="list" size={20} color="#ffffff" />
           </Pressable>
         </View>
 
@@ -247,16 +284,45 @@ export default function PlayerDetailSheet({
             </View>
           ) : (
             <>
-              <Artwork track={currentTrack} />
+              <View style={styles.artworkStage}>
+                <View
+                  style={[
+                    styles.artworkShadow,
+                    { width: artworkSize, height: artworkSize },
+                  ]}
+                >
+                  <LinearGradient
+                    colors={['rgba(167, 139, 250, 0.72)', 'rgba(255, 255, 255, 0.1)']}
+                    style={styles.artworkBorder}
+                  >
+                    <Artwork
+                      track={currentTrack}
+                      style={{ width: artworkSize - 2, height: artworkSize - 2 }}
+                    />
+                  </LinearGradient>
+                </View>
+              </View>
 
-              <Text style={styles.trackTitle}>{currentTrack.title}</Text>
-              <Text style={styles.trackSubtitle}>{currentTrack.artistName}</Text>
+              <View style={styles.trackHeading}>
+                <View style={styles.trackCopy}>
+                  <Text style={styles.trackTitle} numberOfLines={2}>{currentTrack.title}</Text>
+                  <Text style={styles.trackSubtitle} numberOfLines={1}>{currentTrack.artistName}</Text>
+                </View>
+                <View style={styles.playingBadge}>
+                  <Ionicons name="musical-notes" size={15} color="#C4B5FD" />
+                </View>
+              </View>
               {currentError ? <Text style={styles.statusTextError}>{currentError}</Text> : null}
               {!currentError && isBuffering ? <Text style={styles.statusText}>Đang tải âm thanh...</Text> : null}
 
               <View style={styles.progressBlock}>
                 <View style={styles.progressTrack}>
-                  <View style={[styles.progressFill, { width: `${Math.max(progressRatio, 0.02) * 100}%` }]} />
+                  <View
+                    style={[
+                      styles.progressFill,
+                      { width: `${Math.max(0, Math.min(progressRatio, 1)) * 100}%` },
+                    ]}
+                  />
                 </View>
                 <View style={styles.progressMeta}>
                   <Text style={styles.progressLabel}>{formatPlayerTime(progressSeconds)}</Text>
@@ -265,37 +331,31 @@ export default function PlayerDetailSheet({
               </View>
 
               <View style={styles.controlsRow}>
-                <View style={styles.controlsSideSpacer} />
+                <Pressable
+                  style={[styles.secondaryButton, !hasPrevious && styles.secondaryButtonDisabled]}
+                  onPress={onPlayPrevious}
+                  disabled={!hasPrevious}
+                >
+                  <Ionicons name="play-skip-back" size={25} color={hasPrevious ? '#ffffff' : '#625D69'} />
+                </Pressable>
 
-                <View style={styles.controls}>
-                  <Pressable
-                    style={[styles.secondaryButton, !hasPrevious && styles.secondaryButtonDisabled]}
-                    onPress={onPlayPrevious}
-                    disabled={!hasPrevious}
+                <Pressable style={styles.primaryButton} onPress={onTogglePlayback}>
+                  <LinearGradient
+                    colors={['#A78BFA', '#7C3AED']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.primaryButtonFill}
                   >
-                    <Ionicons name="play-skip-back" size={24} color={hasPrevious ? '#ffffff' : '#5f5f5f'} />
-                  </Pressable>
-
-                  <Pressable style={styles.primaryButton} onPress={onTogglePlayback}>
-                    <Ionicons name={isPlaying ? 'pause' : 'play'} size={30} color="#000000" />
-                  </Pressable>
-
-                  <Pressable
-                    style={[styles.secondaryButton, !hasNext && styles.secondaryButtonDisabled]}
-                    onPress={onPlayNext}
-                    disabled={!hasNext}
-                  >
-                    <Ionicons name="play-skip-forward" size={24} color={hasNext ? '#ffffff' : '#5f5f5f'} />
-                  </Pressable>
-                </View>
+                    <Ionicons name={isPlaying ? 'pause' : 'play'} size={32} color="#ffffff" />
+                  </LinearGradient>
+                </Pressable>
 
                 <Pressable
-                  style={styles.queueIconButton}
-                  onPress={onOpenQueue}
-                  accessibilityRole="button"
-                  accessibilityLabel={queueStatusLabel}
+                  style={[styles.secondaryButton, !hasNext && styles.secondaryButtonDisabled]}
+                  onPress={onPlayNext}
+                  disabled={!hasNext}
                 >
-                  <Ionicons name="reorder-three-outline" size={24} color="#ffffff" />
+                  <Ionicons name="play-skip-forward" size={25} color={hasNext ? '#ffffff' : '#625D69'} />
                 </Pressable>
               </View>
 
@@ -318,14 +378,19 @@ export default function PlayerDetailSheet({
 
               {!isDetailLoading ? (
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Lyrics Preview</Text>
+                  <View style={styles.sectionHeading}>
+                    <View style={styles.sectionIcon}>
+                      <Ionicons name="document-text-outline" size={17} color="#C4B5FD" />
+                    </View>
+                    <Text style={styles.sectionTitle}>Lời bài hát</Text>
+                  </View>
 
                   <View style={styles.detailCard}>
                     <Text style={styles.previewText}>{lyricsPreview}</Text>
                     <Text style={styles.previewHintText}>
                       {canOpenSyncedLyrics
-                        ? 'Open the synced lyric screen to follow the current playback line.'
-                        : 'Timed LRC is not available for this track yet.'}
+                        ? 'Mở lời đồng bộ để theo dõi từng câu theo nhạc.'
+                        : 'Bài hát này chưa có lời đồng bộ theo thời gian.'}
                     </Text>
                   </View>
 
@@ -337,13 +402,18 @@ export default function PlayerDetailSheet({
                     onPress={onOpenLyrics}
                     disabled={!canOpenSyncedLyrics}
                   >
+                    <Ionicons
+                      name="mic-outline"
+                      size={17}
+                      color={canOpenSyncedLyrics ? '#ffffff' : '#777777'}
+                    />
                     <Text
                       style={[
                         styles.lyricsScreenButtonText,
                         !canOpenSyncedLyrics && styles.lyricsScreenButtonTextDisabled,
                       ]}
                     >
-                      {canOpenSyncedLyrics ? 'Open Synced Lyrics' : 'Synced Lyrics Unavailable'}
+                      {canOpenSyncedLyrics ? 'Mở lời đồng bộ' : 'Chưa có lời đồng bộ'}
                     </Text>
                   </Pressable>
                 </View>
@@ -352,7 +422,12 @@ export default function PlayerDetailSheet({
               {!isDetailLoading && !detailErrorMessage && trackPayload ? (
                 <>
                   <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Thông tin bài hát</Text>
+                    <View style={styles.sectionHeading}>
+                      <View style={styles.sectionIcon}>
+                        <Ionicons name="information-circle-outline" size={18} color="#C4B5FD" />
+                      </View>
+                      <Text style={styles.sectionTitle}>Thông tin bài hát</Text>
+                    </View>
 
                     <View style={styles.detailCard}>
                       {songInfoRows.map((item) => (
@@ -362,8 +437,12 @@ export default function PlayerDetailSheet({
                   </View>
 
                   <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>About the Artist</Text>
-                    <Text style={styles.sectionTitle}>About the Artist</Text>
+                    <View style={styles.sectionHeading}>
+                      <View style={styles.sectionIcon}>
+                        <Ionicons name="person-outline" size={17} color="#C4B5FD" />
+                      </View>
+                      <Text style={styles.sectionTitle}>Về nghệ sĩ</Text>
+                    </View>
 
                     <View style={styles.detailCard}>
                       <View style={styles.artistIntroHeader}>
@@ -408,56 +487,121 @@ const styles = StyleSheet.create({
   },
   backdropTint: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.52)',
+    backgroundColor: 'rgba(0, 0, 0, 0.72)',
   },
   sheet: {
     flex: 1,
-    backgroundColor: '#090909',
-    paddingHorizontal: 22,
+    backgroundColor: '#09080D',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    overflow: 'hidden',
+    paddingHorizontal: 20,
+  },
+  ambientGlowLeft: {
+    position: 'absolute',
+    top: 110,
+    left: -110,
+    width: 230,
+    height: 230,
+    borderRadius: 115,
+    backgroundColor: 'rgba(124, 58, 237, 0.13)',
+  },
+  ambientGlowRight: {
+    position: 'absolute',
+    top: 360,
+    right: -130,
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: 'rgba(167, 139, 250, 0.07)',
   },
   dragArea: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingBottom: 10,
+    paddingTop: 2,
+    paddingBottom: 9,
   },
   handle: {
-    width: 46,
-    height: 5,
+    width: 44,
+    height: 4,
     borderRadius: 999,
-    backgroundColor: '#4a4a4a',
+    backgroundColor: 'rgba(255, 255, 255, 0.28)',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  headerSpacer: {
-    width: 34,
-    height: 34,
+    marginBottom: 18,
   },
   closeButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#161616',
+    backgroundColor: 'rgba(255, 255, 255, 0.07)',
     borderWidth: 1,
-    borderColor: '#242424',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  headerCopy: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 12,
+  },
+  headerEyebrow: {
+    color: '#C4B5FD',
+    fontSize: 10,
+    lineHeight: 13,
+    fontWeight: '800',
+    letterSpacing: 1.8,
+  },
+  headerMeta: {
+    color: 'rgba(255, 255, 255, 0.58)',
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 3,
+  },
+  headerQueueButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.07)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   scroll: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 18,
+    paddingBottom: 28,
+  },
+  artworkStage: {
+    alignItems: 'center',
+    paddingTop: 2,
+    paddingBottom: 4,
+  },
+  artworkShadow: {
+    borderRadius: 27,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.55,
+    shadowRadius: 22,
+    elevation: 18,
+  },
+  artworkBorder: {
+    flex: 1,
+    padding: 1,
+    borderRadius: 27,
+    overflow: 'hidden',
   },
   heroArtwork: {
     width: '100%',
     aspectRatio: 1,
     borderRadius: 26,
-    backgroundColor: '#171717',
+    backgroundColor: '#1F1B24',
   },
   heroArtworkFallback: {
     alignItems: 'center',
@@ -469,20 +613,41 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 2,
   },
+  trackHeading: {
+    marginTop: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  trackCopy: {
+    flex: 1,
+    minWidth: 0,
+    marginRight: 14,
+  },
   trackTitle: {
-    color: '#ffffff',
-    fontSize: 28,
+    color: '#F9F7FC',
+    fontSize: 25,
+    lineHeight: 31,
     fontWeight: '800',
-    marginTop: 22,
+    letterSpacing: -0.5,
   },
   trackSubtitle: {
-    color: '#b3b3b3',
-    fontSize: 15,
+    color: '#B8B2C0',
+    fontSize: 14,
     fontWeight: '600',
     marginTop: 6,
   },
+  playingBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(139, 92, 246, 0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(167, 139, 250, 0.22)',
+  },
   statusText: {
-    color: '#9d9d9d',
+    color: '#A78BFA',
     fontSize: 12,
     fontWeight: '600',
     marginTop: 8,
@@ -494,17 +659,18 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   progressBlock: {
-    marginTop: 26,
+    marginTop: 24,
   },
   progressTrack: {
-    height: 4,
+    height: 5,
     borderRadius: 999,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
     overflow: 'hidden',
   },
   progressFill: {
-    height: 4,
-    backgroundColor: '#1ed760',
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: '#9F7AEA',
   },
   progressMeta: {
     marginTop: 8,
@@ -512,62 +678,56 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   progressLabel: {
-    color: '#9d9d9d',
+    color: '#938C9B',
     fontSize: 11,
     fontWeight: '600',
   },
   controlsRow: {
-    marginTop: 22,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  controlsSideSpacer: {
-    width: 52,
-    height: 52,
-  },
-  controls: {
-    flex: 1,
+    marginTop: 18,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 18,
+    gap: 28,
   },
   primaryButton: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: '#1ed760',
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.42,
+    shadowRadius: 14,
+    elevation: 10,
+  },
+  primaryButtonFill: {
+    flex: 1,
+    borderRadius: 36,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.24)',
   },
   secondaryButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#161616',
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: 'rgba(255, 255, 255, 0.07)',
     borderWidth: 1,
-    borderColor: '#262626',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   secondaryButtonDisabled: {
-    opacity: 0.55,
-  },
-  queueIconButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: 'center',
-    justifyContent: 'center',
+    opacity: 0.48,
   },
   detailStateCard: {
-    marginTop: 20,
+    marginTop: 26,
     borderRadius: 22,
     paddingHorizontal: 18,
     paddingVertical: 18,
-    backgroundColor: '#121212',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 1,
-    borderColor: '#222222',
+    borderColor: 'rgba(255, 255, 255, 0.09)',
     alignItems: 'center',
   },
   detailStateText: {
@@ -593,29 +753,44 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 16,
     paddingVertical: 9,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#8B5CF6',
   },
   retryButtonText: {
-    color: '#000000',
+    color: '#ffffff',
     fontSize: 12,
     fontWeight: '800',
   },
   section: {
-    marginTop: 22,
+    marginTop: 28,
   },
-  sectionTitle: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '800',
+  sectionHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 12,
   },
+  sectionIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+    backgroundColor: 'rgba(139, 92, 246, 0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(167, 139, 250, 0.2)',
+  },
+  sectionTitle: {
+    color: '#F3F0F7',
+    fontSize: 17,
+    fontWeight: '800',
+  },
   detailCard: {
-    borderRadius: 22,
+    borderRadius: 20,
     paddingHorizontal: 18,
     paddingVertical: 18,
-    backgroundColor: '#121212',
+    backgroundColor: 'rgba(255, 255, 255, 0.045)',
     borderWidth: 1,
-    borderColor: '#222222',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   detailRow: {
     flexDirection: 'row',
@@ -651,12 +826,14 @@ const styles = StyleSheet.create({
   },
   lyricsScreenButton: {
     marginTop: 12,
-    borderRadius: 999,
+    borderRadius: 16,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#ffffff',
+    minHeight: 48,
+    backgroundColor: '#7C3AED',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
   },
   lyricsScreenButtonDisabled: {
     backgroundColor: '#1b1b1b',
@@ -664,7 +841,7 @@ const styles = StyleSheet.create({
     borderColor: '#2a2a2a',
   },
   lyricsScreenButtonText: {
-    color: '#000000',
+    color: '#ffffff',
     fontSize: 12,
     fontWeight: '800',
   },

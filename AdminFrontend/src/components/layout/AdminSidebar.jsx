@@ -12,13 +12,13 @@ const AdminSidebar = ({ navigationItems, onLogout, user }) => {
   };
 
   return (
-    <aside className="flex h-full w-72 shrink-0 flex-col bg-black text-white">
-      <div className="px-6 py-4">
+    <aside className="flex h-full min-h-0 w-72 shrink-0 flex-col bg-black text-white">
+      <div className="px-5 pt-3 pb-2">
         <h1 className="text-2xl font-semibold">Quản trị hệ thống</h1>
       </div>
 
-      <div className="border-t border-white/10 px-6 py-6">
-        <nav className="mt-3 -mx-6 space-y-1">
+      <div className="min-h-0 flex-1 overflow-y-auto border-t border-white/10 px-4 pt-3 pb-5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <nav className="mt-1 -mx-4 space-y-1">
           { navigationItems.map((item) => {
             const Icon = item.icon;
             const activePaths = item.activePaths || [item.to];
@@ -32,13 +32,13 @@ const AdminSidebar = ({ navigationItems, onLogout, user }) => {
                 to={ item.to }
                 end={ item.end !== false }
                 className={ ({ isActive }) =>
-                  `mx-3 block rounded-r-xl border-l transition-all duration-200 ${isPrefixActive || isActive
+                  `ml-1 mr-2 block rounded-r-xl border-l transition-all duration-200 ${isPrefixActive || isActive
                     ? "border-white bg-white text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)]"
                     : "border-transparent text-white/45 hover:border-white/20 hover:bg-white/[0.04] hover:text-white"
                   }`
                 }
               >
-                <div className="flex items-center gap-3 px-5 py-3 text-sm font-medium">
+                <div className="flex items-center gap-3 px-4 py-3 text-sm font-medium">
                   { Icon ? <Icon size={ 18 } strokeWidth={ 2 } /> : null }
                   <span>{ item.label }</span>
                 </div>
@@ -48,7 +48,7 @@ const AdminSidebar = ({ navigationItems, onLogout, user }) => {
         </nav>
       </div>
 
-      <div className="relative mt-auto border-t border-white/10 px-6 py-5">
+      <div className="relative border-t border-white/10 px-6 py-5">
         {isAccountOpen ? (
           <div className="absolute inset-x-6 bottom-[calc(100%-0.75rem)] rounded-2xl border border-white/10 bg-[#111111] p-4 shadow-[0_18px_42px_rgba(0,0,0,0.38)]">
             <div className="flex items-end justify-between gap-3">

@@ -2,6 +2,7 @@
   home: "/",
   login: "/login",
   systemTracks: "/system-tracks",
+  systemAlbums: "/system-albums",
   trackModeration: "/system-tracks/moderation",
   artistRequests: "/artist-requests",
   artistRequestDetail: (requestId = ":requestId") => `/artist-requests/${requestId}`,

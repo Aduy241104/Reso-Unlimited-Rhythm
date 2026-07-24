@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { setupAxiosInterceptors } from "../axios/setupAuthInterceptors";
 import {
+  cancelRefreshSessionService,
   googleLoginService,
   loginService,
   logoutService,
@@ -10,9 +11,12 @@ import {
 import {
   clearStoredAuthSession,
   getStoredAuthSession,
+  hasStoredLogoutIntent,
   persistAuthSession,
+  persistLogoutIntent,
 } from "../services/authStorage";
 import { getCurrentUserProfile } from "../services/userProfileService";
+import { routePaths } from "../routes/routePaths";
 import AuthContext from "./auth-context";
 
 const TOKEN_REFRESH_BUFFER_IN_SECONDS = 30;
@@ -65,6 +69,7 @@ const isAccessTokenStillValid = (token) => {
 export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
   const [initialSession] = useState(() => getStoredAuthSession());
+  const [hasInitialLogoutIntent] = useState(() => hasStoredLogoutIntent());
   const hasStoredSession = Boolean(
     initialSession.user && initialSession.accessToken
   );
@@ -76,9 +81,11 @@ export const AuthProvider = ({ children }) => {
   const [accessToken, setAccessToken] = useState(initialSession.accessToken);
   const userRef = useRef(initialSession.user);
   const accessTokenRef = useRef(initialSession.accessToken);
+  const isLoggingOutRef = useRef(hasInitialLogoutIntent);
+  const authSessionVersionRef = useRef(0);
   const [isInterceptorReady, setIsInterceptorReady] = useState(false);
   const [isLoading, setIsLoading] = useState(
-    !hasStoredSession || !hasUsableStoredToken
+    !hasInitialLogoutIntent && (!hasStoredSession || !hasUsableStoredToken)
   );
 
   // Hàm này sẽ được sử dụng để xóa session khỏi state 
@@ -130,11 +137,29 @@ export const AuthProvider = ({ children }) => {
   // để quyết định có nên clear auth state nếu refresh thất bại hay không
   const refreshSession = useCallback(
     async ({ preserveSessionOnError = false } = {}) => {
+      if (isLoggingOutRef.current) {
+        return null;
+      }
+
+      const sessionVersion = authSessionVersionRef.current;
+
       try {
         const session = await refreshSessionService();
+
+        if (
+          isLoggingOutRef.current ||
+          sessionVersion !== authSessionVersionRef.current
+        ) {
+          return null;
+        }
+
         return applyAuthSession(session);
       } catch (error) {
-        if (!preserveSessionOnError) {
+        if (
+          !preserveSessionOnError &&
+          !isLoggingOutRef.current &&
+          sessionVersion === authSessionVersionRef.current
+        ) {
           clearAuthState();
         }
 
@@ -155,13 +180,18 @@ export const AuthProvider = ({ children }) => {
   }, [applyAuthSession]);
 
   // Logout logic
-  const logout = useCallback(async ({ redirectTo = "/login" } = {}) => {
+  const logout = useCallback(async ({ redirectTo = routePaths.home } = {}) => {
+    isLoggingOutRef.current = true;
+    authSessionVersionRef.current += 1;
+    persistLogoutIntent();
+    clearAuthState();
+    cancelRefreshSessionService();
+
     try {
       await logoutService();
     } catch {
-      // Ignore API failure, still clear local auth state.
+      // Local logout remains authoritative even if the API is unavailable.
     } finally {
-      clearAuthState();
       if (redirectTo) {
         navigate(redirectTo, { replace: true });
       }
@@ -171,6 +201,9 @@ export const AuthProvider = ({ children }) => {
   // Login logic
   const login = useCallback(async (payload) => {
     const authSession = await loginService(payload);
+
+    isLoggingOutRef.current = false;
+    authSessionVersionRef.current += 1;
 
     // thử apply vào session mới nhận được, nếu không có session data thì throw lỗi
     if (!applyAuthSession(authSession)) {
@@ -182,6 +215,9 @@ export const AuthProvider = ({ children }) => {
 
   const googleLogin = useCallback(async (token) => {
     const authSession = await googleLoginService(token);
+
+    isLoggingOutRef.current = false;
+    authSessionVersionRef.current += 1;
 
     if (!applyAuthSession(authSession)) {
       throw new Error("Google login success response missing session data.");
@@ -207,7 +243,16 @@ export const AuthProvider = ({ children }) => {
   // Cấu hình interceptor sẽ được cập nhật mỗi khi accessToken, applyAuthSession hoặc logout thay đổi
   useEffect(() => {
     setupAxiosInterceptors({
-      onRefreshSuccess: applyAuthSession,
+      getAccessToken: () => accessTokenRef.current,
+      shouldRefreshSession: () =>
+        !isLoggingOutRef.current && Boolean(accessTokenRef.current),
+      onRefreshSuccess: (session) => {
+        if (isLoggingOutRef.current || !accessTokenRef.current) {
+          return null;
+        }
+
+        return applyAuthSession(session);
+      },
       onAuthFailed: logout,
     });
 
@@ -219,6 +264,11 @@ export const AuthProvider = ({ children }) => {
   // - Chỉ refresh khi chưa có token local hoặc token đã hết hạn/gần hết hạn.
   useEffect(() => {
     const initializeAuth = async () => {
+      if (hasInitialLogoutIntent) {
+        setIsLoading(false);
+        return;
+      }
+
       if (hasStoredSession) {
         if (hasUsableStoredToken) {
           try {
@@ -252,7 +302,13 @@ export const AuthProvider = ({ children }) => {
     };
 
     initializeAuth();
-  }, [hasStoredSession, hasUsableStoredToken, refreshCurrentUser, refreshSession]);
+  }, [
+    hasInitialLogoutIntent,
+    hasStoredSession,
+    hasUsableStoredToken,
+    refreshCurrentUser,
+    refreshSession,
+  ]);
 
   useEffect(() => {
     if (!user || !accessToken) {

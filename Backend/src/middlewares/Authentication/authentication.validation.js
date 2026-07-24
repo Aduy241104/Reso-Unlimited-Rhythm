@@ -9,7 +9,7 @@ const genderSchema = Joi.string()
     .trim()
     .valid("male", "female", "other", "prefer_not_to_say");
 
-const requestRegisterOtpSchema = Joi.object({
+const requestRegistrationOtpSchema = Joi.object({
     email: Joi.string().trim().email().required(),
 });
 
@@ -44,7 +44,9 @@ const forgotPasswordSchema = Joi.object({
 });
 
 const resetPasswordSchema = Joi.object({
-    token: Joi.string().trim().required(),
+    token: Joi.string().trim(),
+    email: Joi.string().trim().email(),
+    otp: Joi.string().trim().length(6).pattern(/^\d+$/),
     password: Joi.string().min(6).max(128).required(),
     confirmPassword: Joi.string()
         .valid(Joi.ref("password"))
@@ -52,7 +54,15 @@ const resetPasswordSchema = Joi.object({
         .messages({
             "any.only": "Confirm password does not match.",
         }),
-});
+}).custom((value, helpers) => {
+    if (value.token || (value.email && value.otp)) {
+        return value;
+    }
+
+    return helpers.error("any.custom", {
+        message: "Token or email with OTP is required.",
+    });
+}, "reset password credential validation");
 
 const logoutSchema = Joi.object({
     clientType: clientTypeSchema,
@@ -77,7 +87,7 @@ const refreshTokenSchema = Joi.object({
 });
 
 export default {
-    requestRegisterOtpSchema,
+    requestRegistrationOtpSchema,
     registerSchema,
     loginSchema,
     googleLoginSchema,

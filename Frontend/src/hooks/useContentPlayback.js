@@ -27,7 +27,34 @@ import { usePlayer } from "./usePlayer";
 
 export const useContentPlayback = () => {
   const [playbackError, setPlaybackError] = useState("");
-  const { playAlbum, playPlaylist, playCollection } = usePlayer();
+  const { playAlbum, playPlaylist, playCollection, playTrack } = usePlayer();
+
+  const playTrackItem = async (item, queue = []) => {
+    const track = item?.raw?.track || item?.track || null;
+
+    if (!track) {
+      return;
+    }
+
+    const resolvedQueue = Array.isArray(queue) ? queue : [];
+    const trackId = track?.id || track?._id;
+    const startIndex = resolvedQueue.findIndex((queueItem) => {
+      const queueTrack = queueItem?.track || queueItem;
+      return (queueTrack?.id || queueTrack?._id) === trackId;
+    });
+
+    try {
+      setPlaybackError("");
+      await playTrack(track, {
+        queue: resolvedQueue,
+        startIndex: startIndex >= 0 ? startIndex : 0,
+      });
+    } catch (error) {
+      setPlaybackError(
+        getApiErrorMessage(error, "Khong the phat bai hat nay luc nay.")
+      );
+    }
+  };
 
   const playAlbumItem = async (item) => {
     const albumSummary = item?.raw ?? item;
@@ -197,5 +224,6 @@ export const useContentPlayback = () => {
     playMonthlyTopTracksItem,
     playPlaylistItem,
     playRecommendationMixItem,
+    playTrackItem,
   };
 };

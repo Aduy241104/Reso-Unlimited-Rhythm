@@ -21,6 +21,8 @@ import UsersListPage from "../pages/users/UsersListPage";
 import UserDetailPage from "../pages/users/UserDetailPage";
 import ArtistRequestsListPage from "../pages/artistRequests/ArtistRequestsListPage";
 import ArtistRequestDetailPage from "../pages/artistRequests/ArtistRequestDetailPage";
+import SystemAlbumsListPage from "../pages/albums/SystemAlbumsListPage";
+import SystemAlbumDetailPage from "../pages/albums/SystemAlbumDetailPage";
 import SystemArtistsListPage from "../pages/artist/SystemArtistsListPage";
 import SystemArtistDetailPage from "../pages/artist/ArtistDetailPage";
 import SystemTracksModerationPage from "../pages/systemTracks/SystemTracksModerationPage";
@@ -143,6 +145,14 @@ export const appRoutes = [
               {
                 path: "system-tracks/moderation",
                 element: <SystemTracksModerationPage />,
+              },
+              {
+                path: "system-albums",
+                element: <SystemAlbumsListPage />,
+              },
+              {
+                path: "system-albums/:id",
+                element: <SystemAlbumDetailPage />,
               },
               {
                 path: "artist-requests",

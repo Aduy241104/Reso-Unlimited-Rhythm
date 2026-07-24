@@ -172,7 +172,7 @@ const PaymentHistoryCard = ({ payment, isExpanded, onToggle }) => {
       </button>
 
       {isExpanded ? (
-        <div className="mx-auto w-full max-w-[1000px] px-8 py-8">
+        <div className="mx-auto w-full max-w-[1000px] px-4 py-5 sm:px-8 sm:py-8">
           <div className="bg-[#111111]">
             <div className="min-w-0">
               <p className="text-xs uppercase tracking-[0.24em] text-white/36">

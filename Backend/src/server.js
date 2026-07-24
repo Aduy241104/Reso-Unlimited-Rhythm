@@ -14,7 +14,6 @@ import { startPersonalizedDailyMixCron } from "./jobs/personalizedDailyMix.cron.
 import { startMonthlyTopArtistCron } from "./jobs/monthlyTopArtist.cron.js";
 import { startDailyArtistOverviewStatCron } from "./jobs/dailyArtistOverviewStat.cron.js";
 import { startDailyTrackStatCron } from "./jobs/dailyTrackStat.cron.js";
-import { startDailyUserListeningStatCron } from "./jobs/dailyUserListeningStat.cron.js";
 import { startDailyTopTrackCron } from "./jobs/dailyTopTrack.cron.js";
 import { startMonthlyTrackStatCron } from "./jobs/monthlyTrackStat.cron.js";
 import { startMonthlyTopTrackCron } from "./jobs/monthlyTopTrack.cron.js";
@@ -76,7 +75,6 @@ const startServer = async () => {
         await runStartupAnalyticsCatchup();
 
         startDailyArtistOverviewStatCron();
-        startDailyUserListeningStatCron();
         startDailyTopArtistCron();
         startMonthlyTopArtistCron();
         startDailyTrackStatCron();

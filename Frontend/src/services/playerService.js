@@ -192,9 +192,18 @@ export const resolveTrackMediaUrlForQuality = (track, preferredQuality = "") => 
       : preferredQuality?.label || "";
   const preferredQualityUrl =
     typeof preferredQuality === "string" ? "" : preferredQuality?.url || "";
+  const preferredQualityBitrate =
+    typeof preferredQuality === "string"
+      ? 0
+      : Number(preferredQuality?.bitrate) || 0;
   const normalizedPreferredLabel = normalizeAudioQualityLabel(preferredQualityLabel);
   const qualityOptions = resolveTrackAudioQualityOptions(track);
   const matchingQuality =
+    qualityOptions.find(
+      (quality) =>
+        preferredQualityBitrate > 0 &&
+        quality.bitrate === preferredQualityBitrate
+    ) ||
     qualityOptions.find((quality) => quality.url === preferredQualityUrl) ||
     qualityOptions.find((quality) => quality.label === normalizedPreferredLabel);
 
@@ -232,13 +241,18 @@ export const getTrackPlaybackService = async (trackId) => {
 
 export const getTrackPlaybackSource = async (
   trackId,
-  { preferredQualityLabel = "", preferredQualityUrl = "" } = {}
+  {
+    preferredQualityLabel = "",
+    preferredQualityUrl = "",
+    preferredQualityBitrate = 0,
+  } = {}
 ) => {
   const playbackTrack = await getTrackPlaybackService(trackId);
-  const streamUrl = preferredQualityLabel || preferredQualityUrl
+  const streamUrl = preferredQualityLabel || preferredQualityUrl || preferredQualityBitrate
     ? resolveTrackMediaUrlForQuality(playbackTrack, {
         label: preferredQualityLabel,
         url: preferredQualityUrl,
+        bitrate: preferredQualityBitrate,
       })
     : resolveTrackMediaUrl(playbackTrack);
 

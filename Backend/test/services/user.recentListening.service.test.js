@@ -10,14 +10,6 @@ const mockRecentListeningActivityModel = {
     create: jest.fn(),
     find: jest.fn(),
 };
-
-const mockUserListeningDailyStatModel = {
-    find: jest.fn(),
-};
-
-const mockUserRecentListeningInsightsCacheModel = {
-    findOne: jest.fn(),
-};
 const mockGenreModel = {
     find: jest.fn(),
 };
@@ -31,30 +23,13 @@ const createFindQuery = (result) => ({
     lean: jest.fn().mockResolvedValue(result),
 });
 
-const createStatFindQuery = (result) => ({
-    sort: jest.fn().mockReturnThis(),
-    lean: jest.fn().mockResolvedValue(result),
-});
-
 const loadRecentListeningService = async () => {
     jest.resetModules();
 
     jest.unstable_mockModule(
-        "../../src/models/userRecentListeningActivity.model.js",
+        "../../src/models/userRecentListeningActivity.js",
         () => ({
             default: mockRecentListeningActivityModel,
-        })
-    );
-    jest.unstable_mockModule(
-        "../../src/models/UserListeningDailyStat.js",
-        () => ({
-            default: mockUserListeningDailyStatModel,
-        })
-    );
-    jest.unstable_mockModule(
-        "../../src/models/userRecentListeningInsightsCache.model.js",
-        () => ({
-            default: mockUserRecentListeningInsightsCacheModel,
         })
     );
     jest.unstable_mockModule("../../src/models/Genre.js", () => ({
@@ -83,8 +58,6 @@ describe("userRecentListeningService", () => {
         mockRecentListeningActivityModel.aggregate.mockReset();
         mockRecentListeningActivityModel.create.mockReset();
         mockRecentListeningActivityModel.find.mockReset();
-        mockUserListeningDailyStatModel.find.mockReset();
-        mockUserRecentListeningInsightsCacheModel.findOne.mockReset();
         mockGenreModel.find.mockReset();
         mockTrackModel.find.mockReset();
         jest.useFakeTimers();
@@ -148,25 +121,13 @@ describe("userRecentListeningService", () => {
     test("returns a 7 day chart, comparison metrics, and live insights", async () => {
         const { userRecentListeningService } = await loadRecentListeningService();
 
-        mockUserListeningDailyStatModel.find.mockReturnValue(
-            createStatFindQuery([
+        mockRecentListeningActivityModel.aggregate
+            .mockResolvedValueOnce([
                 {
-                    userId,
-                    dateKey: "2026-06-18",
+                    _id: "2026-06-18",
                     listenCount: 2,
                     totalListenedDuration: 240,
                 },
-                {
-                    userId,
-                    dateKey: "2026-06-22",
-                    listenCount: 1,
-                    totalListenedDuration: 90,
-                },
-            ])
-        );
-
-        mockRecentListeningActivityModel.aggregate
-            .mockResolvedValueOnce([
                 {
                     _id: "2026-06-22",
                     listenCount: 1,
@@ -282,9 +243,9 @@ describe("userRecentListeningService", () => {
             to: "2026-06-23",
         });
         expect(result.summary).toEqual({
-            totalListens: 3,
-            totalMinutes: 5.5,
-            activeDays: 2,
+            totalListens: 6,
+            totalMinutes: 13,
+            activeDays: 3,
             latestTrackTitle: "Night Drive",
             today: {
                 listenCount: 3,
@@ -351,24 +312,24 @@ describe("userRecentListeningService", () => {
             {
                 date: "2026-06-23",
                 label: "23/06",
-                listenCount: 0,
-                listenedMinutes: 0,
+                listenCount: 3,
+                listenedMinutes: 7.5,
             },
         ]);
         expect(result.topGenres).toEqual([
             {
                 id: "507f1f77bcf86cd799439099",
                 name: "Pop",
-                listenCount: 5,
+                listenCount: 4.5,
                 trackCount: 2,
-                percentage: 83.33,
+                percentage: 90,
             },
             {
                 id: "507f1f77bcf86cd799439098",
                 name: "Ballad",
-                listenCount: 1,
+                listenCount: 0.5,
                 trackCount: 1,
-                percentage: 16.67,
+                percentage: 10,
             },
         ]);
         expect(result.topTracks).toEqual([
