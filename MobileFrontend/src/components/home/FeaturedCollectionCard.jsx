@@ -1,36 +1,51 @@
-import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { memo } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image } from 'expo-image';
 import { getInitials, resolveImageUri } from '../../utils/media';
 
-const Artwork = ({ uri, label }) => {
+const Artwork = ({ uri, label, rounded = false }) => {
   const imageUri = resolveImageUri(uri);
+  const artworkStyle = [styles.artwork, rounded && styles.roundedArtwork];
 
   if (imageUri) {
-    return <Image source={{ uri: imageUri }} style={styles.artwork} resizeMode="cover" />;
+    return (
+      <Image
+        source={imageUri}
+        style={artworkStyle}
+        contentFit="cover"
+        cachePolicy="memory-disk"
+        recyclingKey={imageUri}
+        allowDownscaling
+        enforceEarlyResizing
+      />
+    );
   }
 
   return (
-    <View style={[styles.artwork, styles.artworkFallback]}>
+    <View style={[artworkStyle, styles.artworkFallback]}>
       <Text style={styles.artworkText}>{getInitials(label)}</Text>
     </View>
   );
 };
 
-export default function FeaturedCollectionCard({
+function FeaturedCollectionCard({
   title,
   description,
   image,
   onPress,
+  rounded = false,
   style,
 }) {
   return (
     <TouchableOpacity style={[styles.card, style]} activeOpacity={0.85} onPress={onPress}>
-      <Artwork uri={image} label={title} />
+      <Artwork uri={image} label={title} rounded={rounded} />
       <Text style={styles.title} numberOfLines={1}>{title}</Text>
       <Text style={styles.description} numberOfLines={2}>{description}</Text>
     </TouchableOpacity>
   );
 }
+
+export default memo(FeaturedCollectionCard);
 
 const styles = StyleSheet.create({
   card: {
@@ -43,6 +58,9 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     borderRadius: 4,
     backgroundColor: '#202020',
+  },
+  roundedArtwork: {
+    borderRadius: 999,
   },
   artworkFallback: {
     alignItems: 'center',

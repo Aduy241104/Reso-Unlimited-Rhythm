@@ -49,6 +49,7 @@ const createVnpayOrder = async (req, res, next) => {
         const result = await subscriptionService.createVnpayOrder({
             userId: req.user.id,
             planId: req.body.planId,
+            clientPlatform: req.body.clientPlatform,
             ipAddr: getClientIp(req),
         });
 

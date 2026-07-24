@@ -44,33 +44,35 @@ export default function MiniPlayer({ onPress }) {
 
   return (
     <View style={styles.outer}>
-      <Pressable style={styles.container} onPress={onPress}>
-        <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: `${Math.max(progressRatio, 0.04) * 100}%` }]} />
-        </View>
+      <View style={styles.shadowContainer}>
+        <Pressable style={styles.container} onPress={onPress}>
+          <View style={styles.progressTrack}>
+            <View style={[styles.progressFill, { width: `${Math.max(progressRatio, 0.04) * 100}%` }]} />
+          </View>
 
-        <Artwork track={currentTrack} />
+          <Artwork track={currentTrack} />
 
-        <View style={styles.content}>
-          <Text style={styles.title} numberOfLines={1}>{currentTrack.title}</Text>
-          <Text style={styles.subtitle} numberOfLines={1}>
-            {currentError || (isBuffering ? 'Đang tải âm thanh...' : currentTrack.artistName)}
-          </Text>
-        </View>
+          <View style={styles.content}>
+            <Text style={styles.title} numberOfLines={1}>{currentTrack.title}</Text>
+            <Text style={styles.subtitle} numberOfLines={1}>
+              {currentError || (isBuffering ? 'Đang tải âm thanh...' : currentTrack.artistName)}
+            </Text>
+          </View>
 
-        <Pressable style={styles.iconButton} onPress={handleTogglePlayback} hitSlop={8}>
-          <Ionicons name={isPlaying ? 'pause' : 'play'} size={20} color="#ffffff" />
+          <Pressable style={styles.iconButton} onPress={handleTogglePlayback} hitSlop={8}>
+            <Ionicons name={isPlaying ? 'pause' : 'play'} size={20} color="#ffffff" />
+          </Pressable>
+
+          <Pressable
+            style={[styles.iconButton, !hasNext && styles.iconButtonDisabled]}
+            onPress={handlePlayNext}
+            hitSlop={8}
+            disabled={!hasNext}
+          >
+            <Ionicons name="play-skip-forward" size={18} color={hasNext ? '#ffffff' : '#5f5f5f'} />
+          </Pressable>
         </Pressable>
-
-        <Pressable
-          style={[styles.iconButton, !hasNext && styles.iconButtonDisabled]}
-          onPress={handlePlayNext}
-          hitSlop={8}
-          disabled={!hasNext}
-        >
-          <Ionicons name="play-skip-forward" size={18} color={hasNext ? '#ffffff' : '#5f5f5f'} />
-        </Pressable>
-      </Pressable>
+      </View>
     </View>
   );
 }
@@ -78,12 +80,19 @@ export default function MiniPlayer({ onPress }) {
 const styles = StyleSheet.create({
   outer: {
     paddingHorizontal: 12,
-    paddingBottom: 8,
-    backgroundColor: '#000000',
+    backgroundColor: 'transparent',
+  },
+  shadowContainer: {
+    borderRadius: 10,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.32,
+    shadowRadius: 10,
+    elevation: 12,
   },
   container: {
     minHeight: 64,
-    borderRadius: 18,
+    borderRadius: 10,
     backgroundColor: '#171717',
     borderWidth: 1,
     borderColor: '#292929',
@@ -108,7 +117,7 @@ const styles = StyleSheet.create({
   artwork: {
     width: 42,
     height: 42,
-    borderRadius: 12,
+    borderRadius: 6,
     backgroundColor: '#242424',
   },
   artworkFallback: {

@@ -748,7 +748,7 @@ const buildAgeGroupBreakdown = ({ listeners = [], referenceDate }) => {
 const buildRegionBreakdown = ({ listeners = [] }) => {
     const regionCounts = listeners.reduce((accumulator, listener) => {
         const regionLabel = String(
-            listener?.country || listener?.fallbackCountry || UNKNOWN_REGION_LABEL
+            listener?.country || UNKNOWN_REGION_LABEL
         ).trim() || UNKNOWN_REGION_LABEL;
 
         accumulator.set(regionLabel, Number(accumulator.get(regionLabel) || 0) + 1);
@@ -794,7 +794,6 @@ const aggregateAudienceProfiles = async ({ artistId, startDate, endDateExclusive
         {
             $group: {
                 _id: "$userId",
-                country: { $first: "$country" },
             },
         },
     ]);
@@ -814,8 +813,7 @@ const aggregateAudienceProfiles = async ({ artistId, startDate, endDateExclusive
 
         return {
             userId: String(listener._id),
-            country: String(listener?.country || "").trim(),
-            fallbackCountry: String(user?.profile?.country || "").trim(),
+            country: String(user?.profile?.country || "").trim(),
             dateOfBirth: user?.profile?.dateOfBirth || null,
         };
     });

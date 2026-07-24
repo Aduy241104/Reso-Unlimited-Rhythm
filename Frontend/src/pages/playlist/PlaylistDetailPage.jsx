@@ -10,6 +10,7 @@ import { useParams } from "react-router-dom";
 import TrackCard from "../../components/TrackCard";
 import TrackListSection from "../../components/trackList/TrackListSection";
 import { usePlayer } from "../../hooks/usePlayer";
+import useDominantColorGradient from "../../hooks/useDominantColorGradient";
 import { routePaths } from "../../routes/routePaths";
 import { getPlaylistDetailService } from "../../services/playlistService";
 import { formatTrackDuration } from "../../utils/albumDetail";
@@ -109,6 +110,7 @@ const PlaylistDetailPage = () => {
   const totalDuration = formatPlaylistDuration(playlist?.totalDuration);
   const createdDate = formatPlaylistDate(playlist?.createdAt);
   const playlistCoverImage = playlist?.coverImage ?? "";
+  const headerGradient = useDominantColorGradient(playlistCoverImage);
 
   const collectionMeta = useMemo(
     () => ({
@@ -179,11 +181,8 @@ const PlaylistDetailPage = () => {
         "
       >
         <div
-          className="
-            bg-gradient-to-b from-[#0f766e] via-[#134e4a] to-transparent
-            px-4 pb-5 pt-6 dark:from-[#14b8a6] dark:via-[#115e59] dark:to-[#121212]
-            sm:px-8 sm:pb-8 sm:pt-10
-          "
+          className="px-4 pb-5 pt-6 transition-[background-image] duration-500 sm:px-8 sm:pb-8 sm:pt-10"
+          style={{ backgroundImage: headerGradient }}
         >
           { isLoading ? (
             <div className="flex min-h-[20rem] items-end">

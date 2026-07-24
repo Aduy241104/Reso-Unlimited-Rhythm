@@ -22,8 +22,6 @@ const ListenEventSchema = new Schema(
         duration: { type: Number, default: 0, min: 0 },
         completed: { type: Boolean, default: false },
         skipped: { type: Boolean, default: false },
-        device: { type: String, default: "" },
-        country: { type: String, default: "" },
     },
     { timestamps: true }
 );

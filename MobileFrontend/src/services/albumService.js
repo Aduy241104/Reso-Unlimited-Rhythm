@@ -76,11 +76,16 @@ const normalizeAlbumDetail = (item) => {
   const normalizedAlbum = normalizeAlbumItem(rawItem);
   const artist = normalizedAlbum.artist || {};
   const tracks = asArray(rawItem.tracks).map(normalizeAlbumTrack);
+  const tracksDuration = tracks.reduce((total, track) => total + Math.max(0, Number(track?.duration) || 0), 0);
+  const totalDuration = normalizedAlbum.totalDuration > 0
+    ? normalizedAlbum.totalDuration
+    : tracksDuration;
   const releasedOn = formatDateLabel(normalizedAlbum.releaseDate);
   const updatedOn = formatDateLabel(normalizedAlbum.updatedAt);
 
   return {
     ...normalizedAlbum,
+    totalDuration,
     type: 'album',
     badgeLabel: 'ALBUM',
     subtitle: artist?.name || 'Album',
@@ -88,7 +93,7 @@ const normalizeAlbumDetail = (item) => {
     description: releasedOn ? `Phát hành ${releasedOn}` : '',
     stats: [
       { label: 'Bài hát', value: `${normalizedAlbum.trackCount || tracks.length}` },
-      { label: 'Thời lượng', value: formatDuration(normalizedAlbum.totalDuration) },
+      { label: 'Thời lượng', value: formatDuration(totalDuration) },
       { label: 'Phát hành', value: releasedOn || 'Không xác định' },
     ],
     meta: [

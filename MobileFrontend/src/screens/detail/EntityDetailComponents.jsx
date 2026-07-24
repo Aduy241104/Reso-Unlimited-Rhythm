@@ -56,6 +56,7 @@ export function Artwork({ uri, label, style, textStyle, rounded = false }) {
 }
 
 export function TrackListItem({
+  artworkStyle,
   item,
   index,
   isFavorite = false,
@@ -64,6 +65,7 @@ export function TrackListItem({
   onMorePress,
   onPress,
   showIndex = false,
+  style,
 }) {
   const title = getDisplayText(item?.title, 'Nội dung không xác định');
   const subtitle = getDisplayText(item?.subtitle || item?.artistName);
@@ -84,6 +86,7 @@ export function TrackListItem({
     <Pressable
       style={({ pressed }) => [
         styles.listItem,
+        style,
         pressed ? styles.listItemPressed : null,
       ]}
       onPress={onPress}
@@ -95,7 +98,7 @@ export function TrackListItem({
       <Artwork
         uri={item?.image || item?.coverImage}
         label={artworkLabel}
-        style={styles.listArtwork}
+        style={[styles.listArtwork, artworkStyle]}
         textStyle={styles.listArtworkText}
       />
 

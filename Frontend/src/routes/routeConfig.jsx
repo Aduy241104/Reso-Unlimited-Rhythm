@@ -37,6 +37,7 @@ import ArtistTrackEditPage from "../pages/artist/ArtistTrackEditPage";
 import ArtistLyricsPage from "../pages/artist/ArtistLyricsPage";
 import HomePage from "../pages/home/HomePage";
 import LyricsPage from "../pages/lyrics/LyricsPage";
+import LyricsFullscreenPage from "../pages/lyrics/LyricsFullscreenPage";
 import GenreListPage from "../pages/usergenre/GenreListPage";
 import GenreDetailPage from "../pages/usergenre/GenreDetailPage";
 import DailyTopTracksPage from "../pages/track/DailyTopTracksPage";
@@ -69,6 +70,10 @@ const publicArtistProfilePath = routePaths.artistBrowseProfile();
 const featuredArtistProfilePath = routePaths.artistBrowseProfile("featured");
 
 export const appRoutes = [
+  {
+    path: routePaths.lyricsFullscreen,
+    element: <LyricsFullscreenPage />,
+  },
   {
     element: <MainLayout />,
     children: [
