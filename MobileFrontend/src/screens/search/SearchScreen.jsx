@@ -195,11 +195,9 @@ export default function SearchScreen({ navigation }) {
     [handlePressGenre]
   );
 
-  const renderScreenTitle = <Text style={styles.screenTitle}>Tìm kiếm</Text>;
-
-  const renderSearchHeader = (
+  const renderHeader = (
     <View style={styles.headerContent}>
-      {renderScreenTitle}
+      <Text style={styles.screenTitle}>Tìm kiếm</Text>
 
       <View style={styles.searchBar}>
         <Ionicons color="#111111" name="search" size={22} />
@@ -213,88 +211,57 @@ export default function SearchScreen({ navigation }) {
         />
       </View>
 
-      <SearchResultSection
-        albums={searchResults.albums}
-        artists={searchResults.artists}
-        isLoading={isSearching}
-        onPressAlbum={handlePressAlbum}
-        onPressArtist={handlePressArtist}
-        onPressTrack={handlePressTrack}
-        tracks={searchResults.tracks}
-      />
+      {!isSearchMode ? <Text style={styles.title}>Duyệt tìm tất cả</Text> : null}
     </View>
   );
-
-  const renderGenreHeader = (
-    <View style={styles.headerContent}>
-      {renderScreenTitle}
-
-      <View style={styles.searchBar}>
-        <Ionicons color="#111111" name="search" size={22} />
-        <TextInput
-          onChangeText={setSearchText}
-          placeholder="Bạn muốn nghe gì?"
-          placeholderTextColor="#6B7280"
-          selectionColor="#111111"
-          style={styles.searchInput}
-          value={searchText}
-        />
-      </View>
-
-      <Text style={styles.title}>Duyệt tìm tất cả</Text>
-    </View>
-  );
-
-  if (isSearchMode) {
-    return (
-      <SafeAreaView edges={['top']} style={styles.container}>
-        <StatusBar style="light" />
-
-        <ScrollView
-          key="search-results"
-          contentContainerStyle={[
-            styles.listContent,
-            { paddingBottom: Math.max(insets.bottom, theme.spacing.xl) + 12 },
-          ]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {renderSearchHeader}
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
 
   return (
     <SafeAreaView edges={['top']} style={styles.container}>
       <StatusBar style="light" />
 
-      <FlatList
-        key="genre-grid"
-        columnWrapperStyle={styles.columnWrapper}
-        contentContainerStyle={[
-          styles.listContent,
-          { paddingBottom: Math.max(insets.bottom, theme.spacing.xl) + 12 },
-        ]}
-        data={genres}
-        keyExtractor={(item, index) => item?.id || item?._id || `genre-${index}`}
-        keyboardShouldPersistTaps="handled"
-        ListEmptyComponent={
-          isLoadingGenres ? (
-            <View style={styles.centerState}>
-              <AppLoader color="#ffffff" size="large" />
-            </View>
-          ) : (
-            <View style={styles.centerState}>
-              <Text style={styles.emptyText}>Chưa có thể loại.</Text>
-            </View>
-          )
-        }
-        ListHeaderComponent={renderGenreHeader}
-        numColumns={2}
-        renderItem={renderGenreCard}
-        showsVerticalScrollIndicator={false}
-      />
+      <View style={styles.contentArea}>
+        {renderHeader}
+
+        {isSearchMode ? (
+          <ScrollView
+            contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom, theme.spacing.xl) + 12 }]}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <SearchResultSection
+              albums={searchResults.albums}
+              artists={searchResults.artists}
+              isLoading={isSearching}
+              onPressAlbum={handlePressAlbum}
+              onPressArtist={handlePressArtist}
+              onPressTrack={handlePressTrack}
+              tracks={searchResults.tracks}
+            />
+          </ScrollView>
+        ) : (
+          <FlatList
+            columnWrapperStyle={styles.columnWrapper}
+            contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom, theme.spacing.xl) + 12 }]}
+            data={genres}
+            keyExtractor={(item, index) => item?.id || item?._id || `genre-${index}`}
+            keyboardShouldPersistTaps="handled"
+            ListEmptyComponent={
+              isLoadingGenres ? (
+                <View style={styles.centerState}>
+                  <AppLoader color="#ffffff" size="large" />
+                </View>
+              ) : (
+                <View style={styles.centerState}>
+                  <Text style={styles.emptyText}>Chưa có thể loại.</Text>
+                </View>
+              )
+            }
+            numColumns={2}
+            renderItem={renderGenreCard}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
+      </View>
     </SafeAreaView>
   );
 }
@@ -304,7 +271,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
-  listContent: {
+  contentArea: {
+    flex: 1,
     paddingHorizontal: 16,
     paddingTop: 8,
   },
@@ -332,6 +300,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     paddingVertical: 0,
   },
+  scrollContent: {},
   title: {
     marginTop: 24,
     color: '#ffffff',
