@@ -1,6 +1,5 @@
 ﻿
-import React, { useEffect } from 'react';
-import { View } from 'react-native';
+import React from 'react';
 
 import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -17,6 +16,7 @@ import FavoriteTracksScreen from '../screens/favorite/FavoriteTracksScreen';
 import PlaylistDetailScreen from '../screens/playlist/PlaylistDetailScreen';
 import PlayerSheetScreen from '../screens/player/PlayerSheetScreen';
 import NotificationsScreen from '../screens/notifications/NotificationsScreen';
+import RankingListScreen from '../screens/ranking/RankingListScreen';
 
 import PremiumScreen from '../screens/premium/PremiumScreen';
 
@@ -33,14 +33,14 @@ import theme from '../theme';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
-const TAB_ICON_SIZE = 23;
+const TAB_ICON_SIZE = 22;
 
 const tabIcons = {
   Home: { active: 'home', inactive: 'home-outline' },
   Search: { active: 'search', inactive: 'search-outline' },
   Library: { active: 'library', inactive: 'library-outline' },
   Premium: { active: 'star', inactive: 'star-outline' },
-  CreateForMe: { active: 'add', inactive: 'add-outline' },
+  CreateForMe: { active: 'sparkles', inactive: 'sparkles-outline' },
 };
 
 function SharedTabStack({ rootName, component: RootComponent }) {
@@ -74,6 +74,14 @@ function SharedTabStack({ rootName, component: RootComponent }) {
       <Stack.Screen
         name="Notifications"
         component={NotificationsScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="RankingList"
+        component={RankingListScreen}
         options={{
           headerShown: false,
           animation: 'slide_from_right',
@@ -193,19 +201,9 @@ export const BottomTabNavigator = () => {
       tabBar={(props) => <AppTabBar {...props} />}
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: '#ffffff',
-        tabBarInactiveTintColor: '#7d7d7d',
-        tabBarLabelStyle: {
-          fontSize: 10,
-          fontWeight: '600',
-        },
-        tabBarStyle: {
-          backgroundColor: theme.colors.surface,
-          borderTopColor: theme.colors.border,
-          height: 68,
-          paddingTop: 6,
-          paddingBottom: 8,
-        },
+        tabBarHideOnKeyboard: true,
+        tabBarActiveTintColor: theme.colors.primaryLight,
+        tabBarInactiveTintColor: theme.colors.textMuted,
         tabBarIcon: ({ color, size, focused }) => {
           const iconSet = tabIcons[route.name] || tabIcons.Home;
           const iconName = focused ? iconSet.active : iconSet.inactive;
@@ -215,11 +213,6 @@ export const BottomTabNavigator = () => {
               name={iconName}
               size={Math.max(size || TAB_ICON_SIZE, TAB_ICON_SIZE)}
               color={color}
-              style={{
-                textShadowColor: color,
-                textShadowOffset: { width: 0, height: 0 },
-                textShadowRadius: focused ? 0.9 : 0.6,
-              }}
             />
           );
         },

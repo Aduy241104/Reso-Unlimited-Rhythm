@@ -4,6 +4,7 @@ import { AUTH_API_PREFIX, AUTH_WEB_CLIENT_TYPE } from "../constants/auth";
 const getAuthPayload = (response) => response?.data?.data ?? null;
 const getApiEnvelope = (response) => response?.data ?? null;
 let refreshSessionPromise = null;
+let refreshSessionController = null;
 
 const withWebClientType = (payload = {}) => ({
   ...payload,
@@ -70,17 +71,32 @@ export const resetPasswordService = async (payload) => {
 
 export const refreshSessionService = async () => {
   if (!refreshSessionPromise) {
+    const controller = new AbortController();
+    refreshSessionController = controller;
     refreshSessionPromise = axiosClient
-      .post(`${AUTH_API_PREFIX}/refresh-token`, {
-        clientType: AUTH_WEB_CLIENT_TYPE,
-      })
+      .post(
+        `${AUTH_API_PREFIX}/refresh-token`,
+        {
+          clientType: AUTH_WEB_CLIENT_TYPE,
+        },
+        { signal: controller.signal }
+      )
       .then((response) => normalizeAuthSession(response))
       .finally(() => {
-        refreshSessionPromise = null;
+        if (refreshSessionController === controller) {
+          refreshSessionPromise = null;
+          refreshSessionController = null;
+        }
       });
   }
 
   return refreshSessionPromise;
+};
+
+export const cancelRefreshSessionService = () => {
+  refreshSessionController?.abort();
+  refreshSessionController = null;
+  refreshSessionPromise = null;
 };
 
 export const logoutService = async () => {

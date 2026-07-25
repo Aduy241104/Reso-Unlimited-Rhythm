@@ -31,7 +31,7 @@ const SearchSuggestionDropdown = ({
   const hasResults = combinedResults.length > 0;
 
   return (
-    <div className="absolute left-0 right-0 top-full z-50 mt-3 overflow-hidden rounded-[24px] border border-white/10 bg-[#121212] shadow-[0_24px_80px_rgba(0,0,0,0.55)] backdrop-blur-xl">
+    <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-[70dvh] overflow-hidden rounded-2xl border border-white/10 bg-[#121212] shadow-[0_24px_80px_rgba(0,0,0,0.55)] backdrop-blur-xl sm:mt-3 sm:rounded-[24px]">
       <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3 text-xs text-[#b3b3b3]">
         <span className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-0.5 font-medium text-white">
           Enter
@@ -44,7 +44,7 @@ const SearchSuggestionDropdown = ({
           Đang tìm kiếm...
         </div>
       ) : hasResults ? (
-        <div className="max-h-[360px] overflow-y-auto px-2 py-2">
+        <div className="max-h-[calc(70dvh-3rem)] overflow-y-auto overscroll-contain px-2 py-2 sm:max-h-[360px]">
           {combinedResults.map(({ item, type }, index) => (
             <SearchResultItem
               key={item?._id || item?.id || `${type}-${index}`}

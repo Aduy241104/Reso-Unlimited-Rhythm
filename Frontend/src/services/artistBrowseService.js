@@ -332,16 +332,16 @@ const buildComingReleasesFromApi = (comingReleases = []) =>
 
 const normalizeDailyTopArtistItem = (item) => ({
   artist: {
-    id: item.artist.id,
-    name: item.artist.name,
-    avatar: item.artist.avatar,
+    id: item?.artist?.id || item?.artist?._id || "",
+    name: item?.artist?.name || "Unknown artist",
+    avatar: item?.artist?.avatar || "",
   },
-  rank: item.rank,
-  date: item.date,
-  score: item.score,
-  uniqueListeners: item.uniqueListeners,
-  playCount: item.playCount,
-  completedPlayCount: item.completedPlayCount,
+  rank: Number(item?.rank) || 0,
+  date: item?.date || "",
+  score: Number(item?.score) || 0,
+  uniqueListeners: Number(item?.uniqueListeners) || 0,
+  playCount: Number(item?.playCount) || 0,
+  completedPlayCount: Number(item?.completedPlayCount) || 0,
 });
 
 const normalizeMonthlyTopArtistItem = (item) => ({
@@ -554,9 +554,16 @@ export const getDailyTopArtistsService = async ({ date, limit = 9 }) => {
     },
   });
 
+  const payload = response?.data?.data;
+  const topArtists = Array.isArray(payload?.topArtists)
+    ? payload.topArtists
+        .map(normalizeDailyTopArtistItem)
+        .filter((item) => item.artist.id)
+    : [];
+
   return {
-    topArtists: response.data.data.topArtists.map(normalizeDailyTopArtistItem),
-    meta: response.data.meta,
+    topArtists,
+    meta: response?.data?.meta || {},
   };
 };
 

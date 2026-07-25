@@ -304,7 +304,7 @@ const ArtistOverviewPage = () => {
         sectionEyebrow="Daily Streaming"
         sectionTitle="Thống kê stream theo ngày"
         sectionDescription={`Biểu đồ này thể hiện lượt stream và số người nghe duy nhất theo từng ngày trong ${selectedRangeLabel.toLowerCase()} gần nhất.`}
-        showTooltipListenValue={dailyMetric !== "streamCount"}
+        showTooltipListenValue={false}
         tooltipLabelFormatter={(value) =>
           formatDateLabel(value, {
             day: "2-digit",

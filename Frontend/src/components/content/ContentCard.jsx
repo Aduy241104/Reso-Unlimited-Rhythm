@@ -2,7 +2,7 @@ import { Play } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const cardClassName = `
-  group relative flex h-full cursor-pointer flex-col gap-1.5 rounded-[12px]
+  group relative flex h-full min-h-0 cursor-pointer flex-col gap-1.5 overflow-hidden rounded-[12px]
   p-1 text-left transition duration-300 sm:mt-2 sm:gap-3 sm:rounded-[9px] sm:p-2
   hover:-translate-y-1 hover:bg-[#f4f4f4] hover:shadow-[0_18px_40px_rgba(15,23,42,0.12)]
   dark:border-white/10 dark:hover:bg-[#222222]
@@ -67,7 +67,7 @@ const ContentCard = ({
         ) }
       </div>
 
-      <div className="flex min-h-[3.25rem] flex-col justify-center sm:min-h-[3.5rem]">
+      <div className="flex min-h-[3.25rem] flex-1 flex-col justify-center sm:min-h-[3.5rem]">
         <h3 className="truncate text-[13px] font-semibold text-[#18181b] dark:text-white sm:text-base">
           { title }
         </h3>

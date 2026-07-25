@@ -13,12 +13,25 @@ import PremiumPaymentResultScreen from '../screens/premium/PremiumPaymentResultS
 import PaymentHistoryScreen from '../screens/Payment/PaymentHistoryScreen';
 import PaymentDetailScreen from '../screens/Payment/PaymentDetailScreen';
 import TrackLyricsScreen from '../screens/player/TrackLyricsScreen';
+import theme from '../theme';
 
 const Stack = createNativeStackNavigator();
 
 export const MainNavigator = () => {
   return (
-    <Stack.Navigator initialRouteName="MainTabs" screenOptions={{ headerShown: false }}>
+    <Stack.Navigator
+      initialRouteName="MainTabs"
+      screenOptions={{
+        headerShown: false,
+        headerStyle: { backgroundColor: theme.colors.background },
+        headerTintColor: theme.colors.text,
+        headerTitleStyle: {
+          fontSize: 18,
+          fontWeight: theme.typography.weights.bold,
+        },
+        headerShadowVisible: false,
+      }}
+    >
       <Stack.Screen name="MainTabs" component={BottomTabNavigator} />
       <Stack.Screen
         name="Login"

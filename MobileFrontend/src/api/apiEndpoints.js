@@ -28,6 +28,7 @@ export const API_ENDPOINTS = {
   },
   ARTISTS: {
     DETAIL: '/browse/artists',
+    TOP_DAILY: '/browse/artists/top/daily',
     TOP_MONTHLY: '/browse/artists/top/monthly',
   },
   GENRES: {
@@ -71,5 +72,8 @@ export const API_ENDPOINTS = {
   LIBRARY: {
     FOLLOWED_ARTISTS: '/libary/followed-artists',
     FOLLOWED_ALBUMS: '/libary/followed-albums',
+  },
+  RECOMMENDATIONS: {
+    DAILY_MIXES: '/recommendations/daily-mixes',
   },
 };

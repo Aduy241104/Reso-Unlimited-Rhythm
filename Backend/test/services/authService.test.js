@@ -25,6 +25,10 @@ const mockUserModel = {
     create: jest.fn(),
 };
 
+const mockArtistModel = {
+    findOne: jest.fn(),
+};
+
 const mockRefreshTokenModel = {
     findOne: jest.fn(),
     create: jest.fn(),
@@ -46,6 +50,8 @@ const mockBuildResetLink = jest.fn();
 const mockGenerateOtp = jest.fn();
 
 const mockAuthenticationService = {
+    requestRegistrationOtp: jest.fn(),
+    completeRegistration: jest.fn(),
     login: jest.fn(),
     googleLogin: jest.fn(),
     refreshToken: jest.fn(),
@@ -70,6 +76,21 @@ const createUser = (overrides = {}) => ({
     updatedAt: new Date("2026-05-10T00:00:00.000Z"),
     password: "hashed-password",
     ...overrides,
+});
+
+const createSavableUser = (overrides = {}) => ({
+    ...createUser(overrides),
+    save: jest.fn().mockResolvedValue(true),
+});
+
+const createArtistStatusQuery = (artist) => ({
+    select: jest.fn().mockReturnValue({
+        lean: jest.fn().mockResolvedValue(artist),
+    }),
+});
+
+const createVerificationTokenQuery = (token) => ({
+    sort: jest.fn().mockResolvedValue(token),
 });
 
 const createResponse = () => {
@@ -117,6 +138,9 @@ const loadAuthenticationService = async () => {
     }));
     jest.unstable_mockModule("../../src/models/User.js", () => ({
         default: mockUserModel,
+    }));
+    jest.unstable_mockModule("../../src/models/Artist.js", () => ({
+        default: mockArtistModel,
     }));
     jest.unstable_mockModule("../../src/models/RefreshToken.js", () => ({
         default: mockRefreshTokenModel,
@@ -384,6 +408,36 @@ describe("authenticationService.login", () => {
         expect(mockRefreshTokenModel.create).not.toHaveBeenCalled();
     });
 
+    test("allows login when the artist profile is blocked", async () => {
+        const artistUser = createUser({
+            role: "artist",
+        });
+        mockUserModel.findOne.mockResolvedValue(artistUser);
+        mockBcrypt.compare.mockResolvedValue(true);
+        mockRefreshTokenModel.updateMany.mockResolvedValue({
+            acknowledged: true,
+            modifiedCount: 1,
+        });
+        mockRefreshTokenModel.create.mockResolvedValue({
+            token: "refresh-token",
+        });
+
+        const result = await authenticationService.login({
+            email: "member@example.com",
+            password: "Secret123",
+        });
+
+        expect(mockArtistModel.findOne).not.toHaveBeenCalled();
+        expect(result).toMatchObject({
+            accessToken: "access-token",
+            refreshToken: "refresh-token",
+            user: {
+                id: "user-123",
+                role: "artist",
+            },
+        });
+    });
+
     test("creates an isolated mobile session without affecting web session lookup", async () => {
         const user = createUser();
         mockUserModel.findOne.mockResolvedValue(user);
@@ -416,6 +470,159 @@ describe("authenticationService.login", () => {
             token: "refresh-token",
             expiresAt: expect.any(Date),
             isRevoked: false,
+        });
+    });
+});
+
+describe("authenticationService.requestRegistrationOtp", () => {
+    let authenticationService;
+
+    beforeEach(async () => {
+        jest.clearAllMocks();
+        mockGenerateOtp.mockReturnValue("123456");
+        mockBcrypt.hash.mockResolvedValue("hashed-pending-password");
+        mockCrypto.randomBytes
+            .mockReturnValueOnce(createRandomBytesBuffer("pending-password-seed"))
+            .mockReturnValueOnce(createRandomBytesBuffer("verify-email-token"));
+
+        ({ authenticationService } = await loadAuthenticationService());
+    });
+
+    test("creates an inactive pending user before sending register OTP", async () => {
+        mockUserModel.findOne.mockResolvedValue(null);
+        mockUserModel.create.mockResolvedValue(
+            createSavableUser({
+                _id: "pending-user-1",
+                email: "newmember@example.com",
+                activeStatus: "inactive",
+                emailVerified: false,
+                authProvider: "local",
+            })
+        );
+        mockVerificationTokenModel.findOne.mockReturnValue(
+            createVerificationTokenQuery(null)
+        );
+        mockVerificationTokenModel.create.mockResolvedValue({
+            _id: "verify-token-1",
+        });
+
+        const result = await authenticationService.requestRegistrationOtp({
+            email: " NewMember@Example.com ",
+        });
+
+        expect(mockUserModel.findOne).toHaveBeenCalledWith({
+            email: "newmember@example.com",
+        });
+        expect(mockUserModel.create).toHaveBeenCalledWith({
+            email: "newmember@example.com",
+            password: "hashed-pending-password",
+            activeStatus: "inactive",
+            emailVerified: false,
+        });
+        expect(mockVerificationTokenModel.create).toHaveBeenCalledWith({
+            userId: "pending-user-1",
+            email: "newmember@example.com",
+            otp: "123456",
+            token: "verify-email-token",
+            type: "verify_email",
+            expiresAt: expect.any(Date),
+            isUsed: false,
+        });
+        expect(mockMailer.sendOtpEmail).toHaveBeenCalledWith({
+            to: "newmember@example.com",
+            code: "123456",
+            type: "register",
+            ttlMinutes: 5,
+        });
+        expect(result).toEqual({
+            email: "newmember@example.com",
+            expiresInMinutes: 5,
+            resendAfterSeconds: 60,
+        });
+    });
+});
+
+describe("authenticationService.completeRegistration", () => {
+    let authenticationService;
+
+    beforeEach(async () => {
+        jest.clearAllMocks();
+        mockBcrypt.hash.mockResolvedValue("hashed-user-password");
+
+        ({ authenticationService } = await loadAuthenticationService());
+    });
+
+    test("activates the pending registration user after OTP verification", async () => {
+        const pendingUser = createSavableUser({
+            _id: "pending-user-1",
+            email: "newmember@example.com",
+            activeStatus: "inactive",
+            emailVerified: false,
+            authProvider: "local",
+            blockReason: "old reason",
+            profile: {
+                fullName: "",
+                gender: "prefer_not_to_say",
+                country: "",
+            },
+        });
+        const verificationToken = {
+            _id: "verify-token-1",
+            userId: "pending-user-1",
+            email: "newmember@example.com",
+            otp: "123456",
+            expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+            isUsed: false,
+            save: jest.fn().mockResolvedValue(true),
+        };
+
+        mockVerificationTokenModel.findOne.mockReturnValue(
+            createVerificationTokenQuery(verificationToken)
+        );
+        mockUserModel.findById.mockResolvedValue(pendingUser);
+
+        const result = await authenticationService.completeRegistration({
+            email: "newmember@example.com",
+            otp: "123456",
+            password: "Secret123",
+            fullName: "New Member",
+            gender: "female",
+            country: "VN",
+        });
+
+        expect(mockUserModel.findById).toHaveBeenCalledWith("pending-user-1");
+        expect(mockUserModel.create).not.toHaveBeenCalled();
+        expect(pendingUser.password).toBe("hashed-user-password");
+        expect(pendingUser.emailVerified).toBe(true);
+        expect(pendingUser.activeStatus).toBe("active");
+        expect(pendingUser.blockReason).toBe("");
+        expect(pendingUser.profile).toEqual({
+            fullName: "New Member",
+            gender: "female",
+            dateOfBirth: undefined,
+            country: "VN",
+        });
+        expect(pendingUser.save).toHaveBeenCalled();
+        expect(verificationToken.userId).toBe("pending-user-1");
+        expect(verificationToken.isUsed).toBe(true);
+        expect(verificationToken.save).toHaveBeenCalled();
+        expect(mockVerificationTokenModel.deleteMany).toHaveBeenCalledWith({
+            email: "newmember@example.com",
+            type: "verify_email",
+            _id: { $ne: "verify-token-1" },
+        });
+        expect(result).toEqual({
+            user: expect.objectContaining({
+                id: "pending-user-1",
+                email: "newmember@example.com",
+                activeStatus: "active",
+                profile: {
+                    fullName: "New Member",
+                    gender: "female",
+                    dateOfBirth: undefined,
+                    country: "VN",
+                },
+            }),
         });
     });
 });
@@ -577,6 +784,45 @@ describe("authenticationService.googleLogin", () => {
         expect(mockRefreshTokenModel.updateMany).not.toHaveBeenCalled();
         expect(mockRefreshTokenModel.create).not.toHaveBeenCalled();
     });
+
+    test("allows Google login when the existing artist profile is blocked", async () => {
+        mockGoogleAuthClient.verifyIdToken.mockResolvedValue(
+            createGoogleTicket({
+                sub: "google-user-artist-1",
+                email: "artist@example.com",
+                email_verified: true,
+                iss: "https://accounts.google.com",
+                exp: Math.floor(Date.now() / 1000) + 3600,
+            })
+        );
+        mockUserModel.findOne.mockResolvedValue(
+            createUser({
+                email: "artist@example.com",
+                role: "artist",
+            })
+        );
+        mockRefreshTokenModel.updateMany.mockResolvedValue({
+            acknowledged: true,
+            modifiedCount: 1,
+        });
+        mockRefreshTokenModel.create.mockResolvedValue({
+            token: "refresh-token",
+        });
+
+        const result = await authenticationService.googleLogin({
+            token: "google-id-token",
+        });
+
+        expect(mockArtistModel.findOne).not.toHaveBeenCalled();
+        expect(result).toMatchObject({
+            accessToken: "access-token",
+            refreshToken: "refresh-token",
+            user: {
+                email: "artist@example.com",
+                role: "artist",
+            },
+        });
+    });
 });
 
 describe("authenticationService.refreshToken", () => {
@@ -626,6 +872,38 @@ describe("authenticationService.refreshToken", () => {
             refreshToken: "new-refresh-token",
             user: {
                 id: "user-123",
+            },
+        });
+    });
+
+    test("rotates refresh token when it belongs to an artist with a blocked artist profile", async () => {
+        const artistUser = createUser({
+            role: "artist",
+        });
+        const storedToken = {
+            userId: artistUser,
+            token: "artist-refresh-token",
+            expiresAt: new Date(Date.now() + 60 * 1000),
+            save: jest.fn().mockResolvedValue(true),
+        };
+
+        mockRefreshTokenModel.findOne.mockReturnValue({
+            populate: jest.fn().mockResolvedValue(storedToken),
+        });
+
+        const result = await authenticationService.refreshToken({
+            token: "artist-refresh-token",
+            clientType: "web",
+        });
+
+        expect(mockArtistModel.findOne).not.toHaveBeenCalled();
+        expect(storedToken.save).toHaveBeenCalled();
+        expect(result).toMatchObject({
+            accessToken: "new-access-token",
+            refreshToken: "new-refresh-token",
+            user: {
+                id: "user-123",
+                role: "artist",
             },
         });
     });

@@ -3,8 +3,6 @@ import artistController from "../controllers/artistBrowse.controller.js";
 import artistBrowseValidation from "../middlewares/artistBrowse.validation.js";
 import validate from "../middlewares/validate.middleware.js";
 import authenticate, { requireUser } from "../middlewares/Authentication/authentication.middleware.js";
-
-
 const router = express.Router();
 
 router.get(
@@ -19,9 +17,21 @@ router.get(
     artistController.getMonthlyTopArtists
 );
 
-router.post("/:id/follow", authenticate(["user", "artist"]), artistController.followArtist);
-router.delete("/:id/follow", authenticate(["user", "artist"]), artistController.unfollowArtist);
-router.patch("/:id/follow/toggle", authenticate(["user", "artist"]), artistController.toggleFollowArtist);
+router.post(
+    "/:id/follow",
+    authenticate(["user", "artist"]),
+    artistController.followArtist
+);
+router.delete(
+    "/:id/follow",
+    authenticate(["user", "artist"]),
+    artistController.unfollowArtist
+);
+router.patch(
+    "/:id/follow/toggle",
+    authenticate(["user", "artist"]),
+    artistController.toggleFollowArtist
+);
 
 router.get("/:id/profile", artistController.getArtistProfile);
 router.get("/:id/albums", artistController.getArtistAlbums);

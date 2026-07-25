@@ -20,6 +20,7 @@ import PlayButton from "../../components/common/PlayButton";
 import TrackCard from "../../components/TrackCard";
 import TrackListSection from "../../components/trackList/TrackListSection";
 import { usePlayer } from "../../hooks/usePlayer";
+import useDominantColorGradient from "../../hooks/useDominantColorGradient";
 import { routePaths } from "../../routes/routePaths";
 import {
   addTrackToUserPlaylist,
@@ -34,6 +35,7 @@ import {
   formatPlaylistDate,
   formatPlaylistDuration,
 } from "../../utils/playlistDetail";
+import { isBlockedTrack } from "../../utils/trackStatus";
 
 const actionButtonClassName = `
   inline-flex h-10 w-10 items-center justify-center rounded-full border border-black/8
@@ -407,6 +409,7 @@ const UserPlaylistDetailPage = () => {
     formatPlaylistDuration(getTotalDurationSeconds(trackItems));
   const createdDate = formatPlaylistDate(playlist?.createdAt);
   const playlistCoverImage = playlist?.coverImage ?? "";
+  const headerGradient = useDominantColorGradient(playlistCoverImage);
   const playlistTitle = getPlaylistTitle(playlist);
   const playlistDescription = getPlaylistDescription(playlist);
   const currentPlaylistId = getPlaylistIdValue(playlist);
@@ -491,7 +494,7 @@ const UserPlaylistDetailPage = () => {
   };
 
   const handlePlayTrack = async (track, index) => {
-    if (!track) {
+    if (!track || isBlockedTrack(track)) {
       return;
     }
 
@@ -563,7 +566,12 @@ const UserPlaylistDetailPage = () => {
     const targetPlaylistId = getPlaylistIdValue(targetPlaylist);
     const trackId = getTrackId(track);
 
-    if (!targetPlaylistId || !trackId || submittingTrackActionId) {
+    if (
+      !targetPlaylistId ||
+      !trackId ||
+      submittingTrackActionId ||
+      isBlockedTrack(track)
+    ) {
       return;
     }
 
@@ -617,7 +625,7 @@ const UserPlaylistDetailPage = () => {
   const handleToggleTrackQueue = async (track) => {
     const trackId = getTrackId(track);
 
-    if (!trackId || submittingTrackActionId) {
+    if (!trackId || submittingTrackActionId || isBlockedTrack(track)) {
       return;
     }
 
@@ -656,7 +664,7 @@ const UserPlaylistDetailPage = () => {
   const handleOpenRemoveTrackModal = (track) => {
     const trackId = getTrackId(track);
 
-    if (!trackId) {
+    if (!trackId || isBlockedTrack(track)) {
       return;
     }
 
@@ -811,11 +819,8 @@ const UserPlaylistDetailPage = () => {
         "
       >
         <div
-          className="
-            bg-gradient-to-b from-[#0f766e] via-[#134e4a] to-transparent
-            px-4 pb-5 pt-6 dark:from-[#14b8a6] dark:via-[#115e59] dark:to-[#121212]
-            sm:px-8 sm:pb-8 sm:pt-10
-          "
+          className="px-4 pb-5 pt-6 transition-[background-image] duration-500 sm:px-8 sm:pb-8 sm:pt-10"
+          style={{ backgroundImage: headerGradient }}
         >
           {isLoading ? (
             <div className="flex min-h-[20rem] items-end">
@@ -983,6 +988,7 @@ const UserPlaylistDetailPage = () => {
               const isTrackMenuOpen = openTrackMenuId === trackActionKey;
               const queuedTrackIndex = getQueuedTrackIndex(track);
               const isTrackQueued = queuedTrackIndex >= 0;
+              const isTrackBlocked = isBlockedTrack(trackItem);
               const isSubmittingQueueAction =
                 submittingTrackActionId === `queue:${trackId}`;
 
@@ -998,6 +1004,7 @@ const UserPlaylistDetailPage = () => {
                   duration={formatTrackDuration(track?.duration)}
                   explicit={false}
                   liked={false}
+                  isBlocked={isTrackBlocked}
                   href={trackId ? routePaths.trackDetail(trackId) : undefined}
                   isPlaybackActive={currentTrack?.id === trackId}
                   isPlaying={isPlaying}
@@ -1010,7 +1017,7 @@ const UserPlaylistDetailPage = () => {
                       content: formatTrackDuration(track?.duration),
                     },
                     {
-                      content: (
+                      content: isTrackBlocked ? null : (
                         <div
                           ref={isTrackMenuOpen ? trackMenuRef : null}
                           className="relative flex items-center justify-end"

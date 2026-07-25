@@ -17,6 +17,7 @@
     "axios": "^1.13.2",
     "caniuse-lite": "^1.0.30001792",
     "chart.js": "^4.5.1",
+    "colorthief": "^3.4.0",
     "liricle": "^4.2.0",
     "lucide-react": "^0.554.0",
     "react": "^19.2.0",
