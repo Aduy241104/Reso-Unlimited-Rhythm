@@ -1,7 +1,17 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Text, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  Image,
+} from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { useForm, Controller } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as Google from 'expo-auth-session/providers/google';
 import * as AuthSession from 'expo-auth-session';
@@ -11,9 +21,22 @@ import { loginSchema } from '../../validations/authValidation';
 import { useAuth } from '../../hooks/useAuth';
 import AppInput from '../../components/common/AppInput';
 import AppButton from '../../components/common/AppButton';
-import theme from '../../theme';
+import appLogo from '../../../assets/reso-logo.png';
+import authBg from '../../../assets/auth-bg.png';
 
 WebBrowser.maybeCompleteAuthSession();
+
+const navigateToHome = (navigation) => {
+  navigation.reset({
+    index: 0,
+    routes: [
+      {
+        name: 'MainTabs',
+        params: { screen: 'Home' },
+      },
+    ],
+  });
+};
 
 const buildGoogleProxyRedirectUri = () => {
   const owner = process.env.EXPO_PUBLIC_EXPO_OWNER || '';
@@ -27,11 +50,7 @@ const buildGoogleProxyRedirectUri = () => {
 };
 
 const buildExpoProxyStartUrl = ({ authUrl, proxyRedirectUri, returnUrl }) => {
-  const query = new URLSearchParams({
-    authUrl,
-    returnUrl,
-  }).toString();
-
+  const query = new URLSearchParams({ authUrl, returnUrl }).toString();
   return `${proxyRedirectUri}/start?${query}`;
 };
 
@@ -39,15 +58,12 @@ export const LoginScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { login, googleLogin } = useAuth();
-  const [errorMsg, setErrorMsg] = useState(null);
+  const [errorMsg, setErrorMsg] = useState('');
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
   const notice = route.params?.notice;
   const googleClientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '';
   const googleRedirectUri = buildGoogleProxyRedirectUri();
   const googleRequestRedirectUri = googleRedirectUri || 'https://auth.expo.io/@expo-username/MobileFrontend';
-
-  console.log('GOOGLE REDIRECT URI:', googleRedirectUri);
-  console.log('Google Client ID đang dùng:', googleClientId);
 
   const [googleRequest] = Google.useAuthRequest({
     clientId: googleClientId || 'missing-google-client-id',
@@ -58,44 +74,42 @@ export const LoginScreen = () => {
     selectAccount: true,
   });
 
-  const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm({
+  const {
+    control,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm({
     resolver: yupResolver(loginSchema),
     defaultValues: { email: '', password: '' },
   });
 
   const onSubmit = async (data) => {
     try {
-      setErrorMsg(null);
-      await login(data.email, data.password);
-
-      if (navigation.canGoBack()) {
-        navigation.goBack();
-        return;
-      }
-
-      navigation.navigate('MainTabs');
+      setErrorMsg('');
+      await login(data.email.trim().toLowerCase(), data.password);
+      navigateToHome(navigation);
     } catch (err) {
-      setErrorMsg(err.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
+      setErrorMsg(err?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
     }
   };
 
   const handleGoogleLogin = async () => {
     if (!googleClientId) {
-      setErrorMsg('Google login is not configured.');
+      setErrorMsg('Google login chưa được cấu hình.');
       return;
     }
 
     if (!googleRedirectUri) {
-      setErrorMsg('Google redirect URI is not configured. Set EXPO_PUBLIC_EXPO_OWNER to your Expo username.');
+      setErrorMsg('Google redirect URI chưa được cấu hình.');
       return;
     }
 
     try {
-      setErrorMsg(null);
+      setErrorMsg('');
       setIsGoogleSubmitting(true);
 
       if (!googleRequest?.url) {
-        setErrorMsg('Google login is not ready yet. Please try again.');
+        setErrorMsg('Google login chưa sẵn sàng. Thử lại sau nhé.');
         return;
       }
 
@@ -106,438 +120,349 @@ export const LoginScreen = () => {
         returnUrl,
       });
 
-      console.log('GOOGLE PROXY START URL:', proxyStartUrl);
-      console.log('GOOGLE RETURN URL:', returnUrl);
-
       const browserResult = await WebBrowser.openAuthSessionAsync(proxyStartUrl, returnUrl);
       const result =
         browserResult.type === 'success'
           ? googleRequest.parseReturnUrl(browserResult.url)
           : browserResult;
 
-      console.log('Google response:', result);
-
       if (result.type === 'cancel' || result.type === 'dismiss') {
         return;
       }
 
       if (result.type !== 'success') {
-        setErrorMsg(result.params?.error_description || 'Google login was not completed.');
+        setErrorMsg(result.params?.error_description || 'Google login chưa hoàn tất.');
         return;
       }
 
       const idToken = result.params?.id_token;
       if (!idToken) {
-        setErrorMsg('Google did not return an ID token.');
+        setErrorMsg('Google không trả về ID token.');
         return;
       }
 
       await googleLogin(idToken);
-
-      if (navigation.canGoBack()) {
-        navigation.goBack();
-        return;
-      }
-
-      navigation.navigate('MainTabs');
+      navigateToHome(navigation);
     } catch (err) {
-      setErrorMsg(err.message || 'Google authentication failed. Please try again.');
+      setErrorMsg(err?.message || 'Đăng nhập Google thất bại. Vui lòng thử lại.');
     } finally {
       setIsGoogleSubmitting(false);
     }
   };
 
-  // Các thanh sóng nhạc tượng trưng giả lập từ bản Web
-  const waveBars = [6, 12, 18, 28, 40, 28, 18, 12, 6, 8, 12, 18, 34, 22, 12, 6];
-
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <StatusBar barStyle="light-content" backgroundColor="#0f0f14" />
-      
-      {/* Các đốm sáng Neon chạy ngầm phía sau (Glow Effect) */}
-      <View style={styles.glowLeft} />
-      <View style={styles.glowRight} />
-
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        
-        {/* KHỐI BRANDING ĐẬM CHẤT MUSIC */}
-        <View style={styles.headerContainer}>
-          <Text style={styles.tagline}>KHÔNG GIAN ÂM THANH</Text>
-          <Text style={styles.mainTitle}>CẢM NHẬN</Text>
-          <Text style={styles.gradientTextPlaceholder}>NHỊP ĐIỆU</Text>
-          <Text style={styles.description}>Âm nhạc là tiếng nói của tâm hồn.</Text>
-        </View>
-
-        {/* ĐỒNG BỘ DẢI SÓNG NHẠC (WAVE BARS) TỪ WEB XUỐNG MOBILE */}
-        <View style={styles.waveContainer}>
-          <View style={styles.waveLine} />
-          <View style={styles.waveBarWrapper}>
-            {waveBars.map((height, index) => (
-              <View 
-                key={index} 
-                style={[
-                  styles.waveBar, 
-                  { 
-                    height: height * 0.7, // Thu nhỏ một chút để vừa vặn màn hình dọc mobile
-                    backgroundColor: index < 9 ? '#ff9f43' : '#9b6cff' 
-                  }
-                ]} 
-              />
-            ))}
-          </View>
-          <View style={styles.waveLine} />
-        </View>
-
-        {/* KHỐI FORM ĐĂNG NHẬP TRẮNG NỔI BẬT TRÊN NỀN TỐI (GIỐNG ẢNH WEB) */}
-        <View style={styles.card}>
-          <Text style={styles.subBrand}>RESO MUSIC</Text>
-          <Text style={styles.cardTitle}>Đăng nhập</Text>
-          <Text style={styles.cardSubtitle}>Đăng nhập để tiếp tục hành trình âm nhạc của bạn.</Text>
-
-          {errorMsg && (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorText}>{errorMsg}</Text>
-            </View>
-          )}
-
-          {notice && !errorMsg && (
-            <View style={styles.successBox}>
-              <Text style={styles.successText}>{notice}</Text>
-            </View>
-          )}
-
-          <Controller
-            control={control}
-            name="email"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <AppInput
-                label="Email"
-                placeholder="Địa chỉ email"
-                autoCapitalize="none"
-                keyboardType="email-address"
-                onBlur={onBlur}
-                onChangeText={onChange}
-                value={value}
-                error={errors.email?.message}
-                inputStyle={styles.customInput}
-                labelStyle={styles.customLabel}
-                wrapperStyle={styles.customInputWrapper}
-              />
-            )}
-          />
-
-          <Controller
-            control={control}
-            name="password"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <AppInput
-                label="Mật khẩu"
-                placeholder="Mật khẩu"
-                secureTextEntry
-                autoCapitalize="none"
-                onBlur={onBlur}
-                onChangeText={onChange}
-                value={value}
-                error={errors.password?.message}
-                inputStyle={styles.customInput}
-                labelStyle={styles.customLabel}
-                wrapperStyle={styles.customInputWrapper}
-              />
-            )}
-          />
-
-          {/* NÚT SIGN IN CHUYỂN SẮC CAM CHÁY */}
-          <AppButton 
-            title="Đăng nhập" 
-            onPress={handleSubmit(onSubmit)} 
-            isLoading={isSubmitting} 
-            buttonStyle={styles.signInBtn}
-            textStyle={styles.signInBtnText}
-          />
-
-          <View style={styles.dividerContainer}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>HOẶC TIẾP TỤC VỚI</Text>
-            <View style={styles.dividerLine} />
+      <StatusBar barStyle="light-content" backgroundColor="#070a12" />
+      <View style={styles.background}>
+        <Image source={authBg} style={styles.bgArtwork} resizeMode="contain" />
+        <View style={styles.overlay} />
+        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+          <View style={styles.hero}>
+            <Image source={appLogo} style={styles.logo} resizeMode="cover" />
+            <Text style={styles.brandText}>RESO MUSIC</Text>
+            <Text style={styles.heroTitle}>Feel the rhythm</Text>
+            <Text style={styles.heroText}>Đăng nhập để giữ nhịp nghe nhạc của riêng bạn.</Text>
           </View>
 
-          {/* NÚT GOOGLE GIẢ LẬP GIAO DIỆN WEB */}
-          <TouchableOpacity
-            style={[styles.googleBtn, (!googleRequest || isGoogleSubmitting) && styles.googleBtnDisabled]}
-            activeOpacity={0.8}
-            disabled={!googleRequest || isGoogleSubmitting}
-            onPress={handleGoogleLogin}
-          >
-            <Text style={styles.googleBtnText}>
-              {isGoogleSubmitting ? 'Connecting to Google...' : 'Continue with Google'}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.card}>
+            <View style={styles.cardHandle} />
+            <Text style={styles.title}>Đăng nhập</Text>
+            <Text style={styles.subtitle}>Chào mừng quay lại.</Text>
 
-          {/* FOOTER CHUYỂN ĐIỀU HƯỚNG */}
-          <View style={styles.footerLinks}>
+            {errorMsg ? (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorText}>{errorMsg}</Text>
+              </View>
+            ) : null}
 
-            <Text style={styles.footerText}>Chưa có tài khoản? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.linkTextBold}>Tạo ngay</Text>
+            {notice && !errorMsg ? (
+              <View style={styles.successBox}>
+                <Text style={styles.successText}>{notice}</Text>
+              </View>
+            ) : null}
+
+            <Controller
+              control={control}
+              name="email"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <AppInput
+                  label="Email"
+                  placeholder="you@example.com"
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                  error={errors.email?.message}
+                  inputStyle={styles.input}
+                  labelStyle={styles.label}
+                  wrapperStyle={styles.inputWrapper}
+                />
+              )}
+            />
+
+            <Controller
+              control={control}
+              name="password"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <AppInput
+                  label="Mật khẩu"
+                  placeholder="Nhập mật khẩu"
+                  secureTextEntry
+                  autoCapitalize="none"
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                  error={errors.password?.message}
+                  inputStyle={styles.input}
+                  labelStyle={styles.label}
+                  wrapperStyle={styles.inputWrapper}
+                />
+              )}
+            />
+
+            <TouchableOpacity style={styles.forgotBtn} onPress={() => navigation.navigate('ForgotPassword')}>
+              <Text style={styles.linkText}>Quên mật khẩu?</Text>
             </TouchableOpacity>
-          </View>
-          <TouchableOpacity
-            style={styles.forgotBtn}
-            onPress={() => navigation.navigate('ForgotPassword')}
-          >
-            <Text style={styles.linkTextSmall}>Quên mật khẩu?</Text>
-          </TouchableOpacity>
-        </View>
 
-      </ScrollView>
+            <AppButton
+              title="Đăng nhập"
+              onPress={handleSubmit(onSubmit)}
+              isLoading={isSubmitting}
+              buttonStyle={styles.primaryBtn}
+              textStyle={styles.primaryBtnText}
+            />
+
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>hoặc</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.googleBtn, (!googleRequest || isGoogleSubmitting) && styles.disabledBtn]}
+              activeOpacity={0.85}
+              disabled={!googleRequest || isGoogleSubmitting}
+              onPress={handleGoogleLogin}
+            >
+              <Text style={styles.googleBtnText}>
+                {isGoogleSubmitting ? 'Đang kết nối Google...' : 'Tiếp tục với Google'}
+              </Text>
+            </TouchableOpacity>
+
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>Chưa có tài khoản? </Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+                <Text style={styles.linkText}>Tạo ngay</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
     </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: '#0f0f14' // Nền tối huyền ảo khớp bản Web
-  },
-  scroll: { 
-    flexGrow: 1, 
-    justifyContent: 'center', 
-    paddingHorizontal: 24,
-    paddingVertical: 40
-  },
-  // Hiệu ứng phát sáng Neon phía sau background
-  glowLeft: {
-    position: 'absolute',
-    top: '10%',
-    left: '-20%',
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: 'rgba(255, 159, 67, 0.15)',
-    verticalAlign: 'middle',
-    shadowBlur: 100,
-    zIndex: 0,
-  },
-  glowRight: {
-    position: 'absolute',
-    bottom: '5%',
-    right: '-20%',
-    width: 250,
-    height: 250,
-    borderRadius: 125,
-    backgroundColor: 'rgba(155, 108, 255, 0.08)',
-    zIndex: 0,
-  },
-  // Khối tiêu đề nhạc
-  headerContainer: {
-    alignItems: 'center',
-    marginBottom: 25,
-    zIndex: 1,
-  },
-  tagline: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#f5b66f',
-    letterSpacing: 3,
-    borderWidth: 1,
-    borderColor: 'rgba(245,182,177,0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    overflow: 'hidden',
-  },
-  mainTitle: {
-    fontSize: 42,
-    fontWeight: '900',
-    color: '#ffffff',
-    marginTop: 15,
-    letterSpacing: -1,
-  },
-  gradientTextPlaceholder: {
-    fontSize: 46,
-    fontWeight: '900',
-    color: '#ff9f43', // Thay cho dải gradient màu cam cháy đặc trưng
-    letterSpacing: 1,
-    lineHeight: 46,
-  },
-  description: {
-    fontSize: 16,
-    color: '#ece4da',
-    marginTop: 10,
-    fontStyle: 'italic',
-  },
-  // Khối sóng âm thanh
-  waveContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 30,
-    paddingHorizontal: 10,
-    zIndex: 1,
-  },
-  waveLine: {
+  container: {
     flex: 1,
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: '#070a12',
   },
-  waveBarWrapper: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    marginHorizontal: 10,
-    gap: 3,
+  background: {
+    flex: 1,
   },
-  waveBar: {
-    width: 3,
-    borderRadius: 2,
+  bgArtwork: {
+    position: 'absolute',
+    top: 38,
+    left: -86,
+    width: 560,
+    height: 560,
+    opacity: 0.78,
   },
-  // Khối Card trắng chứa form đăng nhập (Đồng bộ chuẩn Form ảnh của bạn)
-  card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 24,
-    shadowColor: '#ff9f43',
-    shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.15,
-    shadowRadius: 40,
-    elevation: 10,
-    zIndex: 1,
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(5, 7, 14, 0.5)',
   },
-  subBrand: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#f5b66f',
-    letterSpacing: 4,
-    marginBottom: 4,
+  scroll: {
+    flexGrow: 1,
+    justifyContent: 'flex-end',
+    paddingHorizontal: 16,
+    paddingTop: 34,
+    paddingBottom: 22,
   },
-  cardTitle: {
-    fontSize: 32,
+  hero: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  logo: {
+    width: 74,
+    height: 74,
+    borderRadius: 24,
+    marginBottom: 10,
+    backgroundColor: '#1a1624',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.22)',
+  },
+  brandText: {
+    color: '#f8fbff',
+    fontSize: 15,
     fontWeight: '900',
-    color: '#000000',
+    letterSpacing: 2,
   },
-  cardSubtitle: {
+  heroTitle: {
+    color: '#ffffff',
+    fontSize: 30,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+    marginTop: 16,
+    textTransform: 'uppercase',
+  },
+  heroText: {
+    maxWidth: 260,
+    color: '#f7d7b8',
     fontSize: 14,
-    color: '#4e4e4e',
-    marginTop: 6,
-    marginBottom: 20,
-    lineHeight: 20,
-  },
-  customLabel: {
-    color: '#000000',
     fontWeight: '600',
-    fontSize: 14,
-    marginBottom: 6,
+    lineHeight: 20,
+    marginTop: 6,
+    textAlign: 'center',
   },
-  customInput: {
-    color: '#1a1820',
+  card: {
+    backgroundColor: 'rgba(19, 18, 26, 0.78)',
+    borderRadius: 28,
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.14)',
+    shadowColor: '#ff8f2f',
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  cardHandle: {
+    alignSelf: 'center',
+    width: 46,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 184, 107, 0.5)',
+    marginBottom: 18,
+  },
+  title: {
+    color: '#fffaf5',
+    fontSize: 26,
+    fontWeight: '900',
+  },
+  subtitle: {
+    color: '#d7c8bd',
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 4,
+    marginBottom: 18,
+  },
+  label: {
+    color: '#fffaf5',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  inputWrapper: {
+    height: 50,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(255, 218, 185, 0.24)',
+    borderRadius: 18,
+  },
+  input: {
+    color: '#fffaf5',
     fontSize: 15,
   },
-  customInputWrapper: {
-    backgroundColor: '#f5f5f5',
-    borderColor: '#000000',
-    borderRadius: 25,
-    paddingHorizontal: 16,
-  },
-  signInBtn: {
-    backgroundColor: '#ff9f43',
-    borderRadius: 25,
-    paddingVertical: 14,
-    marginTop: 10,
-    shadowColor: '#ff9f43',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 5,
-  },
-  signInBtnText: {
-    color: '#ffffff',
-    fontWeight: '700',
-    fontSize: 16,
-  },
   errorBox: {
-    backgroundColor: 'rgba(251,113,133,0.1)',
+    backgroundColor: 'rgba(244, 63, 94, 0.16)',
     borderWidth: 1,
-    borderColor: 'rgba(251,113,133,0.2)',
-    borderRadius: 12,
+    borderColor: 'rgba(253, 164, 175, 0.35)',
+    borderRadius: 16,
     padding: 12,
-    marginBottom: 15,
+    marginBottom: 16,
   },
   errorText: {
-    color: '#e11d48',
+    color: '#fecdd3',
     fontSize: 13,
-    textAlign: 'center',
+    lineHeight: 18,
   },
   successBox: {
-    backgroundColor: 'rgba(16,185,129,0.1)',
+    backgroundColor: 'rgba(16, 185, 129, 0.16)',
     borderWidth: 1,
-    borderColor: 'rgba(16,185,129,0.25)',
-    borderRadius: 12,
+    borderColor: 'rgba(187, 247, 208, 0.3)',
+    borderRadius: 16,
     padding: 12,
-    marginBottom: 15,
+    marginBottom: 16,
   },
   successText: {
-    color: '#047857',
+    color: '#bbf7d0',
     fontSize: 13,
-    textAlign: 'center',
+    lineHeight: 18,
   },
-  dividerContainer: {
+  forgotBtn: {
+    alignSelf: 'flex-end',
+    marginTop: -4,
+    marginBottom: 14,
+  },
+  primaryBtn: {
+    height: 52,
+    backgroundColor: '#ff8a2a',
+    borderRadius: 18,
+  },
+  primaryBtnText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    my: 20,
-    marginVertical: 20,
+    marginVertical: 18,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(0,0,0,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.12)',
   },
   dividerText: {
-    fontSize: 10,
-    color: '#6b6573',
+    color: '#b9aeb8',
+    fontSize: 12,
     fontWeight: '700',
-    marginHorizontal: 10,
-    letterSpacing: 2,
+    marginHorizontal: 12,
   },
   googleBtn: {
+    height: 52,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.15)',
-    borderRadius: 25,
-    paddingVertical: 12,
+    borderColor: 'rgba(255, 218, 185, 0.24)',
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
-  googleBtnDisabled: {
+  disabledBtn: {
     opacity: 0.6,
   },
   googleBtnText: {
-    color: '#000000',
-    fontWeight: '600',
-    fontSize: 14,
+    color: '#fffaf5',
+    fontSize: 15,
+    fontWeight: '700',
   },
-  footerLinks: {
+  footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 25,
+    marginTop: 20,
   },
   footerText: {
+    color: '#d7c8bd',
     fontSize: 14,
-    color: '#6b6573',
   },
-  linkTextBold: {
+  linkText: {
+    color: '#ff7a1a',
     fontSize: 14,
-    fontWeight: '700',
-    color: '#000000',
-  },
-  forgotBtn: {
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  linkTextSmall: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6b6573',
+    fontWeight: '800',
   },
 });
 

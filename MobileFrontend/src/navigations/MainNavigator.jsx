@@ -27,6 +27,10 @@ export const MainNavigator = () => {
           headerShown: true,
           title: 'Đăng nhập',
           animation: 'slide_from_right',
+          headerTransparent: true,
+          headerStyle: { backgroundColor: 'transparent' },
+          headerTintColor: '#f8fbff',
+          headerShadowVisible: false,
         }}
       />
       <Stack.Screen
@@ -34,8 +38,12 @@ export const MainNavigator = () => {
         component={RegisterScreen}
         options={{
           headerShown: true,
-          title: 'Register',
+          title: 'Đăng ký',
           animation: 'slide_from_right',
+          headerTransparent: true,
+          headerStyle: { backgroundColor: 'transparent' },
+          headerTintColor: '#f8fbff',
+          headerShadowVisible: false,
         }}
       />
       <Stack.Screen
@@ -43,8 +51,12 @@ export const MainNavigator = () => {
         component={ForgotPasswordScreen}
         options={{
           headerShown: true,
-          title: 'Forgot Password',
+          title: 'Quên mật khẩu',
           animation: 'slide_from_right',
+          headerTransparent: true,
+          headerStyle: { backgroundColor: 'transparent' },
+          headerTintColor: '#f8fbff',
+          headerShadowVisible: false,
         }}
       />
       <Stack.Screen
