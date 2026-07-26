@@ -207,7 +207,8 @@ const ArtistTrackDetailPage = () => {
   );
 
   const status = statusMeta[track?.activeStatus] || statusMeta.draft;
-  const approval = approvalMeta[track?.approvalStatus] || approvalMeta.draft;
+  const displayApprovalStatus = track?.approvalStatus;
+  const approval = approvalMeta[displayApprovalStatus] || approvalMeta.draft;
   const releaseYear = formatReleaseYear(track?.releaseDate);
   const duration = formatTrackDuration(track?.duration);
   const genres = Array.isArray(track?.genres) ? track.genres : [];
@@ -620,7 +621,9 @@ const ArtistTrackDetailPage = () => {
                   </div>
                   <div className="flex items-center justify-between gap-4">
                     <span>Approval status</span>
-                    <span className={["inline-flex rounded-sm border px-2.5 py-1 text-xs font-medium capitalize", approval.className].join(" ")}>{track?.approvalStatus || "draft"}</span>
+                    <span className={["inline-flex rounded-sm border px-2.5 py-1 text-xs font-medium capitalize", approval.className].join(" ")}>
+                      {track?.approvalStatus || "draft"}
+                    </span>
                   </div>
                   {track?.blockedReason ? (
                     <div className="rounded-md border border-rose-200 bg-rose-50 p-3 text-rose-900">

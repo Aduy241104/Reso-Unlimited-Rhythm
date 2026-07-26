@@ -19,14 +19,9 @@ const CreateTrackForm = () => {
   const [formData, setFormData] = useState({
     title: "",
     versionTitle: "",
-    duration: "",
-    avatar: "",
-    coverImage: [],
     lyricsStatic: "",
-    album_albumId: "",
     genreIds: [],
   });
-
   const [audioFile, setAudioFile] = useState(null);
   const [coverImages, setCoverImages] = useState([]);
   const [avatarFile, setAvatarFile] = useState(null);
@@ -35,10 +30,7 @@ const CreateTrackForm = () => {
   const [uploadingQualities, setUploadingQualities] = useState(false);
   const [uploadedQualities, setUploadedQualities] = useState([]);
   const [uploadedAudioAnalysis, setUploadedAudioAnalysis] = useState(null);
-  const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const [albums, setAlbums] = useState([]);
-  const [albumsLoading, setAlbumsLoading] = useState(true);
   const [genres, setGenres] = useState([]);
   const [genresLoading, setGenresLoading] = useState(true);
   const [genresOpen, setGenresOpen] = useState(false);
@@ -46,29 +38,12 @@ const CreateTrackForm = () => {
   const [fieldErrors, setFieldErrors] = useState({});
 
   useEffect(() => {
-    const fetchAlbums = async () => {
-      try {
-        const response = await trackService.getArtistAlbums();
-        if (response.success) {
-          setAlbums(response.data.albums || []);
-        }
-      } catch (error) {
-        console.error("Failed to fetch albums:", error);
-      } finally {
-        setAlbumsLoading(false);
-      }
-    };
-
-    fetchAlbums();
-  }, []);
-
-  useEffect(() => {
     const fetchGenres = async () => {
       try {
         const list = await genreService.getGenresService();
         setGenres(Array.isArray(list) ? list : []);
       } catch (error) {
-        console.error("Failed to fetch genres:", error);
+        console.error("Không thể tải danh sách thể loại:", error);
         setGenres([]);
       } finally {
         setGenresLoading(false);
@@ -78,53 +53,47 @@ const CreateTrackForm = () => {
     fetchGenres();
   }, []);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
+  const handleInputChange = (event) => {
+    const { name, value } = event.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "duration" ? parseFloat(value) || "" : value,
+      [name]: value,
     }));
   };
 
-  const handleAudioFileChange = (e) => {
-    const file = e.target.files?.[0] ?? null;
+  const handleAudioFileChange = (event) => {
+    const file = event.target.files?.[0] ?? null;
     setAudioFile(file);
     setUploadedQualities([]);
     setUploadedAudioAnalysis(null);
   };
 
-  const handleCoverImagesChange = (e) => {
-    const files = Array.from(e.target.files);
+  const handleCoverImagesChange = (event) => {
+    const files = Array.from(event.target.files || []);
     setCoverImages((prev) => [...prev, ...files]);
   };
 
-  const handleAvatarChange = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setAvatarFile(file);
-    }
+  const handleAvatarChange = (event) => {
+    const file = event.target.files?.[0] ?? null;
+    setAvatarFile(file);
   };
 
-  const handleLyricsSyncChange = (e) => {
-    const file = e.target.files?.[0] ?? null;
+  const handleLyricsSyncChange = (event) => {
+    const file = event.target.files?.[0] ?? null;
     setLyricsSyncFile(file);
   };
 
   const handleRemoveCoverImage = (index) => {
-    setCoverImages((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleRemoveAvatar = () => {
-    setAvatarFile(null);
+    setCoverImages((prev) => prev.filter((_, currentIndex) => currentIndex !== index));
   };
 
   const handleGenreToggle = (genreId) => {
-    const id = String(genreId);
+    const nextGenreId = String(genreId);
     setFormData((prev) => {
-      if (prev.genreIds.includes(id)) {
+      if (prev.genreIds.includes(nextGenreId)) {
         return {
           ...prev,
-          genreIds: prev.genreIds.filter((g) => g !== id),
+          genreIds: prev.genreIds.filter((item) => item !== nextGenreId),
         };
       }
 
@@ -135,28 +104,23 @@ const CreateTrackForm = () => {
 
       return {
         ...prev,
-        genreIds: [...prev.genreIds, id],
+        genreIds: [...prev.genreIds, nextGenreId],
       };
     });
   };
 
-  const navigateToMusicPage = () => {
-    navigate(routePaths.artistMusic);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setErrorMessage("");
-    setSuccessMessage("");
     setFieldErrors({});
 
     const errors = {};
     const title = formData.title.trim();
 
     if (!title) {
-      errors.title = "Vui lòng nhập tên bài nhạc.";
+      errors.title = "Vui lòng nhập tên bài hát.";
     } else if (title.length > TITLE_MAX_LENGTH) {
-      errors.title = `Tên bài nhạc không được vượt quá ${TITLE_MAX_LENGTH} ký tự.`;
+      errors.title = `Tên bài hát không được vượt quá ${TITLE_MAX_LENGTH} ký tự.`;
     }
 
     if (formData.genreIds.length === 0) {
@@ -164,15 +128,11 @@ const CreateTrackForm = () => {
     }
 
     if (!audioFile) {
-      errors.audio = "Vui lòng tải lên ít nhất một tệp âm thanh.";
-    }
-
-    if (!formData.duration || formData.duration <= 0) {
-      errors.duration = "Thời lượng phải lớn hơn 0 giây.";
+      errors.audio = "Vui lòng tải lên tệp âm thanh.";
     }
 
     if (!avatarFile && coverImages.length === 0) {
-      errors.media = "Vui lòng thêm ảnh đại diện bài nhạc hoặc ít nhất một ảnh bìa.";
+      errors.media = "Vui lòng thêm ảnh đại diện hoặc ít nhất một ảnh bìa.";
     }
 
     if (!copyrightForm.copyrightOwner?.trim()) {
@@ -180,11 +140,11 @@ const CreateTrackForm = () => {
     }
 
     if (!copyrightForm.recordingOwner?.trim()) {
-      errors.recordingOwner = "Vui lòng nhập chủ sở hữu bản ghi âm.";
+      errors.recordingOwner = "Vui lòng nhập chủ sở hữu bản ghi.";
     }
 
     if (!copyrightForm.declarationAccepted) {
-      errors.declarationAccepted = "Vui lòng xác nhận chính sách bản quyền.";
+      errors.declarationAccepted = "Vui lòng xác nhận cam kết bản quyền.";
     }
 
     if (Object.keys(errors).length > 0) {
@@ -198,71 +158,53 @@ const CreateTrackForm = () => {
     setUploadingQualities(false);
 
     try {
-      let uploadedAudioUrls = [];
-      let uploadedAudioAnalysisResult = null;
-      let avatarUrl = formData.avatar || "";
-      let uploadedCoverUrls = [];
-      let uploadedLyricsSyncUrl = "";
+      setUploadingQualities(true);
 
-      const shouldUploadMedia = Boolean(
-        audioFile || avatarFile || coverImages.length > 0 || lyricsSyncFile
+      const uploadResponse = await trackService.uploadFiles(
+        audioFile,
+        avatarFile,
+        coverImages,
+        lyricsSyncFile
       );
 
-      if (shouldUploadMedia) {
-        setUploadingQualities(true);
-
-        const uploadResponse = await trackService.uploadFiles(
-          audioFile,
-          avatarFile,
-          coverImages,
-          lyricsSyncFile
-        );
-
-        if (!uploadResponse.success) {
-          throw new Error("File upload failed");
-        }
-
-        ({
-          audioFiles: uploadedAudioUrls = [],
-          audioAnalysis: uploadedAudioAnalysisResult = null,
-          avatar: avatarUrl = "",
-          coverImages: uploadedCoverUrls = [],
-          lyricsSyncUrl: uploadedLyricsSyncUrl = "",
-        } = uploadResponse.data || {});
-
-        setUploadedQualities(uploadedAudioUrls || []);
-        setUploadedAudioAnalysis(uploadedAudioAnalysisResult || null);
-        setUploadingQualities(false);
+      if (!uploadResponse?.success) {
+        throw new Error("Tải tệp lên thất bại.");
       }
 
-      const trackDataToSubmit = {
+      const {
+        audioFiles = [],
+        audioAnalysis = null,
+        avatar = "",
+        coverImages: uploadedCoverImages = [],
+        lyricsSyncUrl = "",
+      } = uploadResponse.data || {};
+
+      setUploadedQualities(audioFiles);
+      setUploadedAudioAnalysis(audioAnalysis);
+      setUploadingQualities(false);
+
+      const response = await trackService.createTrack({
         title,
-        versionTitle: formData.versionTitle?.trim() || "",
-        album_albumId: formData.album_albumId,
+        versionTitle: formData.versionTitle.trim(),
         genreIds: formData.genreIds,
         lyricsStatic: formData.lyricsStatic,
-        lyricsSyncUrl: uploadedLyricsSyncUrl || "",
-        audioFiles: uploadedAudioUrls,
-        coverImage: uploadedCoverUrls,
-        avatar: avatarUrl,
+        lyricsSyncUrl,
+        audioFiles,
+        audioAnalysis,
+        coverImage: uploadedCoverImages,
+        avatar,
         copyright: serializeCopyrightForApi(copyrightForm),
-      };
+      });
 
-      if (formData.duration !== "" && formData.duration !== null) {
-        trackDataToSubmit.duration = Number(formData.duration);
-      }
-
-      const response = await trackService.createTrack(trackDataToSubmit);
-
-      if (response.success) {
+      if (response?.success) {
         navigate(routePaths.artistMusic, {
           state: {
-            message: "Đã tạo bản nháp bài nhạc thành công.",
+            message: "Đã tạo bản nháp bài hát thành công.",
           },
         });
       }
     } catch (error) {
-      setErrorMessage(getApiErrorFullMessage(error, "Không thể tạo bài nhạc"));
+      setErrorMessage(getApiErrorFullMessage(error, "Không thể tạo bài hát lúc này."));
       setUploadingQualities(false);
     } finally {
       setLoading(false);
@@ -271,23 +213,17 @@ const CreateTrackForm = () => {
 
   return (
     <div className="rounded-md border border-neutral-200 bg-white p-6">
-      <h3 className="text-lg font-semibold text-[#241b15]">Tạo bài nhạc mới</h3>
+      <h3 className="text-lg font-semibold text-[#241b15]">Tạo bài hát mới</h3>
       <p className="mt-2 text-sm text-neutral-600">
-        Hãy lưu bản nháp với tên bài nhạc trước. Sau đó bạn có thể bổ sung tệp media,
-        thể loại, ảnh bìa và thông tin bản quyền, rồi gửi duyệt khi mọi thứ đã sẵn sàng.
+        Hãy tải lên file nhạc gốc trước. Hệ thống sẽ tự đọc thời lượng trực tiếp
+        từ file âm thanh, nên bạn không cần nhập thủ công nữa.
       </p>
 
-      {successMessage && (
-        <div className="mt-4 rounded-md bg-green-50 p-3 text-sm text-green-700">
-          ✓ {successMessage}
-        </div>
-      )}
-
-      {errorMessage && (
+      {errorMessage ? (
         <div className="mt-4 whitespace-pre-line rounded-md bg-red-50 p-3 text-sm text-red-700">
-          ✕ {errorMessage}
+          {errorMessage}
         </div>
-      )}
+      ) : null}
 
       {(uploadedQualities.length > 0 || uploadingQualities) && (
         <AudioQualityDisplay
@@ -304,14 +240,13 @@ const CreateTrackForm = () => {
       <form onSubmit={handleSubmit} className="mt-6 space-y-6">
         <div>
           <label className="block text-sm font-medium text-[#241b15]">
-            Tên bài nhạc *
+            Tên bài hát *
           </label>
           <input
             type="text"
             name="title"
             value={formData.title}
             onChange={handleInputChange}
-            placeholder="Nhập tên bài nhạc"
             maxLength={TITLE_MAX_LENGTH}
             className={`mt-2 w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${
               fieldErrors.title
@@ -327,59 +262,25 @@ const CreateTrackForm = () => {
 
         <div>
           <label className="block text-sm font-medium text-[#241b15]">
-            Tên phiên bản (không bắt buộc)
+            Tên phiên bản
           </label>
           <input
             type="text"
             name="versionTitle"
             value={formData.versionTitle}
             onChange={handleInputChange}
-            placeholder="Ví dụ: Acoustic, Live, Remix"
+            placeholder="Ví dụ: Acoustic, Live, Remix..."
             className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm focus:border-[#8b5e3c] focus:outline-none"
           />
-          <p className="mt-1 text-xs text-neutral-500">
-            Dùng để phân biệt các phiên bản có cùng tên bài nhạc chính.
-          </p>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-[#241b15]">
-            Thời lượng (giây) *
-          </label>
-          <input
-            type="number"
-            name="duration"
-            value={formData.duration}
-            onChange={handleInputChange}
-            placeholder="Ví dụ: 240"
-            min="1"
-            step="1"
-            className={`mt-2 w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${
-              fieldErrors.duration
-                ? "border-red-500 focus:border-red-500"
-                : "border-neutral-200 focus:border-[#8b5e3c]"
-            }`}
-          />
-          {fieldErrors.duration ? (
-            <p className="mt-1 text-xs text-red-500">{fieldErrors.duration}</p>
-          ) : (
-            <p className="mt-1 text-xs text-neutral-500">
-              Bắt buộc trước khi gửi duyệt.
-            </p>
-          )}
         </div>
 
         <div>
           <label className="block text-sm font-medium text-[#241b15]">
             Tệp âm thanh *
           </label>
-          <p
-            className={`mt-1 text-xs ${
-              fieldErrors.audio ? "text-red-500" : "text-neutral-500"
-            }`}
-          >
+          <p className={`mt-1 text-xs ${fieldErrors.audio ? "text-red-500" : "text-neutral-500"}`}>
             {fieldErrors.audio ||
-              "Một lần tải lên sẽ được chuyển đổi thành nhiều mức chất lượng khác nhau, ví dụ 320k, 192k, 128k, 96k."}
+              "Tải lên một file nguồn chất lượng cao. Hệ thống sẽ tự lấy thời lượng và tạo nhiều mức chất lượng phát."}
           </p>
           <input
             type="file"
@@ -403,90 +304,75 @@ const CreateTrackForm = () => {
                 disabled={loading}
                 className="ml-2 text-red-500 hover:text-red-700 disabled:opacity-50"
               >
-                ✕
+                x
               </button>
             </div>
+          ) : null}
+          {uploadedAudioAnalysis?.duration ? (
+            <p className="mt-2 text-xs text-neutral-500">
+              Thời lượng nhận diện được: {Math.round(uploadedAudioAnalysis.duration)} giây.
+            </p>
           ) : null}
         </div>
 
         <div>
           <label className="block text-sm font-medium text-[#241b15]">
-            Ảnh đại diện bài nhạc hoặc ảnh bìa *
+            Ảnh đại diện hoặc ảnh bìa *
           </label>
-          <p
-            className={`mt-1 text-xs ${
-              fieldErrors.media ? "text-red-500" : "text-neutral-500"
-            }`}
-          >
-            {fieldErrors.media ||
-              "Vui lòng tải lên ít nhất một ảnh đại diện hoặc ảnh bìa."}
+          <p className={`mt-1 text-xs ${fieldErrors.media ? "text-red-500" : "text-neutral-500"}`}>
+            {fieldErrors.media || "Thêm ảnh đại diện cho bài hát hoặc ít nhất một ảnh bìa."}
           </p>
+
           <div className="mt-2 space-y-3">
             <div>
-              <label className="block text-xs font-medium text-[#241b15]">
-                Ảnh đại diện
-              </label>
+              <label className="block text-xs font-medium text-[#241b15]">Ảnh đại diện</label>
               <input
                 type="file"
                 accept="image/*"
                 onChange={handleAvatarChange}
                 disabled={loading}
-                className={`mt-1 w-full rounded-md border px-3 py-2 text-sm disabled:bg-neutral-100 ${
-                  fieldErrors.media && !avatarFile && coverImages.length === 0
-                    ? "border-red-500"
-                    : "border-neutral-200"
-                }`}
+                className="mt-1 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm disabled:bg-neutral-100"
               />
               {avatarFile ? (
                 <div className="mt-2 flex items-center justify-between rounded-md bg-neutral-50 p-2">
-                  <p className="truncate text-sm text-neutral-700">
-                    {avatarFile.name}
-                  </p>
+                  <p className="truncate text-sm text-neutral-700">{avatarFile.name}</p>
                   <button
                     type="button"
-                    onClick={handleRemoveAvatar}
+                    onClick={() => setAvatarFile(null)}
                     disabled={loading}
                     className="ml-2 text-red-500 hover:text-red-700 disabled:opacity-50"
                   >
-                    ✕
+                    x
                   </button>
                 </div>
               ) : null}
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-[#241b15]">
-                Ảnh bìa
-              </label>
+              <label className="block text-xs font-medium text-[#241b15]">Ảnh bìa</label>
               <input
                 type="file"
                 multiple
                 accept="image/*"
                 onChange={handleCoverImagesChange}
                 disabled={loading}
-                className={`mt-1 w-full rounded-md border px-3 py-2 text-sm disabled:bg-neutral-100 ${
-                  fieldErrors.media && !avatarFile && coverImages.length === 0
-                    ? "border-red-500"
-                    : "border-neutral-200"
-                }`}
+                className="mt-1 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm disabled:bg-neutral-100"
               />
               {coverImages.length > 0 ? (
                 <div className="mt-2 space-y-2">
                   {coverImages.map((file, index) => (
                     <div
-                      key={index}
+                      key={`${file.name}-${index}`}
                       className="flex items-center justify-between rounded-md bg-neutral-50 p-2"
                     >
-                      <p className="truncate text-sm text-neutral-700">
-                        {file.name}
-                      </p>
+                      <p className="truncate text-sm text-neutral-700">{file.name}</p>
                       <button
                         type="button"
                         onClick={() => handleRemoveCoverImage(index)}
                         disabled={loading}
                         className="ml-2 text-red-500 hover:text-red-700 disabled:opacity-50"
                       >
-                        ✕
+                        x
                       </button>
                     </div>
                   ))}
@@ -504,7 +390,6 @@ const CreateTrackForm = () => {
             name="lyricsStatic"
             value={formData.lyricsStatic}
             onChange={handleInputChange}
-            placeholder="Nhập lời bài hát..."
             rows="4"
             className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm focus:border-[#8b5e3c] focus:outline-none"
           />
@@ -514,10 +399,6 @@ const CreateTrackForm = () => {
           <label className="block text-sm font-medium text-[#241b15]">
             Lời đồng bộ (.lrc)
           </label>
-          <p className="mt-1 text-xs text-neutral-500">
-            Tệp lời bài hát có mốc thời gian, không bắt buộc. Hãy tải lên tệp `.lrc`
-            dạng văn bản thuần.
-          </p>
           <input
             type="file"
             accept=".lrc,text/plain"
@@ -527,44 +408,32 @@ const CreateTrackForm = () => {
           />
           {lyricsSyncFile ? (
             <div className="mt-2 flex items-center justify-between rounded-md bg-neutral-50 p-2">
-              <p className="truncate text-sm text-neutral-700">
-                {lyricsSyncFile.name}
-              </p>
+              <p className="truncate text-sm text-neutral-700">{lyricsSyncFile.name}</p>
               <button
                 type="button"
                 onClick={() => setLyricsSyncFile(null)}
                 disabled={loading}
                 className="ml-2 text-red-500 hover:text-red-700 disabled:opacity-50"
               >
-                ✕
+                x
               </button>
             </div>
           ) : null}
         </div>
 
         <div className="relative">
-          <label className="block text-sm font-medium text-[#241b15]">
-            Thể loại *
-          </label>
-          <p
-            className={`mt-1 text-xs ${
-              fieldErrors.genres ? "text-red-500" : "text-neutral-500"
-            }`}
-          >
+          <label className="block text-sm font-medium text-[#241b15]">Thể loại *</label>
+          <p className={`mt-1 text-xs ${fieldErrors.genres ? "text-red-500" : "text-neutral-500"}`}>
             {fieldErrors.genres || `Chọn tối đa ${MAX_GENRE_IDS} thể loại.`}
           </p>
 
           {genresLoading ? (
             <p className="mt-2 text-sm text-neutral-600">Đang tải thể loại...</p>
-          ) : genres.length === 0 ? (
-            <p className="mt-2 text-sm text-neutral-600">
-              Hiện chưa có thể loại nào. Hãy thêm dữ liệu thể loại trong trang quản trị.
-            </p>
           ) : (
             <div className="mt-2">
               <button
                 type="button"
-                onClick={() => setGenresOpen((s) => !s)}
+                onClick={() => setGenresOpen((current) => !current)}
                 disabled={loading}
                 className={`flex w-full items-center justify-between rounded-md border px-3 py-2 text-left text-sm ${
                   fieldErrors.genres ? "border-red-500" : "border-neutral-200"
@@ -574,11 +443,11 @@ const CreateTrackForm = () => {
                   {formData.genreIds.length === 0
                     ? "Chọn thể loại..."
                     : genres
-                        .filter((g) => formData.genreIds.includes(String(g._id)))
-                        .map((g) => g.name)
+                        .filter((genre) => formData.genreIds.includes(String(genre._id)))
+                        .map((genre) => genre.name)
                         .join(", ")}
                 </div>
-                <div className="ml-2 text-neutral-500">▾</div>
+                <div className="ml-2 text-neutral-500">v</div>
               </button>
 
               {genresOpen ? (
@@ -601,60 +470,9 @@ const CreateTrackForm = () => {
                       </label>
                     );
                   })}
-                  <div className="mt-2 flex items-center justify-between px-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFormData((prev) => ({ ...prev, genreIds: [] }));
-                      }}
-                      className="text-sm text-red-500"
-                    >
-                      Xóa chọn
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setGenresOpen(false)}
-                      className="text-sm text-neutral-700"
-                    >
-                      Xong
-                    </button>
-                  </div>
                 </div>
               ) : null}
             </div>
-          )}
-
-          {formData.genreIds.length > 0 ? (
-            <p className="mt-2 text-sm text-neutral-600">
-              Đã chọn {formData.genreIds.length} thể loại
-            </p>
-          ) : null}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-[#241b15]">
-            Thuộc album (không bắt buộc)
-          </label>
-          {albumsLoading ? (
-            <p className="mt-2 text-sm text-neutral-600">Đang tải album...</p>
-          ) : (
-            <select
-              name="album_albumId"
-              value={formData.album_albumId}
-              onChange={handleInputChange}
-              className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm focus:border-[#8b5e3c] focus:outline-none"
-            >
-              <option value="">Chọn album (không bắt buộc)</option>
-              {albums.length === 0 ? (
-                <option disabled>Không có album nào</option>
-              ) : (
-                albums.map((album) => (
-                  <option key={album._id} value={album._id}>
-                    {album.title}
-                  </option>
-                ))
-              )}
-            </select>
           )}
         </div>
 
@@ -673,13 +491,13 @@ const CreateTrackForm = () => {
           >
             {loading
               ? uploadingQualities
-                ? "Đang tải lên media..."
+                ? "Đang tải media..."
                 : "Đang lưu bản nháp..."
               : "Lưu bản nháp"}
           </button>
           <button
             type="button"
-            onClick={navigateToMusicPage}
+            onClick={() => navigate(routePaths.artistMusic)}
             disabled={loading}
             className="rounded-md border border-neutral-300 px-4 py-2 font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
           >

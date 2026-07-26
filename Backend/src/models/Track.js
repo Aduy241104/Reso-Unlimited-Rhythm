@@ -2,19 +2,64 @@ import mongoose from "mongoose";
 
 const { Schema, model } = mongoose;
 
+const audioFileSchema = new Schema(
+    {
+        url: { type: String, required: true },
+        format: { type: String, required: true },
+        bitrate: { type: Number, required: true },
+        label: {
+            type: String,
+            enum: ["original", "high", "medium", "low", "lowest"],
+            default: "original",
+        },
+        priority: { type: Number, default: 0 },
+    },
+    { _id: false }
+);
+
+const copyrightSchema = new Schema(
+    {
+        copyrightOwner: { type: String, default: "" },
+        recordingOwner: { type: String, default: "" },
+
+        composer: { type: String, default: "" },
+        lyricist: { type: String, default: "" },
+        producer: { type: String, default: "" },
+
+        isOriginal: { type: Boolean, default: true },
+        isCover: { type: Boolean, default: false },
+        isRemix: { type: Boolean, default: false },
+        usesSample: { type: Boolean, default: false },
+        usesLicensedBeat: { type: Boolean, default: false },
+
+        originalTrackTitle: { type: String, default: "" },
+        originalArtistName: { type: String, default: "" },
+
+        licenseDocumentUrls: [{ type: String }],
+
+        declarationAccepted: { type: Boolean, default: false },
+
+        copyrightStatus: {
+            type: String,
+            enum: ["pending", "verified", "rejected", "disputed"],
+            default: "pending",
+        },
+
+        copyrightNote: { type: String, default: "" },
+    },
+    { _id: false }
+);
+
 const TrackSchema = new Schema(
     {
         title: { type: String, required: true, trim: true, index: true },
+        versionTitle: { type: String, default: "", trim: true },
+        description: { type: String, default: "" },
+        tags: [{ type: String, trim: true }],
         artist_artistId: { type: Schema.Types.ObjectId, ref: "Artist", required: true, index: true },
         album_albumId: { type: Schema.Types.ObjectId, ref: "Album", index: true },
         genreIds: [{ type: Schema.Types.ObjectId, ref: "Genre" }],
-        audioFiles: [{
-            url: { type: String, required: true },
-            format: { type: String, required: true },
-            bitrate: { type: Number, required: true },
-            label: { type: String, enum: ["original", "high", "medium", "low", "lowest"], default: "original" },
-            priority: { type: Number, default: 0 },
-        }],
+        audioFiles: [audioFileSchema],
 
         duration: { type: Number, required: true, min: 0 },
         avatar: { type: String, default: "" },
@@ -40,35 +85,7 @@ const TrackSchema = new Schema(
             default: "draft",
             index: true,
         },
-        copyright: {
-            copyrightOwner: { type: String, default: "" },
-            recordingOwner: { type: String, default: "" },
-
-            composer: { type: String, default: "" },
-            lyricist: { type: String, default: "" },
-            producer: { type: String, default: "" },
-
-            isOriginal: { type: Boolean, default: true },
-            isCover: { type: Boolean, default: false },
-            isRemix: { type: Boolean, default: false },
-            usesSample: { type: Boolean, default: false },
-            usesLicensedBeat: { type: Boolean, default: false },
-
-            originalTrackTitle: { type: String, default: "" },
-            originalArtistName: { type: String, default: "" },
-
-            licenseDocumentUrls: [{ type: String }],
-
-            declarationAccepted: { type: Boolean, default: false },
-
-            copyrightStatus: {
-                type: String,
-                enum: ["pending", "verified", "rejected", "disputed"],
-                default: "pending",
-            },
-
-            copyrightNote: { type: String, default: "" },
-        },
+        copyright: copyrightSchema,
 
         moderation: {
             submittedAt: { type: Date, default: null },

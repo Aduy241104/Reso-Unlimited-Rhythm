@@ -30,6 +30,8 @@ const formatTrackManagementDetail = (track) => {
         _id: track._id,
         title: track.title,
         versionTitle: track.versionTitle || "",
+        description: track.description || "",
+        tags: track.tags || [],
         artist: track.artist_artistId
             ? {
                   _id: track.artist_artistId._id,
@@ -81,6 +83,8 @@ const formatTrackItem = (track) => {
     return {
         _id: track._id,
         title: track.title,
+        description: track.description || "",
+        tags: track.tags || [],
         artist: track.artist_artistId
             ? {
                   _id: track.artist_artistId._id,
@@ -244,6 +248,9 @@ const formatTrackGenres = (genres = []) =>
 const formatTrackDetail = (track) => ({
     id: toId(track._id),
     title: track.title,
+    versionTitle: track.versionTitle || "",
+    description: track.description || "",
+    tags: track.tags || [],
     duration: track.duration,
     avatar: track.avatar,
     coverImage: track.coverImage,
@@ -284,6 +291,9 @@ const formatTrackPlayback = (track, audioFiles, accessState) => {
     return {
         id: toId(track._id),
         title: track.title,
+        versionTitle: track.versionTitle || "",
+        description: track.description || "",
+        tags: track.tags || [],
         duration: track.duration,
         avatar: track.avatar,
         coverImage: track.coverImage,

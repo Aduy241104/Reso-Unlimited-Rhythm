@@ -9,6 +9,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppButton from '../../components/common/AppButton';
@@ -16,9 +18,15 @@ import AppLoader from '../../components/common/AppLoader';
 import ErrorState from '../../components/common/ErrorState';
 import { useAuth } from '../../hooks/useAuth';
 import libraryService from '../../services/libraryService';
-import { formatDateLabel, getErrorMessage, getInitials, resolveImageUri } from '../../utils/media';
+import {
+  formatDateLabel,
+  getErrorMessage,
+  getInitials,
+  resolveImageUri,
+} from '../../utils/media';
 
-const accentPalette = ['#111111', '#2f2f2f', '#4a4a4a', '#686868', '#8a8a8a'];
+const accentPalette = ['#22343b', '#26354c', '#3a2e47', '#233624', '#3f2a30'];
+const LOAD_MORE_STEP = 10;
 
 const readText = (value, fallback = '') => {
   if (typeof value === 'string' || typeof value === 'number') {
@@ -29,16 +37,16 @@ const readText = (value, fallback = '') => {
   return fallback;
 };
 
-const Artwork = ({ uri, label, color, style, textStyle }) => {
+const ArtistArtwork = ({ uri, label, color }) => {
   const imageUri = resolveImageUri(uri);
 
   if (imageUri) {
-    return <Image source={{ uri: imageUri }} style={[styles.artwork, style]} resizeMode="cover" />;
+    return <Image source={{ uri: imageUri }} style={styles.artistArtwork} resizeMode="cover" />;
   }
 
   return (
-    <View style={[styles.artwork, styles.artworkFallback, { backgroundColor: color }, style]}>
-      <Text style={[styles.artworkText, textStyle]}>{getInitials(label)}</Text>
+    <View style={[styles.artistArtwork, styles.artistArtworkFallback, { backgroundColor: color }]}>
+      <Text style={styles.artistArtworkText}>{getInitials(label)}</Text>
     </View>
   );
 };
@@ -53,20 +61,19 @@ const ArtistRow = ({ artist, index, onPress }) => {
 
   return (
     <TouchableOpacity style={styles.artistRow} activeOpacity={0.85} onPress={onPress}>
-      <Artwork
-        uri={artist?.avatar || artist?.image}
-        label={artistName}
-        color={accentColor}
-        style={styles.artistArtwork}
-        textStyle={styles.artistArtworkText}
-      />
+      <ArtistArtwork uri={artist?.avatar || artist?.image} label={artistName} color={accentColor} />
       <View style={styles.artistContent}>
-        <Text style={styles.artistName} numberOfLines={1}>{artistName}</Text>
-        <Text style={styles.artistMeta} numberOfLines={1}>
-          {followedLabel ? `Theo dõi từ ${followedLabel}` : 'Nghệ sĩ bạn đang theo dõi'}
+        <View style={styles.artistTopRow}>
+          <Text style={styles.artistName} numberOfLines={1}>{artistName}</Text>
+          <View style={styles.artistBadge}>
+            <Text style={styles.artistBadgeText}>Artist</Text>
+          </View>
+        </View>
+        <Text style={styles.artistMeta} numberOfLines={2}>
+          {followedLabel ? `Theo dõi từ ${followedLabel}` : 'Nghệ sĩ bạn đã lưu trong thư viện'}
         </Text>
       </View>
-      <Text style={styles.artistAction}>Mở</Text>
+      <Ionicons name="chevron-forward" size={18} color="#7f8894" />
     </TouchableOpacity>
   );
 };
@@ -79,6 +86,7 @@ export default function FollowedArtistsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [visibleArtistsCount, setVisibleArtistsCount] = useState(LOAD_MORE_STEP);
 
   const loadFollowedArtists = useCallback(async ({ refresh = false } = {}) => {
     if (!isAuthenticated) {
@@ -86,6 +94,7 @@ export default function FollowedArtistsScreen() {
       setErrorMessage('');
       setIsLoading(false);
       setIsRefreshing(false);
+      setVisibleArtistsCount(LOAD_MORE_STEP);
       return;
     }
 
@@ -102,9 +111,11 @@ export default function FollowedArtistsScreen() {
       });
 
       setArtists(Array.isArray(result?.items) ? result.items : []);
+      setVisibleArtistsCount(LOAD_MORE_STEP);
       setErrorMessage('');
     } catch (error) {
       setArtists([]);
+      setVisibleArtistsCount(LOAD_MORE_STEP);
       setErrorMessage(getErrorMessage(error, 'Không thể tải danh sách nghệ sĩ đang theo dõi lúc này.'));
     } finally {
       setIsLoading(false);
@@ -114,12 +125,14 @@ export default function FollowedArtistsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadFollowedArtists();
+      void loadFollowedArtists();
       return undefined;
     }, [loadFollowedArtists])
   );
 
   const artistCountLabel = useMemo(() => `${artists.length} nghệ sĩ`, [artists.length]);
+  const visibleArtists = useMemo(() => artists.slice(0, visibleArtistsCount), [artists, visibleArtistsCount]);
+  const canLoadMoreArtists = visibleArtists.length < artists.length;
 
   const handleOpenArtistDetail = useCallback((artist) => {
     const artistId = artist?.entityId || artist?.id;
@@ -138,20 +151,20 @@ export default function FollowedArtistsScreen() {
   if (!isAuthenticated) {
     return (
       <View style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor="#000000" />
-        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+        <StatusBar barStyle="light-content" backgroundColor="#050608" />
+        <View style={[styles.topBar, { paddingTop: insets.top + 10 }]}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} activeOpacity={0.8}>
-            <Text style={styles.backButtonText}>Quay lại</Text>
+            <Ionicons name="chevron-back" size={22} color="#ffffff" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Nghệ sĩ đang theo dõi</Text>
-          <View style={styles.headerSpacer} />
+          <Text style={styles.topBarTitle}>Nghệ sĩ theo dõi</Text>
+          <View style={styles.backButton} />
         </View>
         <View style={styles.centerState}>
           <Text style={styles.emptyTitle}>Cần đăng nhập</Text>
           <Text style={styles.emptyText}>
-            Các nghệ sĩ bạn theo dõi được gắn với tài khoản, nên hãy đăng nhập trước.
+            Danh sách nghệ sĩ theo dõi được gắn với tài khoản của bạn.
           </Text>
-          <AppButton title="Đi đến đăng nhập" onPress={() => navigation.navigate('Login')} style={styles.loginButton} />
+          <AppButton title="Đi đến đăng nhập" onPress={() => navigation.navigate('Login')} style={styles.primaryButton} />
         </View>
       </View>
     );
@@ -159,14 +172,16 @@ export default function FollowedArtistsScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+      <StatusBar barStyle="light-content" backgroundColor="#050608" />
 
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+      <View style={[styles.topBar, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} activeOpacity={0.8}>
-          <Text style={styles.backButtonText}>Quay lại</Text>
+          <Ionicons name="chevron-back" size={22} color="#ffffff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Nghệ sĩ đang theo dõi</Text>
-        <View style={styles.headerSpacer} />
+        <Text style={styles.topBarTitle}>Nghệ sĩ theo dõi</Text>
+        <TouchableOpacity style={styles.backButton} activeOpacity={0.8} onPress={() => navigation.navigate('Search')}>
+          <Ionicons name="search" size={18} color="#ffffff" />
+        </TouchableOpacity>
       </View>
 
       {isLoading ? (
@@ -180,7 +195,7 @@ export default function FollowedArtistsScreen() {
         </View>
       ) : (
         <ScrollView
-          contentContainerStyle={[styles.scrollBody, { paddingBottom: 32 + insets.bottom }]}
+          contentContainerStyle={[styles.scrollBody, { paddingBottom: 28 + insets.bottom }]}
           showsVerticalScrollIndicator={false}
           refreshControl={(
             <RefreshControl
@@ -190,39 +205,47 @@ export default function FollowedArtistsScreen() {
             />
           )}
         >
-          <View style={styles.heroCard}>
-            <Text style={styles.heroEyebrow}>THƯ VIỆN CỦA BẠN</Text>
-            <Text style={styles.heroTitle}>Tất cả nghệ sĩ bạn đang theo dõi</Text>
+          <LinearGradient colors={['#1f4340', '#151b22', '#0c0e12']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.heroCard}>
+            <Text style={styles.heroEyebrow}>Thư viện của bạn</Text>
+            <Text style={styles.heroTitle}>Giữ nghệ sĩ bạn quan tâm ở thật gần</Text>
             <Text style={styles.heroText}>
-              Quay lại nhanh với những nghệ sĩ bạn quan tâm nhất và mở thẳng vào trang chi tiết bất cứ lúc nào.
+              Quay lại nhanh với các nghệ sĩ bạn đã theo dõi và mở thẳng trang chi tiết chỉ bằng một chạm.
             </Text>
-
-            <View style={styles.heroMetaWrap}>
-              <View style={styles.metaPill}>
-                <Text style={styles.metaPillText}>{artistCountLabel}</Text>
-              </View>
+            <View style={styles.heroPill}>
+              <Text style={styles.heroPillText}>{artistCountLabel}</Text>
             </View>
+          </LinearGradient>
+
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Tất cả nghệ sĩ</Text>
+            <Text style={styles.sectionCaption}>Danh sách đồng bộ với tài khoản của bạn</Text>
           </View>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Nghệ sĩ đã theo dõi</Text>
-            <View style={styles.panel}>
-              {artists.length > 0 ? (
-                artists.map((artist, index) => (
-                  <ArtistRow
-                    key={artist?.entityId || artist?.id || `followed-artist-${index}`}
-                    artist={artist}
-                    index={index}
-                    onPress={() => handleOpenArtistDetail(artist)}
-                  />
-                ))
-              ) : (
-                <Text style={styles.emptyPanelText}>
-                  Bạn chưa theo dõi nghệ sĩ nào. Hãy theo dõi nghệ sĩ từ màn chi tiết để họ xuất hiện ở đây.
-                </Text>
-              )}
-            </View>
+          <View style={styles.panel}>
+            {artists.length > 0 ? (
+              visibleArtists.map((artist, index) => (
+                <ArtistRow
+                  key={artist?.entityId || artist?.id || `followed-artist-${index}`}
+                  artist={artist}
+                  index={index}
+                  onPress={() => handleOpenArtistDetail(artist)}
+                />
+              ))
+            ) : (
+              <Text style={styles.emptyPanelText}>
+                Bạn chưa theo dõi nghệ sĩ nào. Hãy theo dõi từ trang chi tiết để chúng xuất hiện ở đây.
+              </Text>
+            )}
           </View>
+          {canLoadMoreArtists ? (
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => setVisibleArtistsCount((current) => current + LOAD_MORE_STEP)}
+              style={styles.loadMoreButton}
+            >
+              <Text style={styles.loadMoreButtonText}>Hiện thêm 10 nghệ sĩ</Text>
+            </TouchableOpacity>
+          ) : null}
         </ScrollView>
       )}
     </View>
@@ -232,37 +255,29 @@ export default function FollowedArtistsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#050608',
   },
-  header: {
+  topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1f1f1f',
-    backgroundColor: '#000000',
+    paddingHorizontal: 16,
+    paddingBottom: 14,
   },
   backButton: {
-    minWidth: 56,
-    paddingVertical: 8,
+    width: 38,
+    height: 38,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#212530',
+    backgroundColor: '#101319',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  backButtonText: {
+  topBarTitle: {
     color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '700',
-    marginHorizontal: 12,
-  },
-  headerSpacer: {
-    width: 56,
+    fontSize: 16,
+    fontWeight: '800',
   },
   centerState: {
     flex: 1,
@@ -271,66 +286,66 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   scrollBody: {
-    padding: 16,
+    paddingHorizontal: 16,
   },
   heroCard: {
-    backgroundColor: '#141414',
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#262626',
-    padding: 16,
+    borderRadius: 28,
+    padding: 18,
+    marginBottom: 18,
   },
   heroEyebrow: {
-    color: '#8a8a8a',
+    color: '#7ddcac',
     fontSize: 10,
     fontWeight: '800',
-    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    letterSpacing: 1.4,
   },
   heroTitle: {
     color: '#ffffff',
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '800',
+    lineHeight: 34,
     marginTop: 10,
   },
   heroText: {
-    color: '#b5b5b5',
+    color: '#bcc4cf',
     fontSize: 13,
     lineHeight: 20,
-    marginTop: 8,
+    marginTop: 10,
   },
-  heroMetaWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+  heroPill: {
+    alignSelf: 'flex-start',
     marginTop: 14,
-  },
-  metaPill: {
-    backgroundColor: '#171717',
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#2b2b2b',
-    paddingHorizontal: 10,
-    paddingVertical: 7,
+    borderColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
-  metaPillText: {
-    color: '#d4d4d4',
+  heroPillText: {
+    color: '#edf2f7',
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
   },
-  section: {
-    marginTop: 18,
+  sectionHeader: {
+    marginBottom: 10,
   },
   sectionTitle: {
     color: '#ffffff',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '800',
-    marginBottom: 10,
+  },
+  sectionCaption: {
+    color: '#93a0ae',
+    fontSize: 12,
+    marginTop: 4,
   },
   panel: {
-    backgroundColor: '#141414',
-    borderRadius: 14,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: '#262626',
+    borderColor: '#1f232d',
+    backgroundColor: '#101319',
     overflow: 'hidden',
   },
   artistRow: {
@@ -339,53 +354,66 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#242424',
+    borderBottomColor: '#1b2029',
   },
-  artwork: {
-    width: 58,
-    height: 58,
+  artistArtwork: {
+    width: 62,
+    height: 62,
     borderRadius: 999,
-    backgroundColor: '#202020',
+    backgroundColor: '#1f1f1f',
   },
-  artworkFallback: {
+  artistArtworkFallback: {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  artworkText: {
+  artistArtworkText: {
     color: '#ffffff',
     fontSize: 18,
     fontWeight: '800',
   },
-  artistArtwork: {
-    marginRight: 12,
-  },
-  artistArtworkText: {
-    fontSize: 18,
-  },
   artistContent: {
     flex: 1,
+    marginLeft: 12,
+    marginRight: 12,
+  },
+  artistTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   artistName: {
     color: '#ffffff',
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '800',
+    flex: 1,
+    marginRight: 10,
+  },
+  artistBadge: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#243543',
+    backgroundColor: '#151d26',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  artistBadgeText: {
+    color: '#dfe6ee',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
   },
   artistMeta: {
-    color: '#a3a3a3',
-    fontSize: 11,
-    marginTop: 5,
-  },
-  artistAction: {
-    color: '#1ed760',
-    fontSize: 11,
-    fontWeight: '800',
-    marginLeft: 10,
+    color: '#98a3af',
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 6,
   },
   emptyPanelText: {
-    color: '#a3a3a3',
+    color: '#98a3af',
     fontSize: 12,
     lineHeight: 19,
-    padding: 14,
+    padding: 16,
   },
   emptyTitle: {
     color: '#ffffff',
@@ -394,7 +422,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   emptyText: {
-    color: '#a3a3a3',
+    color: '#98a3af',
     fontSize: 12,
     lineHeight: 18,
     textAlign: 'center',
@@ -403,13 +431,28 @@ const styles = StyleSheet.create({
   retryButton: {
     minWidth: 160,
     marginTop: 16,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#151922',
     borderWidth: 1,
-    borderColor: '#2c2c2c',
+    borderColor: '#252b36',
   },
-  loginButton: {
+  primaryButton: {
     minWidth: 180,
     marginTop: 16,
     backgroundColor: '#1ed760',
+  },
+  loadMoreButton: {
+    marginTop: 10,
+    alignSelf: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#2a313d',
+    backgroundColor: '#101319',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  loadMoreButtonText: {
+    color: '#dfe6ee',
+    fontSize: 12,
+    fontWeight: '800',
   },
 });

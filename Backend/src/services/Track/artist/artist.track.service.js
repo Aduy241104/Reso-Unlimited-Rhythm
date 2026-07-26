@@ -8,10 +8,11 @@ import {
     resolveArtistIdForCreate,
     sanitizeArtistCopyright,
     validateDraftTitle,
-    validateOptionalAlbumForDraft,
+    validateDurationFromAudioAnalysis,
     validateOptionalAudioFiles,
-    validateOptionalDuration,
+    validateOptionalDescription,
     validateOptionalGenreIds,
+    validateOptionalTags,
 } from "../track.draft.validation.js";
 import {
     assertTrackEditableByArtist,
@@ -20,11 +21,9 @@ import {
 import Artist from "../../../models/Artist.js";
 import Track from "../../../models/Track.js";
 import User from "../../../models/User.js";
-import Album from "../../../models/Album.js";
 import { AppError } from "../../../utils/AppError.js";
 import { deleteCloudinaryAssetsByUrls } from "../../../utils/uploadCloud.js";
 import { formatTrackManagementDetail } from "../track.helper.js";
-import { syncAlbumTotalDuration } from "../../album/album.sync.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 50;
@@ -39,53 +38,17 @@ const normalizePositiveInteger = (value, fallback) => {
     return fallback;
 };
 
-const normalizeAlbumId = (value) => {
-    if (value === undefined || value === null) {
-        return undefined;
-    }
-
-    if (String(value).trim() === "") {
-        return null;
-    }
-
-    return String(value).trim();
-};
-
-const normalizeAudioFiles = (audioFiles = []) =>
-    (audioFiles || []).map((file) => {
-        if (typeof file === "string") {
-            return {
-                url: file,
-                format: "unknown",
-                bitrate: 128,
-                label: "original",
-                priority: 0,
-            };
-        }
-
-        return {
-            url: file.url,
-            format: file.format || "unknown",
-            bitrate: file.bitrate || 128,
-            label: file.label || "original",
-            priority: file.priority !== undefined ? file.priority : 0,
-        };
-    });
-
-const getTrackAssetUrls = (track) => {
-    const audioUrls = (track?.audioFiles || [])
+const getAudioUrlsFromFiles = (audioFiles = []) =>
+    (audioFiles || [])
         .map((item) => item?.url)
         .filter(Boolean);
 
-    const coverUrls = (track?.coverImage || []).filter(Boolean);
-
-    return {
-        audioUrls,
-        coverUrls,
-        avatarUrl: track?.avatar || "",
-        lyricsSyncUrl: track?.lyricsSyncUrl || "",
-    };
-};
+const getTrackAssetUrls = (track) => ({
+    audioUrls: getAudioUrlsFromFiles(track?.audioFiles || []),
+    coverUrls: (track?.coverImage || []).filter(Boolean),
+    avatarUrl: track?.avatar || "",
+    lyricsSyncUrl: track?.lyricsSyncUrl || "",
+});
 
 const collectReplacedAssetUrls = ({ oldAssets, nextAssets }) => {
     const replacedUrls = [];
@@ -123,73 +86,6 @@ const collectReplacedAssetUrls = ({ oldAssets, nextAssets }) => {
     return [...new Set(replacedUrls)];
 };
 
-const reindexAlbumTrackList = async (albumId) => {
-    if (!albumId) {
-        return;
-    }
-
-    const album = await Album.findById(albumId);
-
-    if (!album) {
-        return;
-    }
-
-    album.trackList = (album.trackList || []).map((item, index) => ({
-        trackId: item.trackId,
-        order: index + 1,
-    }));
-
-    await syncAlbumTotalDuration(album);
-    await album.save();
-};
-
-const removeTrackFromAlbum = async (albumId, trackId) => {
-    if (!albumId) {
-        return;
-    }
-
-    const album = await Album.findById(albumId);
-
-    if (!album) {
-        return;
-    }
-
-    album.trackList = (album.trackList || [])
-        .filter((item) => !item.trackId?.equals(trackId))
-        .map((item, index) => ({
-            trackId: item.trackId,
-            order: index + 1,
-        }));
-
-    await syncAlbumTotalDuration(album);
-    await album.save();
-};
-
-const appendTrackToAlbum = async (albumId, trackId) => {
-    if (!albumId) {
-        return;
-    }
-
-    const album = await Album.findById(albumId);
-
-    if (!album) {
-        throw new AppError("Album not found.", StatusCodes.NOT_FOUND);
-    }
-
-    const nextOrder = (Array.isArray(album.trackList) ? album.trackList.length : 0) + 1;
-
-    album.trackList = [
-        ...(album.trackList || []),
-        {
-            trackId,
-            order: nextOrder,
-        },
-    ];
-
-    await syncAlbumTotalDuration(album);
-    await album.save();
-};
-
 const populateManagementTrack = (trackId) =>
     Track.findById(trackId)
         .populate({
@@ -204,6 +100,36 @@ const populateManagementTrack = (trackId) =>
             path: "genreIds",
             select: "name",
         });
+
+const stringifyComparableAudioFiles = (audioFiles = []) =>
+    JSON.stringify(
+        (audioFiles || []).map((file) => ({
+            url: file?.url || "",
+            format: file?.format || "",
+            bitrate: Number(file?.bitrate) || 0,
+            label: file?.label || "",
+            priority: Number(file?.priority) || 0,
+        }))
+    );
+
+const stringifyComparableCopyright = (copyright) =>
+    JSON.stringify(copyright || null);
+
+const clearTrackModerationForResubmission = (track) => {
+    track.approvalStatus = "pending";
+    track.activeStatus = "draft";
+    track.rejectReason = "";
+    track.hiddenReason = "";
+    track.hiddenAt = null;
+    track.moderation = {
+        ...(track.moderation?.toObject?.() || track.moderation || {}),
+        submittedAt: new Date(),
+        reviewedBy: null,
+        reviewedAt: null,
+        adminNote: "",
+        violationFlags: [],
+    };
+};
 
 const createTrack = async (userId, trackData) => {
     const user = await User.findById(userId);
@@ -233,20 +159,14 @@ const createTrack = async (userId, trackData) => {
 
     const title = validateDraftTitle(trackData.title);
     const artistId = resolveArtistIdForCreate(trackData, artist);
-
-    const rawAlbumId = trackData.album_albumId;
-    const resolvedAlbumId =
-        rawAlbumId && String(rawAlbumId).trim() !== ""
-            ? String(rawAlbumId).trim()
-            : null;
-
-    const processedAudioFiles = validateOptionalAudioFiles(trackData.audioFiles);
-    const duration = validateOptionalDuration(trackData.duration, processedAudioFiles.length > 0);
+    const audioFiles = validateOptionalAudioFiles(trackData.audioFiles);
+    const duration = validateDurationFromAudioAnalysis(
+        trackData.audioAnalysis,
+        audioFiles.length > 0
+    );
     const genreIds = await validateOptionalGenreIds(trackData.genreIds);
-
-    if (resolvedAlbumId) {
-        await validateOptionalAlbumForDraft(resolvedAlbumId, artistId);
-    }
+    const description = validateOptionalDescription(trackData.description);
+    const tags = validateOptionalTags(trackData.tags);
 
     const coverImage = Array.isArray(trackData.coverImage)
         ? trackData.coverImage.filter(Boolean)
@@ -279,16 +199,18 @@ const createTrack = async (userId, trackData) => {
             typeof trackData.versionTitle === "string"
                 ? trackData.versionTitle.trim()
                 : "",
+        description,
+        tags,
         artist_artistId: artistId,
-        album_albumId: resolvedAlbumId,
+        album_albumId: null,
         genreIds,
-        audioFiles: processedAudioFiles,
+        audioFiles,
         duration,
         avatar: trackData.avatar || "",
         coverImage,
         lyricsStatic,
         lyricsSyncUrl: trackData.lyricsSyncUrl || "",
-        releaseDate: trackData.releaseDate || null,
+        releaseDate: null,
         activeStatus: "draft",
         approvalStatus: "draft",
         stats: {
@@ -299,11 +221,6 @@ const createTrack = async (userId, trackData) => {
     });
 
     const savedTrack = await newTrack.save();
-
-    if (resolvedAlbumId) {
-        await appendTrackToAlbum(resolvedAlbumId, savedTrack._id);
-    }
-
     const populatedTrack = await populateManagementTrack(savedTrack._id);
 
     return formatTrackManagementDetail(populatedTrack);
@@ -358,32 +275,43 @@ const updateArtistTrack = async (userId, trackId, trackData) => {
         avatarUrl: undefined,
         lyricsSyncUrl: undefined,
     };
-
-    const nextAlbumId = normalizeAlbumId(trackData.album_albumId);
-    const currentAlbumId = track.album_albumId ? track.album_albumId.toString() : null;
-    const nextGenreIds = Array.isArray(trackData.genreIds)
-        ? trackData.genreIds.filter(Boolean)
-        : undefined;
-
+    const isApprovedTrack = track.approvalStatus === "approved";
+    let shouldResubmitForApproval = false;
 
     if (trackData.title !== undefined) {
-        track.title = validateDraftTitle(trackData.title);
+        const nextTitle = validateDraftTitle(trackData.title);
+
+        if (track.title !== nextTitle && isApprovedTrack) {
+            shouldResubmitForApproval = true;
+        }
+
+        track.title = nextTitle;
     }
 
     if (trackData.versionTitle !== undefined) {
-        track.versionTitle =
+        const nextVersionTitle =
             typeof trackData.versionTitle === "string"
                 ? trackData.versionTitle.trim()
                 : "";
+
+        if ((track.versionTitle || "") !== nextVersionTitle && isApprovedTrack) {
+            shouldResubmitForApproval = true;
+        }
+
+        track.versionTitle = nextVersionTitle;
     }
 
-    if (trackData.duration !== undefined) {
-        const hasAudio =
-            trackData.audioFiles !== undefined
-                ? Array.isArray(trackData.audioFiles) && trackData.audioFiles.length > 0
-                : Array.isArray(track.audioFiles) && track.audioFiles.length > 0;
+    if (trackData.description !== undefined) {
+        track.description = validateOptionalDescription(trackData.description);
+    }
 
-        track.duration = validateOptionalDuration(trackData.duration, hasAudio);
+    if (trackData.tags !== undefined) {
+        track.tags = validateOptionalTags(trackData.tags);
+    }
+
+    if (trackData.genreIds !== undefined) {
+        const nextGenreIds = await validateOptionalGenreIds(trackData.genreIds);
+        track.genreIds = nextGenreIds;
     }
 
     if (trackData.avatar !== undefined) {
@@ -392,14 +320,42 @@ const updateArtistTrack = async (userId, trackId, trackData) => {
     }
 
     if (trackData.coverImage !== undefined) {
-        track.coverImage = Array.isArray(trackData.coverImage) ? trackData.coverImage : [];
+        track.coverImage = Array.isArray(trackData.coverImage) ? trackData.coverImage.filter(Boolean) : [];
+
+        if (track.coverImage.length > MAX_COVER_IMAGES) {
+            throw new AppError(
+                `A track can have at most ${MAX_COVER_IMAGES} cover images.`,
+                StatusCodes.BAD_REQUEST,
+                { field: "coverImage" }
+            );
+        }
+
         nextAssets.coverUrls = track.coverImage;
     }
 
     if (trackData.audioFiles !== undefined) {
-        const processedAudioFiles = validateOptionalAudioFiles(trackData.audioFiles);
-        track.audioFiles = processedAudioFiles;
-        nextAssets.audioUrls = processedAudioFiles.map((item) => item.url).filter(Boolean);
+        const nextAudioFiles = validateOptionalAudioFiles(trackData.audioFiles);
+        const nextDuration = validateDurationFromAudioAnalysis(
+            trackData.audioAnalysis,
+            nextAudioFiles.length > 0
+        );
+        const currentAudioSnapshot = stringifyComparableAudioFiles(track.audioFiles || []);
+        const nextAudioSnapshot = stringifyComparableAudioFiles(nextAudioFiles);
+        const currentDuration = Number(track.duration) || 0;
+
+        if (
+            isApprovedTrack &&
+            (
+                currentAudioSnapshot !== nextAudioSnapshot ||
+                currentDuration !== nextDuration
+            )
+        ) {
+            shouldResubmitForApproval = true;
+        }
+
+        track.audioFiles = nextAudioFiles;
+        track.duration = nextDuration;
+        nextAssets.audioUrls = getAudioUrlsFromFiles(nextAudioFiles);
     }
 
     if (trackData.lyricsStatic !== undefined) {
@@ -421,64 +377,40 @@ const updateArtistTrack = async (userId, trackId, trackData) => {
         nextAssets.lyricsSyncUrl = track.lyricsSyncUrl;
     }
 
-    if (trackData.releaseDate !== undefined) {
-        track.releaseDate = trackData.releaseDate || null;
-    }
-
-    if (nextGenreIds !== undefined) {
-        track.genreIds = await validateOptionalGenreIds(nextGenreIds);
-    }
-
-    if (nextAlbumId !== undefined) {
-        if (nextAlbumId !== currentAlbumId) {
-            if (nextAlbumId) {
-                await validateOptionalAlbumForDraft(nextAlbumId, artist._id);
-            }
-
-            await removeTrackFromAlbum(currentAlbumId, track._id);
-
-            if (nextAlbumId) {
-                await appendTrackToAlbum(nextAlbumId, track._id);
-            }
-
-            track.album_albumId = nextAlbumId || null;
-        }
-    }
-
     if (trackData.copyright !== undefined) {
         const sanitizedCopyright = sanitizeArtistCopyright(trackData.copyright);
 
-        if (sanitizedCopyright) {
-            track.copyright = {
+        if (sanitizedCopyright !== undefined) {
+            const nextCopyright = {
                 ...(track.copyright?.toObject?.() || track.copyright || {}),
                 ...sanitizedCopyright,
             };
+            const currentCopyrightSnapshot = stringifyComparableCopyright(
+                track.copyright?.toObject?.() || track.copyright || null
+            );
+            const nextCopyrightSnapshot = stringifyComparableCopyright(nextCopyright);
+
+            if (isApprovedTrack && currentCopyrightSnapshot !== nextCopyrightSnapshot) {
+                shouldResubmitForApproval = true;
+            }
+
+            track.copyright = nextCopyright;
         }
     }
 
-    if (trackData.coverImage !== undefined) {
-        const coverCount = Array.isArray(track.coverImage)
-            ? track.coverImage.filter(Boolean).length
-            : 0;
-
-        if (coverCount > MAX_COVER_IMAGES) {
-            throw new AppError(
-                `A track can have at most ${MAX_COVER_IMAGES} cover images.`,
-                StatusCodes.BAD_REQUEST,
-                { field: "coverImage" }
-            );
-        }
+    if (isApprovedTrack && shouldResubmitForApproval) {
+        clearTrackModerationForResubmission(track);
     }
 
     await track.save();
 
-    const replacedAssetUrls = collectReplacedAssetUrls({
+    const urlsToDelete = collectReplacedAssetUrls({
         oldAssets,
         nextAssets,
     });
 
-    if (replacedAssetUrls.length > 0) {
-        await deleteCloudinaryAssetsByUrls(replacedAssetUrls);
+    if (urlsToDelete.length > 0) {
+        await deleteCloudinaryAssetsByUrls(urlsToDelete);
     }
 
     const populatedTrack = await populateManagementTrack(track._id);
@@ -511,21 +443,21 @@ const getArtistTracks = async (userId, query = {}) => {
         };
     }
 
-    // Filter by activeStatus if provided and valid
     if (typeof query.activeStatus === "string" && query.activeStatus.trim() !== "") {
         const allowed = new Set(["draft", "active", "hidden", "blocked"]);
-        const val = query.activeStatus.trim();
-        if (allowed.has(val)) {
-            filter.activeStatus = val;
+        const value = query.activeStatus.trim();
+
+        if (allowed.has(value)) {
+            filter.activeStatus = value;
         }
     }
 
-    // Filter by approvalStatus if provided and valid
     if (typeof query.approvalStatus === "string" && query.approvalStatus.trim() !== "") {
         const allowedApproval = new Set(["draft", "pending", "approved", "rejected"]);
-        const val = query.approvalStatus.trim();
-        if (allowedApproval.has(val)) {
-            filter.approvalStatus = val;
+        const value = query.approvalStatus.trim();
+
+        if (allowedApproval.has(value)) {
+            filter.approvalStatus = value;
         }
     }
 
@@ -686,22 +618,6 @@ const deleteArtistTrack = async (userId, trackId) => {
         },
     });
 
-    const albumId = track.album_albumId;
-    if (albumId) {
-        const album = await Album.findById(albumId);
-
-        if (album) {
-            album.trackList = (album.trackList || [])
-                .filter((item) => !item.trackId?.equals(track._id))
-                .map((item, index) => ({
-                    trackId: item.trackId,
-                    order: index + 1,
-                }));
-
-            await album.save();
-        }
-    }
-
     await Track.deleteOne({ _id: track._id, artist_artistId: artist._id });
 
     if (assetUrlsToDelete.length > 0) {
@@ -712,8 +628,6 @@ const deleteArtistTrack = async (userId, trackId) => {
         deletedId: trackId,
     };
 };
-
-// export default moved to end to include submitArtistTrack
 
 const submitArtistTrack = async (userId, trackId) => {
     const user = await User.findById(userId);

@@ -1,8 +1,11 @@
 export const TITLE_MAX_LENGTH = 150;
+export const DESCRIPTION_MAX_LENGTH = 5000;
 export const LYRICS_STATIC_MAX_LENGTH = 20000;
 export const MAX_GENRE_IDS = 5;
 export const MAX_COVER_IMAGES = 3;
 export const MIN_GENRE_IDS_SUBMIT = 1;
+export const MAX_TAGS = 10;
+export const MAX_TAG_LENGTH = 50;
 
 const COPYRIGHT_FORM_KEYS = [
   "copyrightOwner",
@@ -114,59 +117,58 @@ export const usesThirdPartyRights = (copyright) =>
 
 export const getSubmitReadinessIssues = (track) => {
   if (!track) {
-    return ["Track data is missing."];
+    return ["Thiếu dữ liệu bài hát."];
   }
 
   const issues = [];
   const title = String(track.title || "").trim();
   const copyright = track.copyright || defaultCopyrightForm();
+  const genresSource = track.genres || track.genreIds || [];
+  const audioFiles = Array.isArray(track.audioFiles) ? track.audioFiles : [];
+  const duration = Number(track.duration);
 
   if (!title) {
-    issues.push("Title is required.");
+    issues.push("Vui lòng nhập tên bài hát.");
   } else if (title.length > TITLE_MAX_LENGTH) {
-    issues.push(`Title cannot exceed ${TITLE_MAX_LENGTH} characters.`);
+    issues.push(`Tên bài hát không được vượt quá ${TITLE_MAX_LENGTH} ký tự.`);
   }
 
-  const genreCount = Array.isArray(track.genres)
-    ? track.genres.length
-    : Array.isArray(track.genreIds)
-      ? track.genreIds.length
-      : 0;
+  const genreCount = Array.isArray(genresSource) ? genresSource.length : 0;
 
   if (genreCount < MIN_GENRE_IDS_SUBMIT) {
-    issues.push("Select at least one genre.");
+    issues.push("Vui lòng chọn ít nhất một thể loại.");
   }
 
-  const audioCount = Array.isArray(track.audioFiles) ? track.audioFiles.length : 0;
+  const audioCount = Array.isArray(audioFiles) ? audioFiles.length : 0;
 
   if (audioCount < 1) {
-    issues.push("Upload at least one audio file.");
-  } else if (!hasOriginalAudio(track)) {
-    issues.push("An original-quality audio file is required.");
+    issues.push("Vui lòng tải lên ít nhất một tệp âm thanh.");
+  } else if (!hasOriginalAudio({ audioFiles })) {
+    issues.push("Cần có ít nhất một tệp âm thanh gốc.");
   }
 
-  if (!Number(track.duration) || Number(track.duration) <= 0) {
-    issues.push("Duration must be greater than 0 seconds.");
+  if (!duration || duration <= 0) {
+    issues.push("Thời lượng bài hát phải lớn hơn 0 giây.");
   }
 
   if (!hasCoverOrAvatar(track)) {
-    issues.push("Add a track avatar or at least one cover image.");
+    issues.push("Vui lòng thêm ảnh đại diện hoặc ít nhất một ảnh bìa.");
   }
 
   if (!String(copyright.copyrightOwner || "").trim()) {
-    issues.push("Copyright owner is required.");
+    issues.push("Vui lòng nhập chủ sở hữu bản quyền.");
   }
 
   if (!String(copyright.recordingOwner || "").trim()) {
-    issues.push("Recording owner is required.");
+    issues.push("Vui lòng nhập chủ sở hữu bản ghi.");
   }
 
   if (!copyright.declarationAccepted) {
-    issues.push("Accept the copyright declaration.");
+    issues.push("Vui lòng xác nhận cam kết bản quyền.");
   }
 
   if (copyright.isOriginal && usesThirdPartyRights(copyright)) {
-    issues.push("Original tracks cannot also be marked as cover/remix/sample/beat.");
+    issues.push("Bài hát gốc không thể đồng thời đánh dấu là cover, remix, sample hoặc licensed beat.");
   }
 
   if (usesThirdPartyRights(copyright)) {
@@ -175,27 +177,30 @@ export const getSubmitReadinessIssues = (track) => {
       : [];
 
     if (validLicenseUrls.length < 1) {
-      issues.push("Provide at least one valid license document URL (http/https).");
+      issues.push("Vui lòng cung cấp ít nhất một URL giấy phép hợp lệ (http/https).");
     }
 
     if (!String(copyright.originalTrackTitle || "").trim()) {
-      issues.push("Original track title is required for third-party rights.");
+      issues.push("Vui lòng nhập tên bài gốc khi sử dụng quyền của bên thứ ba.");
     }
 
     if (!String(copyright.originalArtistName || "").trim()) {
-      issues.push("Original artist name is required for third-party rights.");
+      issues.push("Vui lòng nhập tên nghệ sĩ gốc khi sử dụng quyền của bên thứ ba.");
     }
   }
 
   if (String(track.lyricsStatic || "").length > LYRICS_STATIC_MAX_LENGTH) {
-    issues.push(`Static lyrics cannot exceed ${LYRICS_STATIC_MAX_LENGTH} characters.`);
+    issues.push(`Lời bài hát không được vượt quá ${LYRICS_STATIC_MAX_LENGTH} ký tự.`);
   }
 
   return issues;
 };
 
 export const canArtistEditTrack = (track) =>
-  track?.approvalStatus === "draft" || track?.approvalStatus === "rejected";
+  Boolean(track) &&
+  track?.approvalStatus !== "pending" &&
+  track?.activeStatus !== "blocked";
 
 export const canArtistSubmitTrack = (track) =>
-  track?.approvalStatus === "draft" || track?.approvalStatus === "rejected";
+  track?.approvalStatus === "draft" ||
+  track?.approvalStatus === "rejected";
