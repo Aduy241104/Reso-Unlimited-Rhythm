@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -17,6 +18,8 @@ import AppButton from '../../components/common/AppButton';
 import AppInput from '../../components/common/AppInput';
 import authService from '../../services/authService';
 import { forgotPasswordSchema, resetPasswordSchema } from '../../validations/authValidation';
+import appLogo from '../../../assets/reso-logo.png';
+import authBg from '../../../assets/auth-bg.png';
 
 const getPayloadData = (response) => response?.data || response || {};
 
@@ -40,8 +43,6 @@ const getCooldownSeconds = (error) => {
   return 0;
 };
 
-const waveBars = [6, 12, 18, 28, 40, 28, 18, 12, 6, 8, 12, 18, 34, 22, 12, 6];
-
 export const ForgotPasswordScreen = () => {
   const navigation = useNavigation();
   const [step, setStep] = useState('email');
@@ -54,9 +55,7 @@ export const ForgotPasswordScreen = () => {
 
   const emailForm = useForm({
     resolver: yupResolver(forgotPasswordSchema),
-    defaultValues: {
-      email: '',
-    },
+    defaultValues: { email: '' },
   });
 
   const resetForm = useForm({
@@ -102,7 +101,7 @@ export const ForgotPasswordScreen = () => {
       startCooldown(payload?.resendAfterSeconds || 0);
       setOtpValue('');
       resetForm.reset({ otp: '', password: '', confirmPassword: '' });
-      setApiMessage(response?.message || 'If the email exists, a reset OTP has been sent.');
+      setApiMessage(response?.message || 'Nếu email tồn tại, mã OTP đã được gửi.');
       setStep('reset');
     } catch (error) {
       const emailError = getFieldErrorMessage(error, 'email');
@@ -110,7 +109,7 @@ export const ForgotPasswordScreen = () => {
         emailForm.setError('email', { type: 'server', message: emailError });
       }
 
-      setApiError(error?.message || 'Unable to send reset email. Please try again.');
+      setApiError(error?.message || 'Không gửi được OTP đặt lại mật khẩu. Vui lòng thử lại.');
       startCooldown(getCooldownSeconds(error));
     }
   };
@@ -131,7 +130,7 @@ export const ForgotPasswordScreen = () => {
       });
 
       navigation.navigate('Login', {
-        notice: 'Password reset successful. Please sign in with your new password.',
+        notice: 'Đặt lại mật khẩu thành công. Đăng nhập bằng mật khẩu mới nhé.',
       });
     } catch (error) {
       ['otp', 'password', 'confirmPassword'].forEach((fieldName) => {
@@ -141,7 +140,7 @@ export const ForgotPasswordScreen = () => {
         }
       });
 
-      setApiError(error?.message || 'Unable to reset password. Please try again.');
+      setApiError(error?.message || 'Không đặt lại được mật khẩu. Vui lòng thử lại.');
     }
   };
 
@@ -155,8 +154,8 @@ export const ForgotPasswordScreen = () => {
 
   const renderEmailStep = () => (
     <>
-      <Text style={styles.cardTitle}>Forgot Password</Text>
-      <Text style={styles.cardSubtitle}>Enter your email to receive a password reset OTP.</Text>
+      <Text style={styles.title}>Quên mật khẩu</Text>
+      <Text style={styles.subtitle}>Nhập email để nhận mã OTP đặt lại mật khẩu.</Text>
 
       {apiError ? (
         <View style={styles.errorBox}>
@@ -170,22 +169,22 @@ export const ForgotPasswordScreen = () => {
         render={({ field: { onChange, onBlur, value } }) => (
           <AppInput
             label="Email"
-            placeholder="Email Address"
+            placeholder="you@example.com"
             autoCapitalize="none"
             keyboardType="email-address"
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
             error={emailErrors.email?.message}
-            inputStyle={styles.customInput}
-            labelStyle={styles.customLabel}
-            wrapperStyle={styles.customInputWrapper}
+            inputStyle={styles.input}
+            labelStyle={styles.label}
+            wrapperStyle={styles.inputWrapper}
           />
         )}
       />
 
       <AppButton
-        title={remainingSeconds > 0 ? `Try again in ${remainingSeconds}s` : 'Send Reset OTP'}
+        title={remainingSeconds > 0 ? `Thử lại sau ${remainingSeconds}s` : 'Gửi mã OTP'}
         onPress={emailForm.handleSubmit(handleSendResetOtp)}
         isLoading={emailForm.formState.isSubmitting}
         disabled={remainingSeconds > 0}
@@ -197,9 +196,9 @@ export const ForgotPasswordScreen = () => {
 
   const renderResetStep = () => (
     <>
-      <Text style={styles.cardTitle}>Reset Password</Text>
-      <Text style={styles.cardSubtitle}>
-        Enter the 6-digit OTP sent to {normalizedPendingEmail}. It expires in about {expiresInMinutes} minutes.
+      <Text style={styles.title}>Đặt lại mật khẩu</Text>
+      <Text style={styles.subtitle}>
+        Nhập mã 6 số đã gửi tới {normalizedPendingEmail}. Mã hết hạn sau khoảng {expiresInMinutes} phút.
       </Text>
 
       {apiMessage && !apiError ? (
@@ -219,7 +218,7 @@ export const ForgotPasswordScreen = () => {
         name="otp"
         render={({ field: { onBlur } }) => (
           <View style={styles.otpFieldContainer}>
-            <Text style={styles.customLabel}>OTP</Text>
+            <Text style={styles.label}>OTP</Text>
             <TextInput
               autoCapitalize="none"
               autoCorrect={false}
@@ -236,10 +235,10 @@ export const ForgotPasswordScreen = () => {
                 });
               }}
               placeholder="123456"
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor="#b7aeb8"
               returnKeyType="done"
               selectionColor="#ff9f43"
-              style={[styles.customInputWrapper, styles.customInput, styles.otpInput, resetErrors.otp && styles.inputErrorBorder]}
+              style={[styles.inputWrapper, styles.input, styles.otpInput, resetErrors.otp && styles.inputErrorBorder]}
               textContentType="oneTimeCode"
               value={otpValue}
             />
@@ -253,17 +252,17 @@ export const ForgotPasswordScreen = () => {
         name="password"
         render={({ field: { onChange, onBlur, value } }) => (
           <AppInput
-            label="New Password"
-            placeholder="New Password"
+            label="Mật khẩu mới"
+            placeholder="Tối thiểu 6 ký tự"
             secureTextEntry
             autoCapitalize="none"
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
             error={resetErrors.password?.message}
-            inputStyle={styles.customInput}
-            labelStyle={styles.customLabel}
-            wrapperStyle={styles.customInputWrapper}
+            inputStyle={styles.input}
+            labelStyle={styles.label}
+            wrapperStyle={styles.inputWrapper}
           />
         )}
       />
@@ -273,23 +272,23 @@ export const ForgotPasswordScreen = () => {
         name="confirmPassword"
         render={({ field: { onChange, onBlur, value } }) => (
           <AppInput
-            label="Confirm Password"
-            placeholder="Confirm Password"
+            label="Nhập lại mật khẩu"
+            placeholder="Nhập lại mật khẩu"
             secureTextEntry
             autoCapitalize="none"
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
             error={resetErrors.confirmPassword?.message}
-            inputStyle={styles.customInput}
-            labelStyle={styles.customLabel}
-            wrapperStyle={styles.customInputWrapper}
+            inputStyle={styles.input}
+            labelStyle={styles.label}
+            wrapperStyle={styles.inputWrapper}
           />
         )}
       />
 
       <AppButton
-        title="Reset Password"
+        title="Đặt lại mật khẩu"
         onPress={resetForm.handleSubmit(handleResetPassword)}
         isLoading={resetForm.formState.isSubmitting}
         buttonStyle={styles.primaryBtn}
@@ -298,7 +297,7 @@ export const ForgotPasswordScreen = () => {
 
       <View style={styles.resetActions}>
         <TouchableOpacity style={styles.secondaryBtn} onPress={() => setStep('email')}>
-          <Text style={styles.secondaryBtnText}>Edit email</Text>
+          <Text style={styles.secondaryBtnText}>Sửa email</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.secondaryBtn, remainingSeconds > 0 && styles.secondaryBtnDisabled]}
@@ -306,7 +305,7 @@ export const ForgotPasswordScreen = () => {
           onPress={handleResendOtp}
         >
           <Text style={styles.secondaryBtnText}>
-            {remainingSeconds > 0 ? `Resend in ${remainingSeconds}s` : 'Resend OTP'}
+            {remainingSeconds > 0 ? `Gửi lại sau ${remainingSeconds}s` : 'Gửi lại OTP'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -315,49 +314,31 @@ export const ForgotPasswordScreen = () => {
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <StatusBar barStyle="light-content" backgroundColor="#0f0f14" />
-      <View style={styles.glowLeft} />
-      <View style={styles.glowRight} />
-
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <View style={styles.headerContainer}>
-          <Text style={styles.tagline}>RESO MUSIC</Text>
-          <Text style={styles.mainTitle}>RESET THE</Text>
-          <Text style={styles.gradientTextPlaceholder}>PASSWORD</Text>
-          <Text style={styles.description}>Get back to your music.</Text>
-        </View>
-
-        <View style={styles.waveContainer}>
-          <View style={styles.waveLine} />
-          <View style={styles.waveBarWrapper}>
-            {waveBars.map((height, index) => (
-              <View
-                key={`${height}-${index}`}
-                style={[
-                  styles.waveBar,
-                  {
-                    height: height * 0.7,
-                    backgroundColor: index < 9 ? '#ff9f43' : '#9b6cff',
-                  },
-                ]}
-              />
-            ))}
+      <StatusBar barStyle="light-content" backgroundColor="#070a12" />
+      <View style={styles.background}>
+        <Image source={authBg} style={styles.bgArtwork} resizeMode="contain" />
+        <View style={styles.overlay} />
+        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+          <View style={styles.hero}>
+            <Image source={appLogo} style={styles.logo} resizeMode="cover" />
+            <Text style={styles.brandText}>RESO MUSIC</Text>
+            <Text style={styles.heroTitle}>Reset the password</Text>
+            <Text style={styles.heroText}>Lấy lại tài khoản để quay về playlist của bạn.</Text>
           </View>
-          <View style={styles.waveLine} />
-        </View>
 
-        <View style={styles.card}>
-          <Text style={styles.subBrand}>RESO MUSIC</Text>
-          {step === 'email' ? renderEmailStep() : renderResetStep()}
+          <View style={styles.card}>
+            <View style={styles.cardHandle} />
+            {step === 'email' ? renderEmailStep() : renderResetStep()}
 
-          <View style={styles.footerLinks}>
-            <Text style={styles.footerText}>Remember your password? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-              <Text style={styles.linkTextBold}>Sign in</Text>
-            </TouchableOpacity>
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>Nhớ mật khẩu rồi? </Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                <Text style={styles.linkText}>Đăng nhập</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </View>
     </KeyboardAvoidingView>
   );
 };
@@ -365,137 +346,114 @@ export const ForgotPasswordScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f0f14',
+    backgroundColor: '#070a12',
+  },
+  background: {
+    flex: 1,
+  },
+  bgArtwork: {
+    position: 'absolute',
+    top: 38,
+    left: -86,
+    width: 560,
+    height: 560,
+    opacity: 0.78,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(5, 7, 14, 0.5)',
   },
   scroll: {
     flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 40,
+    justifyContent: 'flex-end',
+    paddingHorizontal: 16,
+    paddingTop: 34,
+    paddingBottom: 22,
   },
-  glowLeft: {
-    position: 'absolute',
-    top: '10%',
-    left: '-20%',
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: 'rgba(255, 159, 67, 0.15)',
-    zIndex: 0,
-  },
-  glowRight: {
-    position: 'absolute',
-    bottom: '5%',
-    right: '-20%',
-    width: 250,
-    height: 250,
-    borderRadius: 125,
-    backgroundColor: 'rgba(155, 108, 255, 0.08)',
-    zIndex: 0,
-  },
-  headerContainer: {
+  hero: {
     alignItems: 'center',
-    marginBottom: 25,
-    zIndex: 1,
+    marginBottom: 24,
   },
-  tagline: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#f5b66f',
-    letterSpacing: 3,
+  logo: {
+    width: 74,
+    height: 74,
+    borderRadius: 24,
+    marginBottom: 10,
+    backgroundColor: '#1a1624',
     borderWidth: 1,
-    borderColor: 'rgba(245,182,177,0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    overflow: 'hidden',
+    borderColor: 'rgba(255,255,255,0.22)',
   },
-  mainTitle: {
-    fontSize: 36,
+  brandText: {
+    color: '#f8fbff',
+    fontSize: 15,
     fontWeight: '900',
+    letterSpacing: 2,
+  },
+  heroTitle: {
     color: '#ffffff',
-    marginTop: 15,
-  },
-  gradientTextPlaceholder: {
-    fontSize: 40,
+    fontSize: 28,
     fontWeight: '900',
-    color: '#ff9f43',
-    lineHeight: 42,
+    letterSpacing: -0.5,
+    marginTop: 16,
+    textAlign: 'center',
+    textTransform: 'uppercase',
   },
-  description: {
-    fontSize: 16,
-    color: '#ece4da',
-    marginTop: 10,
-    fontStyle: 'italic',
-  },
-  waveContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 30,
-    paddingHorizontal: 10,
-    zIndex: 1,
-  },
-  waveLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-  },
-  waveBarWrapper: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    marginHorizontal: 10,
-    gap: 3,
-  },
-  waveBar: {
-    width: 3,
-    borderRadius: 2,
+  heroText: {
+    maxWidth: 280,
+    color: '#f7d7b8',
+    fontSize: 14,
+    fontWeight: '600',
+    lineHeight: 20,
+    marginTop: 6,
+    textAlign: 'center',
   },
   card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 24,
-    shadowColor: '#ff9f43',
-    shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.15,
-    shadowRadius: 40,
-    elevation: 10,
-    zIndex: 1,
+    backgroundColor: 'rgba(19, 18, 26, 0.78)',
+    borderRadius: 28,
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.14)',
+    shadowColor: '#ff8f2f',
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    elevation: 12,
   },
-  subBrand: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#f5b66f',
-    letterSpacing: 4,
-    marginBottom: 4,
+  cardHandle: {
+    alignSelf: 'center',
+    width: 46,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 184, 107, 0.5)',
+    marginBottom: 18,
   },
-  cardTitle: {
-    fontSize: 30,
+  title: {
+    color: '#fffaf5',
+    fontSize: 26,
     fontWeight: '900',
-    color: '#000000',
   },
-  cardSubtitle: {
+  subtitle: {
+    color: '#d7c8bd',
     fontSize: 14,
-    color: '#4e4e4e',
-    marginTop: 6,
-    marginBottom: 20,
     lineHeight: 20,
+    marginTop: 4,
+    marginBottom: 18,
   },
-  customLabel: {
-    color: '#000000',
-    fontWeight: '600',
-    fontSize: 14,
-    marginBottom: 6,
+  label: {
+    color: '#fffaf5',
+    fontSize: 13,
+    fontWeight: '700',
   },
-  customInputWrapper: {
-    backgroundColor: '#f5f5f5',
-    borderColor: '#000000',
-    borderRadius: 25,
-    paddingHorizontal: 16,
+  inputWrapper: {
+    height: 50,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(255, 218, 185, 0.24)',
+    borderRadius: 18,
   },
-  customInput: {
-    color: '#1a1820',
+  input: {
+    color: '#fffaf5',
     fontSize: 15,
   },
   otpFieldContainer: {
@@ -503,60 +461,57 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   otpInput: {
-    height: 48,
     width: '100%',
     textAlign: 'center',
-    fontWeight: '700',
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: 8,
+    paddingHorizontal: 14,
   },
   inputErrorBorder: {
     borderColor: '#e11d48',
   },
   fieldErrorText: {
-    color: '#e11d48',
+    color: '#fecdd3',
     fontSize: 12,
     marginTop: 6,
   },
   primaryBtn: {
-    backgroundColor: '#ff9f43',
-    borderRadius: 25,
-    paddingVertical: 14,
-    marginTop: 10,
-    shadowColor: '#ff9f43',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 5,
+    height: 52,
+    backgroundColor: '#ff8a2a',
+    borderRadius: 18,
+    marginTop: 4,
   },
   primaryBtnText: {
     color: '#ffffff',
-    fontWeight: '700',
     fontSize: 16,
+    fontWeight: '800',
   },
   errorBox: {
-    backgroundColor: 'rgba(251,113,133,0.1)',
+    backgroundColor: 'rgba(244, 63, 94, 0.16)',
     borderWidth: 1,
-    borderColor: 'rgba(251,113,133,0.2)',
-    borderRadius: 12,
+    borderColor: 'rgba(253, 164, 175, 0.35)',
+    borderRadius: 16,
     padding: 12,
-    marginBottom: 15,
+    marginBottom: 16,
   },
   errorText: {
-    color: '#e11d48',
+    color: '#fecdd3',
     fontSize: 13,
-    textAlign: 'center',
+    lineHeight: 18,
   },
   successBox: {
-    backgroundColor: 'rgba(16,185,129,0.1)',
+    backgroundColor: 'rgba(16, 185, 129, 0.16)',
     borderWidth: 1,
-    borderColor: 'rgba(16,185,129,0.25)',
-    borderRadius: 12,
+    borderColor: 'rgba(187, 247, 208, 0.3)',
+    borderRadius: 16,
     padding: 12,
-    marginBottom: 15,
+    marginBottom: 16,
   },
   successText: {
-    color: '#047857',
+    color: '#bbf7d0',
     fontSize: 13,
-    textAlign: 'center',
+    lineHeight: 18,
   },
   resetActions: {
     flexDirection: 'row',
@@ -565,36 +520,38 @@ const styles = StyleSheet.create({
   },
   secondaryBtn: {
     flex: 1,
+    minHeight: 46,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.15)',
-    borderRadius: 25,
-    paddingVertical: 12,
+    borderColor: 'rgba(255, 218, 185, 0.24)',
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    paddingHorizontal: 10,
   },
   secondaryBtnDisabled: {
     opacity: 0.5,
   },
   secondaryBtnText: {
-    color: '#000000',
-    fontWeight: '600',
+    color: '#fffaf5',
     fontSize: 13,
+    fontWeight: '700',
+    textAlign: 'center',
   },
-  footerLinks: {
+  footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 25,
+    marginTop: 20,
   },
   footerText: {
+    color: '#d7c8bd',
     fontSize: 14,
-    color: '#6b6573',
   },
-  linkTextBold: {
+  linkText: {
+    color: '#ff7a1a',
     fontSize: 14,
-    fontWeight: '700',
-    color: '#000000',
+    fontWeight: '800',
   },
 });
 

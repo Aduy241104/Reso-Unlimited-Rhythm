@@ -214,7 +214,7 @@ const ArtistDetailPage = () => {
                 <div className="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
                     <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tổng người theo dõi</p>
                     <p className="mt-2 text-2xl font-bold text-slate-900">
-                        {(artist.metrics?.followers || artist.stats?.followers || 0).toLocaleString()} hits
+                        {(artist.metrics?.followers || artist.stats?.followers || 0).toLocaleString()} người
                     </p>
                 </div>
                 <div className="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
