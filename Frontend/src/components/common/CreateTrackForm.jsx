@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Disc3, FileAudio, FileText, Music4, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import trackService from "../../services/trackService";
 import genreService from "../../services/genreService";
@@ -10,12 +11,63 @@ import {
   mapTrackCopyrightToForm,
   serializeCopyrightForApi,
 } from "../../utils/trackWorkflow";
+import {
+  formatTrackDate,
+  resolveTrackArtwork,
+} from "../../utils/artistTrackPresentation";
 import AudioQualityDisplay from "./AudioQualityDisplay";
 import AudioQualityPreview from "./AudioQualityPreview";
 import TrackCopyrightFields from "../artist/TrackCopyrightFields";
 
+const FieldShell = ({ label, helper, error, children }) => (
+  <label className="block">
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-sm font-semibold text-[#241b45]">{label}</span>
+      {helper ? <span className="text-xs text-[#9e98b8]">{helper}</span> : null}
+    </div>
+    <div className="mt-2">{children}</div>
+    {error ? <p className="mt-2 text-xs text-rose-600">{error}</p> : null}
+  </label>
+);
+
+const SectionCard = ({ icon, eyebrow, title, description, children }) => {
+  const IconComponent = icon;
+
+  return (
+    <section className="rounded-[28px] border border-[#ece8ff] bg-white p-6 shadow-[0_12px_35px_rgba(32,23,71,0.06)]">
+      <div className="flex items-start gap-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#e6e0ff] bg-[#f8f6ff] text-[#6f5cf1]">
+          <IconComponent className="h-5 w-5" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#8d87aa]">
+            {eyebrow}
+          </p>
+          <h2 className="mt-2 text-xl font-semibold tracking-tight text-[#241b45]">
+            {title}
+          </h2>
+          {description ? (
+            <p className="mt-2 text-sm leading-6 text-[#8d87aa]">{description}</p>
+          ) : null}
+        </div>
+      </div>
+      <div className="mt-6">{children}</div>
+    </section>
+  );
+};
+
+const SidebarCard = ({ title, children }) => (
+  <div className="rounded-[28px] border border-[#ece8ff] bg-white p-5 shadow-[0_18px_40px_rgba(32,23,71,0.08)]">
+    <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-[#8d87aa]">
+      {title}
+    </h3>
+    <div className="mt-4">{children}</div>
+  </div>
+);
+
 const CreateTrackForm = () => {
   const navigate = useNavigate();
+  const formId = "artist-create-track-form";
   const [formData, setFormData] = useState({
     title: "",
     versionTitle: "",
@@ -36,6 +88,9 @@ const CreateTrackForm = () => {
   const [genresOpen, setGenresOpen] = useState(false);
   const [copyrightForm, setCopyrightForm] = useState(mapTrackCopyrightToForm());
   const [fieldErrors, setFieldErrors] = useState({});
+  const [artworkPreview, setArtworkPreview] = useState(() =>
+    resolveTrackArtwork({ title: "Bài hát mới" })
+  );
 
   useEffect(() => {
     const fetchGenres = async () => {
@@ -52,6 +107,56 @@ const CreateTrackForm = () => {
 
     fetchGenres();
   }, []);
+
+  useEffect(() => {
+    let previewUrl = "";
+
+    if (avatarFile) {
+      previewUrl = URL.createObjectURL(avatarFile);
+    } else if (coverImages.length > 0) {
+      previewUrl = URL.createObjectURL(coverImages[0]);
+    }
+
+    if (previewUrl) {
+      setArtworkPreview(previewUrl);
+      return () => {
+        URL.revokeObjectURL(previewUrl);
+      };
+    }
+
+    setArtworkPreview(
+      resolveTrackArtwork({
+        title: formData.title || "Bài hát mới",
+      })
+    );
+
+    return undefined;
+  }, [avatarFile, coverImages, formData.title]);
+
+  const selectedGenres = useMemo(
+    () =>
+      genres.filter((genre) => formData.genreIds.includes(String(genre._id))),
+    [formData.genreIds, genres]
+  );
+
+  const readinessItems = [
+    {
+      label: "Đã tải file âm thanh gốc",
+      ready: Boolean(audioFile),
+    },
+    {
+      label: "Đã chọn ảnh đại diện hoặc ảnh bìa",
+      ready: Boolean(avatarFile || coverImages.length > 0),
+    },
+    {
+      label: "Đã chọn ít nhất một thể loại",
+      ready: formData.genreIds.length > 0,
+    },
+    {
+      label: "Đã xác nhận bản quyền",
+      ready: Boolean(copyrightForm.declarationAccepted),
+    },
+  ];
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
@@ -89,6 +194,7 @@ const CreateTrackForm = () => {
 
   const handleGenreToggle = (genreId) => {
     const nextGenreId = String(genreId);
+
     setFormData((prev) => {
       if (prev.genreIds.includes(nextGenreId)) {
         return {
@@ -128,7 +234,7 @@ const CreateTrackForm = () => {
     }
 
     if (!audioFile) {
-      errors.audio = "Vui lòng tải lên tệp âm thanh.";
+      errors.audio = "Vui lòng tải lên file âm thanh chính.";
     }
 
     if (!avatarFile && coverImages.length === 0) {
@@ -168,7 +274,7 @@ const CreateTrackForm = () => {
       );
 
       if (!uploadResponse?.success) {
-        throw new Error("Tải tệp lên thất bại.");
+        throw new Error("Tải file lên thất bại.");
       }
 
       const {
@@ -212,259 +318,216 @@ const CreateTrackForm = () => {
   };
 
   return (
-    <div className="rounded-md border border-neutral-200 bg-white p-6">
-      <h3 className="text-lg font-semibold text-[#241b15]">Tạo bài hát mới</h3>
-      <p className="mt-2 text-sm text-neutral-600">
-        Hãy tải lên file nhạc gốc trước. Hệ thống sẽ tự đọc thời lượng trực tiếp
-        từ file âm thanh, nên bạn không cần nhập thủ công nữa.
-      </p>
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_360px]">
+      <form id={formId} onSubmit={handleSubmit} className="space-y-6">
+        {errorMessage ? (
+          <div className="rounded-[22px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            {errorMessage}
+          </div>
+        ) : null}
 
-      {errorMessage ? (
-        <div className="mt-4 whitespace-pre-line rounded-md bg-red-50 p-3 text-sm text-red-700">
-          {errorMessage}
-        </div>
-      ) : null}
+        <SectionCard
+          icon={Music4}
+          eyebrow="Tổng quan"
+          title="Thông tin bài hát"
+          description="Bắt đầu với phần nhận diện chính của bài hát. Bạn có thể tải file âm thanh gốc ngay bây giờ và hệ thống sẽ tự nhận diện thời lượng."
+        >
+          <div className="grid gap-5 md:grid-cols-2">
+            <FieldShell
+              label="Tên bài hát"
+              helper={`${formData.title.length}/${TITLE_MAX_LENGTH}`}
+              error={fieldErrors.title}
+            >
+              <input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={handleInputChange}
+                maxLength={TITLE_MAX_LENGTH}
+                className={`h-12 w-full rounded-2xl border bg-white px-4 text-sm text-[#241b45] outline-none transition ${
+                  fieldErrors.title
+                    ? "border-rose-300 focus:border-rose-400"
+                    : "border-[#e6e0ff] focus:border-[#7c6cf2]"
+                }`}
+              />
+            </FieldShell>
 
-      {(uploadedQualities.length > 0 || uploadingQualities) && (
-        <AudioQualityDisplay
-          qualities={uploadedQualities}
-          isLoading={uploadingQualities}
-          sourceAnalysis={uploadedAudioAnalysis}
-        />
-      )}
+            <FieldShell label="Tên phiên bản" helper="Không bắt buộc">
+              <input
+                type="text"
+                name="versionTitle"
+                value={formData.versionTitle}
+                onChange={handleInputChange}
+                placeholder="Ví dụ: Bản thu trực tiếp, phối lại..."
+                className="h-12 w-full rounded-2xl border border-[#e6e0ff] bg-white px-4 text-sm text-[#241b45] outline-none transition focus:border-[#7c6cf2]"
+              />
+            </FieldShell>
+          </div>
+        </SectionCard>
 
-      {uploadedQualities.length > 0 && !uploadingQualities && (
-        <AudioQualityPreview qualities={uploadedQualities} />
-      )}
-
-      <form onSubmit={handleSubmit} className="mt-6 space-y-6">
-        <div>
-          <label className="block text-sm font-medium text-[#241b15]">
-            Tên bài hát *
-          </label>
-          <input
-            type="text"
-            name="title"
-            value={formData.title}
-            onChange={handleInputChange}
-            maxLength={TITLE_MAX_LENGTH}
-            className={`mt-2 w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${
-              fieldErrors.title
-                ? "border-red-500 focus:border-red-500"
-                : "border-neutral-200 focus:border-[#8b5e3c]"
-            }`}
-            required
-          />
-          {fieldErrors.title ? (
-            <p className="mt-1 text-xs text-red-500">{fieldErrors.title}</p>
-          ) : null}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-[#241b15]">
-            Tên phiên bản
-          </label>
-          <input
-            type="text"
-            name="versionTitle"
-            value={formData.versionTitle}
-            onChange={handleInputChange}
-            placeholder="Ví dụ: Acoustic, Live, Remix..."
-            className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm focus:border-[#8b5e3c] focus:outline-none"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-[#241b15]">
-            Tệp âm thanh *
-          </label>
-          <p className={`mt-1 text-xs ${fieldErrors.audio ? "text-red-500" : "text-neutral-500"}`}>
-            {fieldErrors.audio ||
-              "Tải lên một file nguồn chất lượng cao. Hệ thống sẽ tự lấy thời lượng và tạo nhiều mức chất lượng phát."}
-          </p>
-          <input
-            type="file"
-            accept=".mp3,.wav,.flac,.aac,.m4a,audio/mpeg,audio/wav,audio/flac,audio/aac,audio/mp4"
-            onChange={handleAudioFileChange}
-            disabled={loading}
-            className={`mt-2 w-full rounded-md border px-3 py-2 text-sm disabled:bg-neutral-100 ${
-              fieldErrors.audio ? "border-red-500" : "border-neutral-200"
-            }`}
-          />
-          {audioFile ? (
-            <div className="mt-2 flex items-center justify-between rounded-md bg-neutral-50 p-2">
-              <p className="truncate text-sm text-neutral-700">{audioFile.name}</p>
-              <button
-                type="button"
-                onClick={() => {
-                  setAudioFile(null);
-                  setUploadedQualities([]);
-                  setUploadedAudioAnalysis(null);
-                }}
+        <SectionCard
+          icon={FileAudio}
+          eyebrow="Tệp"
+          title="Tải lên âm thanh và hình ảnh"
+          description="Tải lên một file âm thanh chất lượng cao cho bài hát, cùng với ảnh đại diện, ảnh bìa và file lời đồng bộ nếu có."
+        >
+          <div className="grid gap-5 md:grid-cols-2">
+            <FieldShell label="File âm thanh gốc" error={fieldErrors.audio}>
+              <input
+                type="file"
+                accept=".mp3,.wav,.flac,.aac,.m4a,audio/mpeg,audio/wav,audio/flac,audio/aac,audio/mp4"
+                onChange={handleAudioFileChange}
                 disabled={loading}
-                className="ml-2 text-red-500 hover:text-red-700 disabled:opacity-50"
-              >
-                x
-              </button>
-            </div>
-          ) : null}
-          {uploadedAudioAnalysis?.duration ? (
-            <p className="mt-2 text-xs text-neutral-500">
-              Thời lượng nhận diện được: {Math.round(uploadedAudioAnalysis.duration)} giây.
-            </p>
-          ) : null}
-        </div>
+                className="block h-12 w-full rounded-2xl border border-[#e6e0ff] bg-white px-4 py-3 text-sm text-[#241b45] file:mr-3 file:rounded-xl file:border-0 file:bg-[#f3efff] file:px-3 file:py-2 file:text-xs file:font-semibold file:text-[#5c4fe0]"
+              />
+              {audioFile ? (
+                <p className="mt-2 text-sm text-[#5e5678]">{audioFile.name}</p>
+              ) : null}
+              {uploadedAudioAnalysis?.duration ? (
+                <p className="mt-2 text-xs text-[#8d87aa]">
+                  Thời lượng nhận diện: {Math.round(uploadedAudioAnalysis.duration)} giây
+                </p>
+              ) : null}
+            </FieldShell>
 
-        <div>
-          <label className="block text-sm font-medium text-[#241b15]">
-            Ảnh đại diện hoặc ảnh bìa *
-          </label>
-          <p className={`mt-1 text-xs ${fieldErrors.media ? "text-red-500" : "text-neutral-500"}`}>
-            {fieldErrors.media || "Thêm ảnh đại diện cho bài hát hoặc ít nhất một ảnh bìa."}
-          </p>
-
-          <div className="mt-2 space-y-3">
-            <div>
-              <label className="block text-xs font-medium text-[#241b15]">Ảnh đại diện</label>
+            <FieldShell label="Ảnh đại diện">
               <input
                 type="file"
                 accept="image/*"
                 onChange={handleAvatarChange}
                 disabled={loading}
-                className="mt-1 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm disabled:bg-neutral-100"
+                className="block h-12 w-full rounded-2xl border border-[#e6e0ff] bg-white px-4 py-3 text-sm text-[#241b45] file:mr-3 file:rounded-xl file:border-0 file:bg-[#f3efff] file:px-3 file:py-2 file:text-xs file:font-semibold file:text-[#5c4fe0]"
               />
               {avatarFile ? (
-                <div className="mt-2 flex items-center justify-between rounded-md bg-neutral-50 p-2">
-                  <p className="truncate text-sm text-neutral-700">{avatarFile.name}</p>
-                  <button
-                    type="button"
-                    onClick={() => setAvatarFile(null)}
-                    disabled={loading}
-                    className="ml-2 text-red-500 hover:text-red-700 disabled:opacity-50"
-                  >
-                    x
-                  </button>
-                </div>
+                <p className="mt-2 text-sm text-[#5e5678]">{avatarFile.name}</p>
               ) : null}
-            </div>
+            </FieldShell>
+          </div>
 
-            <div>
-              <label className="block text-xs font-medium text-[#241b15]">Ảnh bìa</label>
+          <div className="mt-5 grid gap-5 md:grid-cols-2">
+            <FieldShell label="Ảnh bìa" error={fieldErrors.media}>
               <input
                 type="file"
                 multiple
                 accept="image/*"
                 onChange={handleCoverImagesChange}
                 disabled={loading}
-                className="mt-1 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm disabled:bg-neutral-100"
+                className="block h-12 w-full rounded-2xl border border-[#e6e0ff] bg-white px-4 py-3 text-sm text-[#241b45] file:mr-3 file:rounded-xl file:border-0 file:bg-[#f3efff] file:px-3 file:py-2 file:text-xs file:font-semibold file:text-[#5c4fe0]"
               />
               {coverImages.length > 0 ? (
-                <div className="mt-2 space-y-2">
+                <div className="mt-3 space-y-2">
                   {coverImages.map((file, index) => (
                     <div
                       key={`${file.name}-${index}`}
-                      className="flex items-center justify-between rounded-md bg-neutral-50 p-2"
+                      className="flex items-center justify-between rounded-2xl border border-[#ece8ff] bg-[#fbfaff] px-4 py-3 text-sm text-[#5e5678]"
                     >
-                      <p className="truncate text-sm text-neutral-700">{file.name}</p>
+                      <span className="truncate">{file.name}</span>
                       <button
                         type="button"
                         onClick={() => handleRemoveCoverImage(index)}
                         disabled={loading}
-                        className="ml-2 text-red-500 hover:text-red-700 disabled:opacity-50"
+                        className="text-rose-500 transition hover:text-rose-700"
                       >
-                        x
+                        Xóa
                       </button>
                     </div>
                   ))}
                 </div>
               ) : null}
-            </div>
-          </div>
-        </div>
+            </FieldShell>
 
-        <div>
-          <label className="block text-sm font-medium text-[#241b15]">
-            Lời bài hát
-          </label>
-          <textarea
-            name="lyricsStatic"
-            value={formData.lyricsStatic}
-            onChange={handleInputChange}
-            rows="4"
-            className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm focus:border-[#8b5e3c] focus:outline-none"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-[#241b15]">
-            Lời đồng bộ (.lrc)
-          </label>
-          <input
-            type="file"
-            accept=".lrc,text/plain"
-            onChange={handleLyricsSyncChange}
-            disabled={loading}
-            className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm disabled:bg-neutral-100"
-          />
-          {lyricsSyncFile ? (
-            <div className="mt-2 flex items-center justify-between rounded-md bg-neutral-50 p-2">
-              <p className="truncate text-sm text-neutral-700">{lyricsSyncFile.name}</p>
-              <button
-                type="button"
-                onClick={() => setLyricsSyncFile(null)}
+            <FieldShell label="File lời đồng bộ (.lrc)">
+              <input
+                type="file"
+                accept=".lrc,text/plain"
+                onChange={handleLyricsSyncChange}
                 disabled={loading}
-                className="ml-2 text-red-500 hover:text-red-700 disabled:opacity-50"
-              >
-                x
-              </button>
+                className="block h-12 w-full rounded-2xl border border-[#e6e0ff] bg-white px-4 py-3 text-sm text-[#241b45] file:mr-3 file:rounded-xl file:border-0 file:bg-[#f3efff] file:px-3 file:py-2 file:text-xs file:font-semibold file:text-[#5c4fe0]"
+              />
+              {lyricsSyncFile ? (
+                <p className="mt-2 text-sm text-[#5e5678]">{lyricsSyncFile.name}</p>
+              ) : null}
+            </FieldShell>
+          </div>
+
+          {(uploadedQualities.length > 0 || uploadingQualities) && (
+            <div className="mt-5">
+              <AudioQualityDisplay
+                qualities={uploadedQualities}
+                isLoading={uploadingQualities}
+                sourceAnalysis={uploadedAudioAnalysis}
+              />
+            </div>
+          )}
+
+          {uploadedQualities.length > 0 && !uploadingQualities ? (
+            <div className="mt-5">
+              <AudioQualityPreview qualities={uploadedQualities} />
             </div>
           ) : null}
-        </div>
+        </SectionCard>
 
-        <div className="relative">
-          <label className="block text-sm font-medium text-[#241b15]">Thể loại *</label>
-          <p className={`mt-1 text-xs ${fieldErrors.genres ? "text-red-500" : "text-neutral-500"}`}>
-            {fieldErrors.genres || `Chọn tối đa ${MAX_GENRE_IDS} thể loại.`}
-          </p>
+        <SectionCard
+          icon={FileText}
+          eyebrow="Nội dung"
+          title="Lời bài hát và thể loại"
+          description="Thêm lời bài hát tĩnh để tham chiếu và phân loại bài hát với tối đa năm thể loại."
+        >
+          <FieldShell label="Lời bài hát tĩnh">
+            <textarea
+              name="lyricsStatic"
+              value={formData.lyricsStatic}
+              onChange={handleInputChange}
+              rows="7"
+              className="w-full rounded-3xl border border-[#e6e0ff] bg-white px-4 py-4 text-sm leading-6 text-[#241b45] outline-none transition focus:border-[#7c6cf2]"
+            />
+          </FieldShell>
 
-          {genresLoading ? (
-            <p className="mt-2 text-sm text-neutral-600">Đang tải thể loại...</p>
-          ) : (
-            <div className="mt-2">
+          <div className="mt-5">
+            <FieldShell
+              label="Thể loại"
+              helper={genresLoading ? "Đang tải..." : `${formData.genreIds.length}/${MAX_GENRE_IDS} đã chọn`}
+              error={fieldErrors.genres}
+            >
               <button
                 type="button"
                 onClick={() => setGenresOpen((current) => !current)}
-                disabled={loading}
-                className={`flex w-full items-center justify-between rounded-md border px-3 py-2 text-left text-sm ${
-                  fieldErrors.genres ? "border-red-500" : "border-neutral-200"
+                disabled={loading || genresLoading}
+                className={`flex min-h-[52px] w-full items-center justify-between rounded-2xl border bg-white px-4 text-left text-sm text-[#241b45] transition ${
+                  fieldErrors.genres
+                    ? "border-rose-300"
+                    : "border-[#e6e0ff] hover:border-[#d5ccff]"
                 }`}
               >
-                <div className="truncate">
-                  {formData.genreIds.length === 0
+                <span className="truncate">
+                  {selectedGenres.length === 0
                     ? "Chọn thể loại..."
-                    : genres
-                        .filter((genre) => formData.genreIds.includes(String(genre._id)))
-                        .map((genre) => genre.name)
-                        .join(", ")}
-                </div>
-                <div className="ml-2 text-neutral-500">v</div>
+                    : selectedGenres.map((genre) => genre.name).join(", ")}
+                </span>
+                <Disc3 className="h-4 w-4 text-[#8d87aa]" />
               </button>
 
               {genresOpen ? (
-                <div className="absolute z-20 mt-2 max-h-56 w-full overflow-auto rounded-md border border-neutral-200 bg-white p-2 shadow">
+                <div className="mt-3 grid gap-2 rounded-3xl border border-[#ece8ff] bg-[#fbfaff] p-3 md:grid-cols-2">
                   {genres.map((genre) => {
-                    const id = String(genre._id);
+                    const genreId = String(genre._id);
+                    const checked = formData.genreIds.includes(genreId);
+
                     return (
                       <label
-                        key={id}
-                        className="flex items-center gap-2 px-2 py-1 text-sm text-neutral-700 hover:bg-neutral-50"
+                        key={genreId}
+                        className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 text-sm transition ${
+                          checked
+                            ? "border-[#cfc4ff] bg-white text-[#3f3164]"
+                            : "border-transparent bg-transparent text-[#5e5678] hover:border-[#ece8ff] hover:bg-white"
+                        }`}
                       >
                         <input
                           type="checkbox"
-                          checked={formData.genreIds.includes(id)}
-                          onChange={() => handleGenreToggle(id)}
+                          checked={checked}
+                          onChange={() => handleGenreToggle(genreId)}
                           disabled={loading}
-                          className="h-4 w-4 rounded border-neutral-300 text-[#8b5e3c] focus:ring-[#8b5e3c]"
+                          className="h-4 w-4 rounded border-neutral-300 text-[#6f5cf1]"
                         />
                         <span className="truncate">{genre.name}</span>
                       </label>
@@ -472,22 +535,119 @@ const CreateTrackForm = () => {
                   })}
                 </div>
               ) : null}
+            </FieldShell>
+          </div>
+        </SectionCard>
+
+        <SectionCard
+          icon={ShieldCheck}
+          eyebrow="Bản quyền"
+          title="Thông tin quyền sở hữu"
+          description="Hoàn thiện phần này để bài hát có thể đi vào quy trình kiểm duyệt thuận lợi khi bạn sẵn sàng gửi duyệt."
+        >
+          <TrackCopyrightFields
+            value={copyrightForm}
+            onChange={setCopyrightForm}
+            disabled={loading}
+            errors={fieldErrors}
+          />
+        </SectionCard>
+      </form>
+
+      <div className="space-y-6">
+        <SidebarCard title="Xem trước">
+          <div className="overflow-hidden rounded-[24px] bg-[#f6f2ff]">
+            <img
+              src={artworkPreview}
+              alt={formData.title || "Xem trước bài hát"}
+              className="aspect-square w-full object-cover"
+            />
+          </div>
+          <h3 className="mt-5 text-xl font-semibold tracking-tight text-[#241b45]">
+            {formData.title.trim() || "Chưa có tên bài hát"}
+          </h3>
+          <p className="mt-1 text-sm text-[#8d87aa]">
+            {formData.versionTitle.trim() || "Phiên bản gốc"}
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <span className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+              Bản nháp
+            </span>
+            <span className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700">
+              Bài hát mới
+            </span>
+          </div>
+        </SidebarCard>
+
+        <SidebarCard title="Mức độ hoàn thiện">
+          <div className="space-y-3">
+            {readinessItems.map((item) => (
+              <div
+                key={item.label}
+                className="flex items-center justify-between gap-4 rounded-2xl border border-[#f0ebff] bg-[#fbfaff] px-4 py-3 text-sm"
+              >
+                <span className="text-[#5e5678]">{item.label}</span>
+                <span
+                  className={[
+                    "rounded-full px-3 py-1 text-xs font-semibold",
+                    item.ready
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "bg-slate-100 text-slate-500",
+                  ].join(" ")}
+                >
+                  {item.ready ? "Đã sẵn sàng" : "Chưa xong"}
+                </span>
+              </div>
+            ))}
+          </div>
+        </SidebarCard>
+
+        <SidebarCard title="Tóm tắt bài hát">
+          <div className="space-y-4 text-sm">
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-[#8d87aa]">Thể loại</span>
+              <span className="text-right font-medium text-[#241b45]">
+                {selectedGenres.length > 0
+                  ? selectedGenres.map((genre) => genre.name).join(", ")
+                  : "Chưa chọn"}
+              </span>
             </div>
-          )}
-        </div>
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-[#8d87aa]">Thời lượng</span>
+              <span className="text-right font-medium text-[#241b45]">
+                {uploadedAudioAnalysis?.duration
+                  ? `${Math.round(uploadedAudioAnalysis.duration)} giây`
+                  : "Đang chờ tải lên"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-[#8d87aa]">Ảnh minh họa</span>
+              <span className="text-right font-medium text-[#241b45]">
+                {avatarFile ? "Đã có ảnh đại diện" : "Chưa có ảnh đại diện"}
+                {coverImages.length > 0 ? ` · ${coverImages.length} ảnh bìa` : ""}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-[#8d87aa]">Lời đồng bộ</span>
+              <span className="text-right font-medium text-[#241b45]">
+                {lyricsSyncFile ? lyricsSyncFile.name : "Chưa tải lên"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-[#8d87aa]">Chuẩn bị ngày</span>
+              <span className="text-right font-medium text-[#241b45]">
+                {formatTrackDate(new Date().toISOString())}
+              </span>
+            </div>
+          </div>
+        </SidebarCard>
 
-        <TrackCopyrightFields
-          value={copyrightForm}
-          onChange={setCopyrightForm}
-          disabled={loading}
-          errors={fieldErrors}
-        />
-
-        <div className="flex gap-2 pt-4">
+        <div className="rounded-[28px] border border-[#ece8ff] bg-white p-5 shadow-[0_18px_40px_rgba(32,23,71,0.08)]">
           <button
             type="submit"
+            form={formId}
             disabled={loading}
-            className="rounded-md bg-[#8b5e3c] px-4 py-2 font-medium text-white hover:bg-[#6d4a2f] disabled:opacity-50"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#2f225d] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#221745] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading
               ? uploadingQualities
@@ -499,12 +659,12 @@ const CreateTrackForm = () => {
             type="button"
             onClick={() => navigate(routePaths.artistMusic)}
             disabled={loading}
-            className="rounded-md border border-neutral-300 px-4 py-2 font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
+            className="mt-3 inline-flex w-full items-center justify-center rounded-2xl border border-[#e6e0ff] px-5 py-3 text-sm font-medium text-[#4d4569] transition hover:bg-[#faf8ff] disabled:cursor-not-allowed disabled:opacity-60"
           >
             Hủy
           </button>
         </div>
-      </form>
+      </div>
     </div>
   );
 };

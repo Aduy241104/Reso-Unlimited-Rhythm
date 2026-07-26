@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2, Save, Send } from "lucide-react";
+import {
+  ArrowLeft,
+  Disc3,
+  FileAudio,
+  FileText,
+  Loader2,
+  Music4,
+  ShieldCheck,
+} from "lucide-react";
 import TrackCopyrightFields from "../../components/artist/TrackCopyrightFields";
 import ConfirmActionModal from "../../components/common/ConfirmActionModal";
 import genreService from "../../services/genreService";
@@ -17,6 +25,60 @@ import {
   serializeCopyrightForApi,
   TITLE_MAX_LENGTH,
 } from "../../utils/trackWorkflow";
+import {
+  formatTrackDate,
+  formatTrackDateTime,
+  getTrackDisplayDuration,
+  getTrackActiveStatusMeta,
+  getTrackApprovalStatusMeta,
+  resolveTrackArtwork,
+} from "../../utils/artistTrackPresentation";
+
+const FieldShell = ({ label, helper, error, children }) => (
+  <label className="block">
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-sm font-semibold text-[#241b45]">{label}</span>
+      {helper ? <span className="text-xs text-[#9e98b8]">{helper}</span> : null}
+    </div>
+    <div className="mt-2">{children}</div>
+    {error ? <p className="mt-2 text-xs text-rose-600">{error}</p> : null}
+  </label>
+);
+
+const SectionCard = ({ icon, eyebrow, title, description, children }) => {
+  const IconComponent = icon;
+
+  return (
+    <section className="rounded-[28px] border border-[#ece8ff] bg-white p-6 shadow-[0_12px_35px_rgba(32,23,71,0.06)]">
+      <div className="flex items-start gap-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#e6e0ff] bg-[#f8f6ff] text-[#6f5cf1]">
+          <IconComponent className="h-5 w-5" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#8d87aa]">
+            {eyebrow}
+          </p>
+          <h2 className="mt-2 text-xl font-semibold tracking-tight text-[#241b45]">
+            {title}
+          </h2>
+          {description ? (
+            <p className="mt-2 text-sm leading-6 text-[#8d87aa]">{description}</p>
+          ) : null}
+        </div>
+      </div>
+      <div className="mt-6">{children}</div>
+    </section>
+  );
+};
+
+const SidebarCard = ({ title, children }) => (
+  <div className="rounded-[28px] border border-[#ece8ff] bg-white p-5 shadow-[0_18px_40px_rgba(32,23,71,0.08)]">
+    <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-[#8d87aa]">
+      {title}
+    </h3>
+    <div className="mt-4">{children}</div>
+  </div>
+);
 
 const getFormDataFromTrack = (track) => ({
   title: track?.title || "",
@@ -149,7 +211,6 @@ const ArtistTrackEditPage = () => {
 
   const canEdit = canArtistEditTrack(track);
   const canSubmit = canArtistSubmitTrack(track);
-  const locationMessage = location.state?.message || "";
 
   const previewTrackForSubmit = useMemo(() => {
     if (!track) {
@@ -165,13 +226,43 @@ const ArtistTrackEditPage = () => {
       genres: formData.genreIds.map((genreId) => ({ _id: genreId })),
       genreIds: formData.genreIds,
       copyright: serializeCopyrightForApi(copyrightForm),
+      avatar: avatarPreview || track.avatar,
+      coverImage: coverPreviews.length > 0 ? coverPreviews : track.coverImage,
     };
-  }, [copyrightForm, formData, track]);
+  }, [avatarPreview, copyrightForm, coverPreviews, formData, track]);
 
   const submitIssues = useMemo(
     () => getSubmitReadinessIssues(previewTrackForSubmit),
     [previewTrackForSubmit]
   );
+
+  const selectedGenres = useMemo(
+    () =>
+      genres.filter((genre) => formData.genreIds.includes(String(genre._id))),
+    [formData.genreIds, genres]
+  );
+
+  const activeMeta = getTrackActiveStatusMeta(track?.activeStatus);
+  const approvalMeta = getTrackApprovalStatusMeta(track?.approvalStatus);
+
+  const readinessItems = [
+    {
+      label: "Thông tin cơ bản đã đầy đủ",
+      ready: Boolean(formData.title.trim() && formData.genreIds.length > 0),
+    },
+    {
+      label: "Đã có file âm thanh",
+      ready: Boolean(audioFile || audioPreviewUrl),
+    },
+    {
+      label: "Đã có ảnh minh họa",
+      ready: Boolean(avatarPreview || coverPreviews.length > 0),
+    },
+    {
+      label: "Đã xác nhận bản quyền",
+      ready: Boolean(copyrightForm.declarationAccepted),
+    },
+  ];
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
@@ -439,7 +530,7 @@ const ArtistTrackEditPage = () => {
       if (Object.keys(payload).length === 0) {
         setSuccessMessage("Chưa có thay đổi nào để lưu.");
       } else if (willRequireReview && latestTrack?.approvalStatus === "pending") {
-        setSuccessMessage("Đã lưu thay đổi và chuyển bài hát sang chờ duyệt.");
+        setSuccessMessage("Đã lưu thay đổi và chuyển bài hát về trạng thái chờ duyệt.");
       } else {
         setSuccessMessage("Đã lưu thay đổi bài hát thành công.");
       }
@@ -448,7 +539,7 @@ const ArtistTrackEditPage = () => {
         getApiErrorFullMessage(
           error,
           submitAfterSave
-            ? "Không thể gửi bài hát để duyệt."
+            ? "Không thể gửi bài hát để duyệt lúc này."
             : "Không thể lưu thay đổi bài hát lúc này."
         )
       );
@@ -459,11 +550,19 @@ const ArtistTrackEditPage = () => {
     }
   };
 
-  const handleSubmit = async (event) => {
+  const handleFormSubmit = async (event) => {
     event.preventDefault();
 
     if (!canEdit) {
-      setErrorMessage("Bài hát này không thể chỉnh sửa ở trạng thái hiện tại.");
+      setErrorMessage("Bài hát này hiện không thể chỉnh sửa.");
+      return;
+    }
+
+    await saveTrackChanges({ submitAfterSave: false });
+  };
+
+  const handleSaveClick = async () => {
+    if (!canEdit || submitting || submittingForApproval) {
       return;
     }
 
@@ -490,9 +589,9 @@ const ArtistTrackEditPage = () => {
 
   if (loading) {
     return (
-      <section className="rounded-md border border-neutral-200 bg-white p-8 text-sm text-neutral-600 shadow-sm">
+      <section className="rounded-[28px] border border-[#ece8ff] bg-white p-8 text-sm text-[#6b6682] shadow-sm">
         <div className="flex items-center gap-3">
-          <Loader2 className="h-5 w-5 animate-spin text-[#8b5e3c]" />
+          <Loader2 className="h-5 w-5 animate-spin text-[#6f5cf1]" />
           Đang tải trình chỉnh sửa bài hát...
         </div>
       </section>
@@ -501,7 +600,7 @@ const ArtistTrackEditPage = () => {
 
   if (errorMessage && !track) {
     return (
-      <section className="rounded-md border border-rose-200 bg-rose-50 p-6 text-rose-900">
+      <section className="rounded-[28px] border border-rose-200 bg-rose-50 p-6 text-rose-900">
         <h2 className="text-lg font-semibold">Không thể tải bài hát</h2>
         <p className="mt-2 text-sm leading-6">{errorMessage}</p>
       </section>
@@ -513,311 +612,384 @@ const ArtistTrackEditPage = () => {
       <button
         type="button"
         onClick={() => navigate(routePaths.artistTrackDetail(id))}
-        className="inline-flex items-center gap-2 text-sm font-medium text-neutral-600 transition hover:text-[#8b5e3c]"
+        className="inline-flex items-center gap-2 text-sm font-medium text-[#6b6682] transition hover:text-[#3d2d73]"
       >
         <ArrowLeft className="h-4 w-4" />
         Quay lại chi tiết bài hát
       </button>
 
-      <div className="rounded-md border border-neutral-200 bg-white p-6 shadow-sm">
-        <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-[#8b5e3c]">
-            Bảng điều khiển nghệ sĩ
-          </p>
-          <h1 className="mt-3 text-2xl font-semibold tracking-tight text-[#241b15]">
-            Chỉnh sửa bài hát
-          </h1>
-          <p className="mt-2 text-sm text-neutral-600">
-            Mô tả, lời bài hát, thể loại và hình ảnh sẽ được lưu ngay. Nếu thay đổi tên
-            bài hát, tên phiên bản, file nhạc hoặc thông tin bản quyền thì bài hát sẽ
-            chuyển sang trạng thái chờ admin duyệt lại.
-          </p>
+      {location.state?.message ? (
+        <div className="rounded-[22px] border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
+          {location.state.message}
         </div>
+      ) : null}
 
-        {locationMessage ? (
-          <div className="mt-4 rounded-md border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
-            {locationMessage}
-          </div>
-        ) : null}
+      {!canEdit ? (
+        <div className="rounded-[22px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Bài hát này hiện đang bị khóa chỉnh sửa.
+        </div>
+      ) : null}
 
-        {!canEdit ? (
-          <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            Bài hát này không thể chỉnh sửa ở trạng thái hiện tại.
-          </div>
-        ) : null}
+      {track?.approvalStatus === "rejected" && track?.rejectReason ? (
+        <div className="rounded-[22px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+          Lý do từ chối: {track.rejectReason}
+        </div>
+      ) : null}
 
-        {track?.approvalStatus === "rejected" && track?.rejectReason ? (
-          <div className="mt-4 rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
-            Lý do từ chối: {track.rejectReason}
-          </div>
-        ) : null}
+      {successMessage ? (
+        <div className="rounded-[22px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          {successMessage}
+        </div>
+      ) : null}
 
-        {successMessage ? (
-          <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-            {successMessage}
-          </div>
-        ) : null}
+      {errorMessage ? (
+        <div className="whitespace-pre-line rounded-[22px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {errorMessage}
+        </div>
+      ) : null}
 
-        {errorMessage ? (
-          <div className="mt-4 whitespace-pre-line rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-            {errorMessage}
-          </div>
-        ) : null}
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_360px]">
+        <form onSubmit={handleFormSubmit} className="space-y-6">
+          <SectionCard
+            icon={Music4}
+            eyebrow="Chỉnh sửa"
+            title="Thông tin bài hát"
+            description="Cập nhật phần nhận diện chính của bài hát. Khi thay đổi tên bài hát, tên phiên bản, file âm thanh hoặc thông tin bản quyền, bài hát có thể quay lại trạng thái chờ duyệt."
+          >
+            <div className="grid gap-5 md:grid-cols-2">
+              <FieldShell
+                label="Tên bài hát"
+                helper={`${formData.title.length}/${TITLE_MAX_LENGTH}`}
+                error={fieldErrors.title}
+              >
+                <input
+                  type="text"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleInputChange}
+                  maxLength={TITLE_MAX_LENGTH}
+                  disabled={!canEdit}
+                  className={`h-12 w-full rounded-2xl border bg-white px-4 text-sm text-[#241b45] outline-none transition ${
+                    fieldErrors.title
+                      ? "border-rose-300 focus:border-rose-400"
+                      : "border-[#e6e0ff] focus:border-[#7c6cf2]"
+                  }`}
+                />
+              </FieldShell>
 
-        {canSubmit ? (
-          <div className="mt-4 rounded-md border border-neutral-200 bg-white p-4">
-            <p className="text-sm font-medium text-[#241b15]">Tình trạng sẵn sàng gửi duyệt</p>
-            {submitIssues.length === 0 ? (
-              <p className="mt-2 text-sm text-emerald-700">
-                Bài hát này đã sẵn sàng để gửi duyệt.
-              </p>
-            ) : (
-              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-neutral-600">
-                {submitIssues.map((issue) => (
-                  <li key={issue}>{issue}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-        ) : null}
+              <FieldShell label="Tên phiên bản" helper="Không bắt buộc">
+                <input
+                  type="text"
+                  name="versionTitle"
+                  value={formData.versionTitle}
+                  onChange={handleInputChange}
+                  disabled={!canEdit}
+                  className="h-12 w-full rounded-2xl border border-[#e6e0ff] bg-white px-4 text-sm text-[#241b45] outline-none transition focus:border-[#7c6cf2]"
+                />
+              </FieldShell>
+            </div>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-6">
-          <div className="rounded-md border border-neutral-200 bg-[#fcfaf7] p-4">
-            <p className="text-sm font-medium text-[#241b15]">Tệp media</p>
-            <p className="mt-1 text-xs text-neutral-600">
-              Bạn có thể cập nhật file nhạc, ảnh đại diện, ảnh bìa và file lời đồng bộ tại đây.
-            </p>
+            <div className="mt-5">
+              <FieldShell label="Mô tả">
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  rows="4"
+                  disabled={!canEdit}
+                  className="w-full rounded-3xl border border-[#e6e0ff] bg-white px-4 py-4 text-sm leading-6 text-[#241b45] outline-none transition focus:border-[#7c6cf2]"
+                />
+              </FieldShell>
+            </div>
+          </SectionCard>
 
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="block text-sm font-medium text-[#241b15]">
-                  Tệp âm thanh
-                </label>
+          <SectionCard
+            icon={FileAudio}
+            eyebrow="Tệp"
+            title="Âm thanh và hình ảnh"
+            description="Thay thế file âm thanh gốc, ảnh đại diện, ảnh bìa hoặc file lời đồng bộ mà không làm thay đổi logic backend hiện tại."
+          >
+            <div className="grid gap-5 md:grid-cols-2">
+              <FieldShell label="File âm thanh gốc">
                 <input
                   type="file"
                   accept=".mp3,.wav,.flac,.aac,.m4a,audio/mpeg,audio/wav,audio/flac,audio/aac,audio/mp4"
                   onChange={handleAudioChange}
                   disabled={!canEdit}
-                  className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm"
+                  className="block h-12 w-full rounded-2xl border border-[#e6e0ff] bg-white px-4 py-3 text-sm text-[#241b45] file:mr-3 file:rounded-xl file:border-0 file:bg-[#f3efff] file:px-3 file:py-2 file:text-xs file:font-semibold file:text-[#5c4fe0]"
                 />
                 {audioFile ? (
-                  <p className="mt-2 text-xs text-neutral-600">Đã chọn: {audioFile.name}</p>
+                  <p className="mt-2 text-sm text-[#5e5678]">{audioFile.name}</p>
                 ) : null}
                 {audioPreviewUrl ? (
-                  <div className="mt-2">
-                    <audio controls src={audioPreviewUrl} className="w-full" />
-                  </div>
+                  <audio controls src={audioPreviewUrl} className="mt-3 w-full" />
                 ) : null}
-              </div>
+              </FieldShell>
 
-              <div>
-                <label className="block text-sm font-medium text-[#241b15]">
-                  Ảnh đại diện
-                </label>
+              <FieldShell label="Ảnh đại diện">
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleAvatarChange}
                   disabled={!canEdit}
-                  className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm"
+                  className="block h-12 w-full rounded-2xl border border-[#e6e0ff] bg-white px-4 py-3 text-sm text-[#241b45] file:mr-3 file:rounded-xl file:border-0 file:bg-[#f3efff] file:px-3 file:py-2 file:text-xs file:font-semibold file:text-[#5c4fe0]"
                 />
                 {avatarPreview ? (
                   <img
                     src={avatarPreview}
                     alt="Xem trước ảnh đại diện"
-                    className="mt-3 h-24 w-24 rounded border border-neutral-200 object-cover"
+                    className="mt-3 h-28 w-28 rounded-[22px] object-cover"
                   />
                 ) : null}
-              </div>
+              </FieldShell>
             </div>
 
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="block text-sm font-medium text-[#241b15]">
-                  Ảnh bìa
-                </label>
+            <div className="mt-5 grid gap-5 md:grid-cols-2">
+              <FieldShell label="Ảnh bìa">
                 <input
                   type="file"
                   accept="image/*"
                   multiple
                   onChange={handleCoverImageChange}
                   disabled={!canEdit}
-                  className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm"
+                  className="block h-12 w-full rounded-2xl border border-[#e6e0ff] bg-white px-4 py-3 text-sm text-[#241b45] file:mr-3 file:rounded-xl file:border-0 file:bg-[#f3efff] file:px-3 file:py-2 file:text-xs file:font-semibold file:text-[#5c4fe0]"
                 />
                 {coverPreviews.length > 0 ? (
-                  <div className="mt-2 flex flex-wrap gap-2">
+                  <div className="mt-3 flex flex-wrap gap-3">
                     {coverPreviews.map((url, index) => (
                       <img
                         key={`${url}-${index}`}
                         src={url}
                         alt={`Ảnh bìa ${index + 1}`}
-                        className="h-20 w-20 rounded border border-neutral-200 object-cover"
+                        className="h-20 w-20 rounded-2xl object-cover"
                       />
                     ))}
                   </div>
                 ) : null}
-              </div>
+              </FieldShell>
 
-              <div>
-                <label className="block text-sm font-medium text-[#241b15]">
-                  Lời đồng bộ (.lrc)
-                </label>
+              <FieldShell label="Lời đồng bộ (.lrc)">
                 <input
                   type="file"
                   accept=".lrc,text/plain"
                   onChange={handleLyricsSyncChange}
                   disabled={!canEdit}
-                  className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm"
+                  className="block h-12 w-full rounded-2xl border border-[#e6e0ff] bg-white px-4 py-3 text-sm text-[#241b45] file:mr-3 file:rounded-xl file:border-0 file:bg-[#f3efff] file:px-3 file:py-2 file:text-xs file:font-semibold file:text-[#5c4fe0]"
                 />
                 {lyricsPreviewText ? (
-                  <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded bg-neutral-50 p-2 text-xs text-neutral-700">
+                  <pre className="mt-3 max-h-44 overflow-auto rounded-3xl border border-[#ece8ff] bg-[#fbfaff] p-4 text-xs leading-6 text-[#5e5678]">
                     {lyricsPreviewText}
                   </pre>
                 ) : null}
+              </FieldShell>
+            </div>
+          </SectionCard>
+
+          <SectionCard
+            icon={FileText}
+            eyebrow="Nội dung"
+            title="Lời bài hát và thể loại"
+            description="Điều chỉnh phần nội dung hỗ trợ cho việc kiểm duyệt và hiển thị trong danh mục bài hát."
+          >
+            <FieldShell label="Lời bài hát tĩnh" error={fieldErrors.lyricsStatic}>
+              <textarea
+                name="lyricsStatic"
+                value={formData.lyricsStatic}
+                onChange={handleInputChange}
+                rows="8"
+                disabled={!canEdit}
+                className="w-full rounded-3xl border border-[#e6e0ff] bg-white px-4 py-4 text-sm leading-6 text-[#241b45] outline-none transition focus:border-[#7c6cf2]"
+              />
+            </FieldShell>
+
+            <div className="mt-5">
+              <FieldShell
+                label="Thể loại"
+                helper={`${formData.genreIds.length}/${MAX_GENRE_IDS} đã chọn`}
+                error={fieldErrors.genres}
+              >
+                <button
+                  type="button"
+                  onClick={() => setGenresOpen((current) => !current)}
+                  disabled={!canEdit}
+                  className={`flex min-h-[52px] w-full items-center justify-between rounded-2xl border bg-white px-4 text-left text-sm text-[#241b45] transition ${
+                    fieldErrors.genres
+                      ? "border-rose-300"
+                      : "border-[#e6e0ff] hover:border-[#d5ccff]"
+                  }`}
+                >
+                  <span className="truncate">
+                    {selectedGenres.length === 0
+                      ? "Chọn thể loại..."
+                      : selectedGenres.map((genre) => genre.name).join(", ")}
+                  </span>
+                  <Disc3 className="h-4 w-4 text-[#8d87aa]" />
+                </button>
+
+                {genresOpen ? (
+                  <div className="mt-3 grid gap-2 rounded-3xl border border-[#ece8ff] bg-[#fbfaff] p-3 md:grid-cols-2">
+                    {genres.map((genre) => {
+                      const genreId = String(genre._id);
+                      const checked = formData.genreIds.includes(genreId);
+
+                      return (
+                        <label
+                          key={genreId}
+                          className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 text-sm transition ${
+                            checked
+                              ? "border-[#cfc4ff] bg-white text-[#3f3164]"
+                              : "border-transparent bg-transparent text-[#5e5678] hover:border-[#ece8ff] hover:bg-white"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => handleGenreToggle(genreId)}
+                            disabled={!canEdit}
+                            className="h-4 w-4 rounded border-neutral-300 text-[#6f5cf1]"
+                          />
+                          <span className="truncate">{genre.name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </FieldShell>
+            </div>
+          </SectionCard>
+
+          <SectionCard
+            icon={ShieldCheck}
+            eyebrow="Bản quyền"
+            title="Thông tin quyền sở hữu"
+            description="Cập nhật metadata bản quyền mà không thay đổi cách backend kiểm tra và lưu bài hát."
+          >
+            <TrackCopyrightFields
+              value={copyrightForm}
+              onChange={setCopyrightForm}
+              disabled={!canEdit}
+              errors={fieldErrors}
+            />
+          </SectionCard>
+        </form>
+
+        <div className="space-y-6">
+          <SidebarCard title="Trạng thái hiện tại">
+            <div className="overflow-hidden rounded-[24px] bg-[#f6f2ff]">
+              <img
+                src={
+                  avatarPreview ||
+                  coverPreviews[0] ||
+                  resolveTrackArtwork(track || { title: formData.title || "Bài hát" })
+                }
+                alt={formData.title || "Xem trước bài hát"}
+                className="aspect-square w-full object-cover"
+              />
+            </div>
+            <h3 className="mt-5 text-xl font-semibold tracking-tight text-[#241b45]">
+              {formData.title.trim() || "Chưa có tên bài hát"}
+            </h3>
+            <p className="mt-1 text-sm text-[#8d87aa]">
+              {formData.versionTitle.trim() || "Phiên bản gốc"}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <span className={["rounded-full border px-3 py-1 text-xs font-semibold", activeMeta.className].join(" ")}>
+                {activeMeta.label}
+              </span>
+              <span className={["rounded-full border px-3 py-1 text-xs font-semibold", approvalMeta.className].join(" ")}>
+                {approvalMeta.label}
+              </span>
+            </div>
+          </SidebarCard>
+
+          <SidebarCard title="Mức độ hoàn thiện">
+            <div className="space-y-3">
+              {readinessItems.map((item) => (
+                <div
+                  key={item.label}
+                  className="flex items-center justify-between gap-4 rounded-2xl border border-[#f0ebff] bg-[#fbfaff] px-4 py-3 text-sm"
+                >
+                  <span className="text-[#5e5678]">{item.label}</span>
+                  <span
+                    className={[
+                      "rounded-full px-3 py-1 text-xs font-semibold",
+                      item.ready
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-slate-100 text-slate-500",
+                    ].join(" ")}
+                  >
+                    {item.ready ? "Đã sẵn sàng" : "Chưa xong"}
+                  </span>
+                </div>
+              ))}
+            </div>
+            {canSubmit ? (
+              <div className="mt-5 rounded-[22px] border border-[#ece8ff] bg-[#fbfaff] p-4">
+                <p className="text-sm font-semibold text-[#241b45]">
+                  Danh sách cần kiểm tra trước khi gửi duyệt
+                </p>
+                {submitIssues.length === 0 ? (
+                  <p className="mt-2 text-sm text-emerald-700">
+                    Bài hát này đã sẵn sàng để gửi duyệt.
+                  </p>
+                ) : (
+                  <ul className="mt-2 space-y-2 text-sm text-[#5e5678]">
+                    {submitIssues.map((issue) => (
+                      <li key={issue}>{issue}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ) : null}
+          </SidebarCard>
+
+          <SidebarCard title="Thông tin nhanh">
+            <div className="space-y-4 text-sm">
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-[#8d87aa]">Thời lượng</span>
+                <span className="text-right font-medium text-[#241b45]">
+                  {getTrackDisplayDuration(track?.duration)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-[#8d87aa]">Thể loại</span>
+                <span className="text-right font-medium text-[#241b45]">
+                  {selectedGenres.length > 0
+                    ? selectedGenres.map((genre) => genre.name).join(", ")
+                    : "Chưa chọn"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-[#8d87aa]">Cập nhật</span>
+                <span className="text-right font-medium text-[#241b45]">
+                  {formatTrackDate(track?.updatedAt)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-[#8d87aa]">Ngày tạo</span>
+                <span className="text-right font-medium text-[#241b45]">
+                  {formatTrackDateTime(track?.createdAt)}
+                </span>
               </div>
             </div>
-          </div>
+          </SidebarCard>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-[#241b15]">
-                Tên bài hát *
-              </label>
-              <input
-                type="text"
-                name="title"
-                value={formData.title}
-                onChange={handleInputChange}
-                maxLength={TITLE_MAX_LENGTH}
-                disabled={!canEdit}
-                className={`mt-2 w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${
-                  fieldErrors.title
-                    ? "border-red-500 focus:border-red-500"
-                    : "border-neutral-200 focus:border-[#8b5e3c]"
-                }`}
-              />
-              {fieldErrors.title ? (
-                <p className="mt-1 text-xs text-red-500">{fieldErrors.title}</p>
-              ) : null}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-[#241b15]">
-                Tên phiên bản
-              </label>
-              <input
-                type="text"
-                name="versionTitle"
-                value={formData.versionTitle}
-                onChange={handleInputChange}
-                disabled={!canEdit}
-                className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm focus:border-[#8b5e3c] focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-[#241b15]">
-              Mô tả
-            </label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleInputChange}
-              rows="4"
-              disabled={!canEdit}
-              className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm focus:border-[#8b5e3c] focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-[#241b15]">
-              Lời bài hát
-            </label>
-            <textarea
-              name="lyricsStatic"
-              value={formData.lyricsStatic}
-              onChange={handleInputChange}
-              rows="6"
-              disabled={!canEdit}
-              className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm focus:border-[#8b5e3c] focus:outline-none"
-            />
-            {fieldErrors.lyricsStatic ? (
-              <p className="mt-1 text-xs text-red-500">{fieldErrors.lyricsStatic}</p>
-            ) : null}
-          </div>
-
-          <div className="relative">
-            <label className="block text-sm font-medium text-[#241b15]">
-              Thể loại *
-            </label>
-            <p className={`mt-1 text-xs ${fieldErrors.genres ? "text-red-500" : "text-neutral-500"}`}>
-              {fieldErrors.genres || `Chọn tối đa ${MAX_GENRE_IDS} thể loại.`}
-            </p>
+          <div className="rounded-[28px] border border-[#ece8ff] bg-white p-5 shadow-[0_18px_40px_rgba(32,23,71,0.08)]">
             <button
               type="button"
-              onClick={() => setGenresOpen((current) => !current)}
-              disabled={!canEdit}
-              className={`mt-2 flex w-full items-center justify-between rounded-md border px-3 py-2 text-left text-sm ${
-                fieldErrors.genres ? "border-red-500" : "border-neutral-200"
-              }`}
-            >
-              <span className="truncate text-neutral-700">
-                {formData.genreIds.length === 0
-                  ? "Chọn thể loại..."
-                  : genres
-                      .filter((genre) => formData.genreIds.includes(String(genre._id)))
-                      .map((genre) => genre.name)
-                      .join(", ")}
-              </span>
-              <span className="ml-2 text-neutral-500">v</span>
-            </button>
-
-            {genresOpen ? (
-              <div className="absolute z-20 mt-2 max-h-56 w-full overflow-auto rounded-md border border-neutral-200 bg-white p-2 shadow">
-                {genres.map((genre) => {
-                  const nextId = String(genre._id);
-                  return (
-                    <label
-                      key={nextId}
-                      className="flex items-center gap-2 px-2 py-1 text-sm text-neutral-700 hover:bg-neutral-50"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={formData.genreIds.includes(nextId)}
-                        onChange={() => handleGenreToggle(nextId)}
-                        disabled={!canEdit}
-                        className="h-4 w-4 rounded border-neutral-300 text-[#8b5e3c] focus:ring-[#8b5e3c]"
-                      />
-                      <span className="truncate">{genre.name}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            ) : null}
-          </div>
-
-          <TrackCopyrightFields
-            value={copyrightForm}
-            onChange={setCopyrightForm}
-            disabled={!canEdit}
-            errors={fieldErrors}
-          />
-
-          <div className="flex flex-wrap gap-2 pt-4">
-            <button
-              type="submit"
+              onClick={handleSaveClick}
               disabled={!canEdit || submitting || submittingForApproval}
-              className="inline-flex items-center gap-2 rounded-md bg-[#8b5e3c] px-4 py-2 font-medium text-white hover:bg-[#6d4a2f] disabled:opacity-50"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#2f225d] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#221745] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {submitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : null}
               {submitting
                 ? isUploadingMedia
                   ? "Đang tải media..."
-                  : "Đang lưu..."
+                  : "Đang lưu thay đổi..."
                 : "Lưu thay đổi"}
             </button>
-
             {canSubmit ? (
               <button
                 type="button"
@@ -827,34 +999,31 @@ const ArtistTrackEditPage = () => {
                   setIsSubmitConfirmOpen(true);
                 }}
                 disabled={submitting || submittingForApproval || submitIssues.length > 0}
-                className="inline-flex items-center gap-2 rounded-md border border-sky-200 bg-sky-50 px-4 py-2 font-medium text-sky-900 hover:bg-sky-100 disabled:opacity-50"
+                className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-sky-200 bg-sky-50 px-5 py-3 text-sm font-medium text-sky-800 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submittingForApproval ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
+                ) : null}
                 {submittingForApproval ? "Đang gửi duyệt..." : "Gửi duyệt"}
               </button>
             ) : null}
-
             <button
               type="button"
               onClick={() => navigate(routePaths.artistTrackDetail(id))}
-              className="rounded-md border border-neutral-200 px-4 py-2 font-medium text-neutral-700 hover:bg-neutral-50"
+              className="mt-3 inline-flex w-full items-center justify-center rounded-2xl border border-[#e6e0ff] px-5 py-3 text-sm font-medium text-[#4d4569] transition hover:bg-[#faf8ff]"
             >
               Hủy
             </button>
           </div>
-        </form>
+        </div>
       </div>
 
       <ConfirmActionModal
         isOpen={isSubmitConfirmOpen}
         title="Gửi bài hát để duyệt?"
-        message="Sau khi gửi duyệt, bạn sẽ không thể chỉnh sửa bài hát cho đến khi admin xử lý xong. Bạn có muốn tiếp tục không?"
+        message="Sau khi gửi duyệt, bạn sẽ không thể chỉnh sửa bài hát cho đến khi quá trình kiểm duyệt hoàn tất. Bạn có muốn tiếp tục không?"
         confirmText="Gửi duyệt"
-        cancelText="Quay lại"
+        cancelText="Hủy"
         isLoading={submittingForApproval}
         onCancel={() => setIsSubmitConfirmOpen(false)}
         onConfirm={handleSubmitForApproval}
