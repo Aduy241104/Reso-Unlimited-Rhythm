@@ -9,6 +9,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Controller, useForm } from 'react-hook-form';
@@ -17,6 +18,8 @@ import AppButton from '../../components/common/AppButton';
 import AppInput from '../../components/common/AppInput';
 import authService from '../../services/authService';
 import { registerOtpSchema, registerSchema } from '../../validations/authValidation';
+import appLogo from '../../../assets/reso-logo.png';
+import authBg from '../../../assets/auth-bg.png';
 
 const getPayloadData = (response) => response?.data || response || {};
 
@@ -31,8 +34,6 @@ const getFieldErrorMessage = (error, fieldName) => {
 
   return '';
 };
-
-const waveBars = [6, 12, 18, 28, 40, 28, 18, 12, 6, 8, 12, 18, 34, 22, 12, 6];
 
 export const RegisterScreen = () => {
   const navigation = useNavigation();
@@ -102,7 +103,7 @@ export const RegisterScreen = () => {
         detailsForm.setError('email', { type: 'server', message: emailError });
       }
 
-      setApiError(error?.message || 'Unable to send OTP. Please try again.');
+      setApiError(error?.message || 'Không gửi được OTP. Vui lòng thử lại.');
       startCooldown(error?.errors?.resendAfterSeconds || 0);
     }
   };
@@ -122,7 +123,7 @@ export const RegisterScreen = () => {
       });
 
       navigation.navigate('Login', {
-        notice: `Account ${normalizedPendingEmail} was created successfully. Please sign in.`,
+        notice: `Tài khoản ${normalizedPendingEmail} đã được tạo. Đăng nhập ngay nhé.`,
       });
     } catch (error) {
       const otpError = getFieldErrorMessage(error, 'otp');
@@ -130,7 +131,7 @@ export const RegisterScreen = () => {
         otpForm.setError('otp', { type: 'server', message: otpError });
       }
 
-      setApiError(error?.message || 'Unable to create account. Please try again.');
+      setApiError(error?.message || 'Không tạo được tài khoản. Vui lòng thử lại.');
     }
   };
 
@@ -149,7 +150,7 @@ export const RegisterScreen = () => {
       setExpiresInMinutes(payload.expiresInMinutes || expiresInMinutes);
       startCooldown(payload.resendAfterSeconds || 0);
     } catch (error) {
-      setApiError(error?.message || 'Unable to resend OTP. Please try again.');
+      setApiError(error?.message || 'Không gửi lại được OTP. Vui lòng thử lại.');
       startCooldown(error?.errors?.resendAfterSeconds || 0);
     } finally {
       setIsResendingOtp(false);
@@ -158,8 +159,8 @@ export const RegisterScreen = () => {
 
   const renderDetailsForm = () => (
     <>
-      <Text style={styles.cardTitle}>Create Account</Text>
-      <Text style={styles.cardSubtitle}>Use your email and password to join Reso.</Text>
+      <Text style={styles.title}>Tạo tài khoản</Text>
+      <Text style={styles.subtitle}>Chỉ cần email và mật khẩu, rồi mình gửi OTP xác nhận.</Text>
 
       {apiError ? (
         <View style={styles.errorBox}>
@@ -173,16 +174,16 @@ export const RegisterScreen = () => {
         render={({ field: { onChange, onBlur, value } }) => (
           <AppInput
             label="Email"
-            placeholder="Email Address"
+            placeholder="you@example.com"
             autoCapitalize="none"
             keyboardType="email-address"
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
             error={detailsErrors.email?.message}
-            inputStyle={styles.customInput}
-            labelStyle={styles.customLabel}
-            wrapperStyle={styles.customInputWrapper}
+            inputStyle={styles.input}
+            labelStyle={styles.label}
+            wrapperStyle={styles.inputWrapper}
           />
         )}
       />
@@ -192,17 +193,17 @@ export const RegisterScreen = () => {
         name="password"
         render={({ field: { onChange, onBlur, value } }) => (
           <AppInput
-            label="Password"
-            placeholder="Password"
+            label="Mật khẩu"
+            placeholder="Tối thiểu 6 ký tự"
             secureTextEntry
             autoCapitalize="none"
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
             error={detailsErrors.password?.message}
-            inputStyle={styles.customInput}
-            labelStyle={styles.customLabel}
-            wrapperStyle={styles.customInputWrapper}
+            inputStyle={styles.input}
+            labelStyle={styles.label}
+            wrapperStyle={styles.inputWrapper}
           />
         )}
       />
@@ -212,23 +213,23 @@ export const RegisterScreen = () => {
         name="confirmPassword"
         render={({ field: { onChange, onBlur, value } }) => (
           <AppInput
-            label="Confirm Password"
-            placeholder="Confirm Password"
+            label="Nhập lại mật khẩu"
+            placeholder="Nhập lại mật khẩu"
             secureTextEntry
             autoCapitalize="none"
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
             error={detailsErrors.confirmPassword?.message}
-            inputStyle={styles.customInput}
-            labelStyle={styles.customLabel}
-            wrapperStyle={styles.customInputWrapper}
+            inputStyle={styles.input}
+            labelStyle={styles.label}
+            wrapperStyle={styles.inputWrapper}
           />
         )}
       />
 
       <AppButton
-        title="Send OTP"
+        title="Gửi mã OTP"
         onPress={detailsForm.handleSubmit(handleSendOtp)}
         isLoading={detailsForm.formState.isSubmitting}
         buttonStyle={styles.primaryBtn}
@@ -239,9 +240,9 @@ export const RegisterScreen = () => {
 
   const renderOtpForm = () => (
     <>
-      <Text style={styles.cardTitle}>Verify Email</Text>
-      <Text style={styles.cardSubtitle}>
-        Enter the 6-digit OTP sent to {normalizedPendingEmail}. It expires in about {expiresInMinutes} minutes.
+      <Text style={styles.title}>Xác nhận email</Text>
+      <Text style={styles.subtitle}>
+        Nhập mã 6 số đã gửi tới {normalizedPendingEmail}. Mã hết hạn sau khoảng {expiresInMinutes} phút.
       </Text>
 
       {apiError ? (
@@ -255,7 +256,7 @@ export const RegisterScreen = () => {
         name="otp"
         render={({ field: { onBlur } }) => (
           <View style={styles.otpFieldContainer}>
-            <Text style={styles.customLabel}>OTP</Text>
+            <Text style={styles.label}>OTP</Text>
             <TextInput
               autoCapitalize="none"
               autoCorrect={false}
@@ -275,7 +276,7 @@ export const RegisterScreen = () => {
               placeholderTextColor="#9ca3af"
               returnKeyType="done"
               selectionColor="#ff9f43"
-              style={[styles.customInputWrapper, styles.customInput, styles.otpInput, otpErrors.otp && styles.inputErrorBorder]}
+              style={[styles.inputWrapper, styles.input, styles.otpInput, otpErrors.otp && styles.inputErrorBorder]}
               textContentType="oneTimeCode"
               value={otpValue}
             />
@@ -285,7 +286,7 @@ export const RegisterScreen = () => {
       />
 
       <AppButton
-        title="Create Account"
+        title="Tạo tài khoản"
         onPress={otpForm.handleSubmit(handleRegister)}
         isLoading={otpForm.formState.isSubmitting}
         buttonStyle={styles.primaryBtn}
@@ -294,7 +295,7 @@ export const RegisterScreen = () => {
 
       <View style={styles.otpActions}>
         <TouchableOpacity style={styles.secondaryBtn} onPress={() => setStep('details')}>
-          <Text style={styles.secondaryBtnText}>Edit email</Text>
+          <Text style={styles.secondaryBtnText}>Sửa email</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.secondaryBtn, (remainingSeconds > 0 || isResendingOtp) && styles.secondaryBtnDisabled]}
@@ -302,7 +303,7 @@ export const RegisterScreen = () => {
           onPress={handleResendOtp}
         >
           <Text style={styles.secondaryBtnText}>
-            {isResendingOtp ? 'Sending...' : remainingSeconds > 0 ? `Resend in ${remainingSeconds}s` : 'Resend OTP'}
+            {isResendingOtp ? 'Đang gửi...' : remainingSeconds > 0 ? `Gửi lại sau ${remainingSeconds}s` : 'Gửi lại OTP'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -311,49 +312,31 @@ export const RegisterScreen = () => {
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <StatusBar barStyle="light-content" backgroundColor="#0f0f14" />
-      <View style={styles.glowLeft} />
-      <View style={styles.glowRight} />
-
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <View style={styles.headerContainer}>
-          <Text style={styles.tagline}>RESO MUSIC</Text>
-          <Text style={styles.mainTitle}>JOIN THE</Text>
-          <Text style={styles.gradientTextPlaceholder}>RHYTHM</Text>
-          <Text style={styles.description}>Start your music journey today.</Text>
-        </View>
-
-        <View style={styles.waveContainer}>
-          <View style={styles.waveLine} />
-          <View style={styles.waveBarWrapper}>
-            {waveBars.map((height, index) => (
-              <View
-                key={`${height}-${index}`}
-                style={[
-                  styles.waveBar,
-                  {
-                    height: height * 0.7,
-                    backgroundColor: index < 9 ? '#ff9f43' : '#9b6cff',
-                  },
-                ]}
-              />
-            ))}
+      <StatusBar barStyle="light-content" backgroundColor="#070a12" />
+      <View style={styles.background}>
+        <Image source={authBg} style={styles.bgArtwork} resizeMode="contain" />
+        <View style={styles.overlay} />
+        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+          <View style={styles.hero}>
+            <Image source={appLogo} style={styles.logo} resizeMode="cover" />
+            <Text style={styles.brandText}>RESO MUSIC</Text>
+            <Text style={styles.heroTitle}>Join the beat</Text>
+            <Text style={styles.heroText}>Tạo tài khoản để lưu gu nhạc và playlist của bạn.</Text>
           </View>
-          <View style={styles.waveLine} />
-        </View>
 
-        <View style={styles.card}>
-          <Text style={styles.subBrand}>RESO MUSIC</Text>
-          {step === 'details' ? renderDetailsForm() : renderOtpForm()}
+          <View style={styles.card}>
+            <View style={styles.cardHandle} />
+            {step === 'details' ? renderDetailsForm() : renderOtpForm()}
 
-          <View style={styles.footerLinks}>
-            <Text style={styles.footerText}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-              <Text style={styles.linkTextBold}>Sign in</Text>
-            </TouchableOpacity>
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>Đã có tài khoản? </Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                <Text style={styles.linkText}>Đăng nhập</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </View>
     </KeyboardAvoidingView>
   );
 };
@@ -361,143 +344,122 @@ export const RegisterScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f0f14',
+    backgroundColor: '#070a12',
+  },
+  background: {
+    flex: 1,
+  },
+  bgArtwork: {
+    position: 'absolute',
+    top: 38,
+    left: -86,
+    width: 560,
+    height: 560,
+    opacity: 0.78,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(5, 7, 14, 0.5)',
   },
   scroll: {
     flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 40,
+    justifyContent: 'flex-end',
+    paddingHorizontal: 16,
+    paddingTop: 34,
+    paddingBottom: 22,
   },
-  glowLeft: {
-    position: 'absolute',
-    top: '10%',
-    left: '-20%',
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: 'rgba(255, 159, 67, 0.15)',
-    zIndex: 0,
-  },
-  glowRight: {
-    position: 'absolute',
-    bottom: '5%',
-    right: '-20%',
-    width: 250,
-    height: 250,
-    borderRadius: 125,
-    backgroundColor: 'rgba(155, 108, 255, 0.08)',
-    zIndex: 0,
-  },
-  headerContainer: {
+  hero: {
     alignItems: 'center',
-    marginBottom: 25,
-    zIndex: 1,
+    marginBottom: 24,
   },
-  tagline: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#f5b66f',
-    letterSpacing: 3,
+  logo: {
+    width: 74,
+    height: 74,
+    borderRadius: 24,
+    marginBottom: 10,
+    backgroundColor: '#1a1624',
     borderWidth: 1,
-    borderColor: 'rgba(245,182,177,0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    overflow: 'hidden',
+    borderColor: 'rgba(255,255,255,0.22)',
   },
-  mainTitle: {
-    fontSize: 42,
+  brandText: {
+    color: '#f8fbff',
+    fontSize: 15,
     fontWeight: '900',
+    letterSpacing: 2,
+  },
+  heroTitle: {
     color: '#ffffff',
-    marginTop: 15,
-  },
-  gradientTextPlaceholder: {
-    fontSize: 46,
+    fontSize: 30,
     fontWeight: '900',
-    color: '#ff9f43',
-    lineHeight: 46,
+    letterSpacing: -0.5,
+    marginTop: 16,
+    textTransform: 'uppercase',
   },
-  description: {
-    fontSize: 16,
-    color: '#ece4da',
-    marginTop: 10,
-    fontStyle: 'italic',
-  },
-  waveContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 30,
-    paddingHorizontal: 10,
-    zIndex: 1,
-  },
-  waveLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-  },
-  waveBarWrapper: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    marginHorizontal: 10,
-    gap: 3,
-  },
-  waveBar: {
-    width: 3,
-    borderRadius: 2,
+  heroText: {
+    maxWidth: 280,
+    color: '#f7d7b8',
+    fontSize: 14,
+    fontWeight: '600',
+    lineHeight: 20,
+    marginTop: 6,
+    textAlign: 'center',
   },
   card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 24,
-    shadowColor: '#ff9f43',
-    shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.15,
-    shadowRadius: 40,
-    elevation: 10,
-    zIndex: 1,
+    backgroundColor: 'rgba(19, 18, 26, 0.78)',
+    borderRadius: 28,
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.14)',
+    shadowColor: '#ff8f2f',
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    elevation: 12,
   },
-  subBrand: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#f5b66f',
-    letterSpacing: 4,
-    marginBottom: 4,
+  cardHandle: {
+    alignSelf: 'center',
+    width: 46,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 184, 107, 0.5)',
+    marginBottom: 18,
   },
-  cardTitle: {
-    fontSize: 32,
+  title: {
+    color: '#fffaf5',
+    fontSize: 26,
     fontWeight: '900',
-    color: '#000000',
   },
-  cardSubtitle: {
+  subtitle: {
+    color: '#d7c8bd',
     fontSize: 14,
-    color: '#4e4e4e',
-    marginTop: 6,
-    marginBottom: 20,
     lineHeight: 20,
+    marginTop: 4,
+    marginBottom: 18,
   },
-  customLabel: {
-    color: '#000000',
-    fontWeight: '600',
-    fontSize: 14,
-    marginBottom: 6,
+  label: {
+    color: '#fffaf5',
+    fontSize: 13,
+    fontWeight: '700',
   },
-  customInputWrapper: {
-    backgroundColor: '#f5f5f5',
-    borderColor: '#000000',
-    borderRadius: 25,
+  inputWrapper: {
+    height: 50,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(255, 218, 185, 0.24)',
+    borderRadius: 18,
   },
-  customInput: {
-    color: '#1a1820',
+  input: {
+    color: '#fffaf5',
     fontSize: 15,
   },
   otpInput: {
-    textAlign: 'center',
-    fontWeight: '700',
-    height: 48,
     width: '100%',
+    textAlign: 'center',
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: 8,
+    paddingHorizontal: 14,
   },
   otpFieldContainer: {
     marginBottom: 16,
@@ -512,33 +474,28 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   primaryBtn: {
-    backgroundColor: '#ff9f43',
-    borderRadius: 25,
-    paddingVertical: 14,
-    marginTop: 10,
-    shadowColor: '#ff9f43',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 5,
+    height: 52,
+    backgroundColor: '#ff8a2a',
+    borderRadius: 18,
+    marginTop: 4,
   },
   primaryBtnText: {
     color: '#ffffff',
-    fontWeight: '700',
     fontSize: 16,
+    fontWeight: '800',
   },
   errorBox: {
-    backgroundColor: 'rgba(251,113,133,0.1)',
+    backgroundColor: 'rgba(244, 63, 94, 0.16)',
     borderWidth: 1,
-    borderColor: 'rgba(251,113,133,0.2)',
-    borderRadius: 12,
+    borderColor: 'rgba(253, 164, 175, 0.35)',
+    borderRadius: 16,
     padding: 12,
-    marginBottom: 15,
+    marginBottom: 16,
   },
   errorText: {
-    color: '#e11d48',
+    color: '#fecdd3',
     fontSize: 13,
-    textAlign: 'center',
+    lineHeight: 18,
   },
   otpActions: {
     flexDirection: 'row',
@@ -547,36 +504,38 @@ const styles = StyleSheet.create({
   },
   secondaryBtn: {
     flex: 1,
+    minHeight: 46,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.15)',
-    borderRadius: 25,
-    paddingVertical: 12,
+    borderColor: 'rgba(255, 218, 185, 0.24)',
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    paddingHorizontal: 10,
   },
   secondaryBtnDisabled: {
     opacity: 0.5,
   },
   secondaryBtnText: {
-    color: '#000000',
-    fontWeight: '600',
+    color: '#fffaf5',
     fontSize: 13,
+    fontWeight: '700',
+    textAlign: 'center',
   },
-  footerLinks: {
+  footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 25,
+    marginTop: 20,
   },
   footerText: {
+    color: '#d7c8bd',
     fontSize: 14,
-    color: '#6b6573',
   },
-  linkTextBold: {
+  linkText: {
+    color: '#ff7a1a',
     fontSize: 14,
-    fontWeight: '700',
-    color: '#000000',
+    fontWeight: '800',
   },
 });
 
