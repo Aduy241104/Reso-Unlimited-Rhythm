@@ -1,10 +1,19 @@
 import mongoose from "mongoose";
 
 const { Schema, model } = mongoose;
+const GUEST_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const ListenEventSchema = new Schema(
     {
-        userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+        userId: { type: Schema.Types.ObjectId, ref: "User", default: undefined, index: true },
+        guestId: {
+            type: String,
+            trim: true,
+            lowercase: true,
+            match: GUEST_ID_PATTERN,
+            default: undefined,
+            index: true,
+        },
         trackId: { type: Schema.Types.ObjectId, ref: "Track", required: true, index: true },
         artistId: { type: Schema.Types.ObjectId, ref: "Artist", required: true, index: true },
         listenedAt: { type: Date, default: Date.now, index: true },
@@ -26,8 +35,23 @@ const ListenEventSchema = new Schema(
     { timestamps: true }
 );
 
+ListenEventSchema.pre("validate", function validateListenerIdentity(next) {
+    const identityCount = Number(Boolean(this.userId)) + Number(Boolean(this.guestId));
+
+    if (identityCount !== 1) {
+        this.invalidate(
+            "guestId",
+            "A listen event must belong to exactly one userId or guestId."
+        );
+    }
+
+    next();
+});
+
 ListenEventSchema.index({ userId: 1, listenedAt: -1 });
 ListenEventSchema.index({ userId: 1, trackId: 1, listenedAt: -1 });
+ListenEventSchema.index({ guestId: 1, listenedAt: -1 });
+ListenEventSchema.index({ guestId: 1, trackId: 1, listenedAt: -1 });
 ListenEventSchema.index({ trackId: 1, listenedAt: -1 });
 ListenEventSchema.index({ artistId: 1, listenedAt: -1 });
 ListenEventSchema.index({ trackId: 1, listenedAt: -1, isValidStream: 1 });

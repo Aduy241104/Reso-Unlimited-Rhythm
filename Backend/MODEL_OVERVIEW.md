@@ -240,9 +240,6 @@ Các model log hành vi, thường tăng nhanh theo thời gian:
 - `profile.gender: "male" | "female" | "other" | "prefer_not_to_say"`
 - `profile.dateOfBirth: Date`
 - `profile.country: String`
-- `settings.language: String`
-- `settings.notificationsEnabled: Boolean`
-- `settings.shufflePlayDefault: Boolean`
 - `subscription.isPremium: Boolean`
 - `subscription.currentPlanId: ObjectId -> Plan`
 - `subscription.premiumEndDate: Date`
