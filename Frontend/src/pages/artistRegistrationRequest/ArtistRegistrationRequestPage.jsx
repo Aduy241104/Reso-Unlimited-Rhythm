@@ -287,39 +287,64 @@ const DateInput = ({ error, className = "", ...props }) => (
 );
 
 const UploadField = ({
+  name,
   title,
   required = false,
   error,
   file,
-  onChange,
+  onFileSelect,
   accept = "image/*",
   hint,
-}) => (
-  <div>
-    <FieldLabel required={required}>{title}</FieldLabel>
-    <label
-      className={[
-        "flex min-h-[62px] cursor-pointer items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition",
-        error
-          ? "border-rose-300 bg-rose-400/10"
-          : "border-white/10 bg-white/[0.04] hover:border-[#f5b66f]/30 hover:bg-white/[0.06]",
-      ].join(" ")}
-    >
-      <div className="min-w-0">
-        <p className="truncate text-sm font-medium text-white/90">
-          {file?.name || "Chọn file hình ảnh"}
-        </p>
-        <p className="mt-1 text-xs text-white/45">PNG, JPG hoặc WEBP</p>
-      </div>
-      <span className="shrink-0 rounded-full border border-[#f5b66f]/25 bg-[#f5b66f]/10 px-3 py-1 text-xs font-semibold text-[#f5b66f]">
-        Tải lên
-      </span>
-      <input type="file" accept={accept} className="sr-only" onChange={onChange} />
-    </label>
-    <FieldHint>{hint}</FieldHint>
-    <FieldError>{error}</FieldError>
-  </div>
-);
+}) => {
+  const inputId = `artist-registration-${name}`;
+  const inputRef = useRef(null);
+
+  const openFilePicker = () => {
+    inputRef.current?.click();
+  };
+
+  return (
+    <div>
+      <FieldLabel required={required}>{title}</FieldLabel>
+      <input
+        ref={inputRef}
+        id={inputId}
+        name={name}
+        type="file"
+        accept={accept}
+        className="hidden"
+        onChange={(event) => {
+          const selectedFile = event.target.files?.[0] || null;
+          if (selectedFile) {
+            onFileSelect?.(name, selectedFile);
+          }
+        }}
+      />
+      <button
+        type="button"
+        onClick={openFilePicker}
+        className={[
+          "flex min-h-[62px] w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left transition",
+          error
+            ? "border-rose-300 bg-rose-400/10"
+            : "border-white/10 bg-white/[0.04] hover:border-[#f5b66f]/30 hover:bg-white/[0.06]",
+        ].join(" ")}
+      >
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-white/90">
+            {file?.name || "Chọn file hình ảnh"}
+          </p>
+          <p className="mt-1 text-xs text-white/45">PNG, JPG hoặc WEBP</p>
+        </div>
+        <span className="shrink-0 rounded-full border border-[#f5b66f]/25 bg-[#f5b66f]/10 px-3 py-1 text-xs font-semibold text-[#f5b66f]">
+          Tải lên
+        </span>
+      </button>
+      <FieldHint>{hint}</FieldHint>
+      <FieldError>{error}</FieldError>
+    </div>
+  );
+};
 
 const UrlListEditor = ({
   label,
@@ -827,6 +852,8 @@ const SectionCard = ({ title, subtitle, icon: Icon, children }) => (
 const ArtistRegistrationRequestPage = () => {
   const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const userId = user?._id || user?.id || "";
+  const userRole = user?.role || "";
 
   const [formData, setFormData] = useState(createInitialFormState());
   const [errors, setErrors] = useState({});
@@ -847,14 +874,14 @@ const ArtistRegistrationRequestPage = () => {
   useEffect(() => {
     if (
       !authLoading &&
-      (!user || user.role === "artist" || user.role === "admin")
+      (!userId || userRole === "artist" || userRole === "admin")
     ) {
       navigate(routePaths.home, { replace: true });
     }
-  }, [authLoading, navigate, user]);
+  }, [authLoading, navigate, userId, userRole]);
 
   useEffect(() => {
-    if (authLoading || !user || user.role !== "user") {
+    if (authLoading || !userId || userRole !== "user") {
       setIsPendingRequestLoading(false);
       return;
     }
@@ -891,7 +918,7 @@ const ArtistRegistrationRequestPage = () => {
     checkPendingRequest();
 
     return () => controller.abort();
-  }, [authLoading, user]);
+  }, [authLoading, userId, userRole]);
 
   const selectedGenreText = useMemo(() => {
     if (formData.genres.length === 0) {
@@ -917,6 +944,11 @@ const ArtistRegistrationRequestPage = () => {
     }
 
     setFormData((previous) => ({ ...previous, [name]: value }));
+  };
+
+  const handleFileSelect = (name, file) => {
+    setErrors((previous) => ({ ...previous, [name]: undefined }));
+    setFormData((previous) => ({ ...previous, [name]: file }));
   };
 
   const handleSocialLinkChange = (event) => {
@@ -1188,14 +1220,10 @@ const ArtistRegistrationRequestPage = () => {
 
                     <div className="lg:col-span-2">
                       <UploadField
+                        name="avatar"
                         title="Ảnh đại diện nghệ sĩ"
                         file={formData.avatar}
-                        onChange={(event) =>
-                          setFormData((previous) => ({
-                            ...previous,
-                            avatar: event.target.files?.[0] || null,
-                          }))
-                        }
+                        onFileSelect={handleFileSelect}
                         hint="Không bắt buộc, nhưng nên có để hồ sơ nhìn chuyên nghiệp và đầy đủ hơn."
                       />
                     </div>
@@ -1245,29 +1273,21 @@ const ArtistRegistrationRequestPage = () => {
                     </div>
 
                     <UploadField
+                      name="frontImage"
                       title="Ảnh mặt trước giấy tờ"
                       required
                       file={formData.frontImage}
                       error={errors.frontImage}
-                      onChange={(event) =>
-                        setFormData((previous) => ({
-                          ...previous,
-                          frontImage: event.target.files?.[0] || null,
-                        }))
-                      }
+                      onFileSelect={handleFileSelect}
                     />
 
                     <UploadField
+                      name="backImage"
                       title="Ảnh mặt sau giấy tờ"
                       required
                       file={formData.backImage}
                       error={errors.backImage}
-                      onChange={(event) =>
-                        setFormData((previous) => ({
-                          ...previous,
-                          backImage: event.target.files?.[0] || null,
-                        }))
-                      }
+                      onFileSelect={handleFileSelect}
                     />
                   </div>
                 </SectionCard>

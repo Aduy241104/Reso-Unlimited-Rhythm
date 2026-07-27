@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AudioLines,
   ClipboardList,
@@ -76,6 +76,12 @@ const AccountMenu = ({ user, onLogout }) => {
           ]
         : []),
 
+      {
+        label: "Báo cáo của tôi",
+        to: routePaths.userReportList,
+        icon: Flag,
+      },
+
       ...(!isPremiumUser
         ? [
             {
@@ -106,11 +112,6 @@ const AccountMenu = ({ user, onLogout }) => {
         label: "Lịch sử thanh toán",
         to: routePaths.userPaymentHistory,
         icon: ReceiptText,
-      },
-      {
-        label: "Danh sách báo cáo",
-        to: routePaths.userReportList,
-        icon: Flag,
       },
     ],
     [isPremiumUser, userRole]
@@ -193,7 +194,7 @@ const AccountMenu = ({ user, onLogout }) => {
           </div>
         </div>
 
-        <div className="max-h-[calc(100dvh-10rem)] overflow-y-auto overscroll-contain py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:max-h-[320px]">
+        <div className="max-h-[calc(100dvh-10rem)] overflow-y-auto overscroll-contain py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:max-h-[480px]">
           {menuItems.map((item) => {
             const Icon = item.icon;
 
