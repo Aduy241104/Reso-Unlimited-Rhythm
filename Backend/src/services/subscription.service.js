@@ -8,6 +8,7 @@ import { AppError } from "../utils/AppError.js";
 import { addDays } from "../utils/date.util.js";
 import { resolveUserPremiumState } from "../utils/premiumAccess.js";
 import vnpayService from "./vnpay.service.js";
+import paymentConfirmationEmailService from "./paymentConfirmationEmail.service.js";
 
 const PENDING_PAYMENT_TIMEOUT_MINUTES =
     Number(process.env.PAYMENT_PENDING_TIMEOUT_MINUTES || 15) || 15;
@@ -429,6 +430,7 @@ const createVnpayOrder = async ({
             userId: user._id,
             subscriptionId: subscription._id,
             planId: plan._id,
+            planSnapshot,
             amount,
             tax,
             totalAmount,
@@ -508,6 +510,12 @@ const settleVnpayPayment = async (paymentResult) => {
     );
 
     if (transaction.status === "success") {
+        await paymentConfirmationEmailService.sendPremiumPaymentConfirmationEmail({
+            transaction,
+            subscription,
+            planSnapshot,
+        });
+
         return {
             code: "02",
             message: "Order already confirmed",
@@ -524,11 +532,18 @@ const settleVnpayPayment = async (paymentResult) => {
     }
 
     if (paymentResult.responseCode === VNPAY_SUCCESS_CODE) {
-        await markTransactionSuccessful({
+        const successfulPayment = await markTransactionSuccessful({
             transaction,
             subscription,
             planSnapshot,
             paymentResult,
+        });
+
+        await paymentConfirmationEmailService.sendPremiumPaymentConfirmationEmail({
+            transaction: successfulPayment.transaction,
+            subscription: successfulPayment.subscription,
+            planSnapshot,
+            user: successfulPayment.user,
         });
 
         return {

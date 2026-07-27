@@ -4,7 +4,8 @@ import formatResponse from "../utils/formatResponse.js";
 
 const getTrackDetail = async (req, res, next) => {
     try {
-        const track = await trackService.getTrackDetail(req.params.id);
+        const userId = req.user?.id || req.user?._id;
+        const track = await trackService.getTrackDetail(req.params.id, userId);
 
         return formatResponse.success(
             res,

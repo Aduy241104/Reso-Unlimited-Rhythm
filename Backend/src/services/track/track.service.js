@@ -5,10 +5,12 @@ import timezone from "dayjs/plugin/timezone.js";
 import Track from "../../models/Track.js";
 import TrackDailyRanking from "../../models/TrackDailyRanking.js";
 import TrackMonthlyRanking from "../../models/TrackMonthlyRanking.js";
+import Interaction from "../../models/Interaction.js";
 import redisClient from "../../config/redisConfig.js";
 import { AppError } from "../../utils/AppError.js";
 import {
     formatTrackDetail,
+    formatTrackRankingDetail,
     formatTrackPlayback,
     formatTrackItem,
     getPremiumAccessState,
@@ -200,7 +202,7 @@ const parseMonthlyTopTracksMonth = (monthInput) => {
 };
 
 const formatMonthlyTopTrackStat = ({ stat, monthKey }) => ({
-    track: formatTrackDetail(stat.trackId),
+    track: formatTrackRankingDetail(stat.trackId),
     month: monthKey,
     rank: stat.rank,
     playCount: stat.playCount,
@@ -265,7 +267,7 @@ const getRandomTrackPlaybackCandidate = async () => {
     return buildTrackPlaybackQuery({ _id: randomTrack._id, ...PLAYBACK_TRACK_FILTER });
 };
 
-const getTrackDetail = async (trackId) => {
+const getTrackDetail = async (trackId, userId = null) => {
     if (!mongoose.Types.ObjectId.isValid(trackId)) {
         throw new AppError("Track id is invalid.", 400, {
             field: "id",
@@ -279,11 +281,11 @@ const getTrackDetail = async (trackId) => {
     })
         .populate({
             path: "artist_artistId",
-            select: "name avatar coverImage",
+            select: "name bio avatar coverImage activeStatus stats",
         })
         .populate({
             path: "album_albumId",
-            select: "title coverImage",
+            select: "title coverImage releaseDate status",
         })
         .populate({
             path: "genreIds",
@@ -296,7 +298,23 @@ const getTrackDetail = async (trackId) => {
         throw new AppError("Track not found.", 404);
     }
 
-    return formatTrackDetail(track);
+    let favoriteInteraction = null;
+
+    if (userId) {
+        favoriteInteraction = await Interaction.findOne({
+            userId,
+            targetType: "Track",
+            targetId: track._id,
+            action: "like",
+        })
+            .select("_id createdAt")
+            .lean();
+    }
+
+    return formatTrackDetail(track, {
+        isFavorite: Boolean(favoriteInteraction),
+        favoritedAt: favoriteInteraction?.createdAt || null,
+    });
 };
 
 const getTrackPlayback = async (trackId, user) => {

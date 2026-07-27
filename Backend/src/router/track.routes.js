@@ -64,6 +64,7 @@ router.get(
 
 router.get(
     "/:id",
+    optionalAuthenticate(),
     validate(trackValidation.trackIdParamSchema, "params"),
     trackController.getTrackDetail
 );

@@ -5,6 +5,7 @@ const { Schema, model } = mongoose;
 const TrackSchema = new Schema(
     {
         title: { type: String, required: true, trim: true, index: true },
+        versionTitle: { type: String, default: "", trim: true },
         artist_artistId: { type: Schema.Types.ObjectId, ref: "Artist", required: true, index: true },
         album_albumId: { type: Schema.Types.ObjectId, ref: "Album", index: true },
         genreIds: [{ type: Schema.Types.ObjectId, ref: "Genre" }],
