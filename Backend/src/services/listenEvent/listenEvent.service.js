@@ -14,6 +14,7 @@ export const VALID_STREAM_COUNT_KEY_PREFIX = "valid_stream_count";
 export const VALID_STREAM_EVENT_QUEUE_KEY = "listen_event_queue";
 export const VALID_STREAM_COUNT_TTL_SECONDS = 48 * 60 * 60;
 export const SKIP_LISTEN_PERCENT_THRESHOLD = 15;
+export const GUEST_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export const LISTEN_EVENT_SOURCE_ENUM = [
     "track_detail",
     "album",
@@ -48,8 +49,10 @@ export const resolveRequiredPercent = (dailyListenOrder) => {
     return 100;
 };
 
-export const buildValidStreamCountKey = ({ dateKey, userId, trackId }) =>
-    `${VALID_STREAM_COUNT_KEY_PREFIX}:${dateKey}:${userId}:${trackId}`;
+export const buildValidStreamCountKey = ({ dateKey, userId, guestId, trackId }) => {
+    const listenerId = userId || guestId;
+    return `${VALID_STREAM_COUNT_KEY_PREFIX}:${dateKey}:${listenerId}:${trackId}`;
+};
 
 export const buildAnalyticsDateKey = (date = new Date()) =>
     dayjs(date).tz(getAnalyticsTimezone()).format("YYYY-MM-DD");
@@ -67,6 +70,36 @@ const parsePositiveInteger = (value, fallback = 0) => {
     return Number.isFinite(parsedValue) && parsedValue >= 0 ? parsedValue : fallback;
 };
 
+const resolveListenerIdentity = ({ userId, guestId }) => {
+    if (userId) {
+        return {
+            userId,
+            guestId: undefined,
+        };
+    }
+
+    const normalizedGuestId = typeof guestId === "string"
+        ? guestId.trim().toLowerCase()
+        : "";
+
+    if (!normalizedGuestId) {
+        throw new AppError("A user session or guestId is required.", 400, {
+            field: "guestId",
+        });
+    }
+
+    if (!GUEST_ID_PATTERN.test(normalizedGuestId)) {
+        throw new AppError("guestId must be a valid UUID v4.", 400, {
+            field: "guestId",
+        });
+    }
+
+    return {
+        userId: undefined,
+        guestId: normalizedGuestId,
+    };
+};
+
 export const normalizeListenEventSource = (value) => {
     const normalizedValue = typeof value === "string" ? value.trim() : "";
     return LISTEN_EVENT_SOURCE_ENUM.includes(normalizedValue)
@@ -76,6 +109,7 @@ export const normalizeListenEventSource = (value) => {
 
 const buildQueuedEventPayload = ({
     userId,
+    guestId,
     trackId,
     artistId,
     listenedAt,
@@ -87,12 +121,9 @@ const buildQueuedEventPayload = ({
     isValidStream,
     dailyListenOrder,
     requiredPercent,
-    device,
-    country,
     source,
 }) => {
     const payload = {
-        userId: String(userId),
         trackId: String(trackId),
         artistId: String(artistId),
         listenedAt: listenedAt.toISOString(),
@@ -103,10 +134,14 @@ const buildQueuedEventPayload = ({
         completed: String(Boolean(completed)),
         skipped: String(Boolean(skipped)),
         isValidStream: String(Boolean(isValidStream)),
-        device: device || "",
-        country: country || "",
         source: normalizeListenEventSource(source),
     };
+
+    if (userId) {
+        payload.userId = String(userId);
+    } else {
+        payload.guestId = guestId;
+    }
 
     if (Number.isFinite(dailyListenOrder) && dailyListenOrder > 0) {
         payload.dailyListenOrder = String(dailyListenOrder);
@@ -130,18 +165,18 @@ const queueListenEventInRedis = async (payload) => {
 
 const queueSkippedListenInRedis = async ({
     userId,
+    guestId,
     trackId,
     artistId,
     listenedAt,
     trackDuration,
     listenedDuration,
     listenPercent,
-    device,
-    country,
     source,
 }) => {
     const queuedEventPayload = buildQueuedEventPayload({
         userId,
+        guestId,
         trackId,
         artistId,
         listenedAt,
@@ -151,8 +186,6 @@ const queueSkippedListenInRedis = async ({
         completed: false,
         skipped: true,
         isValidStream: false,
-        device,
-        country,
         source,
     });
 
@@ -162,14 +195,13 @@ const queueSkippedListenInRedis = async ({
 const queueValidStreamInRedis = async ({
     countKey,
     userId,
+    guestId,
     trackId,
     artistId,
     listenedAt,
     trackDuration,
     listenedDuration,
     listenPercent,
-    device,
-    country,
     source,
 }) => {
     ensureRedisReady();
@@ -196,6 +228,7 @@ const queueValidStreamInRedis = async ({
 
             const queuedEventPayload = buildQueuedEventPayload({
                 userId,
+                guestId,
                 trackId,
                 artistId,
                 listenedAt,
@@ -207,8 +240,6 @@ const queueValidStreamInRedis = async ({
                 isValidStream: true,
                 dailyListenOrder,
                 requiredPercent,
-                device,
-                country,
                 source,
             });
 
@@ -238,15 +269,12 @@ const queueValidStreamInRedis = async ({
 
 export const recordCompletedListenAttempt = async ({
     userId,
+    guestId,
     trackId,
     listenedDuration,
-    device = "",
-    country = "",
     source = "unknown",
 }) => {
-    if (!userId) {
-        throw new AppError("User authentication is required.", 401);
-    }
+    const listenerIdentity = resolveListenerIdentity({ userId, guestId });
 
     const normalizedListenedDuration = Number(listenedDuration);
 
@@ -295,32 +323,32 @@ export const recordCompletedListenAttempt = async ({
     const listenPercent = roundToTwoDecimals((clampedListenedDuration / trackDuration) * 100);
     const listenedAt = new Date();
 
-    try {
-        await storeRecentListeningActivity({
-            userId,
-            track,
-            artistId,
-            albumId,
-            listenedAt,
-            listenedDuration: clampedListenedDuration,
-            listenPercent,
-            source,
-        });
-    } catch (error) {
-        console.error("[RecentListeningActivity] Could not store activity:", error);
+    if (listenerIdentity.userId) {
+        try {
+            await storeRecentListeningActivity({
+                userId: listenerIdentity.userId,
+                track,
+                artistId,
+                albumId,
+                listenedAt,
+                listenedDuration: clampedListenedDuration,
+                listenPercent,
+                source,
+            });
+        } catch (error) {
+            console.error("[RecentListeningActivity] Could not store activity:", error);
+        }
     }
 
     if (listenPercent <= SKIP_LISTEN_PERCENT_THRESHOLD) {
         await queueSkippedListenInRedis({
-            userId,
+            ...listenerIdentity,
             trackId,
             artistId,
             listenedAt,
             trackDuration,
             listenedDuration: clampedListenedDuration,
             listenPercent,
-            device,
-            country,
             source,
         });
 
@@ -336,21 +364,19 @@ export const recordCompletedListenAttempt = async ({
     const dateKey = buildAnalyticsDateKey(listenedAt);
     const countKey = buildValidStreamCountKey({
         dateKey,
-        userId,
+        ...listenerIdentity,
         trackId,
     });
 
     const queueResult = await queueValidStreamInRedis({
         countKey,
-        userId,
+        ...listenerIdentity,
         trackId,
         artistId,
         listenedAt,
         trackDuration,
         listenedDuration: clampedListenedDuration,
         listenPercent,
-        device,
-        country,
         source,
     });
 

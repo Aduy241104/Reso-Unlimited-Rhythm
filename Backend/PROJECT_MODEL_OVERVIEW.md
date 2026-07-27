@@ -44,7 +44,7 @@ Backend hien tai xoay quanh 6 nhom domain:
 
 | Model | Vai tro | Ref chinh | Field / note noi bat |
 |---|---|---|---|
-| `User` | Tai khoan goc cua he thong | `Plan` qua `subscription.currentPlanId` | `email`, `authProvider`, `role`, `activeStatus`, `emailVerified`, `profile`, `settings`, `subscription`, `stats` |
+| `User` | Tai khoan goc cua he thong | `Plan` qua `subscription.currentPlanId` | `email`, `authProvider`, `role`, `activeStatus`, `emailVerified`, `profile`, `subscription`, `stats` |
 | `RefreshToken` | Luu refresh token dang nhap | `userId -> User` | `token`, `expiresAt`, `isRevoked` |
 | `VerificationToken` | Luu token/OTP verify email va reset password | `userId -> User` | `email`, `token`, `otp`, `type`, `expiresAt`, `isUsed` |
 

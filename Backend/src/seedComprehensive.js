@@ -286,7 +286,6 @@ const TRACK_TITLES = [
     "Home Again",
 ];
 const COUNTRIES = ["Việt Nam", "Singapore", "Nhật Bản", "Hàn Quốc", "Thái Lan"];
-const DEVICES = ["Chrome / Windows", "Safari / iPhone", "Reso Android", "Edge / Windows", "Safari / macOS"];
 const SOURCES = ["track_detail", "album", "playlist", "search", "artist_profile"];
 
 const dateContext = () => {
@@ -367,7 +366,6 @@ const buildSeedData = async () => {
             activeStatus: "active",
             emailVerified: true,
             profile: { fullName: "Reso Seed Admin", gender: "other", dateOfBirth: new Date("1992-04-12"), country: "Việt Nam" },
-            settings: { language: "vi", notificationsEnabled: true, shufflePlayDefault: false },
             stats: { totalListeningTime: 0, totalTracksPlayed: 0 },
         },
         ...ARTIST_FULL_NAMES.map((fullName, index) => ({
@@ -385,7 +383,6 @@ const buildSeedData = async () => {
                 dateOfBirth: new Date(`${1992 + index}-0${(index % 8) + 1}-15`),
                 country: COUNTRIES[index % 2],
             },
-            settings: { language: index % 4 === 0 ? "en" : "vi", notificationsEnabled: true, shufflePlayDefault: index % 2 === 0 },
             stats: { totalListeningTime: 0, totalTracksPlayed: 0 },
         })),
         ...LISTENER_NAMES.map((fullName, index) => {
@@ -407,7 +404,6 @@ const buildSeedData = async () => {
                     dateOfBirth: new Date(`${1996 + (index % 9)}-${String((index % 12) + 1).padStart(2, "0")}-12`),
                     country: COUNTRIES[index % COUNTRIES.length],
                 },
-                settings: { language: index % 5 === 0 ? "en" : "vi", notificationsEnabled: index % 7 !== 0, shufflePlayDefault: index % 2 === 0 },
                 subscription: premium
                     ? { isPremium: true, currentPlanId: plan._id, premiumEndDate: dates.at(20 + index).toDate() }
                     : { isPremium: false },
@@ -424,7 +420,6 @@ const buildSeedData = async () => {
             activeStatus: "active",
             emailVerified: true,
             profile: { fullName, gender: index % 2 ? "female" : "male", dateOfBirth: new Date(`${1998 + index}-06-18`), country: "Việt Nam" },
-            settings: { language: "vi", notificationsEnabled: true, shufflePlayDefault: false },
             stats: { totalListeningTime: 0, totalTracksPlayed: 0 },
         })),
     ];
@@ -606,8 +601,6 @@ const buildSeedData = async () => {
                     duration: listenedDuration,
                     completed: listenPercent >= 90,
                     skipped: !isValidStream && listenPercent < 30,
-                    device: DEVICES[(userIndex + order) % DEVICES.length],
-                    country: user.profile.country,
                     createdAt: listenedAt,
                     updatedAt: listenedAt,
                 };

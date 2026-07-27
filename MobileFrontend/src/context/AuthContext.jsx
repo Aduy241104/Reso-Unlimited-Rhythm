@@ -159,8 +159,6 @@ export const AuthProvider = ({ children }) => {
 
   const login = useCallback(
     async (email, password) => {
-      setAuthState((prev) => ({ ...prev, isLoading: true }));
-
       try {
         const response = await authService.login(email, password);
 
@@ -195,18 +193,18 @@ export const AuthProvider = ({ children }) => {
           }
         }
       } catch (error) {
-        await clearSession();
+        await tokenStorage.clearTokens().catch(() => {});
+        await userStorage.clearUserProfile().catch(() => {});
+        setAuthState(emptyAuthState);
         console.log('Auth error:', error?.message || error);
         throw error;
       }
     },
-    [clearSession, persistSession, syncCurrentUser]
+    [persistSession, syncCurrentUser]
   );
 
   const googleLogin = useCallback(
     async (token) => {
-      setAuthState((prev) => ({ ...prev, isLoading: true }));
-
       try {
         const response = await authService.googleLogin(token);
 
@@ -241,12 +239,14 @@ export const AuthProvider = ({ children }) => {
           }
         }
       } catch (error) {
-        await clearSession();
+        await tokenStorage.clearTokens().catch(() => {});
+        await userStorage.clearUserProfile().catch(() => {});
+        setAuthState(emptyAuthState);
         console.log('Google auth error:', error?.message || error);
         throw error;
       }
     },
-    [clearSession, persistSession, syncCurrentUser]
+    [persistSession, syncCurrentUser]
   );
 
   const logout = useCallback(async () => {

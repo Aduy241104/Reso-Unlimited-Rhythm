@@ -25,9 +25,14 @@ const statusFilters = [
 
 const methodFilters = [
   { value: "", label: "Tất cả phương thức" },
-  { value: "bank", label: "Bank" },
-  { value: "momo", label: "Momo" },
+  { value: "bank", label: "Ngân hàng" },
+  { value: "momo", label: "MoMo" },
 ];
+
+const methodLabels = {
+  bank: "Ngân hàng",
+  momo: "MoMo",
+};
 
 const sortOrderFilters = [
   { value: "desc", label: "Mới nhất trước" },
@@ -120,7 +125,7 @@ const getAvatar = (withdrawal) => {
 
 const getStatusBadge = (status) => {
   const config = statusConfig[status] || {
-    label: status || "Unknown",
+    label: "Không xác định",
     badge: "bg-slate-50 text-slate-600 border-slate-200",
     dot: "bg-slate-400",
   };
@@ -144,7 +149,7 @@ const getMethodBadge = (method) => {
         : "border-indigo-100 bg-indigo-50 text-indigo-600"
     }`}>
       <Icon size={12} />
-      {method || "—"}
+      {methodLabels[method] || "Không xác định"}
     </span>
   );
 };
@@ -161,12 +166,12 @@ const HeaderStat = ({ label, value }) => (
 const AdminWithdrawalRequestsPage = () => {
   const [withdrawals, setWithdrawals] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("");
+  const [filterStatus, setFilterStatus] = useState("pending");
   const [filterMethod, setFilterMethod] = useState("");
   const [sortOrder, setSortOrder] = useState("desc");
   const [query, setQuery] = useState({
     q: "",
-    status: "",
+    status: "pending",
     method: "",
     page: 1,
     limit: 10,
@@ -222,12 +227,12 @@ const AdminWithdrawalRequestsPage = () => {
 
   const handleResetFilters = () => {
     setSearchTerm("");
-    setFilterStatus("");
+    setFilterStatus("pending");
     setFilterMethod("");
     setSortOrder("desc");
     setQuery({
       q: "",
-      status: "",
+      status: "pending",
       method: "",
       page: 1,
       limit: 10,
@@ -250,7 +255,7 @@ const AdminWithdrawalRequestsPage = () => {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
-            Quản lý doanh thu artist
+            Quản lý doanh thu nghệ sĩ
           </p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
             Danh sách yêu cầu rút tiền
@@ -279,7 +284,7 @@ const AdminWithdrawalRequestsPage = () => {
           <input
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Tìm artist, tên user hoặc email..."
+            placeholder="Tìm nghệ sĩ, tên người dùng hoặc thư điện tử..."
             className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-900 outline-none transition focus:border-slate-400"
           />
         </label>
@@ -345,12 +350,12 @@ const AdminWithdrawalRequestsPage = () => {
 
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
         <div className="grid min-w-[960px] grid-cols-[minmax(0,1.8fr)_160px_130px_140px_180px_130px] gap-4 border-b border-slate-200 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-          <span>Artist</span>
-          <span>Amount</span>
-          <span>Method</span>
-          <span>Status</span>
-          <span>Created At</span>
-          <span className="text-right pr-2">Action</span>
+          <span>Nghệ sĩ</span>
+          <span>Số tiền</span>
+          <span>Phương thức</span>
+          <span>Trạng thái</span>
+          <span>Ngày tạo</span>
+          <span className="text-right pr-2">Thao tác</span>
         </div>
 
         <div className="overflow-x-auto">
@@ -374,7 +379,6 @@ const AdminWithdrawalRequestsPage = () => {
               </div>
             ) : (
               withdrawals.map((withdrawal) => {
-                const config = statusConfig[withdrawal.status] || {};
                 const avatar = getAvatar(withdrawal);
                 const withdrawalId = withdrawal._id || withdrawal.id;
 

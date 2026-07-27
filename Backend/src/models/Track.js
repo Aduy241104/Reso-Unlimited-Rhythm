@@ -106,7 +106,7 @@ const TrackSchema = new Schema(
                 ]
             }]
         },
-        rejectReason: {
+        rejectReason: { 
             type: String,
             default: "",
         },

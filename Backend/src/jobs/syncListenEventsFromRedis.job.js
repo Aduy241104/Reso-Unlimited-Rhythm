@@ -5,6 +5,7 @@ import ListenEvent from "../models/ListenEvent.js";
 import Track from "../models/Track.js";
 import { getAnalyticsTimezone } from "../services/analytics/trackStatAggregation.service.js";
 import {
+    GUEST_ID_PATTERN,
     normalizeListenEventSource,
     VALID_STREAM_EVENT_QUEUE_KEY,
 } from "../services/listenEvent/listenEvent.service.js";
@@ -16,6 +17,11 @@ const LISTEN_EVENT_SYNC_BATCH_SIZE = Number(process.env.LISTEN_EVENT_SYNC_BATCH_
 let isListenEventSyncCronStarted = false;
 
 const toObjectId = (value) => new mongoose.Types.ObjectId(String(value));
+
+const normalizeGuestId = (value) => {
+    const guestId = typeof value === "string" ? value.trim().toLowerCase() : "";
+    return GUEST_ID_PATTERN.test(guestId) ? guestId : undefined;
+};
 
 const toNumber = (value, fallback = 0) => {
     const parsedValue = Number(value);
@@ -48,9 +54,11 @@ const parseQueuedEventPayload = (entry) => {
 
 const transformQueuedEntryToDocument = (entry) => {
     const message = parseQueuedEventPayload(entry);
+    const userId = message.userId ? toObjectId(message.userId) : undefined;
 
     return {
-        userId: toObjectId(message.userId),
+        userId,
+        guestId: userId ? undefined : normalizeGuestId(message.guestId),
         trackId: toObjectId(message.trackId),
         artistId: toObjectId(message.artistId),
         listenedAt: message.listenedAt ? new Date(message.listenedAt) : new Date(),
@@ -60,8 +68,6 @@ const transformQueuedEntryToDocument = (entry) => {
         dailyListenOrder: toNumber(message.dailyListenOrder, null),
         requiredPercent: toNumber(message.requiredPercent, null),
         source: normalizeListenEventSource(message.source),
-        device: message.device || "",
-        country: message.country || "",
         isValidStream: parseBoolean(message.isValidStream, true),
         duration: toNumber(message.duration, toNumber(message.listenedDuration, 0)),
         completed: parseBoolean(message.completed, true),

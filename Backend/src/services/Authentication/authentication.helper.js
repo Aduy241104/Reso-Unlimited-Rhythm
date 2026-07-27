@@ -26,7 +26,6 @@ export const sanitizeUser = (user) => ({
     role: user.role,
     activeStatus: user.activeStatus,
     profile: user.profile,
-    settings: user.settings,
     subscription: user.subscription,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,

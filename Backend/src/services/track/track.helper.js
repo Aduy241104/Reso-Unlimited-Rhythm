@@ -229,6 +229,25 @@ const formatTrackArtist = (artist) =>
         }
         : null;
 
+const formatTrackDetailArtist = (artist) => {
+    const formattedArtist = formatTrackArtist(artist);
+
+    if (!formattedArtist) {
+        return null;
+    }
+
+    return {
+        ...formattedArtist,
+        bio: artist.bio || "",
+        activeStatus: artist.activeStatus,
+        stats: artist.stats || {
+            followers: 0,
+            totalStreams: 0,
+            monthlyListeners: 0,
+        },
+    };
+};
+
 const formatTrackAlbum = (album) =>
     album
         ? {
@@ -238,6 +257,20 @@ const formatTrackAlbum = (album) =>
         }
         : null;
 
+const formatTrackDetailAlbum = (album) => {
+    const formattedAlbum = formatTrackAlbum(album);
+
+    if (!formattedAlbum) {
+        return null;
+    }
+
+    return {
+        ...formattedAlbum,
+        releaseDate: album.releaseDate || null,
+        status: album.status,
+    };
+};
+
 const formatTrackGenres = (genres = []) =>
     genres.map((genre) => ({
         id: toId(genre._id),
@@ -245,7 +278,22 @@ const formatTrackGenres = (genres = []) =>
         image: genre.image,
     }));
 
-const formatTrackDetail = (track) => ({
+const formatPublicTrackCopyright = (copyright = {}) => ({
+    copyrightOwner: copyright.copyrightOwner || "",
+    recordingOwner: copyright.recordingOwner || "",
+    composer: copyright.composer || "",
+    lyricist: copyright.lyricist || "",
+    producer: copyright.producer || "",
+    isOriginal: copyright.isOriginal ?? true,
+    isCover: copyright.isCover ?? false,
+    isRemix: copyright.isRemix ?? false,
+    usesSample: copyright.usesSample ?? false,
+    usesLicensedBeat: copyright.usesLicensedBeat ?? false,
+    originalTrackTitle: copyright.originalTrackTitle || "",
+    originalArtistName: copyright.originalArtistName || "",
+});
+
+const formatTrackDetailBase = (track) => ({
     id: toId(track._id),
     title: track.title,
     versionTitle: track.versionTitle || "",
@@ -264,6 +312,18 @@ const formatTrackDetail = (track) => ({
         syncUrl: track.lyricsSyncUrl,
     },
 });
+
+const formatTrackDetail = (track, personalization = {}) => ({
+    ...formatTrackDetailBase(track),
+    versionTitle: track.versionTitle || "",
+    artist: formatTrackDetailArtist(track.artist_artistId),
+    album: formatTrackDetailAlbum(track.album_albumId),
+    copyright: formatPublicTrackCopyright(track.copyright),
+    isFavorite: Boolean(personalization.isFavorite),
+    favoritedAt: personalization.favoritedAt || null,
+});
+
+const formatTrackRankingDetail = (track) => formatTrackDetailBase(track);
 
 const formatTrackPlayback = (track, audioFiles, accessState) => {
     const isPremium = accessState.isPremium;
@@ -318,6 +378,8 @@ export {
     formatTrackManagementDetail,
     formatTrackItem,
     formatTrackDetail,
+    formatTrackRankingDetail,
+    formatPublicTrackCopyright,
     formatTrackPlayback,
     getPremiumAccessState,
     getValidAudioFiles,

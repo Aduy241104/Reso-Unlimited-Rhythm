@@ -4,10 +4,12 @@ import {
     CheckCircle2,
     ChevronRight,
     Heart,
+    Info,
     Loader2,
     MoreHorizontal,
     Plus,
     Search,
+    ShieldAlert,
     X,
 } from "lucide-react";
 import DeletePlaylistConfirmModal from "../userPlaylist/DeletePlaylistConfirmModal";
@@ -90,6 +92,8 @@ const TrackTwoLevelMenu = ({
     onTrackAdded,
     isFavorite,
     onFavoriteChanged,
+    onReport,
+    onViewInfo,
 }) => {
     const menuRef = useRef(null);
     const navigate = useNavigate();
@@ -382,6 +386,20 @@ const TrackTwoLevelMenu = ({
         }
     };
 
+    const handleReport = () => {
+        setIsOpen(false);
+        setIsPlaylistSubmenuOpen(false);
+        setSearchValue("");
+        onReport?.();
+    };
+
+    const handleViewInfo = () => {
+        setIsOpen(false);
+        setIsPlaylistSubmenuOpen(false);
+        setSearchValue("");
+        onViewInfo?.();
+    };
+
     const favoriteLabel = resolvedIsFavorite
         ? "Xóa khỏi Bài hát đã thích"
         : "Thích bài hát";
@@ -582,6 +600,42 @@ const TrackTwoLevelMenu = ({
                             </div>
                         ) }
                     </div>
+
+                    { typeof onViewInfo === "function" && (
+                        <button
+                            type="button"
+                            onClick={ handleViewInfo }
+                            className="
+                                flex w-full items-center gap-2
+                                rounded-[6px] px-3 py-2
+                                text-left text-[12px] font-normal
+                                text-[#f3f4f6]
+                                transition-all duration-150
+                                hover:bg-[#313131]
+                            "
+                        >
+                            <Info className="h-3.5 w-3.5 shrink-0 text-[#9ca3af]" />
+                            <span className="truncate">Xem thông tin</span>
+                        </button>
+                    ) }
+
+                    { typeof onReport === "function" && (
+                        <button
+                            type="button"
+                            onClick={ handleReport }
+                            className="
+                                flex w-full items-center gap-2
+                                rounded-[6px] px-3 py-2
+                                text-left text-[12px] font-normal
+                                text-[#f3f4f6]
+                                transition-all duration-150
+                                hover:bg-[#313131]
+                            "
+                        >
+                            <ShieldAlert className="h-3.5 w-3.5 shrink-0 text-[#9ca3af]" />
+                            <span className="truncate">Báo cáo</span>
+                        </button>
+                    ) }
 
                     { errorMessage && (
                         <div

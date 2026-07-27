@@ -1,4 +1,4 @@
-import { CirclePlus, Download, Play, ShieldAlert } from "lucide-react";
+import { CirclePlus, Play } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import TrackTwoLevelMenu from "../../components/trackMenu/TrackTwoLevelMenu";
@@ -7,6 +7,7 @@ import TrackDetailArtistCard from "../../components/trackDetail/TrackDetailArtis
 import TrackDetailHero from "../../components/trackDetail/TrackDetailHero";
 import TrackDetailLikeSection from "../../components/trackDetail/TrackDetailLikeSection";
 import TrackDetailLyrics from "../../components/trackDetail/TrackDetailLyrics";
+import TrackInformationModal from "../../components/trackDetail/TrackInformationModal";
 import { useAuth } from "../../hooks/useAuth";
 import { usePlayer } from "../../hooks/usePlayer";
 import { routePaths } from "../../routes/routePaths";
@@ -69,6 +70,7 @@ const TrackDetailPage = () => {
   const [likeCount, setLikeCount] = useState(0);
   const [isLikeLoading, setIsLikeLoading] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isInformationModalOpen, setIsInformationModalOpen] = useState(false);
   const [playlistFeedback, setPlaylistFeedback] = useState(null);
   const { playTrack } = usePlayer();
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
@@ -165,7 +167,7 @@ const TrackDetailPage = () => {
 
   const trackImage = useMemo(
     () =>
-      track?.coverImage ||
+      (Array.isArray(track?.coverImage) ? track.coverImage[0] : track?.coverImage) ||
       track?.avatar ||
       track?.album?.coverImage ||
       track?.artist?.coverImage ||
@@ -231,10 +233,6 @@ const TrackDetailPage = () => {
 
   const handleAddToLibrary = () => {
     console.log("Add track to library:", track?.title);
-  };
-
-  const handleDownload = () => {
-    console.log("Download track:", track?.title);
   };
 
   const handleReportTrack = () => {
@@ -342,19 +340,11 @@ const TrackDetailPage = () => {
             Thêm vào thư viện
           </button>
 
-          <button type="button" onClick={ handleDownload } className={ secondaryActionClassName }>
-            <Download className="h-4.5 w-4.5" />
-            Tải xuống
-          </button>
-
-          <button type="button" onClick={ handleReportTrack } className={ secondaryActionClassName }>
-            <ShieldAlert className="h-4.5 w-4.5" />
-            Báo cáo
-          </button>
-
           <TrackTwoLevelMenu
             trackId={ trackId }
             track={ track }
+            onViewInfo={ () => setIsInformationModalOpen(true) }
+            onReport={ handleReportTrack }
             onTrackAdded={ (updatedPlaylist, playlist) => {
               if (typeof handleAddTrackToPlaylist === "function") {
                 handleAddTrackToPlaylist(updatedPlaylist || playlist);
@@ -400,6 +390,13 @@ const TrackDetailPage = () => {
         onClose={ () => setIsReportModalOpen(false) }
         targetId={ track?.id }
         targetType="track"
+      />
+
+      <TrackInformationModal
+        isOpen={ isInformationModalOpen }
+        onClose={ () => setIsInformationModalOpen(false) }
+        track={ track }
+        image={ trackImage }
       />
     </section>
   );

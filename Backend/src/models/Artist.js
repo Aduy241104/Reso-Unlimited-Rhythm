@@ -56,6 +56,13 @@ const ArtistSchema = new Schema(
             index: true,
         },
 
+        violations: [
+            {
+                content: { type: String, required: true, trim: true },
+                violatedAt: { type: Date, default: Date.now },
+            },
+        ],
+
         blockedReason: { type: String, default: "" },
     },
     { timestamps: true }
