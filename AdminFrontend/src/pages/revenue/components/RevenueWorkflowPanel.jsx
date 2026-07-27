@@ -64,7 +64,7 @@ const RevenueWorkflowPanel = ({ workflowCards = [], onActionClick }) => {
                                         { step.title }
                                     </p>
                                     <p className="mt-0.5 text-xs font-medium text-slate-500">
-                                        { step.tone.label }
+                                        { step.unavailableReason || step.tone.label }
                                     </p>
                                 </div>
                             </div>

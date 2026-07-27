@@ -69,7 +69,11 @@ const buildDailyAggregationPipeline = ({ startDate, endDate, dayDate }) => ([
             },
             uniqueListeners: {
                 $addToSet: {
-                    $cond: [{ $eq: ["$isValidStream", true] }, "$userId", null],
+                    $cond: [
+                        { $eq: ["$isValidStream", true] },
+                        { $ifNull: ["$userId", "$guestId"] },
+                        null,
+                    ],
                 },
             },
             totalListenDuration: {
@@ -123,7 +127,9 @@ const buildMonthlyAggregationPipeline = ({ startDate, endDate }) => ([
         $group: {
             _id: "$trackId",
             playCount: { $sum: 1 },
-            uniqueListeners: { $addToSet: "$userId" },
+            uniqueListeners: {
+                $addToSet: { $ifNull: ["$userId", "$guestId"] },
+            },
         },
     },
     {

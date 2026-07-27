@@ -63,9 +63,11 @@ const getMonthlyTopTracks = async (req, res, next) => {
 
 const recordListen = async (req, res, next) => {
     try {
-        const { duration, source } = req.body;
+        const { duration, source, guestId } = req.body;
+        const userId = req.user?.id || req.user?._id;
         const result = await listenEventService.recordCompletedListenAttempt({
-            userId: req.user.id,
+            userId,
+            guestId: userId ? undefined : guestId,
             trackId: req.params.id,
             listenedDuration: duration,
             source,

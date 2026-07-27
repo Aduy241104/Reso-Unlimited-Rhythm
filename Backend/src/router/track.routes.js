@@ -4,7 +4,6 @@ import trackValidation from "../middlewares/track.validation.js";
 import adminTrackValidation from "../middlewares/Admin/admin.track.validation.js";
 import validate from "../middlewares/validate.middleware.js";
 import {
-    authorizeRoles,
     optionalAuthenticate,
 } from "../middlewares/Authentication/authentication.middleware.js";
 import { requireAdmin, requireArtist } from "../middlewares/Authentication/authentication.middleware.js";
@@ -16,7 +15,7 @@ const router = express.Router();
 
 router.post(
     "/:id/listen",
-    authorizeRoles("user", "artist"),
+    optionalAuthenticate(),
     validate(trackValidation.trackIdParamSchema, "params"),
     validate(trackValidation.listenEventBodySchema, "body"),
     trackController.recordListen

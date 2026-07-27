@@ -14,7 +14,9 @@ export const buildArtistAggregationPipeline = ({ startDate, endDate }) => ([
         $group: {
             _id: "$artistId",
             playCount: { $sum: 1 },
-            uniqueListeners: { $addToSet: "$userId" },
+            uniqueListeners: {
+                $addToSet: { $ifNull: ["$userId", "$guestId"] },
+            },
             totalTracksPlayed: { $addToSet: "$trackId" },
             completedPlayCount: {
                 $sum: {
