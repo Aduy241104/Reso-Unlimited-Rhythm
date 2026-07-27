@@ -281,11 +281,20 @@ const buildPopularTracksFromApi = (tracks = []) =>
         track?.plays ||
         track?.streamCount ||
         0;
+      const resolvedTrackId = track?._id || track?.id || `track-${index}`;
 
       return {
-        id: track?.id || `track-${index}`,
+        _id: resolvedTrackId,
+        id: resolvedTrackId,
         title: track?.title || "Untitled track",
         image: track?.coverImage || track?.album?.coverImage || track?.avatar || "",
+        artist: track?.artist || null,
+        artistName:
+          track?.artistName ||
+          track?.artist?.name ||
+          track?.artistId?.name ||
+          "Unknown Artist",
+        artistId: track?.artistId || track?.artist?.id || null,
         plays: formatCompactNumber(totalPlays),
         duration: formatDuration(track?.duration),
         totalPlays,
@@ -294,9 +303,13 @@ const buildPopularTracksFromApi = (tracks = []) =>
     .sort((trackA, trackB) => trackB.totalPlays - trackA.totalPlays)
     .slice(0, 5)
     .map((track) => ({
+      _id: track._id,
       id: track.id,
       title: track.title,
       image: track.image,
+      artist: track.artist,
+      artistName: track.artistName,
+      artistId: track.artistId,
       plays: track.plays,
       duration: track.duration,
     }));
