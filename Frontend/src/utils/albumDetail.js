@@ -24,6 +24,16 @@ export const createPlaceholderImage = (
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 };
 
+export const resolveTrackAvatar = (track, fallback = "") => {
+  const avatar = Array.isArray(track?.avatar)
+    ? track.avatar.find(Boolean)
+    : track?.avatar;
+
+  return typeof avatar === "string" && avatar.trim()
+    ? avatar.trim()
+    : fallback;
+};
+
 export const formatTrackDuration = (durationInSeconds) => {
   const totalSeconds = Number(durationInSeconds);
 

@@ -28,6 +28,7 @@ import {
   formatAlbumDuration,
   formatReleaseYear,
   formatTrackDuration,
+  resolveTrackAvatar,
 } from "../../utils/albumDetail";
 import { getApiErrorMessage } from "../../utils/apiError";
 import { isBlockedTrack } from "../../utils/trackStatus";
@@ -435,11 +436,7 @@ const AlbumDetailPage = () => {
                   key={ track?.id || `${trackItem?.order}-${index}` }
                   index={ trackItem?.order || index + 1 }
                   track={ track }
-                  image={
-                    track?.coverImage ||
-                    track?.artist?.avatar ||
-                    albumCoverImage
-                  }
+                  image={ resolveTrackAvatar(track) }
                   title={ track?.title || "Untitled track" }
                   trackId={track?.id}
                   artist={ track?.artist?.name || albumArtistName }

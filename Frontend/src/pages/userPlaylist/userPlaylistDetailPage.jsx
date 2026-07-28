@@ -29,7 +29,7 @@ import {
   getUserPlaylists,
   removeTrackFromUserPlaylist,
 } from "../../services/userPlaylistService";
-import { formatTrackDuration } from "../../utils/albumDetail";
+import { formatTrackDuration, resolveTrackAvatar } from "../../utils/albumDetail";
 import { getApiErrorMessage } from "../../utils/apiError";
 import {
   formatPlaylistDate,
@@ -157,12 +157,7 @@ const getTrackArtistName = (track, fallbackArtistName) => {
 
 const getTrackArtistId = (track) => track?.artist?.id || track?.artistId || "";
 
-const getTrackImage = (track, playlistCoverImage) =>
-  track?.coverImage ||
-  track?.album?.coverImage ||
-  track?.artist?.avatar ||
-  playlistCoverImage ||
-  "";
+const getTrackImage = (track) => resolveTrackAvatar(track);
 
 const getTotalDurationSeconds = (trackItems) =>
   trackItems.reduce((sum, item) => {
@@ -589,7 +584,7 @@ const UserPlaylistDetailPage = () => {
         message: `Đã thêm "${track?.title || track?.name || "bài hát"}" vào ${getPlaylistTitle(
           targetPlaylist
         )}.`,
-        image: getTrackImage(track, playlistCoverImage),
+        image: getTrackImage(track),
       });
     } catch (error) {
       const nextErrorMessage = getApiErrorMessage(
@@ -650,7 +645,7 @@ const UserPlaylistDetailPage = () => {
           queuedTrackIndex >= 0
             ? `Đã xóa "${track?.title || track?.name || "bài hát"}" khỏi danh sách chờ.`
             : `Đã thêm "${track?.title || track?.name || "bài hát"}" vào danh sách chờ.`,
-        image: getTrackImage(track, playlistCoverImage),
+        image: getTrackImage(track),
       });
     } catch (error) {
       setTrackActionErrorMessage(
@@ -997,7 +992,7 @@ const UserPlaylistDetailPage = () => {
                   key={trackActionKey}
                   index={trackItem?.order || index + 1}
                   track={track}
-                  image={getTrackImage(track, playlistCoverImage)}
+                  image={getTrackImage(track)}
                   title={track?.title || track?.name || ""}
                   artist={getTrackArtistName(track, playlistOwnerLabel)}
                   artistId={getTrackArtistId(track)}

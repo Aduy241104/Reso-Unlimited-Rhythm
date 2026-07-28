@@ -279,7 +279,7 @@ const RecommendationMixDetailPage = () => {
           >
             {trackItems.map((track, index) => {
               const trackId = track?.id || track?._id || "";
-              const trackImage = getRecommendationTrackImage(track, mixCoverImage);
+              const trackImage = getRecommendationTrackImage(track);
 
               return (
                 <TrackCard

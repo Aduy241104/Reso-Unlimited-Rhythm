@@ -326,9 +326,7 @@ const updateTrackApprovalStatus = async (
 
     if (payload.status === "approved") {
         track.approvalStatus = "approved";
-        if (track.activeStatus === "draft") {
-            track.activeStatus = "active";
-        }
+        track.activeStatus = "hidden";
         track.rejectReason = "";
         
         if (track.copyright) {

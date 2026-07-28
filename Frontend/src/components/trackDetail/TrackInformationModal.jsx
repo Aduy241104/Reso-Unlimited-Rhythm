@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
+import { Link } from "react-router-dom";
 import { formatTrackDuration } from "../../utils/albumDetail";
 
 const FALLBACK_VALUE = "Chưa cập nhật";
@@ -84,7 +85,7 @@ const MetaField = ({ label, value }) => (
   </div>
 );
 
-const TrackInformationModal = ({ isOpen, onClose, track, image }) => {
+const TrackInformationModal = ({ isOpen, onClose, track, image, artistHref }) => {
   useEffect(() => {
     if (!isOpen) return undefined;
 
@@ -172,7 +173,16 @@ const TrackInformationModal = ({ isOpen, onClose, track, image }) => {
               { track?.versionTitle ? (
                 <p className="mt-1 text-sm text-[#b1b1b1]">{ track.versionTitle }</p>
               ) : null }
-              <p className="mt-2 text-sm text-[#8f8f8f]">{ artistName }</p>
+              { artistHref ? (
+                <Link
+                  to={ artistHref }
+                  className="mt-2 inline-block text-sm text-[#b8b8b8] transition hover:text-white hover:underline"
+                >
+                  { artistName }
+                </Link>
+              ) : (
+                <p className="mt-2 text-sm text-[#8f8f8f]">{ artistName }</p>
+              ) }
             </div>
           </section>
 
@@ -197,14 +207,37 @@ const TrackInformationModal = ({ isOpen, onClose, track, image }) => {
           <section className="border-t border-[#414141] pt-5">
             <h4 className="mb-4 text-sm font-semibold text-white">Nghệ sĩ</h4>
             <div className="flex gap-3 rounded-lg bg-[#222222] p-4">
-              <img
-                src={ artistImage }
-                alt={ artistName }
-                className="h-14 w-14 shrink-0 rounded-full object-cover"
-              />
+              { artistHref ? (
+                <Link
+                  to={ artistHref }
+                  className="shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  aria-label={ `Xem trang cá nhân của ${artistName}` }
+                >
+                  <img
+                    src={ artistImage }
+                    alt=""
+                    className="h-14 w-14 rounded-full object-cover transition hover:brightness-110"
+                  />
+                </Link>
+              ) : (
+                <img
+                  src={ artistImage }
+                  alt={ artistName }
+                  className="h-14 w-14 shrink-0 rounded-full object-cover"
+                />
+              ) }
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                  <p className="font-medium text-white">{ artistName }</p>
+                  { artistHref ? (
+                    <Link
+                      to={ artistHref }
+                      className="font-medium text-white hover:underline"
+                    >
+                      { artistName }
+                    </Link>
+                  ) : (
+                    <p className="font-medium text-white">{ artistName }</p>
+                  ) }
                   <span className="text-xs text-[#858585]">
                     { getStatusLabel(track?.artist?.activeStatus) }
                   </span>

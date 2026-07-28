@@ -1,4 +1,5 @@
 import { routePaths } from "../routes/routePaths";
+import { resolveTrackAvatar } from "./albumDetail";
 
 const normalizeText = (value) => {
   if (typeof value !== "string") {
@@ -22,17 +23,7 @@ export const getRecommendationUserDisplayName = (user) => {
 export const getRecommendationMixId = (mix) => mix?.id || mix?._id || "";
 
 export const getRecommendationTrackImage = (track, fallbackImage = "") => {
-  const coverImage = Array.isArray(track?.coverImage)
-    ? track.coverImage[0]
-    : track?.coverImage;
-
-  return (
-    coverImage ||
-    track?.avatar ||
-    track?.artist?.avatar ||
-    fallbackImage ||
-    ""
-  );
+  return resolveTrackAvatar(track, fallbackImage);
 };
 
 export const getRecommendationMixCoverImage = (mix) => {
