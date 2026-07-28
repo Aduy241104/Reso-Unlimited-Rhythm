@@ -194,7 +194,11 @@ const fetchTopTrackPerformanceStats = async ({ artistId, from, to }) =>
                 },
                 uniqueListeners: {
                     $addToSet: {
-                        $cond: [{ $eq: ["$isValidStream", true] }, "$userId", null],
+                        $cond: [
+                            { $eq: ["$isValidStream", true] },
+                            { $ifNull: ["$userId", "$guestId"] },
+                            null,
+                        ],
                     },
                 },
                 totalListenDuration: {

@@ -2,6 +2,7 @@ import axios from "axios";
 import axiosClient from "../axios/axiosClient";
 import { API_BASE_URL } from "../constants/auth";
 import { getStoredAccessToken } from "./authStorage";
+import { getOrCreateGuestId } from "./guestIdentity";
 
 const TRACK_API_PREFIX = "/api/tracks";
 const LISTEN_EVENT_API_PREFIX = "/api/listen-events";
@@ -307,12 +308,13 @@ export const recordListenService = async ({
   source = "unknown",
 } = {}) => {
   const accessToken = getStoredAccessToken();
+  const guestId = accessToken ? null : getOrCreateGuestId();
   const normalizedListenedDuration = Math.max(
     Math.floor(Number(listenedDuration) || 0),
     0
   );
 
-  if (!accessToken || !trackId || normalizedListenedDuration <= 0) {
+  if ((!accessToken && !guestId) || !trackId || normalizedListenedDuration <= 0) {
     return null;
   }
 
@@ -321,6 +323,7 @@ export const recordListenService = async ({
       trackId,
       listenedDuration: normalizedListenedDuration,
       source: normalizeListenSource(source),
+      ...(guestId ? { guestId } : {}),
     });
   } catch (error) {
     if (error?.response?.status !== 401) {

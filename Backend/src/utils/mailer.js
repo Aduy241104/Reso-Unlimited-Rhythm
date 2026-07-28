@@ -168,3 +168,110 @@ export const sendCustomEmail = async ({ to, subject, html, text }) => {
 
   await mailer.sendMail(mailOptions);
 };
+
+const escapeHtml = (value) =>
+  String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+
+const formatPaymentAmount = (value, currency = "VND") =>
+  new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: String(currency || "VND").toUpperCase(),
+    maximumFractionDigits: 0,
+  }).format(Number(value) || 0);
+
+const formatPaymentDate = (value) => {
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Chưa xác định";
+  }
+
+  return new Intl.DateTimeFormat("vi-VN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: process.env.TZ || "Asia/Ho_Chi_Minh",
+  }).format(date);
+};
+
+export const sendPremiumPaymentSuccessEmail = async ({
+  to,
+  fullName,
+  planName,
+  amount,
+  tax,
+  totalAmount,
+  currency = "VND",
+  invoiceNumber,
+  paymentMethod,
+  paidAt,
+  startDate,
+  endDate,
+}) => {
+  if (!to) {
+    throw new Error("No recipient email provided for premium payment confirmation");
+  }
+
+  const mailer = createTransport();
+  const appName = process.env.MAIL_FROM_NAME || "Reso";
+  const fromEmail = process.env.MAIL_FROM_EMAIL || process.env.SMTP_USER;
+  const safeName = escapeHtml(fullName || to);
+  const safePlanName = escapeHtml(planName || "Premium");
+  const safeInvoiceNumber = escapeHtml(invoiceNumber || "");
+  const safePaymentMethod = escapeHtml(
+    String(paymentMethod || "").toUpperCase() || "Không xác định"
+  );
+  const subjectPlanName = String(planName || "Premium")
+    .replace(/[\r\n]+/g, " ")
+    .trim();
+  const subject = `Thanh toán gói ${subjectPlanName} thành công`;
+  const html = `
+    <div style="margin:0;background:#f5f5f5;padding:24px;font-family:Arial,sans-serif;color:#202124">
+      <div style="max-width:620px;margin:0 auto;overflow:hidden;border-radius:16px;background:#ffffff;box-shadow:0 8px 30px rgba(0,0,0,.08)">
+        <div style="background:linear-gradient(135deg,#ff8a3d,#ff4fd8,#7b61ff);padding:28px;color:#ffffff">
+          <div style="font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">${escapeHtml(appName)} Premium</div>
+          <h1 style="margin:10px 0 0;font-size:26px;line-height:1.3">Thanh toán thành công</h1>
+        </div>
+        <div style="padding:28px">
+          <p style="margin:0 0 12px">Xin chào <strong>${safeName}</strong>,</p>
+          <p style="margin:0 0 22px;line-height:1.6">Gói <strong>${safePlanName}</strong> đã được kích hoạt thành công. Bạn có thể sử dụng các quyền lợi Premium ngay bây giờ.</p>
+
+          <table role="presentation" style="width:100%;border-collapse:collapse;font-size:14px">
+            <tbody>
+              <tr><td style="padding:9px 0;color:#6b7280">Mã hóa đơn</td><td style="padding:9px 0;text-align:right;font-weight:600">${safeInvoiceNumber || "Chưa xác định"}</td></tr>
+              <tr><td style="padding:9px 0;color:#6b7280">Gói đăng ký</td><td style="padding:9px 0;text-align:right;font-weight:600">${safePlanName}</td></tr>
+              <tr><td style="padding:9px 0;color:#6b7280">Giá gói</td><td style="padding:9px 0;text-align:right">${formatPaymentAmount(amount, currency)}</td></tr>
+              <tr><td style="padding:9px 0;color:#6b7280">Thuế</td><td style="padding:9px 0;text-align:right">${formatPaymentAmount(tax, currency)}</td></tr>
+              <tr><td style="padding:12px 0;border-top:1px solid #e5e7eb;font-weight:700">Tổng thanh toán</td><td style="padding:12px 0;border-top:1px solid #e5e7eb;text-align:right;font-size:17px;font-weight:700">${formatPaymentAmount(totalAmount, currency)}</td></tr>
+              <tr><td style="padding:9px 0;color:#6b7280">Phương thức</td><td style="padding:9px 0;text-align:right">${safePaymentMethod}</td></tr>
+              <tr><td style="padding:9px 0;color:#6b7280">Thanh toán lúc</td><td style="padding:9px 0;text-align:right">${formatPaymentDate(paidAt)}</td></tr>
+              <tr><td style="padding:9px 0;color:#6b7280">Hiệu lực từ</td><td style="padding:9px 0;text-align:right">${formatPaymentDate(startDate)}</td></tr>
+              <tr><td style="padding:9px 0;color:#6b7280">Hết hạn lúc</td><td style="padding:9px 0;text-align:right">${formatPaymentDate(endDate)}</td></tr>
+            </tbody>
+          </table>
+
+          <p style="margin:24px 0 0;line-height:1.6;color:#6b7280">Nếu bạn không thực hiện giao dịch này, vui lòng liên hệ đội ngũ hỗ trợ.</p>
+        </div>
+      </div>
+    </div>
+  `;
+  const text = [
+    `Xin chào ${fullName || to},`,
+    `Gói ${planName || "Premium"} đã được kích hoạt thành công.`,
+    `Mã hóa đơn: ${invoiceNumber || "Chưa xác định"}`,
+    `Tổng thanh toán: ${formatPaymentAmount(totalAmount, currency)}`,
+    `Hiệu lực: ${formatPaymentDate(startDate)} - ${formatPaymentDate(endDate)}`,
+  ].join("\n");
+
+  await mailer.sendMail({
+    from: `"${appName}" <${fromEmail}>`,
+    to,
+    subject,
+    html,
+    text,
+  });
+};

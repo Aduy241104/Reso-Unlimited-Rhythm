@@ -40,7 +40,9 @@ const buildDailyArtistStatAggregationPipeline = ({ startDate, endDate, dayDate }
         $group: {
             _id: "$artistId",
             streamCount: { $sum: 1 },
-            uniqueListeners: { $addToSet: "$userId" },
+            uniqueListeners: {
+                $addToSet: { $ifNull: ["$userId", "$guestId"] },
+            },
         },
     },
     {

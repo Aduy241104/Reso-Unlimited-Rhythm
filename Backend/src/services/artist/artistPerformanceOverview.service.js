@@ -201,7 +201,9 @@ const aggregatePeriodSummary = async ({ artistId, startDate, endDateExclusive })
             $group: {
                 _id: null,
                 streamCount: { $sum: 1 },
-                uniqueListeners: { $addToSet: "$userId" },
+                uniqueListeners: {
+                    $addToSet: { $ifNull: ["$userId", "$guestId"] },
+                },
             },
         },
         {
@@ -329,7 +331,9 @@ const aggregateDailyStats = async ({ artistId, startDate, endDateExclusive }) =>
                                 },
                             },
                             streamCount: { $sum: 1 },
-                            uniqueListeners: { $addToSet: "$userId" },
+                            uniqueListeners: {
+                                $addToSet: { $ifNull: ["$userId", "$guestId"] },
+                            },
                         },
                     },
                     {

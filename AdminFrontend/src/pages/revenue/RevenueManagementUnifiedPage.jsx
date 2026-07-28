@@ -32,7 +32,7 @@ import {
   getActiveStatusLabel,
   getArtistBadgeTone,
   getArtistStatusLabel,
-  getDistributionSummary,
+  getRevenueActionUnavailableReason,
   getRevenuePeriodLabel,
   getVerificationStatusLabel,
   getWorkflowStateTone,
@@ -329,6 +329,18 @@ const RevenueManagementUnifiedPage = () => {
   };
 
   const openActionModal = (actionKey) => {
+    const period = pageData?.period;
+    const availableActions = pageData?.availableActions ?? [];
+
+    if (!isActionAvailable(availableActions, actionKey, period)) {
+      setError(
+        getRevenueActionUnavailableReason(period, actionKey) ||
+          "Thao tác này hiện chưa sẵn sàng."
+      );
+      return;
+    }
+
+    setError("");
     setActionModal({
       isOpen: true,
       actionKey,
@@ -350,6 +362,24 @@ const RevenueManagementUnifiedPage = () => {
     const periodId = pageData?.period?.id;
 
     if (!actionKey || !executor || !periodId) return;
+
+    if (
+      !isActionAvailable(
+        pageData?.availableActions ?? [],
+        actionKey,
+        pageData?.period
+      )
+    ) {
+      setActionModal((currentState) => ({
+        ...currentState,
+        phase: "error",
+        result: null,
+        error:
+          getRevenueActionUnavailableReason(pageData?.period, actionKey) ||
+          "Thao tác này hiện chưa sẵn sàng.",
+      }));
+      return;
+    }
 
     setActionModal((currentState) => ({
       ...currentState,
@@ -391,9 +421,12 @@ const RevenueManagementUnifiedPage = () => {
     lastUpdatedAt: null,
   };
 
-  const workflowSteps = buildWorkflowSteps(lifecycleTimestamps, availableActions);
+  const workflowSteps = buildWorkflowSteps(
+    lifecycleTimestamps,
+    availableActions,
+    period
+  );
   const lifecycleItems = buildLifecycleItems(lifecycleTimestamps, confirmedBy);
-  const distributionSummary = getDistributionSummary(distribution);
   const artists = Array.isArray(distribution?.artists) ? distribution.artists : [];
 
   const shouldShowTimeline = period?.status && period.status !== "open";
@@ -401,13 +434,14 @@ const RevenueManagementUnifiedPage = () => {
 
   const workflowCards = workflowSteps.map((step, index) => {
     const tone = getWorkflowStateTone(step.state);
-    const isAvailable = isActionAvailable(availableActions, step.key);
+    const isAvailable = isActionAvailable(availableActions, step.key, period);
     const isLastStep = index === workflowSteps.length - 1;
 
     return {
       ...step,
       tone,
       isAvailable,
+      unavailableReason: getRevenueActionUnavailableReason(period, step.key),
       isLastStep,
     };
   });
