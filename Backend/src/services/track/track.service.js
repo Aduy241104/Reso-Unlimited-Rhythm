@@ -17,6 +17,7 @@ import {
     getValidAudioFiles,
 } from "./track.helper.js";
 import { getAnalyticsTimezone } from "../analytics/trackStatAggregation.service.js";
+import { buildReleasedTrackFilter } from "../../utils/trackRelease.js";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -43,6 +44,7 @@ const getValidTrackIds = async (trackIds) => {
         _id: { $in: trackIds },
         activeStatus: "active",
         approvalStatus: "approved",
+        ...buildReleasedTrackFilter(),
     })
         .select("_id")
         .lean();
@@ -212,6 +214,7 @@ const formatMonthlyTopTrackStat = ({ stat, monthKey }) => ({
 const PLAYBACK_TRACK_FILTER = {
     activeStatus: "active",
     approvalStatus: "approved",
+    ...buildReleasedTrackFilter(),
 };
 
 const isMissingPlaybackTrackId = (trackId) => {
@@ -278,6 +281,7 @@ const getTrackDetail = async (trackId, userId = null) => {
         _id: trackId,
         activeStatus: "active",
         approvalStatus: "approved",
+        ...buildReleasedTrackFilter(),
     })
         .populate({
             path: "artist_artistId",
@@ -388,8 +392,9 @@ const getDailyTopTracks = async ({ date, limit }) => {
             match: {
                 activeStatus: "active",
                 approvalStatus: "approved",
+                ...buildReleasedTrackFilter(),
             },
-            select: "_id title duration avatar stats activeStatus approvalStatus artist_artistId",
+            select: "_id title duration avatar stats releaseDate releaseStatus releasedAt activeStatus approvalStatus artist_artistId",
             populate: {
                 path: "artist_artistId",
                 select: "_id name avatar",
@@ -468,6 +473,7 @@ const getMonthlyTopTracks = async ({ month, limit }) => {
             match: {
                 activeStatus: "active",
                 approvalStatus: "approved",
+                ...buildReleasedTrackFilter(),
             },
             populate: [
                 {

@@ -4,6 +4,10 @@ import Artist from "../../../models/Artist.js";
 import Notification from "../../../models/Notification.js";
 import { normalizePositiveInteger } from "../../Playlist/playlist.helper.js";
 import { AppError } from "../../../utils/AppError.js";
+import {
+    resolveTrackReleasedAt,
+    resolveTrackReleaseStatus,
+} from "../../../utils/trackRelease.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
@@ -145,6 +149,8 @@ const formatAdminTrackListItem = (track) => {
         reviewSource: getReviewSource(track),
         pendingUpdateStatus: track.pendingUpdate?.status || "none",
         activeStatus: track.activeStatus,
+        releaseStatus: resolveTrackReleaseStatus(track),
+        releasedAt: resolveTrackReleasedAt(track),
         rejectReason: track.rejectReason || "",
         hiddenReason: track.hiddenReason || "",
         hiddenAt: track.hiddenAt || null,
@@ -181,6 +187,8 @@ const formatAdminTrackDetailItem = (track) => {
         })),
         stats: track.stats || { totalLike: 0, totalPlay: 0 },
         releaseDate: track.releaseDate || null,
+        releaseStatus: resolveTrackReleaseStatus(track),
+        releasedAt: resolveTrackReleasedAt(track),
         approvalStatus: track.approvalStatus,
         reviewStatus: getReviewStatus(track),
         reviewSource: getReviewSource(track),
@@ -392,6 +400,10 @@ const listTracksForAdmin = async (query = {}) => {
 
     if (query.activeStatus) {
         conditions.push({ activeStatus: query.activeStatus });
+    }
+
+    if (query.releaseStatus) {
+        conditions.push({ releaseStatus: query.releaseStatus });
     }
 
     if (rawSearch) {
