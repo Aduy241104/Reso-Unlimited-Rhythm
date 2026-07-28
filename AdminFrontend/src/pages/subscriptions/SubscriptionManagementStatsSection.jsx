@@ -1,8 +1,8 @@
-import { Check, CreditCard, TrendingUp, X } from "lucide-react";
+import { Ban, Check, CreditCard, TrendingUp, X } from "lucide-react";
 
 const HeaderStat = ({ label, value, icon: Icon }) => (
-  <div className="flex min-w-[140px] items-center gap-2 rounded-xl bg-slate-100 px-4 py-2.5 text-center sm:text-left">
-    {Icon ? <Icon size={18} className="text-slate-400" /> : null}
+  <div className="flex min-w-[130px] items-center gap-2 rounded-xl bg-slate-100 px-3.5 py-2.5 text-center sm:text-left">
+    {Icon ? <Icon size={18} className="text-slate-400 shrink-0" /> : null}
     <div>
       <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">{label}</p>
       <p className="mt-0.5 text-base font-bold text-slate-900">{value}</p>
@@ -15,9 +15,10 @@ const SubscriptionManagementStatsSection = ({ stats }) => {
   const activeSubscriptions = stats?.byStatus?.active ?? 0;
   const expiredSubscriptions = stats?.byStatus?.expired ?? 0;
   const pendingSubscriptions = stats?.byStatus?.pending ?? 0;
+  const cancelledSubscriptions = stats?.byStatus?.cancelled ?? 0;
 
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
       <HeaderStat
         label="Tổng lượt đăng ký"
         value={totalUserSubscriptions}
@@ -37,6 +38,11 @@ const SubscriptionManagementStatsSection = ({ stats }) => {
         label="Đang chờ"
         value={pendingSubscriptions}
         icon={TrendingUp}
+      />
+      <HeaderStat
+        label="Đã hủy"
+        value={cancelledSubscriptions}
+        icon={Ban}
       />
     </div>
   );
