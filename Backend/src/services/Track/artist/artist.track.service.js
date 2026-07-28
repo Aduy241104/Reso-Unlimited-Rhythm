@@ -8,10 +8,11 @@ import {
     resolveArtistIdForCreate,
     sanitizeArtistCopyright,
     validateDraftTitle,
-    validateOptionalAlbumForDraft,
+    validateDurationFromAudioAnalysis,
     validateOptionalAudioFiles,
-    validateOptionalDuration,
+    validateOptionalDescription,
     validateOptionalGenreIds,
+    validateOptionalTags,
 } from "../track.draft.validation.js";
 import {
     assertTrackEditableByArtist,
@@ -20,11 +21,9 @@ import {
 import Artist from "../../../models/Artist.js";
 import Track from "../../../models/Track.js";
 import User from "../../../models/User.js";
-import Album from "../../../models/Album.js";
 import { AppError } from "../../../utils/AppError.js";
 import { deleteCloudinaryAssetsByUrls } from "../../../utils/uploadCloud.js";
 import { formatTrackManagementDetail } from "../track.helper.js";
-import { syncAlbumTotalDuration } from "../../album/album.sync.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 50;
@@ -39,53 +38,17 @@ const normalizePositiveInteger = (value, fallback) => {
     return fallback;
 };
 
-const normalizeAlbumId = (value) => {
-    if (value === undefined || value === null) {
-        return undefined;
-    }
-
-    if (String(value).trim() === "") {
-        return null;
-    }
-
-    return String(value).trim();
-};
-
-const normalizeAudioFiles = (audioFiles = []) =>
-    (audioFiles || []).map((file) => {
-        if (typeof file === "string") {
-            return {
-                url: file,
-                format: "unknown",
-                bitrate: 128,
-                label: "original",
-                priority: 0,
-            };
-        }
-
-        return {
-            url: file.url,
-            format: file.format || "unknown",
-            bitrate: file.bitrate || 128,
-            label: file.label || "original",
-            priority: file.priority !== undefined ? file.priority : 0,
-        };
-    });
-
-const getTrackAssetUrls = (track) => {
-    const audioUrls = (track?.audioFiles || [])
+const getAudioUrlsFromFiles = (audioFiles = []) =>
+    (audioFiles || [])
         .map((item) => item?.url)
         .filter(Boolean);
 
-    const coverUrls = (track?.coverImage || []).filter(Boolean);
-
-    return {
-        audioUrls,
-        coverUrls,
-        avatarUrl: track?.avatar || "",
-        lyricsSyncUrl: track?.lyricsSyncUrl || "",
-    };
-};
+const getTrackAssetUrls = (track) => ({
+    audioUrls: getAudioUrlsFromFiles(track?.audioFiles || []),
+    coverUrls: (track?.coverImage || []).filter(Boolean),
+    avatarUrl: track?.avatar || "",
+    lyricsSyncUrl: track?.lyricsSyncUrl || "",
+});
 
 const collectReplacedAssetUrls = ({ oldAssets, nextAssets }) => {
     const replacedUrls = [];
@@ -123,73 +86,6 @@ const collectReplacedAssetUrls = ({ oldAssets, nextAssets }) => {
     return [...new Set(replacedUrls)];
 };
 
-const reindexAlbumTrackList = async (albumId) => {
-    if (!albumId) {
-        return;
-    }
-
-    const album = await Album.findById(albumId);
-
-    if (!album) {
-        return;
-    }
-
-    album.trackList = (album.trackList || []).map((item, index) => ({
-        trackId: item.trackId,
-        order: index + 1,
-    }));
-
-    await syncAlbumTotalDuration(album);
-    await album.save();
-};
-
-const removeTrackFromAlbum = async (albumId, trackId) => {
-    if (!albumId) {
-        return;
-    }
-
-    const album = await Album.findById(albumId);
-
-    if (!album) {
-        return;
-    }
-
-    album.trackList = (album.trackList || [])
-        .filter((item) => !item.trackId?.equals(trackId))
-        .map((item, index) => ({
-            trackId: item.trackId,
-            order: index + 1,
-        }));
-
-    await syncAlbumTotalDuration(album);
-    await album.save();
-};
-
-const appendTrackToAlbum = async (albumId, trackId) => {
-    if (!albumId) {
-        return;
-    }
-
-    const album = await Album.findById(albumId);
-
-    if (!album) {
-        throw new AppError("Album not found.", StatusCodes.NOT_FOUND);
-    }
-
-    const nextOrder = (Array.isArray(album.trackList) ? album.trackList.length : 0) + 1;
-
-    album.trackList = [
-        ...(album.trackList || []),
-        {
-            trackId,
-            order: nextOrder,
-        },
-    ];
-
-    await syncAlbumTotalDuration(album);
-    await album.save();
-};
-
 const populateManagementTrack = (trackId) =>
     Track.findById(trackId)
         .populate({
@@ -203,7 +99,187 @@ const populateManagementTrack = (trackId) =>
         .populate({
             path: "genreIds",
             select: "name",
+        })
+        .populate({
+            path: "pendingUpdate.data.genreIds",
+            select: "name",
+        })
+        .populate({
+            path: "pendingUpdate.reviewedBy",
+            select: "email",
         });
+
+const stringifyComparableAudioFiles = (audioFiles = []) =>
+    JSON.stringify(
+        (audioFiles || []).map((file) => ({
+            url: file?.url || "",
+            format: file?.format || "",
+            bitrate: Number(file?.bitrate) || 0,
+            label: file?.label || "",
+            priority: Number(file?.priority) || 0,
+        }))
+    );
+
+const stringifyComparableCopyright = (copyright) =>
+    JSON.stringify(copyright || null);
+
+const stringifyComparableStringArray = (values = []) =>
+    JSON.stringify((values || []).map((value) => String(value || "")));
+
+const stringifyComparableGenreIds = (genreIds = []) =>
+    JSON.stringify(
+        (genreIds || [])
+            .map((genreId) => String(genreId?._id || genreId || ""))
+            .sort()
+    );
+
+const cloneCopyrightValue = (copyright) => {
+    if (!copyright) {
+        return null;
+    }
+
+    return JSON.parse(JSON.stringify(copyright));
+};
+
+const cloneTrackMutableData = (source) => ({
+    title: source?.title || "",
+    versionTitle: source?.versionTitle || "",
+    description: source?.description || "",
+    tags: Array.isArray(source?.tags) ? [...source.tags] : [],
+    genreIds: Array.isArray(source?.genreIds)
+        ? source.genreIds.map((genreId) => (
+            genreId?._id ? genreId._id : genreId
+        ))
+        : [],
+    audioFiles: Array.isArray(source?.audioFiles)
+        ? source.audioFiles.map((file) => ({
+            url: file?.url || "",
+            format: file?.format || "",
+            bitrate: Number(file?.bitrate) || 0,
+            label: file?.label || "",
+            priority: Number(file?.priority) || 0,
+        }))
+        : [],
+    duration: Number(source?.duration) || 0,
+    avatar: source?.avatar || "",
+    coverImage: Array.isArray(source?.coverImage) ? [...source.coverImage] : [],
+    lyricsStatic: source?.lyricsStatic || "",
+    lyricsSyncUrl: source?.lyricsSyncUrl || "",
+    copyright: cloneCopyrightValue(source?.copyright?.toObject?.() || source?.copyright || null),
+});
+
+const getPendingEditableSource = (track) => {
+    const pendingStatus = track?.pendingUpdate?.status;
+    const pendingData = track?.pendingUpdate?.data;
+
+    if (
+        (pendingStatus === "rejected" || pendingStatus === "pending") &&
+        pendingData
+    ) {
+        return pendingData;
+    }
+
+    return track;
+};
+
+const getChangedTrackFields = (liveData, nextData) => {
+    const changedFields = [];
+
+    if ((liveData.title || "") !== (nextData.title || "")) {
+        changedFields.push("title");
+    }
+
+    if ((liveData.versionTitle || "") !== (nextData.versionTitle || "")) {
+        changedFields.push("versionTitle");
+    }
+
+    if ((liveData.description || "") !== (nextData.description || "")) {
+        changedFields.push("description");
+    }
+
+    if (stringifyComparableStringArray(liveData.tags) !== stringifyComparableStringArray(nextData.tags)) {
+        changedFields.push("tags");
+    }
+
+    if (stringifyComparableGenreIds(liveData.genreIds) !== stringifyComparableGenreIds(nextData.genreIds)) {
+        changedFields.push("genreIds");
+    }
+
+    if (stringifyComparableAudioFiles(liveData.audioFiles) !== stringifyComparableAudioFiles(nextData.audioFiles)) {
+        changedFields.push("audioFiles");
+    }
+
+    if ((Number(liveData.duration) || 0) !== (Number(nextData.duration) || 0)) {
+        changedFields.push("duration");
+    }
+
+    if ((liveData.avatar || "") !== (nextData.avatar || "")) {
+        changedFields.push("avatar");
+    }
+
+    if (stringifyComparableStringArray(liveData.coverImage) !== stringifyComparableStringArray(nextData.coverImage)) {
+        changedFields.push("coverImage");
+    }
+
+    if ((liveData.lyricsStatic || "") !== (nextData.lyricsStatic || "")) {
+        changedFields.push("lyricsStatic");
+    }
+
+    if ((liveData.lyricsSyncUrl || "") !== (nextData.lyricsSyncUrl || "")) {
+        changedFields.push("lyricsSyncUrl");
+    }
+
+    if (stringifyComparableCopyright(liveData.copyright) !== stringifyComparableCopyright(nextData.copyright)) {
+        changedFields.push("copyright");
+    }
+
+    return changedFields;
+};
+
+const clearPendingUpdate = (track) => {
+    track.pendingUpdate = {
+        status: "none",
+        data: null,
+        changedFields: [],
+        submittedAt: null,
+        lastSavedAt: null,
+        reviewedBy: null,
+        reviewedAt: null,
+        adminNote: "",
+        rejectReason: "",
+    };
+};
+
+const applyMutableTrackData = (track, data) => {
+    track.title = data.title || "";
+    track.versionTitle = data.versionTitle || "";
+    track.description = data.description || "";
+    track.tags = Array.isArray(data.tags) ? data.tags : [];
+    track.genreIds = Array.isArray(data.genreIds) ? data.genreIds : [];
+    track.audioFiles = Array.isArray(data.audioFiles) ? data.audioFiles : [];
+    track.duration = Number(data.duration) || 0;
+    track.avatar = data.avatar || "";
+    track.coverImage = Array.isArray(data.coverImage) ? data.coverImage : [];
+    track.lyricsStatic = data.lyricsStatic || "";
+    track.lyricsSyncUrl = data.lyricsSyncUrl || "";
+    track.copyright = data.copyright || null;
+};
+
+const clearTrackModerationForResubmission = (track) => {
+    track.approvalStatus = "pending";
+    track.activeStatus = "draft";
+    track.rejectReason = "";
+    track.hiddenReason = "";
+    track.hiddenAt = null;
+    track.moderation = {
+        ...(track.moderation?.toObject?.() || track.moderation || {}),
+        submittedAt: new Date(),
+        reviewedBy: null,
+        reviewedAt: null,
+        adminNote: "",
+        violationFlags: [],
+    };
+};
 
 const createTrack = async (userId, trackData) => {
     const user = await User.findById(userId);
@@ -233,20 +309,14 @@ const createTrack = async (userId, trackData) => {
 
     const title = validateDraftTitle(trackData.title);
     const artistId = resolveArtistIdForCreate(trackData, artist);
-
-    const rawAlbumId = trackData.album_albumId;
-    const resolvedAlbumId =
-        rawAlbumId && String(rawAlbumId).trim() !== ""
-            ? String(rawAlbumId).trim()
-            : null;
-
-    const processedAudioFiles = validateOptionalAudioFiles(trackData.audioFiles);
-    const duration = validateOptionalDuration(trackData.duration, processedAudioFiles.length > 0);
+    const audioFiles = validateOptionalAudioFiles(trackData.audioFiles);
+    const duration = validateDurationFromAudioAnalysis(
+        trackData.audioAnalysis,
+        audioFiles.length > 0
+    );
     const genreIds = await validateOptionalGenreIds(trackData.genreIds);
-
-    if (resolvedAlbumId) {
-        await validateOptionalAlbumForDraft(resolvedAlbumId, artistId);
-    }
+    const description = validateOptionalDescription(trackData.description);
+    const tags = validateOptionalTags(trackData.tags);
 
     const coverImage = Array.isArray(trackData.coverImage)
         ? trackData.coverImage.filter(Boolean)
@@ -279,16 +349,18 @@ const createTrack = async (userId, trackData) => {
             typeof trackData.versionTitle === "string"
                 ? trackData.versionTitle.trim()
                 : "",
+        description,
+        tags,
         artist_artistId: artistId,
-        album_albumId: resolvedAlbumId,
+        album_albumId: null,
         genreIds,
-        audioFiles: processedAudioFiles,
+        audioFiles,
         duration,
         avatar: trackData.avatar || "",
         coverImage,
         lyricsStatic,
         lyricsSyncUrl: trackData.lyricsSyncUrl || "",
-        releaseDate: trackData.releaseDate || null,
+        releaseDate: null,
         activeStatus: "draft",
         approvalStatus: "draft",
         stats: {
@@ -299,11 +371,6 @@ const createTrack = async (userId, trackData) => {
     });
 
     const savedTrack = await newTrack.save();
-
-    if (resolvedAlbumId) {
-        await appendTrackToAlbum(resolvedAlbumId, savedTrack._id);
-    }
-
     const populatedTrack = await populateManagementTrack(savedTrack._id);
 
     return formatTrackManagementDetail(populatedTrack);
@@ -351,7 +418,10 @@ const updateArtistTrack = async (userId, trackId, trackData) => {
     assertArtistCanCreateTrack(artist);
     assertTrackEditableByArtist(track);
 
-    const oldAssets = getTrackAssetUrls(track);
+    const isApprovedTrack = track.approvalStatus === "approved";
+    const editableSource = getPendingEditableSource(track);
+    const liveSnapshot = cloneTrackMutableData(track);
+    const nextTrackData = cloneTrackMutableData(editableSource);
     const nextAssets = {
         audioUrls: undefined,
         coverUrls: undefined,
@@ -359,47 +429,60 @@ const updateArtistTrack = async (userId, trackId, trackData) => {
         lyricsSyncUrl: undefined,
     };
 
-    const nextAlbumId = normalizeAlbumId(trackData.album_albumId);
-    const currentAlbumId = track.album_albumId ? track.album_albumId.toString() : null;
-    const nextGenreIds = Array.isArray(trackData.genreIds)
-        ? trackData.genreIds.filter(Boolean)
-        : undefined;
-
-
     if (trackData.title !== undefined) {
-        track.title = validateDraftTitle(trackData.title);
+        nextTrackData.title = validateDraftTitle(trackData.title);
     }
 
     if (trackData.versionTitle !== undefined) {
-        track.versionTitle =
+        nextTrackData.versionTitle =
             typeof trackData.versionTitle === "string"
                 ? trackData.versionTitle.trim()
                 : "";
     }
 
-    if (trackData.duration !== undefined) {
-        const hasAudio =
-            trackData.audioFiles !== undefined
-                ? Array.isArray(trackData.audioFiles) && trackData.audioFiles.length > 0
-                : Array.isArray(track.audioFiles) && track.audioFiles.length > 0;
+    if (trackData.description !== undefined) {
+        nextTrackData.description = validateOptionalDescription(trackData.description);
+    }
 
-        track.duration = validateOptionalDuration(trackData.duration, hasAudio);
+    if (trackData.tags !== undefined) {
+        nextTrackData.tags = validateOptionalTags(trackData.tags);
+    }
+
+    if (trackData.genreIds !== undefined) {
+        nextTrackData.genreIds = await validateOptionalGenreIds(trackData.genreIds);
     }
 
     if (trackData.avatar !== undefined) {
-        track.avatar = trackData.avatar || "";
-        nextAssets.avatarUrl = track.avatar;
+        nextTrackData.avatar = trackData.avatar || "";
+        nextAssets.avatarUrl = nextTrackData.avatar;
     }
 
     if (trackData.coverImage !== undefined) {
-        track.coverImage = Array.isArray(trackData.coverImage) ? trackData.coverImage : [];
-        nextAssets.coverUrls = track.coverImage;
+        nextTrackData.coverImage = Array.isArray(trackData.coverImage)
+            ? trackData.coverImage.filter(Boolean)
+            : [];
+
+        if (nextTrackData.coverImage.length > MAX_COVER_IMAGES) {
+            throw new AppError(
+                `A track can have at most ${MAX_COVER_IMAGES} cover images.`,
+                StatusCodes.BAD_REQUEST,
+                { field: "coverImage" }
+            );
+        }
+
+        nextAssets.coverUrls = nextTrackData.coverImage;
     }
 
     if (trackData.audioFiles !== undefined) {
-        const processedAudioFiles = validateOptionalAudioFiles(trackData.audioFiles);
-        track.audioFiles = processedAudioFiles;
-        nextAssets.audioUrls = processedAudioFiles.map((item) => item.url).filter(Boolean);
+        const nextAudioFiles = validateOptionalAudioFiles(trackData.audioFiles);
+        const nextDuration = validateDurationFromAudioAnalysis(
+            trackData.audioAnalysis,
+            nextAudioFiles.length > 0
+        );
+
+        nextTrackData.audioFiles = nextAudioFiles;
+        nextTrackData.duration = nextDuration;
+        nextAssets.audioUrls = getAudioUrlsFromFiles(nextAudioFiles);
     }
 
     if (trackData.lyricsStatic !== undefined) {
@@ -413,72 +496,86 @@ const updateArtistTrack = async (userId, trackId, trackData) => {
             );
         }
 
-        track.lyricsStatic = nextLyrics;
+        nextTrackData.lyricsStatic = nextLyrics;
     }
 
     if (trackData.lyricsSyncUrl !== undefined) {
-        track.lyricsSyncUrl = trackData.lyricsSyncUrl || "";
-        nextAssets.lyricsSyncUrl = track.lyricsSyncUrl;
-    }
-
-    if (trackData.releaseDate !== undefined) {
-        track.releaseDate = trackData.releaseDate || null;
-    }
-
-    if (nextGenreIds !== undefined) {
-        track.genreIds = await validateOptionalGenreIds(nextGenreIds);
-    }
-
-    if (nextAlbumId !== undefined) {
-        if (nextAlbumId !== currentAlbumId) {
-            if (nextAlbumId) {
-                await validateOptionalAlbumForDraft(nextAlbumId, artist._id);
-            }
-
-            await removeTrackFromAlbum(currentAlbumId, track._id);
-
-            if (nextAlbumId) {
-                await appendTrackToAlbum(nextAlbumId, track._id);
-            }
-
-            track.album_albumId = nextAlbumId || null;
-        }
+        nextTrackData.lyricsSyncUrl = trackData.lyricsSyncUrl || "";
+        nextAssets.lyricsSyncUrl = nextTrackData.lyricsSyncUrl;
     }
 
     if (trackData.copyright !== undefined) {
         const sanitizedCopyright = sanitizeArtistCopyright(trackData.copyright);
 
-        if (sanitizedCopyright) {
-            track.copyright = {
-                ...(track.copyright?.toObject?.() || track.copyright || {}),
+        if (sanitizedCopyright !== undefined) {
+            nextTrackData.copyright = {
+                ...(nextTrackData.copyright || {}),
                 ...sanitizedCopyright,
             };
         }
     }
 
-    if (trackData.coverImage !== undefined) {
-        const coverCount = Array.isArray(track.coverImage)
-            ? track.coverImage.filter(Boolean).length
-            : 0;
+    let urlsToDelete = [];
 
-        if (coverCount > MAX_COVER_IMAGES) {
-            throw new AppError(
-                `A track can have at most ${MAX_COVER_IMAGES} cover images.`,
-                StatusCodes.BAD_REQUEST,
-                { field: "coverImage" }
-            );
+    if (isApprovedTrack) {
+        const changedFields = getChangedTrackFields(liveSnapshot, nextTrackData);
+        const liveAssets = getTrackAssetUrls(track);
+        const previousPendingAssets = getTrackAssetUrls(track.pendingUpdate?.data || {});
+
+        if (changedFields.length === 0) {
+            clearPendingUpdate(track);
+            urlsToDelete = collectReplacedAssetUrls({
+                oldAssets: previousPendingAssets,
+                nextAssets: {
+                    audioUrls: [],
+                    coverUrls: [],
+                    avatarUrl: "",
+                    lyricsSyncUrl: "",
+                },
+            }).filter((url) => !Object.values(liveAssets).flat().includes(url));
+        } else {
+            const now = new Date();
+            track.pendingUpdate = {
+                status: "pending",
+                data: nextTrackData,
+                changedFields,
+                submittedAt: now,
+                lastSavedAt: now,
+                reviewedBy: null,
+                reviewedAt: null,
+                adminNote: "",
+                rejectReason: "",
+            };
+
+            urlsToDelete = collectReplacedAssetUrls({
+                oldAssets: previousPendingAssets,
+                nextAssets: {
+                    audioUrls: getAudioUrlsFromFiles(nextTrackData.audioFiles),
+                    coverUrls: nextTrackData.coverImage,
+                    avatarUrl: nextTrackData.avatar,
+                    lyricsSyncUrl: nextTrackData.lyricsSyncUrl,
+                },
+            }).filter((url) => !Object.values(liveAssets).flat().includes(url));
         }
+    } else {
+        const oldAssets = getTrackAssetUrls(track);
+
+        applyMutableTrackData(track, nextTrackData);
+
+        if (track.approvalStatus === "approved") {
+            clearTrackModerationForResubmission(track);
+        }
+
+        urlsToDelete = collectReplacedAssetUrls({
+            oldAssets,
+            nextAssets,
+        });
     }
 
     await track.save();
 
-    const replacedAssetUrls = collectReplacedAssetUrls({
-        oldAssets,
-        nextAssets,
-    });
-
-    if (replacedAssetUrls.length > 0) {
-        await deleteCloudinaryAssetsByUrls(replacedAssetUrls);
+    if (urlsToDelete.length > 0) {
+        await deleteCloudinaryAssetsByUrls(urlsToDelete);
     }
 
     const populatedTrack = await populateManagementTrack(track._id);
@@ -511,21 +608,21 @@ const getArtistTracks = async (userId, query = {}) => {
         };
     }
 
-    // Filter by activeStatus if provided and valid
     if (typeof query.activeStatus === "string" && query.activeStatus.trim() !== "") {
         const allowed = new Set(["draft", "active", "hidden", "blocked"]);
-        const val = query.activeStatus.trim();
-        if (allowed.has(val)) {
-            filter.activeStatus = val;
+        const value = query.activeStatus.trim();
+
+        if (allowed.has(value)) {
+            filter.activeStatus = value;
         }
     }
 
-    // Filter by approvalStatus if provided and valid
     if (typeof query.approvalStatus === "string" && query.approvalStatus.trim() !== "") {
         const allowedApproval = new Set(["draft", "pending", "approved", "rejected"]);
-        const val = query.approvalStatus.trim();
-        if (allowedApproval.has(val)) {
-            filter.approvalStatus = val;
+        const value = query.approvalStatus.trim();
+
+        if (allowedApproval.has(value)) {
+            filter.approvalStatus = value;
         }
     }
 
@@ -686,22 +783,6 @@ const deleteArtistTrack = async (userId, trackId) => {
         },
     });
 
-    const albumId = track.album_albumId;
-    if (albumId) {
-        const album = await Album.findById(albumId);
-
-        if (album) {
-            album.trackList = (album.trackList || [])
-                .filter((item) => !item.trackId?.equals(track._id))
-                .map((item, index) => ({
-                    trackId: item.trackId,
-                    order: index + 1,
-                }));
-
-            await album.save();
-        }
-    }
-
     await Track.deleteOne({ _id: track._id, artist_artistId: artist._id });
 
     if (assetUrlsToDelete.length > 0) {
@@ -712,8 +793,6 @@ const deleteArtistTrack = async (userId, trackId) => {
         deletedId: trackId,
     };
 };
-
-// export default moved to end to include submitArtistTrack
 
 const submitArtistTrack = async (userId, trackId) => {
     const user = await User.findById(userId);

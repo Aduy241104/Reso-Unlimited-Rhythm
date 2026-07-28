@@ -1,10 +1,13 @@
 import Joi from "joi";
 import {
     AUDIO_FORMATS,
+    DESCRIPTION_MAX_LENGTH,
     LYRICS_STATIC_MAX_LENGTH,
     MAX_AUDIO_FILES,
     MAX_COVER_IMAGES,
     MAX_GENRE_IDS,
+    MAX_TAG_LENGTH,
+    MAX_TAGS,
     TITLE_MAX_LENGTH,
     TITLE_MIN_LENGTH,
 } from "../../services/track/track.draft.validation.js";
@@ -76,6 +79,14 @@ const draftCopyrightSchema = Joi.object({
     copyrightNote: Joi.string().trim().max(2000).allow(""),
 });
 
+const audioAnalysisSchema = Joi.object({
+    duration: Joi.number().positive().required(),
+    format: Joi.string().trim().allow("").optional(),
+    bitrate: Joi.number().integer().min(1).optional(),
+    sampleRate: Joi.number().integer().min(1).optional(),
+    channels: Joi.number().integer().min(1).optional(),
+}).unknown(true);
+
 const createTrackSchema = Joi.object({
     title: Joi.string()
         .trim()
@@ -98,19 +109,15 @@ const createTrackSchema = Joi.object({
 
     versionTitle: Joi.string().trim().max(150).allow("").optional(),
 
-    duration: Joi.number()
-        .min(0)
-        .optional()
-        .messages({
-            "number.base": "Duration must be a number",
-            "number.min": "Duration must be >= 0",
-        }),
+    description: Joi.string().trim().max(DESCRIPTION_MAX_LENGTH).allow("").optional(),
 
-    album_albumId: Joi.string()
+    tags: Joi.array()
+        .items(Joi.string().trim().max(MAX_TAG_LENGTH))
+        .max(MAX_TAGS)
         .optional()
-        .allow("")
         .messages({
-            "string.base": "Album ID must be a string",
+            "array.base": "Tags must be an array",
+            "array.max": `A track can have at most ${MAX_TAGS} tags`,
         }),
 
     genreIds: Joi.array()
@@ -125,11 +132,14 @@ const createTrackSchema = Joi.object({
     audioFiles: Joi.array()
         .items(audioFileSchema)
         .max(MAX_AUDIO_FILES)
+        .min(1)
         .optional()
         .messages({
             "array.base": "Audio files must be an array",
             "array.max": `A track can have at most ${MAX_AUDIO_FILES} audio files`,
         }),
+
+    audioAnalysis: audioAnalysisSchema.optional(),
 
     avatar: optionalHttpUrl.optional(),
 
@@ -152,13 +162,6 @@ const createTrackSchema = Joi.object({
         }),
 
     lyricsSyncUrl: optionalHttpUrl.optional(),
-
-    releaseDate: Joi.date()
-        .optional()
-        .allow(null)
-        .messages({
-            "date.base": "Release date must be a valid date",
-        }),
 
     copyright: draftCopyrightSchema.optional(),
 
@@ -185,20 +188,18 @@ const updateTrackSchema = Joi.object({
 
     versionTitle: Joi.string().trim().max(150).allow("").optional(),
 
+    description: Joi.string().trim().max(DESCRIPTION_MAX_LENGTH).allow("").optional(),
+
+    tags: Joi.array()
+        .items(Joi.string().trim().max(MAX_TAG_LENGTH))
+        .max(MAX_TAGS)
+        .optional()
+        .messages({
+            "array.base": "Tags must be an array",
+            "array.max": `A track can have at most ${MAX_TAGS} tags`,
+        }),
+
     copyright: draftCopyrightSchema,
-
-    duration: Joi.number()
-        .min(0)
-        .messages({
-            "number.base": "Duration must be a number",
-            "number.min": "Duration must be >= 0",
-        }),
-
-    album_albumId: Joi.string()
-        .allow("")
-        .messages({
-            "string.base": "Album ID must be a string",
-        }),
 
     genreIds: Joi.array()
         .items(Joi.string().trim())
@@ -215,6 +216,8 @@ const updateTrackSchema = Joi.object({
             "array.base": "Audio files must be an array",
             "array.max": `A track can have at most ${MAX_AUDIO_FILES} audio files`,
         }),
+
+    audioAnalysis: audioAnalysisSchema.optional(),
 
     avatar: optionalHttpUrl.allow(""),
 
@@ -235,12 +238,6 @@ const updateTrackSchema = Joi.object({
         }),
 
     lyricsSyncUrl: optionalHttpUrl.allow(""),
-
-    releaseDate: Joi.date()
-        .allow(null)
-        .messages({
-            "date.base": "Release date must be a valid date",
-        }),
 
     stats: Joi.forbidden(),
     activeStatus: Joi.forbidden(),

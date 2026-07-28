@@ -32,6 +32,7 @@ import { formatDateLabel, formatDuration, getErrorMessage, getInitials, resolveI
 import { buildPlayableQueue } from '../../utils/player';
 
 const accentPalette = ['#111111', '#2f2f2f', '#4a4a4a', '#686868', '#8a8a8a'];
+const LOAD_MORE_STEP = 10;
 
 const readText = (value, fallback = '') => {
   if (typeof value === 'string' || typeof value === 'number') {
@@ -175,6 +176,7 @@ export default function PlaylistDetailScreen() {
   const [isRemovingTrack, setIsRemovingTrack] = useState(false);
   const [favoriteStatusMap, setFavoriteStatusMap] = useState({});
   const [favoriteUpdatingMap, setFavoriteUpdatingMap] = useState({});
+  const [visibleTrackCount, setVisibleTrackCount] = useState(LOAD_MORE_STEP);
 
   const loadPlaylistDetail = useCallback(async () => {
     if (!playlistId) {
@@ -190,8 +192,10 @@ export default function PlaylistDetailScreen() {
     try {
       const result = await playlistService.getPlaylistDetail(playlistId);
       setPlaylist(result);
+      setVisibleTrackCount(LOAD_MORE_STEP);
     } catch (error) {
       setPlaylist(null);
+      setVisibleTrackCount(LOAD_MORE_STEP);
       setErrorMessage(getErrorMessage(error, 'Không thể tải chi tiết playlist lúc này.'));
     } finally {
       setIsLoading(false);
@@ -254,6 +258,11 @@ export default function PlaylistDetailScreen() {
     () => Array.from(new Set(tracks.map(getTrackId).filter(Boolean))),
     [tracks]
   );
+  const visibleTracks = useMemo(
+    () => tracks.slice(0, visibleTrackCount),
+    [tracks, visibleTrackCount]
+  );
+  const canLoadMoreTracks = visibleTracks.length < tracks.length;
 
   const handlePlayAll = useCallback(() => {
     if (playableQueue.length === 0) {
@@ -729,7 +738,7 @@ export default function PlaylistDetailScreen() {
 
             <View style={[detailScreenStyles.panel, detailScreenStyles.albumSurfacePlain]}>
               {tracks.length > 0 ? (
-                tracks.map((track, index) => (
+                visibleTracks.map((track, index) => (
                   <TrackListItem
                     key={`${getTrackId(track) || index}`}
                     item={track}
@@ -746,6 +755,15 @@ export default function PlaylistDetailScreen() {
               )}
             </View>
           </View>
+          {canLoadMoreTracks ? (
+            <TouchableOpacity
+              style={styles.loadMoreButton}
+              onPress={() => setVisibleTrackCount((current) => current + LOAD_MORE_STEP)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.loadMoreButtonText}>Hiện thêm 10 bài hát</Text>
+            </TouchableOpacity>
+          ) : null}
         </ScrollView>
       ) : (
         <ScrollView
@@ -843,7 +861,7 @@ export default function PlaylistDetailScreen() {
             <Text style={styles.sectionTitle}>Danh sách bài hát</Text>
             <View style={styles.panel}>
               {tracks.length > 0 ? (
-                tracks.map((track, index) => {
+                visibleTracks.map((track, index) => {
                   const trackId = String(track?.entityId || track?.id || '');
                   const isActive = trackId && trackId === activeTrackId;
 
@@ -867,6 +885,15 @@ export default function PlaylistDetailScreen() {
               )}
             </View>
           </View>
+          {canLoadMoreTracks ? (
+            <TouchableOpacity
+              style={styles.loadMoreButton}
+              onPress={() => setVisibleTrackCount((current) => current + LOAD_MORE_STEP)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.loadMoreButtonText}>Hiện thêm 10 bài hát</Text>
+            </TouchableOpacity>
+          ) : null}
         </ScrollView>
       )}
 
@@ -1253,6 +1280,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 19,
     padding: 14,
+  },
+  loadMoreButton: {
+    alignSelf: 'center',
+    marginTop: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#2a313d',
+    backgroundColor: '#101319',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  loadMoreButtonText: {
+    color: '#dfe6ee',
+    fontSize: 12,
+    fontWeight: '800',
   },
   modalHeader: {
     flexDirection: 'row',

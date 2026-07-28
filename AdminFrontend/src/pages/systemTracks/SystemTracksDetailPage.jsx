@@ -195,9 +195,10 @@ const TrackDetailPage = () => {
         setHideReasons([]);
     };
 
-    const isPendingApproval = track?.approvalStatus === "pending";
-    const isApproved = track?.approvalStatus === "approved";
-    const isRejected = track?.approvalStatus === "rejected";
+    const reviewStatus = track?.reviewStatus || track?.approvalStatus;
+    const isPendingApproval = reviewStatus === "pending";
+    const isApproved = reviewStatus === "approved";
+    const isRejected = reviewStatus === "rejected";
     const isActive = track?.activeStatus === "active";
     const isHidden = track?.activeStatus === "hidden";
     const isBlocked = track?.activeStatus === "blocked";
@@ -240,6 +241,20 @@ const TrackDetailPage = () => {
                     Trở lại danh sách
                 </button>
             </div>
+
+            {track?.reviewSource === "pending_update" && (
+                <div className="rounded-2xl border border-sky-200 bg-sky-50 px-5 py-4 text-sm text-sky-900">
+                    <p className="font-semibold">Đây là bản chỉnh sửa của một bài hát đang phát hành.</p>
+                    <p className="mt-1">
+                        Người nghe hiện vẫn đang nghe phiên bản live cũ. Nếu admin duyệt, dữ liệu ở bản sửa này sẽ được áp dụng lên bài hát đang phát hành.
+                    </p>
+                    {track?.liveVersion ? (
+                        <p className="mt-2 text-xs text-sky-800">
+                            Phiên bản live hiện tại: <strong>{track.liveVersion.title || "Untitled track"}</strong>
+                        </p>
+                    ) : null}
+                </div>
+            )}
 
             {/* KHUNG 2: Bảng Điều Khiển Kiểm Duyệt Tác Vụ (Bố cục nút bấm thanh lịch, hiện đại) */}
             <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
@@ -326,7 +341,7 @@ const TrackDetailPage = () => {
                 <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 text-xs">
                     <div className="p-4 bg-slate-50/70 border border-slate-100 flex flex-col justify-between gap-1.5 rounded-xl">
                         <span className="text-slate-400 uppercase text-[10px] font-bold tracking-wide">Trạng thái phê duyệt</span>
-                        <div>{getStatusBadge(track.approvalStatus)}</div>
+                        <div>{getStatusBadge(reviewStatus)}</div>
                     </div>
                     <div className="p-4 bg-slate-50/70 border border-slate-100 flex flex-col justify-between gap-1.5 rounded-xl">
                         <span className="text-slate-400 uppercase text-[10px] font-bold tracking-wide">Trạng thái hiển thị</span>
