@@ -92,6 +92,8 @@ const normalizeTracks = (response) => {
       : track?.coverImage || track?.avatar || "",
     duration: Number(track?.duration) || 0,
     approvalStatus: track?.approvalStatus || "",
+    releaseStatus: track?.releaseStatus || "unreleased",
+    releasedAt: track?.releasedAt || null,
     albumTitle: track?.album?.title || "",
     audioFilesCount: Array.isArray(track?.audioFiles) ? track.audioFiles.length : 0,
   }));
@@ -197,8 +199,16 @@ const ArtistCreateReleaseSchedulePage = () => {
     [releaseType, tracks, albums]
   );
 
+  const selectableOptions = useMemo(
+    () =>
+      releaseType === "track"
+        ? activeOptions.filter((item) => item.releaseStatus === "unreleased")
+        : activeOptions,
+    [activeOptions, releaseType]
+  );
+
   useEffect(() => {
-    if (activeOptions.length === 0) {
+    if (selectableOptions.length === 0) {
       setSelectedTargetId("");
       return;
     }
@@ -207,18 +217,18 @@ const ArtistCreateReleaseSchedulePage = () => {
       !hasAppliedPrefill.current &&
       prefilledTargetId &&
       releaseType === prefilledReleaseType &&
-      activeOptions.some((item) => item.id === prefilledTargetId)
+      selectableOptions.some((item) => item.id === prefilledTargetId)
     ) {
       setSelectedTargetId(prefilledTargetId);
       hasAppliedPrefill.current = true;
       return;
     }
 
-    const targetStillExists = activeOptions.some((item) => item.id === selectedTargetId);
+    const targetStillExists = selectableOptions.some((item) => item.id === selectedTargetId);
     if (!targetStillExists) {
-      setSelectedTargetId(activeOptions[0].id);
+      setSelectedTargetId(selectableOptions[0].id);
     }
-  }, [activeOptions, prefilledReleaseType, prefilledTargetId, releaseType, selectedTargetId]);
+  }, [prefilledReleaseType, prefilledTargetId, releaseType, selectableOptions, selectedTargetId]);
 
   useEffect(() => {
     setIsDropdownOpen(false);
@@ -250,6 +260,7 @@ const ArtistCreateReleaseSchedulePage = () => {
     const isTrack = releaseType === "track";
     const hasSelectedTarget = Boolean(selectedTarget);
     const isApprovedTrack = !isTrack || selectedTarget?.approvalStatus === "approved";
+    const canTrackBeReleased = !isTrack || selectedTarget?.releaseStatus === "unreleased";
     const hasValidContent = isTrack
       ? Number(selectedTarget?.audioFilesCount || 0) > 0 ||
         Number(selectedTarget?.duration || 0) > 0
@@ -259,6 +270,12 @@ const ArtistCreateReleaseSchedulePage = () => {
       {
         label: isTrack ? "Bài hát đã được duyệt" : "Album thuộc nghệ sĩ hiện tại",
         passed: hasSelectedTarget && isApprovedTrack,
+      },
+      {
+        label: isTrack
+          ? "Bài hát chưa phát hành và chưa có lịch phát hành"
+          : "Album có thể tạo lịch phát hành",
+        passed: hasSelectedTarget && canTrackBeReleased,
       },
       {
         label: isTrack ? "File âm thanh hợp lệ" : "Album có ít nhất 2 bài hát",
@@ -412,7 +429,11 @@ const ArtistCreateReleaseSchedulePage = () => {
                     </>
                   ) : (
                     <span className="text-sm text-[#857f99]">
-                      {isLoading ? "Đang tải dữ liệu..." : "Không có dữ liệu để chọn"}
+                      {isLoading
+                        ? "Đang tải dữ liệu..."
+                        : selectableOptions.length === 0
+                          ? "Không có nội dung chưa phát hành"
+                          : "Chọn nội dung phát hành"}
                     </span>
                   )}
                 </button>
@@ -429,6 +450,8 @@ const ArtistCreateReleaseSchedulePage = () => {
                     <div className="space-y-1">
                       {activeOptions.map((item) => {
                         const isSelected = item.id === selectedTargetId;
+                        const isUnavailable =
+                          releaseType === "track" && item.releaseStatus !== "unreleased";
                         const optionSummary =
                           releaseType === "track"
                             ? `${item.albumTitle ? `${item.albumTitle} • ` : ""}${formatDuration(item.duration)}`
@@ -438,6 +461,7 @@ const ArtistCreateReleaseSchedulePage = () => {
                           <button
                             key={item.id}
                             type="button"
+                            disabled={isUnavailable}
                             onClick={() => {
                               setSelectedTargetId(item.id);
                               setIsDropdownOpen(false);
@@ -447,6 +471,7 @@ const ArtistCreateReleaseSchedulePage = () => {
                               isSelected
                                 ? "bg-[#f3f1ff] text-[#3f35a6]"
                                 : "hover:bg-[#faf8ff] text-[#2f2747]",
+                              isUnavailable ? "cursor-not-allowed opacity-50" : "",
                             ].join(" ")}
                           >
                             <div className="h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-[#f3f1ff] ring-1 ring-[#ece7ff]">
@@ -471,6 +496,9 @@ const ArtistCreateReleaseSchedulePage = () => {
                               <p className="truncate text-sm font-semibold">{item.title}</p>
                               <p className="mt-1 truncate text-xs text-[#857f99]">
                                 {optionSummary}
+                                {isUnavailable
+                                  ? ` • ${item.releaseStatus === "released" ? "Đã phát hành" : "Đã lên lịch"}`
+                                  : ""}
                               </p>
                             </div>
                           </button>

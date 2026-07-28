@@ -21,6 +21,8 @@ export const AUDIO_LABELS = new Set(["original", "high", "medium", "low", "lowes
 export const FORBIDDEN_ARTIST_TRACK_FIELDS = [
     "stats",
     "activeStatus",
+    "releaseStatus",
+    "releasedAt",
     "approvalStatus",
     "moderation",
     "rejectReason",

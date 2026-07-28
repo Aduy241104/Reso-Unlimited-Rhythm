@@ -88,6 +88,8 @@ const getPlaylistDetail = async (playlistId, options = {}) => {
                 "lyricsSyncUrl",
                 "stats",
                 "releaseDate",
+                "releaseStatus",
+                "releasedAt",
                 "activeStatus",
                 "approvalStatus",
                 "artist_artistId",

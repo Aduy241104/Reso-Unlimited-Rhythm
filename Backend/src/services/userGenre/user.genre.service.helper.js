@@ -7,10 +7,13 @@ const buildGenreDetailFilter = (genreId) => ({
     isActive: true,
 });
 
+import { buildReleasedTrackFilter } from "../../utils/trackRelease.js";
+
 const buildGenreTracksFilter = (genreId) => ({
     genreIds: genreId,
     activeStatus: "active",
     approvalStatus: "approved",
+    ...buildReleasedTrackFilter(),
 });
 
 const normalizePagination = (query = {}) => {

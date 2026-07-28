@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
-  AlertTriangle,
   ArrowLeft,
   AudioLines,
   BadgeCheck,
   CalendarDays,
+  Eye,
+  EyeOff,
   FileText,
   Music4,
   Pencil,
@@ -36,6 +37,7 @@ import {
   getTrackApprovalStatusMeta,
   getTrackDisplayDuration,
   getTrackGenreLabel,
+  getTrackReleaseStatusMeta,
   resolveTrackArtwork,
 } from "../../utils/artistTrackPresentation";
 
@@ -159,6 +161,7 @@ const ArtistTrackDetailPage = () => {
   const canPlayTrack =
     track?.activeStatus === "active" &&
     track?.approvalStatus === "approved" &&
+    track?.releaseStatus === "released" &&
     Array.isArray(track?.audioFiles) &&
     track.audioFiles.length > 0;
   const canEdit = canArtistEditTrack(track);
@@ -167,6 +170,7 @@ const ArtistTrackDetailPage = () => {
   const hasLyrics = Boolean(track?.lyricsStatic?.trim());
   const activeMeta = getTrackActiveStatusMeta(track?.activeStatus);
   const approvalMeta = getTrackApprovalStatusMeta(getArtistTrackReviewStatus(track));
+  const releaseMeta = getTrackReleaseStatusMeta(track?.releaseStatus);
 
   const handlePlay = async () => {
     if (!track) {
@@ -264,6 +268,33 @@ const ArtistTrackDetailPage = () => {
 
   const handleHideTrack = async () => {
     if (!track || isActionLoading) {
+      return;
+    }
+
+    if (track.releaseStatus === "scheduled") {
+      setActionError(
+        "Bài hát đang có lịch phát hành. Hãy hủy lịch trước khi thay đổi trạng thái hiển thị."
+      );
+      return;
+    }
+
+    if (track.activeStatus === "hidden") {
+      setActionError("");
+      setActionMessage("");
+      setIsActionLoading(true);
+
+      try {
+        const updatedTrack = await trackService.unhideArtistTrack(track._id);
+        setTrack(updatedTrack);
+        setActionMessage("Đã hiển thị lại bài hát thành công.");
+      } catch (error) {
+        setActionError(
+          getApiErrorMessage(error, "Không thể hiển thị lại bài hát này lúc này.")
+        );
+      } finally {
+        setIsActionLoading(false);
+      }
+
       return;
     }
 
@@ -411,6 +442,9 @@ const ArtistTrackDetailPage = () => {
                   </span>
                   <span className={["rounded-full border px-3 py-1 text-xs font-semibold", approvalMeta.className].join(" ")}>
                     {approvalMeta.label}
+                  </span>
+                  <span className={["rounded-full border px-3 py-1 text-xs font-semibold", releaseMeta.className].join(" ")}>
+                    {releaseMeta.label}
                   </span>
                 </div>
                 <p className="mt-5 max-w-2xl text-sm leading-6 text-[#5e5678]">
@@ -683,11 +717,28 @@ const ArtistTrackDetailPage = () => {
               <button
                 type="button"
                 onClick={handleHideTrack}
-                disabled={isActionLoading || track?.activeStatus === "hidden"}
+                disabled={
+                  isActionLoading ||
+                  track?.releaseStatus === "scheduled" ||
+                  (track?.activeStatus === "hidden" && track?.releaseStatus !== "released")
+                }
+                title={
+                  track?.releaseStatus === "scheduled"
+                    ? "Hãy hủy lịch phát hành trước khi thay đổi trạng thái hiển thị."
+                    : undefined
+                }
                 className="inline-flex items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <AlertTriangle className="h-4 w-4" />
-                {track?.activeStatus === "hidden" ? "Đã ẩn" : "Ẩn bài hát"}
+                {track?.activeStatus === "hidden" ? (
+                  <Eye className="h-4 w-4" />
+                ) : (
+                  <EyeOff className="h-4 w-4" />
+                )}
+                {track?.releaseStatus === "scheduled"
+                  ? "Hủy lịch trước khi đổi hiển thị"
+                  : track?.activeStatus === "hidden"
+                    ? "Hiển thị bài hát"
+                    : "Ẩn bài hát"}
               </button>
               <button
                 type="button"

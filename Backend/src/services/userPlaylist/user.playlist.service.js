@@ -17,6 +17,7 @@ import {
 import { AppError } from "../../utils/AppError.js";
 import { uploadImageBuffer, deleteImageByPublicId } from "../cloudinaryService.js";
 import { extractPublicIdFromUrl } from "../../utils/uploadCloud.js";
+import { buildReleasedTrackFilter } from "../../utils/trackRelease.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
@@ -240,6 +241,7 @@ const addTrackToMyPlaylistByUserId = async (userId, playlistId, trackId) => {
             _id: normalizedTrackId,
             activeStatus: "active",
             approvalStatus: "approved",
+            ...buildReleasedTrackFilter(),
         }).lean(),
         getPlaylistLimitByUserId(userId),
     ]);
@@ -461,6 +463,8 @@ const getPlaylistDetail = async (playlistId, options = {}) => {
                 "lyricsSyncUrl",
                 "stats",
                 "releaseDate",
+                "releaseStatus",
+                "releasedAt",
                 "activeStatus",
                 "approvalStatus",
                 "artist_artistId",
