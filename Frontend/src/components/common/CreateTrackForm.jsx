@@ -34,7 +34,7 @@ const SectionCard = ({ icon, eyebrow, title, description, children }) => {
   const IconComponent = icon;
 
   return (
-    <section className="rounded-[28px] border border-[#ece8ff] bg-white p-6 shadow-[0_12px_35px_rgba(32,23,71,0.06)]">
+    <section className="rounded-[28px] border border-[#ece8ff] bg-white p-5 shadow-[0_12px_35px_rgba(32,23,71,0.06)] sm:p-6">
       <div className="flex items-start gap-4">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#e6e0ff] bg-[#f8f6ff] text-[#6f5cf1]">
           <IconComponent className="h-5 w-5" />
@@ -57,7 +57,7 @@ const SectionCard = ({ icon, eyebrow, title, description, children }) => {
 };
 
 const SidebarCard = ({ title, children }) => (
-  <div className="rounded-[28px] border border-[#ece8ff] bg-white p-5 shadow-[0_18px_40px_rgba(32,23,71,0.08)]">
+  <div className="rounded-[28px] border border-[#ece8ff] bg-white p-5 shadow-[0_18px_40px_rgba(32,23,71,0.08)] sm:p-6">
     <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-[#8d87aa]">
       {title}
     </h3>
@@ -318,7 +318,7 @@ const CreateTrackForm = () => {
   };
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_360px]">
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_290px] 2xl:grid-cols-[minmax(0,1.55fr)_320px]">
       <form id={formId} onSubmit={handleSubmit} className="space-y-6">
         {errorMessage ? (
           <div className="rounded-[22px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
@@ -554,7 +554,7 @@ const CreateTrackForm = () => {
         </SectionCard>
       </form>
 
-      <div className="space-y-6">
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-1">
         <SidebarCard title="Xem trước">
           <div className="overflow-hidden rounded-[24px] bg-[#f6f2ff]">
             <img

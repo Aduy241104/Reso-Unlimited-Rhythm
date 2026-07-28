@@ -145,11 +145,11 @@ const MetricCard = ({ icon, label, value, helper, tint }) => {
   const IconComponent = icon;
 
   return (
-    <div className="rounded-[22px] border border-[#ece8ff] bg-white p-5 shadow-[0_12px_35px_rgba(32,23,71,0.06)]">
+    <div className="rounded-[22px] border border-[#ece8ff] bg-white p-4 shadow-[0_12px_35px_rgba(32,23,71,0.06)] sm:p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-[#8d87aa]">{label}</p>
-          <p className="mt-3 text-[30px] font-semibold leading-none tracking-tight text-[#241b45]">
+          <p className="mt-3 text-[28px] font-semibold leading-none tracking-tight text-[#241b45] sm:text-[30px]">
             {value}
           </p>
           <p className="mt-2 text-xs text-[#9e98b8]">{helper}</p>
@@ -215,7 +215,7 @@ const PreviewSidebar = ({
   const submitIssues = getSubmitReadinessIssues(track);
 
   return (
-    <aside className="rounded-[28px] border border-[#ece8ff] bg-white p-5 shadow-[0_18px_40px_rgba(32,23,71,0.08)] xl:sticky xl:top-6">
+    <aside className="rounded-[28px] border border-[#ece8ff] bg-white p-5 shadow-[0_18px_40px_rgba(32,23,71,0.08)] sm:p-6 xl:sticky xl:top-6">
       <div className="overflow-hidden rounded-[24px] bg-[#f6f2ff]">
         <img
           src={artwork}
@@ -255,7 +255,7 @@ const PreviewSidebar = ({
 
       <div className="mt-6">
         <p className="text-sm font-semibold text-[#241b45]">Quản lý nhanh</p>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-1">
           <button
             type="button"
             onClick={onEdit}
@@ -650,13 +650,13 @@ export const MyMusicPage = () => {
         </div>
       ) : null}
 
-      <div className="rounded-[30px] border border-[#ece8ff] bg-white p-6 shadow-[0_18px_50px_rgba(32,23,71,0.08)] sm:p-7">
+      <div className="rounded-[30px] border border-[#ece8ff] bg-white p-5 shadow-[0_18px_50px_rgba(32,23,71,0.08)] sm:p-6 xl:p-7">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#7c6cf2]">
               Quản lý bài hát
             </p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-[#241b45]">
+            <h1 className="mt-3 text-2xl font-semibold tracking-tight text-[#241b45] sm:text-[32px]">
               Quản lý kho bài hát của nghệ sĩ
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-[#8d87aa]">
@@ -668,7 +668,7 @@ export const MyMusicPage = () => {
           <button
             type="button"
             onClick={() => navigate(routePaths.artistCreateTrack)}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#2f225d] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#221745]"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#2f225d] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#221745] sm:w-auto"
           >
             <Plus className="h-4 w-4" />
             Tạo bài hát
@@ -714,7 +714,7 @@ export const MyMusicPage = () => {
         </div>
 
         <div className="mt-8 border-b border-[#ece8ff]">
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
             {LIST_TABS.map((tab) => {
               const isActive = activeTab === tab.key;
 
@@ -740,7 +740,7 @@ export const MyMusicPage = () => {
           </div>
         </div>
 
-        <div className="mt-6 flex flex-col gap-3 xl:flex-row xl:items-center">
+        <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_170px_170px_160px_auto]">
           <label className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9e98b8]" />
             <input
@@ -755,7 +755,7 @@ export const MyMusicPage = () => {
           <select
             value={selectedAlbum}
             onChange={(event) => setSelectedAlbum(event.target.value)}
-            className="h-12 rounded-2xl border border-[#e6e0ff] bg-white px-4 text-sm text-[#241b45] outline-none transition focus:border-[#7c6cf2]"
+            className="h-12 w-full rounded-2xl border border-[#e6e0ff] bg-white px-4 text-sm text-[#241b45] outline-none transition focus:border-[#7c6cf2]"
           >
             <option value="all">Tất cả album</option>
             {albumOptions.map((album) => (
@@ -768,7 +768,7 @@ export const MyMusicPage = () => {
           <select
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
-            className="h-12 rounded-2xl border border-[#e6e0ff] bg-white px-4 text-sm text-[#241b45] outline-none transition focus:border-[#7c6cf2]"
+            className="h-12 w-full rounded-2xl border border-[#e6e0ff] bg-white px-4 text-sm text-[#241b45] outline-none transition focus:border-[#7c6cf2]"
           >
             {STATUS_FILTER_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -780,7 +780,7 @@ export const MyMusicPage = () => {
           <select
             value={sortOrder}
             onChange={(event) => setSortOrder(event.target.value)}
-            className="h-12 rounded-2xl border border-[#e6e0ff] bg-white px-4 text-sm text-[#241b45] outline-none transition focus:border-[#7c6cf2]"
+            className="h-12 w-full rounded-2xl border border-[#e6e0ff] bg-white px-4 text-sm text-[#241b45] outline-none transition focus:border-[#7c6cf2]"
           >
             {SORT_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -798,17 +798,17 @@ export const MyMusicPage = () => {
               setSortOrder("latest");
               setActiveTab("all");
             }}
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#ddd4ff] bg-[#f8f6ff] px-4 text-sm font-medium text-[#5d4fe0] transition hover:bg-[#f1edff]"
+            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-[#ddd4ff] bg-[#f8f6ff] px-4 text-sm font-medium text-[#5d4fe0] transition hover:bg-[#f1edff]"
           >
             <Filter className="h-4 w-4" />
             Đặt lại
           </button>
         </div>
 
-        <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_360px]">
+        <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_280px] 2xl:grid-cols-[minmax(0,1.75fr)_300px]">
           <div className="overflow-hidden rounded-[28px] border border-[#ece8ff] bg-white">
             <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
+              <table className="w-full min-w-[760px] text-left text-sm">
                 <thead className="bg-[#faf8ff] text-[#8d87aa]">
                   <tr>
                     <th className="px-5 py-4 font-semibold">Bài hát</th>

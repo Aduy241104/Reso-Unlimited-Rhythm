@@ -235,13 +235,13 @@ const ArtistLyricsPage = () => {
 
   return (
     <section className="space-y-6">
-      <div className="rounded-md border border-neutral-200 bg-white p-6 shadow-sm">
+      <div className="rounded-md border border-neutral-200 bg-white p-5 shadow-sm sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-[#8b5e3c]">
               Artist Dashboard
             </p>
-            <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[#241b15]">
+            <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[#241b15] sm:text-[32px]">
               Lyrics Management
             </h2>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-600">
@@ -249,7 +249,7 @@ const ArtistLyricsPage = () => {
             </p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3 lg:min-w-[420px]">
+          <div className="grid gap-3 sm:grid-cols-3 lg:min-w-0 2xl:min-w-[420px]">
             {[
               { label: "Total tracks", value: lyricStats.totalTracks },
               { label: "With lyrics", value: lyricStats.tracksWithLyrics },
@@ -276,8 +276,8 @@ const ArtistLyricsPage = () => {
         </div>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
-        <aside className="rounded-md border border-neutral-200 bg-white p-4 shadow-sm">
+      <div className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)] 2xl:grid-cols-[300px_minmax(0,1fr)]">
+        <aside className="rounded-md border border-neutral-200 bg-white p-4 shadow-sm sm:p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-[0.24em] text-neutral-500">Tracks</p>
@@ -354,7 +354,7 @@ const ArtistLyricsPage = () => {
         </aside>
 
         <div className="space-y-6">
-          <div className="rounded-md border border-neutral-200 bg-white p-6 shadow-sm">
+          <div className="rounded-md border border-neutral-200 bg-white p-5 shadow-sm sm:p-6">
             {trackLoading ? (
               <div className="flex items-center gap-2 text-sm text-neutral-500">
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -419,7 +419,7 @@ const ArtistLyricsPage = () => {
                     />
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                     <button
                       type="submit"
                       disabled={saving || !selectedTrackId || !hasUnsavedChanges}
@@ -437,12 +437,12 @@ const ArtistLyricsPage = () => {
                     >
                       Reset changes
                     </button>
-                    <div className="flex items-center gap-2">
+                    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
                       <input
                         type="file"
                         accept=".lrc,text/*"
                         onChange={(e) => setLyricsFile(e.target.files?.[0] || null)}
-                        className="text-sm"
+                        className="w-full text-sm sm:w-auto"
                       />
 
                       <button

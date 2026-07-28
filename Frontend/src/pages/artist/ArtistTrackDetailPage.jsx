@@ -43,11 +43,11 @@ const MetricCard = ({ icon, label, value, helper }) => {
   const IconComponent = icon;
 
   return (
-    <div className="rounded-[24px] border border-[#ece8ff] bg-white p-5 shadow-[0_12px_35px_rgba(32,23,71,0.06)]">
+    <div className="rounded-[24px] border border-[#ece8ff] bg-white p-4 shadow-[0_12px_35px_rgba(32,23,71,0.06)] sm:p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-[#8d87aa]">{label}</p>
-          <p className="mt-3 text-2xl font-semibold tracking-tight text-[#241b45]">
+          <p className="mt-3 text-[26px] font-semibold tracking-tight text-[#241b45] sm:text-2xl">
             {value}
           </p>
           {helper ? <p className="mt-2 text-xs text-[#9e98b8]">{helper}</p> : null}
@@ -64,7 +64,7 @@ const DetailSection = ({ icon, eyebrow, title, children }) => {
   const IconComponent = icon;
 
   return (
-    <section className="rounded-[28px] border border-[#ece8ff] bg-white p-6 shadow-[0_12px_35px_rgba(32,23,71,0.06)]">
+    <section className="rounded-[28px] border border-[#ece8ff] bg-white p-5 shadow-[0_12px_35px_rgba(32,23,71,0.06)] sm:p-6">
       <div className="flex items-start gap-4">
         <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#e6e0ff] bg-[#f8f6ff] text-[#6f5cf1]">
           <IconComponent className="h-5 w-5" />
@@ -382,11 +382,11 @@ const ArtistTrackDetailPage = () => {
         </div>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_360px]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_290px] 2xl:grid-cols-[minmax(0,1.65fr)_320px]">
         <div className="space-y-6">
           <section className="overflow-hidden rounded-[30px] border border-[#ece8ff] bg-white shadow-[0_18px_50px_rgba(32,23,71,0.08)]">
-            <div className="grid gap-0 lg:grid-cols-[320px_minmax(0,1fr)]">
-              <div className="bg-[#f6f2ff] p-5">
+            <div className="grid gap-0 xl:grid-cols-[260px_minmax(0,1fr)] 2xl:grid-cols-[320px_minmax(0,1fr)]">
+              <div className="bg-[#f6f2ff] p-4 sm:p-5">
                 <div className="overflow-hidden rounded-[24px]">
                   <img
                     src={artwork}
@@ -395,11 +395,11 @@ const ArtistTrackDetailPage = () => {
                   />
                 </div>
               </div>
-              <div className="p-6">
+              <div className="p-5 sm:p-6">
                 <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#7c6cf2]">
                   Chi tiết bài hát
                 </p>
-                <h1 className="mt-3 text-3xl font-semibold tracking-tight text-[#241b45]">
+                <h1 className="mt-3 text-2xl font-semibold tracking-tight text-[#241b45] sm:text-[32px]">
                   {track?.title || "Chưa có tên bài hát"}
                 </h1>
                 <p className="mt-2 text-sm text-[#8d87aa]">
@@ -596,8 +596,8 @@ const ArtistTrackDetailPage = () => {
           </DetailSection>
         </div>
 
-        <aside className="space-y-6 xl:sticky xl:top-6 xl:self-start">
-          <div className="rounded-[28px] border border-[#ece8ff] bg-white p-5 shadow-[0_18px_40px_rgba(32,23,71,0.08)]">
+        <aside className="grid gap-6 md:grid-cols-2 xl:grid-cols-1 xl:self-start xl:sticky xl:top-6">
+          <div className="rounded-[28px] border border-[#ece8ff] bg-white p-5 shadow-[0_18px_40px_rgba(32,23,71,0.08)] sm:p-6">
             <div className="overflow-hidden rounded-[24px] bg-[#f6f2ff]">
               <img
                 src={artwork}
@@ -639,7 +639,7 @@ const ArtistTrackDetailPage = () => {
               <SidebarField label="Cập nhật" value={formatTrackDate(track?.updatedAt)} />
             </div>
 
-            <div className="mt-6 grid gap-3">
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
               <button
                 type="button"
                 onClick={handleEditTrack}
