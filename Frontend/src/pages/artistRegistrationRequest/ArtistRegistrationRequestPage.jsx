@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  ArrowLeft,
   CheckCircle2,
   FileCheck2,
   FileText,
@@ -74,114 +75,8 @@ const SOCIAL_PLATFORM_FIELDS = [
   { key: "website", label: "Website", placeholder: "https://..." },
 ];
 
-const TERMS_CONTENT = {
-  acceptedTerms: {
-    title: "Điều khoản dành cho nghệ sĩ",
-    intro:
-      "Vui lòng đọc kỹ toàn bộ điều khoản dưới đây trước khi đồng ý. Bạn cần cuộn xuống cuối và nhấn nút \"Đã đọc và đồng ý\" để có thể tích chọn cam kết này.",
-    sections: [
-      {
-        heading: "1. Quyền và nghĩa vụ của nghệ sĩ",
-        body: "Khi được phê duyệt trở thành nghệ sĩ trên nền tảng, bạn được phép đăng tải, phân phối và quảng bá các sản phẩm âm nhạc của mình thông qua hệ thống. Bạn có quyền quản lý hồ sơ, cập nhật thông tin cá nhân, cấu hình trang nghệ sĩ và theo dõi số liệu thống kê nghe/xem. Đồng thời, bạn có nghĩa vụ tuân thủ các quy tắc cộng đồng, không đăng tải nội dung vi phạm pháp luật, không spam hoặc lợi dụng nền tảng để thực hiện các hành vi gian lận.",
-      },
-      {
-        heading: "2. Quy định về nội dung",
-        body: "Mọi sản phẩm âm nhạc bạn cung cấp phải tuân thủ quy định pháp luật về bản quyền, quyền liên quan và quyền của người biểu diễn. Nội dung không được chứa ngôn từ kích động, bạo lực, phân biệt đối xử, khiêu dâm hoặc xâm phạm thuần phong mỹ tục. Nền tảng có quyền gỡ bỏ nội dung vi phạm mà không cần báo trước và có thể tạm khóa tài khoản nếu vi phạm nghiêm trọng.",
-      },
-      {
-        heading: "3. Chính sách thanh toán và doanh thu",
-        body: "Doanh thu từ việc phát nhạc, nghe nhạc và các hoạt động thương mại khác sẽ được phân chia theo tỷ lệ thỏa thuận trong hợp đồng riêng giữa nghệ sĩ và nền tảng. Việc thanh toán sẽ được thực hiện theo chu kỳ và phương thức đã đăng ký. Nền tảng có quyền khấu trừ các khoản thuế, phí theo quy định pháp luật hiện hành trước khi chi trả cho nghệ sĩ.",
-      },
-      {
-        heading: "4. Quyền riêng tư và bảo mật thông tin",
-        body: "Nền tảng cam kết bảo mật thông tin cá nhân của nghệ sĩ theo chính sách quyền riêng tư. Thông tin giấy tờ tùy thân chỉ được sử dụng cho mục đích xác minh danh tính và lưu trữ nội bộ, không chia sẻ cho bên thứ ba khi chưa có sự đồng ý bằng văn bản của nghệ sĩ, trừ trường hợp pháp luật yêu cầu.",
-      },
-      {
-        heading: "5. Điều khoản chấm dứt",
-        body: "Nghệ sĩ có quyền yêu cầu chấm dứt tài khoản nghệ sĩ bất kỳ lúc nào bằng cách gửi yêu cầu hỗ trợ. Nền tảng có quyền đình chỉ hoặc chấm dứt quyền nghệ sĩ nếu phát hiện vi phạm điều khoản, gian lận hoặc có hành vi gây tổn hại đến uy tín nền tảng và cộng đồng. Khi chấm dứt, các sản phẩm âm nhạc có thể được gỡ bỏ hoặc giữ lại tùy theo thỏa thuận.",
-      },
-      {
-        heading: "6. Thay đổi điều khoản",
-        body: "Nền tảng có quyền cập nhật và điều chỉnh các điều khoản này theo từng thời điểm. Mọi thay đổi sẽ được thông báo trước ít nhất 7 ngày qua email hoặc thông báo trong hệ thống. Việc bạn tiếp tục sử dụng dịch vụ sau khi điều khoản có hiệu lực đồng nghĩa với việc bạn chấp nhận các điều chỉnh đó.",
-      },
-      {
-        heading: "7. Điều khoản chung",
-        body: "Các điều khoản này được điều chỉnh bởi pháp luật Việt Nam. Mọi tranh chấp phát sinh sẽ được ưu tiên giải quyết bằng thương lượng; nếu không đạt được thỏa thuận, tranh chấp sẽ được đưa ra giải quyết tại tòa án có thẩm quyền. Nếu có bất kỳ câu hỏi nào, vui lòng liên hệ bộ phận hỗ trợ nghệ sĩ qua email hoặc trung tâm hỗ trợ trực tuyến.",
-      },
-    ],
-  },
-  copyrightCommitment: {
-    title: "Cam kết trách nhiệm bản quyền",
-    intro:
-      "Điều khoản này giải thích trách nhiệm của bạn đối với quyền sở hữu trí tuệ của các sản phẩm âm nhạc. Vui lòng đọc đến cuối trước khi xác nhận.",
-    sections: [
-      {
-        heading: "1. Xác nhận quyền sở hữu",
-        body: "Bạn cam kết rằng tất cả các sản phẩm âm nhạc (bài hát, beat, lời, hình ảnh, MV) mà bạn tải lên nền tảng hoặc cung cấp qua đường link đều thuộc quyền sở hữu hợp pháp của bạn, hoặc bạn đã được cấp phép đầy đủ bằng văn bản từ chủ sở hữu bản quyền để sử dụng, phân phối và đại diện cho các sản phẩm đó trên nền tảng.",
-      },
-      {
-        heading: "2. Không sử dụng trái phép",
-        body: "Bạn không được phép sử dụng beat, sample, melody, lời bài hát hoặc bất kỳ tác phẩm nào của người khác khi chưa có sự đồng ý bằng văn bản hoặc giấy phép hợp lệ. Bạn hiểu rằng việc sử dụng tác phẩm không được phép có thể cấu thành hành vi xâm phạm bản quyền theo Luật Sở hữu trí tuệ Việt Nam và các điều ước quốc tế mà Việt Nam tham gia.",
-      },
-      {
-        heading: "3. Trách nhiệm khi phát sinh khiếu nại",
-        body: "Bạn chịu hoàn toàn trách nhiệm pháp lý và tài chính nếu có khiếu nại về bản quyền từ bên thứ ba đối với các sản phẩm bạn cung cấp. Trong trường hợp này, bạn đồng ý bồi thường cho nền tảng mọi chi phí phát sinh bao gồm nhưng không giới hạn: phí tư vấn pháp lý, thiệt hại doanh thu, chi phí giải quyết tranh chấp và các khoản phạt theo quy định.",
-      },
-      {
-        heading: "4. Quy trình xử lý vi phạm bản quyền",
-        body: "Khi nhận được khiếu nại bản quyền hợp lệ, nền tảng có quyền tạm ẩn nội dung bị khiếu nại trong vòng 24 giờ để xác minh. Nếu xác nhận vi phạm, nội dung sẽ bị gỡ bỏ vĩnh viễn và tài khoản nghệ sĩ có thể bị đình chỉ vĩnh viễn. Trường hợp nghi ngờ gian lận hoặc tái phạm nhiều lần, nền tảng có quyền chuyển thông tin cho cơ quan chức năng có thẩm quyền.",
-      },
-      {
-        heading: "5. Quyền cấp phép cho nền tảng",
-        body: "Bằng việc tải nội dung lên, bạn cấp cho nền tảng một giấy phép không độc quyền, có thể chuyển nhượng, miễn phí bản quyền để sử dụng, tái sản xuất, phân phối, trình diễn công khai và chỉnh sửa nội dung cho mục đích vận hành, quảng bá và cung cấp dịch vụ của nền tảng. Giấy phép này tự động chấm dứt khi bạn gỡ nội dung, trừ khi nội dung đã được lưu trữ bởi người dùng khác theo quy định.",
-      },
-      {
-        heading: "6. Cam kết khi hợp tác với bên thứ ba",
-        body: "Nếu bạn hợp tác với nhà sản xuất, beatmaker, nghệ sĩ khác hoặc bất kỳ bên thứ ba nào trong quá trình tạo sản phẩm, bạn cam kết đã có thỏa thuận rõ ràng về quyền sở hữu và quyền sử dụng, đồng thời bạn có quyền đại diện cho toàn bộ sản phẩm trên nền tảng. Mọi tranh chấp nội bộ về quyền sở hữu giữa các bên là ngoài phạm vi trách nhiệm của nền tảng.",
-      },
-    ],
-  },
-  truthfulInformationCommitment: {
-    title: "Cam kết thông tin trung thực",
-    intro:
-      "Bạn cần đọc đến cuối điều khoản này để xác nhận rằng toàn bộ thông tin cung cấp là trung thực và chính xác.",
-    sections: [
-      {
-        heading: "1. Tính chính xác của thông tin cá nhân",
-        body: "Bạn cam kết rằng tất cả thông tin cá nhân cung cấp trong hồ sơ đăng ký nghệ sĩ bao gồm: họ và tên thật, số CCCD/CMND, ngày sinh, ảnh giấy tờ tùy thân, số điện thoại, email và các thông tin liên hệ khác đều là chính xác, trung thực và thuộc về bạn hoặc đơn vị bạn được ủy quyền hợp pháp.",
-      },
-      {
-        heading: "2. Ảnh giấy tờ tùy thân",
-        body: "Ảnh chụp mặt trước và mặt sau giấy tờ tùy thân phải là ảnh gốc, rõ nét, không bị chỉnh sửa, cắt ghép hoặc làm mờ. Bạn không được sử dụng giấy tờ của người khác, giấy tờ hết hạn, giấy tờ giả mạo hoặc bất kỳ tài liệu nào không phải do cơ quan có thẩm quyền cấp. Mọi hành vi gian lận về giấy tờ sẽ bị xử lý theo quy định pháp luật.",
-      },
-      {
-        heading: "3. Nghệ danh và đại diện",
-        body: "Nghệ danh bạn đăng ký phải là tên mà bạn thực sự sử dụng trong hoạt động âm nhạc. Nếu bạn đăng ký thay mặt cho ban nhóm, công ty giải trí hoặc tổ chức, bạn cần có giấy ủy quyền hợp lệ và nền tảng có quyền yêu cầu cung cấp bằng chứng xác minh.",
-      },
-      {
-        heading: "4. Trách nhiệm khi thông tin thay đổi",
-        body: "Bạn có nghĩa vụ cập nhật kịp thời bất kỳ thay đổi nào về thông tin cá nhân, giấy tờ tùy thân hoặc tình trạng pháp lý trong vòng 30 ngày kể từ ngày phát sinh thay đổi. Việc cố tình giấu thông tin hoặc cung cấp thông tin sai lệch sau khi đã trở thành nghệ sĩ có thể dẫn đến đình chỉ tài khoản.",
-      },
-      {
-        heading: "5. Xử lý vi phạm và gian lận",
-        body: "Nếu phát hiện bất kỳ thông tin nào bạn cung cấp là sai sự thật, không chính xác hoặc có dấu hiệu gian lận, nền tảng có quyền từ chối phê duyệt hồ sơ, thu hồi quyền nghệ sĩ đã cấp, gỡ bỏ toàn bộ nội dung đã đăng tải và khóa tài khoản vĩnh viễn mà không hoàn lại bất kỳ khoản phí nào (nếu có). Ngoài ra, bạn có thể phải chịu trách nhiệm trước pháp luật.",
-      },
-      {
-        heading: "6. Cam kết không mạo danh",
-        body: "Bạn cam kết không mạo danh bất kỳ nghệ sĩ, cá nhân, tổ chức hay thương hiệu nào khác. Nếu hồ sơ của bạn có dấu hiệu mạo danh nghệ sĩ đã có trên nền tảng hoặc ngoài thực tế, hồ sơ sẽ bị từ chối ngay lập tức và tài khoản có thể bị khóa để điều tra thêm.",
-      },
-    ],
-  },
-};
-
-const pageShellClassName =
-  "min-h-full overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(255,159,67,0.22),_transparent_20%),radial-gradient(circle_at_top_right,_rgba(255,255,255,0.06),_transparent_18%),radial-gradient(circle_at_bottom_right,_rgba(155,108,255,0.12),_transparent_24%),linear-gradient(135deg,_#050505_0%,_#0c0c0f_40%,_#111114_100%)] px-4 py-8 text-white sm:px-6 lg:px-8";
-
-const cardClassName =
-  "relative overflow-hidden rounded-[30px] border border-white/10 bg-white/5 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-md";
-
 const sectionCardClassName =
-  "rounded-[26px] border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-6";
+  "rounded-[20px] border border-white/10 bg-white/[0.03] p-5 sm:p-6";
 
 const createInitialFormState = () => ({
   stageName: "",
@@ -215,7 +110,7 @@ const normalizeText = (value) =>
   typeof value === "string" ? value.trim() : "";
 
 const FieldLabel = ({ children, required = false }) => (
-  <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.28em] text-[#ffcf97]">
+  <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-white/60">
     {children}
     {required ? <span className="ml-1 text-rose-300">*</span> : null}
   </label>
@@ -223,20 +118,23 @@ const FieldLabel = ({ children, required = false }) => (
 
 const FieldHint = ({ children }) =>
   children ? (
-    <p className="mt-2 text-xs leading-5 text-white/45">{children}</p>
+    <p className="mt-2 text-xs leading-5 text-white/40">{children}</p>
   ) : null;
 
 const FieldError = ({ children }) =>
   children ? (
-    <p className="mt-2 text-xs leading-5 text-rose-300">{children}</p>
+    <p className="mt-2 text-xs font-medium leading-5 text-rose-300">{children}</p>
   ) : null;
+
+const inputClassName =
+  "min-h-[52px] w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#f5b66f] focus:ring-2 focus:ring-[#f5b66f]/20 shadow-sm";
 
 const TextInput = ({ error, className = "", ...props }) => (
   <input
     {...props}
     className={[
-      "min-h-[54px] w-full rounded-2xl border bg-[#f7f4ef] px-4 py-3 text-sm text-[#161616] outline-none transition placeholder:text-[#94897a] focus:border-[#f5b66f] focus:ring-4 focus:ring-[#f5b66f]/20",
-      error ? "border-rose-300" : "border-white/10",
+      inputClassName,
+      error ? "border-rose-500 ring-1 ring-rose-500/30" : "",
       className,
     ].join(" ")}
   />
@@ -246,8 +144,8 @@ const TextArea = ({ error, className = "", ...props }) => (
   <textarea
     {...props}
     className={[
-      "w-full resize-none rounded-2xl border bg-[#f7f4ef] px-4 py-3 text-sm leading-6 text-[#161616] outline-none transition placeholder:text-[#94897a] focus:border-[#f5b66f] focus:ring-4 focus:ring-[#f5b66f]/20",
-      error ? "border-rose-300" : "border-white/10",
+      "w-full resize-none rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium leading-6 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#f5b66f] focus:ring-2 focus:ring-[#f5b66f]/20 shadow-sm",
+      error ? "border-rose-500 ring-1 ring-rose-500/30" : "",
       className,
     ].join(" ")}
   />
@@ -258,21 +156,21 @@ const DateInput = ({ error, className = "", ...props }) => (
     <input
       {...props}
       className={[
-        "min-h-[54px] w-full rounded-2xl border bg-[#f7f4ef] px-4 py-3 pr-14 text-sm text-[#161616] outline-none transition placeholder:text-[#94897a] [color-scheme:light] focus:border-[#f5b66f] focus:ring-4 focus:ring-[#f5b66f]/20",
+        "min-h-[52px] w-full rounded-xl border border-slate-300 bg-white px-4 py-3 pr-14 text-sm font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#f5b66f] focus:ring-2 focus:ring-[#f5b66f]/20 shadow-sm",
         "[&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:h-10 [&::-webkit-calendar-picker-indicator]:w-10 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:rounded-xl [&::-webkit-calendar-picker-indicator]:opacity-0",
-        error ? "border-rose-300" : "border-white/10",
+        error ? "border-rose-500 ring-1 ring-rose-500/30" : "",
         className,
       ].join(" ")}
     />
     <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#f5b66f]/20 bg-gradient-to-br from-[#f5b66f]/18 via-[#f5b66f]/10 to-transparent text-[#d97706] shadow-[0_10px_24px_rgba(245,182,111,0.18)] transition group-focus-within:border-[#f5b66f]/40 group-focus-within:bg-[#f5b66f]/16 group-focus-within:text-[#c56b10]">
+      <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 text-slate-700">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
           strokeWidth="1.8"
-          className="h-5 w-5"
+          className="h-4 w-4"
           aria-hidden="true"
         >
           <path
@@ -298,13 +196,32 @@ const UploadField = ({
 }) => {
   const inputId = `artist-registration-${name}`;
   const inputRef = useRef(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
+
+  useEffect(() => {
+    if (!file) {
+      setPreviewUrl(null);
+      return;
+    }
+
+    if (typeof file === "string") {
+      setPreviewUrl(file);
+      return;
+    }
+
+    if (file instanceof File || file instanceof Blob) {
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
+    }
+  }, [file]);
 
   const openFilePicker = () => {
     inputRef.current?.click();
   };
 
   return (
-    <div>
+    <div className="flex flex-col h-full">
       <FieldLabel required={required}>{title}</FieldLabel>
       <input
         ref={inputRef}
@@ -324,22 +241,45 @@ const UploadField = ({
         type="button"
         onClick={openFilePicker}
         className={[
-          "flex min-h-[62px] w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left transition",
+          "flex min-h-[56px] w-full cursor-pointer items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition shadow-sm",
           error
-            ? "border-rose-300 bg-rose-400/10"
-            : "border-white/10 bg-white/[0.04] hover:border-[#f5b66f]/30 hover:bg-white/[0.06]",
+            ? "border-rose-400 bg-rose-50/50"
+            : "border-slate-300 bg-white hover:border-[#f5b66f] hover:bg-amber-50/20",
         ].join(" ")}
       >
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-white/90">
+          <p className="truncate text-sm font-semibold text-slate-800">
             {file?.name || "Chọn file hình ảnh"}
           </p>
-          <p className="mt-1 text-xs text-white/45">PNG, JPG hoặc WEBP</p>
+          <p className="mt-0.5 text-xs text-slate-500">PNG, JPG hoặc WEBP</p>
         </div>
-        <span className="shrink-0 rounded-full border border-[#f5b66f]/25 bg-[#f5b66f]/10 px-3 py-1 text-xs font-semibold text-[#f5b66f]">
-          Tải lên
-        </span>
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-200 bg-amber-50 text-amber-800">
+          <span className="text-xs font-bold">↑</span>
+        </div>
       </button>
+
+      {previewUrl ? (
+        <div className="mt-3 relative w-full flex-1 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-2 shadow-sm flex flex-col justify-between">
+          <img
+            src={previewUrl}
+            alt="Xem trước ảnh đã chọn"
+            className="h-44 w-full rounded-lg object-cover sm:h-52"
+          />
+          <div className="mt-2 flex items-center justify-between px-1">
+            <span className="text-[11px] font-semibold text-emerald-700 flex items-center gap-1">
+              ✓ Ảnh đã chọn
+            </span>
+            <button
+              type="button"
+              onClick={openFilePicker}
+              className="text-[11px] font-bold text-amber-800 hover:underline"
+            >
+              Đổi ảnh khác
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <FieldHint>{hint}</FieldHint>
       <FieldError>{error}</FieldError>
     </div>
@@ -374,7 +314,7 @@ const UrlListEditor = ({
       <button
         type="button"
         onClick={onAdd}
-        className="inline-flex min-h-[54px] shrink-0 items-center justify-center gap-2 rounded-2xl border border-[#f5b66f]/25 bg-[#f5b66f]/10 px-5 text-sm font-semibold text-[#f5b66f] transition hover:bg-[#f5b66f]/16"
+        className="inline-flex min-h-[52px] shrink-0 items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-5 text-sm font-bold text-amber-900 transition hover:bg-amber-100 shadow-sm"
       >
         <Plus className="h-4 w-4" aria-hidden />
         Thêm
@@ -386,16 +326,16 @@ const UrlListEditor = ({
         {value.map((item) => (
           <div
             key={item}
-            className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3"
+            className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
           >
             <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#f5b66f]" />
-            <p className="min-w-0 flex-1 break-all text-sm leading-6 text-white/75">
+            <p className="min-w-0 flex-1 break-all text-sm font-medium leading-6 text-slate-800">
               {item}
             </p>
             <button
               type="button"
               onClick={() => onRemove(item)}
-              className="shrink-0 text-white/45 transition hover:text-rose-300"
+              className="shrink-0 text-slate-400 transition hover:text-rose-600"
             >
               <Trash2 className="h-4 w-4" aria-hidden />
             </button>
@@ -406,6 +346,59 @@ const UrlListEditor = ({
   </div>
 );
 
+const TERMS_CONTENT = {
+  acceptedTerms: {
+    title: "Điều khoản & Quy định dành cho Nghệ sĩ",
+    intro:
+      "Bằng việc gửi hồ sơ và đăng ký trở thành Nghệ sĩ trên nền tảng, bạn xác nhận đã đọc, hiểu rõ và cam kết tuân thủ toàn bộ các quy định, điều khoản sử dụng và chính sách dịch vụ dưới đây.",
+    sections: [
+      {
+        heading: "1. Nguyên tắc phát hành & Tải lên nội dung",
+        body: "Nghệ sĩ chỉ được phép tải lên các tác phẩm âm nhạc, hình ảnh đại diện, bìa album và các tài liệu liên quan mà mình sở hữu hợp pháp hoặc được ủy quyền hợp pháp. Tất cả thông tin về tên tác phẩm, tác giả, nghệ sĩ biểu diễn và thể loại phải đảm bảo tính trung thực và chính xác.",
+      },
+      {
+        heading: "2. Quyền hạn và Trách nhiệm của Nghệ sĩ",
+        body: "Nghệ sĩ chịu hoàn toàn trách nhiệm trước pháp luật đối với mọi nội dung tải lên hệ thống. Nghệ sĩ cam kết không đăng tải các nội dung vi phạm thuần phong mỹ tục, tuyên truyền văn hóa phẩm độc hại, kích động bạo lực, thù ghét, hoặc vi phạm các quy định pháp luật hiện hành.",
+      },
+      {
+        heading: "3. Quyền quản lý và Kiểm duyệt của Nền tảng",
+        body: "Nền tảng có toàn quyền tạm khóa, ẩn hoặc xóa vĩnh viễn bất kỳ nội dung hoặc tài khoản nghệ sĩ nào nếu phát hiện dấu hiệu vi phạm điều khoản dịch vụ, bản quyền hoặc nhận được khiếu nại hợp lệ từ bên thứ ba mà không cần thông báo trước.",
+      },
+      {
+        heading: "4. Tỷ lệ phân chia Doanh thu & Bản quyền âm nhạc",
+        body: "Mọi hoạt động phát sinh doanh thu từ lượt nghe, tải nhạc hoặc đăng ký gói dịch vụ liên quan đến tác phẩm của nghệ sĩ sẽ được ghi nhận và thống kê theo chính sách minh bạch của nền tảng. Chi tiết về hợp đồng phân phối sẽ được ký kết độc lập sau khi hồ sơ nghệ sĩ được phê duyệt thành công.",
+      },
+      {
+        heading: "5. Thay đổi Điều khoản & Điều kiện dịch vụ",
+        body: "Nền tảng có quyền sửa đổi, bổ sung các điều khoản này vào bất kỳ lúc nào để phù hợp với quy định pháp luật và định hướng phát triển. Thông báo thay đổi sẽ được gửi qua email hoặc cập nhật trực tiếp trên hệ thống.",
+      },
+    ],
+  },
+  copyrightCommitment: {
+    title: "Cam kết Quyền sở hữu Trí tuệ & Bản quyền Âm nhạc",
+    intro:
+      "Vấn đề bản quyền là ưu tiên hàng đầu tại nền tảng. Bạn cần cam kết và bảo đảm quyền sở hữu đối với toàn bộ tài sản âm nhạc được đăng tải.",
+    sections: [
+      {
+        heading: "1. Xác nhận Quyền Tác giả & Quyền Liên quan",
+        body: "Bạn cam kết là chủ sở hữu duy nhất hoặc là đại diện hợp pháp có đầy đủ quyền tác giả, quyền bản âm, bản ghi và quyền phân phối đối với tất cả các bài hát, demo, nhạc cụ và lời bài hát gửi lên hệ thống.",
+      },
+      {
+        heading: "2. Bảo đảm không Vi phạm Bản quyền Bên thứ Ba",
+        body: "Bạn đảm bảo âm nhạc của mình không sử dụng trái phép sample, beat, giai điệu, lời ca hoặc bất kỳ phần tác phẩm nào của cá nhân/tổ chức khác mà chưa có sự đồng ý bằng văn bản hoặc giấy phép sử dụng (license) hợp pháp.",
+      },
+      {
+        heading: "3. Bồi thường và Giải quyết Tranh chấp",
+        body: "Trong trường hợp xảy ra tranh chấp, khiếu nại hoặc kiện tụng từ bên thứ ba liên quan đến bản quyền các tác phẩm do bạn cung cấp, bạn chịu toàn bộ chi phí bồi thường thiệt hại và trách nhiệm pháp lý phát sinh, đồng thời miễn trừ hoàn toàn trách nhiệm cho nền tảng.",
+      },
+      {
+        heading: "4. Xử lý vi phạm Bản quyền",
+        body: "Hệ thống áp dụng chính sách xử lý nghiêm khắc đối me các hành vi vi phạm bản quyền: Gỡ bỏ ngay lập tức tác phẩm vi phạm, thu hồi toàn bộ doanh thu phát sinh từ tác phẩm đó và có thể chấm dứt vĩnh viễn quyền truy cập tài khoản nghệ sĩ.",
+      },
+    ],
+  },
+};
+
 const SCROLL_THRESHOLD = 8;
 
 const TermsModal = ({ isOpen, termKey, onClose, onAccept }) => {
@@ -413,6 +406,7 @@ const TermsModal = ({ isOpen, termKey, onClose, onAccept }) => {
   const scrollRef = useRef(null);
   const [hasScrolledToEnd, setHasScrolledToEnd] = useState(false);
   const [progress, setProgress] = useState(0);
+
 
   useEffect(() => {
     setHasScrolledToEnd(false);
@@ -477,6 +471,10 @@ const TermsModal = ({ isOpen, termKey, onClose, onAccept }) => {
     }
   };
 
+
+
+
+
   if (!isOpen || !content) {
     return null;
   }
@@ -493,20 +491,20 @@ const TermsModal = ({ isOpen, termKey, onClose, onAccept }) => {
         }
       }}
     >
-      <div className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-[linear-gradient(160deg,rgba(20,20,24,0.98),rgba(10,10,14,0.98))] shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
-        <div className="flex items-start justify-between gap-3 border-b border-white/10 px-6 py-4">
+      <div className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-[24px] border border-white/10 bg-[#16161d] shadow-[0_30px_80px_rgba(0,0,0,0.6)]">
+        <div className="flex items-start justify-between gap-3 border-b border-white/8 px-6 py-4">
           <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[#f5b66f]/25 bg-[#f5b66f]/10 text-[#f5b66f]">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#f5b66f]/20 bg-[#f5b66f]/10 text-[#f5b66f]">
               <FileText className="h-5 w-5" aria-hidden />
             </div>
             <div>
               <h2
                 id={`terms-title-${termKey}`}
-                className="text-base font-semibold text-white sm:text-lg"
+                className="text-base font-bold text-white sm:text-lg"
               >
                 {content.title}
               </h2>
-              <p className="mt-1 text-xs text-white/55">
+              <p className="mt-1 text-xs text-white/45">
                 {hasScrolledToEnd
                   ? "Bạn đã đọc đến cuối nội dung."
                   : "Vui lòng cuộn xuống cuối để tiếp tục."}
@@ -516,14 +514,14 @@ const TermsModal = ({ isOpen, termKey, onClose, onAccept }) => {
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl p-2 text-white/55 transition hover:bg-white/5 hover:text-white"
+            className="rounded-xl p-2 text-white/40 transition hover:bg-white/[0.06] hover:text-white/80"
             aria-label="Đóng"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="h-1 w-full bg-white/5">
+        <div className="h-0.5 w-full bg-white/[0.04]">
           <div
             className="h-full bg-[#f5b66f] transition-[width] duration-200"
             style={{ width: `${progress}%` }}
@@ -535,30 +533,30 @@ const TermsModal = ({ isOpen, termKey, onClose, onAccept }) => {
           onScroll={handleScroll}
           className="flex-1 overflow-y-auto px-6 py-5"
         >
-          <p className="mb-5 rounded-2xl border border-[#f5b66f]/15 bg-[#f5b66f]/5 px-4 py-3 text-sm leading-6 text-white/70">
+          <p className="mb-5 rounded-xl border border-[#f5b66f]/15 bg-[#f5b66f]/5 px-4 py-3 text-sm leading-relaxed text-white/70">
             {content.intro}
           </p>
           <div className="space-y-5">
             {content.sections.map((section) => (
               <section key={section.heading}>
-                <h3 className="mb-2 text-sm font-semibold uppercase tracking-[0.18em] text-[#f5b66f]">
+                <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-[#f5b66f]/80">
                   {section.heading}
                 </h3>
-                <p className="text-sm leading-7 text-white/75">{section.body}</p>
+                <p className="text-sm leading-relaxed text-white/55">{section.body}</p>
               </section>
             ))}
           </div>
-          <div className="mt-6 flex items-center justify-center gap-2 rounded-2xl border border-emerald-400/20 bg-emerald-400/5 px-4 py-3 text-xs font-medium text-emerald-300">
+          <div className="mt-6 flex items-center justify-center gap-2 rounded-xl border border-emerald-400/20 bg-emerald-400/8 px-4 py-3 text-xs font-bold text-emerald-400">
             <CheckCircle2 className="h-4 w-4" aria-hidden />
             Bạn đã đọc đến cuối điều khoản.
           </div>
         </div>
 
-        <div className="flex flex-col-reverse gap-2 border-t border-white/10 bg-black/20 px-6 py-4 sm:flex-row sm:items-center sm:justify-end">
+        <div className="flex flex-col-reverse gap-2 border-t border-white/8 bg-white/[0.02] px-6 py-4 sm:flex-row sm:items-center sm:justify-end">
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-5 text-sm font-medium text-white/75 transition hover:border-white/20 hover:bg-white/[0.07]"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-5 text-sm font-semibold text-white/75 transition hover:bg-white/[0.07]"
           >
             Đóng
           </button>
@@ -569,7 +567,7 @@ const TermsModal = ({ isOpen, termKey, onClose, onAccept }) => {
               onAccept(termKey);
               onClose();
             }}
-            className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-[#f5b66f] px-5 text-sm font-semibold text-[#15181d] transition hover:bg-[#f7c789] disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-[#f5b66f] px-5 text-sm font-semibold text-[#15181d] transition hover:bg-[#f7c789] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <CheckCircle2 className="h-4 w-4" aria-hidden />
             Đã đọc và đồng ý
@@ -592,14 +590,16 @@ const TermsCheckboxItem = ({
 }) => {
   const isDisabled = requiresTerms && !hasRead;
   return (
-    <div>
+    <div className="space-y-2">
       <label
         className={[
-          "flex items-start gap-3 rounded-2xl border px-4 py-4 transition",
+          "flex items-start gap-3 rounded-xl border p-4 transition shadow-sm",
           isDisabled
-            ? "cursor-not-allowed border-white/5 bg-white/[0.02] opacity-60"
-            : "cursor-pointer border-white/10 bg-white/[0.04] hover:border-white/20 hover:bg-white/[0.06]",
-          error && !isDisabled ? "border-rose-300/40" : "",
+            ? "cursor-not-allowed border-slate-200 bg-slate-100 opacity-60 text-slate-500"
+            : checked
+            ? "cursor-pointer border-[#f5b66f] bg-white text-slate-900 ring-2 ring-[#f5b66f]/40"
+            : "cursor-pointer border-slate-200 bg-white text-slate-900 hover:border-slate-300",
+          error && !isDisabled ? "border-rose-400 bg-rose-50/40" : "",
         ].join(" ")}
       >
         <input
@@ -608,21 +608,20 @@ const TermsCheckboxItem = ({
           checked={checked}
           onChange={onChange}
           disabled={isDisabled}
-          className="mt-1 h-4 w-4 rounded border-white/20 bg-transparent text-[#f5b66f] focus:ring-[#f5b66f]/40 disabled:cursor-not-allowed"
+          className="mt-0.5 h-4 w-4 cursor-pointer rounded border-slate-300 bg-white accent-[#f5b66f] disabled:cursor-not-allowed"
         />
-        <span className="flex-1 text-sm leading-6 text-white/75">{label}</span>
+        <span className="flex-1 text-sm font-semibold leading-relaxed text-slate-900">{label}</span>
       </label>
       {requiresTerms ? (
-        <div className="mt-2 flex flex-wrap items-center gap-2 px-1">
+        <div className="flex flex-wrap items-center gap-2 px-1">
           <button
             type="button"
             onClick={() => onOpenTerms(name)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-[#f5b66f]/20 bg-[#f5b66f]/8 px-3 py-1.5 text-xs font-semibold text-[#f5b66f] transition hover:border-[#f5b66f]/40 hover:bg-[#f5b66f]/14"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-900 transition hover:bg-amber-100 shadow-sm"
           >
             <FileText className="h-3.5 w-3.5" aria-hidden />
             {hasRead ? "Xem lại điều khoản" : "Đọc điều khoản"}
           </button>
-          
         </div>
       ) : null}
       <FieldError>{error}</FieldError>
@@ -751,43 +750,33 @@ const StatusTimelineStep = ({ step, isLast = false }) => {
   );
 };
 
-const ArtistRegistrationStatusView = ({
-  status,
-  navigate,
-  homeRoute,
-  listRoute,
-}) => {
-  const config = STATUS_VIEW_CONFIG[status];
-  const Icon = config.icon;
+const StatusView = ({ status, navigate, homeRoute, listRoute }) => {
+  const config = STATUS_VIEW_CONFIG[status] ?? STATUS_VIEW_CONFIG.pending;
 
   return (
-    <main className={pageShellClassName}>
-      <section className="mx-auto max-w-3xl space-y-6">
-        <div
-          className={`relative overflow-hidden rounded-[28px] border ${config.heroBorder} ${config.heroBackground} p-8 text-center sm:p-10`}
-        >
-          <div className={`pointer-events-none absolute -left-16 -top-16 h-56 w-56 rounded-full ${config.glowPrimary} blur-3xl`} />
-          <div className={`pointer-events-none absolute -bottom-10 -right-10 h-40 w-40 rounded-full ${config.glowSecondary} blur-3xl`} />
-          <div className="relative">
-            <div
-              className={`mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border ${config.iconWrapper}`}
-            >
-              <Icon className={`h-8 w-8 ${config.iconClassName}`} />
-            </div>
-            <div
-              className={`mb-3 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-semibold ${config.badge}`}
-            >
-              <span className={`h-1.5 w-1.5 animate-pulse rounded-full ${config.badgeDot}`} />
-              {config.statusLabel}
-            </div>
-            <h1 className="mt-4 text-xl font-bold leading-relaxed tracking-[0.04em] text-white sm:text-2xl">
-              {config.title}
-            </h1>
-            <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-white/55">
-              {config.description}
-            </p>
+    <main className="flex min-h-screen flex-col items-center justify-center bg-[#0d0f14] px-4 py-16">
+      <section className="relative w-full max-w-xl overflow-hidden rounded-[32px] border bg-[linear-gradient(160deg,rgba(20,20,26,0.98),rgba(10,10,14,0.98))] p-8 shadow-[0_30px_80px_rgba(0,0,0,0.5)] backdrop-blur-xl sm:p-10">
+        {/* Glows */}
+        <div className={`pointer-events-none absolute -left-16 -top-16 h-56 w-56 rounded-full opacity-30 blur-3xl ${config.glowPrimary}`} />
+        <div className={`pointer-events-none absolute -bottom-16 -right-16 h-56 w-56 rounded-full opacity-20 blur-3xl ${config.glowSecondary}`} />
+
+        {/* Header */}
+        <div className={`relative mb-8 rounded-2xl border p-8 text-center ${config.heroBorder} ${config.heroBackground}`}>
+          <div className={`mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border-2 ${config.iconWrapper}`}>
+            <config.icon className={`h-7 w-7 ${config.iconClassName}`} />
           </div>
+          <div className={`mx-auto mb-4 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${config.badge}`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${config.badgeDot}`} />
+            {config.statusLabel}
+          </div>
+          <h1 className="text-xl font-bold leading-snug text-white sm:text-2xl">
+            {config.title}
+          </h1>
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-white/55">
+            {config.description}
+          </p>
         </div>
+
 
         <div className="overflow-hidden rounded-[24px] border border-white/8 bg-white/[0.03] backdrop-blur-sm">
           <div className="border-b border-white/8 px-6 py-4">
@@ -806,7 +795,7 @@ const ArtistRegistrationStatusView = ({
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-white/45">
             Theo dõi trạng thái yêu cầu trong mục{" "}
             <span className="font-medium text-white/70">Yêu cầu của tôi</span>.
@@ -834,20 +823,22 @@ const ArtistRegistrationStatusView = ({
   );
 };
 
+
 const SectionCard = ({ title, subtitle, icon: Icon, children }) => (
   <section className={sectionCardClassName}>
     <div className="mb-5 flex items-start gap-3">
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[#f5b66f]/20 bg-[#f5b66f]/10 text-[#f5b66f] shadow-[0_12px_30px_rgba(245,182,111,0.12)]">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#f5b66f]/20 bg-[#f5b66f]/10 text-[#f5b66f]">
         <Icon className="h-5 w-5" aria-hidden />
       </div>
       <div>
-        <h2 className="text-lg font-semibold text-white">{title}</h2>
-        <p className="mt-1 text-sm leading-6 text-white/55">{subtitle}</p>
+        <h2 className="text-base font-semibold text-white">{title}</h2>
+        <p className="mt-0.5 text-sm leading-relaxed text-white/45">{subtitle}</p>
       </div>
     </div>
     {children}
   </section>
 );
+
 
 const ArtistRegistrationRequestPage = () => {
   const { user, isLoading: authLoading } = useAuth();
@@ -1114,11 +1105,11 @@ const ArtistRegistrationRequestPage = () => {
 
   if (authLoading || isPendingRequestLoading) {
     return (
-      <main className={pageShellClassName}>
+      <main className="min-h-full bg-[#000000] px-4 py-10 text-white sm:px-6 lg:px-8">
         <div className="mx-auto flex min-h-[60vh] max-w-5xl items-center justify-center">
-          <div className="flex flex-col items-center gap-4 text-center text-white/70">
+          <div className="flex flex-col items-center gap-4 text-center text-white/60">
             <Loader2 className="h-8 w-8 animate-spin text-[#f5b66f]" aria-hidden />
-            <p className="text-sm">Đang tải trang đăng kí nghệ sĩ...</p>
+            <p className="text-sm font-medium">Đang tải trang đăng kí nghệ sĩ...</p>
           </div>
         </div>
       </main>
@@ -1127,7 +1118,7 @@ const ArtistRegistrationRequestPage = () => {
 
   if (hasPendingRequest) {
     return (
-      <ArtistRegistrationStatusView
+      <StatusView
         status="pending"
         navigate={navigate}
         homeRoute={routePaths.home}
@@ -1138,7 +1129,7 @@ const ArtistRegistrationRequestPage = () => {
 
   if (isSubmitted) {
     return (
-      <ArtistRegistrationStatusView
+      <StatusView
         status="submitted"
         navigate={navigate}
         homeRoute={routePaths.home}
@@ -1148,73 +1139,73 @@ const ArtistRegistrationRequestPage = () => {
   }
 
   return (
-    <main className={pageShellClassName}>
-      <section className="mx-auto max-w-4xl space-y-8">
-        <div className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[linear-gradient(135deg,rgba(18,18,24,0.92),rgba(14,14,18,0.86))] shadow-[0_24px_70px_rgba(0,0,0,0.28)]">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(245,182,111,0.16),_transparent_24%),radial-gradient(circle_at_right,_rgba(155,108,255,0.1),_transparent_24%)]" />
-          <div className="relative flex flex-col gap-5 px-5 py-6 sm:px-7 sm:py-7 lg:flex-row lg:items-end lg:justify-between lg:px-8">
-            <div className="space-y-3">
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#f5b66f]/18 bg-[#f5b66f]/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#f5b66f]">
-                <Sparkles className="h-3.5 w-3.5" aria-hidden />
+    <main className="min-h-full bg-[#000000] px-4 py-10 text-white sm:px-6 lg:px-8">
+    <section className="mx-auto max-w-4xl space-y-6">
+        <div>
+          <button
+            type="button"
+            onClick={() => navigate(routePaths.home)}
+            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-xs font-semibold text-white/70 transition hover:border-white/20 hover:bg-white/[0.07] hover:text-white"
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden />
+            <span>Trang chủ</span>
+          </button>
+        </div>
+
+        <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-6 sm:p-8 shadow-[0_24px_80px_rgba(0,0,0,0.36)]">
+          <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#f5b66f]">
                 Hồ sơ nghệ sĩ
-              </div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-white/42 sm:text-xs">
-                Tài khoản • Đăng kí nghệ sĩ
               </p>
-              <h1 className="max-w-2xl text-3xl font-semibold leading-tight tracking-tight text-white sm:text-4xl">
+              <h1 className="text-2xl font-semibold text-white sm:text-3xl">
                 Đăng kí nghệ sĩ
               </h1>
-              <p className="max-w-2xl text-sm leading-7 text-white/64 sm:text-base">
+              <p className="text-sm leading-relaxed text-white/55">
                 Hoàn thiện hồ sơ và giấy tờ xác minh để gửi yêu cầu nâng cấp tài khoản.
               </p>
             </div>
 
-            <div className="inline-flex items-center gap-3 self-start rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white/72 lg:self-auto">
-              <span className="h-2.5 w-2.5 rounded-full bg-[#f5b66f]" />
+            <div className="inline-flex items-center gap-2.5 rounded-xl border border-amber-400/20 bg-amber-400/8 px-3.5 py-2 text-xs font-semibold text-amber-300 shrink-0">
+              <span className="h-2 w-2 rounded-full bg-amber-400" />
               Chưa gửi hồ sơ
             </div>
           </div>
-        </div>
 
-        <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)] xl:items-start">
-          <div className={cardClassName}>
-            <div className="pointer-events-none absolute -left-20 top-8 h-40 w-40 rounded-full bg-[#ff9f43]/10 blur-3xl" />
-            <div className="pointer-events-none absolute bottom-0 right-0 h-48 w-48 rounded-full bg-[#9b6cff]/10 blur-3xl" />
-            <div className="relative p-6 sm:p-8 lg:p-10">
-              {submitError ? (
-                <div className="mb-6 rounded-2xl border border-rose-300/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
-                  {submitError}
-                </div>
-              ) : null}
+          <div className="relative mt-8">
+            {submitError ? (
+              <div className="mb-6 flex items-start gap-3 rounded-xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-200">
+                {submitError}
+              </div>
+            ) : null}
 
-              <form className="space-y-6" noValidate onSubmit={handleSubmit}>
+            <form className="space-y-6" noValidate onSubmit={handleSubmit}>
                 <SectionCard
                   title="Thông tin nghệ sĩ"
-                  subtitle="Giới thiệu thương hiệu cá nhân và định hướng âm nhạc của bạn một cách ngắn gọn, rõ ràng."
+                  subtitle="Thông tin cơ bản để tạo hồ sơ nghệ sĩ của bạn trên nền tảng."
                   icon={Sparkles}
                 >
                   <div className="grid gap-5 lg:grid-cols-2">
-                    <div className="lg:col-span-2">
-                      <FieldLabel required>Tên nghệ sĩ</FieldLabel>
+                    <div>
+                      <FieldLabel required>Tên nghệ sĩ (Stage name)</FieldLabel>
                       <TextInput
                         name="stageName"
                         value={formData.stageName}
                         onChange={handleChange}
-                        placeholder="Nhập nghệ danh của bạn"
+                        placeholder="Tên bạn muốn hiển thị trên nền tảng"
                         error={errors.stageName}
                       />
                       <FieldError>{errors.stageName}</FieldError>
                     </div>
 
                     <div className="lg:col-span-2">
-                      <FieldLabel>Tiểu sử nghệ sĩ</FieldLabel>
+                      <FieldLabel>Tiểu sử</FieldLabel>
                       <TextArea
                         name="bio"
                         value={formData.bio}
                         onChange={handleChange}
-                        rows={4}
-                        placeholder="Giới thiệu về phong cách âm nhạc, hành trình và cá tính nghệ thuật của bạn."
-                        error={errors.bio}
+                        rows={3}
+                        placeholder="Mô tả ngắn về bạn với tư cách là nghệ sĩ."
                       />
                     </div>
 
@@ -1260,7 +1251,7 @@ const ArtistRegistrationRequestPage = () => {
                       <FieldError>{errors.idNumber}</FieldError>
                     </div>
 
-                    <div>
+                    <div className="lg:col-span-2">
                       <FieldLabel required>Ngày sinh</FieldLabel>
                       <DateInput
                         name="dateOfBirth"
@@ -1272,23 +1263,25 @@ const ArtistRegistrationRequestPage = () => {
                       <FieldError>{errors.dateOfBirth}</FieldError>
                     </div>
 
-                    <UploadField
-                      name="frontImage"
-                      title="Ảnh mặt trước giấy tờ"
-                      required
-                      file={formData.frontImage}
-                      error={errors.frontImage}
-                      onFileSelect={handleFileSelect}
-                    />
+                    <div className="lg:col-span-2 grid gap-5 sm:grid-cols-2 items-start">
+                      <UploadField
+                        name="frontImage"
+                        title="Ảnh mặt trước giấy tờ"
+                        required
+                        file={formData.frontImage}
+                        error={errors.frontImage}
+                        onFileSelect={handleFileSelect}
+                      />
 
-                    <UploadField
-                      name="backImage"
-                      title="Ảnh mặt sau giấy tờ"
-                      required
-                      file={formData.backImage}
-                      error={errors.backImage}
-                      onFileSelect={handleFileSelect}
-                    />
+                      <UploadField
+                        name="backImage"
+                        title="Ảnh mặt sau giấy tờ"
+                        required
+                        file={formData.backImage}
+                        error={errors.backImage}
+                        onFileSelect={handleFileSelect}
+                      />
+                    </div>
                   </div>
                 </SectionCard>
 
@@ -1450,14 +1443,14 @@ const ArtistRegistrationRequestPage = () => {
                   <button
                     type="button"
                     onClick={() => navigate(-1)}
-                    className="inline-flex min-h-[54px] items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] px-6 text-sm font-medium text-white/85 transition hover:border-white/20 hover:bg-white/[0.06]"
+                    className="inline-flex min-h-[46px] items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-6 text-sm font-medium text-white/80 transition hover:bg-white/[0.07]"
                   >
                     Hủy
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="inline-flex min-h-[54px] items-center justify-center gap-2 rounded-2xl bg-[#f5b66f] px-6 text-sm font-semibold text-[#15181d] transition hover:bg-[#f7c789] disabled:cursor-not-allowed disabled:opacity-70"
+                    className="inline-flex min-h-[46px] items-center justify-center gap-2 rounded-xl bg-[#f5b66f] px-6 text-sm font-semibold text-[#15181d] transition hover:bg-[#f7c789] disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     {isSubmitting ? (
                       <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
@@ -1475,14 +1468,16 @@ const ArtistRegistrationRequestPage = () => {
             isOpen={Boolean(activeTerms)}
             termKey={activeTerms}
             onClose={() => setActiveTerms(null)}
-            onAccept={(termKey) =>
-              setReadTerms((previous) => ({ ...previous, [termKey]: true }))
-            }
+            onAccept={(termKey) => {
+              setReadTerms((previous) => ({ ...previous, [termKey]: true }));
+              setFormData((previous) => ({ ...previous, [termKey]: true }));
+              setErrors((previous) => ({ ...previous, [termKey]: undefined }));
+            }}
           />
-        </div>
-      </section>
-    </main>
-  );
-};
+        </section>
+      </main>
+    );
+  };
+
 
 export default ArtistRegistrationRequestPage;

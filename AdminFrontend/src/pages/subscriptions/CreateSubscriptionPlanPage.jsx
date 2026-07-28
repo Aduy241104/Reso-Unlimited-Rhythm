@@ -232,8 +232,6 @@ const CreateSubscriptionPlanPage = () => {
           </div>
         </div>
 
-        </div>
-
         <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
           <button
             type="button"

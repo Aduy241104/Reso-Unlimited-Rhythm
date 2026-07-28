@@ -1,25 +1,30 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
+  AlertTriangle,
   ArrowLeft,
-  CheckCircle,
-  Disc3,
-  ExternalLink,
+  Ban,
+  CheckCircle2,
+  CheckSquare,
+  Clock,
   Eye,
   FileText,
-  Flag,
+  History,
   Image as ImageIcon,
+  Layers,
   Loader2,
-  Music2,
+  ShieldAlert,
   User,
+  X,
   XCircle,
+  XSquare,
 } from "lucide-react";
-import { getAdminAlbumDetailService } from "../../services/albumService";
-import { getAdminArtistDetailService } from "../../services/artistService";
-import { getReportDetailService, updateReportStatusService } from "../../services/reportService";
-import { getAdminTrackDetailService } from "../../services/trackService";
+import {
+  getGroupedReportDetailService,
+  getReportDetailService,
+  resolveGroupedReportService,
+} from "../../services/reportService";
 import { routePaths } from "../../routes/routePaths";
-import toast from "react-hot-toast";
 
 const reasonLabels = {
   copyright_infringement: "Vi phạm bản quyền",
@@ -32,64 +37,17 @@ const reasonLabels = {
   other: "Khác",
 };
 
-const resolutionLabels = {
-  remove_content: "Gỡ bỏ nội dung vi phạm",
-  ignore: "Bỏ qua báo cáo",
-  warning: "Cảnh báo người dùng",
-  resolved: "Đã xử lý",
-  rejected: "Từ chối",
-  "": "—",
-};
-
-const getStatusConfig = (status) => {
-  switch (status) {
-    case "pending":
-    case "reviewing":
-      return {
-        label: "Đang xem xét",
-        icon: Eye,
-        bg: "bg-blue-50",
-        text: "text-blue-600",
-        border: "border-blue-200",
-      };
-    case "resolved":
-      return {
-        label: "Đã xử lý",
-        icon: CheckCircle,
-        bg: "bg-emerald-50",
-        text: "text-emerald-600",
-        border: "border-emerald-200",
-      };
-    case "rejected":
-      return {
-        label: "Từ chối",
-        icon: XCircle,
-        bg: "bg-rose-50",
-        text: "text-rose-600",
-        border: "border-rose-200",
-      };
-    default:
-      return {
-        label: "Đang xem xét",
-        icon: Eye,
-        bg: "bg-blue-50",
-        text: "text-blue-600",
-        border: "border-blue-200",
-      };
-  }
-};
-
 const getTargetTypeBadge = (type) => {
   const colors = {
-    track: "bg-violet-100 text-violet-700",
-    album: "bg-orange-100 text-orange-700",
-    artist: "bg-cyan-100 text-cyan-700",
+    track: "bg-violet-50 text-violet-700 border-violet-200",
+    album: "bg-orange-50 text-orange-700 border-orange-200",
+    artist: "bg-cyan-50 text-cyan-700 border-cyan-200",
   };
 
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-3 py-1 text-sm font-medium capitalize ${
-        colors[type] || "bg-slate-100 text-slate-700"
+      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold capitalize ${
+        colors[type] || "bg-slate-100 text-slate-700 border-slate-200"
       }`}
     >
       {type}
@@ -97,903 +55,679 @@ const getTargetTypeBadge = (type) => {
   );
 };
 
-const getTargetEntityLabel = (type) => {
-  switch (type) {
-    case "track":
-      return "Bài hát";
-    case "album":
-      return "Album";
-    case "artist":
-      return "Nghệ sĩ";
-    default:
-      return "Nội dung";
-  }
-};
-
-const formatDate = (date) => {
-  if (!date) {
-    return "—";
-  }
-
-  return new Date(date).toLocaleString("vi-VN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
-
-const formatDateOnly = (date) => {
-  if (!date) {
-    return "—";
-  }
-
-  return new Date(date).toLocaleDateString("vi-VN");
-};
-
-const formatDuration = (seconds) => {
-  const normalizedSeconds = Number(seconds);
-
-  if (!Number.isFinite(normalizedSeconds) || normalizedSeconds <= 0) {
-    return "00:00";
-  }
-
-  const minutes = Math.floor(normalizedSeconds / 60);
-  const remainingSeconds = Math.floor(normalizedSeconds % 60);
-  return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
-};
-
-const getTargetDetailRoute = (targetType, targetId) => {
-  if (!targetId) {
-    return "";
-  }
-
-  switch (targetType) {
-    case "track":
-      return routePaths.trackDetail(targetId);
-    case "album":
-      return routePaths.albumDetail(targetId);
-    case "artist":
-      return routePaths.artistDetail(targetId);
-    default:
-      return "";
-  }
-};
-
-const getTargetPreviewImage = (targetType, preview, targetInfo) => {
-  if (targetType === "track") {
-    return preview?.avatar || preview?.coverImage || targetInfo?.avatar || "";
-  }
-
-  if (targetType === "album") {
-    return preview?.coverImage || targetInfo?.coverImage || "";
-  }
-
-  if (targetType === "artist") {
-    return preview?.avatar || targetInfo?.avatar || "";
-  }
-
-  return "";
-};
-
-const InfoCard = ({ icon: Icon, title, children }) => (
-  <div className="rounded-2xl border border-slate-200 bg-white p-5">
-    <div className="mb-4 flex items-center gap-2">
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100">
-        <Icon size={16} className="text-slate-600" />
-      </div>
-      <h3 className="text-sm font-semibold text-slate-700">{title}</h3>
-    </div>
-    {children}
-  </div>
-);
-
-const DetailRow = ({ label, value }) => (
-  <div className="flex items-center justify-between gap-4 py-2">
-    <span className="text-sm text-slate-500">{label}</span>
-    <span className="text-sm font-medium text-slate-700 text-right">{value || "—"}</span>
-  </div>
-);
-
-const ModalShell = ({ title, subtitle, onClose, children }) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-    <div className="w-full max-w-2xl rounded-3xl bg-white shadow-2xl">
-      <div className="flex items-start justify-between gap-4 border-b border-slate-200 p-6">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-            Quản lý nội dung
-          </p>
-          <h3 className="mt-2 text-xl font-semibold text-slate-950">{title}</h3>
-          {subtitle ? <p className="mt-1 text-sm text-slate-500">{subtitle}</p> : null}
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50"
-        >
-          <XCircle size={18} />
-        </button>
-      </div>
-      <div className="max-h-[75vh] overflow-y-auto p-6">{children}</div>
-    </div>
-  </div>
-);
-
-const renderTargetPreviewDetails = (targetType, preview, targetInfo) => {
-  if (targetType === "track") {
-    return (
-      <div className="space-y-4">
-        <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:grid-cols-2">
-          <DetailRow label="Tên bài hát" value={preview?.title || targetInfo?.title} />
-          <DetailRow
-            label="Nghệ sĩ"
-            value={preview?.artist?.name || preview?.artist_artistId?.name || targetInfo?.artist_artistId?.name}
-          />
-          <DetailRow label="Thời lượng" value={formatDuration(preview?.duration)} />
-          <DetailRow label="Ngày phát hành" value={formatDateOnly(preview?.releaseDate)} />
-          <DetailRow label="Trạng thái duyệt" value={preview?.approvalStatus || "—"} />
-          <DetailRow label="Trạng thái hiển thị" value={preview?.activeStatus || "—"} />
-        </div>
-
-        {preview?.stats ? (
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <p className="text-xs uppercase tracking-wide text-slate-400">Lượt nghe</p>
-              <p className="mt-2 text-lg font-semibold text-slate-900">
-                {(preview.stats.totalPlay || 0).toLocaleString("vi-VN")}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <p className="text-xs uppercase tracking-wide text-slate-400">Lượt thích</p>
-              <p className="mt-2 text-lg font-semibold text-slate-900">
-                {(preview.stats.likes || 0).toLocaleString("vi-VN")}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <p className="text-xs uppercase tracking-wide text-slate-400">Lượt chia sẻ</p>
-              <p className="mt-2 text-lg font-semibold text-slate-900">
-                {(preview.stats.shares || 0).toLocaleString("vi-VN")}
-              </p>
-            </div>
-          </div>
-        ) : null}
-      </div>
-    );
-  }
-
-  if (targetType === "album") {
-    return (
-      <div className="space-y-4">
-        <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:grid-cols-2">
-          <DetailRow label="Tên album" value={preview?.title || targetInfo?.title} />
-          <DetailRow label="Nghệ sĩ" value={preview?.artist?.name || targetInfo?.artistId?.name} />
-          <DetailRow label="Ngày phát hành" value={formatDateOnly(preview?.releaseDate)} />
-          <DetailRow label="Trạng thái" value={preview?.status || "—"} />
-          <DetailRow label="Số bài hát" value={String(preview?.trackCount || preview?.tracks?.length || 0)} />
-          <DetailRow label="Tổng thời lượng" value={formatDuration(preview?.totalDuration)} />
-        </div>
-
-        {Array.isArray(preview?.tracks) && preview.tracks.length > 0 ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <p className="mb-3 text-sm font-semibold text-slate-700">Danh sách bài hát nổi bật</p>
-            <div className="space-y-2">
-              {preview.tracks.slice(0, 5).map((item) => (
-                <div
-                  key={`${item?.order}-${item?.track?.id || "track"}`}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-slate-800">
-                      {item?.order ? `${item.order}. ` : ""}
-                      {item?.track?.title || "Bài hát không xác định"}
-                    </p>
-                    <p className="truncate text-xs text-slate-500">
-                      {item?.track?.artist?.name || "Nghệ sĩ không xác định"}
-                    </p>
-                  </div>
-                  <span className="text-xs font-medium text-slate-500">
-                    {formatDuration(item?.track?.duration)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
-      </div>
-    );
-  }
-
-  if (targetType === "artist") {
-    return (
-      <div className="space-y-4">
-        <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:grid-cols-2">
-          <DetailRow label="Tên nghệ sĩ" value={preview?.name || targetInfo?.name} />
-          <DetailRow label="Email liên kết" value={preview?.email || "—"} />
-          <DetailRow label="Trạng thái hoạt động" value={preview?.activeStatus || "—"} />
-          <DetailRow label="Xác minh" value={preview?.verificationStatus || "—"} />
-          <DetailRow label="Tổng bài hát" value={String(preview?.metrics?.totalTracks || preview?.totalTracks || 0)} />
-          <DetailRow label="Tổng album" value={String(preview?.metrics?.totalAlbums || 0)} />
-        </div>
-
-        {preview?.bio ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <p className="mb-2 text-sm font-semibold text-slate-700">Tiểu sử</p>
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-600">
-              {preview.bio}
-            </p>
-          </div>
-        ) : null}
-
-        {preview?.metrics ? (
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <p className="text-xs uppercase tracking-wide text-slate-400">Followers</p>
-              <p className="mt-2 text-lg font-semibold text-slate-900">
-                {(preview.metrics.followers || preview.stats?.followers || 0).toLocaleString("vi-VN")}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <p className="text-xs uppercase tracking-wide text-slate-400">Streams</p>
-              <p className="mt-2 text-lg font-semibold text-slate-900">
-                {(preview.metrics.totalStreams || preview.stats?.totalStreams || 0).toLocaleString("vi-VN")}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <p className="text-xs uppercase tracking-wide text-slate-400">Monthly listeners</p>
-              <p className="mt-2 text-lg font-semibold text-slate-900">
-                {(preview.metrics.monthlyListeners || 0).toLocaleString("vi-VN")}
-              </p>
-            </div>
-          </div>
-        ) : null}
-      </div>
-    );
-  }
-
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
-      Không có dữ liệu xem nhanh cho loại nội dung này.
-    </div>
-  );
-};
-
 const ReportDetailPage = () => {
-  const { reportId } = useParams();
+  const params = useParams();
   const navigate = useNavigate();
-  const [report, setReport] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+
+  const [detail, setDetail] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [message, setMessage] = useState("");
-  const [messageTone, setMessageTone] = useState("error");
-  const [showRejectModal, setShowRejectModal] = useState(false);
-  const [rejectResolution, setRejectResolution] = useState("");
-  const [rejectNote, setRejectNote] = useState("");
-  const [rejectResolutionError, setRejectResolutionError] = useState("");
-  const [showResolveModal, setShowResolveModal] = useState(false);
-  const [resolveNote, setResolveNote] = useState("");
-  const [selectedResolution, setSelectedResolution] = useState("");
-  const [resolutionError, setResolutionError] = useState("");
-  const [showTargetPreviewModal, setShowTargetPreviewModal] = useState(false);
-  const [targetPreview, setTargetPreview] = useState(null);
-  const [isTargetPreviewLoading, setIsTargetPreviewLoading] = useState(false);
-  const [targetPreviewError, setTargetPreviewError] = useState("");
+  const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
-  const loadReport = async () => {
-    if (!reportId) {
-      return;
-    }
+  // Form states
+  const [evaluations, setEvaluations] = useState({}); // { [reportId]: boolean }
+  const [selectedAction, setSelectedAction] = useState("warn");
+  const [resolutionNote, setResolutionNote] = useState("");
 
+  // Preview Image Modal state
+  const [previewImage, setPreviewImage] = useState(null);
+
+  const loadData = async () => {
     setIsLoading(true);
-    setMessage("");
+    setError("");
 
     try {
-      const result = await getReportDetailService(reportId);
-      setReport(result);
-    } catch (error) {
-      setMessageTone("error");
-      setMessage(
-        error?.response?.data?.message ||
-          error?.message ||
-          "Không thể tải chi tiết báo cáo."
-      );
+      let targetType = params.targetType;
+      let targetId = params.targetId;
+
+      if (!targetType || !targetId) {
+        const singleReport = await getReportDetailService(params.reportId);
+        if (singleReport && singleReport.targetType && singleReport.targetId) {
+          targetType = singleReport.targetType;
+          targetId = String(singleReport.targetId);
+        } else if (singleReport && singleReport.detail) {
+          setDetail(singleReport.detail);
+          initEvaluations(singleReport.detail.reports);
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      if (!targetType || !targetId) {
+        setError("Không xác định được thông tin báo cáo.");
+        setIsLoading(false);
+        return;
+      }
+
+      const res = await getGroupedReportDetailService(targetType, targetId);
+      setDetail(res);
+      initEvaluations(res?.reports || []);
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || "Không thể tải chi tiết báo cáo.");
+      console.error(err);
     } finally {
       setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    void loadReport();
-  }, [reportId]);
+  const initEvaluations = (reports = []) => {
+    const initial = {};
+    reports.forEach((r) => {
+      // For pending reports, default to false (không vi phạm).
+      // For handled reports, use saved isValidReason value.
+      initial[r._id] = r.isValidReason === true;
+    });
+    setEvaluations(initial);
+  };
 
-  const targetDetailRoute = useMemo(
-    () => getTargetDetailRoute(report?.targetType, report?.targetId),
-    [report?.targetId, report?.targetType]
+  useEffect(() => {
+    void loadData();
+  }, [params.targetType, params.targetId, params.reportId]);
+
+  const hasAnyValidEvaluation = Object.values(evaluations).some((v) => v === true);
+
+  // Auto switch away from "reject" if any report is marked as Valid (Vi phạm)
+  useEffect(() => {
+    if (hasAnyValidEvaluation && selectedAction === "reject") {
+      setSelectedAction("warn");
+    }
+  }, [hasAnyValidEvaluation, selectedAction]);
+
+  const handleToggleEvaluation = (reportId, isValid) => {
+    setEvaluations((prev) => ({
+      ...prev,
+      [reportId]: isValid,
+    }));
+  };
+
+  const handleSubmitResolution = async (e) => {
+    e.preventDefault();
+    if (!detail) return;
+
+    if (hasAnyValidEvaluation && selectedAction === "reject") {
+      setError("Không thể chọn Từ chối (Reject) khi có ít nhất 1 báo cáo được đánh giá là Vi phạm hợp lệ.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError("");
+    setSuccessMessage("");
+
+    try {
+      const payload = {
+        evaluations: Object.entries(evaluations).map(([reportId, isValid]) => ({
+          reportId,
+          isValid,
+        })),
+        action: selectedAction,
+        resolutionNote: resolutionNote.trim(),
+      };
+
+      const res = await resolveGroupedReportService(
+        detail.targetType,
+        detail.targetId,
+        payload
+      );
+
+      const penaltyMsg = res.penaltyAppliedMessage
+        ? ` (${res.penaltyAppliedMessage})`
+        : "";
+      setSuccessMessage(`Đã xử lý báo cáo thành công!${penaltyMsg}`);
+
+      setTimeout(() => {
+        void loadData();
+      }, 1200);
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || "Xử lý báo cáo thất bại.");
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <section className="flex min-h-[60vh] items-center justify-center">
+        <div className="flex items-center gap-3 text-slate-500 font-medium">
+          <Loader2 size={24} className="animate-spin text-blue-600" />
+          <span>Đang tải thông tin chi tiết báo cáo...</span>
+        </div>
+      </section>
+    );
+  }
+
+  if (error || !detail) {
+    return (
+      <section className="p-6 space-y-4">
+        <button
+          onClick={() => navigate(routePaths.reports)}
+          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900"
+        >
+          <ArrowLeft size={18} /> Quay lại danh sách
+        </button>
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-700">
+          <p className="font-semibold">{error || "Không tìm thấy báo cáo."}</p>
+        </div>
+      </section>
+    );
+  }
+
+  const target = detail.targetInfo;
+  const title = target?.title || target?.name || "Nội dung không còn tồn tại";
+  const avatar = target?.avatar || target?.coverImage || "";
+  const artistName = detail.artistInfo?.name || "Nghệ sĩ";
+  const artistViolations = detail.artistViolationsCount || 0;
+  const artistStatus = detail.artistActiveStatus || "active";
+
+  // Separate reports into Pending (Chưa xử lý) vs Processed (Lịch sử đã xử lý)
+  const pendingReports = (detail.reports || []).filter(
+    (r) => r.status === "pending" || r.status === "reviewing"
+  );
+  const processedReports = (detail.reports || []).filter(
+    (r) => r.status === "resolved" || r.status === "rejected"
   );
 
-  const loadTargetPreview = async () => {
-    if (!report?.targetId || !report?.targetType) {
-      setTargetPreview(null);
-      setTargetPreviewError("Không xác định được nội dung bị báo cáo.");
-      setShowTargetPreviewModal(true);
-      return;
-    }
-
-    setShowTargetPreviewModal(true);
-    setIsTargetPreviewLoading(true);
-    setTargetPreviewError("");
-    setTargetPreview(null);
-
-    try {
-      let result = null;
-
-      switch (report.targetType) {
-        case "track":
-          result = await getAdminTrackDetailService(report.targetId);
-          break;
-        case "album":
-          result = await getAdminAlbumDetailService(report.targetId);
-          break;
-        case "artist":
-          result = await getAdminArtistDetailService(report.targetId);
-          break;
-        default:
-          throw new Error("Loại nội dung chưa được hỗ trợ.");
-      }
-
-      setTargetPreview(result);
-    } catch (error) {
-      setTargetPreviewError(
-        error?.response?.data?.message ||
-          error?.message ||
-          "Không thể tải chi tiết nội dung bị báo cáo."
-      );
-    } finally {
-      setIsTargetPreviewLoading(false);
-    }
-  };
-
-  const closeTargetPreviewModal = () => {
-    setShowTargetPreviewModal(false);
-    setTargetPreview(null);
-    setTargetPreviewError("");
-    setIsTargetPreviewLoading(false);
-  };
-
-  const handleOpenTargetDetailPage = () => {
-    if (!targetDetailRoute) {
-      return;
-    }
-
-    closeTargetPreviewModal();
-    navigate(targetDetailRoute);
-  };
-
-  const handleStatusUpdate = async (newStatus, note = "", resolution = "") => {
-    setIsSubmitting(true);
-    setMessage("");
-
-    try {
-      const result = await updateReportStatusService(reportId, {
-        status: newStatus,
-        resolutionNote: note,
-        resolution,
-      });
-      setReport(result);
-      setMessageTone("success");
-      setMessage("Cập nhật trạng thái thành công.");
-      toast.success("Cập nhật trạng thái thành công");
-    } catch (error) {
-      setMessageTone("error");
-      setMessage(
-        error?.response?.data?.message ||
-          error?.message ||
-          "Cập nhật trạng thái thất bại."
-      );
-      toast.error("Cập nhật trạng thái thất bại");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleReject = async () => {
-    if (!rejectResolution.trim()) {
-      toast.error("Vui lòng nhập hình thức từ chối");
-      return;
-    }
-
-    setIsSubmitting(true);
-    setMessage("");
-
-    try {
-      const result = await updateReportStatusService(reportId, {
-        status: "rejected",
-        resolution: rejectResolution.trim(),
-        resolutionNote: rejectNote.trim(),
-      });
-      setReport(result);
-      setShowRejectModal(false);
-      setRejectResolution("");
-      setRejectNote("");
-      setRejectResolutionError("");
-      setMessageTone("success");
-      setMessage("Từ chối báo cáo thành công.");
-      toast.success("Từ chối báo cáo thành công");
-    } catch (error) {
-      setMessageTone("error");
-      setMessage(
-        error?.response?.data?.message ||
-          error?.message ||
-          "Từ chối báo cáo thất bại."
-      );
-      toast.error("Từ chối báo cáo thất bại");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const statusConfig = report ? getStatusConfig(report.status) : null;
-  const StatusIcon = statusConfig?.icon || Eye;
-  const reporter = report?.userId;
-  const reporterName = reporter?.profile?.fullName || reporter?.email || "—";
-  const handler = report?.handledBy;
-  const targetImage = getTargetPreviewImage(report?.targetType, targetPreview, report?.targetInfo);
-  const targetPreviewTitle =
-    targetPreview?.title ||
-    targetPreview?.name ||
-    report?.targetInfo?.title ||
-    report?.targetInfo?.name ||
-    "Nội dung bị báo cáo";
-
   return (
-    <section className="min-h-screen space-y-5 bg-slate-50/50 p-3 font-sans text-slate-800 antialiased lg:p-5">
-      <div className="flex items-center gap-4">
-        <Link
-          to={routePaths.reports}
-          className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white transition hover:bg-slate-50"
+    <section className="min-h-screen space-y-6 bg-slate-50/50 p-3 lg:p-5 font-sans text-slate-800 antialiased">
+      {/* Back Link */}
+      <div className="flex items-center justify-between">
+        <button
+          onClick={() => navigate(routePaths.reports)}
+          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-slate-900"
         >
-          <ArrowLeft size={18} className="text-slate-600" />
-        </Link>
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
-            Quản lý nội dung
-          </p>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
-            Chi tiết báo cáo
-          </h1>
+          <ArrowLeft size={18} />
+          <span>Quay lại danh sách báo cáo</span>
+        </button>
+
+        <div>{getTargetTypeBadge(detail.targetType)}</div>
+      </div>
+
+      {/* Target Content Banner */}
+      <div className="rounded-2xl bg-white p-6 shadow-[0_12px_32px_rgba(15,23,42,0.06)] grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-6 items-center">
+        <div className="flex items-center gap-4 min-w-0">
+          {avatar ? (
+            <img
+              src={avatar}
+              alt=""
+              className="h-20 w-20 rounded-2xl object-cover shrink-0 shadow-md border border-slate-100"
+            />
+          ) : (
+            <div className="h-20 w-20 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center shrink-0">
+              <Layers size={32} />
+            </div>
+          )}
+
+          <div className="min-w-0 space-y-1">
+            <div className="flex items-center gap-2">
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">
+                Nội dung bị báo cáo ({detail.targetType})
+              </p>
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-950 truncate">
+              {title}
+            </h1>
+            <p className="text-sm font-medium text-slate-500 flex items-center gap-1.5">
+              <span>Tác giả:</span>
+              <span className="font-semibold text-slate-800">{artistName}</span>
+            </p>
+          </div>
+        </div>
+
+        {/* Artist Violation Stats Summary Card */}
+        <div className="rounded-xl bg-slate-50 border border-slate-200/80 p-4 min-w-[260px] space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+              <ShieldAlert size={14} className="text-amber-500" />
+              Số lần vi phạm của Nghệ sĩ
+            </span>
+            <span
+              className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                artistStatus === "blocked"
+                  ? "bg-red-100 text-red-700"
+                  : "bg-emerald-100 text-emerald-700"
+              }`}
+            >
+              {artistStatus === "blocked" ? "Tài khoản bị khóa" : "Hoạt động"}
+            </span>
+          </div>
+
+          <div className="flex items-baseline justify-between pt-1">
+            <span className="text-3xl font-extrabold text-slate-900">
+              {artistViolations}
+            </span>
+            <span className="text-xs text-slate-500 font-medium">
+              {artistViolations >= 5
+                ? "Đã đạt ngưỡng Khóa tài khoản"
+                : `${artistViolations}/5 vi phạm`}
+            </span>
+          </div>
         </div>
       </div>
 
-      {message ? (
-        <div
-          className={`rounded-xl px-5 py-4 text-sm ${
-            messageTone === "success"
-              ? "bg-emerald-50 text-emerald-700"
-              : "bg-red-50 text-red-700"
-          }`}
-        >
-          {message}
-        </div>
-      ) : null}
-
-      {isLoading ? (
-        <div className="rounded-2xl bg-white px-6 py-20 text-center text-sm text-slate-600">
-          Đang tải chi tiết báo cáo...
-        </div>
-      ) : !report ? (
-        <div className="rounded-2xl bg-white px-6 py-20 text-center text-sm text-slate-500">
-          Không tìm thấy báo cáo.
-        </div>
-      ) : (
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
-          <div className="space-y-5">
-            {(report.status === "resolved" || report.status === "rejected") ? (
-              <div
-                className={`rounded-2xl border p-5 shadow-lg ${
-                  report.status === "resolved"
-                    ? "border-emerald-200 bg-gradient-to-br from-emerald-50 to-emerald-100"
-                    : "border-rose-200 bg-gradient-to-br from-rose-50 to-rose-100"
-                }`}
-              >
-                <div className="mb-3 flex items-center gap-3">
-                  {report.status === "resolved" ? (
-                    <CheckCircle size={24} className="text-emerald-600" />
-                  ) : (
-                    <XCircle size={24} className="text-rose-600" />
-                  )}
-                  <h3
-                    className={`text-lg font-semibold ${
-                      report.status === "resolved"
-                        ? "text-emerald-800"
-                        : "text-rose-800"
-                    }`}
-                  >
-                    {report.status === "resolved" ? "Kết quả xử lý" : "Lý do từ chối"}
-                  </h3>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-sm text-slate-500">Hình thức xử lý</span>
-                    <span
-                      className={`text-sm font-semibold ${
-                        report.status === "resolved"
-                          ? "text-emerald-700"
-                          : "text-rose-700"
-                      }`}
-                    >
-                      {resolutionLabels[report.resolution] || report.resolution || "—"}
-                    </span>
-                  </div>
-                  {report.resolutionNote ? (
-                    <div className="mt-2 border-t border-slate-200/50 pt-2">
-                      <span className="text-sm text-slate-500">Ghi chú từ quản trị viên</span>
-                      <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">
-                        {report.resolutionNote}
-                      </p>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-            ) : null}
-
-            <InfoCard icon={Flag} title="Thông tin báo cáo">
-              <div className="space-y-1">
-                <DetailRow label="Trạng thái" value={statusConfig?.label} />
-                <DetailRow label="Loại nội dung" value={getTargetEntityLabel(report.targetType)} />
-                <DetailRow
-                  label="Lý do báo cáo"
-                  value={reasonLabels[report.reason] || report.reason}
-                />
-                <DetailRow label="Ngày tạo" value={formatDate(report.createdAt)} />
-                <DetailRow label="Ngày xử lý" value={formatDate(report.handledAt)} />
-              </div>
-            </InfoCard>
-
-            <InfoCard icon={FileText} title="Mô tả chi tiết">
-              <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-600">
-                {report.description || "Không có mô tả."}
-              </p>
-            </InfoCard>
-
-            {report.images?.length > 0 ? (
-              <InfoCard icon={ImageIcon} title={`Hình ảnh đính kèm (${report.images.length})`}>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {report.images.map((url, index) => (
-                    <a
-                      key={index}
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="aspect-square overflow-hidden rounded-xl border border-slate-200 bg-slate-50 transition hover:opacity-80"
-                    >
-                      <img
-                        src={url}
-                        alt={`Hình ảnh ${index + 1}`}
-                        className="h-full w-full object-cover"
-                      />
-                    </a>
-                  ))}
-                </div>
-              </InfoCard>
-            ) : null}
-          </div>
-
-          <div className="space-y-5">
-            <InfoCard icon={User} title="Người báo cáo">
-              <div className="space-y-1">
-                <DetailRow label="Họ và tên" value={reporterName} />
-                <DetailRow label="Email" value={reporter?.email} />
-              </div>
-            </InfoCard>
-
-            {handler ? (
-              <InfoCard icon={CheckCircle} title="Người xử lý">
-                <div className="space-y-1">
-                  <DetailRow
-                    label="Họ và tên"
-                    value={handler?.profile?.fullName || handler?.email || "—"}
-                  />
-                  <DetailRow label="Email" value={handler?.email} />
-                </div>
-              </InfoCard>
-            ) : null}
-
-            <InfoCard icon={Flag} title="Nội dung bị báo cáo">
-              <div className="space-y-3">
-                <DetailRow label="Loại" value={getTargetEntityLabel(report.targetType)} />
-                <DetailRow
-                  label={getTargetEntityLabel(report.targetType)}
-                  value={report.targetInfo?.title || report.targetInfo?.name || "—"}
-                />
-                <DetailRow
-                  label="Nghệ sĩ liên quan"
-                  value={report.targetInfo?.artist_artistId?.name || report.targetInfo?.artistId?.name || "—"}
-                />
-                <DetailRow label="Mã nội dung" value={report.targetId} />
-              </div>
-
-              <button
-                type="button"
-                onClick={() => void loadTargetPreview()}
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
-              >
-                <Eye size={16} />
-                Xem kỹ nội dung bị báo cáo
-              </button>
-            </InfoCard>
-
-            {report.status !== "resolved" && report.status !== "rejected" ? (
-              <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                <h3 className="mb-4 text-sm font-semibold text-slate-700">Hành động</h3>
-                <div className="space-y-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowResolveModal(true)}
-                    disabled={isSubmitting}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-600 transition hover:bg-emerald-100 disabled:opacity-50"
-                  >
-                    <CheckCircle size={16} />
-                    Xác nhận đã xử lý
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowRejectModal(true)}
-                    disabled={isSubmitting}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-100 disabled:opacity-50"
-                  >
-                    <XCircle size={16} />
-                    Từ chối báo cáo
-                  </button>
-                </div>
-              </div>
-            ) : null}
-          </div>
+      {/* Messages */}
+      {successMessage && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 flex items-center gap-2">
+          <CheckCircle2 size={18} />
+          {successMessage}
         </div>
       )}
 
-      {showResolveModal ? (
-        <ModalShell
-          title="Xác nhận đã xử lý"
-          subtitle="Ghi nhận kết quả xử lý để lưu lại lịch sử điều hành."
-          onClose={() => {
-            setShowResolveModal(false);
-            setResolveNote("");
-            setSelectedResolution("");
-            setResolutionError("");
-          }}
-        >
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 flex items-center gap-2">
+          <AlertTriangle size={18} />
+          {error}
+        </div>
+      )}
+
+      {/* Main Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-6">
+        {/* LEFT: Reports List */}
+        <div className="space-y-6">
+          {/* SECTION 1: Pending/New Reports */}
           <div className="space-y-4">
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">
-                Hình thức xử lý <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={selectedResolution}
-                onChange={(event) => {
-                  setSelectedResolution(event.target.value);
-                  setResolutionError("");
-                }}
-                placeholder="Nhập hình thức xử lý..."
-                className={`w-full rounded-xl border p-3 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 ${
-                  resolutionError
-                    ? "border-rose-400 focus:border-rose-500"
-                    : "border-slate-200 focus:border-emerald-500"
-                }`}
-              />
-              {resolutionError ? (
-                <p className="mt-1 text-xs text-rose-500">{resolutionError}</p>
-              ) : null}
+            <div className="flex items-center justify-between px-1 border-b border-slate-200 pb-2">
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <FileText size={18} className="text-blue-600" />
+                <span>Báo cáo mới cần xử lý ({pendingReports.length})</span>
+              </h2>
+              <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-100 shadow-sm">
+                Đợt xử lý hiện tại
+              </span>
             </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">
-                Ghi chú từ quản trị viên
-              </label>
-              <textarea
-                value={resolveNote}
-                onChange={(event) => setResolveNote(event.target.value)}
-                placeholder="Nhập ghi chú về cách xử lý báo cáo..."
-                rows={4}
-                className="w-full rounded-xl border border-slate-200 p-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              />
-            </div>
+            {pendingReports.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center text-slate-400 italic text-sm">
+                Không có báo cáo mới nào đang chờ duyệt.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {pendingReports.map((report, idx) => {
+                  const reporterName =
+                    report.userId?.profile?.fullName || report.userId?.email || "Người dùng ẩn danh";
+                  const reporterEmail = report.userId?.email || "";
+                  const reportDate = report.createdAt
+                    ? new Date(report.createdAt).toLocaleString("vi-VN", {
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "—";
 
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowResolveModal(false);
-                  setResolveNote("");
-                  setSelectedResolution("");
-                  setResolutionError("");
-                }}
-                className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
-              >
-                Hủy
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!selectedResolution.trim()) {
-                    setResolutionError("Vui lòng nhập hình thức xử lý");
-                    return;
-                  }
+                  const isEvalValid = evaluations[report._id] === true;
 
-                  void handleStatusUpdate(
-                    "resolved",
-                    resolveNote.trim(),
-                    selectedResolution.trim()
-                  );
-                  setShowResolveModal(false);
-                  setResolveNote("");
-                  setSelectedResolution("");
-                  setResolutionError("");
-                }}
-                disabled={isSubmitting}
-                className="flex-1 rounded-xl border border-emerald-200 bg-emerald-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-600 disabled:opacity-50"
-              >
-                {isSubmitting ? "Đang xử lý..." : "Xác nhận"}
-              </button>
-            </div>
-          </div>
-        </ModalShell>
-      ) : null}
+                  return (
+                    <div
+                      key={report._id}
+                      className={`rounded-2xl bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.04)] border transition ${
+                        isEvalValid ? "border-amber-300 bg-amber-50/20" : "border-blue-200 bg-blue-50/10"
+                      }`}
+                    >
+                      {/* Header */}
+                      <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="h-9 w-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">
+                            <User size={18} />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-bold text-slate-900">{reporterName}</p>
+                              <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-[10px] font-bold text-blue-700 border border-blue-200">
+                                <span className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-pulse"></span>
+                                Mới gửi (Chưa xử lý)
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-400">{reporterEmail}</p>
+                          </div>
+                        </div>
 
-      {showRejectModal ? (
-        <ModalShell
-          title="Từ chối báo cáo"
-          subtitle="Lưu lại lý do từ chối để hỗ trợ truy vết và phản hồi."
-          onClose={() => {
-            setShowRejectModal(false);
-            setRejectResolution("");
-            setRejectNote("");
-            setRejectResolutionError("");
-          }}
-        >
-          <div className="space-y-4">
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">
-                Hình thức từ chối <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={rejectResolution}
-                onChange={(event) => {
-                  setRejectResolution(event.target.value);
-                  setRejectResolutionError("");
-                }}
-                placeholder="Nhập hình thức từ chối..."
-                className={`w-full rounded-xl border p-3 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500/20 ${
-                  rejectResolutionError
-                    ? "border-rose-400 focus:border-rose-500"
-                    : "border-slate-200 focus:border-rose-500"
-                }`}
-              />
-              {rejectResolutionError ? (
-                <p className="mt-1 text-xs text-rose-500">{rejectResolutionError}</p>
-              ) : null}
-            </div>
+                        <div className="text-right">
+                          <span className="inline-flex items-center rounded-lg bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-600 border border-red-100">
+                            {reasonLabels[report.reason] || report.reason}
+                          </span>
+                          <p className="mt-1 text-[11px] text-slate-400 flex items-center justify-end gap-1">
+                            <Clock size={12} />
+                            {reportDate}
+                          </p>
+                        </div>
+                      </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">
-                Ghi chú từ quản trị viên
-              </label>
-              <textarea
-                value={rejectNote}
-                onChange={(event) => setRejectNote(event.target.value)}
-                placeholder="Nhập ghi chú thêm (không bắt buộc)..."
-                rows={4}
-                className="w-full rounded-xl border border-slate-200 p-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-500/20"
-              />
-            </div>
+                      {/* Content */}
+                      <div className="py-3 space-y-2">
+                        <p className="text-sm text-slate-700 leading-relaxed">
+                          {report.description || "Người dùng không ghi thêm mô tả chi tiết."}
+                        </p>
 
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowRejectModal(false);
-                  setRejectResolution("");
-                  setRejectNote("");
-                  setRejectResolutionError("");
-                }}
-                className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
-              >
-                Hủy
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!rejectResolution.trim()) {
-                    setRejectResolutionError("Vui lòng nhập hình thức từ chối");
-                    return;
-                  }
+                        {report.images && report.images.length > 0 && (
+                          <div className="pt-2">
+                            <p className="text-xs font-semibold text-slate-400 mb-2 flex items-center gap-1">
+                              <ImageIcon size={14} /> Hình ảnh đính kèm ({report.images.length})
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {report.images.map((imgUrl, imgIdx) => (
+                                <button
+                                  key={imgIdx}
+                                  type="button"
+                                  onClick={() => setPreviewImage(imgUrl)}
+                                  className="group relative overflow-hidden rounded-xl border border-slate-200 hover:border-blue-500 transition"
+                                >
+                                  <img
+                                    src={imgUrl}
+                                    alt="Report attachment"
+                                    className="h-16 w-16 object-cover transition group-hover:scale-105"
+                                  />
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
 
-                  void handleReject();
-                }}
-                disabled={isSubmitting}
-                className="flex-1 rounded-xl border border-rose-200 bg-rose-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-rose-600 disabled:opacity-50"
-              >
-                {isSubmitting ? "Đang xử lý..." : "Từ chối"}
-              </button>
-            </div>
-          </div>
-        </ModalShell>
-      ) : null}
+                      {/* Evaluation Toggle */}
+                      <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between bg-slate-50/80 -mx-5 -mb-5 px-5 py-3 rounded-b-2xl">
+                        <span className="text-xs font-bold text-slate-600">
+                          Đánh giá lý do báo cáo #{idx + 1}:
+                        </span>
 
-      {showTargetPreviewModal ? (
-        <ModalShell
-          title={`Xem nhanh ${getTargetEntityLabel(report?.targetType).toLowerCase()}`}
-          subtitle="Kiểm tra kỹ nội dung bị báo cáo trước khi chuyển sang trang detail đầy đủ."
-          onClose={closeTargetPreviewModal}
-        >
-          {isTargetPreviewLoading ? (
-            <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 px-6 py-16 text-sm text-slate-500">
-              <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
-              Đang tải chi tiết nội dung bị báo cáo...
-            </div>
-          ) : (
-            <div className="space-y-5">
-              {targetPreviewError ? (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-                  {targetPreviewError}
-                </div>
-              ) : null}
+                        <div className="inline-flex rounded-xl bg-white p-1 shadow-sm border border-slate-200">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleEvaluation(report._id, true)}
+                            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                              isEvalValid
+                                ? "bg-emerald-600 text-white shadow-sm"
+                                : "text-slate-600 hover:bg-slate-100"
+                            }`}
+                          >
+                            <CheckSquare size={14} />
+                            Hợp lệ (Vi phạm)
+                          </button>
 
-              <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
-                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
-                  {targetImage ? (
-                    <img
-                      src={targetImage}
-                      alt={targetPreviewTitle}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex aspect-square items-center justify-center text-slate-400">
-                      {report?.targetType === "artist" ? <User size={36} /> : report?.targetType === "album" ? <Disc3 size={36} /> : <Music2 size={36} />}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleEvaluation(report._id, false)}
+                            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                              !isEvalValid
+                                ? "bg-rose-600 text-white shadow-sm"
+                                : "text-slate-600 hover:bg-slate-100"
+                            }`}
+                          >
+                            <XSquare size={14} />
+                            Không hợp lệ
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  )}
-                </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
-                      Nội dung bị báo cáo
-                    </p>
-                    <h4 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
-                      {targetPreviewTitle}
-                    </h4>
-                    <p className="mt-2 text-sm text-slate-500">
-                      {getTargetEntityLabel(report?.targetType)} • Mã {report?.targetId}
-                    </p>
-                  </div>
-
-                  {renderTargetPreviewDetails(report?.targetType, targetPreview, report?.targetInfo)}
-                </div>
+          {/* SECTION 2: Processed Historical Reports */}
+          {processedReports.length > 0 && (
+            <div className="space-y-4 pt-4">
+              <div className="flex items-center justify-between px-1 border-b border-slate-200 pb-2">
+                <h2 className="text-base font-bold text-slate-700 flex items-center gap-2">
+                  <History size={18} className="text-slate-500" />
+                  <span>Lịch sử các báo cáo đã xử lý trước đây ({processedReports.length})</span>
+                </h2>
+                <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+                  Đã hoàn thành
+                </span>
               </div>
 
-              <div className="flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={closeTargetPreviewModal}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
-                >
-                  Đóng
-                </button>
-                <button
-                  type="button"
-                  onClick={handleOpenTargetDetailPage}
-                  disabled={!targetDetailRoute}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Mở trang chi tiết
-                  <ExternalLink size={15} />
-                </button>
+              <div className="space-y-3 opacity-80 hover:opacity-100 transition">
+                {processedReports.map((report) => {
+                  const reporterName =
+                    report.userId?.profile?.fullName || report.userId?.email || "Người dùng ẩn danh";
+                  const reportDate = report.createdAt
+                    ? new Date(report.createdAt).toLocaleDateString("vi-VN")
+                    : "—";
+
+                  const wasValid = report.isValidReason === true;
+
+                  return (
+                    <div
+                      key={report._id}
+                      className="rounded-2xl bg-white p-4 shadow-sm border border-slate-200 space-y-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-slate-800">{reporterName}</span>
+                          {report.status === "resolved" ? (
+                            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
+                              ✓ Đã xử lý {wasValid ? "(Xác nhận Vi phạm)" : ""}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 border border-slate-200">
+                              ✕ Từ chối (Không vi phạm)
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[11px] text-slate-400">{reportDate}</span>
+                      </div>
+
+                      <p className="text-xs text-slate-600 line-clamp-2">
+                        {report.description || "Không có mô tả chi tiết."}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
-        </ModalShell>
-      ) : null}
+        </div>
+
+        {/* RIGHT: Admin Action Decision Form */}
+        <div className="space-y-4">
+          <div className="rounded-2xl bg-white p-6 shadow-[0_12px_32px_rgba(15,23,42,0.06)] border border-slate-200/80 sticky top-6 space-y-5">
+            <div>
+              <h2 className="text-lg font-bold text-slate-950 flex items-center gap-2">
+                <ShieldAlert size={20} className="text-amber-500" />
+                Quyết định xử lý
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">
+                Chọn hình thức xử lý áp dụng cho nội dung và nghệ sĩ sở hữu.
+              </p>
+            </div>
+
+            {/* Impact Notification Warning */}
+            <div
+              className={`rounded-xl p-4 border text-xs space-y-1.5 transition ${
+                selectedAction === "reject"
+                  ? "bg-slate-100 border-slate-300 text-slate-700"
+                  : "bg-amber-50 border-amber-200 text-amber-800"
+              }`}
+            >
+              <div className="flex items-center gap-1.5 font-bold">
+                <AlertTriangle size={15} />
+                <span>
+                  {selectedAction === "reject"
+                    ? "Đang chọn Từ chối báo cáo (Reject)"
+                    : "Xác nhận xử lý vi phạm"}
+                </span>
+              </div>
+              <p className="leading-relaxed">
+                {selectedAction === "reject"
+                  ? "👉 Báo cáo bị từ chối/bác bỏ. KHÔNG tăng số lần vi phạm và KHÔNG gửi cảnh báo tới nghệ sĩ."
+                  : `👉 Số lần vi phạm của nghệ sĩ (${artistName}) sẽ TĂNG THÊM 1 (hiện tại: ${artistViolations} → ${
+                      artistViolations + 1
+                    }) và tự động gửi 1 thông báo cảnh báo/xử phạt tới nghệ sĩ.`}
+              </p>
+
+              <div className="text-[11px] opacity-90 pt-1 border-t border-amber-200/60 space-y-0.5">
+                <strong>Chính sách vi phạm 5 cấp độ (có gửi thông báo cho nghệ sĩ):</strong>
+                <ul className="list-disc list-inside text-[10.5px]">
+                  <li><strong>1 lần:</strong> Cảnh báo lần 1</li>
+                  <li><strong>2 lần:</strong> Cảnh báo mức cao hơn (Lần 2)</li>
+                  <li><strong>3 lần:</strong> Cảnh báo mức nghiêm trọng (Lần 3)</li>
+                  <li><strong>4 lần:</strong> Ẩn nội dung bị báo cáo</li>
+                  <li><strong>5 lần:</strong> Khóa tài khoản nghệ sĩ</li>
+                </ul>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmitResolution} className="space-y-4">
+              {/* Action Selection */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+                  Hình thức xử lý chính <span className="text-red-500">*</span>
+                </label>
+
+                <div className="space-y-2">
+                  <label
+                    className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition ${
+                      selectedAction === "warn"
+                        ? "border-blue-500 bg-blue-50/50"
+                        : "border-slate-200 hover:border-slate-300"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="action"
+                      value="warn"
+                      checked={selectedAction === "warn"}
+                      onChange={(e) => setSelectedAction(e.target.value)}
+                      className="mt-0.5 h-4 w-4 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    />
+                    <div>
+                      <p className="text-sm font-bold text-slate-900">Cảnh báo (Warn)</p>
+                      <p className="text-xs text-slate-500">
+                        Gửi thông báo cảnh báo vi phạm tới nghệ sĩ.
+                      </p>
+                    </div>
+                  </label>
+
+                  <label
+                    className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition ${
+                      selectedAction === "hide"
+                        ? "border-amber-500 bg-amber-50/50"
+                        : "border-slate-200 hover:border-slate-300"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="action"
+                      value="hide"
+                      checked={selectedAction === "hide"}
+                      onChange={(e) => setSelectedAction(e.target.value)}
+                      className="mt-0.5 h-4 w-4 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                    />
+                    <div>
+                      <p className="text-sm font-bold text-slate-900">Ẩn nội dung (Hide)</p>
+                      <p className="text-xs text-slate-500">
+                        Ẩn bài hát / album này khỏi hệ thống công khai.
+                      </p>
+                    </div>
+                  </label>
+
+                  <label
+                    className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition ${
+                      selectedAction === "block"
+                        ? "border-red-500 bg-red-50/50"
+                        : "border-slate-200 hover:border-slate-300"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="action"
+                      value="block"
+                      checked={selectedAction === "block"}
+                      onChange={(e) => setSelectedAction(e.target.value)}
+                      className="mt-0.5 h-4 w-4 text-red-600 focus:ring-red-500 cursor-pointer"
+                    />
+                    <div>
+                      <p className="text-sm font-bold text-slate-900">Khóa tài khoản Nghệ sĩ (Block)</p>
+                      <p className="text-xs text-slate-500">
+                        Khóa trực tiếp tài khoản của nghệ sĩ và gửi thông báo khóa.
+                      </p>
+                    </div>
+                  </label>
+
+                  {/* Reject option */}
+                  <label
+                    className={`flex items-start gap-3 rounded-xl border p-3 transition cursor-pointer ${
+                      selectedAction === "reject"
+                        ? "border-slate-400 bg-slate-100"
+                        : "border-slate-200 hover:border-slate-300"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="action"
+                      value="reject"
+                      checked={selectedAction === "reject"}
+                      onChange={(e) => setSelectedAction(e.target.value)}
+                      className="mt-0.5 h-4 w-4 text-slate-600 focus:ring-slate-500 cursor-pointer"
+                    />
+                    <div>
+                      <p className="text-sm font-bold text-slate-900">Từ chối báo cáo (Reject)</p>
+                      <p className="text-xs text-slate-500">
+                        Báo cáo không đúng thực tế, từ chối xử lý nội dung.
+                      </p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Admin Note */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+                  Ghi chú xử lý của Admin
+                </label>
+                <textarea
+                  value={resolutionNote}
+                  onChange={(e) => setResolutionNote(e.target.value)}
+                  placeholder="Nhập ghi chú hoặc lý do xử lý..."
+                  rows={3}
+                  className="w-full rounded-xl border border-slate-200 p-3 text-sm outline-none transition focus:border-blue-500 resize-none"
+                />
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-50"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    <span>Đang lưu xử lý...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={18} />
+                    <span>Xác nhận xử lý báo cáo</span>
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      {/* Image Preview Modal */}
+      {previewImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="relative max-w-4xl max-h-[90vh]">
+            <button
+              onClick={() => setPreviewImage(null)}
+              className="absolute -top-10 right-0 text-white hover:text-slate-300 transition p-1"
+            >
+              <X size={28} />
+            </button>
+            <img
+              src={previewImage}
+              alt="Preview"
+              className="max-h-[85vh] max-w-full rounded-xl object-contain shadow-2xl"
+            />
+          </div>
+        </div>
+      )}
     </section>
   );
 };
