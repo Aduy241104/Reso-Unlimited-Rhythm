@@ -99,6 +99,14 @@ const populateManagementTrack = (trackId) =>
         .populate({
             path: "genreIds",
             select: "name",
+        })
+        .populate({
+            path: "pendingUpdate.data.genreIds",
+            select: "name",
+        })
+        .populate({
+            path: "pendingUpdate.reviewedBy",
+            select: "email",
         });
 
 const stringifyComparableAudioFiles = (audioFiles = []) =>
@@ -114,6 +122,148 @@ const stringifyComparableAudioFiles = (audioFiles = []) =>
 
 const stringifyComparableCopyright = (copyright) =>
     JSON.stringify(copyright || null);
+
+const stringifyComparableStringArray = (values = []) =>
+    JSON.stringify((values || []).map((value) => String(value || "")));
+
+const stringifyComparableGenreIds = (genreIds = []) =>
+    JSON.stringify(
+        (genreIds || [])
+            .map((genreId) => String(genreId?._id || genreId || ""))
+            .sort()
+    );
+
+const cloneCopyrightValue = (copyright) => {
+    if (!copyright) {
+        return null;
+    }
+
+    return JSON.parse(JSON.stringify(copyright));
+};
+
+const cloneTrackMutableData = (source) => ({
+    title: source?.title || "",
+    versionTitle: source?.versionTitle || "",
+    description: source?.description || "",
+    tags: Array.isArray(source?.tags) ? [...source.tags] : [],
+    genreIds: Array.isArray(source?.genreIds)
+        ? source.genreIds.map((genreId) => (
+            genreId?._id ? genreId._id : genreId
+        ))
+        : [],
+    audioFiles: Array.isArray(source?.audioFiles)
+        ? source.audioFiles.map((file) => ({
+            url: file?.url || "",
+            format: file?.format || "",
+            bitrate: Number(file?.bitrate) || 0,
+            label: file?.label || "",
+            priority: Number(file?.priority) || 0,
+        }))
+        : [],
+    duration: Number(source?.duration) || 0,
+    avatar: source?.avatar || "",
+    coverImage: Array.isArray(source?.coverImage) ? [...source.coverImage] : [],
+    lyricsStatic: source?.lyricsStatic || "",
+    lyricsSyncUrl: source?.lyricsSyncUrl || "",
+    copyright: cloneCopyrightValue(source?.copyright?.toObject?.() || source?.copyright || null),
+});
+
+const getPendingEditableSource = (track) => {
+    const pendingStatus = track?.pendingUpdate?.status;
+    const pendingData = track?.pendingUpdate?.data;
+
+    if (
+        (pendingStatus === "rejected" || pendingStatus === "pending") &&
+        pendingData
+    ) {
+        return pendingData;
+    }
+
+    return track;
+};
+
+const getChangedTrackFields = (liveData, nextData) => {
+    const changedFields = [];
+
+    if ((liveData.title || "") !== (nextData.title || "")) {
+        changedFields.push("title");
+    }
+
+    if ((liveData.versionTitle || "") !== (nextData.versionTitle || "")) {
+        changedFields.push("versionTitle");
+    }
+
+    if ((liveData.description || "") !== (nextData.description || "")) {
+        changedFields.push("description");
+    }
+
+    if (stringifyComparableStringArray(liveData.tags) !== stringifyComparableStringArray(nextData.tags)) {
+        changedFields.push("tags");
+    }
+
+    if (stringifyComparableGenreIds(liveData.genreIds) !== stringifyComparableGenreIds(nextData.genreIds)) {
+        changedFields.push("genreIds");
+    }
+
+    if (stringifyComparableAudioFiles(liveData.audioFiles) !== stringifyComparableAudioFiles(nextData.audioFiles)) {
+        changedFields.push("audioFiles");
+    }
+
+    if ((Number(liveData.duration) || 0) !== (Number(nextData.duration) || 0)) {
+        changedFields.push("duration");
+    }
+
+    if ((liveData.avatar || "") !== (nextData.avatar || "")) {
+        changedFields.push("avatar");
+    }
+
+    if (stringifyComparableStringArray(liveData.coverImage) !== stringifyComparableStringArray(nextData.coverImage)) {
+        changedFields.push("coverImage");
+    }
+
+    if ((liveData.lyricsStatic || "") !== (nextData.lyricsStatic || "")) {
+        changedFields.push("lyricsStatic");
+    }
+
+    if ((liveData.lyricsSyncUrl || "") !== (nextData.lyricsSyncUrl || "")) {
+        changedFields.push("lyricsSyncUrl");
+    }
+
+    if (stringifyComparableCopyright(liveData.copyright) !== stringifyComparableCopyright(nextData.copyright)) {
+        changedFields.push("copyright");
+    }
+
+    return changedFields;
+};
+
+const clearPendingUpdate = (track) => {
+    track.pendingUpdate = {
+        status: "none",
+        data: null,
+        changedFields: [],
+        submittedAt: null,
+        lastSavedAt: null,
+        reviewedBy: null,
+        reviewedAt: null,
+        adminNote: "",
+        rejectReason: "",
+    };
+};
+
+const applyMutableTrackData = (track, data) => {
+    track.title = data.title || "";
+    track.versionTitle = data.versionTitle || "";
+    track.description = data.description || "";
+    track.tags = Array.isArray(data.tags) ? data.tags : [];
+    track.genreIds = Array.isArray(data.genreIds) ? data.genreIds : [];
+    track.audioFiles = Array.isArray(data.audioFiles) ? data.audioFiles : [];
+    track.duration = Number(data.duration) || 0;
+    track.avatar = data.avatar || "";
+    track.coverImage = Array.isArray(data.coverImage) ? data.coverImage : [];
+    track.lyricsStatic = data.lyricsStatic || "";
+    track.lyricsSyncUrl = data.lyricsSyncUrl || "";
+    track.copyright = data.copyright || null;
+};
 
 const clearTrackModerationForResubmission = (track) => {
     track.approvalStatus = "pending";
@@ -268,61 +418,51 @@ const updateArtistTrack = async (userId, trackId, trackData) => {
     assertArtistCanCreateTrack(artist);
     assertTrackEditableByArtist(track);
 
-    const oldAssets = getTrackAssetUrls(track);
+    const isApprovedTrack = track.approvalStatus === "approved";
+    const editableSource = getPendingEditableSource(track);
+    const liveSnapshot = cloneTrackMutableData(track);
+    const nextTrackData = cloneTrackMutableData(editableSource);
     const nextAssets = {
         audioUrls: undefined,
         coverUrls: undefined,
         avatarUrl: undefined,
         lyricsSyncUrl: undefined,
     };
-    const isApprovedTrack = track.approvalStatus === "approved";
-    let shouldResubmitForApproval = false;
 
     if (trackData.title !== undefined) {
-        const nextTitle = validateDraftTitle(trackData.title);
-
-        if (track.title !== nextTitle && isApprovedTrack) {
-            shouldResubmitForApproval = true;
-        }
-
-        track.title = nextTitle;
+        nextTrackData.title = validateDraftTitle(trackData.title);
     }
 
     if (trackData.versionTitle !== undefined) {
-        const nextVersionTitle =
+        nextTrackData.versionTitle =
             typeof trackData.versionTitle === "string"
                 ? trackData.versionTitle.trim()
                 : "";
-
-        if ((track.versionTitle || "") !== nextVersionTitle && isApprovedTrack) {
-            shouldResubmitForApproval = true;
-        }
-
-        track.versionTitle = nextVersionTitle;
     }
 
     if (trackData.description !== undefined) {
-        track.description = validateOptionalDescription(trackData.description);
+        nextTrackData.description = validateOptionalDescription(trackData.description);
     }
 
     if (trackData.tags !== undefined) {
-        track.tags = validateOptionalTags(trackData.tags);
+        nextTrackData.tags = validateOptionalTags(trackData.tags);
     }
 
     if (trackData.genreIds !== undefined) {
-        const nextGenreIds = await validateOptionalGenreIds(trackData.genreIds);
-        track.genreIds = nextGenreIds;
+        nextTrackData.genreIds = await validateOptionalGenreIds(trackData.genreIds);
     }
 
     if (trackData.avatar !== undefined) {
-        track.avatar = trackData.avatar || "";
-        nextAssets.avatarUrl = track.avatar;
+        nextTrackData.avatar = trackData.avatar || "";
+        nextAssets.avatarUrl = nextTrackData.avatar;
     }
 
     if (trackData.coverImage !== undefined) {
-        track.coverImage = Array.isArray(trackData.coverImage) ? trackData.coverImage.filter(Boolean) : [];
+        nextTrackData.coverImage = Array.isArray(trackData.coverImage)
+            ? trackData.coverImage.filter(Boolean)
+            : [];
 
-        if (track.coverImage.length > MAX_COVER_IMAGES) {
+        if (nextTrackData.coverImage.length > MAX_COVER_IMAGES) {
             throw new AppError(
                 `A track can have at most ${MAX_COVER_IMAGES} cover images.`,
                 StatusCodes.BAD_REQUEST,
@@ -330,7 +470,7 @@ const updateArtistTrack = async (userId, trackId, trackData) => {
             );
         }
 
-        nextAssets.coverUrls = track.coverImage;
+        nextAssets.coverUrls = nextTrackData.coverImage;
     }
 
     if (trackData.audioFiles !== undefined) {
@@ -339,22 +479,9 @@ const updateArtistTrack = async (userId, trackId, trackData) => {
             trackData.audioAnalysis,
             nextAudioFiles.length > 0
         );
-        const currentAudioSnapshot = stringifyComparableAudioFiles(track.audioFiles || []);
-        const nextAudioSnapshot = stringifyComparableAudioFiles(nextAudioFiles);
-        const currentDuration = Number(track.duration) || 0;
 
-        if (
-            isApprovedTrack &&
-            (
-                currentAudioSnapshot !== nextAudioSnapshot ||
-                currentDuration !== nextDuration
-            )
-        ) {
-            shouldResubmitForApproval = true;
-        }
-
-        track.audioFiles = nextAudioFiles;
-        track.duration = nextDuration;
+        nextTrackData.audioFiles = nextAudioFiles;
+        nextTrackData.duration = nextDuration;
         nextAssets.audioUrls = getAudioUrlsFromFiles(nextAudioFiles);
     }
 
@@ -369,45 +496,83 @@ const updateArtistTrack = async (userId, trackId, trackData) => {
             );
         }
 
-        track.lyricsStatic = nextLyrics;
+        nextTrackData.lyricsStatic = nextLyrics;
     }
 
     if (trackData.lyricsSyncUrl !== undefined) {
-        track.lyricsSyncUrl = trackData.lyricsSyncUrl || "";
-        nextAssets.lyricsSyncUrl = track.lyricsSyncUrl;
+        nextTrackData.lyricsSyncUrl = trackData.lyricsSyncUrl || "";
+        nextAssets.lyricsSyncUrl = nextTrackData.lyricsSyncUrl;
     }
 
     if (trackData.copyright !== undefined) {
         const sanitizedCopyright = sanitizeArtistCopyright(trackData.copyright);
 
         if (sanitizedCopyright !== undefined) {
-            const nextCopyright = {
-                ...(track.copyright?.toObject?.() || track.copyright || {}),
+            nextTrackData.copyright = {
+                ...(nextTrackData.copyright || {}),
                 ...sanitizedCopyright,
             };
-            const currentCopyrightSnapshot = stringifyComparableCopyright(
-                track.copyright?.toObject?.() || track.copyright || null
-            );
-            const nextCopyrightSnapshot = stringifyComparableCopyright(nextCopyright);
-
-            if (isApprovedTrack && currentCopyrightSnapshot !== nextCopyrightSnapshot) {
-                shouldResubmitForApproval = true;
-            }
-
-            track.copyright = nextCopyright;
         }
     }
 
-    if (isApprovedTrack && shouldResubmitForApproval) {
-        clearTrackModerationForResubmission(track);
+    let urlsToDelete = [];
+
+    if (isApprovedTrack) {
+        const changedFields = getChangedTrackFields(liveSnapshot, nextTrackData);
+        const liveAssets = getTrackAssetUrls(track);
+        const previousPendingAssets = getTrackAssetUrls(track.pendingUpdate?.data || {});
+
+        if (changedFields.length === 0) {
+            clearPendingUpdate(track);
+            urlsToDelete = collectReplacedAssetUrls({
+                oldAssets: previousPendingAssets,
+                nextAssets: {
+                    audioUrls: [],
+                    coverUrls: [],
+                    avatarUrl: "",
+                    lyricsSyncUrl: "",
+                },
+            }).filter((url) => !Object.values(liveAssets).flat().includes(url));
+        } else {
+            const now = new Date();
+            track.pendingUpdate = {
+                status: "pending",
+                data: nextTrackData,
+                changedFields,
+                submittedAt: now,
+                lastSavedAt: now,
+                reviewedBy: null,
+                reviewedAt: null,
+                adminNote: "",
+                rejectReason: "",
+            };
+
+            urlsToDelete = collectReplacedAssetUrls({
+                oldAssets: previousPendingAssets,
+                nextAssets: {
+                    audioUrls: getAudioUrlsFromFiles(nextTrackData.audioFiles),
+                    coverUrls: nextTrackData.coverImage,
+                    avatarUrl: nextTrackData.avatar,
+                    lyricsSyncUrl: nextTrackData.lyricsSyncUrl,
+                },
+            }).filter((url) => !Object.values(liveAssets).flat().includes(url));
+        }
+    } else {
+        const oldAssets = getTrackAssetUrls(track);
+
+        applyMutableTrackData(track, nextTrackData);
+
+        if (track.approvalStatus === "approved") {
+            clearTrackModerationForResubmission(track);
+        }
+
+        urlsToDelete = collectReplacedAssetUrls({
+            oldAssets,
+            nextAssets,
+        });
     }
 
     await track.save();
-
-    const urlsToDelete = collectReplacedAssetUrls({
-        oldAssets,
-        nextAssets,
-    });
 
     if (urlsToDelete.length > 0) {
         await deleteCloudinaryAssetsByUrls(urlsToDelete);

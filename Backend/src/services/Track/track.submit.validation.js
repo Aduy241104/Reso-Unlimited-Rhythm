@@ -165,6 +165,13 @@ export const assertTrackEditableByArtist = (track) => {
             StatusCodes.BAD_REQUEST
         );
     }
+
+    if (track.pendingUpdate?.status === "pending") {
+        throw new AppError(
+            "Cannot edit a track while its pending update is under review.",
+            StatusCodes.BAD_REQUEST
+        );
+    }
 };
 
 export const validateTrackForSubmit = async (track, artist) => {

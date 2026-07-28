@@ -18,6 +18,7 @@ import { getApiErrorFullMessage, getApiErrorMessage } from "../../utils/apiError
 import {
   canArtistEditTrack,
   canArtistSubmitTrack,
+  getArtistTrackReviewStatus,
   getSubmitReadinessIssues,
   LYRICS_STATIC_MAX_LENGTH,
   mapTrackCopyrightToForm,
@@ -33,6 +34,8 @@ import {
   getTrackApprovalStatusMeta,
   resolveTrackArtwork,
 } from "../../utils/artistTrackPresentation";
+
+const getEditableTrackSource = (track) => track?.pendingUpdate?.data || track || null;
 
 const FieldShell = ({ label, helper, error, children }) => (
   <label className="block">
@@ -80,15 +83,21 @@ const SidebarCard = ({ title, children }) => (
   </div>
 );
 
-const getFormDataFromTrack = (track) => ({
-  title: track?.title || "",
-  versionTitle: track?.versionTitle || "",
-  description: track?.description || "",
-  lyricsStatic: track?.lyricsStatic || "",
-  genreIds: Array.isArray(track?.genres)
-    ? track.genres.map((genre) => String(genre._id || genre.id || genre))
-    : [],
-});
+const getFormDataFromTrack = (track) => {
+  const source = getEditableTrackSource(track);
+
+  return {
+    title: source?.title || "",
+    versionTitle: source?.versionTitle || "",
+    description: source?.description || "",
+    lyricsStatic: source?.lyricsStatic || "",
+    genreIds: Array.isArray(source?.genres) && source.genres.length > 0
+      ? source.genres.map((genre) => String(genre._id || genre.id || genre))
+      : Array.isArray(source?.genreIds)
+        ? source.genreIds.map((genre) => String(genre?._id || genre?.id || genre))
+        : [],
+  };
+};
 
 const sortStringArray = (values = []) =>
   values.map((value) => String(value)).sort();
@@ -148,20 +157,28 @@ const ArtistTrackEditPage = () => {
           return;
         }
 
+        const editableTrack = getEditableTrackSource(trackDetail);
+
         setTrack(trackDetail);
         setGenres(Array.isArray(genreList) ? genreList : []);
         setFormData(getFormDataFromTrack(trackDetail));
-        setCopyrightForm(mapTrackCopyrightToForm(trackDetail?.copyright));
-        setAvatarPreview(trackDetail?.avatar || "");
-        setCoverPreviews(Array.isArray(trackDetail?.coverImage) ? trackDetail.coverImage : []);
+        setCopyrightForm(mapTrackCopyrightToForm(editableTrack?.copyright || trackDetail?.copyright));
+        setAvatarPreview(editableTrack?.avatar || trackDetail?.avatar || "");
+        setCoverPreviews(
+          Array.isArray(editableTrack?.coverImage)
+            ? editableTrack.coverImage
+            : Array.isArray(trackDetail?.coverImage)
+              ? trackDetail.coverImage
+              : []
+        );
         setAudioPreviewUrl(
-          Array.isArray(trackDetail?.audioFiles) && trackDetail.audioFiles.length > 0
-            ? trackDetail.audioFiles[0].url
+          Array.isArray(editableTrack?.audioFiles) && editableTrack.audioFiles.length > 0
+            ? editableTrack.audioFiles[0].url
             : ""
         );
         setLyricsPreviewText(
-          trackDetail?.lyricsSyncUrl
-            ? trackDetail.lyricsSyncUrl.split("/").pop()
+          editableTrack?.lyricsSyncUrl
+            ? editableTrack.lyricsSyncUrl.split("/").pop()
             : ""
         );
       } catch (error) {
@@ -211,23 +228,30 @@ const ArtistTrackEditPage = () => {
 
   const canEdit = canArtistEditTrack(track);
   const canSubmit = canArtistSubmitTrack(track);
+  const reviewStatus = getArtistTrackReviewStatus(track);
 
   const previewTrackForSubmit = useMemo(() => {
     if (!track) {
       return null;
     }
 
+    const editableTrack = getEditableTrackSource(track);
+
     return {
       ...track,
-      title: formData.title.trim() || track.title,
+      ...editableTrack,
+      title: formData.title.trim() || editableTrack?.title || track.title,
       versionTitle: formData.versionTitle.trim(),
       description: formData.description.trim(),
       lyricsStatic: formData.lyricsStatic,
       genres: formData.genreIds.map((genreId) => ({ _id: genreId })),
       genreIds: formData.genreIds,
       copyright: serializeCopyrightForApi(copyrightForm),
-      avatar: avatarPreview || track.avatar,
-      coverImage: coverPreviews.length > 0 ? coverPreviews : track.coverImage,
+      avatar: avatarPreview || editableTrack?.avatar || track.avatar,
+      coverImage:
+        coverPreviews.length > 0
+          ? coverPreviews
+          : editableTrack?.coverImage || track.coverImage,
     };
   }, [avatarPreview, copyrightForm, coverPreviews, formData, track]);
 
@@ -243,7 +267,7 @@ const ArtistTrackEditPage = () => {
   );
 
   const activeMeta = getTrackActiveStatusMeta(track?.activeStatus);
-  const approvalMeta = getTrackApprovalStatusMeta(track?.approvalStatus);
+  const approvalMeta = getTrackApprovalStatusMeta(reviewStatus);
 
   const readinessItems = [
     {
@@ -307,8 +331,9 @@ const ArtistTrackEditPage = () => {
     }
 
     setAudioPreviewUrl(
-      Array.isArray(track?.audioFiles) && track.audioFiles.length > 0
-        ? track.audioFiles[0].url
+      Array.isArray(getEditableTrackSource(track)?.audioFiles) &&
+      getEditableTrackSource(track).audioFiles.length > 0
+        ? getEditableTrackSource(track).audioFiles[0].url
         : ""
     );
   };
@@ -324,7 +349,7 @@ const ArtistTrackEditPage = () => {
       return;
     }
 
-    setAvatarPreview(track?.avatar || "");
+    setAvatarPreview(getEditableTrackSource(track)?.avatar || track?.avatar || "");
   };
 
   const handleCoverImageChange = (event) => {
@@ -341,7 +366,13 @@ const ArtistTrackEditPage = () => {
       return;
     }
 
-    setCoverPreviews(Array.isArray(track?.coverImage) ? track.coverImage : []);
+    setCoverPreviews(
+      Array.isArray(getEditableTrackSource(track)?.coverImage)
+        ? getEditableTrackSource(track).coverImage
+        : Array.isArray(track?.coverImage)
+          ? track.coverImage
+          : []
+    );
   };
 
   const handleLyricsSyncChange = (event) => {
@@ -359,7 +390,9 @@ const ArtistTrackEditPage = () => {
     }
 
     setLyricsPreviewText(
-      track?.lyricsSyncUrl ? track.lyricsSyncUrl.split("/").pop() : ""
+      getEditableTrackSource(track)?.lyricsSyncUrl
+        ? getEditableTrackSource(track).lyricsSyncUrl.split("/").pop()
+        : ""
     );
   };
 
@@ -389,30 +422,34 @@ const ArtistTrackEditPage = () => {
       return {};
     }
 
+    const editableTrack = getEditableTrackSource(track);
     const payload = {};
     const nextTitle = formData.title.trim();
     const nextVersionTitle = formData.versionTitle.trim();
     const nextDescription = formData.description.trim();
     const nextGenreIds = formData.genreIds;
     const nextCopyright = serializeCopyrightForApi(copyrightForm);
-    const currentGenreIds = Array.isArray(track?.genres)
-      ? track.genres.map((genre) => String(genre._id || genre.id || genre))
-      : [];
-    const currentCopyright = serializeCopyrightForApi(track?.copyright || {});
+    const currentGenreIds =
+      Array.isArray(editableTrack?.genres) && editableTrack.genres.length > 0
+        ? editableTrack.genres.map((genre) => String(genre._id || genre.id || genre))
+        : Array.isArray(editableTrack?.genreIds)
+          ? editableTrack.genreIds.map((genre) => String(genre?._id || genre?.id || genre))
+          : [];
+    const currentCopyright = serializeCopyrightForApi(editableTrack?.copyright || {});
 
-    if (nextTitle !== String(track?.title || "").trim()) {
+    if (nextTitle !== String(editableTrack?.title || "").trim()) {
       payload.title = nextTitle;
     }
 
-    if (nextVersionTitle !== String(track?.versionTitle || "").trim()) {
+    if (nextVersionTitle !== String(editableTrack?.versionTitle || "").trim()) {
       payload.versionTitle = nextVersionTitle;
     }
 
-    if (nextDescription !== String(track?.description || "").trim()) {
+    if (nextDescription !== String(editableTrack?.description || "").trim()) {
       payload.description = nextDescription;
     }
 
-    if (String(formData.lyricsStatic || "") !== String(track?.lyricsStatic || "")) {
+    if (String(formData.lyricsStatic || "") !== String(editableTrack?.lyricsStatic || "")) {
       payload.lyricsStatic = formData.lyricsStatic;
     }
 
@@ -485,30 +522,34 @@ const ArtistTrackEditPage = () => {
       const payload = buildPayload(uploadedMedia);
       const willRequireReview =
         track?.approvalStatus === "approved" &&
-        (
-          payload.title !== undefined ||
-          payload.versionTitle !== undefined ||
-          payload.audioFiles !== undefined ||
-          payload.copyright !== undefined
-        );
+        Object.keys(payload).length > 0;
 
       let latestTrack = track;
 
       if (Object.keys(payload).length > 0) {
         latestTrack = await trackService.updateArtistTrack(id, payload);
+        const editableLatestTrack = getEditableTrackSource(latestTrack);
         setTrack(latestTrack);
         setFormData(getFormDataFromTrack(latestTrack));
-        setCopyrightForm(mapTrackCopyrightToForm(latestTrack?.copyright));
-        setAvatarPreview(latestTrack?.avatar || "");
-        setCoverPreviews(Array.isArray(latestTrack?.coverImage) ? latestTrack.coverImage : []);
+        setCopyrightForm(
+          mapTrackCopyrightToForm(editableLatestTrack?.copyright || latestTrack?.copyright)
+        );
+        setAvatarPreview(editableLatestTrack?.avatar || latestTrack?.avatar || "");
+        setCoverPreviews(
+          Array.isArray(editableLatestTrack?.coverImage)
+            ? editableLatestTrack.coverImage
+            : Array.isArray(latestTrack?.coverImage)
+              ? latestTrack.coverImage
+              : []
+        );
         setAudioPreviewUrl(
-          Array.isArray(latestTrack?.audioFiles) && latestTrack.audioFiles.length > 0
-            ? latestTrack.audioFiles[0].url
+          Array.isArray(editableLatestTrack?.audioFiles) && editableLatestTrack.audioFiles.length > 0
+            ? editableLatestTrack.audioFiles[0].url
             : ""
         );
         setLyricsPreviewText(
-          latestTrack?.lyricsSyncUrl
-            ? latestTrack.lyricsSyncUrl.split("/").pop()
+          editableLatestTrack?.lyricsSyncUrl
+            ? editableLatestTrack.lyricsSyncUrl.split("/").pop()
             : ""
         );
       }
@@ -529,7 +570,7 @@ const ArtistTrackEditPage = () => {
 
       if (Object.keys(payload).length === 0) {
         setSuccessMessage("Chưa có thay đổi nào để lưu.");
-      } else if (willRequireReview && latestTrack?.approvalStatus === "pending") {
+      } else if (willRequireReview && latestTrack?.pendingUpdate?.status === "pending") {
         setSuccessMessage("Đã lưu thay đổi và chuyển bài hát về trạng thái chờ duyệt.");
       } else {
         setSuccessMessage("Đã lưu thay đổi bài hát thành công.");
@@ -621,6 +662,18 @@ const ArtistTrackEditPage = () => {
       {location.state?.message ? (
         <div className="rounded-[22px] border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
           {location.state.message}
+        </div>
+      ) : null}
+
+      {track?.pendingUpdate?.status === "pending" ? (
+        <div className="rounded-[22px] border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
+          Bản chỉnh sửa của bài hát đã được gửi admin duyệt. Người nghe vẫn tiếp tục nghe phiên bản đang phát hành.
+        </div>
+      ) : null}
+
+      {track?.pendingUpdate?.status === "rejected" && track?.pendingUpdate?.rejectReason ? (
+        <div className="rounded-[22px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+          Bản chỉnh sửa trước bị từ chối: {track.pendingUpdate.rejectReason}
         </div>
       ) : null}
 

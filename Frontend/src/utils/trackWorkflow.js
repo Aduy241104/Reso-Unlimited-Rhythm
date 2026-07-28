@@ -199,8 +199,26 @@ export const getSubmitReadinessIssues = (track) => {
 export const canArtistEditTrack = (track) =>
   Boolean(track) &&
   track?.approvalStatus !== "pending" &&
+  track?.pendingUpdate?.status !== "pending" &&
   track?.activeStatus !== "blocked";
 
 export const canArtistSubmitTrack = (track) =>
   track?.approvalStatus === "draft" ||
   track?.approvalStatus === "rejected";
+
+export const getTrackPendingUpdateStatus = (track) =>
+  track?.pendingUpdate?.status || "none";
+
+export const getArtistTrackReviewStatus = (track) => {
+  const pendingStatus = getTrackPendingUpdateStatus(track);
+
+  if (pendingStatus === "pending") {
+    return "pending";
+  }
+
+  if (pendingStatus === "rejected") {
+    return "rejected";
+  }
+
+  return track?.approvalStatus || "draft";
+};

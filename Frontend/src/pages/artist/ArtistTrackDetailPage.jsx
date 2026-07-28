@@ -23,6 +23,7 @@ import { getApiErrorFullMessage, getApiErrorMessage } from "../../utils/apiError
 import {
   canArtistEditTrack,
   canArtistSubmitTrack,
+  getArtistTrackReviewStatus,
   getSubmitReadinessIssues,
   usesThirdPartyRights,
 } from "../../utils/trackWorkflow";
@@ -165,7 +166,7 @@ const ArtistTrackDetailPage = () => {
   const submitIssues = useMemo(() => getSubmitReadinessIssues(track), [track]);
   const hasLyrics = Boolean(track?.lyricsStatic?.trim());
   const activeMeta = getTrackActiveStatusMeta(track?.activeStatus);
-  const approvalMeta = getTrackApprovalStatusMeta(track?.approvalStatus);
+  const approvalMeta = getTrackApprovalStatusMeta(getArtistTrackReviewStatus(track));
 
   const handlePlay = async () => {
     if (!track) {
@@ -354,6 +355,18 @@ const ArtistTrackDetailPage = () => {
       {location.state?.message ? (
         <div className="rounded-[22px] border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
           {location.state.message}
+        </div>
+      ) : null}
+
+      {track?.pendingUpdate?.status === "pending" ? (
+        <div className="rounded-[22px] border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
+          Bản chỉnh sửa mới đang chờ admin duyệt. Người nghe hiện vẫn nghe phiên bản đang phát hành.
+        </div>
+      ) : null}
+
+      {track?.pendingUpdate?.status === "rejected" && track?.pendingUpdate?.rejectReason ? (
+        <div className="rounded-[22px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+          Bản chỉnh sửa trước bị từ chối: {track.pendingUpdate.rejectReason}
         </div>
       ) : null}
 

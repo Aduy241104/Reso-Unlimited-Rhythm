@@ -23,6 +23,41 @@ const toId = (value) => {
     return value.toString();
 };
 
+const formatPendingTrackUpdateData = (data) => {
+    if (!data) {
+        return null;
+    }
+
+    return {
+        title: data.title || "",
+        versionTitle: data.versionTitle || "",
+        description: data.description || "",
+        tags: data.tags || [],
+        genreIds: Array.isArray(data.genreIds)
+            ? data.genreIds.map((genre) => toId(genre?._id || genre)).filter(Boolean)
+            : [],
+        genres: Array.isArray(data.genreIds)
+            ? data.genreIds
+                .map((genre) => (
+                    genre && typeof genre === "object" && "name" in genre
+                        ? {
+                            _id: genre._id,
+                            name: genre.name,
+                        }
+                        : null
+                ))
+                .filter(Boolean)
+            : [],
+        audioFiles: data.audioFiles || [],
+        duration: data.duration || 0,
+        avatar: data.avatar || "",
+        coverImage: data.coverImage || [],
+        lyricsStatic: data.lyricsStatic || "",
+        lyricsSyncUrl: data.lyricsSyncUrl || "",
+        copyright: data.copyright || null,
+    };
+};
+
 const formatTrackManagementDetail = (track) => {
     if (!track) return null;
 
@@ -74,6 +109,16 @@ const formatTrackManagementDetail = (track) => {
         hiddenAt: track.hiddenAt,
         createdAt: track.createdAt,
         updatedAt: track.updatedAt,
+        pendingUpdate: {
+            status: track.pendingUpdate?.status || "none",
+            changedFields: track.pendingUpdate?.changedFields || [],
+            submittedAt: track.pendingUpdate?.submittedAt || null,
+            lastSavedAt: track.pendingUpdate?.lastSavedAt || null,
+            reviewedAt: track.pendingUpdate?.reviewedAt || null,
+            adminNote: track.pendingUpdate?.adminNote || "",
+            rejectReason: track.pendingUpdate?.rejectReason || "",
+            data: formatPendingTrackUpdateData(track.pendingUpdate?.data || null),
+        },
     };
 };
 

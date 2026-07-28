@@ -195,7 +195,7 @@ const SystemTracksListPage = () => {
                                     <p className="truncate text-sm text-slate-600 font-medium">{track.artist?.name || "—"}</p>
                                     <p className="text-sm font-mono font-medium text-slate-400">{formatDuration(track.duration)}</p>
                                     
-                                    <div>{getStatusBadge(track.approvalStatus, "approval")}</div>
+                                    <div>{getStatusBadge(track.reviewStatus || track.approvalStatus, "approval")}</div>
                                     <div>{getStatusBadge(track.activeStatus, "visibility")}</div>
 
                                     <div className="flex justify-end pr-2">

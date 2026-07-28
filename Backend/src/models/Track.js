@@ -50,6 +50,46 @@ const copyrightSchema = new Schema(
     { _id: false }
 );
 
+const pendingTrackUpdateDataSchema = new Schema(
+    {
+        title: { type: String, trim: true, default: "" },
+        versionTitle: { type: String, trim: true, default: "" },
+        description: { type: String, default: "" },
+        tags: [{ type: String, trim: true }],
+        genreIds: [{ type: Schema.Types.ObjectId, ref: "Genre" }],
+        audioFiles: [audioFileSchema],
+        duration: { type: Number, min: 0, default: 0 },
+        avatar: { type: String, default: "" },
+        coverImage: [{ type: String }],
+        lyricsStatic: { type: String, default: "" },
+        lyricsSyncUrl: { type: String, default: "" },
+        copyright: copyrightSchema,
+    },
+    { _id: false }
+);
+
+const pendingTrackUpdateSchema = new Schema(
+    {
+        status: {
+            type: String,
+            enum: ["none", "pending", "rejected"],
+            default: "none",
+        },
+        data: {
+            type: pendingTrackUpdateDataSchema,
+            default: null,
+        },
+        changedFields: [{ type: String, trim: true }],
+        submittedAt: { type: Date, default: null },
+        lastSavedAt: { type: Date, default: null },
+        reviewedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
+        reviewedAt: { type: Date, default: null },
+        adminNote: { type: String, default: "" },
+        rejectReason: { type: String, default: "" },
+    },
+    { _id: false }
+);
+
 const TrackSchema = new Schema(
     {
         title: { type: String, required: true, trim: true, index: true },
@@ -133,6 +173,20 @@ const TrackSchema = new Schema(
         blockedReason: { type: String, default: "" },
         hiddenReason: { type: String, default: "" },
         hiddenAt: { type: Date },
+        pendingUpdate: {
+            type: pendingTrackUpdateSchema,
+            default: () => ({
+                status: "none",
+                data: null,
+                changedFields: [],
+                submittedAt: null,
+                lastSavedAt: null,
+                reviewedBy: null,
+                reviewedAt: null,
+                adminNote: "",
+                rejectReason: "",
+            }),
+        },
     },
     { timestamps: true }
 );

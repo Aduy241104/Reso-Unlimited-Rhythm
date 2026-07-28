@@ -22,6 +22,7 @@ import { routePaths } from "../../routes/routePaths";
 import { getApiErrorFullMessage } from "../../utils/apiError";
 import {
   canArtistSubmitTrack,
+  getArtistTrackReviewStatus,
   getSubmitReadinessIssues,
 } from "../../utils/trackWorkflow";
 import {
@@ -65,12 +66,14 @@ const SORT_OPTIONS = [
 ];
 
 const matchesTabFilter = (track, tab) => {
+  const reviewStatus = getArtistTrackReviewStatus(track);
+
   if (tab === "active") {
     return track?.activeStatus === "active";
   }
 
   if (tab === "pending") {
-    return track?.approvalStatus === "pending";
+    return reviewStatus === "pending";
   }
 
   if (tab === "draft") {
@@ -82,7 +85,7 @@ const matchesTabFilter = (track, tab) => {
   }
 
   if (tab === "rejected") {
-    return track?.approvalStatus === "rejected";
+    return reviewStatus === "rejected";
   }
 
   return true;
@@ -94,7 +97,7 @@ const matchesStatusFilter = (track, filterValue) => {
   }
 
   return (
-    track?.activeStatus === filterValue || track?.approvalStatus === filterValue
+    track?.activeStatus === filterValue || getArtistTrackReviewStatus(track) === filterValue
   );
 };
 
@@ -230,7 +233,7 @@ const PreviewSidebar = ({
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <StatusPill value={track?.activeStatus} />
-          <StatusPill value={track?.approvalStatus} variant="approval" />
+          <StatusPill value={getArtistTrackReviewStatus(track)} variant="approval" />
         </div>
       </div>
 
@@ -419,7 +422,7 @@ export const MyMusicPage = () => {
   const trackStats = useMemo(() => {
     const totalTracks = tracks.length;
     const activeTracks = tracks.filter((track) => track.activeStatus === "active").length;
-    const pendingTracks = tracks.filter((track) => track.approvalStatus === "pending").length;
+    const pendingTracks = tracks.filter((track) => getArtistTrackReviewStatus(track) === "pending").length;
     const totalPlays = tracks.reduce(
       (sum, track) => sum + Number(track?.stats?.totalPlay || 0),
       0
@@ -613,10 +616,10 @@ export const MyMusicPage = () => {
     () => ({
       all: tracks.length,
       active: tracks.filter((track) => track.activeStatus === "active").length,
-      pending: tracks.filter((track) => track.approvalStatus === "pending").length,
+      pending: tracks.filter((track) => getArtistTrackReviewStatus(track) === "pending").length,
       draft: tracks.filter((track) => track.approvalStatus === "draft").length,
       hidden: tracks.filter((track) => track.activeStatus === "hidden").length,
-      rejected: tracks.filter((track) => track.approvalStatus === "rejected").length,
+      rejected: tracks.filter((track) => getArtistTrackReviewStatus(track) === "rejected").length,
     }),
     [tracks]
   );
