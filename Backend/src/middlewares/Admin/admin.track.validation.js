@@ -7,6 +7,7 @@ const listTracksQuerySchema = Joi.object({
     // BỔ SUNG 2 DÒNG NÀY ĐỂ NHẬN BỘ LỌC TỪ FRONTEND:
     approvalStatus: Joi.string().valid("pending", "approved", "rejected").optional(),
     activeStatus: Joi.string().valid("draft", "active", "hidden", "blocked").optional(),
+    releaseStatus: Joi.string().valid("unreleased", "scheduled", "released").optional(),
 });
 
 const updateTrackApprovalSchema = Joi.object({
