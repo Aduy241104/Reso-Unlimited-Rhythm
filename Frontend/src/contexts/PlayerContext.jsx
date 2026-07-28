@@ -260,13 +260,23 @@ const normalizeQueue = (tracks, collection = null) =>
     )
     .filter((track) => Boolean(track?.id) && !isBlockedTrack(track));
 
-const createPersistedQueueTrack = (trackId, playbackTrackId, index) =>
+const createPersistedQueueTrack = (
+  trackId,
+  playbackTrackId,
+  index,
+  storedTrack = null
+) =>
   normalizeQueueTrack(
     {
+      queueItemId: storedTrack?.queueItemId,
+      queueSource: storedTrack?.queueSource,
       id: trackId,
       playbackTrackId: playbackTrackId || trackId,
-      title: "Untitled track",
-      artistName: "Unknown artist",
+      title: storedTrack?.title || "Untitled track",
+      artistName: storedTrack?.artistName || "Unknown artist",
+      duration: storedTrack?.duration,
+      image: storedTrack?.image,
+      listenSource: storedTrack?.listenSource,
     },
     {
       index,
@@ -275,6 +285,23 @@ const createPersistedQueueTrack = (trackId, playbackTrackId, index) =>
       queueSource: CONTEXT_QUEUE_SOURCE,
     }
   );
+
+const createStoredQueueTrack = (track) => ({
+  queueItemId: String(track?.queueItemId || "").trim(),
+  queueSource:
+    track?.queueSource === MANUAL_QUEUE_SOURCE
+      ? MANUAL_QUEUE_SOURCE
+      : CONTEXT_QUEUE_SOURCE,
+  id: String(track?.id || track?.playbackTrackId || "").trim(),
+  playbackTrackId: String(
+    track?.playbackTrackId || track?.id || ""
+  ).trim(),
+  title: String(track?.title || "Untitled track"),
+  artistName: String(track?.artistName || getArtistName(track)),
+  duration: Math.max(Number(track?.duration) || 0, 0),
+  image: String(track?.image || getTrackImage(track) || ""),
+  listenSource: resolveListenSource(track?.listenSource),
+});
 
 const createFreeSkipWindow = (startedAt = Date.now()) => ({
   startedAt,
@@ -348,6 +375,11 @@ const normalizeStoredPlaybackState = (value) => {
         .map((trackId) => String(trackId || "").trim())
         .filter(Boolean)
     : [];
+  const queueTracks = Array.isArray(value.queueTracks)
+    ? value.queueTracks.filter(
+        (track) => track && typeof track === "object"
+      )
+    : [];
   const currentTrackId = String(value.currentTrackId || "").trim();
   const currentPlaybackTrackId = String(
     value.currentPlaybackTrackId || currentTrackId
@@ -375,6 +407,7 @@ const normalizeStoredPlaybackState = (value) => {
     currentPlaybackTrackId,
     queueTrackIds,
     queuePlaybackTrackIds,
+    queueTracks,
     currentIndex,
     currentTime,
     isPlaying: Boolean(value.isPlaying),
@@ -502,8 +535,8 @@ const resolveSelectedQuality = (track, streamUrl = "", preferredBitrate = 0) => 
 
 export const PlayerProvider = ({ children }) => {
   const { user } = useAuth();
-  const initialStoredPlaybackStateRef = useRef(null);
-  if (initialStoredPlaybackStateRef.current === null) {
+  const initialStoredPlaybackStateRef = useRef(undefined);
+  if (initialStoredPlaybackStateRef.current === undefined) {
     initialStoredPlaybackStateRef.current = loadStoredPlaybackState();
   }
   const [queue, setQueue] = useState([]);
@@ -564,7 +597,6 @@ export const PlayerProvider = ({ children }) => {
   const lastTrackedAudioTimeRef = useRef(0);
   const ignoreNextListenDeltaRef = useRef(true);
   const queueMutationCounterRef = useRef(0);
-  const hasAttemptedPlaybackRestoreRef = useRef(false);
   const isRestoringPlaybackRef = useRef(false);
 
   const isPremium = useMemo(() => hasPremiumAccess(user), [user]);
@@ -1034,11 +1066,10 @@ export const PlayerProvider = ({ children }) => {
   }, [volume]);
 
   useEffect(() => {
-    if (hasAttemptedPlaybackRestoreRef.current || !audioRef.current) {
+    if (!audioRef.current) {
       return;
     }
 
-    hasAttemptedPlaybackRestoreRef.current = true;
     const storedPlaybackState = initialStoredPlaybackStateRef.current;
 
     if (!storedPlaybackState) {
@@ -1056,6 +1087,7 @@ export const PlayerProvider = ({ children }) => {
           currentPlaybackTrackId,
           queueTrackIds,
           queuePlaybackTrackIds,
+          queueTracks,
           currentIndex: persistedCurrentIndex,
           currentTime: persistedCurrentTime,
           shuffle,
@@ -1077,7 +1109,8 @@ export const PlayerProvider = ({ children }) => {
           createPersistedQueueTrack(
             trackId,
             queuePlaybackTrackIds[index] || trackId,
-            index
+            index,
+            queueTracks[index]
           )
         );
         const restoredCurrentIndex =
@@ -1088,16 +1121,6 @@ export const PlayerProvider = ({ children }) => {
           return;
         }
 
-        syncOrderedQueueState(restoredQueue);
-        syncQueueState(restoredQueue);
-        currentIndexRef.current = restoredCurrentIndex;
-        setCurrentIndex(restoredCurrentIndex);
-        setCurrentTrack(restoredQueue[restoredCurrentIndex]);
-        setCurrentTime(Math.max(Number(persistedCurrentTime) || 0, 0));
-        setIsPlaying(false);
-        setIsShuffleEnabled(shuffle);
-        setRepeatMode(persistedRepeatMode);
-
         let playbackSource = null;
 
         try {
@@ -1105,7 +1128,9 @@ export const PlayerProvider = ({ children }) => {
             currentPlaybackTrackId || currentTrackId
           );
         } catch {
-          clearPlaybackState();
+          if (!isCancelled) {
+            clearPlaybackState();
+          }
           return;
         }
 
@@ -1141,6 +1166,13 @@ export const PlayerProvider = ({ children }) => {
 
         syncOrderedQueueState(hydratedQueue);
         syncQueueState(hydratedQueue);
+        currentIndexRef.current = restoredCurrentIndex;
+        setCurrentIndex(restoredCurrentIndex);
+        setCurrentTrack(hydratedCurrentTrack);
+        setCurrentTime(Math.max(Number(persistedCurrentTime) || 0, 0));
+        setIsPlaying(false);
+        setIsShuffleEnabled(shuffle);
+        setRepeatMode(persistedRepeatMode);
 
         await playTrackByIndexRef.current?.(restoredCurrentIndex, hydratedQueue, {
           autoplay: false,
@@ -1148,7 +1180,9 @@ export const PlayerProvider = ({ children }) => {
           skipListenFlush: true,
         });
       } finally {
-        isRestoringPlaybackRef.current = false;
+        if (!isCancelled) {
+          isRestoringPlaybackRef.current = false;
+        }
       }
     };
 
@@ -1180,6 +1214,7 @@ export const PlayerProvider = ({ children }) => {
         String(track?.playbackTrackId || track?.id || "").trim()
       )
       .filter(Boolean);
+    const queueTracks = queue.map(createStoredQueueTrack);
     const resolvedCurrentIndex =
       queueTrackIds[currentIndex] === currentTrackId
         ? currentIndex
@@ -1192,6 +1227,9 @@ export const PlayerProvider = ({ children }) => {
       !currentPlaybackTrackId ||
       queueTrackIds.length === 0 ||
       queuePlaybackTrackIds.length !== queueTrackIds.length ||
+      queueTracks.some(
+        (track) => !track.id || !track.playbackTrackId
+      ) ||
       resolvedCurrentIndex < 0 ||
       resolvedCurrentIndex >= queueTrackIds.length
     ) {
@@ -1204,6 +1242,7 @@ export const PlayerProvider = ({ children }) => {
       currentPlaybackTrackId,
       queueTrackIds,
       queuePlaybackTrackIds,
+      queueTracks,
       currentIndex: resolvedCurrentIndex,
       currentTime: Math.max(Math.floor(Number(currentTime) || 0), 0),
       isPlaying,

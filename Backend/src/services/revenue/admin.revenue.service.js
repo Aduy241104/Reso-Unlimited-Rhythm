@@ -1116,7 +1116,7 @@ const confirmRevenueDistribution = async (revenuePeriodId, adminUserId) => {
         month: revenuePeriod.month,
         status: { $in: ["calculated", "confirmed"] },
     })
-        .select("_id artistId artistRevenueAmount status")
+        .select("_id artistId artistRevenueAmount withdrawnAmount status")
         .lean();
 
     const artistIds = [
@@ -1168,9 +1168,6 @@ const confirmRevenueDistribution = async (revenuePeriodId, adminUserId) => {
                 },
                 update: {
                     $inc: {
-                        "revenue.totalEarnedAmount": Number(
-                            summary.artistRevenueAmount || 0
-                        ),
                         "revenue.availableAmount": Number(
                             summary.artistRevenueAmount || 0
                         ),
@@ -1187,17 +1184,24 @@ const confirmRevenueDistribution = async (revenuePeriodId, adminUserId) => {
     }
 
     if (artistRevenueSummaries.length > 0) {
-        await ArtistRevenueSummary.updateMany(
-            {
-                _id: { $in: artistRevenueSummaries.map((summary) => summary._id) },
-            },
-            {
-                $set: {
-                    status: "confirmed",
-                    confirmedAt: now,
-                    confirmedBy: adminUserId,
+        await ArtistRevenueSummary.bulkWrite(
+            artistRevenueSummaries.map((summary) => ({
+                updateOne: {
+                    filter: { _id: summary._id },
+                    update: {
+                        $set: {
+                            availableAmount: Math.max(
+                                Number(summary.artistRevenueAmount || 0) -
+                                    Number(summary.withdrawnAmount || 0),
+                                0
+                            ),
+                            status: "confirmed",
+                            confirmedAt: now,
+                            confirmedBy: adminUserId,
+                        },
+                    },
                 },
-            }
+            }))
         );
     }
 

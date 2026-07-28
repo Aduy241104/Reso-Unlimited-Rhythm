@@ -9,6 +9,8 @@
     "seed": "node src/seedComprehensive.js",
     "seed:comprehensive": "node src/seedComprehensive.js",
     "seed:comprehensive:check": "node src/seedComprehensive.js --dry-run",
+    "seed:revenue-mini": "node src/seedMiniRevenue.js --apply",
+    "seed:revenue-mini:check": "node src/seedMiniRevenue.js --dry-run",
     "seed:system-content": "node src/seedSystemPlaylistsAndDailyTopArtists.js",
     "seed:system-content:check": "node src/seedSystemPlaylistsAndDailyTopArtists.js --validate-only",
     "seed:recent-listening-activity": "node src/seed2.js",
