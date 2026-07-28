@@ -296,8 +296,7 @@ const PreviewSidebar = ({
             onClick={onHide}
             disabled={
               isActionLoading ||
-              track?.releaseStatus === "scheduled" ||
-              (track?.activeStatus === "hidden" && track?.releaseStatus !== "released")
+              track?.releaseStatus === "scheduled"
             }
             title={
               track?.releaseStatus === "scheduled"
@@ -560,21 +559,12 @@ export const MyMusicPage = () => {
       return;
     }
 
-    const reason = window.prompt(
-      "Nhập lý do ẩn bài hát (không bắt buộc):",
-      track.hiddenReason || "Ẩn bởi nghệ sĩ."
-    );
-
-    if (reason === null) {
-      return;
-    }
-
     setActionMessage("");
     setActionError("");
     setIsActionLoading(true);
 
     try {
-      const updatedTrack = await trackService.hideArtistTrack(track._id, reason);
+      const updatedTrack = await trackService.hideArtistTrack(track._id);
       setTracks((currentTracks) =>
         currentTracks.map((item) => (item._id === updatedTrack?._id ? updatedTrack : item))
       );

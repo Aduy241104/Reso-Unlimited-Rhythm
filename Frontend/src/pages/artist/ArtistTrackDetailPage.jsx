@@ -298,21 +298,12 @@ const ArtistTrackDetailPage = () => {
       return;
     }
 
-    const reason = window.prompt(
-      "Nhập lý do ẩn bài hát (không bắt buộc):",
-      track.hiddenReason || "Ẩn bởi nghệ sĩ."
-    );
-
-    if (reason === null) {
-      return;
-    }
-
     setActionError("");
     setActionMessage("");
     setIsActionLoading(true);
 
     try {
-      const updatedTrack = await trackService.hideArtistTrack(track._id, reason);
+      const updatedTrack = await trackService.hideArtistTrack(track._id);
       setTrack(updatedTrack);
       setActionMessage("Đã ẩn bài hát thành công.");
     } catch (error) {
@@ -719,8 +710,7 @@ const ArtistTrackDetailPage = () => {
                 onClick={handleHideTrack}
                 disabled={
                   isActionLoading ||
-                  track?.releaseStatus === "scheduled" ||
-                  (track?.activeStatus === "hidden" && track?.releaseStatus !== "released")
+                  track?.releaseStatus === "scheduled"
                 }
                 title={
                   track?.releaseStatus === "scheduled"

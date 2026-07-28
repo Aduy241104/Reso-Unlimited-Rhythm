@@ -67,11 +67,7 @@ const updateMyTrack = async (req, res, next) => {
 
 const hideMyTrack = async (req, res, next) => {
     try {
-        const track = await artistTrackService.hideArtistTrack(
-            req.user.id,
-            req.params.id,
-            req.body?.reason
-        );
+        const track = await artistTrackService.hideArtistTrack(req.user.id, req.params.id);
 
         return formatResponse.success(
             res,
