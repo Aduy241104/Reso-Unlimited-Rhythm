@@ -332,6 +332,9 @@ const createTrackVisibilityNotification = async ({
     } else if (action === "unhide") {
         title = `Track "${track.title}" da duoc hien thi lai`;
         content = "Admin da mo lai hien thi cho track cua ban tren nen tang.";
+    } else if (action === "unblock") {
+        title = `Track "${track.title}" da duoc go khoa`;
+        content = "Admin da go khoa track cua ban tren he thong.";
     } else {
         return null;
     }
@@ -599,6 +602,18 @@ const updateTrackVisibility = async (
         track.hiddenReason = "";
         track.hiddenAt = null;
     } else if (payload.action === "unhide") {
+        track.blockedByAlbumId = null;
+        track.previousActiveStatusBeforeAlbumBlock = null;
+        track.previousHiddenReasonBeforeAlbumBlock = "";
+        track.previousHiddenAtBeforeAlbumBlock = null;
+        track.activeStatus = "active";
+        track.hiddenReason = "";
+        track.blockedReason = "";
+        track.hiddenAt = null;
+    } else if (payload.action === "unblock") {
+        if (track.activeStatus !== "blocked") {
+            throw new AppError("Only a blocked track can be unblocked.", 400, { field: "action" });
+        }
         track.blockedByAlbumId = null;
         track.previousActiveStatusBeforeAlbumBlock = null;
         track.previousHiddenReasonBeforeAlbumBlock = "";
