@@ -18,6 +18,7 @@ const DEFAULT_PAGINATION = {
 
 const CARD_STYLES =
   "rounded-[24px] border border-[#ebe6ff] bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#181818] sm:p-6";
+const DAILY_GROWTH_DAYS = 7;
 
 const normalizePagination = (pagination = {}, fallbackPage = DEFAULT_PAGE) => ({
   page: Number(pagination?.page || fallbackPage),
@@ -57,6 +58,75 @@ const getGrowthCountByField = (items = [], field, expectedValue) => {
   return Number(matchedItem?.count || 0);
 };
 
+const createUtcDateFromIso = (value) => {
+  const [year, month, day] = String(value || "")
+    .split("-")
+    .map((part) => Number(part));
+
+  if (!year || !month || !day) {
+    return null;
+  }
+
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const formatUtcDateToIso = (date) => {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+const formatGrowthLabel = (value) => {
+  const date = createUtcDateFromIso(value);
+
+  if (!date) {
+    return "--/--";
+  }
+
+  return new Intl.DateTimeFormat("vi-VN", {
+    timeZone: "UTC",
+    day: "2-digit",
+    month: "2-digit",
+  }).format(date);
+};
+
+const buildDailyGrowthChartData = (items = [], endDate) => {
+  const endDateUtc = createUtcDateFromIso(endDate);
+  const growthMap = new Map(
+    (Array.isArray(items) ? items : []).map((item) => [
+      item?.date,
+      Number(item?.count || 0),
+    ])
+  );
+
+  if (!endDateUtc) {
+    return [];
+  }
+
+  return Array.from({ length: DAILY_GROWTH_DAYS }, (_, index) => {
+    const date = new Date(endDateUtc);
+    date.setUTCDate(endDateUtc.getUTCDate() - (DAILY_GROWTH_DAYS - index - 1));
+
+    const isoDate = formatUtcDateToIso(date);
+
+    return {
+      date: isoDate,
+      label: formatGrowthLabel(isoDate),
+      count: growthMap.get(isoDate) || 0,
+    };
+  });
+};
+
+const formatMetricValue = (value) => Number(value || 0).toLocaleString("vi-VN");
+
 const SummaryCard = ({ icon: Icon, label, value, helper, isLoading = false }) => {
   return (
     <div className="rounded-[20px] border border-[#efeaff] bg-white/80 p-4 backdrop-blur dark:border-white/10 dark:bg-white/[0.04]">
@@ -80,6 +150,129 @@ const SummaryCard = ({ icon: Icon, label, value, helper, isLoading = false }) =>
   );
 };
 
+const DailyGrowthChart = ({ data = [], isLoading = false }) => {
+  if (isLoading) {
+    return (
+      <div className="animate-pulse rounded-[22px] border border-[#f0ebff] bg-[#fcfbff] p-4 dark:border-white/10 dark:bg-white/[0.03] sm:p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-3">
+            <div className="h-4 w-40 rounded-full bg-[#ece8ff] dark:bg-white/[0.08]" />
+            <div className="h-4 w-64 max-w-full rounded-full bg-[#f1edff] dark:bg-white/[0.06]" />
+          </div>
+          <div className="h-14 w-24 rounded-2xl bg-[#f1edff] dark:bg-white/[0.06]" />
+        </div>
+        <div className="mt-6 flex h-56 items-end gap-3">
+          {Array.from({ length: DAILY_GROWTH_DAYS }, (_, index) => (
+            <div key={index} className="flex flex-1 flex-col items-center justify-end gap-3">
+              <div className="h-4 w-8 rounded-full bg-[#ece8ff] dark:bg-white/[0.08]" />
+              <div
+                className="w-full rounded-t-[16px] bg-[#e8e1ff] dark:bg-white/[0.08]"
+                style={{ height: `${28 + index * 10}px` }}
+              />
+              <div className="h-4 w-10 rounded-full bg-[#f1edff] dark:bg-white/[0.06]" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const safeData = Array.isArray(data) ? data : [];
+  const totalGrowth = safeData.reduce((sum, item) => sum + Number(item?.count || 0), 0);
+  const peakDay = safeData.reduce(
+    (currentPeak, item) =>
+      Number(item?.count || 0) > Number(currentPeak?.count || 0) ? item : currentPeak,
+    safeData[0] || null
+  );
+  const maxCount = Math.max(...safeData.map((item) => Number(item?.count || 0)), 0);
+
+  return (
+    <div className="rounded-[22px] border border-[#f0ebff] bg-[#fcfbff] p-4 dark:border-white/10 dark:bg-white/[0.03] sm:p-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <div className="inline-flex items-center gap-2 rounded-full bg-[#f2edff] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#6f5cf1] dark:bg-white/[0.06] dark:text-[#c4bbff]">
+            <TrendingUp className="h-3.5 w-3.5" />
+            7 ngày gần nhất
+          </div>
+          <h2 className="mt-3 text-lg font-semibold text-[#2f2747] dark:text-white">
+            Biểu đồ tăng trưởng follower
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-[#7b7494] dark:text-[#a1a1aa]">
+            Dữ liệu theo ngày được lấy từ thống kê hiện có và tự động bù các ngày chưa phát sinh follower mới.
+          </p>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[280px]">
+          <div className="rounded-[18px] border border-[#ebe6ff] bg-white/80 px-4 py-3 dark:border-white/10 dark:bg-white/[0.04]">
+            <p className="text-xs uppercase tracking-[0.16em] text-[#8a84a2] dark:text-[#8f8f98]">
+              Tổng 7 ngày
+            </p>
+            <p className="mt-2 text-xl font-semibold text-[#2f2747] dark:text-white">
+              {formatMetricValue(totalGrowth)}
+            </p>
+          </div>
+          <div className="rounded-[18px] border border-[#ebe6ff] bg-white/80 px-4 py-3 dark:border-white/10 dark:bg-white/[0.04]">
+            <p className="text-xs uppercase tracking-[0.16em] text-[#8a84a2] dark:text-[#8f8f98]">
+              Cao nhất
+            </p>
+            <p className="mt-2 text-xl font-semibold text-[#2f2747] dark:text-white">
+              {formatMetricValue(peakDay?.count || 0)}
+            </p>
+            <p className="mt-1 text-xs text-[#8a84a2] dark:text-[#8f8f98]">
+              {peakDay?.label ? `Ngày ${peakDay.label}` : "Chưa có dữ liệu"}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="relative mt-6 overflow-hidden rounded-[20px] border border-[#ebe6ff] bg-white px-4 pb-4 pt-5 dark:border-white/10 dark:bg-[#181818] sm:px-5">
+        <div className="pointer-events-none absolute inset-x-4 bottom-[52px] top-5 sm:inset-x-5">
+          {[0, 1, 2, 3].map((line) => (
+            <div
+              key={line}
+              className="absolute left-0 right-0 border-t border-dashed border-[#ece6ff] dark:border-white/10"
+              style={{ bottom: `${(line / 3) * 100}%` }}
+            />
+          ))}
+        </div>
+
+        <div className="relative flex h-64 items-end gap-3 sm:gap-4">
+          {safeData.map((item) => {
+            const count = Number(item?.count || 0);
+            const barHeight =
+              count > 0 && maxCount > 0
+                ? `${Math.max((count / maxCount) * 100, 12)}%`
+                : "6px";
+
+            return (
+              <div
+                key={item?.date || item?.label}
+                className="flex min-w-0 flex-1 flex-col items-center justify-end gap-3"
+              >
+                <span className="text-xs font-semibold text-[#6f5cf1] dark:text-[#d2cbff]">
+                  {formatMetricValue(count)}
+                </span>
+                <div className="flex h-44 w-full items-end">
+                  <div
+                    className="w-full rounded-t-[16px] bg-[linear-gradient(180deg,#9b8cff_0%,#6f5cf1_100%)] shadow-[0_12px_30px_-20px_rgba(111,92,241,0.95)] transition-[height,opacity] duration-500 dark:bg-[linear-gradient(180deg,#cfc6ff_0%,#8b7cff_100%)]"
+                    style={{
+                      height: barHeight,
+                      opacity: count > 0 ? 1 : 0.45,
+                    }}
+                  />
+                </div>
+                <span className="text-xs font-medium text-[#7b7494] dark:text-[#a1a1aa]">
+                  {item?.label || "--/--"}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const ArtistFollowerPage = () => {
   const [artist, setArtist] = useState(null);
   const [followers, setFollowers] = useState([]);
@@ -87,6 +280,9 @@ const ArtistFollowerPage = () => {
   const [pagination, setPagination] = useState(DEFAULT_PAGINATION);
   const [latestDailyGrowth, setLatestDailyGrowth] = useState(0);
   const [latestMonthlyGrowth, setLatestMonthlyGrowth] = useState(0);
+  const [dailyGrowthChart, setDailyGrowthChart] = useState(() =>
+    buildDailyGrowthChartData([], getCurrentDateParts().date)
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
@@ -95,6 +291,8 @@ const ArtistFollowerPage = () => {
     let isMounted = true;
 
     const fetchFollowers = async () => {
+      const currentDateParts = getCurrentDateParts();
+
       setIsLoading(true);
       setErrorMessage("");
 
@@ -117,7 +315,6 @@ const ArtistFollowerPage = () => {
           followersPayload?.pagination || DEFAULT_PAGINATION,
           page
         );
-        const currentDateParts = getCurrentDateParts();
 
         setArtist(payload?.artist || null);
         setFollowers(nextFollowers);
@@ -136,6 +333,12 @@ const ArtistFollowerPage = () => {
             currentDateParts.month
           )
         );
+        setDailyGrowthChart(
+          buildDailyGrowthChartData(
+            statisticsPayload?.dailyGrowth || [],
+            currentDateParts.date
+          )
+        );
       } catch (error) {
         if (!isMounted) {
           return;
@@ -149,6 +352,7 @@ const ArtistFollowerPage = () => {
         });
         setLatestDailyGrowth(0);
         setLatestMonthlyGrowth(0);
+        setDailyGrowthChart(buildDailyGrowthChartData([], currentDateParts.date));
         setErrorMessage(
           getApiErrorMessage(error, "Không thể tải dữ liệu người theo dõi.")
         );
@@ -268,6 +472,12 @@ const ArtistFollowerPage = () => {
             <RefreshCcw className="h-4 w-4" />
             Thử lại
           </button>
+        </section>
+      ) : null}
+
+      {!errorMessage ? (
+        <section className={CARD_STYLES}>
+          <DailyGrowthChart data={dailyGrowthChart} isLoading={isLoading} />
         </section>
       ) : null}
 
