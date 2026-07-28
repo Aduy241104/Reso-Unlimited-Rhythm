@@ -1,3 +1,8 @@
+import {
+    resolveTrackReleasedAt,
+    resolveTrackReleaseStatus,
+} from "../../utils/trackRelease.js";
+
 const toId = (value) => {
     if (!value) {
         return null;
@@ -34,6 +39,8 @@ const formatArtistTrack = (track) => ({
     coverImage: track.coverImage,
     stats: track.stats,
     releaseDate: track.releaseDate,
+    releaseStatus: resolveTrackReleaseStatus(track),
+    releasedAt: resolveTrackReleasedAt(track),
     album: track.album_albumId
         ? {
             id: toId(track.album_albumId._id),
@@ -64,6 +71,8 @@ const formatArtistComingRelease = ({ schedule, target }) => {
                     ? target.coverImage
                     : [],
                 releaseDate: target?.releaseDate || null,
+                releaseStatus: resolveTrackReleaseStatus(target),
+                releasedAt: resolveTrackReleasedAt(target),
             }
             : {
                 id: toId(target?._id),

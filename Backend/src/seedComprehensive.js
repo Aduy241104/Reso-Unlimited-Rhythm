@@ -518,6 +518,14 @@ const buildSeedData = async () => {
             lyricsSyncUrl: "",
             stats: { totalLike: 0, totalPlay: 0 },
             releaseDate: dates.at(-150 + index * 3).toDate(),
+            releaseStatus:
+                approvalStatus === "approved" && ["active", "hidden"].includes(activeStatus)
+                    ? "released"
+                    : "unreleased",
+            releasedAt:
+                approvalStatus === "approved" && ["active", "hidden"].includes(activeStatus)
+                    ? dates.at(-150 + index * 3).toDate()
+                    : null,
             activeStatus,
             approvalStatus,
             copyright: {
@@ -935,6 +943,19 @@ const buildSeedData = async () => {
             releasedAt: state === "released" ? scheduledAt : null,
             status: state,
         });
+
+        if (isTrack && state === "scheduled") {
+            target.releaseDate = scheduledAt;
+            target.releaseStatus = "scheduled";
+            target.releasedAt = null;
+            if (target.activeStatus !== "blocked") {
+                target.activeStatus = "hidden";
+            }
+        } else if (isTrack && state === "released") {
+            target.releaseDate = scheduledAt;
+            target.releaseStatus = "released";
+            target.releasedAt = scheduledAt;
+        }
     }
 
     const reportReasons = ["Nghi ngờ vi phạm bản quyền", "Metadata không chính xác", "Nội dung không phù hợp", "Giả mạo nghệ sĩ"];

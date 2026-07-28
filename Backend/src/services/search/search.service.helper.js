@@ -53,6 +53,8 @@ const normalizePagination = (query = {}, defaultLimit = 10, maxLimit = 20) => {
     return { page, limit, skip };
 };
 
+import { buildReleasedTrackFilter } from "../../utils/trackRelease.js";
+
 const buildSongsSearchFilter = (keyword) => {
     if (!keyword) {
         return null;
@@ -61,6 +63,7 @@ const buildSongsSearchFilter = (keyword) => {
     return {
         activeStatus: "active",
         approvalStatus: "approved",
+        ...buildReleasedTrackFilter(),
     };
 };
 
