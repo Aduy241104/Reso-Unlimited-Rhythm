@@ -7,9 +7,12 @@ import cors from "cors";
 import corsOptions from "./config/corsConfig.js";
 import cookieParser from "cookie-parser";
 import http from "http";
+import { initSocket } from "./config/socket.js";
 import { connectRedis } from "./config/redisConfig.js";
 import { startDailyTopArtistCron } from "./jobs/dailyTopArtist.cron.js";
+import { startPersonalizedDailyMixCron } from "./jobs/personalizedDailyMix.cron.js";
 import { startMonthlyTopArtistCron } from "./jobs/monthlyTopArtist.cron.js";
+import { startDailyArtistOverviewStatCron } from "./jobs/dailyArtistOverviewStat.cron.js";
 import { startDailyTrackStatCron } from "./jobs/dailyTrackStat.cron.js";
 import { startDailyTopTrackCron } from "./jobs/dailyTopTrack.cron.js";
 import { startMonthlyTrackStatCron } from "./jobs/monthlyTrackStat.cron.js";
@@ -22,14 +25,23 @@ import {
 } from "./middlewares/error.middleware.js";
 import model from "./models/index.js";
 import { startPlatformStreamingStatsCron } from "./jobs/platformStreamingStats.cron.js";
+import recommendationRoutes from "./router/recommendation.routes.js";
 import {
     runReleaseSchedulePublication,
     startReleaseScheduleCron,
 } from "./jobs/releaseSchedule.cron.js";
+import {
+    runSubscriptionMaintenance,
+    startSubscriptionMaintenanceCron,
+} from "./jobs/subscriptionMaintenance.cron.js";
+import { startRevenueAggregationCron } from "./jobs/revenueAggregation.cron.js";
 
 dotenv.config();
 const app = express();
 const server = http.createServer(app);
+
+const io = initSocket(server);
+app.set("io", io);
 
 app.use(cors(corsOptions));
 app.use(cookieParser());
@@ -41,31 +53,7 @@ app.use("/static", express.static("public"));
 app.use(morgan("combined"));
 
 route(app);
-
-app.get("/test", async (req, res) => { res.json("hello") });
-// app.get("/run-cron", async (req, res) => {
-//     try {
-//         const { runTodayAggregation } = await import('./jobs/dailyTopTrack.cron.js');
-//         const { syncTrackStatsForDay } = await import('./services/analytics/trackStatAggregation.service.js');
-//         const { date } = req.query;
-//         const result = date
-//             ? await syncTrackStatsForDay(date)
-//             : await runTodayAggregation();
-//         res.json({ success: true, result });
-//     } catch (e) {
-//         res.status(500).json({ error: e.message });
-//     }
-// });
-// app.get("/run-platform-cron", async (req, res) => {
-//     try {
-//         const { runPlatformStreamingStatsAggregation } = await import('./jobs/platformStreamingStats.cron.js');
-//         const { date } = req.query;
-//         const result = await runPlatformStreamingStatsAggregation(date || undefined);
-//         res.json({ success: true, result });
-//     } catch (e) {
-//         res.status(500).json({ error: e.message });
-//     }
-// });
+app.use("/api/recommendations", recommendationRoutes);
 
 app.use(notFoundHandler);
 app.use(globalErrorHandler);
@@ -74,17 +62,19 @@ const PORT = process.env.PORT || 8080;
 
 const startServer = async () => {
     try {
-
-
         await connectMongose();
         await connectRedis();
 
-        server.listen(PORT, '0.0.0.0', () => {
+        server.listen(PORT, "0.0.0.0", () => {
             console.log(`🚀 Server + Socket.IO đang chạy tại port ${PORT}`);
-            console.log(`📡 Server đang mở cổng mạng nội bộ tại mọi IP`);
+            console.log("📡 Server đang mở cổng mạng nội bộ tại mọi IP");
         });
+
         await runReleaseSchedulePublication();
+        await runSubscriptionMaintenance();
         await runStartupAnalyticsCatchup();
+
+        startDailyArtistOverviewStatCron();
         startDailyTopArtistCron();
         startMonthlyTopArtistCron();
         startDailyTrackStatCron();
@@ -92,12 +82,13 @@ const startServer = async () => {
         startMonthlyTrackStatCron();
         startMonthlyTopTrackCron();
         startPlatformStreamingStatsCron();
+        startPersonalizedDailyMixCron();
         startListenEventSyncCron();
         startReleaseScheduleCron();
-
-
+        startSubscriptionMaintenanceCron();
+        startRevenueAggregationCron();
     } catch (error) {
-        console.error("ðŸš¨ Failed to start server:", error);
+        console.error("💥 Failed to start server:", error);
         process.exit(1);
     }
 };

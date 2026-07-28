@@ -20,9 +20,9 @@ import { getApiErrorMessage } from "../../utils/apiError";
 import { createUserProfileSnapshot } from "./UserProfileCard";
 
 const GENDER_OPTIONS = [
-  { value: "male", label: "Male" },
-  { value: "female", label: "Female" },
-  { value: "other", label: "Other" },
+  { value: "male", label: "Nam" },
+  { value: "female", label: "Nữ" },
+  { value: "other", label: "Khác" },
 ];
 
 const inputClassName =
@@ -77,7 +77,7 @@ const getFieldErrorsFromApi = (error) => {
 
     return {
       ...nextErrors,
-      [fieldName]: detail?.message || "Invalid value.",
+      [fieldName]: detail?.message || "Giá trị không hợp lệ.",
     };
   }, {});
 };
@@ -166,7 +166,7 @@ const useCountryDropdown = () => {
         setCountries([]);
         setStatus("error");
         setErrorMessage(
-          getApiErrorMessage(error, "Could not load the country list.")
+          getApiErrorMessage(error, "Không thể tải danh sách quốc gia.")
         );
       }
     };
@@ -191,7 +191,7 @@ const useCountryDropdown = () => {
       setCountries([]);
       setStatus("error");
       setErrorMessage(
-        getApiErrorMessage(error, "Could not load the country list.")
+        getApiErrorMessage(error, "Không thể tải danh sách quốc gia.")
       );
     }
   };
@@ -293,15 +293,15 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
     const nextErrors = {};
 
     if (!normalizeText(formValues.fullName)) {
-      nextErrors.fullName = "Full name is required.";
+      nextErrors.fullName = "Vui lòng nhập họ và tên.";
     }
 
     if (!normalizeText(formValues.gender)) {
-      nextErrors.gender = "Please choose a gender.";
+      nextErrors.gender = "Vui lòng chọn giới tính.";
     }
 
     if (!normalizeText(formValues.country)) {
-      nextErrors.country = "Please choose a country.";
+      nextErrors.country = "Vui lòng chọn quốc gia.";
     }
 
     setFieldErrors(nextErrors);
@@ -353,7 +353,7 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
       }
 
       if (!refreshedUser) {
-        throw new Error("Profile updated, but the latest data could not be loaded.");
+        throw new Error("Đã cập nhật hồ sơ nhưng không thể tải dữ liệu mới nhất.");
       }
 
       onSaved(refreshedUser);
@@ -361,7 +361,7 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
       const nextErrors = getFieldErrorsFromApi(error);
       setFieldErrors(nextErrors);
       setApiError(
-        getApiErrorMessage(error, "Unable to save your profile changes.")
+        getApiErrorMessage(error, "Không thể lưu thay đổi hồ sơ.")
       );
     } finally {
       setIsSaving(false);
@@ -378,14 +378,13 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
       <div className="flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#ff9f43]">
-            Update profile
+            Cập nhật hồ sơ
           </p>
           <h3 className="mt-2 text-2xl font-semibold tracking-tight text-white">
-            Edit your account details
+            Chỉnh sửa thông tin tài khoản
           </h3>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-400">
-            Save a new avatar, update your name, and keep your profile identity in
-            sync with the backend.
+            Cập nhật ảnh đại diện, tên hiển thị và đồng bộ thông tin hồ sơ với hệ thống.
           </p>
         </div>
 
@@ -394,7 +393,7 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
           onClick={onCancel}
           disabled={isSaving}
           className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-gray-300 transition-all duration-300 hover:border-white/20 hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
-          aria-label="Close update profile form"
+          aria-label="Đóng biểu mẫu cập nhật hồ sơ"
         >
           <X className="h-5 w-5" aria-hidden />
         </button>
@@ -410,7 +409,7 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
               ) : (
                 <img
                   src={avatarPreviewUrl}
-                  alt="Profile avatar preview"
+                  alt="Xem trước ảnh đại diện"
                   className="h-full w-full object-cover"
                 />
               )}
@@ -420,17 +419,16 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 text-sm font-medium text-white">
               <Camera className="h-4 w-4 text-[#ff9f43]" aria-hidden />
-              Avatar preview
+              Xem trước ảnh đại diện
             </div>
             <p className="mt-2 text-sm leading-6 text-gray-400">
-              Upload a new image to replace your current avatar. The backend keeps
-              the final storage and Cloudinary handling.
+              Tải ảnh mới để thay thế ảnh đại diện hiện tại. Hệ thống sẽ lưu trữ và xử lý ảnh ở phía máy chủ.
             </p>
 
             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
               <label className={`${secondaryButtonClassName} cursor-pointer`}>
                 <Upload className="h-4 w-4" aria-hidden />
-                <span>Upload new image</span>
+                <span>Tải ảnh mới</span>
                 <input
                   key={`avatar-input-${avatarInputKey}`}
                   type="file"
@@ -446,7 +444,7 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
                   {avatarFile.name}
                 </p>
               ) : (
-                <p className="text-sm text-gray-500">PNG, JPG, or WebP</p>
+                <p className="text-sm text-gray-500">PNG, JPG hoặc WebP</p>
               )}
             </div>
 
@@ -459,7 +457,7 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
 
       <div className="mt-6 grid gap-5 lg:grid-cols-2">
         <FormField
-          label="Full Name"
+          label="Họ và tên"
           icon={UserRound}
           errorMessage={fieldErrors.fullName}
         >
@@ -467,14 +465,14 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
             type="text"
             value={formValues.fullName}
             onChange={(event) => updateField("fullName", event.target.value)}
-            placeholder="Enter your full name"
+            placeholder="Nhập họ và tên"
             className={inputClassName}
             disabled={isSaving}
           />
         </FormField>
 
         <FormField
-          label="Gender"
+          label="Giới tính"
           icon={VenusAndMars}
           errorMessage={fieldErrors.gender}
         >
@@ -486,7 +484,7 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
               className={`${inputClassName} flex items-center justify-between gap-3 text-left`}
             >
               <span className="truncate text-sm text-white">
-                {selectedGender?.label || "Select your gender"}
+                {selectedGender?.label || "Chọn giới tính"}
               </span>
               <ChevronDown
                 className={[
@@ -531,7 +529,7 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
         </FormField>
 
         <FormField
-          label="Country"
+          label="Quốc gia"
           icon={MapPin}
           errorMessage={fieldErrors.country}
         >
@@ -551,7 +549,7 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
 
                 <span className="truncate text-sm text-white">
                   {getCountryLabel(selectedCountry, formValues.country) ||
-                    (isLoading ? "Loading countries..." : "Select your country")}
+                    (isLoading ? "Đang tải quốc gia..." : "Chọn quốc gia")}
                 </span>
               </span>
 
@@ -578,7 +576,7 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
                     className="h-4 w-4 animate-spin text-[#ff9f43]"
                     aria-hidden
                   />
-                  Loading countries...
+                  Đang tải danh sách quốc gia...
                 </div>
               ) : null}
 
@@ -594,7 +592,7 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
                     className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white transition-all duration-300 hover:border-white/20 hover:bg-white/[0.08]"
                   >
                     <RefreshCw className="h-4 w-4" aria-hidden />
-                    Retry
+                    Thử lại
                   </button>
                 </div>
               ) : null}
@@ -651,19 +649,19 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
           disabled={isSaving}
           className={secondaryButtonClassName}
         >
-          Cancel
+          Hủy
         </button>
 
         <button type="submit" disabled={isSaving} className={primaryButtonClassName}>
           {isSaving ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-              Saving Changes...
+              Đang lưu thay đổi...
             </>
           ) : (
             <>
               <Save className="h-4 w-4" aria-hidden />
-              Save Changes
+              Lưu thay đổi
             </>
           )}
         </button>

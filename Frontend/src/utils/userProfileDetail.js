@@ -1,4 +1,4 @@
-const FALLBACK_TEXT = "Not provided";
+const FALLBACK_TEXT = "Chưa cập nhật";
 
 const normalizeText = (value) => {
   if (typeof value !== "string") {
@@ -15,11 +15,14 @@ const formatGenderLabel = (value) => {
     return FALLBACK_TEXT;
   }
 
-  return normalizedValue
-    .split("_")
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
+  const genderLabelMap = {
+    male: "Nam",
+    female: "Nữ",
+    other: "Khác",
+    prefer_not_to_say: "Không muốn tiết lộ",
+  };
+
+  return genderLabelMap[normalizedValue] || FALLBACK_TEXT;
 };
 
 export const getUserProfileDetail = (user) => {

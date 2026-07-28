@@ -14,15 +14,26 @@ import {
   resolveTrackMediaUrlForQuality,
   recordListenService,
 } from "../services/playerService";
+import { isBlockedTrack } from "../utils/trackStatus";
 
 const DEFAULT_VOLUME = 0.75;
 const FREE_SKIP_LIMIT = 6;
 const FREE_SKIP_WINDOW_MS = 5 * 60 * 60 * 1000;
 const FREE_SKIP_STORAGE_KEY = "capstone.player.free_skip_window";
+const PLAYBACK_STORAGE_KEY = "capstone.player.playback_state";
 const MAX_NATURAL_LISTEN_DELTA_SECONDS = 2;
+const REPEAT_MODE_SEQUENCE = ["off", "all", "one"];
+const MANUAL_QUEUE_SOURCE = "manual";
+const CONTEXT_QUEUE_SOURCE = "context";
 
 const getTrackId = (track, fallbackId = null) =>
   track?.id || track?._id || track?.trackId || fallbackId;
+
+const getExplicitTrackId = (track) =>
+  track?.id || track?._id || track?.trackId || null;
+
+const getPlaybackRequestTrackId = (track) =>
+  track?.playbackTrackId || getExplicitTrackId(track?.raw) || null;
 
 const getArtistName = (track, fallbackArtistName = "") =>
   track?.artist?.name ||
@@ -63,28 +74,174 @@ const getTrackImage = (track, fallbackImage = "") => {
   );
 };
 
+const getQueueItemId = (track, fallbackId = "") =>
+  track?.queueItemId ||
+  track?.playbackTrackId ||
+  track?.id ||
+  getTrackId(track?.raw || track, fallbackId) ||
+  fallbackId;
+
+const findQueueTrackIndex = (tracks = [], queueItemId = "") =>
+  tracks.findIndex((track) => getQueueItemId(track) === queueItemId);
+
+const shuffleTracks = (tracks = []) => {
+  const nextTracks = [...tracks];
+
+  for (let index = nextTracks.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [nextTracks[index], nextTracks[randomIndex]] = [
+      nextTracks[randomIndex],
+      nextTracks[index],
+    ];
+  }
+
+  return nextTracks;
+};
+
+const buildShuffledQueue = (
+  orderedQueue = [],
+  { currentQueueItemId = "", preserveHistory = false } = {}
+) => {
+  if (orderedQueue.length === 0) {
+    return {
+      queue: [],
+      currentIndex: -1,
+    };
+  }
+
+  const activeTrackIndex = currentQueueItemId
+    ? findQueueTrackIndex(orderedQueue, currentQueueItemId)
+    : -1;
+
+  if (activeTrackIndex < 0) {
+    return {
+      queue: shuffleTracks(orderedQueue),
+      currentIndex: 0,
+    };
+  }
+
+  const activeTrack = orderedQueue[activeTrackIndex];
+
+  if (!preserveHistory) {
+    const remainingTracks = orderedQueue.filter(
+      (_, index) => index !== activeTrackIndex
+    );
+
+    return {
+      queue: [activeTrack, ...shuffleTracks(remainingTracks)],
+      currentIndex: 0,
+    };
+  }
+
+  const playedTracks = orderedQueue.slice(0, activeTrackIndex);
+  const upcomingTracks = orderedQueue.slice(activeTrackIndex + 1);
+
+  return {
+    queue: [...playedTracks, activeTrack, ...shuffleTracks(upcomingTracks)],
+    currentIndex: playedTracks.length,
+  };
+};
+
+const replaceQueueTrack = (tracks = [], queueItemId = "", nextTrack = null) => {
+  let hasReplaced = false;
+
+  return tracks.map((track) => {
+    if (!hasReplaced && getQueueItemId(track) === queueItemId && nextTrack) {
+      hasReplaced = true;
+      return nextTrack;
+    }
+
+    return track;
+  });
+};
+
+const removeQueueTrack = (tracks = [], queueItemId = "") => {
+  let hasRemoved = false;
+
+  return tracks.filter((track) => {
+    if (!hasRemoved && getQueueItemId(track) === queueItemId) {
+      hasRemoved = true;
+      return false;
+    }
+
+    return true;
+  });
+};
+
+const insertTrackAfterActiveManualQueue = (
+  tracks = [],
+  nextTrack = null,
+  activeQueueItemId = ""
+) => {
+  if (!nextTrack) {
+    return tracks;
+  }
+
+  if (tracks.length === 0) {
+    return [nextTrack];
+  }
+
+  const activeIndex = activeQueueItemId
+    ? findQueueTrackIndex(tracks, activeQueueItemId)
+    : -1;
+
+  if (activeIndex < 0) {
+    return [...tracks, nextTrack];
+  }
+
+  let insertIndex = activeIndex + 1;
+
+  while (
+    insertIndex < tracks.length &&
+    tracks[insertIndex]?.queueSource === MANUAL_QUEUE_SOURCE
+  ) {
+    insertIndex += 1;
+  }
+
+  return [
+    ...tracks.slice(0, insertIndex),
+    nextTrack,
+    ...tracks.slice(insertIndex),
+  ];
+};
+
 const normalizeQueueTrack = (item, options = {}) => {
   const track = item?.track ?? item ?? {};
   const normalizedTrackId = getTrackId(
     track,
     `${options.collectionId || options.collectionType || "track"}-${options.index || 0}`
   );
+  const queueItemId =
+    options.queueItemId ||
+    item?.queueItemId ||
+    track?.queueItemId ||
+    `${options.collectionId || options.collectionType || "track"}:${
+      options.index || 0
+    }:${normalizedTrackId}`;
+  const queueSource =
+    item?.queueSource ||
+    track?.queueSource ||
+    options.queueSource ||
+    CONTEXT_QUEUE_SOURCE;
 
   return {
+    queueItemId,
+    queueSource,
     id: normalizedTrackId,
-    title: track?.title || "Untitled track",
+    title: track?.title || item?.title || "Untitled track",
     artist: track?.artist || null,
-    artistName: getArtistName(track, options.artistName),
-    duration: Number(track?.duration) || 0,
-    image: getTrackImage(track, options.image),
-    playbackTrackId: getTrackId(track),
-    streamUrl: resolveTrackMediaUrl(track),
-    lyricsSyncUrl: resolveTrackLyricsSyncUrl(track),
+    artistName: track?.artistName || getArtistName(track, options.artistName),
+    duration: Number(track?.duration) || Number(item?.duration) || 0,
+    image: track?.image || getTrackImage(track, options.image),
+    playbackTrackId: getTrackId(track, item?.playbackTrackId || null),
+    streamUrl: track?.streamUrl || resolveTrackMediaUrl(track),
+    lyricsSyncUrl: track?.lyricsSyncUrl || resolveTrackLyricsSyncUrl(track),
     listenSource: resolveListenSource(
       track?.listenSource || options.listenSource || options.collectionType
     ),
+    isBlocked: isBlockedTrack(item),
     playback: track?.playback || null,
-    raw: track,
+    raw: track?.raw || track,
   };
 };
 
@@ -98,9 +255,53 @@ const normalizeQueue = (tracks, collection = null) =>
         collectionId: collection?.id,
         collectionType: collection?.type,
         listenSource: collection?.listenSource,
+        queueSource: CONTEXT_QUEUE_SOURCE,
       })
     )
-    .filter((track) => Boolean(track?.id));
+    .filter((track) => Boolean(track?.id) && !isBlockedTrack(track));
+
+const createPersistedQueueTrack = (
+  trackId,
+  playbackTrackId,
+  index,
+  storedTrack = null
+) =>
+  normalizeQueueTrack(
+    {
+      queueItemId: storedTrack?.queueItemId,
+      queueSource: storedTrack?.queueSource,
+      id: trackId,
+      playbackTrackId: playbackTrackId || trackId,
+      title: storedTrack?.title || "Untitled track",
+      artistName: storedTrack?.artistName || "Unknown artist",
+      duration: storedTrack?.duration,
+      image: storedTrack?.image,
+      listenSource: storedTrack?.listenSource,
+    },
+    {
+      index,
+      collectionId: "restored-queue",
+      collectionType: "queue",
+      queueSource: CONTEXT_QUEUE_SOURCE,
+    }
+  );
+
+const createStoredQueueTrack = (track) => ({
+  queueItemId: String(track?.queueItemId || "").trim(),
+  queueSource:
+    track?.queueSource === MANUAL_QUEUE_SOURCE
+      ? MANUAL_QUEUE_SOURCE
+      : CONTEXT_QUEUE_SOURCE,
+  id: String(track?.id || track?.playbackTrackId || "").trim(),
+  playbackTrackId: String(
+    track?.playbackTrackId || track?.id || ""
+  ).trim(),
+  title: String(track?.title || "Untitled track"),
+  artistName: String(track?.artistName || getArtistName(track)),
+  duration: Math.max(Number(track?.duration) || 0, 0),
+  image: String(track?.image || getTrackImage(track) || ""),
+  listenSource: resolveListenSource(track?.listenSource),
+});
 
 const createFreeSkipWindow = (startedAt = Date.now()) => ({
   startedAt,
@@ -149,6 +350,106 @@ const persistFreeSkipWindow = (value) => {
   }
 
   window.localStorage.setItem(FREE_SKIP_STORAGE_KEY, JSON.stringify(value));
+};
+
+const clearStoredPlaybackState = () => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(PLAYBACK_STORAGE_KEY);
+};
+
+const normalizeStoredPlaybackState = (value) => {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const queueTrackIds = Array.isArray(value.queueTrackIds)
+    ? value.queueTrackIds
+        .map((trackId) => String(trackId || "").trim())
+        .filter(Boolean)
+    : [];
+  const queuePlaybackTrackIds = Array.isArray(value.queuePlaybackTrackIds)
+    ? value.queuePlaybackTrackIds
+        .map((trackId) => String(trackId || "").trim())
+        .filter(Boolean)
+    : [];
+  const queueTracks = Array.isArray(value.queueTracks)
+    ? value.queueTracks.filter(
+        (track) => track && typeof track === "object"
+      )
+    : [];
+  const currentTrackId = String(value.currentTrackId || "").trim();
+  const currentPlaybackTrackId = String(
+    value.currentPlaybackTrackId || currentTrackId
+  ).trim();
+  const currentIndex = Number(value.currentIndex);
+  const currentTime = Math.max(Number(value.currentTime) || 0, 0);
+  const volume = Math.min(Math.max(Number(value.volume) || 0, 0), 1);
+  const updatedAt = Number(value.updatedAt);
+  const repeatMode = REPEAT_MODE_SEQUENCE.includes(value.repeatMode)
+    ? value.repeatMode
+    : "off";
+
+  if (
+    !currentTrackId ||
+    queueTrackIds.length === 0 ||
+    !Number.isInteger(currentIndex) ||
+    currentIndex < 0 ||
+    currentIndex >= queueTrackIds.length
+  ) {
+    return null;
+  }
+
+  return {
+    currentTrackId,
+    currentPlaybackTrackId,
+    queueTrackIds,
+    queuePlaybackTrackIds,
+    queueTracks,
+    currentIndex,
+    currentTime,
+    isPlaying: Boolean(value.isPlaying),
+    shuffle: Boolean(value.shuffle),
+    repeatMode,
+    volume: Number.isFinite(volume) ? volume : DEFAULT_VOLUME,
+    updatedAt: Number.isFinite(updatedAt) && updatedAt > 0 ? updatedAt : Date.now(),
+  };
+};
+
+const loadStoredPlaybackState = () => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(PLAYBACK_STORAGE_KEY);
+
+    if (!rawValue) {
+      return null;
+    }
+
+    const normalizedValue = normalizeStoredPlaybackState(JSON.parse(rawValue));
+
+    if (!normalizedValue) {
+      clearStoredPlaybackState();
+      return null;
+    }
+
+    return normalizedValue;
+  } catch {
+    clearStoredPlaybackState();
+    return null;
+  }
+};
+
+const persistPlaybackState = (value) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(PLAYBACK_STORAGE_KEY, JSON.stringify(value));
 };
 
 const waitForAudioMetadata = (audio, timeoutMs = 1500) =>
@@ -200,11 +501,23 @@ const waitForAudioMetadata = (audio, timeoutMs = 1500) =>
 
 const getTrackQualityOptions = (track) => resolveTrackAudioQualityOptions(track);
 
-const resolveSelectedQualityLabel = (track, streamUrl = "") => {
+const resolveSelectedQuality = (track, streamUrl = "", preferredBitrate = 0) => {
   const qualityOptions = getTrackQualityOptions(track);
 
   if (qualityOptions.length === 0) {
-    return "";
+    return null;
+  }
+
+  const normalizedPreferredBitrate = Number(preferredBitrate) || 0;
+
+  if (normalizedPreferredBitrate > 0) {
+    const bitrateMatch = qualityOptions.find(
+      (quality) => quality.bitrate === normalizedPreferredBitrate
+    );
+
+    if (bitrateMatch) {
+      return bitrateMatch;
+    }
   }
 
   if (streamUrl) {
@@ -212,19 +525,20 @@ const resolveSelectedQualityLabel = (track, streamUrl = "") => {
       (quality) => quality.url === streamUrl
     );
 
-    if (matchedQuality?.label) {
-      return matchedQuality.label;
+    if (matchedQuality) {
+      return matchedQuality;
     }
   }
 
-  const defaultQuality =
-    qualityOptions.find((quality) => quality.isDefault) || qualityOptions[0];
-
-  return defaultQuality?.label || "";
+  return qualityOptions.find((quality) => quality.isDefault) || qualityOptions[0];
 };
 
 export const PlayerProvider = ({ children }) => {
   const { user } = useAuth();
+  const initialStoredPlaybackStateRef = useRef(undefined);
+  if (initialStoredPlaybackStateRef.current === undefined) {
+    initialStoredPlaybackStateRef.current = loadStoredPlaybackState();
+  }
   const [queue, setQueue] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [currentTrack, setCurrentTrack] = useState(null);
@@ -232,7 +546,9 @@ export const PlayerProvider = ({ children }) => {
   const [isBuffering, setIsBuffering] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(DEFAULT_VOLUME);
+  const [volume, setVolume] = useState(
+    initialStoredPlaybackStateRef.current?.volume ?? DEFAULT_VOLUME
+  );
   const [errorMessage, setErrorMessage] = useState("");
   const [restrictionMessage, setRestrictionMessage] = useState("");
   const [activeCollection, setActiveCollection] = useState(null);
@@ -243,11 +559,19 @@ export const PlayerProvider = ({ children }) => {
   const [lyricsErrorMessage, setLyricsErrorMessage] = useState("");
   const [availableAudioQualities, setAvailableAudioQualities] = useState([]);
   const [selectedQualityLabel, setSelectedQualityLabel] = useState("");
+  const [selectedQualityBitrate, setSelectedQualityBitrate] = useState(0);
+  const [isShuffleEnabled, setIsShuffleEnabled] = useState(
+    initialStoredPlaybackStateRef.current?.shuffle ?? false
+  );
+  const [repeatMode, setRepeatMode] = useState(
+    initialStoredPlaybackStateRef.current?.repeatMode ?? "off"
+  );
   const [freeSkipWindow, setFreeSkipWindow] = useState(() =>
     loadStoredFreeSkipWindow()
   );
   const audioRef = useRef(null);
   const queueRef = useRef([]);
+  const orderedQueueRef = useRef([]);
   const currentIndexRef = useRef(-1);
   const objectUrlRef = useRef("");
   const playbackRequestIdRef = useRef(0);
@@ -258,7 +582,10 @@ export const PlayerProvider = ({ children }) => {
   const lyricsReadyRef = useRef(false);
   const currentLyricsThemeIndexRef = useRef(-1);
   const selectedQualityLabelRef = useRef("");
+  const selectedQualityBitrateRef = useRef(0);
   const isPremiumRef = useRef(false);
+  const isShuffleEnabledRef = useRef(false);
+  const repeatModeRef = useRef("off");
   const freeSkipWindowRef = useRef(freeSkipWindow);
   const listenTrackRef = useRef({
     trackId: null,
@@ -269,6 +596,8 @@ export const PlayerProvider = ({ children }) => {
   const listenedDurationRef = useRef(0);
   const lastTrackedAudioTimeRef = useRef(0);
   const ignoreNextListenDeltaRef = useRef(true);
+  const queueMutationCounterRef = useRef(0);
+  const isRestoringPlaybackRef = useRef(false);
 
   const isPremium = useMemo(() => hasPremiumAccess(user), [user]);
 
@@ -277,19 +606,80 @@ export const PlayerProvider = ({ children }) => {
     setQueue(nextQueue);
   };
 
-  const syncQualityState = (track, streamUrl = "") => {
+  const syncOrderedQueueState = (nextQueue) => {
+    orderedQueueRef.current = nextQueue;
+  };
+
+  const syncQualityState = (track, streamUrl = "", preferredBitrate = 0) => {
     const qualityOptions = getTrackQualityOptions(track);
-    const nextQualityLabel = resolveSelectedQualityLabel(track, streamUrl);
+    const nextQuality = resolveSelectedQuality(
+      track,
+      streamUrl,
+      preferredBitrate
+    );
+    const nextQualityLabel = nextQuality?.label || "";
+    const nextQualityBitrate = nextQuality?.bitrate || 0;
 
     setAvailableAudioQualities(qualityOptions);
     setSelectedQualityLabel(nextQualityLabel);
+    setSelectedQualityBitrate(nextQualityBitrate);
     selectedQualityLabelRef.current = nextQualityLabel;
+    selectedQualityBitrateRef.current = nextQualityBitrate;
+  };
+
+  const createManualQueueTrack = (track, options = {}) => {
+    queueMutationCounterRef.current += 1;
+    const baseTrack = track?.track ?? track ?? {};
+    const normalizedTrackId = getTrackId(
+      baseTrack,
+      `manual-track-${queueMutationCounterRef.current}`
+    );
+
+    return normalizeQueueTrack(track, {
+      ...options,
+      collectionId: options.collection?.id || "manual-queue",
+      collectionType: options.collection?.type || "queue",
+      queueSource: MANUAL_QUEUE_SOURCE,
+      queueItemId: `manual:${Date.now()}:${queueMutationCounterRef.current}:${normalizedTrackId}`,
+    });
+  };
+
+  const createRandomPlaybackQueueTrack = () => {
+    queueMutationCounterRef.current += 1;
+
+    return normalizeQueueTrack(
+      {
+        title: "Random track",
+        artistName: "Unknown artist",
+      },
+      {
+        index: queueMutationCounterRef.current,
+        collectionId: "random-playback",
+        collectionType: "queue",
+        queueSource: CONTEXT_QUEUE_SOURCE,
+        queueItemId: `random:${Date.now()}:${queueMutationCounterRef.current}`,
+      }
+    );
+  };
+
+  const playRandomPlaybackTrack = async (options = {}) => {
+    const nextQueueTrack = createRandomPlaybackQueueTrack();
+    const nextQueue = [...queueRef.current, nextQueueTrack];
+    const nextOrderedQueue = [...orderedQueueRef.current, nextQueueTrack];
+
+    syncQueueState(nextQueue);
+    syncOrderedQueueState(nextOrderedQueue);
+    setErrorMessage("");
+    setRestrictionMessage("");
+
+    await playTrackByIndexRef.current?.(nextQueue.length - 1, nextQueue, options);
   };
 
   const clearPlaybackState = () => {
     const audio = audioRef.current;
 
     playbackRequestIdRef.current += 1;
+    clearStoredPlaybackState();
     releaseCurrentObjectUrl();
 
     if (audio) {
@@ -308,6 +698,7 @@ export const PlayerProvider = ({ children }) => {
     resetListenProgress();
     resetLyricsState();
     syncQueueState([]);
+    syncOrderedQueueState([]);
     setCurrentIndex(-1);
     setCurrentTrack(null);
     setCurrentTime(0);
@@ -319,7 +710,9 @@ export const PlayerProvider = ({ children }) => {
     setActiveCollection(null);
     setAvailableAudioQualities([]);
     setSelectedQualityLabel("");
+    setSelectedQualityBitrate(0);
     selectedQualityLabelRef.current = "";
+    selectedQualityBitrateRef.current = 0;
   };
 
   const getLatestFreeSkipWindow = (now = Date.now()) => {
@@ -516,6 +909,18 @@ export const PlayerProvider = ({ children }) => {
   }, [selectedQualityLabel]);
 
   useEffect(() => {
+    selectedQualityBitrateRef.current = selectedQualityBitrate;
+  }, [selectedQualityBitrate]);
+
+  useEffect(() => {
+    isShuffleEnabledRef.current = isShuffleEnabled;
+  }, [isShuffleEnabled]);
+
+  useEffect(() => {
+    repeatModeRef.current = repeatMode;
+  }, [repeatMode]);
+
+  useEffect(() => {
     freeSkipWindowRef.current = freeSkipWindow;
     persistFreeSkipWindow(freeSkipWindow);
   }, [freeSkipWindow]);
@@ -587,6 +992,17 @@ export const PlayerProvider = ({ children }) => {
         await flushCurrentListenAttempt();
       }
 
+      if (
+        repeatModeRef.current === "one" &&
+        currentIndexRef.current >= 0 &&
+        currentIndexRef.current < queueRef.current.length
+      ) {
+        await playTrackByIndexRef.current?.(currentIndexRef.current, null, {
+          skipListenFlush: true,
+        });
+        return;
+      }
+
       const nextIndex = currentIndexRef.current + 1;
 
       if (nextIndex < queueRef.current.length) {
@@ -596,9 +1012,16 @@ export const PlayerProvider = ({ children }) => {
         return;
       }
 
-      setIsPlaying(false);
-      setCurrentTime(0);
-      syncLyricsRef.current?.(0, true);
+      if (repeatModeRef.current === "all" && queueRef.current.length > 0) {
+        await playTrackByIndexRef.current?.(0, null, {
+          skipListenFlush: true,
+        });
+        return;
+      }
+
+      await playRandomPlaybackTrack({
+        skipListenFlush: true,
+      });
     };
 
     const handleError = () => {
@@ -642,6 +1065,203 @@ export const PlayerProvider = ({ children }) => {
     audioRef.current.volume = volume;
   }, [volume]);
 
+  useEffect(() => {
+    if (!audioRef.current) {
+      return;
+    }
+
+    const storedPlaybackState = initialStoredPlaybackStateRef.current;
+
+    if (!storedPlaybackState) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    const restorePlaybackState = async () => {
+      isRestoringPlaybackRef.current = true;
+
+      try {
+        const {
+          currentTrackId,
+          currentPlaybackTrackId,
+          queueTrackIds,
+          queuePlaybackTrackIds,
+          queueTracks,
+          currentIndex: persistedCurrentIndex,
+          currentTime: persistedCurrentTime,
+          shuffle,
+          repeatMode: persistedRepeatMode,
+        } = storedPlaybackState;
+        const resolvedCurrentIndex =
+          queueTrackIds[persistedCurrentIndex] === currentTrackId
+            ? persistedCurrentIndex
+            : queueTrackIds.findIndex(
+                (trackId) => String(trackId) === String(currentTrackId)
+              );
+
+        if (resolvedCurrentIndex < 0) {
+          clearPlaybackState();
+          return;
+        }
+
+        const restoredQueue = queueTrackIds.map((trackId, index) =>
+          createPersistedQueueTrack(
+            trackId,
+            queuePlaybackTrackIds[index] || trackId,
+            index,
+            queueTracks[index]
+          )
+        );
+        const restoredCurrentIndex =
+          restoredQueue[resolvedCurrentIndex] ? resolvedCurrentIndex : -1;
+
+        if (restoredCurrentIndex < 0) {
+          clearPlaybackState();
+          return;
+        }
+
+        let playbackSource = null;
+
+        try {
+          playbackSource = await getTrackPlaybackSource(
+            currentPlaybackTrackId || currentTrackId
+          );
+        } catch {
+          if (!isCancelled) {
+            clearPlaybackState();
+          }
+          return;
+        }
+
+        if (isCancelled || !playbackSource?.url) {
+          return;
+        }
+
+        const restoredCurrentTrack = restoredQueue[restoredCurrentIndex];
+        const hydratedCurrentTrack = {
+          ...restoredCurrentTrack,
+          id: getExplicitTrackId(playbackSource.track) || restoredCurrentTrack.id,
+          title: playbackSource.track?.title || restoredCurrentTrack.title,
+          artist: playbackSource.track?.artist || restoredCurrentTrack.artist,
+          artistName: getArtistName(playbackSource.track, restoredCurrentTrack.artistName),
+          duration:
+            Number(playbackSource.track?.duration) || restoredCurrentTrack.duration,
+          image: getTrackImage(playbackSource.track, restoredCurrentTrack.image),
+          playbackTrackId:
+            getExplicitTrackId(playbackSource.track) ||
+            restoredCurrentTrack.playbackTrackId,
+          playback: playbackSource.track?.playback || restoredCurrentTrack.playback,
+          lyricsSyncUrl:
+            resolveTrackLyricsSyncUrl(playbackSource.track) ||
+            restoredCurrentTrack.lyricsSyncUrl,
+          raw: playbackSource.track || restoredCurrentTrack.raw,
+          streamUrl: playbackSource.url,
+        };
+        const hydratedQueue = replaceQueueTrack(
+          restoredQueue,
+          getQueueItemId(restoredCurrentTrack),
+          hydratedCurrentTrack
+        );
+
+        syncOrderedQueueState(hydratedQueue);
+        syncQueueState(hydratedQueue);
+        currentIndexRef.current = restoredCurrentIndex;
+        setCurrentIndex(restoredCurrentIndex);
+        setCurrentTrack(hydratedCurrentTrack);
+        setCurrentTime(Math.max(Number(persistedCurrentTime) || 0, 0));
+        setIsPlaying(false);
+        setIsShuffleEnabled(shuffle);
+        setRepeatMode(persistedRepeatMode);
+
+        await playTrackByIndexRef.current?.(restoredCurrentIndex, hydratedQueue, {
+          autoplay: false,
+          resumeTime: persistedCurrentTime,
+          skipListenFlush: true,
+        });
+      } finally {
+        if (!isCancelled) {
+          isRestoringPlaybackRef.current = false;
+        }
+      }
+    };
+
+    restorePlaybackState();
+
+    return () => {
+      isCancelled = true;
+    };
+    // Restore persisted playback once after the audio element is ready.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (isRestoringPlaybackRef.current) {
+      return;
+    }
+
+    const currentTrackId = String(currentTrack?.id || "").trim();
+    const currentPlaybackTrackId = String(
+      currentTrack?.playbackTrackId || currentTrack?.id || ""
+    ).trim();
+    const queueTrackIds = queue
+      .map((track) =>
+        String(track?.id || track?.playbackTrackId || "").trim()
+      )
+      .filter(Boolean);
+    const queuePlaybackTrackIds = queue
+      .map((track) =>
+        String(track?.playbackTrackId || track?.id || "").trim()
+      )
+      .filter(Boolean);
+    const queueTracks = queue.map(createStoredQueueTrack);
+    const resolvedCurrentIndex =
+      queueTrackIds[currentIndex] === currentTrackId
+        ? currentIndex
+        : queueTrackIds.findIndex(
+            (trackId) => trackId === currentTrackId
+          );
+
+    if (
+      !currentTrackId ||
+      !currentPlaybackTrackId ||
+      queueTrackIds.length === 0 ||
+      queuePlaybackTrackIds.length !== queueTrackIds.length ||
+      queueTracks.some(
+        (track) => !track.id || !track.playbackTrackId
+      ) ||
+      resolvedCurrentIndex < 0 ||
+      resolvedCurrentIndex >= queueTrackIds.length
+    ) {
+      clearStoredPlaybackState();
+      return;
+    }
+
+    persistPlaybackState({
+      currentTrackId,
+      currentPlaybackTrackId,
+      queueTrackIds,
+      queuePlaybackTrackIds,
+      queueTracks,
+      currentIndex: resolvedCurrentIndex,
+      currentTime: Math.max(Math.floor(Number(currentTime) || 0), 0),
+      isPlaying,
+      shuffle: isShuffleEnabled,
+      repeatMode,
+      volume,
+      updatedAt: Date.now(),
+    });
+  }, [
+    currentIndex,
+    currentTime,
+    currentTrack,
+    isPlaying,
+    isShuffleEnabled,
+    queue,
+    repeatMode,
+    volume,
+  ]);
+
   playTrackByIndexRef.current = async (
     nextIndex,
     incomingQueue = null,
@@ -651,6 +1271,7 @@ export const PlayerProvider = ({ children }) => {
     const workingQueue = incomingQueue || queueRef.current;
     const nextTrack = workingQueue?.[nextIndex];
     const nextTrackPlaybackId = nextTrack?.playbackTrackId || nextTrack?.id;
+    const nextQueueItemId = getQueueItemId(nextTrack);
     const isQueueSwitch =
       Array.isArray(incomingQueue) && incomingQueue !== queueRef.current;
     const shouldFlushCurrentListen =
@@ -663,6 +1284,11 @@ export const PlayerProvider = ({ children }) => {
       );
 
     if (!audio || !nextTrack) {
+      return;
+    }
+
+    if (isBlockedTrack(nextTrack)) {
+      setErrorMessage("This track is blocked and cannot be played.");
       return;
     }
 
@@ -681,6 +1307,11 @@ export const PlayerProvider = ({ children }) => {
     const preferredQualityUrl = isPremiumRef.current
       ? options.preferredQualityUrl || ""
       : "";
+    const preferredQualityBitrate = isPremiumRef.current
+      ? Number(options.preferredQualityBitrate) ||
+        selectedQualityBitrateRef.current ||
+        0
+      : 0;
 
     currentIndexRef.current = nextIndex;
     currentLyricsThemeIndexRef.current = lyricsThemeIndex;
@@ -704,19 +1335,21 @@ export const PlayerProvider = ({ children }) => {
 
       if (!shouldHydratePlayback && nextTrack.streamUrl) {
         source = {
-          url: (preferredQualityLabel || preferredQualityUrl)
+          url: (preferredQualityLabel || preferredQualityUrl || preferredQualityBitrate)
             ? resolveTrackMediaUrlForQuality(nextTrack, {
                 label: preferredQualityLabel,
                 url: preferredQualityUrl,
+                bitrate: preferredQualityBitrate,
               }) || nextTrack.streamUrl
             : nextTrack.streamUrl,
           revokeOnChange: false,
           track: nextTrack.raw,
         };
       } else {
-        source = await getTrackPlaybackSource(nextTrack.playbackTrackId || nextTrack.id, {
+        source = await getTrackPlaybackSource(getPlaybackRequestTrackId(nextTrack), {
           preferredQualityLabel,
           preferredQualityUrl,
+          preferredQualityBitrate,
         });
       }
 
@@ -733,13 +1366,15 @@ export const PlayerProvider = ({ children }) => {
       }
 
       const hydratedTrackSource = source.track || nextTrack.raw || nextTrack;
-      const activeQualityLabel = resolveSelectedQualityLabel(
+      const activeQuality = resolveSelectedQuality(
         hydratedTrackSource,
-        source.url
+        source.url,
+        preferredQualityBitrate
       );
       const hydratedTrack = {
         ...nextTrack,
-        id: getTrackId(source.track, nextTrack.id),
+        queueItemId: nextQueueItemId,
+        id: getExplicitTrackId(source.track) || nextTrack.id,
         lyricsThemeIndex,
         title: source.track?.title || nextTrack.title,
         artist: source.track?.artist || nextTrack.artist,
@@ -747,18 +1382,26 @@ export const PlayerProvider = ({ children }) => {
         duration: Number(source.track?.duration) || nextTrack.duration,
         image: getTrackImage(source.track, nextTrack.image),
         playbackTrackId:
-          getTrackId(source.track, nextTrack.playbackTrackId) ||
+          getExplicitTrackId(source.track) ||
           nextTrack.playbackTrackId,
         playback: source.track?.playback || nextTrack.playback,
         lyricsSyncUrl:
           resolveTrackLyricsSyncUrl(source.track) || nextTrack.lyricsSyncUrl,
         raw: source.track || nextTrack.raw,
         streamUrl: source.url,
-        activeQualityLabel,
+        activeQualityLabel: activeQuality?.label || "",
+        activeQualityBitrate: activeQuality?.bitrate || 0,
       };
 
-      const hydratedQueue = workingQueue.map((track, index) =>
-        index === nextIndex ? hydratedTrack : track
+      const hydratedQueue = replaceQueueTrack(
+        workingQueue,
+        nextQueueItemId,
+        hydratedTrack
+      );
+      const hydratedOrderedQueue = replaceQueueTrack(
+        orderedQueueRef.current,
+        nextQueueItemId,
+        hydratedTrack
       );
       const shouldPreserveListenProgress =
         Boolean(options.skipListenFlush) &&
@@ -785,8 +1428,9 @@ export const PlayerProvider = ({ children }) => {
       });
 
       syncQueueState(hydratedQueue);
+      syncOrderedQueueState(hydratedOrderedQueue);
       setCurrentTrack(hydratedTrack);
-      syncQualityState(hydratedTrack, source.url);
+      syncQualityState(hydratedTrack, source.url, preferredQualityBitrate);
       releaseCurrentObjectUrl();
       objectUrlRef.current = source.revokeOnChange ? source.url : "";
       audio.pause();
@@ -837,7 +1481,7 @@ export const PlayerProvider = ({ children }) => {
 
   const playCollection = async (
     tracks,
-    { startIndex = 0, collection = null } = {}
+    { startIndex = 0, collection = null, shuffle } = {}
   ) => {
     const normalizedQueue = normalizeQueue(tracks, collection);
 
@@ -848,11 +1492,56 @@ export const PlayerProvider = ({ children }) => {
 
     const safeIndex =
       startIndex >= 0 && startIndex < normalizedQueue.length ? startIndex : 0;
+    const shouldShuffle =
+      typeof shuffle === "boolean" ? shuffle : isShuffleEnabledRef.current;
+    const selectedQueueItemId = getQueueItemId(normalizedQueue[safeIndex]);
+    const { queue: queueToPlay, currentIndex: playbackStartIndex } = shouldShuffle
+      ? buildShuffledQueue(normalizedQueue, {
+          currentQueueItemId: selectedQueueItemId,
+        })
+      : {
+          queue: normalizedQueue,
+          currentIndex: safeIndex,
+        };
 
     setActiveCollection(collection);
     setRestrictionMessage("");
-    syncQueueState(normalizedQueue);
-    await playTrackByIndexRef.current?.(safeIndex, normalizedQueue);
+    syncOrderedQueueState(normalizedQueue);
+    syncQueueState(queueToPlay);
+
+    if (typeof shuffle === "boolean") {
+      setIsShuffleEnabled(shuffle);
+    }
+
+    await playTrackByIndexRef.current?.(playbackStartIndex, queueToPlay);
+  };
+
+  const addTrackToQueue = (track, options = {}) => {
+    const baseTrack = track?.track ?? track ?? null;
+
+    if (!baseTrack || !getTrackId(baseTrack) || isBlockedTrack(track)) {
+      return;
+    }
+
+    const nextQueueTrack = createManualQueueTrack(track, options);
+    const activeQueueItemId = getQueueItemId(
+      currentTrack || queueRef.current[currentIndexRef.current]
+    );
+    const nextQueue = insertTrackAfterActiveManualQueue(
+      queueRef.current,
+      nextQueueTrack,
+      activeQueueItemId
+    );
+    const nextOrderedQueue = insertTrackAfterActiveManualQueue(
+      orderedQueueRef.current,
+      nextQueueTrack,
+      activeQueueItemId
+    );
+
+    syncQueueState(nextQueue);
+    syncOrderedQueueState(nextOrderedQueue);
+    setErrorMessage("");
+    setRestrictionMessage("");
   };
 
   const playTrack = async (track, options = {}) => {
@@ -860,6 +1549,15 @@ export const PlayerProvider = ({ children }) => {
       Array.isArray(options.queue) && options.queue.length > 0
         ? options.queue
         : [track];
+
+    if (isBlockedTrack(track)) {
+      setErrorMessage("This track is blocked and cannot be played.");
+      return;
+    }
+
+    const playableQueue = queueToPlay.filter(
+      (queueItem) => !isBlockedTrack(queueItem)
+    );
 
     const normalizedTrack = normalizeQueueTrack(track, {
       image: options.collection?.image,
@@ -877,20 +1575,28 @@ export const PlayerProvider = ({ children }) => {
       return getTrackId(candidate) === normalizedTrack.id;
     });
 
-    await playCollection(queueToPlay, {
+    const playableStartIndex = playableQueue.findIndex((queueItem) => {
+      const candidate = queueItem?.track ?? queueItem;
+      return getTrackId(candidate) === normalizedTrack.id;
+    });
+
+    await playCollection(playableQueue, {
       startIndex:
-        explicitStartIndex >= 0
+        playableStartIndex >= 0
+          ? playableStartIndex
+          : explicitStartIndex >= 0
           ? explicitStartIndex
           : Math.max(fallbackStartIndex, 0),
       collection: options.collection || null,
     });
   };
 
-  const playAlbum = async (album, tracks = []) => {
+  const playAlbum = async (album, tracks = [], options = {}) => {
     const albumTracks = tracks.length > 0 ? tracks : album?.tracks ?? [];
 
     await playCollection(albumTracks, {
       startIndex: 0,
+      shuffle: options.shuffle,
       collection: {
         id: album?.id,
         type: "album",
@@ -901,11 +1607,12 @@ export const PlayerProvider = ({ children }) => {
     });
   };
 
-  const playPlaylist = async (playlist, tracks = []) => {
+  const playPlaylist = async (playlist, tracks = [], options = {}) => {
     const playlistTracks = tracks.length > 0 ? tracks : playlist?.tracks ?? [];
 
     await playCollection(playlistTracks, {
       startIndex: 0,
+      shuffle: options.shuffle,
       collection: {
         id: playlist?.id,
         type: "playlist",
@@ -942,10 +1649,19 @@ export const PlayerProvider = ({ children }) => {
   };
 
   const playNext = async () => {
-    const nextIndex = currentIndexRef.current + 1;
+    let nextIndex = currentIndexRef.current + 1;
 
     if (nextIndex >= queueRef.current.length) {
-      return;
+      if (repeatModeRef.current === "all" && queueRef.current.length > 0) {
+        nextIndex = 0;
+      } else {
+        if (!consumeFreeSkip()) {
+          return;
+        }
+
+        await playRandomPlaybackTrack();
+        return;
+      }
     }
 
     if (!consumeFreeSkip()) {
@@ -972,6 +1688,15 @@ export const PlayerProvider = ({ children }) => {
     const previousIndex = currentIndexRef.current - 1;
 
     if (previousIndex < 0) {
+      if (repeatModeRef.current === "all" && queueRef.current.length > 0) {
+        if (!consumeFreeSkip()) {
+          return;
+        }
+
+        await playTrackByIndexRef.current?.(queueRef.current.length - 1);
+        return;
+      }
+
       audio.currentTime = 0;
       setCurrentTime(0);
       syncLyricsRef.current?.(0, true);
@@ -1034,10 +1759,21 @@ export const PlayerProvider = ({ children }) => {
       typeof nextQuality === "object" && nextQuality !== null
         ? nextQuality.url || ""
         : "";
+    const normalizedBitrate =
+      typeof nextQuality === "object" && nextQuality !== null
+        ? Number(nextQuality.bitrate) || 0
+        : 0;
 
     const qualityOptions = getTrackQualityOptions(currentTrack);
     const targetQuality =
-      qualityOptions.find((quality) => quality.url === normalizedUrl) ||
+      qualityOptions.find(
+        (quality) =>
+          normalizedBitrate > 0 && quality.bitrate === normalizedBitrate
+      ) ||
+      qualityOptions.find(
+        (quality) =>
+          !normalizedBitrate && quality.url === normalizedUrl
+      ) ||
       qualityOptions.find((quality) => quality.label === normalizedLabel);
 
     if (!targetQuality) {
@@ -1046,9 +1782,9 @@ export const PlayerProvider = ({ children }) => {
     }
 
     if (
-      targetQuality.url === currentTrack.streamUrl ||
+      targetQuality.bitrate === selectedQualityBitrateRef.current ||
       (
-        !normalizedUrl &&
+        !normalizedBitrate &&
         normalizedLabel &&
         normalizedLabel === selectedQualityLabelRef.current &&
         qualityOptions.filter((quality) => quality.label === normalizedLabel).length === 1
@@ -1065,6 +1801,7 @@ export const PlayerProvider = ({ children }) => {
     await playTrackByIndexRef.current?.(currentIndexRef.current, queueRef.current, {
       preferredQualityLabel: targetQuality.label,
       preferredQualityUrl: targetQuality.url,
+      preferredQualityBitrate: targetQuality.bitrate,
       resumeTime,
       autoplay: wasPlaying,
       skipListenFlush: true,
@@ -1090,7 +1827,13 @@ export const PlayerProvider = ({ children }) => {
       return;
     }
 
+    const targetTrack = queueRef.current[targetIndex];
+    const targetQueueItemId = getQueueItemId(targetTrack);
     const nextQueue = queueRef.current.filter((_, index) => index !== targetIndex);
+    const nextOrderedQueue = removeQueueTrack(
+      orderedQueueRef.current,
+      targetQueueItemId
+    );
     const activeIndex = currentIndexRef.current;
 
     if (nextQueue.length === 0) {
@@ -1103,6 +1846,7 @@ export const PlayerProvider = ({ children }) => {
     }
 
     if (activeIndex < 0 || targetIndex > activeIndex) {
+      syncOrderedQueueState(nextOrderedQueue);
       syncQueueState(nextQueue);
       return;
     }
@@ -1110,6 +1854,7 @@ export const PlayerProvider = ({ children }) => {
     if (targetIndex < activeIndex) {
       const nextIndex = activeIndex - 1;
       currentIndexRef.current = nextIndex;
+      syncOrderedQueueState(nextOrderedQueue);
       syncQueueState(nextQueue);
       setCurrentIndex(nextIndex);
       return;
@@ -1119,8 +1864,86 @@ export const PlayerProvider = ({ children }) => {
     const nextIndex =
       targetIndex < nextQueue.length ? targetIndex : nextQueue.length - 1;
 
+    syncOrderedQueueState(nextOrderedQueue);
     await playTrackByIndexRef.current?.(nextIndex, nextQueue, {
       autoplay: audio ? !audio.paused : isPlaying,
+    });
+  };
+
+  const playFromQueueIndex = async (targetIndex) => {
+    if (
+      !Number.isInteger(targetIndex) ||
+      targetIndex < 0 ||
+      targetIndex >= queueRef.current.length
+    ) {
+      return;
+    }
+
+    await playTrackByIndexRef.current?.(targetIndex);
+  };
+
+  const toggleShuffle = () => {
+    const nextShuffleEnabled = !isShuffleEnabledRef.current;
+
+    setIsShuffleEnabled(nextShuffleEnabled);
+
+    if (orderedQueueRef.current.length === 0) {
+      return;
+    }
+
+    const activeQueueItemId = getQueueItemId(
+      currentTrack || queueRef.current[currentIndexRef.current]
+    );
+
+    if (!nextShuffleEnabled) {
+      const restoredIndex = activeQueueItemId
+        ? findQueueTrackIndex(orderedQueueRef.current, activeQueueItemId)
+        : currentIndexRef.current;
+      const safeIndex =
+        restoredIndex >= 0
+          ? restoredIndex
+          : Math.min(
+              Math.max(currentIndexRef.current, 0),
+              orderedQueueRef.current.length - 1
+            );
+
+      syncQueueState(orderedQueueRef.current);
+      currentIndexRef.current = safeIndex;
+      setCurrentIndex(safeIndex);
+
+      if (safeIndex >= 0) {
+        setCurrentTrack(orderedQueueRef.current[safeIndex]);
+      }
+
+      return;
+    }
+
+    const { queue: shuffledQueue, currentIndex: shuffledIndex } = buildShuffledQueue(
+      orderedQueueRef.current,
+      {
+        currentQueueItemId: activeQueueItemId,
+        preserveHistory: true,
+      }
+    );
+
+    syncQueueState(shuffledQueue);
+    currentIndexRef.current = shuffledIndex;
+    setCurrentIndex(shuffledIndex);
+
+    if (shuffledIndex >= 0) {
+      setCurrentTrack(shuffledQueue[shuffledIndex]);
+    }
+  };
+
+  const cycleRepeatMode = () => {
+    setRepeatMode((currentValue) => {
+      const currentModeIndex = REPEAT_MODE_SEQUENCE.indexOf(currentValue);
+      const nextModeIndex =
+        currentModeIndex >= 0
+          ? (currentModeIndex + 1) % REPEAT_MODE_SEQUENCE.length
+          : 0;
+
+      return REPEAT_MODE_SEQUENCE[nextModeIndex];
     });
   };
 
@@ -1151,6 +1974,9 @@ export const PlayerProvider = ({ children }) => {
     canSeek: isPremium,
     availableAudioQualities,
     selectedQualityLabel,
+    selectedQualityBitrate,
+    isShuffleEnabled,
+    repeatMode,
     freeSkipsRemaining,
     freeSkipLimit: FREE_SKIP_LIMIT,
     freeSkipWindowEndsAt: activeFreeSkipWindow.startedAt + FREE_SKIP_WINDOW_MS,
@@ -1158,9 +1984,13 @@ export const PlayerProvider = ({ children }) => {
     playAlbum,
     playPlaylist,
     playCollection,
+    addTrackToQueue,
+    playFromQueueIndex,
     togglePlayPause,
     playNext,
     playPrevious,
+    toggleShuffle,
+    cycleRepeatMode,
     seekTo,
     changeAudioQuality,
     setVolumeLevel,

@@ -7,7 +7,7 @@ let googleIdentityScriptPromise;
 const loadGoogleIdentityScript = () => {
   if (typeof window === "undefined") {
     return Promise.reject(
-      new Error("Google login is only available in the browser.")
+      new Error("Đăng nhập Google chỉ khả dụng trên trình duyệt.")
     );
   }
 
@@ -27,7 +27,7 @@ const loadGoogleIdentityScript = () => {
         });
         existingScript.addEventListener(
           "error",
-          () => reject(new Error("Failed to load Google Identity Services.")),
+          () => reject(new Error("Không thể tải Google Identity Services.")),
           { once: true }
         );
         return;
@@ -39,7 +39,7 @@ const loadGoogleIdentityScript = () => {
       script.defer = true;
       script.onload = () => resolve(window.google);
       script.onerror = () => {
-        reject(new Error("Failed to load Google Identity Services."));
+        reject(new Error("Không thể tải Google Identity Services."));
       };
       document.head.appendChild(script);
     });
@@ -51,12 +51,12 @@ const loadGoogleIdentityScript = () => {
 const GoogleLoginButton = ({ onCredential, disabled = false }) => {
   const buttonRef = useRef(null);
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
-  const configError = clientId ? "" : "Google login is not configured.";
+  const configError = clientId ? "" : "Đăng nhập Google chưa được cấu hình.";
   const [error, setError] = useState("");
 
   const handleGoogleResponse = useEffectEvent((response) => {
     if (!response?.credential) {
-      setError("Google login did not return a credential.");
+      setError("Đăng nhập Google không trả về thông tin xác thực.");
       return;
     }
 
@@ -103,7 +103,7 @@ const GoogleLoginButton = ({ onCredential, disabled = false }) => {
           return;
         }
 
-        setError(loadError.message || "Failed to load Google login.");
+        setError(loadError.message || "Không thể tải đăng nhập Google.");
       });
 
     return () => {

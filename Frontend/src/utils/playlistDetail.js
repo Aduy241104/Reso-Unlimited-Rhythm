@@ -10,14 +10,14 @@ export const formatPlaylistDuration = (durationInSeconds) => {
   const seconds = totalSeconds % 60;
 
   if (hours > 0) {
-    return `${hours} hr ${minutes} min`;
+    return `${hours} giờ ${minutes} phút`;
   }
 
   if (minutes > 0) {
-    return `${minutes} min ${seconds} sec`;
+    return `${minutes} phút ${seconds} giây`;
   }
 
-  return `${seconds} sec`;
+  return `${seconds} giây`;
 };
 
 export const formatPlaylistDate = (value) => {
@@ -31,7 +31,7 @@ export const formatPlaylistDate = (value) => {
     return "";
   }
 
-  return parsedDate.toLocaleDateString("en-US", {
+  return parsedDate.toLocaleDateString("vi-VN", {
     year: "numeric",
     month: "short",
     day: "numeric",

@@ -63,12 +63,6 @@ export const CHART_METRICS = {
     description: "Số người nghe theo từng ngày",
     formatter: (value) => formatNumber(value),
   },
-  averageListenDuration: {
-    label: "Nghe trung bình",
-    color: "#34caa5",
-    description: "Thời lượng nghe trung bình mỗi ngày",
-    formatter: (value) => displayRawValue(value),
-  },
   skipCount: {
     label: "Lượt bỏ qua",
     color: "#f17171",
@@ -94,12 +88,6 @@ export const MONTHLY_CHART_METRICS = {
     label: "Stream hợp lệ",
     color: "#34caa5",
     description: "Số stream hợp lệ trong từng tháng",
-    formatter: (value) => formatNumber(value),
-  },
-  artistRevenueAmount: {
-    label: "Doanh thu",
-    color: "#f17171",
-    description: "Doanh thu ước tính theo từng tháng",
     formatter: (value) => formatNumber(value),
   },
 };
@@ -163,7 +151,7 @@ export const resolveTrackId = (track) => track?._id || track?.id || "";
 export const getTrackImage = (track) =>
   track?.coverImage?.[0] ||
   track?.avatar ||
-  createPlaceholderImage(track?.title || "Bai hat", "#9b8cff", "#4f46a5");
+  createPlaceholderImage(track?.title || "Bài hát", "#9b8cff", "#4f46a5");
 
 export const getVisibleDateStep = (totalItems) => {
   if (totalItems <= 7) {
@@ -203,8 +191,7 @@ export const buildSummaryCards = (summary) => [
   {
     label: "Nghe trung bình",
     value: appendUnit(summary?.averageListenDuration, "phút"),
-    helper:
-      "Thời lượng nghe trung bình trước khi người nghe dừng hoặc chuyển bài.",
+    helper: "Thời lượng nghe trung bình trước khi người nghe dừng hoặc chuyển bài.",
     icon: Waves,
   },
   {
@@ -214,7 +201,7 @@ export const buildSummaryCards = (summary) => [
     icon: Activity,
   },
   {
-    label: "Tỉ lệ bỏ qua",
+    label: "Tỷ lệ bỏ qua",
     value: formatPercent(summary?.skipRate),
     helper: "Tỷ lệ lượt phát kết thúc bằng hành động bỏ qua.",
     icon: TrendingDown,

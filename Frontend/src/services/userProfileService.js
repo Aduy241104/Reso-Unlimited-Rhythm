@@ -1,8 +1,25 @@
 import axiosClient from "../axios/axiosClient";
 
 const USER_API_PREFIX = "/api/users";
-const COUNTRIES_API_URL =
-  "https://restcountries.com/v3.1/all?fields=name,flag,flags,cca2,cca3";
+const COUNTRY_CODES = [
+  "AD", "AE", "AF", "AG", "AI", "AL", "AM", "AO", "AR", "AT", "AU", "AZ",
+  "BA", "BB", "BD", "BE", "BF", "BG", "BH", "BI", "BJ", "BN", "BO", "BR",
+  "BS", "BT", "BW", "BY", "BZ", "CA", "CD", "CF", "CG", "CH", "CI", "CL",
+  "CM", "CN", "CO", "CR", "CU", "CV", "CY", "CZ", "DE", "DJ", "DK", "DM",
+  "DO", "DZ", "EC", "EE", "EG", "ER", "ES", "ET", "FI", "FJ", "FM", "FR",
+  "GA", "GB", "GD", "GE", "GH", "GM", "GN", "GQ", "GR", "GT", "GW", "GY",
+  "HK", "HN", "HR", "HT", "HU", "ID", "IE", "IL", "IN", "IQ", "IR", "IS",
+  "IT", "JM", "JO", "JP", "KE", "KG", "KH", "KI", "KM", "KN", "KP", "KR",
+  "KW", "KZ", "LA", "LB", "LC", "LI", "LK", "LR", "LS", "LT", "LU", "LV",
+  "LY", "MA", "MC", "MD", "ME", "MG", "MH", "MK", "ML", "MM", "MN", "MR",
+  "MT", "MU", "MV", "MW", "MX", "MY", "MZ", "NA", "NE", "NG", "NI", "NL",
+  "NO", "NP", "NR", "NZ", "OM", "PA", "PE", "PG", "PH", "PK", "PL", "PT",
+  "PW", "PY", "QA", "RO", "RS", "RU", "RW", "SA", "SB", "SC", "SD", "SE",
+  "SG", "SI", "SK", "SL", "SM", "SN", "SO", "SR", "SS", "ST", "SV", "SY",
+  "TD", "TG", "TH", "TJ", "TL", "TM", "TN", "TO", "TR", "TT", "TV", "TW",
+  "TZ", "UA", "UG", "US", "UY", "UZ", "VA", "VC", "VE", "VN", "VU", "WS",
+  "YE", "ZA", "ZM", "ZW",
+];
 
 const normalizeText = (value) => {
   if (typeof value !== "string") {
@@ -52,26 +69,44 @@ export const changeCurrentUserPassword = async (payload = {}) => {
   return response?.data ?? null;
 };
 
+const getCountryFlag = (countryCode) =>
+  String(countryCode || "")
+    .toUpperCase()
+    .replace(/./g, (character) =>
+      String.fromCodePoint(127397 + character.charCodeAt(0))
+    );
+
+const createAbortError = () => {
+  if (typeof DOMException === "function") {
+    return new DOMException("The operation was aborted.", "AbortError");
+  }
+
+  const error = new Error("The operation was aborted.");
+  error.name = "AbortError";
+  return error;
+};
+
 export const getCountryOptions = async (signal) => {
-  const response = await fetch(COUNTRIES_API_URL, { signal });
-
-  if (!response.ok) {
-    throw new Error("Unable to load countries right now.");
+  if (signal?.aborted) {
+    throw createAbortError();
   }
 
-  const payload = await response.json();
+  const displayNames =
+    typeof Intl !== "undefined" && typeof Intl.DisplayNames === "function"
+      ? new Intl.DisplayNames(["en"], { type: "region" })
+      : null;
 
-  if (!Array.isArray(payload)) {
-    return [];
-  }
+  return COUNTRY_CODES
+    .map((countryCode) => {
+      const countryName = displayNames?.of(countryCode) || countryCode;
 
-  return payload
-    .map((country) => ({
-      code: normalizeText(country?.cca2 || country?.cca3),
-      name: normalizeText(country?.name?.common),
-      officialName: normalizeText(country?.name?.official),
-      flag: normalizeText(country?.flag) || normalizeText(country?.flags?.emoji),
-    }))
-    .filter((country) => country.name)
+      return {
+        name: countryName,
+        officialName: countryName,
+        code: countryCode,
+        code3: "",
+        flag: getCountryFlag(countryCode),
+      };
+    })
     .sort((left, right) => left.name.localeCompare(right.name));
 };

@@ -21,13 +21,13 @@ router.post(
 router.post(
     "/register",
     validate(authenticationValidation.registerSchema),
-    authenticationController.register
+    authenticationController.completeRegistration
 );
 
 router.post(
     "/register/send-otp",
-    validate(authenticationValidation.requestRegisterOtpSchema),
-    authenticationController.requestRegisterOtp
+    validate(authenticationValidation.requestRegistrationOtpSchema),
+    authenticationController.requestRegistrationOtp
 );
 
 router.post(
@@ -44,12 +44,13 @@ router.post(
 
 router.post(
     "/logout",
+    validate(authenticationValidation.logoutSchema),
     authenticationController.logout
 );
 
 router.post(
     "/refresh-token",
-    validate(authenticationValidation.refreshTokenCookieSchema, "cookies"),
+    validate(authenticationValidation.refreshTokenSchema),
     authenticationController.refreshToken
 );
 

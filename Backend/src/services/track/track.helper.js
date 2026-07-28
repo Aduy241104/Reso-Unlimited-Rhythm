@@ -6,12 +6,56 @@ const PREMIUM_AUDIO_FEATURES = new Set([
     "LOSSLESS_AUDIO",
 ]);
 
+const BASIC_AUDIO_FORMAT_PREFERENCE = new Map([
+    ["mp3", 0],
+    ["m4a", 1],
+    ["aac", 2],
+    ["mp4", 3],
+    ["wav", 4],
+    ["flac", 5],
+]);
+
 const toId = (value) => {
     if (!value) {
         return null;
     }
 
     return value.toString();
+};
+
+const formatPendingTrackUpdateData = (data) => {
+    if (!data) {
+        return null;
+    }
+
+    return {
+        title: data.title || "",
+        versionTitle: data.versionTitle || "",
+        description: data.description || "",
+        tags: data.tags || [],
+        genreIds: Array.isArray(data.genreIds)
+            ? data.genreIds.map((genre) => toId(genre?._id || genre)).filter(Boolean)
+            : [],
+        genres: Array.isArray(data.genreIds)
+            ? data.genreIds
+                .map((genre) => (
+                    genre && typeof genre === "object" && "name" in genre
+                        ? {
+                            _id: genre._id,
+                            name: genre.name,
+                        }
+                        : null
+                ))
+                .filter(Boolean)
+            : [],
+        audioFiles: data.audioFiles || [],
+        duration: data.duration || 0,
+        avatar: data.avatar || "",
+        coverImage: data.coverImage || [],
+        lyricsStatic: data.lyricsStatic || "",
+        lyricsSyncUrl: data.lyricsSyncUrl || "",
+        copyright: data.copyright || null,
+    };
 };
 
 const formatTrackManagementDetail = (track) => {
@@ -21,6 +65,8 @@ const formatTrackManagementDetail = (track) => {
         _id: track._id,
         title: track.title,
         versionTitle: track.versionTitle || "",
+        description: track.description || "",
+        tags: track.tags || [],
         artist: track.artist_artistId
             ? {
                   _id: track.artist_artistId._id,
@@ -63,6 +109,16 @@ const formatTrackManagementDetail = (track) => {
         hiddenAt: track.hiddenAt,
         createdAt: track.createdAt,
         updatedAt: track.updatedAt,
+        pendingUpdate: {
+            status: track.pendingUpdate?.status || "none",
+            changedFields: track.pendingUpdate?.changedFields || [],
+            submittedAt: track.pendingUpdate?.submittedAt || null,
+            lastSavedAt: track.pendingUpdate?.lastSavedAt || null,
+            reviewedAt: track.pendingUpdate?.reviewedAt || null,
+            adminNote: track.pendingUpdate?.adminNote || "",
+            rejectReason: track.pendingUpdate?.rejectReason || "",
+            data: formatPendingTrackUpdateData(track.pendingUpdate?.data || null),
+        },
     };
 };
 
@@ -72,6 +128,8 @@ const formatTrackItem = (track) => {
     return {
         _id: track._id,
         title: track.title,
+        description: track.description || "",
+        tags: track.tags || [],
         artist: track.artist_artistId
             ? {
                   _id: track.artist_artistId._id,
@@ -96,6 +154,10 @@ const getValidAudioFiles = (audioFiles = []) =>
             bitrate: Number.isFinite(Number(audioFile.bitrate))
                 ? Number(audioFile.bitrate)
                 : null,
+            label: String(audioFile.label || "").toLowerCase() || "original",
+            priority: Number.isFinite(Number(audioFile.priority))
+                ? Number(audioFile.priority)
+                : 0,
         }));
 
 const pickPremiumDefaultAudio = (audioFiles) => {
@@ -112,20 +174,38 @@ const pickPremiumDefaultAudio = (audioFiles) => {
 };
 
 const pickBasicAudio = (audioFiles) => {
-    const preferredAudio = audioFiles.find(
-        (audioFile) => audioFile.format === "mp4" && audioFile.bitrate === 128
-    );
-
-    if (preferredAudio) {
-        return preferredAudio;
+    if (!audioFiles.length) {
+        return null;
     }
 
-    const fallback128Audio = audioFiles.find((audioFile) => audioFile.bitrate === 128);
-    if (fallback128Audio) {
-        return fallback128Audio;
-    }
+    return [...audioFiles].sort((leftAudio, rightAudio) => {
+        const leftBitrateDistance = Math.abs((leftAudio.bitrate ?? 128) - 128);
+        const rightBitrateDistance = Math.abs((rightAudio.bitrate ?? 128) - 128);
 
-    return audioFiles[0] || null;
+        if (leftBitrateDistance !== rightBitrateDistance) {
+            return leftBitrateDistance - rightBitrateDistance;
+        }
+
+        const leftFormatRank =
+            BASIC_AUDIO_FORMAT_PREFERENCE.get(leftAudio.format) ??
+            Number.MAX_SAFE_INTEGER;
+        const rightFormatRank =
+            BASIC_AUDIO_FORMAT_PREFERENCE.get(rightAudio.format) ??
+            Number.MAX_SAFE_INTEGER;
+
+        if (leftFormatRank !== rightFormatRank) {
+            return leftFormatRank - rightFormatRank;
+        }
+
+        const leftPriority = Number(leftAudio.priority) || 0;
+        const rightPriority = Number(rightAudio.priority) || 0;
+
+        if (leftPriority !== rightPriority) {
+            return rightPriority - leftPriority;
+        }
+
+        return (leftAudio.bitrate ?? 0) - (rightAudio.bitrate ?? 0);
+    })[0] || null;
 };
 
 const getPremiumAccessState = async (user) => {
@@ -194,6 +274,25 @@ const formatTrackArtist = (artist) =>
         }
         : null;
 
+const formatTrackDetailArtist = (artist) => {
+    const formattedArtist = formatTrackArtist(artist);
+
+    if (!formattedArtist) {
+        return null;
+    }
+
+    return {
+        ...formattedArtist,
+        bio: artist.bio || "",
+        activeStatus: artist.activeStatus,
+        stats: artist.stats || {
+            followers: 0,
+            totalStreams: 0,
+            monthlyListeners: 0,
+        },
+    };
+};
+
 const formatTrackAlbum = (album) =>
     album
         ? {
@@ -203,6 +302,20 @@ const formatTrackAlbum = (album) =>
         }
         : null;
 
+const formatTrackDetailAlbum = (album) => {
+    const formattedAlbum = formatTrackAlbum(album);
+
+    if (!formattedAlbum) {
+        return null;
+    }
+
+    return {
+        ...formattedAlbum,
+        releaseDate: album.releaseDate || null,
+        status: album.status,
+    };
+};
+
 const formatTrackGenres = (genres = []) =>
     genres.map((genre) => ({
         id: toId(genre._id),
@@ -210,9 +323,27 @@ const formatTrackGenres = (genres = []) =>
         image: genre.image,
     }));
 
-const formatTrackDetail = (track) => ({
+const formatPublicTrackCopyright = (copyright = {}) => ({
+    copyrightOwner: copyright.copyrightOwner || "",
+    recordingOwner: copyright.recordingOwner || "",
+    composer: copyright.composer || "",
+    lyricist: copyright.lyricist || "",
+    producer: copyright.producer || "",
+    isOriginal: copyright.isOriginal ?? true,
+    isCover: copyright.isCover ?? false,
+    isRemix: copyright.isRemix ?? false,
+    usesSample: copyright.usesSample ?? false,
+    usesLicensedBeat: copyright.usesLicensedBeat ?? false,
+    originalTrackTitle: copyright.originalTrackTitle || "",
+    originalArtistName: copyright.originalArtistName || "",
+});
+
+const formatTrackDetailBase = (track) => ({
     id: toId(track._id),
     title: track.title,
+    versionTitle: track.versionTitle || "",
+    description: track.description || "",
+    tags: track.tags || [],
     duration: track.duration,
     avatar: track.avatar,
     coverImage: track.coverImage,
@@ -227,6 +358,18 @@ const formatTrackDetail = (track) => ({
     },
 });
 
+const formatTrackDetail = (track, personalization = {}) => ({
+    ...formatTrackDetailBase(track),
+    versionTitle: track.versionTitle || "",
+    artist: formatTrackDetailArtist(track.artist_artistId),
+    album: formatTrackDetailAlbum(track.album_albumId),
+    copyright: formatPublicTrackCopyright(track.copyright),
+    isFavorite: Boolean(personalization.isFavorite),
+    favoritedAt: personalization.favoritedAt || null,
+});
+
+const formatTrackRankingDetail = (track) => formatTrackDetailBase(track);
+
 const formatTrackPlayback = (track, audioFiles, accessState) => {
     const isPremium = accessState.isPremium;
     const basicAudio = pickBasicAudio(audioFiles);
@@ -239,14 +382,13 @@ const formatTrackPlayback = (track, audioFiles, accessState) => {
         throw new AppError(
             isPremium
                 ? "Track does not have any playable audio file."
-                : "Track does not provide an mp4 128kbps stream for basic users.",
+                : "Track does not provide a compatible playback stream for basic users.",
             isPremium ? 404 : 403,
             isPremium
                 ? null
                 : {
                     upgradeRequired: true,
-                    requiredFormat: "mp4",
-                    requiredBitrate: 128,
+                    preferredBitrate: 128,
                 }
         );
     }
@@ -254,6 +396,9 @@ const formatTrackPlayback = (track, audioFiles, accessState) => {
     return {
         id: toId(track._id),
         title: track.title,
+        versionTitle: track.versionTitle || "",
+        description: track.description || "",
+        tags: track.tags || [],
         duration: track.duration,
         avatar: track.avatar,
         coverImage: track.coverImage,
@@ -278,6 +423,8 @@ export {
     formatTrackManagementDetail,
     formatTrackItem,
     formatTrackDetail,
+    formatTrackRankingDetail,
+    formatPublicTrackCopyright,
     formatTrackPlayback,
     getPremiumAccessState,
     getValidAudioFiles,

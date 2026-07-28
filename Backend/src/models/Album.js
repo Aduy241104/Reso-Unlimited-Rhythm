@@ -23,6 +23,11 @@ const AlbumSchema = new Schema(
         },
 
         blockedReason: { type: String, default: "" },
+        previousStatusBeforeAdminBlock: {
+            type: String,
+            enum: ["draft", "active", "hidden", null],
+            default: null,
+        },
         totalDuration: { type: Number, default: 0, min: 0 },
     },
     { timestamps: true }

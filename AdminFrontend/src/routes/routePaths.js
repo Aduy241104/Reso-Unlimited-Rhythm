@@ -1,11 +1,13 @@
-export const routePaths = {
+﻿export const routePaths = {
   home: "/",
   login: "/login",
   systemTracks: "/system-tracks",
+  systemAlbums: "/system-albums",
   trackModeration: "/system-tracks/moderation",
   artistRequests: "/artist-requests",
   artistRequestDetail: (requestId = ":requestId") => `/artist-requests/${requestId}`,
   trackDetail: (trackId = ":id") => `/system-tracks/${trackId}`,
+  albumDetail: (albumId = ":id") => `/system-albums/${albumId}`,
   systemPlaylists: "/system-playlists",
   genres: "/genres",
   genreNew: "/genres/new",
@@ -20,4 +22,27 @@ export const routePaths = {
     `/system-playlists/${playlistId}`,
   systemPlaylistEdit: (playlistId = ":playlistId") =>
     `/system-playlists/${playlistId}/edit`,
+  notifications: "/notifications",
+  createNotification: "/notifications/new",
+  notificationDetail: (notificationId = ":id") => `/notifications/${notificationId}`,
+  notificationEdit: (notificationId = ":id") => `/notifications/${notificationId}/edit`,
+  revenue: "/revenue",
+  revenueHistory: "/revenue/history",
+  revenuePeriodDetail: (year = ":year", month = ":month") =>
+    `/revenue/history/${year}/${month}`,
+  withdrawals: "/withdrawals",
+  withdrawalRequestDetail: (withdrawalRequestId = ":id") =>
+    `/withdrawal-requests/${withdrawalRequestId}`,
+  revenuePeriodDetail: (periodId = ":periodId") => `/revenue/history/${periodId}`,
+  revenueSharingHistory: "/revenue-sharing",
+  revenueSharingDetail: (periodId = ":periodId") =>
+    `/revenue-sharing/${periodId}`,
+  reports: "/reports",
+  reportDetail: (reportId = ":reportId") => `/reports/${reportId}`,
+  subscriptions: "/subscriptions",
+  subscriptionDetail: (planId = ":planId") => `/subscriptions/${planId}`,
+  subscriptionEdit: (planId = ":planId") => `/subscriptions/${planId}/edit`,
+  subscriptionNew: "/subscriptions/new",
+  transactions: "/transactions",
+  transactionDetail: (transactionId = ":id") => `/transactions/${transactionId}`,
 };

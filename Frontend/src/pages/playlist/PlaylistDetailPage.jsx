@@ -10,20 +10,28 @@ import { useParams } from "react-router-dom";
 import TrackCard from "../../components/TrackCard";
 import TrackListSection from "../../components/trackList/TrackListSection";
 import { usePlayer } from "../../hooks/usePlayer";
+import useDominantColorGradient from "../../hooks/useDominantColorGradient";
 import { routePaths } from "../../routes/routePaths";
 import { getPlaylistDetailService } from "../../services/playlistService";
-import { formatTrackDuration } from "../../utils/albumDetail";
+import { formatTrackDuration, resolveTrackAvatar } from "../../utils/albumDetail";
 import { getApiErrorMessage } from "../../utils/apiError";
 import {
   formatPlaylistDate,
   formatPlaylistDuration,
   getPlaylistOwnerLabel,
 } from "../../utils/playlistDetail";
+import { isBlockedTrack } from "../../utils/trackStatus";
 
 const actionButtonClassName = `
   inline-flex h-10 w-10 items-center justify-center rounded-full border border-black/8
   bg-white/70 text-[#18181b] transition hover:scale-[1.03] hover:bg-white
   dark:border-white/10 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/[0.12] sm:h-11 sm:w-11
+`;
+
+const shufflePlayButtonClassName = `
+  inline-flex h-10 items-center gap-2 rounded-full border border-black/8 px-4
+  bg-white/70 text-sm font-semibold text-[#18181b] transition hover:scale-[1.03] hover:bg-white
+  dark:border-white/10 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/[0.12] sm:h-11 sm:px-5
 `;
 
 const metaPillClassName = `
@@ -39,6 +47,8 @@ const PlaylistDetailPage = () => {
   const {
     currentTrack,
     isPlaying,
+    isShuffleEnabled,
+    activeCollection,
     playPlaylist,
     playTrack,
     togglePlayPause,
@@ -100,6 +110,7 @@ const PlaylistDetailPage = () => {
   const totalDuration = formatPlaylistDuration(playlist?.totalDuration);
   const createdDate = formatPlaylistDate(playlist?.createdAt);
   const playlistCoverImage = playlist?.coverImage ?? "";
+  const headerGradient = useDominantColorGradient(playlistCoverImage);
 
   const collectionMeta = useMemo(
     () => ({
@@ -111,6 +122,10 @@ const PlaylistDetailPage = () => {
     }),
     [playlist?.id, playlist?.title, playlistCoverImage, playlistOwnerLabel]
   );
+  const isPlaylistShuffleActive =
+    isShuffleEnabled &&
+    activeCollection?.type === "playlist" &&
+    String(activeCollection?.id || "") === String(collectionMeta.id || "");
 
   const handlePlayPlaylist = async () => {
     if (!playlist) {
@@ -118,6 +133,14 @@ const PlaylistDetailPage = () => {
     }
 
     await playPlaylist(playlist, trackItems);
+  };
+
+  const handleShufflePlaylist = async () => {
+    if (!playlist) {
+      return;
+    }
+
+    await playPlaylist(playlist, trackItems, { shuffle: true });
   };
 
   const handlePlayTrack = async (track, index) => {
@@ -158,11 +181,8 @@ const PlaylistDetailPage = () => {
         "
       >
         <div
-          className="
-            bg-gradient-to-b from-[#0f766e] via-[#134e4a] to-transparent
-            px-4 pb-5 pt-6 dark:from-[#14b8a6] dark:via-[#115e59] dark:to-[#121212]
-            sm:px-8 sm:pb-8 sm:pt-10
-          "
+          className="px-4 pb-5 pt-6 transition-[background-image] duration-500 sm:px-8 sm:pb-8 sm:pt-10"
+          style={{ backgroundImage: headerGradient }}
         >
           { isLoading ? (
             <div className="flex min-h-[20rem] items-end">
@@ -232,8 +252,19 @@ const PlaylistDetailPage = () => {
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <PlayButton onClick={ handlePlayPlaylist } size="compact" />
 
-            <button type="button" className={ actionButtonClassName } aria-label="Shuffle playlist">
+            <button
+              type="button"
+              onClick={ handleShufflePlaylist }
+              className={ [
+                shufflePlayButtonClassName,
+                isPlaylistShuffleActive
+                  ? "border-[#f5b66f]/70 bg-[#f5b66f] text-[#111111] hover:bg-[#f8c27f]"
+                  : "",
+              ].join(" ") }
+              aria-label="Shuffle playlist"
+            >
               <Shuffle className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
+              <span>Shuffle Play</span>
             </button>
             <button type="button" className={ actionButtonClassName } aria-label="Add playlist">
               <CirclePlus className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
@@ -256,17 +287,15 @@ const PlaylistDetailPage = () => {
           >
             { trackItems.map((trackItem, index) => {
               const track = trackItem?.track;
-              const trackImage =
-                track?.coverImage ||
-                track?.album?.coverImage ||
-                track?.artist?.avatar ||
-                playlistCoverImage ||
-                "";
+              const isTrackBlocked = isBlockedTrack(trackItem);
+              const trackImage = resolveTrackAvatar(track);
 
               return (
                 <TrackCard
                   key={ track?.id || `${trackItem?.trackId}-${index}` }
                   index={ trackItem?.order || index + 1 }
+                  track={ track }
+                  trackId={track?.id}
                   image={ trackImage }
                   title={ track?.title || "" }
                   artist={ track?.artist?.name || playlistOwnerLabel || "" }
@@ -274,6 +303,7 @@ const PlaylistDetailPage = () => {
                   duration={ formatTrackDuration(track?.duration) }
                   explicit={ false }
                   liked={ false }
+                  isBlocked={ isTrackBlocked }
                   href={ track?.id ? routePaths.trackDetail(track.id) : undefined }
                   isPlaybackActive={ currentTrack?.id === track?.id }
                   isPlaying={ isPlaying }

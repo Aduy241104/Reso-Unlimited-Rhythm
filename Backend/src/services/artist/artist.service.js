@@ -59,6 +59,27 @@ const getMyProfileByUserId = async (userId) => {
     return enrichArtistProfilePayload(artist);
 };
 
+const getMyBlockStatusByUserId = async (userId) => {
+    const artist = await Artist.findOne({ userId })
+        .select("activeStatus blockedReason")
+        .lean();
+
+    if (!artist) {
+        throw new AppError(
+            "Artist profile not found for this account.",
+            StatusCodes.NOT_FOUND
+        );
+    }
+
+    const isBlocked = artist.activeStatus === "blocked";
+
+    return {
+        isBlocked,
+        activeStatus: artist.activeStatus,
+        blockedReason: isBlocked ? artist.blockedReason ?? "" : "",
+    };
+};
+
 const updateMyProfileByUserId = async (userId, payload) => {
     const artist = await findOwnedArtistDocumentOrThrow(userId);
 
@@ -173,13 +194,6 @@ const updateMyProfileMediaByUserId = async (userId, { avatarFile, coverFile }) =
 const requestVerificationByUserId = async (userId, payload = {}) => {
     const artist = await findOwnedArtistDocumentOrThrow(userId);
 
-    if (artist.verificationStatus === "verified") {
-        throw new AppError(
-            "Your artist profile is already verified.",
-            StatusCodes.BAD_REQUEST
-        );
-    }
-
     const existing = await ArtistVerificationRequest.findOne({
         artistId: artist._id,
         status: "open",
@@ -203,6 +217,7 @@ const requestVerificationByUserId = async (userId, payload = {}) => {
 
 export default {
     getMyProfileByUserId,
+    getMyBlockStatusByUserId,
     updateMyProfileByUserId,
     updateMyProfileMediaByUserId,
     requestVerificationByUserId,

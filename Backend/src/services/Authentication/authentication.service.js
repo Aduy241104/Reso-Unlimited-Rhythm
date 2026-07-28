@@ -11,11 +11,16 @@ import {
     sendResetPasswordLinkEmail,
 } from "../../utils/mailer.js";
 import {
+    buildRefreshTokenClientTypeQuery,
+    normalizeAuthClientType,
+} from "../../constants/authClientTypes.js";
+import {
     buildRegistrationProfilePayload,
     createAuthSession,
+    ensureEmailCanStartRegistration,
     ensureActiveUser,
-    ensureRegistrationAvailability,
     findOrCreateGoogleUser,
+    isInactiveUnverifiedUser,
     sanitizeUser,
     verifyGoogleIdToken,
 } from "./authentication.helper.js";
@@ -40,10 +45,22 @@ const getOtpExpireDate = () =>
 const getResetPasswordExpireDate = () =>
     new Date(Date.now() + RESET_PASSWORD_TTL_MINUTES * 60 * 1000);
 
-const requestRegisterOtp = async ({ email }) => {
+const createPendingRegistrationPasswordHash = async () =>
+    bcrypt.hash(crypto.randomBytes(32).toString("hex"), SALT_ROUNDS);
+
+const requestRegistrationOtp = async ({ email }) => {
     const normalizedEmail = email.trim().toLowerCase();
 
-    await ensureRegistrationAvailability(normalizedEmail);
+    let pendingUser = await ensureEmailCanStartRegistration(normalizedEmail);
+
+    if (!pendingUser) {
+        pendingUser = await User.create({
+            email: normalizedEmail,
+            password: await createPendingRegistrationPasswordHash(),
+            activeStatus: "inactive",
+            emailVerified: false,
+        });
+    }
 
     const latestVerification = await VerificationToken.findOne({
         email: normalizedEmail,
@@ -70,6 +87,7 @@ const requestRegisterOtp = async ({ email }) => {
     const otp = generateOtp();
 
     const verificationData = {
+        userId: pendingUser._id,
         email: normalizedEmail,
         otp,
         token: crypto.randomBytes(32).toString("hex"),
@@ -80,6 +98,7 @@ const requestRegisterOtp = async ({ email }) => {
 
     let activeVerificationToken;
     if (latestVerification) {
+        latestVerification.userId = verificationData.userId;
         latestVerification.otp = verificationData.otp;
         latestVerification.token = verificationData.token;
         latestVerification.expiresAt = verificationData.expiresAt;
@@ -111,7 +130,7 @@ const requestRegisterOtp = async ({ email }) => {
     };
 };
 
-const register = async ({
+const completeRegistration = async ({
     email,
     otp,
     password,
@@ -150,19 +169,37 @@ const register = async ({
         });
     }
 
-    await ensureRegistrationAvailability(
-        normalizedEmail
-    );
-
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+    const user =
+        (verificationToken.userId &&
+            (await User.findById(verificationToken.userId))) ||
+        (await User.findOne({ email: normalizedEmail }));
 
-    const user = await User.create({
+    if (user && !isInactiveUnverifiedUser(user)) {
+        if (user.activeStatus === "blocked") {
+            throw new AppError("Your account has been blocked.", 403);
+        }
+
+        throw new AppError("Email is already in use.", 409, {
+            field: "email",
+        });
+    }
+
+    const registrationUser = user || (await User.create({
         email: normalizedEmail,
-        password: hashedPassword,
-        profile: registrationProfile,
-    });
+        password: await createPendingRegistrationPasswordHash(),
+        activeStatus: "inactive",
+        emailVerified: false,
+    }));
 
-    verificationToken.userId = user._id;
+    registrationUser.password = hashedPassword;
+    registrationUser.profile = registrationProfile;
+    registrationUser.emailVerified = true;
+    registrationUser.activeStatus = "active";
+    registrationUser.blockReason = "";
+    await registrationUser.save();
+
+    verificationToken.userId = registrationUser._id;
     verificationToken.isUsed = true;
     await verificationToken.save();
 
@@ -173,11 +210,17 @@ const register = async ({
     });
 
     return {
-        user: sanitizeUser(user),
+        user: sanitizeUser(registrationUser),
     };
 };
 
-const login = async ({ email, password }) => {
+const buildStoredRefreshTokenQuery = ({ token, clientType }) => ({
+    token,
+    isRevoked: false,
+    ...buildRefreshTokenClientTypeQuery(clientType),
+});
+
+const login = async ({ email, password, clientType }) => {
     const normalizedEmail = email.trim().toLowerCase();
     const user = await User.findOne({ email: normalizedEmail });
 
@@ -185,21 +228,21 @@ const login = async ({ email, password }) => {
         throw new AppError("Email or password is incorrect.", 401);
     }
 
-    ensureActiveUser(user);
+    await ensureActiveUser(user);
 
     const isPasswordMatched = await bcrypt.compare(password, user.password);
     if (!isPasswordMatched) {
         throw new AppError("Email or password is incorrect.", 401);
     }
 
-    return createAuthSession(user);
+    return createAuthSession(user, clientType);
 };
 
-const googleLogin = async ({ token }) => {
+const googleLogin = async ({ token, clientType }) => {
     const googleProfile = await verifyGoogleIdToken(token);
     const user = await findOrCreateGoogleUser(googleProfile);
 
-    return createAuthSession(user);
+    return createAuthSession(user, clientType);
 };
 
 const requestForgotPassword = async ({ email }) => {
@@ -236,11 +279,12 @@ const requestForgotPassword = async ({ email }) => {
     }
 
     const resetToken = crypto.randomBytes(32).toString("hex");
+    const otp = generateOtp();
     const verificationData = {
         userId: user._id,
         email: normalizedEmail,
         token: resetToken,
-        otp: undefined,
+        otp,
         type: "reset_password",
         expiresAt: getResetPasswordExpireDate(),
         isUsed: false,
@@ -250,7 +294,7 @@ const requestForgotPassword = async ({ email }) => {
     if (latestVerification) {
         latestVerification.userId = verificationData.userId;
         latestVerification.token = verificationData.token;
-        latestVerification.otp = undefined;
+        latestVerification.otp = verificationData.otp;
         latestVerification.expiresAt = verificationData.expiresAt;
         latestVerification.isUsed = false;
         activeVerificationToken = await latestVerification.save();
@@ -269,6 +313,7 @@ const requestForgotPassword = async ({ email }) => {
     await sendResetPasswordLinkEmail({
         to: normalizedEmail,
         resetLink: buildResetLink({ token: resetToken }),
+        otp,
         ttlMinutes: RESET_PASSWORD_TTL_MINUTES,
     });
 
@@ -278,16 +323,23 @@ const requestForgotPassword = async ({ email }) => {
     };
 };
 
-const resetPassword = async ({ token, password }) => {
+const resetPassword = async ({ token, email, otp, password }) => {
+    const credentialQuery = token
+        ? { token: token.trim() }
+        : {
+            email: email.trim().toLowerCase(),
+            otp: otp.trim(),
+        };
+
     const verificationToken = await VerificationToken.findOne({
-        token,
+        ...credentialQuery,
         type: "reset_password",
         isUsed: false,
-    });
+    }).sort({ createdAt: -1 });
 
     if (!verificationToken) {
-        throw new AppError("Reset password link is invalid.", 400, {
-            field: "token",
+        throw new AppError("Reset password verification is invalid.", 400, {
+            field: token ? "token" : "otp",
         });
     }
 
@@ -295,8 +347,8 @@ const resetPassword = async ({ token, password }) => {
         verificationToken.isUsed = true;
         await verificationToken.save();
 
-        throw new AppError("Reset password link has expired.", 400, {
-            field: "token",
+        throw new AppError("Reset password verification has expired.", 400, {
+            field: token ? "token" : "otp",
         });
     }
 
@@ -305,7 +357,7 @@ const resetPassword = async ({ token, password }) => {
             (await User.findById(verificationToken.userId))) ||
         (await User.findOne({ email: verificationToken.email }));
 
-    ensureActiveUser(user);
+    await ensureActiveUser(user);
 
     const isSamePassword = await bcrypt.compare(password, user.password);
     if (isSamePassword) {
@@ -336,10 +388,16 @@ const resetPassword = async ({ token, password }) => {
     ]);
 };
 
-const logout = async (token) => {
+const logout = async ({ token, clientType }) => {
+    if (!token) {
+        return;
+    }
+
     const storedToken = await RefreshToken.findOne({
-        token,
-        isRevoked: false,
+        ...buildStoredRefreshTokenQuery({
+            token,
+            clientType,
+        }),
     });
 
     if (!storedToken) {
@@ -350,10 +408,17 @@ const logout = async (token) => {
     await storedToken.save();
 };
 
-const refreshToken = async (token) => {
+const refreshToken = async ({ token, clientType }) => {
+    if (!token) {
+        throw new AppError("Refresh token is required.", 401);
+    }
+
+    const normalizedClientType = normalizeAuthClientType(clientType);
     const storedToken = await RefreshToken.findOne({
-        token,
-        isRevoked: false,
+        ...buildStoredRefreshTokenQuery({
+            token,
+            clientType: normalizedClientType,
+        }),
     }).populate("userId");
 
     if (!storedToken) {
@@ -368,8 +433,9 @@ const refreshToken = async (token) => {
     }
 
     const user = storedToken.userId;
-    ensureActiveUser(user);
+    await ensureActiveUser(user);
 
+    storedToken.clientType = normalizedClientType;
     storedToken.token = createRefreshToken();
     storedToken.expiresAt = getRefreshExpireDate();
     await storedToken.save();
@@ -382,8 +448,8 @@ const refreshToken = async (token) => {
 };
 
 export default {
-    requestRegisterOtp,
-    register,
+    requestRegistrationOtp,
+    completeRegistration,
     login,
     googleLogin,
     requestForgotPassword,

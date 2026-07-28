@@ -1,7 +1,7 @@
 import Album from "./Album.js";
 import Artist from "./Artist.js";
-import ArtistDailyRanking from "./ArtistDailyRanking.js";
-import ArtistMonthlyRanking from "./ArtistMonthlyRanking.js";
+import ArtistDailyStat from "./ArtistDailyStat.js";
+import ArtistRanking from "./ArtistRanking.js";
 import ArtistMonthlyStat from "./ArtistMonthlyStat.js";
 import ArtistRequest from "./ArtistRequest.js";
 import ArtistRevenueSummary from "./ArtistRevenueSummary.js";
@@ -14,6 +14,8 @@ import Notification from "./Notification.js";
 import Plan from "./Plan.js";
 import Playlist from "./Playlist.js";
 import PlatformMonthlyStat from "./PlatformMonthlyStat.js";
+import UserRecentListeningActivity from "./userRecentListeningActivity.js";
+import PersonalizedMix from "./PersonalizedMix.js";
 import RefreshToken from "./RefreshToken.js";
 import ReleaseSchedule from "./ReleaseSchedule.js";
 import Report from "./Report.js";
@@ -28,12 +30,15 @@ import Transaction from "./Transaction.js";
 import User from "./User.js";
 import VerificationToken from "./VerificationToken.js";
 import WithdrawalRequest from "./WithdrawalRequest.js";
+import RevenuePeriod from "./RevenuePeriod.js"; 
 
 export default {
     Album,
     Artist,
-    ArtistDailyRanking,
-    ArtistMonthlyRanking,
+    ArtistDailyStat,
+    ArtistRanking,
+    ArtistDailyRanking: ArtistRanking,
+    ArtistMonthlyRanking: ArtistRanking,
     ArtistMonthlyStat,
     ArtistRequest,
     ArtistRevenueSummary,
@@ -46,6 +51,9 @@ export default {
     Plan,
     Playlist,
     PlatformMonthlyStat,
+    PersonalizedMix,
+    UserRecentListeningActivity,
+    RecentListeningActivity: UserRecentListeningActivity,
     RefreshToken,
     ReleaseSchedule,
     Report,
@@ -60,4 +68,5 @@ export default {
     User,
     VerificationToken,
     WithdrawalRequest,
+    RevenuePeriod,
 };

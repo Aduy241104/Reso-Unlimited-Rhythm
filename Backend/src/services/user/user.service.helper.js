@@ -2,6 +2,7 @@ import { StatusCodes } from "http-status-codes";
 import { AppError } from "../../utils/AppError.js";
 import { uploadImageBuffer, deleteImageByPublicId } from "../cloudinaryService.js";
 import { extractPublicIdFromUrl } from "../../utils/uploadCloud.js";
+import { resolveUserPremiumState } from "../../utils/premiumAccess.js";
 
 const ALLOWED_GENDERS = new Set([
     "male",
@@ -9,12 +10,6 @@ const ALLOWED_GENDERS = new Set([
     "other",
 ]);
 const CLOUDINARY_USER_FOLDER = "reso/users";
-
-const normalizeProfile = (profile = {}) => ({
-    fullName: profile.fullName ?? "",
-    gender: profile.gender ?? "prefer_not_to_say",
-    country: profile.country ?? "",
-});
 
 const normalizeId = (user = {}) => {
     if (user.id) {
@@ -28,14 +23,14 @@ const normalizeId = (user = {}) => {
     return "";
 };
 
-export const formatCurrentUserProfile = (user = {}) => ({
+export const formatCurrentUserProfile = async (user = {}) => ({
     id: normalizeId(user),
     email: user.email ?? "",
     username: user.username ?? "",
     avatar: user.avatar ?? "",
     role: user.role ?? "",
     activeStatus: user.activeStatus ?? "",
-    profile: normalizeProfile(user.profile),
+    isPremium: await resolveUserPremiumState(user),
 });
 
 const assertObjectPayload = (

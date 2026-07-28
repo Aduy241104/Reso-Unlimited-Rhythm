@@ -1,9 +1,23 @@
-import axiosClient from "../axios/axiosClient";
+﻿import axiosClient from "../axios/axiosClient";
 
 const USER_PLAYLIST_API_PREFIX = "/api/users";
 
-export const getUserPlaylists = async () => {
-  const response = await axiosClient.get(`${USER_PLAYLIST_API_PREFIX}/playlists`);
+export const getUserPlaylists = async (params = {}) => {
+  const requestParams = {};
+  const page = Number(params?.page);
+  const limit = Number(params?.limit);
+
+  if (Number.isFinite(page) && page > 0) {
+    requestParams.page = page;
+  }
+
+  if (Number.isFinite(limit) && limit > 0) {
+    requestParams.limit = limit;
+  }
+
+  const response = await axiosClient.get(`${USER_PLAYLIST_API_PREFIX}/playlists`, {
+    params: Object.keys(requestParams).length > 0 ? requestParams : undefined,
+  });
 
   return response?.data?.data;
 };

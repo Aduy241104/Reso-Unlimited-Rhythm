@@ -10,14 +10,14 @@ const getArtistAvatar = (artist) =>
 
 const featuredCardClassNameByRank = {
   1: "mt-0 sm:-translate-y-3",
-  2: "mt-7",
-  3: "mt-7",
+  2: "mt-4 sm:mt-7",
+  3: "mt-4 sm:mt-7",
 };
 
 const featuredAvatarClassNameByRank = {
-  1: "h-36 w-36 ring-black/10 sm:h-48 sm:w-48 dark:ring-white/12",
-  2: "h-24 w-24 ring-black/10 sm:h-32 sm:w-32 dark:ring-white/12",
-  3: "h-24 w-24 ring-black/10 sm:h-32 sm:w-32 dark:ring-white/12",
+  1: "h-24 w-24 ring-black/10 sm:h-48 sm:w-48 dark:ring-white/12",
+  2: "h-16 w-16 ring-black/10 sm:h-32 sm:w-32 dark:ring-white/12",
+  3: "h-16 w-16 ring-black/10 sm:h-32 sm:w-32 dark:ring-white/12",
 };
 
 const featuredRankBadgeClassNameByRank = {
@@ -57,14 +57,14 @@ const FeaturedArtistCard = ({ item }) => {
         />
       </div>
 
-      <div className="relative z-10 mt-4 flex flex-col items-center">
+      <div className="relative z-10 mt-3 flex flex-col items-center sm:mt-4">
         <div
           className={ [
-            "inline-flex items-center justify-center rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.22em]",
+            "inline-flex items-center justify-center rounded-full px-2.5 py-1 text-[9px] font-semibold tracking-[0.18em] sm:px-3 sm:text-[11px] sm:tracking-[0.22em]",
             featuredRankBadgeClassNameByRank[rank] || featuredRankBadgeClassNameByRank[3],
           ].join(" ") }
         >
-          { isChampion ? <Crown className="mr-1.5 h-3.5 w-3.5" /> : null }
+          { isChampion ? <Crown className="mr-1 h-3 w-3 sm:mr-1.5 sm:h-3.5 sm:w-3.5" /> : null }
           #{ rank }
         </div>
 
@@ -72,8 +72,8 @@ const FeaturedArtistCard = ({ item }) => {
           className={ [
             "mt-3 max-w-full truncate font-semibold leading-none tracking-tight text-[#111111] dark:text-white",
             isChampion
-              ? "text-xl drop-shadow-[0_8px_20px_rgba(15,23,42,0.12)] sm:text-[1.9rem]"
-              : "text-base sm:text-[1.35rem]",
+              ? "text-base drop-shadow-[0_8px_20px_rgba(15,23,42,0.12)] sm:text-[1.9rem]"
+              : "text-sm sm:text-[1.35rem]",
           ].join(" ") }
         >
           { item.artist.name }
@@ -87,27 +87,27 @@ const RankingRow = ({ item }) => (
   <Link
     to={ routePaths.artistBrowseProfile(item.artist.id) }
     className="
-      group grid grid-cols-[1.5rem_2rem_minmax(0,1fr)_0.875rem] items-center gap-2
+      group grid grid-cols-[1.25rem_1.75rem_minmax(0,1fr)_0.75rem] items-center gap-1.5
       border-t border-black/6 px-0 py-2 transition hover:bg-black/[0.025]
       dark:border-white/[0.06] dark:hover:bg-white/[0.02]
       sm:grid-cols-[1.75rem_2.25rem_minmax(0,1fr)_1rem] sm:gap-2.5 sm:py-2.5
     "
   >
-    <span className="text-base font-medium tracking-tight text-[#71717a] dark:text-white/68">
+    <span className="text-sm font-medium tracking-tight text-[#71717a] dark:text-white/68 sm:text-base">
       { item.rank }
     </span>
 
     <img
       src={ getArtistAvatar(item.artist) }
       alt={ item.artist.name }
-      className="h-7 w-7 rounded-full object-cover sm:h-8 sm:w-8"
+      className="h-6 w-6 rounded-full object-cover sm:h-8 sm:w-8"
     />
 
-    <span className="truncate text-sm font-medium tracking-tight text-[#18181b] dark:text-white/90">
+    <span className="truncate text-[13px] font-medium tracking-tight text-[#18181b] dark:text-white/90 sm:text-sm">
       { item.artist.name }
     </span>
 
-    <ChevronRight className="h-3 w-3 justify-self-end text-[#71717a]/55 transition group-hover:translate-x-0.5 group-hover:text-[#18181b] dark:text-white/34 dark:group-hover:text-white/68 sm:h-3.5 sm:w-3.5" />
+    <ChevronRight className="h-2.5 w-2.5 justify-self-end text-[#71717a]/55 transition group-hover:translate-x-0.5 group-hover:text-[#18181b] dark:text-white/34 dark:group-hover:text-white/68 sm:h-3.5 sm:w-3.5" />
   </Link>
 );
 
@@ -128,12 +128,12 @@ const DailyTopArtistsSection = ({
         px-0 py-0
       "
     >
-      <div className="space-y-6 sm:space-y-8">
-        <div className="space-y-1.5">
-          <h2 className="text-3xl font-semibold tracking-tight text-[#111111] dark:text-white sm:text-4xl">
+      <div className="space-y-5 sm:space-y-8">
+        <div className="space-y-1 sm:space-y-1.5">
+          <h2 className="text-xl font-semibold tracking-tight text-[#111111] dark:text-white sm:text-4xl">
             { title }
           </h2>
-          <p className="text-sm text-[#52525b] dark:text-white/66 sm:text-lg">{ description }</p>
+          <p className="text-xs leading-5 text-[#52525b] dark:text-white/66 sm:text-lg sm:leading-7">{ description }</p>
         </div>
 
         { errorMessage ? (
@@ -141,8 +141,8 @@ const DailyTopArtistsSection = ({
             { errorMessage }
           </div>
         ) : isLoading ? (
-          <div className="space-y-6 sm:space-y-8">
-            <div className="grid grid-cols-3 items-end gap-1.5 sm:gap-3">
+          <div className="space-y-5 sm:space-y-8">
+            <div className="grid grid-cols-3 items-end gap-1 sm:gap-3">
               { [2, 1, 3].map((rank) => {
                 const isChampion = rank === 1;
 
@@ -151,29 +151,29 @@ const DailyTopArtistsSection = ({
                     key={ rank }
                     className={ [
                       "flex animate-pulse flex-col items-center text-center",
-                      rank === 1 ? "mt-0" : "mt-8",
+                      rank === 1 ? "mt-0" : "mt-4 sm:mt-8",
                     ].join(" ") }
                   >
                     <div
                       className={ [
                         "rounded-full border border-black/8 bg-black/[0.03] dark:border-white/[0.08] dark:bg-white/[0.04]",
-                        isChampion ? "h-36 w-36 sm:h-48 sm:w-48" : "h-24 w-24 sm:h-32 sm:w-32",
+                        isChampion ? "h-24 w-24 sm:h-48 sm:w-48" : "h-16 w-16 sm:h-32 sm:w-32",
                       ].join(" ") }
                     />
                     <div
                       className={ [
-                        "mt-[-1.25rem] w-full rounded-[28px] border border-black/8 bg-black/[0.03] px-3 pb-4 pt-12 dark:border-white/[0.08] dark:bg-white/[0.04]",
-                        isChampion ? "min-h-[12.5rem] sm:min-h-[14.5rem] sm:pt-16" : "min-h-[10.5rem] sm:min-h-[12rem] sm:pt-14",
+                        "mt-[-0.8rem] w-full rounded-[22px] border border-black/8 bg-black/[0.03] px-2 pb-3 pt-8 dark:border-white/[0.08] dark:bg-white/[0.04] sm:mt-[-1.25rem] sm:rounded-[28px] sm:px-3 sm:pb-4",
+                        isChampion ? "min-h-[8.75rem] sm:min-h-[14.5rem] sm:pt-16" : "min-h-[7.5rem] sm:min-h-[12rem] sm:pt-14",
                       ].join(" ") }
                     >
-                      <div className="mx-auto h-7 w-16 rounded-full bg-black/8 dark:bg-white/10" />
+                      <div className="mx-auto h-5 w-12 rounded-full bg-black/8 dark:bg-white/10 sm:h-7 sm:w-16" />
                       <div
                         className={ [
                           "mx-auto mt-4 rounded-full bg-black/8 dark:bg-white/10",
-                          isChampion ? "h-5 w-24 sm:h-7 sm:w-36" : "h-4 w-16 sm:h-5 sm:w-24",
+                          isChampion ? "h-4 w-16 sm:h-7 sm:w-36" : "h-3.5 w-12 sm:h-5 sm:w-24",
                         ].join(" ") }
                       />
-                      <div className="mx-auto mt-4 h-1.5 w-10 rounded-full bg-black/8 dark:bg-white/10" />
+                      <div className="mx-auto mt-3 h-1.5 w-8 rounded-full bg-black/8 dark:bg-white/10 sm:mt-4 sm:w-10" />
                     </div>
                   </div>
                 );
@@ -185,22 +185,22 @@ const DailyTopArtistsSection = ({
                 <div
                   key={ index }
                   className="
-                    grid animate-pulse grid-cols-[1.5rem_2rem_minmax(0,1fr)_0.875rem] items-center gap-2
+                    grid animate-pulse grid-cols-[1.25rem_1.75rem_minmax(0,1fr)_0.75rem] items-center gap-1.5
                     border-t border-black/6 py-2 dark:border-white/[0.06]
                     sm:grid-cols-[1.75rem_2.25rem_minmax(0,1fr)_1rem] sm:gap-2.5 sm:py-2.5
                   "
                 >
-                  <div className="h-4 w-4 rounded-full bg-black/8 dark:bg-white/10 sm:h-5 sm:w-5" />
-                  <div className="h-7 w-7 rounded-full bg-black/8 dark:bg-white/10 sm:h-8 sm:w-8" />
-                  <div className="h-3.5 w-16 rounded-full bg-black/8 dark:bg-white/10 sm:h-4 sm:w-24" />
-                  <div className="h-3 w-3 justify-self-end rounded-full bg-black/8 dark:bg-white/10 sm:h-3.5 sm:w-3.5" />
+                  <div className="h-3.5 w-3.5 rounded-full bg-black/8 dark:bg-white/10 sm:h-5 sm:w-5" />
+                  <div className="h-6 w-6 rounded-full bg-black/8 dark:bg-white/10 sm:h-8 sm:w-8" />
+                  <div className="h-3 w-14 rounded-full bg-black/8 dark:bg-white/10 sm:h-4 sm:w-24" />
+                  <div className="h-2.5 w-2.5 justify-self-end rounded-full bg-black/8 dark:bg-white/10 sm:h-3.5 sm:w-3.5" />
                 </div>
               )) }
             </div>
           </div>
         ) : items.length > 0 ? (
-          <div className="space-y-6 sm:space-y-8">
-            <div className="grid grid-cols-3 items-end gap-1.5 sm:gap-3">
+          <div className="space-y-5 sm:space-y-8">
+            <div className="grid grid-cols-3 items-end gap-1 sm:gap-3">
               { [featuredArtists[1], featuredArtists[0], featuredArtists[2]]
                 .filter(Boolean)
                 .map((item) => (

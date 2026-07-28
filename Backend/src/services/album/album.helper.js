@@ -16,6 +16,8 @@ const toId = (value) => {
     return value.toString();
 };
 
+const isBlockedTrack = (track) => track?.activeStatus === "blocked";
+
 const formatAlbumItem = (album) => ({
     id: toId(album._id),
     title: album.title,
@@ -55,6 +57,7 @@ const formatAlbumTrack = (trackItem) => {
                 releaseDate: track.releaseDate,
                 activeStatus: track.activeStatus,
                 approvalStatus: track.approvalStatus,
+                isBlocked: isBlockedTrack(track),
                 artist: track.artist_artistId
                     ? {
                         id: toId(track.artist_artistId._id),
@@ -83,7 +86,6 @@ const formatAlbumDetail = (album) => ({
             bio: album.artistId.bio,
             avatar: album.artistId.avatar,
             coverImage: album.artistId.coverImage,
-            verificationStatus: album.artistId.verificationStatus,
             activeStatus: album.artistId.activeStatus,
             stats: album.artistId.stats,
         }
@@ -95,8 +97,14 @@ const formatAlbumDetail = (album) => ({
     updatedAt: album.updatedAt,
 });
 
+const formatAlbumFollowState = ({ albumId, isFollowing }) => ({
+    albumId: toId(albumId),
+    isFollowing,
+});
+
 export {
     formatAlbumDetail,
+    formatAlbumFollowState,
     formatAlbumItem,
     normalizePositiveInteger,
 };

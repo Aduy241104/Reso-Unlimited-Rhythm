@@ -3,6 +3,7 @@ const AuthCard = ({
   subtitle,
   children,
   footer,
+  headerContent,
   theme = "light",
   className = "",
   headerClassName = "",
@@ -15,14 +16,14 @@ const AuthCard = ({
       className={`relative overflow-hidden rounded-2xl p-5 backdrop-blur sm:p-6 lg:p-7 ${
         isDark
           ? "border border-white/10 bg-[#121118]/88 shadow-[0_24px_70px_rgba(0,0,0,0.34)]"
-          : "border border-white/60 bg-white/90 shadow-[0_24px_80px_rgba(15,23,42,0.14)]"
+          : "border border-black/10 bg-white/95 shadow-[0_24px_80px_rgba(15,23,42,0.08)]"
       } ${className}`}
     >
       <div
         className={`absolute inset-x-0 top-0 h-px ${
           isDark
             ? "bg-gradient-to-r from-[#f5b66f] via-[#d98235] to-[#4f7cff]"
-            : "bg-gradient-to-r from-emerald-500 via-cyan-500 to-sky-500"
+            : "bg-gradient-to-r from-black via-zinc-700 to-zinc-300"
         }`}
       />
       {isDark ? (
@@ -35,9 +36,10 @@ const AuthCard = ({
 
       <div className="relative">
         <header className={`mb-5 ${headerClassName}`}>
+          {headerContent ? <div className="mb-4">{headerContent}</div> : null}
           <div
-            className={`mb-3 h-px w-14 ${
-              isDark ? "bg-[#f5b66f]/70" : "bg-cyan-500/70"
+            className={`auth-card-divider mb-3 h-px w-14 ${
+              isDark ? "bg-[#f5b66f]/70" : "bg-black/70"
             }`}
           />
           <h1
@@ -49,7 +51,7 @@ const AuthCard = ({
           </h1>
           {subtitle ? (
             <p
-              className={`mt-3 max-w-xl text-sm leading-6 ${
+              className={`auth-card-subtitle mt-3 max-w-xl text-sm leading-6 ${
                 isDark ? "text-[#d9d5cf]" : "text-slate-600"
               }`}
             >

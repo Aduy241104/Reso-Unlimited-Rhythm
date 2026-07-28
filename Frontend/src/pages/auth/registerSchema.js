@@ -4,19 +4,19 @@ const genderOptions = ["male", "female", "other", "prefer_not_to_say"];
 
 const passwordSchema = z
   .string()
-  .min(8, "Password must be at least 8 characters.")
-  .max(33, "Password must not exceed 33 characters.")
-  .regex(/[A-Z]/, "Password must include at least one uppercase letter.")
-  .regex(/[a-z]/, "Password must include at least one lowercase letter.")
-  .regex(/\d/, "Password must include at least one number.")
-  .regex(/[^A-Za-z0-9]/, "Password must include at least one special character.");
+  .min(8, "Mật khẩu phải có ít nhất 8 ký tự.")
+  .max(33, "Mật khẩu không được vượt quá 33 ký tự.")
+  .regex(/[A-Z]/, "Mật khẩu phải có ít nhất một chữ cái in hoa.")
+  .regex(/[a-z]/, "Mật khẩu phải có ít nhất một chữ cái thường.")
+  .regex(/\d/, "Mật khẩu phải có ít nhất một chữ số.")
+  .regex(/[^A-Za-z0-9]/, "Mật khẩu phải có ít nhất một ký tự đặc biệt.");
 
 const dateOfBirthSchema = z
   .string()
   .trim()
-  .min(1, "Date of birth is required.")
+  .min(1, "Vui lòng chọn ngày sinh.")
   .refine((value) => !Number.isNaN(Date.parse(value)), {
-    message: "Date of birth is invalid.",
+    message: "Ngày sinh không hợp lệ.",
   })
   .refine((value) => {
     const selectedDate = new Date(`${value}T00:00:00`);
@@ -25,7 +25,7 @@ const dateOfBirthSchema = z
 
     return selectedDate <= today;
   }, {
-    message: "Date of birth cannot be in the future.",
+    message: "Ngày sinh không được ở tương lai.",
   });
 
 export const registerDetailsSchema = z
@@ -33,15 +33,15 @@ export const registerDetailsSchema = z
     fullName: z
       .string()
       .trim()
-      .min(1, "Full name is required.")
-      .max(100, "Full name must be 100 characters or fewer."),
+      .min(1, "Vui lòng nhập họ và tên.")
+      .max(100, "Họ và tên không được vượt quá 100 ký tự."),
     email: z
       .string()
       .trim()
-      .min(1, "Email is required.")
-      .email("Email format is invalid."),
+      .min(1, "Vui lòng nhập email.")
+      .email("Email không đúng định dạng."),
     password: passwordSchema,
-    confirmPassword: z.string().min(1, "Please confirm your password."),
+    confirmPassword: z.string().min(1, "Vui lòng xác nhận mật khẩu."),
     gender: z.enum(genderOptions).default("prefer_not_to_say"),
     dateOfBirth: dateOfBirthSchema,
   })
@@ -50,7 +50,7 @@ export const registerDetailsSchema = z
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["confirmPassword"],
-        message: "Password confirmation does not match.",
+        message: "Mật khẩu xác nhận không khớp.",
       });
     }
   });
@@ -59,5 +59,5 @@ export const registerOtpSchema = z.object({
   otp: z
     .string()
     .trim()
-    .regex(/^\d{6}$/, "OTP must contain exactly 6 digits."),
+    .regex(/^\d{6}$/, "Mã OTP phải gồm đúng 6 chữ số."),
 });

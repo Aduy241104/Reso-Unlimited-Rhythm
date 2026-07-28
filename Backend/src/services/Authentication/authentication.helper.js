@@ -3,6 +3,10 @@ import RefreshToken from "../../models/RefreshToken.js";
 import User from "../../models/User.js";
 import { AppError } from "../../utils/AppError.js";
 import {
+    buildRefreshTokenClientTypeQuery,
+    normalizeAuthClientType,
+} from "../../constants/authClientTypes.js";
+import {
     createAccessToken,
     createRefreshToken,
     getRefreshExpireDate,
@@ -22,13 +26,12 @@ export const sanitizeUser = (user) => ({
     role: user.role,
     activeStatus: user.activeStatus,
     profile: user.profile,
-    settings: user.settings,
     subscription: user.subscription,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
 });
 
-export const ensureActiveUser = (user) => {
+export const ensureActiveUser = async (user) => {
     if (!user) {
         throw new AppError("User does not exist.", 404);
     }
@@ -41,6 +44,14 @@ export const ensureActiveUser = (user) => {
         throw new AppError("Your account is inactive.", 403);
     }
 };
+
+export const isInactiveUnverifiedUser = (user) =>
+    Boolean(
+        user &&
+        user.authProvider === "local" &&
+        user.activeStatus === "inactive" &&
+        user.emailVerified !== true
+    );
 
 export const normalizeOptionalDate = (value) => {
     if (!value) {
@@ -68,26 +79,44 @@ const buildGoogleProfilePayload = ({ fullName }) => ({
     fullName: fullName?.trim() || "",
 });
 
-export const ensureRegistrationAvailability = async (email) => {
+export const ensureEmailCanStartRegistration = async (email) => {
     const [existingEmail] = await Promise.all([
         User.findOne({ email }),
     ]);
+
+    if (isInactiveUnverifiedUser(existingEmail)) {
+        return existingEmail;
+    }
 
     if (existingEmail) {
         throw new AppError("Email is already in use.", 409, {
             field: "email",
         });
     }
+
+    return null;
 };
 
-export const createAuthSession = async (user) => {
+export const createAuthSession = async (user, clientType) => {
+    const normalizedClientType = normalizeAuthClientType(clientType);
     const accessToken = createAccessToken(user);
     const refreshToken = createRefreshToken();
+    const expiresAt = getRefreshExpireDate();
+
+    await RefreshToken.updateMany(
+        {
+            userId: user._id,
+            isRevoked: false,
+            ...buildRefreshTokenClientTypeQuery(normalizedClientType),
+        },
+        { $set: { isRevoked: true } }
+    );
 
     await RefreshToken.create({
         userId: user._id,
+        clientType: normalizedClientType,
         token: refreshToken,
-        expiresAt: getRefreshExpireDate(),
+        expiresAt,
         isRevoked: false,
     });
 
@@ -99,16 +128,19 @@ export const createAuthSession = async (user) => {
 };
 
 export const verifyGoogleIdToken = async (token) => {
-    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientIds = (process.env.GOOGLE_CLIENT_IDS || process.env.GOOGLE_CLIENT_ID || "")
+        .split(",")
+        .map((clientId) => clientId.trim())
+        .filter(Boolean);
 
-    if (!clientId) {
+    if (clientIds.length === 0) {
         throw new AppError("Google login is not configured.", 500);
     }
 
     try {
         const ticket = await googleAuthClient.verifyIdToken({
             idToken: token,
-            audience: clientId,
+            audience: clientIds,
         });
         const payload = ticket.getPayload();
 
@@ -138,7 +170,7 @@ export const verifyGoogleIdToken = async (token) => {
         if (error instanceof AppError) {
             throw error;
         }
-7
+
         throw new AppError("Google token is invalid.", 401);
     }
 };
@@ -181,7 +213,7 @@ export const findOrCreateGoogleUser = async (googleProfile) => {
     const existingUser = await User.findOne({ email: googleProfile.email });
 
     if (existingUser) {
-        ensureActiveUser(existingUser);
+        await ensureActiveUser(existingUser);
         return hydrateExistingGoogleUser(existingUser, googleProfile);
     }
 

@@ -8,7 +8,7 @@ export const formatCompactNumber = (value) => {
     return "0";
   }
 
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("vi-VN", {
     notation: "compact",
     maximumFractionDigits: numericValue >= 1000000 ? 1 : 0,
   }).format(numericValue);
@@ -21,7 +21,7 @@ export const formatFullNumber = (value) => {
     return "0";
   }
 
-  return new Intl.NumberFormat("en-US").format(numericValue);
+  return new Intl.NumberFormat("vi-VN").format(numericValue);
 };
 
 export const formatDuration = (durationInSeconds) => {
@@ -37,7 +37,7 @@ export const formatDuration = (durationInSeconds) => {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 };
 
-export const createMonogram = (name = "Artist") => {
+export const createMonogram = (name = "Nghệ sĩ") => {
   const words = String(name).trim().split(/\s+/).filter(Boolean);
 
   if (words.length === 0) {
@@ -51,7 +51,7 @@ export const createMonogram = (name = "Artist") => {
 };
 
 export const createPlaceholderImage = (
-  label = "Artist",
+  label = "Nghệ sĩ",
   startColor = "#1db954",
   endColor = "#101010"
 ) => {
@@ -76,7 +76,7 @@ export const createPlaceholderImage = (
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 };
 
-export const createProfileFallbacks = (artistName = "Unknown Artist") => {
+export const createProfileFallbacks = (artistName = "Nghệ sĩ không xác định") => {
   return {
     avatar: createPlaceholderImage(artistName, "#2f855a", "#0f0f0f"),
     banner: createPlaceholderImage(artistName, "#383838", "#090909"),

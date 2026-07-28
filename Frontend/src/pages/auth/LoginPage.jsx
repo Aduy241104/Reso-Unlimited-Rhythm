@@ -48,7 +48,7 @@ const LoginPage = () => {
       await login({ email: email.trim(), password });
       navigate(from, { replace: true });
     } catch (err) {
-      setError(err?.response?.data?.message || err?.message || "Login failed.");
+      setError(err?.response?.data?.message || err?.message || "Đăng nhập thất bại.");
     } finally {
       setLoading(false);
     }
@@ -63,7 +63,7 @@ const LoginPage = () => {
       navigate(from, { replace: true });
     } catch (err) {
       setError(
-        err?.response?.data?.message || err?.message || "Google login failed."
+        err?.response?.data?.message || err?.message || "Đăng nhập Google thất bại."
       );
     } finally {
       setLoading(false);
@@ -74,7 +74,7 @@ const LoginPage = () => {
     <main className="relative min-h-screen overflow-hidden bg-[#0f0f14] text-white">
       <img
         src={ loginBg }
-        alt="Login background"
+        alt="Hình nền đăng nhập"
         className="pointer-events-none absolute inset-y-0 left-[-12rem] hidden h-full w-[46rem] max-w-none object-cover object-left opacity-30 saturate-[0.85] lg:block xl:left-[-10rem] xl:w-[54rem]"
       />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_left,_rgba(245,182,111,0.32),_transparent_34%),radial-gradient(circle_at_top_right,_rgba(79,124,255,0.08),_transparent_24%),linear-gradient(110deg,_rgba(15,15,20,0.16)_0%,_rgba(15,15,20,0.65)_36%,_rgba(15,15,20,0.92)_64%,_rgba(15,15,20,1)_100%)]" />
@@ -87,21 +87,21 @@ const LoginPage = () => {
           <div className="hidden min-h-[640px] items-center lg:flex">
             <div className="max-w-[34rem] pl-2 xl:pl-8">
               <div className="inline-flex items-center rounded-full border border-[#f5b66f]/20 bg-white/5 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.32em] text-[#f5b66f]/90 shadow-[0_10px_35px_rgba(245,182,111,0.12)] backdrop-blur-md">
-                Dark Soundscape
+                Không gian âm nhạc
               </div>
 
               <div className="mt-8 space-y-3">
                 <h1 className="font-title text-6xl font-black uppercase leading-[0.92] text-white xl:text-7xl">
-                  <span className="block">Feel The</span>
+                  <span className="block">Cảm Nhận</span>
                   <span className="block bg-gradient-to-r from-[#ff9f43] via-[#f5b66f] to-[#9b6cff] bg-clip-text text-transparent">
-                    Rhythm
+                    Nhịp Điệu
                   </span>
                 </h1>
 
                 <div className="h-px w-14 bg-gradient-to-r from-[#f5b66f] to-[#d98235]" />
 
                 <p className="max-w-md text-xl leading-relaxed text-[#ece4da]">
-                  Music is the voice of the soul.
+                  Âm nhạc là tiếng nói của tâm hồn.
                 </p>
               </div>
 
@@ -127,105 +127,126 @@ const LoginPage = () => {
           </div>
 
           <div className="flex justify-center lg:justify-end">
-            <div className="relative w-full max-w-md overflow-hidden rounded-[12px] border border-[#f5b66f]/20 bg-white p-6 shadow-[0_30px_100px_rgba(245,158,66,0.18)] backdrop-blur-xl sm:p-8">
-              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(160deg,_rgba(255,255,255,0.06)_0%,_rgba(255,255,255,0.015)_26%,_rgba(255,255,255,0.03)_100%)]" />
-              <div className="pointer-events-none absolute left-[-3rem] top-[-3rem] h-28 w-28 rounded-full bg-[#ff9f43]/12 blur-3xl" />
-              <div className="pointer-events-none absolute bottom-[-4rem] right-[-3rem] h-24 w-24 rounded-full bg-[#9b6cff]/10 blur-3xl" />
+            <div className="w-full max-w-md rounded-2xl border border-black/10 bg-white p-6 text-[#171717] shadow-[0_24px_80px_rgba(0,0,0,0.28)] sm:p-8">
+              <div className="mb-8">
+                <p className="mb-2 text-xs font-bold uppercase tracking-[0.28em] text-[#d98235]">
+                  Reso Music
+                </p>
 
-              <div className="relative">
-                <div className="mb-8">
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.4em] text-[#f5b66f]">
-                    Reso Music
-                  </p>
+                <h1 className="font-title text-4xl font-black tracking-tight text-[#111]">
+                  Đăng nhập
+                </h1>
 
-                  <h1 className="font-title text-4xl font-black text-black">Login</h1>
+                <p className="mt-3 text-sm leading-6 text-[#666]">
+                  Đăng nhập để tiếp tục nghe nhạc, quản lý thư viện và khám phá nội dung
+                  dành cho bạn.
+                </p>
+              </div>
 
-                  <p className="mt-3 text-sm leading-6 text-black">
-                    Login to continue your music journey.
-                  </p>
+              { authNotice && (
+                <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+                  { authNotice }
                 </div>
+              ) }
 
-                { authNotice && (
-                  <div className="mb-5 rounded-2xl border border-emerald-300/25 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-100 shadow-[0_10px_30px_rgba(52,211,153,0.08)]">
-                    { authNotice }
-                  </div>
-                ) }
+              { error && (
+                <div className="mb-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+                  { error }
+                </div>
+              ) }
 
-                { error && (
-                  <div className="mb-5 rounded-2xl border border-rose-300/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-100 shadow-[0_10px_30px_rgba(251,113,133,0.08)]">
-                    { error }
-                  </div>
-                ) }
+              <form onSubmit={ handleSubmit } className="space-y-5">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-[#222]">
+                    Email
+                  </label>
 
-                <form onSubmit={ handleSubmit } className="space-y-5">
-                  <div>
-                    <label className="mb-2 block text-sm font-semibold text-black">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      placeholder="Email"
-                      value={ email }
-                      onChange={ (event) => setEmail(event.target.value) }
-                      disabled={ loading }
-                      className="w-full rounded-full border border-black bg-[#f5f5f5] px-4 py-3 text-[#1a1820] outline-none transition placeholder:text-[#9a8fa8] focus:border-[#f5b66f] focus:ring-4 focus:ring-[#f5b66f]/20"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="mb-2 flex items-center justify-between gap-3">
-                      <label className="block text-sm font-semibold text-black">
-                        Password
-                      </label>
-                    </div>
-                    <input
-                      type="password"
-                      placeholder="Password"
-                      value={ password }
-                      onChange={ (event) => setPassword(event.target.value) }
-                      disabled={ loading }
-                      className="w-full rounded-full border border-black bg-[#f5f5f5] px-4 py-3 text-[#1a1820] outline-none transition placeholder:text-[#9a8fa8] focus:border-[#f5b66f] focus:ring-4 focus:ring-[#f5b66f]/20"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
+                  <input
+                    type="email"
+                    placeholder="Nhập email"
+                    value={ email }
+                    onChange={ (event) => setEmail(event.target.value) }
                     disabled={ loading }
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#f5b66f] via-[#d98235] to-[#17131a] px-6 py-3.5 text-base font-semibold text-white shadow-[0_18px_45px_rgba(245,158,66,0.28)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_24px_60px_rgba(245,158,66,0.26)] disabled:cursor-not-allowed disabled:opacity-70"
-                  >
-                    { loading ? "Signing in..." : "Sign In" }
-                  </button>
-                </form>
-
-                <div className="my-6 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.28em] text-[#6b6573]">
-                  <div className="h-px flex-1 bg-black/10" />
-                  <span>Or continue with</span>
-                  <div className="h-px flex-1 bg-black/10" />
+                    className="
+            h-12 w-full rounded-xl border border-[#dedede]
+            bg-[#fafafa] px-4 text-sm text-[#111]
+            outline-none transition
+            placeholder:text-[#9a9a9a]
+            focus:border-[#111] focus:bg-white focus:ring-4 focus:ring-black/5
+            disabled:cursor-not-allowed disabled:opacity-70
+          "
+                  />
                 </div>
 
-                <GoogleLoginButton
-                  disabled={ loading }
-                  onCredential={ handleGoogleLogin }
-                />
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-[#222]">
+                    Mật khẩu
+                  </label>
 
-                <p className="mt-7 text-center text-sm text-[#d9d5cf]">
-                  Don&apos;t have an account?{ " " }
+                  <input
+                    type="password"
+                    placeholder="Nhập mật khẩu"
+                    value={ password }
+                    onChange={ (event) => setPassword(event.target.value) }
+                    disabled={ loading }
+                    className="
+            h-12 w-full rounded-xl border border-[#dedede]
+            bg-[#fafafa] px-4 text-sm text-[#111]
+            outline-none transition
+            placeholder:text-[#9a9a9a]
+            focus:border-[#111] focus:bg-white focus:ring-4 focus:ring-black/5
+            disabled:cursor-not-allowed disabled:opacity-70
+          "
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={ loading }
+                  className="
+          inline-flex h-12 w-full items-center justify-center
+          rounded-xl bg-[#111] px-5 text-sm font-semibold text-white
+          transition duration-200
+          hover:bg-[#2a2a2a]
+          disabled:cursor-not-allowed disabled:opacity-70
+        "
+                >
+                  { loading ? "Đang đăng nhập..." : "Đăng nhập" }
+                </button>
+              </form>
+
+              <div className="my-6 flex items-center gap-3">
+                <div className="h-px flex-1 bg-black/10" />
+                <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[#888]">
+                  Hoặc
+                </span>
+                <div className="h-px flex-1 bg-black/10" />
+              </div>
+
+              <GoogleLoginButton
+                disabled={ loading }
+                onCredential={ handleGoogleLogin }
+              />
+
+              <div className="mt-7 space-y-3 text-center text-sm text-[#666]">
+                <p>
+                  Chưa có tài khoản?{ " " }
                   <button
                     type="button"
                     onClick={ () => navigate(routePaths.register) }
-                    className="font-semibold text-black transition hover:text-[#ffd3a0]"
+                    className="font-semibold text-[#111] transition hover:text-[#d98235]"
                   >
-                    Create one
-                  </button>
-                  <br />
-                  <button
-                    type="button"
-                    onClick={ () => navigate(routePaths.forgotPassword) }
-                    className="text-xs font-semibold text-black transition hover:text-[#ffd3a0]"
-                  >
-                    Forgot password?
+                    Tạo tài khoản
                   </button>
                 </p>
+
+                <button
+                  type="button"
+                  onClick={ () => navigate(routePaths.forgotPassword) }
+                  className="text-sm font-semibold text-[#555] transition hover:text-[#111]"
+                >
+                  Quên mật khẩu?
+                </button>
               </div>
             </div>
           </div>

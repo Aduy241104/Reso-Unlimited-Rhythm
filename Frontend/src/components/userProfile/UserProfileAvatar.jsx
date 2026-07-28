@@ -1,11 +1,11 @@
-import { useEffect } from "react";
-import { BadgeCheck } from "lucide-react";
+﻿import { useEffect } from "react";
+import { Mail, Sparkles } from "lucide-react";
 import {
   mergeUserProfileSnapshot,
   useUserProfileCard,
 } from "./UserProfileCard";
 
-const FALLBACK_TEXT = "Not provided";
+const FALLBACK_TEXT = "Chưa cập nhật";
 
 const normalizeText = (value) => {
   if (typeof value !== "string") {
@@ -66,18 +66,15 @@ const UserProfileAvatar = ({ avatar, fullName, email }) => {
   );
 
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 text-center shadow-[0_20px_60px_rgba(0,0,0,0.3)] backdrop-blur-md sm:p-8 xl:sticky xl:top-10">
-      <div className="mx-auto flex max-w-[18rem] flex-col items-center">
-        <div className="relative">
-          <div className="absolute inset-[-16px] rounded-full bg-[#ff9f43]/20 blur-2xl" />
-          <div
-            className="
-              relative flex h-36 w-36 items-center justify-center overflow-hidden rounded-full
-              border border-white/15 bg-[linear-gradient(135deg,#ff9f43_0%,#4a2208_100%)]
-              text-4xl font-semibold text-white shadow-[0_0_0_10px_rgba(255,255,255,0.03),0_24px_70px_rgba(255,159,67,0.18)]
-              sm:h-44 sm:w-44
-            "
-          >
+    <div className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[linear-gradient(160deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03)_38%,rgba(8,8,8,0.96)_100%)] p-6 text-center shadow-[0_28px_80px_rgba(0,0,0,0.34)] sm:p-8 xl:sticky xl:top-8">
+      <div className="absolute inset-x-10 top-0 h-28 rounded-full bg-white/8 blur-3xl" />
+
+      <div className="relative mx-auto flex max-w-[18rem] flex-col items-center">
+        
+
+        <div className="relative mt-6">
+          <div className="absolute inset-[-18px] rounded-full bg-white/8 blur-3xl" />
+          <div className="relative flex h-36 w-36 items-center justify-center overflow-hidden rounded-full border border-white/15 bg-[linear-gradient(135deg,#2a2a2a_0%,#080808_100%)] text-4xl font-semibold text-white shadow-[0_0_0_12px_rgba(255,255,255,0.03),0_24px_60px_rgba(255,255,255,0.05)] sm:h-44 sm:w-44">
             {resolvedAvatar ? (
               <img
                 src={resolvedAvatar}
@@ -90,23 +87,21 @@ const UserProfileAvatar = ({ avatar, fullName, email }) => {
           </div>
         </div>
 
-        <div className="mt-6 flex items-center gap-2 rounded-full border border-[#ff9f43]/20 bg-[#ff9f43]/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.22em] text-[#ffb46a]">
-          <BadgeCheck className="h-4 w-4" aria-hidden />
-          Premium
-        </div>
-
-        <h2 className="mt-5 text-2xl font-semibold tracking-tight text-white sm:text-[2rem]">
+        <h2 className="mt-7 text-2xl font-semibold tracking-tight text-white sm:text-[2rem]">
           {resolvedFullName}
         </h2>
 
-        <p className="mt-4 max-w-xs text-sm leading-7 text-gray-400">
-          "Your identity stays in rhythm with every session, every playlist, and
-          every discovery."
+        <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white/72">
+          <Mail className="h-4 w-4 text-white/70" aria-hidden />
+          <span className="truncate">{resolvedEmail}</span>
+        </div>
+
+        <p className="mt-5 max-w-xs text-sm leading-7 text-white/55">
+          Góc cá nhân của bạn trên Reso, nơi quản lý hồ sơ, hoạt động nghe nhạc
+          và các kết nối yêu thích trong cùng một màn hình.
         </p>
 
-        <p className="mt-6 text-xs font-medium uppercase tracking-[0.24em] text-gray-500">
-          Thank you for using our services.
-        </p>
+
       </div>
     </div>
   );

@@ -14,11 +14,11 @@ const formatNumber = (num) => {
 };
 
 const formatDuration = (seconds) => {
-    if (!seconds || seconds <= 0) return "0m";
+    if (!seconds || seconds <= 0) return "0 phút";
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
-    if (h > 0) return `${h}h ${m}m`;
-    return `${m}m`;
+    if (h > 0) return `${h} giờ ${m} phút`;
+    return `${m} phút`;
 };
 
 const toDDMMYYYY = (dateStr) => {
@@ -39,34 +39,47 @@ const toMonthYear = (dateStr) => {
     return `${dd}/${mm}/${yyyy}`;
 };
 
-const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const monthNames = [
+    "Tháng 1",
+    "Tháng 2",
+    "Tháng 3",
+    "Tháng 4",
+    "Tháng 5",
+    "Tháng 6",
+    "Tháng 7",
+    "Tháng 8",
+    "Tháng 9",
+    "Tháng 10",
+    "Tháng 11",
+    "Tháng 12",
+];
 
 /* ─── Skeleton ──────────────────────────────────────────────── */
 const Skeleton = ({ lines = 3, height = "h-4" }) => (
     <div className="space-y-2">
         {[...Array(lines)].map((_, i) => (
-            <div key={i} className={`w-full animate-pulse rounded bg-black/5 ${height}`} />
+            <div key={i} className={`w-full animate-pulse rounded bg-slate-200 ${height}`} />
         ))}
     </div>
 );
 
 /* ─── StatCard ──────────────────────────────────────────────── */
 const StatCard = ({ label, value, sub, badge }) => (
-    <div className="border border-black/10 bg-white px-5 py-4">
+    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
         <div className="flex items-start justify-between">
             <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-black/40">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">
                     {label}
                 </p>
-                <p className="mt-1.5 text-2xl font-bold text-black tracking-tight">
+                <p className="mt-1.5 text-2xl font-bold text-slate-900 tracking-tight">
                     {value}
                 </p>
                 {sub && (
-                    <p className="mt-0.5 text-[11px] text-black/35">{sub}</p>
+                    <p className="mt-0.5 text-[11px] text-slate-400">{sub}</p>
                 )}
             </div>
             {badge && (
-                <span className="ml-3 shrink-0 rounded-sm bg-black px-2 py-0.5 text-[10px] font-bold text-white uppercase tracking-wide">
+                <span className="ml-3 shrink-0 rounded-full bg-blue-600 px-3 py-1 text-[10px] font-bold text-white uppercase tracking-wide">
                     {badge}
                 </span>
             )}
@@ -74,28 +87,23 @@ const StatCard = ({ label, value, sub, badge }) => (
     </div>
 );
 
-/* ─── ChartBar (always shows value) ────────────────────────── */
+/* ─── ChartBar ─────────────────────────────────────────────── */
 const StreamBar = ({ date, streams, maxStreams, label }) => {
     const pct = maxStreams > 0 ? Math.max((streams / maxStreams) * 100, 4) : 4;
     const displayDate = label || toDDMMYYYY(date);
 
     return (
         <div className="flex flex-1 flex-col items-center gap-1.5">
-            {/* Value above bar */}
-            <span className="text-[11px] font-bold text-black">
+            <span className="text-[11px] font-bold text-slate-700">
                 {formatNumber(streams)}
             </span>
-
-            {/* Bar */}
             <div className="flex h-32 w-full items-end justify-center">
                 <div
-                    className="w-full max-w-[2.5rem] bg-black transition-all duration-500"
+                    className="w-full max-w-[2.5rem] bg-blue-600 transition-all duration-500"
                     style={{ height: `${pct}%` }}
                 />
             </div>
-
-            {/* Date below */}
-            <span className="text-[10px] font-semibold text-black/60">{displayDate}</span>
+            <span className="text-[10px] font-semibold text-slate-400">{displayDate}</span>
         </div>
     );
 };
@@ -105,23 +113,18 @@ const UserBar = ({ month, newUsers, maxNewUsers, isCurrentMonth }) => {
 
     return (
         <div className="flex flex-1 flex-col items-center gap-1.5">
-            {/* Value */}
-            <span className={`text-[11px] font-bold ${isCurrentMonth ? "text-black" : "text-black/40"}`}>
+            <span className={`text-[11px] font-bold ${isCurrentMonth ? "text-slate-900" : "text-slate-400"}`}>
                 {formatNumber(newUsers)}
             </span>
-
-            {/* Bar */}
             <div className="flex h-24 w-full items-end justify-center">
                 <div
                     className={`w-full max-w-[2.5rem] transition-all duration-500 ${
-                        isCurrentMonth ? "bg-black" : "bg-black/25"
+                        isCurrentMonth ? "bg-blue-600" : "bg-slate-200"
                     }`}
                     style={{ height: `${pct}%` }}
                 />
             </div>
-
-            {/* Month label */}
-            <span className={`text-[10px] font-semibold ${isCurrentMonth ? "text-black font-bold" : "text-black/40"}`}>
+            <span className={`text-[10px] font-semibold ${isCurrentMonth ? "text-slate-900 font-bold" : "text-slate-400"}`}>
                 {month}
             </span>
         </div>
@@ -129,15 +132,15 @@ const UserBar = ({ month, newUsers, maxNewUsers, isCurrentMonth }) => {
 };
 
 /* ─── DataTable ─────────────────────────────────────────────── */
-const DataTable = ({ columns, rows, emptyMsg = "No data available." }) => (
-    <div className="overflow-x-auto">
+const DataTable = ({ columns, rows, emptyMsg = "Không có dữ liệu." }) => (
+    <div className="overflow-x-auto rounded-xl border border-slate-200">
         <table className="w-full text-xs">
             <thead>
-                <tr className="border-b-2 border-black/10">
+                <tr className="border-b border-slate-200 bg-slate-50">
                     {columns.map((col) => (
                         <th
                             key={col.key}
-                            className={`pb-2 font-semibold uppercase tracking-[0.12em] text-black/40 ${
+                            className={`px-4 py-2.5 font-semibold uppercase tracking-[0.12em] text-slate-400 ${
                                 col.align === "right" ? "text-right" : "text-left"
                             }`}
                         >
@@ -149,18 +152,18 @@ const DataTable = ({ columns, rows, emptyMsg = "No data available." }) => (
             <tbody>
                 {rows.length === 0 ? (
                     <tr>
-                        <td colSpan={columns.length} className="py-6 text-center text-black/30">
+                        <td colSpan={columns.length} className="py-8 text-center text-slate-400">
                             {emptyMsg}
                         </td>
                     </tr>
                 ) : (
                     rows.map((row, idx) => (
-                        <tr key={row.key || idx} className="border-b border-black/5">
+                        <tr key={row.key || idx} className="border-b border-slate-100 hover:bg-slate-50 transition">
                             {columns.map((col) => (
                                 <td
                                     key={col.key}
-                                    className={`py-2.5 ${col.align === "right" ? "text-right" : "text-left"} ${
-                                        col.bold ? "font-bold text-black" : "text-black/60"
+                                    className={`px-4 py-2.5 ${col.align === "right" ? "text-right" : "text-left"} ${
+                                        col.bold ? "font-bold text-slate-900" : "text-slate-500"
                                     }`}
                                 >
                                     {col.render ? col.render(row[col.key], row) : row[col.key]}
@@ -176,33 +179,33 @@ const DataTable = ({ columns, rows, emptyMsg = "No data available." }) => (
 
 /* ─── SectionCard ───────────────────────────────────────────── */
 const SectionCard = ({ title, subtitle, badge, children, action }) => (
-    <div className="border border-black/10 bg-white">
-        <div className="flex items-center justify-between border-b border-black/5 px-5 py-3.5">
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
             <div>
                 {subtitle && (
-                    <p className="text-[9px] font-semibold uppercase tracking-[0.3em] text-black/30">
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.3em] text-slate-400">
                         {subtitle}
                     </p>
                 )}
-                <h2 className="text-sm font-bold text-black tracking-tight">{title}</h2>
+                <h2 className="text-sm font-bold text-slate-900 tracking-tight">{title}</h2>
             </div>
             <div className="flex items-center gap-3">
                 {badge !== undefined && badge !== null && (
-                    <span className="rounded-sm bg-black px-2.5 py-1 text-[11px] font-bold text-white uppercase tracking-wide">
+                    <span className="rounded-full bg-blue-600 px-3 py-1 text-[11px] font-bold text-white uppercase tracking-wide">
                         {formatNumber(badge)}
                     </span>
                 )}
                 {action}
             </div>
         </div>
-        <div className="p-5">{children}</div>
+        <div className="p-4">{children}</div>
     </div>
 );
 
 /* ─── LoadingSpinner ─────────────────────────────────────────── */
 const Spinner = () => (
-    <div className="flex h-40 items-center justify-center">
-        <div className="h-7 w-7 animate-spin rounded-full border-2 border-black border-t-transparent" />
+    <div className="flex h-32 items-center justify-center rounded-xl border border-slate-200">
+        <div className="h-7 w-7 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
     </div>
 );
 
@@ -232,7 +235,7 @@ const DashboardPage = () => {
             const data = await getOverviewStatsService();
             setOverview(data);
         } catch (error) {
-            setMessage(error?.response?.data?.message || error?.message || "Failed to load overview stats.");
+            setMessage(error?.response?.data?.message || error?.message || "Không thể tải thống kê tổng quan.");
         } finally {
             setIsLoading(false);
         }
@@ -267,7 +270,6 @@ const DashboardPage = () => {
         void loadNewUsersByMonth();
     }, []);
 
-    // Auto-refresh every 30 minutes
     useEffect(() => {
         const interval = setInterval(() => {
             void loadOverview();
@@ -294,30 +296,30 @@ const DashboardPage = () => {
 
     const periodTotal = overview?.last7Days?.reduce((sum, d) => sum + d.streams, 0) ?? 0;
 
-    /* ─── Render ─── */
     return (
-        <section className="space-y-4">
+        <section className="space-y-5 p-3 lg:p-5 bg-slate-50/50 min-h-screen text-slate-800 font-sans antialiased">
+
             {/* Header */}
-            <div className="flex items-end justify-between pb-2">
+            <div className="flex items-end justify-between pb-2 px-1">
                 <div>
-                    <p className="text-[9px] font-semibold uppercase tracking-[0.35em] text-black/25">
-                        Analytics
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
+                        Phân tích
                     </p>
-                    <h1 className="mt-0.5 text-3xl font-black text-black tracking-tight">
-                        Platform Overview
+                    <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
+                        Tổng quan nền tảng
                     </h1>
-                    <p className="mt-1 max-w-2xl text-xs leading-relaxed text-black/40">
-                        Real-time streaming statistics and platform performance metrics.
+                    <p className="mt-1 max-w-2xl text-sm text-slate-400 leading-relaxed">
+                        Thống kê lượt phát theo thời gian thực và các chỉ số hiệu suất của nền tảng.
                     </p>
                 </div>
                 <div className="hidden text-right lg:block">
-                    <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-black/25">
-                        Last updated
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+                        Cập nhật lần cuối
                     </p>
-                    <p className="mt-0.5 text-xs font-semibold text-black/50">
+                    <p className="mt-0.5 text-xs font-semibold text-slate-600">
                         {toDDMMYYYY(new Date().toISOString())}
                     </p>
-                    <p className="mt-0.5 text-[10px] text-black/30">
+                    <p className="mt-0.5 text-[10px] text-slate-400">
                         {new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
                     </p>
                 </div>
@@ -325,7 +327,7 @@ const DashboardPage = () => {
 
             {/* Error banner */}
             {message && (
-                <div className="border border-red-300 bg-red-50 px-4 py-3 text-xs text-red-700">
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
                     {message}
                 </div>
             )}
@@ -334,39 +336,38 @@ const DashboardPage = () => {
             {isLoading ? (
                 <Skeleton lines={1} height="h-28" />
             ) : overview ? (
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                     <StatCard
-                        label="Total Streams"
+                        label="Tổng lượt phát"
                         value={formatNumber(overview.streamsThisMonth)}
-                        sub={`All time: ${formatNumber(overview.streamsAllTime)}`}
+                        sub={`Toàn thời gian: ${formatNumber(overview.streamsAllTime)}`}
                     />
                     <StatCard
-                        label="Total Users"
+                        label="Tổng người dùng"
                         value={formatNumber(overview.totalUsers)}
-                        sub="Registered accounts"
+                        sub="Tài khoản đã đăng ký"
                     />
                     <StatCard
-                        label="Total Artists"
+                        label="Tổng nghệ sĩ"
                         value={formatNumber(overview.totalArtists)}
-                        sub="Active artists"
+                        sub="Nghệ sĩ đang hoạt động"
                     />
                     <StatCard
-                        label="Active Tracks"
+                        label="Bài hát đang hoạt động"
                         value={formatNumber(overview.totalTracks)}
-                        sub="Approved & active"
+                        sub="Đã duyệt và đang hoạt động"
                     />
                 </div>
             ) : null}
 
             {/* ── Charts Row ── */}
             <div className="grid gap-4 lg:grid-cols-2">
-                {/* 7-day streams */}
                 {isLoading ? (
                     <Skeleton lines={1} height="h-64" />
                 ) : overview?.last7Days?.length > 0 ? (
                     <SectionCard
-                        title="Streaming Activity"
-                        subtitle="Last 7 Days"
+                        title="Hoạt động phát nhạc"
+                        subtitle="7 ngày gần nhất"
                         badge={periodTotal}
                     >
                         <div className="flex items-end gap-1">
@@ -382,12 +383,11 @@ const DashboardPage = () => {
                     </SectionCard>
                 ) : null}
 
-                {/* New users by month */}
                 {isLoadingNewUsers ? (
                     <Skeleton lines={1} height="h-64" />
                 ) : newUsersByMonth ? (
                     <SectionCard
-                        title="User Growth"
+                        title="Tăng trưởng người dùng"
                         subtitle={`${newUsersByMonth.year}`}
                         badge={newUsersByMonth.totalNewUsers}
                     >
@@ -412,7 +412,6 @@ const DashboardPage = () => {
                 subtitle={selectedMonthYear}
                 action={
                     <div className="flex items-center gap-2">
-                        {/* Year select */}
                         <select
                             value={selectedYear}
                             onChange={(e) => {
@@ -421,7 +420,7 @@ const DashboardPage = () => {
                                 const newOffset = (currentYear - newYear) * 12 + (currentMonth - selectedMonthNum);
                                 setMonthOffset(newOffset);
                             }}
-                            className="border border-black/10 bg-white px-2 py-1 text-xs font-semibold text-black focus:outline-none focus:ring-1 focus:ring-black/20"
+                            className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
                         >
                             {[...Array(5)].map((_, i) => {
                                 const y = currentYear - i;
@@ -430,7 +429,6 @@ const DashboardPage = () => {
                                 );
                             })}
                         </select>
-                        {/* Month select */}
                         <select
                             value={selectedMonthNum}
                             onChange={(e) => {
@@ -439,7 +437,7 @@ const DashboardPage = () => {
                                 const newOffset = (currentYear - selectedYear) * 12 + (currentMonth - newMonth);
                                 setMonthOffset(newOffset);
                             }}
-                            className="border border-black/10 bg-white px-2 py-1 text-xs font-semibold text-black focus:outline-none focus:ring-1 focus:ring-black/20"
+                            className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
                         >
                             {monthNames.map((name, idx) => {
                                 const monthVal = idx + 1;
@@ -458,16 +456,16 @@ const DashboardPage = () => {
                         {/* Monthly KPIs */}
                         <div className="grid gap-3 md:grid-cols-3">
                             <StatCard
-                                label="Total Streams"
+                                label="Tổng lượt phát"
                                 value={formatNumber(monthly.streamingStats?.totalStreams ?? 0)}
                             />
                             <StatCard
-                                label="New Users"
+                                label="Người dùng mới"
                                 value={formatNumber(monthly.userStats?.newUsers ?? 0)}
-                                sub={`Total: ${formatNumber(monthly.userStats?.totalUsers ?? 0)}`}
+                                sub={`Tổng cộng: ${formatNumber(monthly.userStats?.totalUsers ?? 0)}`}
                             />
                             <StatCard
-                                label="Total Artists"
+                                label="Tổng nghệ sĩ"
                                 value={formatNumber(monthly.artistStats?.totalArtists ?? 0)}
                             />
                         </div>
@@ -476,17 +474,17 @@ const DashboardPage = () => {
                         {monthly.dailyStats?.length > 0 ? (
                             <>
                                 <div>
-                                    <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.25em] text-black/30">
-                                        Daily Breakdown
+                                    <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.25em] text-slate-400">
+                                        Chi tiết theo ngày
                                     </p>
                                     <DataTable
                                         columns={[
-                                            { key: "date", label: "Date", render: (v) => toMonthYear(v) },
-                                            { key: "totalStreams", label: "Streams", align: "right", bold: true },
-                                            { key: "uniqueUsers", label: "Unique Users", align: "right" },
+                                            { key: "date", label: "Ngày", render: (v) => toMonthYear(v) },
+                                            { key: "totalStreams", label: "Lượt phát", align: "right", bold: true },
+                                            { key: "uniqueUsers", label: "Người dùng duy nhất", align: "right" },
                                             {
                                                 key: "totalListeningTime",
-                                                label: "Listening Time",
+                                                label: "Thời gian nghe",
                                                 align: "right",
                                                 render: (v) => formatDuration(v ?? 0),
                                             },
@@ -495,7 +493,6 @@ const DashboardPage = () => {
                                     />
                                 </div>
 
-                                {/* Top 5 tracks summary */}
                                 {(() => {
                                     const topTrack = monthly.dailyStats.reduce((best, day) => {
                                         const dayTop = day.topTracks?.[0];
@@ -509,20 +506,20 @@ const DashboardPage = () => {
                                     if (!topTrack) return null;
 
                                     return (
-                                        <div className="rounded-sm border border-black/10 bg-black/[0.03] px-4 py-3">
-                                            <p className="text-[9px] font-semibold uppercase tracking-[0.3em] text-black/30">
-                                                Top Track of the Month
+                                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                            <p className="text-[9px] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                                                Bài hát nổi bật nhất tháng
                                             </p>
                                             <div className="mt-2 flex items-center justify-between">
                                                 <div>
-                                                    <p className="text-sm font-bold text-black">{topTrack.title || "Unknown"}</p>
-                                                    <p className="mt-0.5 text-xs text-black/40">{toDDMMYYYY(topTrack.date)}</p>
+                                                    <p className="text-sm font-bold text-slate-900">{topTrack.title || "Không xác định"}</p>
+                                                    <p className="mt-0.5 text-xs text-slate-400">{toDDMMYYYY(topTrack.date)}</p>
                                                 </div>
                                                 <div className="text-right">
-                                                    <p className="text-lg font-black text-black">
+                                                    <p className="text-xl font-black text-blue-600">
                                                         {formatNumber(topTrack.streamCount ?? 0)}
                                                     </p>
-                                                    <p className="text-[10px] text-black/30">streams</p>
+                                                    <p className="text-[10px] text-slate-400">lượt phát</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -530,25 +527,25 @@ const DashboardPage = () => {
                                 })()}
                             </>
                         ) : (
-                            <div className="flex h-24 items-center justify-center border border-black/5">
-                                <p className="text-xs text-black/30">No streaming data for this month.</p>
+                            <div className="flex h-24 items-center justify-center rounded-xl border border-slate-200">
+                                <p className="text-xs text-slate-400">Không có dữ liệu phát nhạc cho tháng này.</p>
                             </div>
                         )}
                     </div>
                 ) : (
-                    <div className="flex h-24 items-center justify-center border border-black/5">
-                        <p className="text-xs text-black/30">No data available for this month.</p>
+                    <div className="flex h-24 items-center justify-center rounded-xl border border-slate-200">
+                        <p className="text-xs text-slate-400">Không có dữ liệu cho tháng này.</p>
                     </div>
                 )}
             </SectionCard>
 
             {/* ── Footer ── */}
-            <div className="flex items-center justify-between border-t border-black/5 px-1 pt-3">
-                <p className="text-[10px] text-black/25">
-                    Data refreshes automatically every 30 minutes
+            <div className="flex items-center justify-between border-t border-slate-200 pt-3">
+                <p className="text-[10px] text-slate-400">
+                    Dữ liệu tự động làm mới mỗi 30 phút
                 </p>
-                <p className="text-[10px] text-black/25">
-                    All dates in dd/mm/yyyy format
+                <p className="text-[10px] text-slate-400">
+                    Tất cả ngày tháng theo định dạng dd/mm/yyyy
                 </p>
             </div>
         </section>

@@ -42,8 +42,12 @@ const monthlyTopTracksQuerySchema = Joi.object({
 
 const listenEventBodySchema = Joi.object({
     duration: Joi.number().integer().min(0).required(),
+    guestId: Joi.string().trim().guid({ version: ["uuidv4"] }),
     skipped: Joi.boolean().default(false),
-
+    source: Joi.string()
+        .trim()
+        .valid("track_detail", "album", "playlist", "search", "artist_profile", "unknown")
+        .default("unknown"),
 });
 
 export default {

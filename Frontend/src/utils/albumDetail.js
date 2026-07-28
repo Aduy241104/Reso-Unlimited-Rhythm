@@ -24,17 +24,37 @@ export const createPlaceholderImage = (
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 };
 
-export const formatTrackDuration = (durationInSeconds) => {
-  const totalSeconds = Number(durationInSeconds);
+export const resolveTrackAvatar = (track, fallback = "") => {
+  const avatar = Array.isArray(track?.avatar)
+    ? track.avatar.find(Boolean)
+    : track?.avatar;
 
-  if (!Number.isFinite(totalSeconds) || totalSeconds < 0) {
+  return typeof avatar === "string" && avatar.trim()
+    ? avatar.trim()
+    : fallback;
+};
+
+export const formatTrackDuration = (durationInSeconds) => {
+  const rawSeconds = Number(durationInSeconds);
+
+  if (!Number.isFinite(rawSeconds) || rawSeconds < 0) {
     return "--:--";
   }
 
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
+  const totalSeconds = Math.round(rawSeconds * 100) / 100;
+  let minutes = Math.floor(totalSeconds / 60);
+  let seconds = totalSeconds - minutes * 60;
 
-  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+  if (seconds >= 60) {
+    minutes += 1;
+    seconds = 0;
+  }
+
+  if (Number.isInteger(seconds)) {
+    return `${minutes}:${String(seconds).padStart(2, "0")}`;
+  }
+
+  return `${minutes}:${seconds.toFixed(2).padStart(5, "0")}`;
 };
 
 export const resolveAlbumTotalDurationSeconds = (album, tracks = []) => {
@@ -57,7 +77,7 @@ export const formatAlbumDuration = (tracks = []) => {
   }, 0);
 
   if (totalSeconds <= 0) {
-    return "Unknown duration";
+    return "Chưa rõ thời lượng";
   }
 
   const hours = Math.floor(totalSeconds / 3600);
@@ -65,21 +85,21 @@ export const formatAlbumDuration = (tracks = []) => {
   const seconds = totalSeconds % 60;
 
   if (hours > 0) {
-    return `${hours} hr ${minutes} min`;
+    return `${hours} giờ ${minutes} phút`;
   }
 
-  return `${minutes} min ${seconds} sec`;
+  return `${minutes} phút ${seconds} giây`;
 };
 
 export const formatReleaseYear = (releaseDate) => {
   if (!releaseDate) {
-    return "Unknown year";
+    return "Chưa rõ năm";
   }
 
   const date = new Date(releaseDate);
 
   if (Number.isNaN(date.getTime())) {
-    return "Unknown year";
+    return "Chưa rõ năm";
   }
 
   return String(date.getFullYear());

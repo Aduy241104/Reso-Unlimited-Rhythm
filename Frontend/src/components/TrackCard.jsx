@@ -1,5 +1,7 @@
 import { CheckCircle2, Pause, Play } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import TrackTwoLevelMenu from "./trackMenu/TrackTwoLevelMenu";
+import { isBlockedTrack } from "../utils/trackStatus";
 
 const sizeClassNames = {
   default: {
@@ -44,6 +46,8 @@ const sizeClassNames = {
 
 const TrackCard = ({
   index,
+  trackId,
+  track = null,
   image,
   title,
   artist,
@@ -57,7 +61,7 @@ const TrackCard = ({
   size = "default",
   className = "",
   mobileLayoutClassName = "grid-cols-[2rem_minmax(0,1fr)_auto]",
-  desktopLayoutClassName = "sm:grid-cols-[2.5rem_minmax(0,1fr)_2.75rem_3.25rem]",
+  desktopLayoutClassName = "sm:grid-cols-[2.5rem_minmax(0,1fr)_2.75rem_3.25rem_2.75rem]",
   desktopMetaColumns = [],
   mobileMetaItems = [],
   showLikeButton = true,
@@ -65,34 +69,62 @@ const TrackCard = ({
   isPlaybackActive = false,
   isPlaying = false,
   indexClassName = "",
+  isBlocked = false,
 }) => {
   const isMobileViewport =
     typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches;
   const resolvedSize = sizeClassNames[size] ? size : "default";
   const resolvedClasses = sizeClassNames[resolvedSize];
+  const navigate = useNavigate();
   const resolvedDesktopMetaColumns = desktopMetaColumns.filter(Boolean);
   const resolvedMobileMetaItems = mobileMetaItems.filter(Boolean);
   const primaryAction = onPlaybackAction || onPlay;
+  const isTrackBlocked = isBlocked || isBlockedTrack(track);
   const PlaybackIcon = isPlaybackActive && isPlaying ? Pause : Play;
-  const playbackLabel = isPlaybackActive && isPlaying ? "Pause" : "Play";
+  const playbackLabel = isPlaybackActive && isPlaying ? "Tạm dừng" : "Phát";
 
   const handlePlay = (event) => {
     event.stopPropagation();
+
+    if (isTrackBlocked) {
+      return;
+    }
+
     primaryAction?.();
   };
 
   const handleLike = (event) => {
     event.stopPropagation();
+
+    if (isTrackBlocked) {
+      return;
+    }
+
     onLike?.();
   };
 
   const handleCardClick = () => {
+    if (isTrackBlocked) {
+      return;
+    }
+
+    if (href) {
+      navigate(href);
+      return;
+    }
+
     if (isMobileViewport) {
       primaryAction?.();
     }
   };
 
   const handleMobileLinkClick = (event) => {
+    if (isTrackBlocked) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
     if (!isMobileViewport) {
       return;
     }
@@ -104,63 +136,79 @@ const TrackCard = ({
 
   return (
     <article
-      onClick={ handleCardClick }
-      className={ [
-        "group grid items-center rounded-[8px] cursor-pointer transition hover:bg-black/[0.05] dark:hover:bg-white/[0.06]",
+      onClick={handleCardClick}
+      aria-disabled={isTrackBlocked}
+      title={isTrackBlocked ? "Bài hát đã bị khóa" : undefined}
+      className={[
+        "group grid items-center rounded-[8px] transition",
+        isTrackBlocked
+          ? "cursor-not-allowed opacity-45 saturate-50"
+          : "cursor-pointer hover:bg-black/[0.05] dark:hover:bg-white/[0.06]",
         mobileLayoutClassName,
         desktopLayoutClassName,
         resolvedClasses.container,
         className,
-      ].join(" ") }
+      ].join(" ")}
     >
       <div className="flex items-center justify-center text-sm text-[#71717a] dark:text-[#a1a1aa]">
-        <span className={ [resolvedClasses.index, indexClassName].join(" ").trim() }>{ index }</span>
-        <button
-          type="button"
-          onClick={ handlePlay }
-          aria-label={ `${playbackLabel} ${title}` }
-          className="
-            hidden h-8 w-8 items-center justify-center rounded-full text-[#111111]
-            sm:group-hover:inline-flex dark:text-white
-          "
+        <span
+          className={[
+            isTrackBlocked ? "" : resolvedClasses.index,
+            indexClassName,
+          ]
+            .join(" ")
+            .trim()}
         >
-          <PlaybackIcon className="h-4 w-4 fill-current" />
-        </button>
+          {index}
+        </span>
+        {!isTrackBlocked ? (
+          <button
+            type="button"
+            onClick={handlePlay}
+            aria-label={`${playbackLabel} ${title}`}
+            className="
+              hidden h-8 w-8 items-center justify-center rounded-full text-[#111111]
+              sm:group-hover:inline-flex dark:text-white
+            "
+          >
+            <PlaybackIcon className="h-4 w-4 fill-current" />
+          </button>
+        ) : null}
       </div>
 
       <div className="flex min-w-0 items-center gap-3">
-        { image ? (
+        {image ? (
           <img
-            src={ image }
-            alt={ title }
-            className={ resolvedClasses.image }
+            src={image}
+            alt={title}
+            className={resolvedClasses.image}
           />
         ) : (
-          <div className={ resolvedClasses.fallback }>
+          <div className={resolvedClasses.fallback}>
             N/A
           </div>
-        ) }
+        )}
 
         <div className="min-w-0">
-          { href ? (
-            <Link to={ href } onClick={ handleMobileLinkClick } className="hidden min-w-0 sm:block">
-              <p className={ `${resolvedClasses.title} hover:underline` }>
-                { title }
+          {href && !isTrackBlocked ? (
+            <Link to={href} onClick={handleMobileLinkClick} className="hidden min-w-0 sm:block">
+              <p className={`${resolvedClasses.title} hover:underline`}>
+                {title}
               </p>
             </Link>
           ) : (
             null
-          ) }
-          <p className={ `${resolvedClasses.title} sm:hidden` }>
-            { title }
+          )}
+          <p className={`${resolvedClasses.title} sm:hidden`}>
+            {title}
           </p>
-          { !href ? (
-            <p className={ `hidden sm:block ${resolvedClasses.title}` }>
-              { title }
+          {!href || isTrackBlocked ? (
+            <p className={`hidden sm:block ${resolvedClasses.title}`}>
+              {title}
             </p>
-          ) : null }
-          <div className={ resolvedClasses.meta }>
-            { explicit ? (
+          ) : null}
+          <div className={resolvedClasses.meta}>
+            {explicit ? (
               <span
                 className="
                   inline-flex h-4 shrink-0 items-center rounded-[4px] bg-black/10 px-1.5
@@ -170,28 +218,40 @@ const TrackCard = ({
               >
                 E
               </span>
-            ) : null }
-            { artistId ? (
+            ) : null}
+            {isTrackBlocked ? (
+              <span
+                className="
+                  inline-flex h-4 shrink-0 items-center rounded-[4px] border border-current px-1.5
+                  text-[10px] font-semibold uppercase text-[#71717a] dark:text-[#a1a1aa]
+                "
+              >
+                Bị khóa
+              </span>
+            ) : null}
+            {artistId && !isTrackBlocked ? (
               <Link
-                to={ `/artists/${artistId}` }
-                onClick={ handleMobileLinkClick }
+                to={`/artists/${artistId}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                }}
                 className="hidden truncate hover:underline sm:inline"
               >
-                { artist }
+                {artist}
               </Link>
             ) : (
               null
-            ) }
-            <span className="truncate sm:hidden">{ artist }</span>
-            { !artistId ? (
-              <span className="hidden truncate sm:inline">{ artist }</span>
-            ) : null }
-            { duration ? (
-              <span className={ resolvedClasses.mobileDuration }>
-                { duration }
+            )}
+            <span className="truncate sm:hidden">{artist}</span>
+            {!artistId || isTrackBlocked ? (
+              <span className="hidden truncate sm:inline">{artist}</span>
+            ) : null}
+            {duration ? (
+              <span className={resolvedClasses.mobileDuration}>
+                {duration}
               </span>
-            ) : null }
-            { resolvedMobileMetaItems.map((item, indexValue) => {
+            ) : null}
+            {resolvedMobileMetaItems.map((item, indexValue) => {
               const isObjectItem =
                 typeof item === "object" && item !== null && "content" in item;
               const content = isObjectItem ? item.content : item;
@@ -199,24 +259,24 @@ const TrackCard = ({
 
               return (
                 <span
-                  key={ `${title}-mobile-meta-${indexValue}` }
-                  className={ itemClassName }
+                  key={`${title}-mobile-meta-${indexValue}`}
+                  className={itemClassName}
                 >
-                  { content }
+                  {content}
                 </span>
               );
-            }) }
+            })}
           </div>
         </div>
       </div>
 
-      { showLikeButton ? (
+      {showLikeButton ? (
         <div className="flex items-center justify-end sm:justify-center">
-          { liked ? (
+          {isTrackBlocked ? null : liked ? (
             <button
               type="button"
-              onClick={ handleLike }
-              aria-label={ `Unlike ${title}` }
+              onClick={handleLike}
+              aria-label={`Bỏ lưu ${title}`}
               className="hidden h-8 w-8 items-center justify-center text-[#1ed760] sm:inline-flex"
             >
               <CheckCircle2 className="h-4.5 w-4.5 fill-current" />
@@ -224,8 +284,8 @@ const TrackCard = ({
           ) : (
             <button
               type="button"
-              onClick={ handleLike }
-              aria-label={ `Like ${title}` }
+              onClick={handleLike}
+              aria-label={`Lưu ${title}`}
               className="
                 hidden h-8 w-8 items-center justify-center text-[#71717a]
                 transition sm:inline-flex sm:opacity-0 sm:group-hover:opacity-100 dark:text-[#a1a1aa]
@@ -233,11 +293,11 @@ const TrackCard = ({
             >
               <CheckCircle2 className="h-4.5 w-4.5" />
             </button>
-          ) }
+          )}
         </div>
-      ) : null }
+      ) : null}
 
-      { resolvedDesktopMetaColumns.length > 0 ? (
+      {resolvedDesktopMetaColumns.length > 0 ? (
         resolvedDesktopMetaColumns.map((item, indexValue) => {
           const isObjectItem =
             typeof item === "object" && item !== null && "content" in item;
@@ -246,18 +306,26 @@ const TrackCard = ({
 
           return (
             <div
-              key={ `${title}-desktop-meta-${indexValue}` }
-              className={ itemClassName }
+              key={`${title}-desktop-meta-${indexValue}`}
+              className={itemClassName}
             >
-              { content }
+              {content}
             </div>
           );
         })
       ) : (
-        <div className={ resolvedClasses.desktopMeta }>
-          { duration }
-        </div>
-      ) }
+        <>
+          <div className={resolvedClasses.desktopMeta}>
+            {duration}
+          </div>
+
+          <div className="hidden items-center justify-end sm:flex">
+            {trackId && !isTrackBlocked ? (
+              <TrackTwoLevelMenu trackId={trackId} track={track} />
+            ) : null}
+          </div>
+        </>
+      )}
     </article>
   );
 };

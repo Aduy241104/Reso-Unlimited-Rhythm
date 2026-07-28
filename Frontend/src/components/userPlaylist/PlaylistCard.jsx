@@ -9,11 +9,11 @@ const PlaylistCard = ({ playlist }) => {
       ? playlist.title.trim()
       : typeof playlist?.name === "string" && playlist.name.trim()
         ? playlist.name.trim()
-        : "Untitled Playlist";
+        : "Playlist chưa đặt tên";
   const coverImage =
     typeof playlist?.coverImage === "string" && playlist.coverImage.trim() ? playlist.coverImage.trim() : "";
   const userName =
-    typeof playlist?.userName === "string" && playlist.userName.trim() ? playlist.userName.trim() : "Unknown";
+    typeof playlist?.userName === "string" && playlist.userName.trim() ? playlist.userName.trim() : "Không xác định";
   const description =
     typeof playlist?.description === "string" && playlist.description.trim() ? playlist.description.trim() : "";
 

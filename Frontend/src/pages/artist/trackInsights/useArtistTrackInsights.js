@@ -25,6 +25,15 @@ const getTodayDateKey = () => {
   return `${year}-${month}-${day}`;
 };
 
+const buildRangeParams = (selectedRange) =>
+  selectedRange === ALL_TIME_RANGE
+    ? {
+        range: "custom",
+        from: ALL_TIME_START,
+        to: getTodayDateKey(),
+      }
+    : { range: selectedRange };
+
 export const useArtistTrackInsights = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [tracks, setTracks] = useState([]);
@@ -107,18 +116,9 @@ export const useArtistTrackInsights = () => {
       setAnalyticsError("");
 
       try {
-        const params =
-          selectedRange === ALL_TIME_RANGE
-            ? {
-                range: "custom",
-                from: ALL_TIME_START,
-                to: getTodayDateKey(),
-              }
-            : { range: selectedRange };
-
         const result = await trackService.getArtistTrackAnalytics(
           selectedTrackId,
-          params
+          buildRangeParams(selectedRange)
         );
 
         if (!isMounted) {

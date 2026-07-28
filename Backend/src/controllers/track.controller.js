@@ -1,10 +1,11 @@
 import trackService from "../services/track/track.service.js";
-import listenService from "../services/track/listen.service.js";
+import listenEventService from "../services/listenEvent/listenEvent.service.js";
 import formatResponse from "../utils/formatResponse.js";
 
 const getTrackDetail = async (req, res, next) => {
     try {
-        const track = await trackService.getTrackDetail(req.params.id);
+        const userId = req.user?.id || req.user?._id;
+        const track = await trackService.getTrackDetail(req.params.id, userId);
 
         return formatResponse.success(
             res,
@@ -18,7 +19,8 @@ const getTrackDetail = async (req, res, next) => {
 
 const getTrackPlayback = async (req, res, next) => {
     try {
-        const track = await trackService.getTrackPlayback(req.params.id, req.user);
+        const playbackTrackId = req.params.id ?? req.query.trackId;
+        const track = await trackService.getTrackPlayback(playbackTrackId, req.user);
 
         return formatResponse.success(
             res,
@@ -62,13 +64,15 @@ const getMonthlyTopTracks = async (req, res, next) => {
 
 const recordListen = async (req, res, next) => {
     try {
-        const { duration, skipped } = req.body;
-        const result = await listenService.recordListenEvent(
-            req.user.id,
-            req.params.id,
-            duration,
-            skipped
-        );
+        const { duration, source, guestId } = req.body;
+        const userId = req.user?.id || req.user?._id;
+        const result = await listenEventService.recordCompletedListenAttempt({
+            userId,
+            guestId: userId ? undefined : guestId,
+            trackId: req.params.id,
+            listenedDuration: duration,
+            source,
+        });
 
         return formatResponse.success(
             res,

@@ -30,6 +30,66 @@ const getAlbumDetail = async (req, res, next) => {
     }
 };
 
+const followAlbum = async (req, res, next) => {
+    try {
+        const userId = req.user?.id || req.user?._id;
+        const follow = await albumService.followAlbum(userId, req.params.id);
+
+        return formatResponse.success(
+            res,
+            { follow },
+            "Album followed successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+const unfollowAlbum = async (req, res, next) => {
+    try {
+        const userId = req.user?.id || req.user?._id;
+        const follow = await albumService.unfollowAlbum(userId, req.params.id);
+
+        return formatResponse.success(
+            res,
+            { follow },
+            "Album unfollowed successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+const getAlbumFollowStatus = async (req, res, next) => {
+    try {
+        const userId = req.user?.id || req.user?._id;
+        const follow = await albumService.getAlbumFollowStatus(userId, req.params.id);
+
+        return formatResponse.success(
+            res,
+            { follow },
+            "Album follow status fetched successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+const toggleFollowAlbum = async (req, res, next) => {
+    try {
+        const userId = req.user?.id || req.user?._id;
+        const result = await albumService.toggleFollowAlbum(userId, req.params.id);
+
+        return formatResponse.success(
+            res,
+            { follow: result.follow },
+            `Album ${result.action} successfully`
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 const getArtistAlbums = async (req, res, next) => {
     try {
         const userId = req.user.id;
@@ -46,7 +106,11 @@ const getArtistAlbums = async (req, res, next) => {
 };
 
 export default {
+    followAlbum,
     getAlbumList,
     getAlbumDetail,
+    getAlbumFollowStatus,
     getArtistAlbums,
+    toggleFollowAlbum,
+    unfollowAlbum,
 };

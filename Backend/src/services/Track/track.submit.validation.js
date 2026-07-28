@@ -152,6 +152,13 @@ export const assertTrackEditableByArtist = (track) => {
         throw new AppError("Track not found.", StatusCodes.NOT_FOUND);
     }
 
+    if (track.activeStatus === "blocked") {
+        throw new AppError(
+            "Blocked tracks cannot be edited.",
+            StatusCodes.BAD_REQUEST
+        );
+    }
+
     if (track.approvalStatus === "pending") {
         throw new AppError(
             "Cannot edit a track while it is pending review.",
@@ -159,9 +166,9 @@ export const assertTrackEditableByArtist = (track) => {
         );
     }
 
-    if (track.approvalStatus === "approved") {
+    if (track.pendingUpdate?.status === "pending") {
         throw new AppError(
-            "Approved tracks cannot be edited. Contact support if changes are required.",
+            "Cannot edit a track while its pending update is under review.",
             StatusCodes.BAD_REQUEST
         );
     }
@@ -217,14 +224,6 @@ export const validateTrackForSubmit = async (track, artist) => {
     }
 
     validateCopyrightForSubmit(track.copyright);
-
-    if (track.album_albumId) {
-        const albumId = track.album_albumId._id
-            ? track.album_albumId._id.toString()
-            : track.album_albumId.toString();
-
-        await validateOptionalAlbumForDraft(albumId, artist._id);
-    }
 
     if (!track.artist_artistId?.equals?.(artist._id)) {
         const trackArtistId = track.artist_artistId?.toString?.() || String(track.artist_artistId);

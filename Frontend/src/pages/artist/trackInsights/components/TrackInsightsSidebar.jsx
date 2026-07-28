@@ -14,7 +14,6 @@ const TrackInsightsSidebar = ({
         <h3 className="mt-2 text-xl font-semibold text-[#2f2747]">
           Danh sách bài hát
         </h3>
-
       </div>
 
       <div className="mt-4 overflow-hidden rounded-[14px] border border-[#ece8ff] bg-white">

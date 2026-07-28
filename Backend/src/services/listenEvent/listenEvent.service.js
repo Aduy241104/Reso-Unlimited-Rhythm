@@ -5,13 +5,24 @@ import redisClient from "../../config/redisConfig.js";
 import Track from "../../models/Track.js";
 import { AppError } from "../../utils/AppError.js";
 import { getAnalyticsTimezone } from "../analytics/trackStatAggregation.service.js";
+import { storeRecentListeningActivity } from "../user/userListeningAnalytics.service.js";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
 export const VALID_STREAM_COUNT_KEY_PREFIX = "valid_stream_count";
-export const VALID_STREAM_EVENT_STREAM_KEY = "listen_event_stream";
+export const VALID_STREAM_EVENT_QUEUE_KEY = "listen_event_queue";
 export const VALID_STREAM_COUNT_TTL_SECONDS = 48 * 60 * 60;
+export const SKIP_LISTEN_PERCENT_THRESHOLD = 15;
+export const GUEST_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+export const LISTEN_EVENT_SOURCE_ENUM = [
+    "track_detail",
+    "album",
+    "playlist",
+    "search",
+    "artist_profile",
+    "unknown",
+];
 
 const MAX_LISTEN_DURATION_BUFFER_SECONDS = 30;
 const MIN_LISTEN_DURATION_BUFFER_SECONDS = 5;
@@ -38,8 +49,10 @@ export const resolveRequiredPercent = (dailyListenOrder) => {
     return 100;
 };
 
-export const buildValidStreamCountKey = ({ dateKey, userId, trackId }) =>
-    `${VALID_STREAM_COUNT_KEY_PREFIX}:${dateKey}:${userId}:${trackId}`;
+export const buildValidStreamCountKey = ({ dateKey, userId, guestId, trackId }) => {
+    const listenerId = userId || guestId;
+    return `${VALID_STREAM_COUNT_KEY_PREFIX}:${dateKey}:${listenerId}:${trackId}`;
+};
 
 export const buildAnalyticsDateKey = (date = new Date()) =>
     dayjs(date).tz(getAnalyticsTimezone()).format("YYYY-MM-DD");
@@ -57,49 +70,138 @@ const parsePositiveInteger = (value, fallback = 0) => {
     return Number.isFinite(parsedValue) && parsedValue >= 0 ? parsedValue : fallback;
 };
 
+const resolveListenerIdentity = ({ userId, guestId }) => {
+    if (userId) {
+        return {
+            userId,
+            guestId: undefined,
+        };
+    }
+
+    const normalizedGuestId = typeof guestId === "string"
+        ? guestId.trim().toLowerCase()
+        : "";
+
+    if (!normalizedGuestId) {
+        throw new AppError("A user session or guestId is required.", 400, {
+            field: "guestId",
+        });
+    }
+
+    if (!GUEST_ID_PATTERN.test(normalizedGuestId)) {
+        throw new AppError("guestId must be a valid UUID v4.", 400, {
+            field: "guestId",
+        });
+    }
+
+    return {
+        userId: undefined,
+        guestId: normalizedGuestId,
+    };
+};
+
+export const normalizeListenEventSource = (value) => {
+    const normalizedValue = typeof value === "string" ? value.trim() : "";
+    return LISTEN_EVENT_SOURCE_ENUM.includes(normalizedValue)
+        ? normalizedValue
+        : "unknown";
+};
+
 const buildQueuedEventPayload = ({
     userId,
+    guestId,
     trackId,
     artistId,
     listenedAt,
     trackDuration,
     listenedDuration,
     listenPercent,
+    completed,
+    skipped,
+    isValidStream,
     dailyListenOrder,
     requiredPercent,
-    device,
-    country,
     source,
-}) => ({
-    userId: String(userId),
-    trackId: String(trackId),
-    artistId: String(artistId),
-    listenedAt: listenedAt.toISOString(),
-    trackDuration: String(trackDuration),
-    listenedDuration: String(listenedDuration),
-    listenPercent: String(listenPercent),
-    dailyListenOrder: String(dailyListenOrder),
-    requiredPercent: String(requiredPercent),
-    duration: String(listenedDuration),
-    completed: "true",
-    skipped: "false",
-    isValidStream: "true",
-    device: device || "",
-    country: country || "",
-    source: source || "unknown",
-});
+}) => {
+    const payload = {
+        trackId: String(trackId),
+        artistId: String(artistId),
+        listenedAt: listenedAt.toISOString(),
+        trackDuration: String(trackDuration),
+        listenedDuration: String(listenedDuration),
+        listenPercent: String(listenPercent),
+        duration: String(listenedDuration),
+        completed: String(Boolean(completed)),
+        skipped: String(Boolean(skipped)),
+        isValidStream: String(Boolean(isValidStream)),
+        source: normalizeListenEventSource(source),
+    };
+
+    if (userId) {
+        payload.userId = String(userId);
+    } else {
+        payload.guestId = guestId;
+    }
+
+    if (Number.isFinite(dailyListenOrder) && dailyListenOrder > 0) {
+        payload.dailyListenOrder = String(dailyListenOrder);
+    }
+
+    if (Number.isFinite(requiredPercent) && requiredPercent >= 0) {
+        payload.requiredPercent = String(requiredPercent);
+    }
+
+    return payload;
+};
+
+const queueListenEventInRedis = async (payload) => {
+    ensureRedisReady();
+
+    await redisClient.rPush(
+        VALID_STREAM_EVENT_QUEUE_KEY,
+        JSON.stringify(payload)
+    );
+};
+
+const queueSkippedListenInRedis = async ({
+    userId,
+    guestId,
+    trackId,
+    artistId,
+    listenedAt,
+    trackDuration,
+    listenedDuration,
+    listenPercent,
+    source,
+}) => {
+    const queuedEventPayload = buildQueuedEventPayload({
+        userId,
+        guestId,
+        trackId,
+        artistId,
+        listenedAt,
+        trackDuration,
+        listenedDuration,
+        listenPercent,
+        completed: false,
+        skipped: true,
+        isValidStream: false,
+        source,
+    });
+
+    await queueListenEventInRedis(queuedEventPayload);
+};
 
 const queueValidStreamInRedis = async ({
     countKey,
     userId,
+    guestId,
     trackId,
     artistId,
     listenedAt,
     trackDuration,
     listenedDuration,
     listenPercent,
-    device,
-    country,
     source,
 }) => {
     ensureRedisReady();
@@ -126,22 +228,27 @@ const queueValidStreamInRedis = async ({
 
             const queuedEventPayload = buildQueuedEventPayload({
                 userId,
+                guestId,
                 trackId,
                 artistId,
                 listenedAt,
                 trackDuration,
                 listenedDuration,
                 listenPercent,
+                completed: true,
+                skipped: false,
+                isValidStream: true,
                 dailyListenOrder,
                 requiredPercent,
-                device,
-                country,
                 source,
             });
 
             const transactionResult = await isolatedClient
                 .multi()
-                .xAdd(VALID_STREAM_EVENT_STREAM_KEY, "*", queuedEventPayload)
+                .rPush(
+                    VALID_STREAM_EVENT_QUEUE_KEY,
+                    JSON.stringify(queuedEventPayload)
+                )
                 .incr(countKey)
                 .expire(countKey, VALID_STREAM_COUNT_TTL_SECONDS)
                 .exec();
@@ -151,7 +258,7 @@ const queueValidStreamInRedis = async ({
                     isValidStream: true,
                     dailyListenOrder,
                     requiredPercent,
-                    streamEntryId: transactionResult[0],
+                    queuedCount: transactionResult[0],
                 };
             }
         }
@@ -162,15 +269,12 @@ const queueValidStreamInRedis = async ({
 
 export const recordCompletedListenAttempt = async ({
     userId,
+    guestId,
     trackId,
     listenedDuration,
-    device = "",
-    country = "",
     source = "unknown",
 }) => {
-    if (!userId) {
-        throw new AppError("User authentication is required.", 401);
-    }
+    const listenerIdentity = resolveListenerIdentity({ userId, guestId });
 
     const normalizedListenedDuration = Number(listenedDuration);
 
@@ -181,7 +285,9 @@ export const recordCompletedListenAttempt = async ({
     }
 
     const track = await Track.findById(trackId)
-        .select("artist_artistId duration activeStatus approvalStatus")
+        .select("title artist_artistId album_albumId duration avatar coverImage activeStatus approvalStatus")
+        .populate({ path: "artist_artistId", select: "name avatar" })
+        .populate({ path: "album_albumId", select: "title coverImage" })
         .lean();
 
     if (!track) {
@@ -198,7 +304,8 @@ export const recordCompletedListenAttempt = async ({
         throw new AppError("Track duration is invalid for stream counting.", 400);
     }
 
-    const artistId = track.artist_artistId;
+    const artistId = track.artist_artistId?._id || track.artist_artistId;
+    const albumId = track.album_albumId?._id || track.album_albumId || null;
 
     if (!artistId) {
         throw new AppError("Track artist information is missing.", 400);
@@ -215,24 +322,61 @@ export const recordCompletedListenAttempt = async ({
     const clampedListenedDuration = Math.min(normalizedListenedDuration, trackDuration);
     const listenPercent = roundToTwoDecimals((clampedListenedDuration / trackDuration) * 100);
     const listenedAt = new Date();
+
+    if (listenerIdentity.userId) {
+        try {
+            await storeRecentListeningActivity({
+                userId: listenerIdentity.userId,
+                track,
+                artistId,
+                albumId,
+                listenedAt,
+                listenedDuration: clampedListenedDuration,
+                listenPercent,
+                source,
+            });
+        } catch (error) {
+            console.error("[RecentListeningActivity] Could not store activity:", error);
+        }
+    }
+
+    if (listenPercent <= SKIP_LISTEN_PERCENT_THRESHOLD) {
+        await queueSkippedListenInRedis({
+            ...listenerIdentity,
+            trackId,
+            artistId,
+            listenedAt,
+            trackDuration,
+            listenedDuration: clampedListenedDuration,
+            listenPercent,
+            source,
+        });
+
+        return {
+            success: true,
+            isValidStream: false,
+            isSkipped: true,
+            listenPercent,
+            message: `Listen counted as a skip because it stayed at or below ${SKIP_LISTEN_PERCENT_THRESHOLD}% of the track.`,
+        };
+    }
+
     const dateKey = buildAnalyticsDateKey(listenedAt);
     const countKey = buildValidStreamCountKey({
         dateKey,
-        userId,
+        ...listenerIdentity,
         trackId,
     });
 
     const queueResult = await queueValidStreamInRedis({
         countKey,
-        userId,
+        ...listenerIdentity,
         trackId,
         artistId,
         listenedAt,
         trackDuration,
         listenedDuration: clampedListenedDuration,
         listenPercent,
-        device,
-        country,
         source,
     });
 
@@ -240,6 +384,7 @@ export const recordCompletedListenAttempt = async ({
         return {
             success: true,
             isValidStream: false,
+            isSkipped: false,
             listenPercent,
             requiredPercent: queueResult.requiredPercent,
             dailyListenOrder: queueResult.dailyListenOrder,
@@ -250,6 +395,7 @@ export const recordCompletedListenAttempt = async ({
     return {
         success: true,
         isValidStream: true,
+        isSkipped: false,
         listenPercent,
         requiredPercent: queueResult.requiredPercent,
         dailyListenOrder: queueResult.dailyListenOrder,
@@ -262,4 +408,7 @@ export default {
     buildAnalyticsDateKey,
     buildValidStreamCountKey,
     resolveRequiredPercent,
+    SKIP_LISTEN_PERCENT_THRESHOLD,
+    VALID_STREAM_EVENT_QUEUE_KEY,
+    normalizeListenEventSource,
 };

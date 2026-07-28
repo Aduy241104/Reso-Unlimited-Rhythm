@@ -22,18 +22,18 @@ const DiscographySection = ({
   return (
     <section className="space-y-5">
       <SectionHeader
-        eyebrow="Catalog"
-        title="Discography"
-        description="Browse the release world with a cleaner, more premium take on the familiar streaming layout."
+        eyebrow="Danh mục"
+        title="Danh sách phát hành"
+        description="Khám phá các bản phát hành của nghệ sĩ theo bố cục gọn gàng và dễ theo dõi."
       />
 
       <PillsFilter
         value={ activeFilter }
         onChange={ onFilterChange }
         items={[
-          { label: "Popular Releases", value: "popular" },
-          { label: "Albums", value: "albums" },
-          { label: "Singles & EPs", value: "singles" },
+          { label: "Nổi bật", value: "popular" },
+          { label: "Album", value: "albums" },
+          { label: "Single & EP", value: "singles" },
         ]}
       />
 
@@ -68,7 +68,7 @@ const DiscographySection = ({
         </div>
       ) : (
         <div className="border border-dashed border-white/10 bg-white/[0.02] px-4 py-7 text-sm text-white/48">
-          No releases matched this filter yet.
+          Chưa có bản phát hành phù hợp với bộ lọc này.
         </div>
       ) }
     </section>

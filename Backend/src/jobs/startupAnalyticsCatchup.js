@@ -2,14 +2,18 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 import Artist from "../models/Artist.js";
-import ArtistDailyRanking from "../models/ArtistDailyRanking.js";
-import ArtistMonthlyRanking from "../models/ArtistMonthlyRanking.js";
+import ArtistDailyStat from "../models/ArtistDailyStat.js";
+import ArtistRanking, {
+    buildDailyArtistRankingFilter,
+    buildMonthlyArtistRankingFilter,
+} from "../models/ArtistRanking.js";
 import ListenEvent from "../models/ListenEvent.js";
 import TrackDailyRanking from "../models/TrackDailyRanking.js";
 import TrackDailyStat from "../models/TrackDailyStat.js";
 import TrackMonthlyRanking from "../models/TrackMonthlyRanking.js";
 import TrackMonthlyStat from "../models/TrackMonthlyStat.js";
 import { runDailyTopArtistAggregation } from "./dailyTopArtist.cron.js";
+import { runDailyArtistOverviewStatAggregation } from "./dailyArtistOverviewStat.cron.js";
 import { runDailyTrackStatAggregation } from "./dailyTrackStat.cron.js";
 import { runDailyTopTrackAggregation } from "./dailyTopTrack.cron.js";
 import { runMonthlyTopArtistAggregation } from "./monthlyTopArtist.cron.js";
@@ -46,19 +50,24 @@ const runStartupAnalyticsCatchup = async () => {
     const now = dayjs().tz(analyticsTimezone);
     const targetDay = now.subtract(1, "day").startOf("day");
     const nextDay = targetDay.add(1, "day");
-    const targetMonth = targetDay.startOf("month");
-    const nextMonth = targetMonth.add(1, "month");
-    const year = targetMonth.year();
-    const month = targetMonth.month() + 1;
+    const artistMonthlyTarget = targetDay.startOf("month");
+    const nextArtistMonthlyTarget = artistMonthlyTarget.add(1, "month");
+    const completedTrackMonth = now.startOf("month").subtract(1, "month");
+    const nextCompletedTrackMonth = completedTrackMonth.add(1, "month");
+    const trackMonthlyYear = completedTrackMonth.year();
+    const trackMonthlyMonth = completedTrackMonth.month() + 1;
+    const completedTrackMonthKey = completedTrackMonth.format("YYYY-MM-01");
     const targetDayDate = targetDay.toDate();
     const nextDayDate = nextDay.toDate();
-    const targetMonthDate = targetMonth.toDate();
-    const nextMonthDate = nextMonth.toDate();
+    const completedTrackMonthDate = completedTrackMonth.toDate();
+    const nextCompletedTrackMonthDate = nextCompletedTrackMonth.toDate();
 
+    const shouldRunArtistDailyStatisticCatchup = hasPassedMinuteOfDay(now, 0, 3);
     const shouldRunStatisticCatchup = hasPassedMinuteOfDay(now, 0, 0);
     const shouldRunRankingCatchup = hasPassedMinuteOfDay(now, 0, 5);
 
     const [
+        hasArtistDailyStats,
         hasTrackDailyStats,
         hasTrackDailyRanking,
         hasTrackMonthlyStats,
@@ -71,26 +80,52 @@ const runStartupAnalyticsCatchup = async () => {
         hasArtistMonthlySourceData,
         hasActiveArtists,
     ] = await Promise.all([
+        ArtistDailyStat.exists({
+            date: { $gte: targetDayDate, $lt: nextDayDate },
+        }),
         TrackDailyStat.exists({
             date: { $gte: targetDayDate, $lt: nextDayDate },
         }),
         TrackDailyRanking.exists({
             date: { $gte: targetDayDate, $lt: nextDayDate },
         }),
-        TrackMonthlyStat.exists({ year, month }),
-        TrackMonthlyRanking.exists({ year, month }),
-        ArtistDailyRanking.exists({
-            date: { $gte: targetDayDate, $lt: nextDayDate },
-        }),
-        ArtistMonthlyRanking.exists({ year, month }),
+        TrackMonthlyStat.exists({ year: trackMonthlyYear, month: trackMonthlyMonth }),
+        TrackMonthlyRanking.exists({ year: trackMonthlyYear, month: trackMonthlyMonth }),
+        ArtistRanking.exists(
+            buildDailyArtistRankingFilter({
+                dateKey: targetDay.format("YYYY-MM-DD"),
+                startDate: targetDayDate,
+                endDate: nextDayDate,
+            })
+        ),
+        ArtistRanking.exists(
+            buildMonthlyArtistRankingFilter({
+                year: artistMonthlyTarget.year(),
+                month: artistMonthlyTarget.month() + 1,
+            })
+        ),
         hasTrackListenEventsInRange(targetDayDate, nextDayDate),
-        hasTrackListenEventsInRange(targetMonthDate, nextMonthDate),
+        hasTrackListenEventsInRange(
+            completedTrackMonthDate,
+            nextCompletedTrackMonthDate
+        ),
         hasArtistListenEventsInRange(targetDayDate, nextDayDate),
-        hasArtistListenEventsInRange(targetMonthDate, nextMonthDate),
+        hasArtistListenEventsInRange(
+            artistMonthlyTarget.toDate(),
+            nextArtistMonthlyTarget.toDate()
+        ),
         Artist.exists({ activeStatus: "active" }),
     ]);
 
     const summary = [];
+
+    if (shouldRunArtistDailyStatisticCatchup && hasArtistDailySourceData && !hasArtistDailyStats) {
+        console.log(
+            `[Startup Catch-up] Missing daily artist overview stats for ${targetDay.format("YYYY-MM-DD")}, running catch-up.`
+        );
+        summary.push("dailyArtistOverviewStat");
+        await runDailyArtistOverviewStatAggregation();
+    }
 
     if (shouldRunStatisticCatchup && hasTrackDailySourceData && !hasTrackDailyStats) {
         console.log(
@@ -102,10 +137,10 @@ const runStartupAnalyticsCatchup = async () => {
 
     if (shouldRunStatisticCatchup && hasTrackMonthlySourceData && !hasTrackMonthlyStats) {
         console.log(
-            `[Startup Catch-up] Missing monthly track stats for ${targetMonth.format("YYYY-MM")}, running catch-up.`
+            `[Startup Catch-up] Missing monthly track stats for ${completedTrackMonth.format("YYYY-MM")}, running catch-up.`
         );
         summary.push("monthlyTrackStat");
-        await runMonthlyTrackStatAggregation();
+        await runMonthlyTrackStatAggregation(completedTrackMonthKey);
     }
 
     const hasDailyTrackStatsAfterCatchup = Boolean(
@@ -125,10 +160,10 @@ const runStartupAnalyticsCatchup = async () => {
 
     if (shouldRunRankingCatchup && hasMonthlyTrackStatsAfterCatchup && !hasTrackMonthlyRanking) {
         console.log(
-            `[Startup Catch-up] Missing monthly top track ranking for ${targetMonth.format("YYYY-MM")}, running catch-up.`
+            `[Startup Catch-up] Missing monthly top track ranking for ${completedTrackMonth.format("YYYY-MM")}, running catch-up.`
         );
         summary.push("monthlyTopTrack");
-        await runMonthlyTopTrackAggregation();
+        await runMonthlyTopTrackAggregation(completedTrackMonthKey);
     }
 
     if (
@@ -149,7 +184,7 @@ const runStartupAnalyticsCatchup = async () => {
         !hasArtistMonthlyRanking
     ) {
         console.log(
-            `[Startup Catch-up] Missing monthly top artist ranking for ${targetMonth.format("YYYY-MM")}, running catch-up.`
+            `[Startup Catch-up] Missing monthly top artist ranking for ${artistMonthlyTarget.format("YYYY-MM")}, running catch-up.`
         );
         summary.push("monthlyTopArtist");
         await runMonthlyTopArtistAggregation();
@@ -162,7 +197,7 @@ const runStartupAnalyticsCatchup = async () => {
     return {
         timezone: analyticsTimezone,
         targetDay: targetDay.format("YYYY-MM-DD"),
-        targetMonth: targetMonth.format("YYYY-MM"),
+        targetMonth: completedTrackMonth.format("YYYY-MM"),
         ranJobs: summary,
     };
 };

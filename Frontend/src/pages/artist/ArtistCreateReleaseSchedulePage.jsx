@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   AlertCircle,
   CalendarDays,
@@ -18,12 +18,7 @@ import { createMyReleaseScheduleService } from "../../services/artistReleaseSche
 import { routePaths } from "../../routes/routePaths";
 
 const TIMEZONE_LABEL = "(GMT+07:00) Bangkok, Hanoi, Jakarta";
-
-const TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {
-  const hours = String(Math.floor(index / 2)).padStart(2, "0");
-  const minutes = index % 2 === 0 ? "00" : "30";
-  return `${hours}:${minutes}`;
-});
+const TIME_INPUT_STEP_SECONDS = 300;
 
 const getTomorrowDateValue = () => {
   const tomorrow = new Date();
@@ -113,7 +108,9 @@ const normalizeAlbums = (albums = []) =>
 
 const ArtistCreateReleaseSchedulePage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const dropdownRef = useRef(null);
+  const hasAppliedPrefill = useRef(false);
   const [releaseType, setReleaseType] = useState("track");
   const [tracks, setTracks] = useState([]);
   const [albums, setAlbums] = useState([]);
@@ -126,6 +123,9 @@ const ArtistCreateReleaseSchedulePage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const prefilledReleaseType =
+    location.state?.releaseType === "album" ? "album" : "track";
+  const prefilledTargetId = location.state?.targetId || "";
 
   useEffect(() => {
     let isMounted = true;
@@ -184,6 +184,14 @@ const ArtistCreateReleaseSchedulePage = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!prefilledTargetId || hasAppliedPrefill.current) {
+      return;
+    }
+
+    setReleaseType(prefilledReleaseType);
+  }, [prefilledReleaseType, prefilledTargetId]);
+
   const activeOptions = useMemo(
     () => (releaseType === "track" ? tracks : albums),
     [releaseType, tracks, albums]
@@ -195,11 +203,22 @@ const ArtistCreateReleaseSchedulePage = () => {
       return;
     }
 
+    if (
+      !hasAppliedPrefill.current &&
+      prefilledTargetId &&
+      releaseType === prefilledReleaseType &&
+      activeOptions.some((item) => item.id === prefilledTargetId)
+    ) {
+      setSelectedTargetId(prefilledTargetId);
+      hasAppliedPrefill.current = true;
+      return;
+    }
+
     const targetStillExists = activeOptions.some((item) => item.id === selectedTargetId);
     if (!targetStillExists) {
       setSelectedTargetId(activeOptions[0].id);
     }
-  }, [activeOptions, selectedTargetId]);
+  }, [activeOptions, prefilledReleaseType, prefilledTargetId, releaseType, selectedTargetId]);
 
   useEffect(() => {
     setIsDropdownOpen(false);
@@ -211,8 +230,11 @@ const ArtistCreateReleaseSchedulePage = () => {
   );
 
   const scheduledAtIso = useMemo(
-    () => buildScheduleIsoString(selectedDate, selectedTime),
-    [selectedDate, selectedTime]
+    () =>
+      isImmediateRelease
+        ? ""
+        : buildScheduleIsoString(selectedDate, selectedTime),
+    [isImmediateRelease, selectedDate, selectedTime]
   );
 
   const isFutureSchedule = useMemo(() => {
@@ -231,7 +253,7 @@ const ArtistCreateReleaseSchedulePage = () => {
     const hasValidContent = isTrack
       ? Number(selectedTarget?.audioFilesCount || 0) > 0 ||
         Number(selectedTarget?.duration || 0) > 0
-      : Number(selectedTarget?.trackCount || 0) > 0;
+      : Number(selectedTarget?.trackCount || 0) >= 2;
 
     return [
       {
@@ -239,15 +261,17 @@ const ArtistCreateReleaseSchedulePage = () => {
         passed: hasSelectedTarget && isApprovedTrack,
       },
       {
-        label: isTrack ? "File âm thanh hợp lệ" : "Album có ít nhất một bài hát",
+        label: isTrack ? "File âm thanh hợp lệ" : "Album có ít nhất 2 bài hát",
         passed: hasSelectedTarget && hasValidContent,
       },
       {
-        label: "Ngày phát hành phải ở tương lai",
-        passed: isFutureSchedule,
+        label: isImmediateRelease
+          ? "Sẵn sàng công khai ngay sau khi xác nhận"
+          : "Ngày phát hành phải ở tương lai",
+        passed: isImmediateRelease ? hasSelectedTarget : isFutureSchedule,
       },
     ];
-  }, [releaseType, selectedTarget, isFutureSchedule]);
+  }, [isFutureSchedule, isImmediateRelease, releaseType, selectedTarget]);
 
   const canSubmit = requirements.every((item) => item.passed) && Boolean(selectedTargetId);
 
@@ -265,7 +289,8 @@ const ArtistCreateReleaseSchedulePage = () => {
       await createMyReleaseScheduleService({
         type: releaseType,
         targetId: selectedTargetId,
-        scheduledAt: scheduledAtIso,
+        publishMode: isImmediateRelease ? "immediate" : "scheduled",
+        scheduledAt: isImmediateRelease ? null : scheduledAtIso,
       });
 
       navigate(routePaths.artistReleases);
@@ -459,68 +484,11 @@ const ArtistCreateReleaseSchedulePage = () => {
 
             <section className="space-y-4">
               <h2 className="text-lg font-semibold text-[#1f1830]">
-                2. Thời gian phát hành
-              </h2>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <label className="space-y-2 text-sm text-[#6d6682]">
-                  <span className="font-medium text-[#413956]">Ngày phát hành</span>
-                  <div className="relative">
-                    <CalendarDays className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8a84a3]" />
-                    <input
-                      type="date"
-                      value={selectedDate}
-                      onChange={(event) => setSelectedDate(event.target.value)}
-                      className="h-12 w-full rounded-2xl border border-[#ebe8f8] bg-white pl-11 pr-4 text-sm text-[#251d38] outline-none transition focus:border-[#7c6cf2]"
-                    />
-                  </div>
-                </label>
-
-                <label className="space-y-2 text-sm text-[#6d6682]">
-                  <span className="font-medium text-[#413956]">Giờ phát hành</span>
-                  <div className="relative">
-                    <Clock3 className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8a84a3]" />
-                    <select
-                      value={selectedTime}
-                      onChange={(event) => setSelectedTime(event.target.value)}
-                      className="h-12 w-full appearance-none rounded-2xl border border-[#ebe8f8] bg-white pl-11 pr-10 text-sm text-[#251d38] outline-none transition focus:border-[#7c6cf2]"
-                    >
-                      {TIME_OPTIONS.map((timeOption) => (
-                        <option key={timeOption} value={timeOption}>
-                          {formatDisplayTime(timeOption)}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#8a84a3]" />
-                  </div>
-                </label>
-              </div>
-
-              <label className="space-y-2 text-sm text-[#6d6682]">
-                <span className="font-medium text-[#413956]">Múi giờ</span>
-                <div className="relative">
-                  <Globe2 className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8a84a3]" />
-                  <select
-                    value={TIMEZONE_LABEL}
-                    disabled
-                    className="h-12 w-full appearance-none rounded-2xl border border-[#ebe8f8] bg-[#faf9fe] pl-11 pr-10 text-sm text-[#251d38] outline-none"
-                  >
-                    <option value={TIMEZONE_LABEL}>{TIMEZONE_LABEL}</option>
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#8a84a3]" />
-                </div>
-              </label>
-            </section>
-
-            <section className="space-y-4">
-              <h2 className="text-lg font-semibold text-[#1f1830]">
-                3. Cài đặt bổ sung
+                2. Cách phát hành
               </h2>
 
               <div className="space-y-3">
-                <p className="text-sm font-medium text-[#413956]">
-                  Trạng thái sau khi phát hành
-                </p>
+                <p className="text-sm font-medium text-[#413956]">Chế độ phát hành</p>
 
                 <label className="flex gap-3 rounded-2xl border border-[#ebe8f8] p-4">
                   <input
@@ -533,12 +501,12 @@ const ArtistCreateReleaseSchedulePage = () => {
                   <div>
                     <p className="text-sm font-medium text-[#1f1830]">Công khai ngay</p>
                     <p className="mt-1 text-xs leading-5 text-[#857f99]">
-                      Bản phát hành sẽ được công khai ngay khi đến mốc thời gian đã chọn.
+                      Bản phát hành sẽ được public ngay sau khi bạn xác nhận tạo lịch.
                     </p>
                   </div>
                 </label>
 
-                <label className="flex gap-3 rounded-2xl border border-[#ebe8f8] p-4 opacity-70">
+                <label className="flex gap-3 rounded-2xl border border-[#ebe8f8] p-4">
                   <input
                     type="radio"
                     name="releaseVisibility"
@@ -549,11 +517,69 @@ const ArtistCreateReleaseSchedulePage = () => {
                   <div>
                     <p className="text-sm font-medium text-[#1f1830]">Lên lịch công khai</p>
                     <p className="mt-1 text-xs leading-5 text-[#857f99]">
-                      Tùy chọn này hiện là mô phỏng giao diện, backend đang lưu mốc phát hành chính.
+                      Chỉ khi chọn chế độ này bạn mới cần đặt ngày và giờ phát hành.
                     </p>
                   </div>
                 </label>
               </div>
+            </section>
+
+            <section className="space-y-4">
+              <h2 className="text-lg font-semibold text-[#1f1830]">
+                3. Thời gian phát hành
+              </h2>
+
+              {isImmediateRelease ? (
+                <div className="rounded-2xl border border-[#ddd7ff] bg-[#f7f5ff] px-4 py-4 text-sm text-[#5f57a6]">
+                  Bản phát hành sẽ được công khai ngay khi bạn bấm tạo lịch phát hành.
+                </div>
+              ) : (
+                <>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <label className="space-y-2 text-sm text-[#6d6682]">
+                      <span className="font-medium text-[#413956]">Ngày phát hành</span>
+                      <div className="relative">
+                        <CalendarDays className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8a84a3]" />
+                        <input
+                          type="date"
+                          value={selectedDate}
+                          onChange={(event) => setSelectedDate(event.target.value)}
+                          className="h-12 w-full rounded-2xl border border-[#ebe8f8] bg-white pl-11 pr-4 text-sm text-[#251d38] outline-none transition focus:border-[#7c6cf2]"
+                        />
+                      </div>
+                    </label>
+
+                    <label className="space-y-2 text-sm text-[#6d6682]">
+                      <span className="font-medium text-[#413956]">Giờ phát hành</span>
+                      <div className="relative">
+                        <Clock3 className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8a84a3]" />
+                        <input
+                          type="time"
+                          step={TIME_INPUT_STEP_SECONDS}
+                          value={selectedTime}
+                          onChange={(event) => setSelectedTime(event.target.value)}
+                          className="h-12 w-full rounded-2xl border border-[#ebe8f8] bg-white pl-11 pr-4 text-sm text-[#251d38] outline-none transition focus:border-[#7c6cf2]"
+                        />
+                      </div>
+                    </label>
+                  </div>
+
+                  <label className="space-y-2 text-sm text-[#6d6682]">
+                    <span className="font-medium text-[#413956]">Múi giờ</span>
+                    <div className="relative">
+                      <Globe2 className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8a84a3]" />
+                      <select
+                        value={TIMEZONE_LABEL}
+                        disabled
+                        className="h-12 w-full appearance-none rounded-2xl border border-[#ebe8f8] bg-[#faf9fe] pl-11 pr-10 text-sm text-[#251d38] outline-none"
+                      >
+                        <option value={TIMEZONE_LABEL}>{TIMEZONE_LABEL}</option>
+                      </select>
+                      <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#8a84a3]" />
+                    </div>
+                  </label>
+                </>
+              )}
 
               <label className="block space-y-2 text-sm text-[#6d6682]">
                 <span className="font-medium text-[#413956]">Ghi chú (không bắt buộc)</span>
@@ -580,7 +606,13 @@ const ArtistCreateReleaseSchedulePage = () => {
                 disabled={!canSubmit || isSubmitting}
                 className="inline-flex h-12 min-w-[200px] items-center justify-center rounded-2xl bg-[#6657f6] px-6 text-sm font-medium text-white transition hover:bg-[#5747ec] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isSubmitting ? "Đang tạo lịch..." : "Tạo lịch phát hành"}
+                {isSubmitting
+                  ? isImmediateRelease
+                    ? "Đang công khai..."
+                    : "Đang tạo lịch..."
+                  : isImmediateRelease
+                    ? "Công khai ngay"
+                    : "Tạo lịch phát hành"}
               </button>
             </div>
           </div>
@@ -629,7 +661,7 @@ const ArtistCreateReleaseSchedulePage = () => {
                       Ngày phát hành
                     </span>
                     <span className="font-medium text-[#1f1830]">
-                      {formatDisplayDate(selectedDate)}
+                      {isImmediateRelease ? "Ngay bây giờ" : formatDisplayDate(selectedDate)}
                     </span>
                   </div>
 
@@ -639,7 +671,7 @@ const ArtistCreateReleaseSchedulePage = () => {
                       Giờ phát hành
                     </span>
                     <span className="font-medium text-[#1f1830]">
-                      {formatDisplayTime(selectedTime)}
+                      {isImmediateRelease ? "Tức thì" : formatDisplayTime(selectedTime)}
                     </span>
                   </div>
 

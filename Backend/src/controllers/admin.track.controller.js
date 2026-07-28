@@ -3,6 +3,11 @@ import adminTrackValidation from "../middlewares/Admin/admin.track.validation.js
 import formatResponse from "../utils/formatResponse.js";
 import { AppError } from "../utils/AppError.js";
 
+import Track from "../models/Track.js";
+import Artist from "../models/Artist.js";
+import Interaction from "../models/Interaction.js";
+import Notification from "../models/Notification.js";
+
 const listTracksForAdmin = async (req, res, next) => {
     try {
         const { error, value } = adminTrackValidation.listTracksQuerySchema.validate(
@@ -55,12 +60,17 @@ const updateTrackApprovalStatus = async (req, res, next) => {
         // Bốc đầu đầy đủ tất cả các trường kiểm duyệt nâng cao gửi từ FE lên
         const { status, adminNote, violationFlags, rejectReason } = req.body;
 
-        const updatedTrack = await adminTrackService.updateTrackApprovalStatus(id, {
-            status,
-            adminNote,
-            violationFlags,
-            rejectReason,
-        });
+        const updatedTrack = await adminTrackService.updateTrackApprovalStatus(
+            id,
+            {
+                status,
+                adminNote,
+                violationFlags,
+                rejectReason,
+            },
+            req.user.id,
+            req.app.get("io")
+        );
 
         return formatResponse.success(
             res,
@@ -75,13 +85,16 @@ const updateTrackApprovalStatus = async (req, res, next) => {
 const updateTrackVisibilityController = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { action, hiddenReason, adminNote } = req.body;
+        const { action, hiddenReason, blockedReason, adminNote } = req.body;
 
         const track = await adminTrackService.updateTrackVisibility(id, {
             action,
             hiddenReason,
+            blockedReason,
             adminNote
-        });
+        },
+        req.user.id,
+        req.app.get("io"));
 
         return formatResponse.success(
             res,

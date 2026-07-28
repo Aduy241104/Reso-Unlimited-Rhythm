@@ -7,6 +7,7 @@ const uploadFiles = async (req, res, next) => {
   try {
     const uploadedUrls = {
       audioFiles: [],
+      audioAnalysis: null,
       avatar: "",
       coverImages: [],
       lyricsSyncUrl: "",
@@ -16,11 +17,18 @@ const uploadFiles = async (req, res, next) => {
     if (req.files?.audioFiles && req.files.audioFiles.length > 0) {
       const audioUploadPromises = req.files.audioFiles.map(async (file) => {
         try {
+          const sourceAnalysis =
+            await audioTranscodeService.analyzeAndValidateAudioSource(
+              file.buffer,
+              file.originalname
+            );
+
           // Transcode audio to multiple qualities
           const transcodedVersions =
             await audioTranscodeService.transcodeAudioToMultipleQualities(
               file.buffer,
-              file.originalname
+              file.originalname,
+              sourceAnalysis
             );
 
           // Upload each transcoded version to Cloudinary
@@ -31,7 +39,7 @@ const uploadFiles = async (req, res, next) => {
               "video"
             ).then((result) => ({
               url: result.secure_url,
-              format: "mp3",
+              format: version.format || "mp3",
               bitrate: version.bitrate,
               label: version.label,
               priority: version.priority,
@@ -39,33 +47,51 @@ const uploadFiles = async (req, res, next) => {
           );
 
           const uploadedVersions = await Promise.all(uploadPromises);
-          return uploadedVersions;
+          return {
+            uploadedVersions,
+            sourceAnalysis,
+          };
         } catch (error) {
           console.error(
             `Failed to process audio file ${file.originalname}:`,
             error.message
           );
-          // Fallback: upload original file without transcoding
+
+          if (error instanceof AppError) {
+            throw error;
+          }
+
           console.log("Falling back to original file upload...");
+          const sourceAnalysis =
+            await audioTranscodeService.analyzeAndValidateAudioSource(
+              file.buffer,
+              file.originalname
+            );
           const result = await uploadToCloudinary(
             file.buffer,
             "tracks/audio/original",
             "video"
           );
-          return [
-            {
-              url: result.secure_url,
-              format: result.format || "unknown",
-              bitrate: result.bit_rate || 128,
-              label: "original",
-              priority: 0,
-            },
-          ];
+          return {
+            uploadedVersions: [
+              {
+                url: result.secure_url,
+                format: sourceAnalysis.format || result.format || "unknown",
+                bitrate: sourceAnalysis.bitrate || result.bit_rate || 320,
+                label: "original",
+                priority: 5,
+              },
+            ],
+            sourceAnalysis,
+          };
         }
       });
 
       const allAudioResults = await Promise.all(audioUploadPromises);
-      uploadedUrls.audioFiles = allAudioResults.flat();
+      uploadedUrls.audioFiles = allAudioResults.flatMap(
+        (item) => item.uploadedVersions || []
+      );
+      uploadedUrls.audioAnalysis = allAudioResults[0]?.sourceAnalysis || null;
     }
 
     // Upload avatar

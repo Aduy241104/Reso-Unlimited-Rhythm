@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { PlanSnapshotSchema } from "./Subscription.js";
 
 const { Schema, model } = mongoose;
 
@@ -6,7 +7,10 @@ const TransactionSchema = new Schema(
     {
         userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
         subscriptionId: { type: Schema.Types.ObjectId, ref: "Subscription", index: true },
-        planId: { type: Schema.Types.ObjectId, ref: "Plan", required: true, index: true },
+        planId: { type: Schema.Types.ObjectId, ref: "Plan", index: true },
+        // Optional for backward compatibility with transactions created before
+        // immutable plan snapshots were introduced.
+        planSnapshot: { type: PlanSnapshotSchema, default: undefined },
 
         amount: { type: Number, required: true, min: 0 },
         tax: { type: Number, default: 0, min: 0 },
@@ -28,6 +32,15 @@ const TransactionSchema = new Schema(
         failedAt: { type: Date },
         failureReason: { type: String, default: "" },
         invoiceNumber: { type: String, trim: true, default: "", index: true },
+
+        confirmationEmailStatus: {
+            type: String,
+            enum: ["pending", "sending", "sent", "failed"],
+            default: "pending",
+        },
+        confirmationEmailSentAt: { type: Date, default: null },
+        confirmationEmailLastAttemptAt: { type: Date, default: null },
+        confirmationEmailError: { type: String, default: "" },
     },
     { timestamps: true }
 );

@@ -15,7 +15,7 @@ const getMyProfileByUserId = async (userId) => {
         throw new AppError("User does not exist.", 404);
     }
 
-    return userServiceHelper.formatCurrentUserProfile(user);
+    return await userServiceHelper.formatCurrentUserProfile(user);
 };
 
 const updateMyProfileByUserId = async (userId, payload, avatarFile) => {
@@ -61,7 +61,7 @@ const updateMyProfileByUserId = async (userId, payload, avatarFile) => {
         await userServiceHelper.deleteUserAvatarByUrl(previousAvatar);
     }
 
-    return userServiceHelper.formatCurrentUserProfile(user.toObject());
+    return await userServiceHelper.formatCurrentUserProfile(user.toObject());
 };
 
 const changeMyPasswordByUserId = async (userId, payload) => {

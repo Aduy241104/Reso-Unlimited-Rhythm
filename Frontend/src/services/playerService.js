@@ -1,6 +1,8 @@
+import axios from "axios";
 import axiosClient from "../axios/axiosClient";
 import { API_BASE_URL } from "../constants/auth";
 import { getStoredAccessToken } from "./authStorage";
+import { getOrCreateGuestId } from "./guestIdentity";
 
 const TRACK_API_PREFIX = "/api/tracks";
 const LISTEN_EVENT_API_PREFIX = "/api/listen-events";
@@ -191,9 +193,18 @@ export const resolveTrackMediaUrlForQuality = (track, preferredQuality = "") => 
       : preferredQuality?.label || "";
   const preferredQualityUrl =
     typeof preferredQuality === "string" ? "" : preferredQuality?.url || "";
+  const preferredQualityBitrate =
+    typeof preferredQuality === "string"
+      ? 0
+      : Number(preferredQuality?.bitrate) || 0;
   const normalizedPreferredLabel = normalizeAudioQualityLabel(preferredQualityLabel);
   const qualityOptions = resolveTrackAudioQualityOptions(track);
   const matchingQuality =
+    qualityOptions.find(
+      (quality) =>
+        preferredQualityBitrate > 0 &&
+        quality.bitrate === preferredQualityBitrate
+    ) ||
     qualityOptions.find((quality) => quality.url === preferredQualityUrl) ||
     qualityOptions.find((quality) => quality.label === normalizedPreferredLabel);
 
@@ -220,23 +231,29 @@ export const resolveTrackMediaUrlForQuality = (track, preferredQuality = "") => 
 };
 
 export const getTrackPlaybackService = async (trackId) => {
-  const response = await axiosClient.get(`${TRACK_API_PREFIX}/${trackId}/playback`);
+  const normalizedTrackId =
+    trackId === null || trackId === undefined ? "" : String(trackId).trim();
+  const playbackEndpoint = normalizedTrackId
+    ? `${TRACK_API_PREFIX}/${normalizedTrackId}/playback`
+    : `${TRACK_API_PREFIX}/playback`;
+  const response = await axiosClient.get(playbackEndpoint);
   return response?.data?.data?.track ?? null;
 };
 
 export const getTrackPlaybackSource = async (
   trackId,
-  { preferredQualityLabel = "", preferredQualityUrl = "" } = {}
+  {
+    preferredQualityLabel = "",
+    preferredQualityUrl = "",
+    preferredQualityBitrate = 0,
+  } = {}
 ) => {
-  if (!trackId) {
-    throw new Error("Track id is required to resolve playback source.");
-  }
-
   const playbackTrack = await getTrackPlaybackService(trackId);
-  const streamUrl = preferredQualityLabel || preferredQualityUrl
+  const streamUrl = preferredQualityLabel || preferredQualityUrl || preferredQualityBitrate
     ? resolveTrackMediaUrlForQuality(playbackTrack, {
         label: preferredQualityLabel,
         url: preferredQualityUrl,
+        bitrate: preferredQualityBitrate,
       })
     : resolveTrackMediaUrl(playbackTrack);
 
@@ -261,7 +278,10 @@ export const getTrackLyricsSyncTextService = async (trackOrLyricsUrl) => {
     throw new Error("Track playback does not include a synced lyrics URL.");
   }
 
-  const response = await axiosClient.get(lyricsSyncUrl, {
+  // Synced lyric files are often served from public third-party hosts such as
+  // Cloudinary. Use a plain request here so auth interceptors do not attach an
+  // Authorization header and trigger a CORS preflight/network error.
+  const response = await axios.get(lyricsSyncUrl, {
     responseType: "text",
   });
 
@@ -288,12 +308,13 @@ export const recordListenService = async ({
   source = "unknown",
 } = {}) => {
   const accessToken = getStoredAccessToken();
+  const guestId = accessToken ? null : getOrCreateGuestId();
   const normalizedListenedDuration = Math.max(
     Math.floor(Number(listenedDuration) || 0),
     0
   );
 
-  if (!accessToken || !trackId || normalizedListenedDuration <= 0) {
+  if ((!accessToken && !guestId) || !trackId || normalizedListenedDuration <= 0) {
     return null;
   }
 
@@ -302,6 +323,7 @@ export const recordListenService = async ({
       trackId,
       listenedDuration: normalizedListenedDuration,
       source: normalizeListenSource(source),
+      ...(guestId ? { guestId } : {}),
     });
   } catch (error) {
     if (error?.response?.status !== 401) {
