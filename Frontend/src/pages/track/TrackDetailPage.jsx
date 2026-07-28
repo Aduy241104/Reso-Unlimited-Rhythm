@@ -60,6 +60,20 @@ const getPlaylistTitle = (playlist) => {
   return "Danh s\u00e1ch ph\u00e1t ch\u01b0a \u0111\u1eb7t t\u00ean";
 };
 
+const getTrackArtistId = (track) => {
+  const artistId =
+    track?.artist?.id ||
+    track?.artist?._id ||
+    track?.artist?.artistId ||
+    track?.artistId?.id ||
+    track?.artistId?._id ||
+    track?.artistId;
+
+  return typeof artistId === "string" || typeof artistId === "number"
+    ? String(artistId).trim()
+    : "";
+};
+
 const TrackDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -167,12 +181,15 @@ const TrackDetailPage = () => {
 
   const trackImage = useMemo(
     () =>
-      (Array.isArray(track?.coverImage) ? track.coverImage[0] : track?.coverImage) ||
-      track?.avatar ||
-      track?.album?.coverImage ||
-      track?.artist?.coverImage ||
-      track?.artist?.avatar ||
+      (Array.isArray(track?.avatar) ? track.avatar[0] : track?.avatar) ||
       createPlaceholderImage(track?.title || "B\u00e0i h\u00e1t", "#1db954", "#07170c"),
+    [track]
+  );
+  const trackCoverImage = useMemo(
+    () =>
+      (Array.isArray(track?.coverImage)
+        ? track.coverImage[0]
+        : track?.coverImage) || "",
     [track]
   );
   const artistAvatar = useMemo(
@@ -188,6 +205,10 @@ const TrackDetailPage = () => {
   const listensLabel = formatListenCount(track?.stats?.totalPlay);
   const lyrics = track?.lyrics?.static?.trim?.() || "";
   const artistRole = track?.artist?.role || "Ngh\u1ec7 s\u0129";
+  const artistId = getTrackArtistId(track);
+  const artistHref = artistId
+    ? routePaths.artistBrowseProfile(artistId)
+    : undefined;
   const albumHref = track?.album?.id ? routePaths.albumDetail(track.album.id) : undefined;
   const trackId = track?.id;
 
@@ -311,9 +332,11 @@ const TrackDetailPage = () => {
       <div className="space-y-5 sm:space-y-6">
         <TrackDetailHero
           image={ trackImage }
+          coverImage={ trackCoverImage }
           title={ track?.title || "B\u00e0i h\u00e1t ch\u01b0a c\u00f3 t\u00ean" }
           artistName={ artistName }
           artistAvatar={ artistAvatar }
+          artistHref={ artistHref }
           albumTitle={ albumTitle }
           albumHref={ albumHref }
           releaseYear={ releaseYear }
@@ -382,6 +405,7 @@ const TrackDetailPage = () => {
           avatar={ artistAvatar }
           name={ artistName }
           role={ artistRole }
+          artistHref={ artistHref }
         />
       </div>
 
@@ -397,6 +421,7 @@ const TrackDetailPage = () => {
         onClose={ () => setIsInformationModalOpen(false) }
         track={ track }
         image={ trackImage }
+        artistHref={ artistHref }
       />
     </section>
   );

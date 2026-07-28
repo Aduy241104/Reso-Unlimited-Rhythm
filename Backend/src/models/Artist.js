@@ -24,10 +24,8 @@ const ArtistSchema = new Schema(
         },
 
         revenue: {
-            totalEarnedAmount: Number,
             totalWithdrawnAmount: Number,
             availableAmount: Number,
-            pendingPayoutAmount: Number,
             confirmedRevenueSummaryIds: [
                 {
                     type: Schema.Types.ObjectId,

@@ -69,8 +69,8 @@ const formatAdminArtistDetailItem = (
         demographics: advancedStats?.demographics?.countries || {},
         finance: revenueSummary
             ? {
-                availableAmount: revenueSummary.availableAmount || 0,
-                withdrawnAmount: revenueSummary.withdrawnAmount || 0,
+                availableAmount: artist.revenue?.availableAmount || 0,
+                withdrawnAmount: artist.revenue?.totalWithdrawnAmount || 0,
                 grossRevenueAmount: revenueSummary.grossRevenueAmount || 0,
                 lastCalculatedPeriod: `Month ${revenueSummary.month}/${revenueSummary.year}`,
                 status: revenueSummary.status,

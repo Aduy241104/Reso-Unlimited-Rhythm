@@ -1,6 +1,5 @@
 ﻿import mongoose from "mongoose";
 import Artist from "../../models/Artist.js";
-import ArtistRevenueSummary from "../../models/ArtistRevenueSummary.js";
 import User from "../../models/User.js";
 import WithdrawalRequest from "../../models/WithdrawalRequest.js";
 import { AppError } from "../../utils/AppError.js";
@@ -203,23 +202,17 @@ const rejectWithdrawalRequest = async (
 
     await withdrawalRequest.save();
 
-    const requestedAt = withdrawalRequest.requestedAt || withdrawalRequest.createdAt || new Date();
-    const revenuePeriod = {
-        year: requestedAt.getFullYear(),
-        month: requestedAt.getMonth() + 1,
-    };
-
-    const summaryUpdateResult = await ArtistRevenueSummary.updateOne(
+    const artistBalanceUpdateResult = await Artist.updateOne(
+        { _id: withdrawalRequest.artistId },
         {
-            artistId: withdrawalRequest.artistId,
-            year: revenuePeriod.year,
-            month: revenuePeriod.month,
-        },
-        { $inc: { availableAmount: withdrawalRequest.amount } }
+            $inc: {
+                "revenue.availableAmount": withdrawalRequest.amount,
+            },
+        }
     );
 
-    if (summaryUpdateResult.matchedCount === 0) {
-        throw new AppError("Artist revenue summary for this withdrawal period was not found.", 404);
+    if (artistBalanceUpdateResult.matchedCount === 0) {
+        throw new AppError("Artist for this withdrawal request was not found.", 404);
     }
 
     return populateWithdrawalRequestForAdmin(
@@ -250,31 +243,18 @@ const markWithdrawalRequestAsPaid = async (
     }
 
     const paidAt = new Date();
-    const requestedAt = withdrawalRequest.requestedAt || withdrawalRequest.createdAt || paidAt;
-    const revenuePeriod = {
-        year: requestedAt.getFullYear(),
-        month: requestedAt.getMonth() + 1,
-    };
-
-    await ArtistRevenueSummary.findOneAndUpdate(
+    const artistBalanceUpdateResult = await Artist.updateOne(
+        { _id: withdrawalRequest.artistId },
         {
-            artistId: withdrawalRequest.artistId,
-            year: revenuePeriod.year,
-            month: revenuePeriod.month,
-        },
-        {
-            $setOnInsert: {
-                artistId: withdrawalRequest.artistId,
-                year: revenuePeriod.year,
-                month: revenuePeriod.month,
+            $inc: {
+                "revenue.totalWithdrawnAmount": withdrawalRequest.amount,
             },
-            $inc: { withdrawnAmount: withdrawalRequest.amount },
-        },
-        {
-            new: true,
-            upsert: true,
         }
     );
+
+    if (artistBalanceUpdateResult.matchedCount === 0) {
+        throw new AppError("Artist for this withdrawal request was not found.", 404);
+    }
 
     withdrawalRequest.status = "paid";
     withdrawalRequest.paidAt = paidAt;

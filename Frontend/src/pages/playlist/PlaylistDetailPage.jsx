@@ -13,7 +13,7 @@ import { usePlayer } from "../../hooks/usePlayer";
 import useDominantColorGradient from "../../hooks/useDominantColorGradient";
 import { routePaths } from "../../routes/routePaths";
 import { getPlaylistDetailService } from "../../services/playlistService";
-import { formatTrackDuration } from "../../utils/albumDetail";
+import { formatTrackDuration, resolveTrackAvatar } from "../../utils/albumDetail";
 import { getApiErrorMessage } from "../../utils/apiError";
 import {
   formatPlaylistDate,
@@ -288,12 +288,7 @@ const PlaylistDetailPage = () => {
             { trackItems.map((trackItem, index) => {
               const track = trackItem?.track;
               const isTrackBlocked = isBlockedTrack(trackItem);
-              const trackImage =
-                track?.coverImage ||
-                track?.album?.coverImage ||
-                track?.artist?.avatar ||
-                playlistCoverImage ||
-                "";
+              const trackImage = resolveTrackAvatar(track);
 
               return (
                 <TrackCard
