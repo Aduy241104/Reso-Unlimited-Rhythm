@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  createElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Link } from "react-router-dom";
 import { Clock3, Headphones, LoaderCircle, Music2, Tags } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
@@ -15,7 +22,7 @@ const lightGraySoftBorderClassName = "border border-[#d1d5db]/20";
 const lightGrayDividerClassName = "border-[#d1d5db]/18";
 
 const panelClassName =
-  `rounded-[30px] ${lightGrayBorderClassName} bg-[#0b0b0b] shadow-[0_24px_70px_rgba(0,0,0,0.42)]`;
+  `rounded-[20px] ${lightGrayBorderClassName} bg-[#0b0b0b] shadow-[0_24px_70px_rgba(0,0,0,0.42)]`;
 
 const chartViewBox = { width: 940, height: 280 };
 const chartPadding = { top: 18, right: 18, bottom: 42, left: 44 };
@@ -93,11 +100,11 @@ const buildChartDateLabel = (item) => {
   return "";
 };
 
-const StatCard = ({ icon: Icon, label, value, hint }) => (
+const StatCard = ({ icon, label, value, hint }) => (
   <div className={`rounded-[22px] ${lightGraySoftBorderClassName} bg-white/[0.03] px-5 py-4`}>
     <div className="flex items-center gap-3">
       <div className={`flex h-11 w-11 items-center justify-center rounded-full ${lightGraySoftBorderClassName} bg-white/[0.04] text-white/88`}>
-        <Icon className="h-5 w-5" />
+        {createElement(icon, { className: "h-5 w-5" })}
       </div>
       <div className="min-w-0">
         <p className="text-xs uppercase tracking-[0.18em] text-white/38">
@@ -120,7 +127,7 @@ const ListeningBarChart = ({ chartData, chartMaxListenCount }) => {
       chartViewBox.height - chartPadding.top - chartPadding.bottom;
     const slotWidth =
       chartData.length > 0 ? innerWidth / chartData.length : innerWidth;
-    const barWidth = Math.min(slotWidth * 0.56, 58);
+    const barWidth = Math.min(slotWidth * 0.64, 64);
 
     const bars = chartData.map((item, index) => {
       const listenCount = Math.max(Number(item.listenCount) || 0, 0);
@@ -161,7 +168,9 @@ const ListeningBarChart = ({ chartData, chartMaxListenCount }) => {
   }, [chartMaxListenCount]);
 
   return (
-    <div className={`rounded-[26px] ${lightGrayBorderClassName} bg-[#060606] px-4 py-5 sm:px-5`}>
+    <div
+      className={`overflow-hidden rounded-[10px] ${lightGrayBorderClassName} bg-[#060606] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)] sm:p-4`}
+    >
       <svg
         viewBox={`0 0 ${chartViewBox.width} ${chartViewBox.height}`}
         className="h-[240px] w-full"
@@ -169,6 +178,16 @@ const ListeningBarChart = ({ chartData, chartMaxListenCount }) => {
         role="img"
         aria-label="Biểu đồ cột lượt nghe trong 7 ngày gần nhất"
       >
+        <rect
+          x={chartPadding.left}
+          y={chartPadding.top}
+          width={chartViewBox.width - chartPadding.left - chartPadding.right}
+          height={chartMetrics.innerHeight}
+          fill="rgba(255,255,255,0.012)"
+          stroke="rgba(255,255,255,0.1)"
+          strokeWidth="1"
+        />
+
         {axisStops.map((value) => {
           const ratio =
             chartMaxListenCount > 0
@@ -209,12 +228,24 @@ const ListeningBarChart = ({ chartData, chartMaxListenCount }) => {
               y={bar.y}
               width={bar.width}
               height={bar.height}
-              rx="12"
-              ry="12"
-              fill="#5c9fff"
+              rx="2"
+              ry="2"
+              fill="#60a5fa"
             >
               <title>{`${bar.label}: ${bar.listenCount} lượt nghe`}</title>
             </rect>
+            {bar.listenCount > 0 ? (
+              <text
+                x={bar.labelX}
+                y={Math.max(bar.y - 8, 12)}
+                textAnchor="middle"
+                fill="rgba(255,255,255,0.72)"
+                fontSize="11"
+                fontWeight="600"
+              >
+                {formatCount(bar.listenCount)}
+              </text>
+            ) : null}
             <text
               x={bar.labelX}
               y={chartViewBox.height - 14}
@@ -232,7 +263,7 @@ const ListeningBarChart = ({ chartData, chartMaxListenCount }) => {
 };
 
 const EmptyState = ({ title, description }) => (
-  <section className="rounded-[26px] border border-dashed border-[#d1d5db]/25 bg-[#080808] px-6 py-14 text-center">
+  <section className="rounded-[18px] border border-dashed border-[#d1d5db]/25 bg-[#080808] px-6 py-14 text-center">
     <p className="text-lg font-semibold text-white">{title}</p>
     <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-white/58">
       {description}
@@ -289,7 +320,7 @@ const PremiumRequiredState = () => (
   </main>
 );
 
-const InsightBadge = ({ icon: Icon, label, value, hint }) => (
+const InsightBadge = ({ icon, label, value, hint }) => (
   <div className={`rounded-[20px] ${lightGraySoftBorderClassName} bg-white/[0.03] p-4`}>
     <div className="flex items-start justify-between gap-3">
       <div>
@@ -299,7 +330,7 @@ const InsightBadge = ({ icon: Icon, label, value, hint }) => (
         <p className="mt-2 text-lg font-semibold text-white">{value}</p>
       </div>
       <div className={`flex h-10 w-10 items-center justify-center rounded-full ${lightGraySoftBorderClassName} bg-white/[0.04] text-white/88`}>
-        <Icon className="h-5 w-5" />
+        {createElement(icon, { className: "h-5 w-5" })}
       </div>
     </div>
     <p className="mt-3 text-sm leading-6 text-white/52">{hint}</p>
@@ -343,7 +374,7 @@ const UserInsightSection = ({ activity }) => {
       </div>
 
       <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
-        <section className={`rounded-[24px] ${lightGraySoftBorderClassName} bg-[#050505] p-5`}>
+        <section className={`rounded-[16px] ${lightGraySoftBorderClassName} bg-[#050505] p-5`}>
           <div>
             <p className="text-xs uppercase tracking-[0.24em] text-white/35">
               Top thể loại
@@ -392,7 +423,7 @@ const UserInsightSection = ({ activity }) => {
           )}
         </section>
 
-        <section className={`rounded-[24px] ${lightGraySoftBorderClassName} bg-[#050505] p-5`}>
+        <section className={`rounded-[16px] ${lightGraySoftBorderClassName} bg-[#050505] p-5`}>
           <div>
             <p className="text-xs uppercase tracking-[0.24em] text-white/35">
               Top bài hát
@@ -471,112 +502,86 @@ const UserInsightSection = ({ activity }) => {
 };
 
 const UserRecentListeningPage = () => {
-  const {
-    user,
-    isLoading: isAuthLoading,
-    refreshCurrentUser,
-  } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const [activity, setActivity] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
-  const [isPremiumResolved, setIsPremiumResolved] = useState(false);
-  const [hasPremiumPermission, setHasPremiumPermission] = useState(false);
+  const [premiumDeniedUserKey, setPremiumDeniedUserKey] = useState("");
+  const activeActivityRequestRef = useRef(null);
+  const currentUserKey = String(
+    user?.id || user?._id || user?.userId || user?.email || "anonymous"
+  );
+  const hasPremiumPermission = useMemo(
+    () =>
+      hasPremiumAccess(user) && premiumDeniedUserKey !== currentUserKey,
+    [currentUserKey, premiumDeniedUserKey, user]
+  );
 
   const loadActivity = useCallback(async ({ silent = false } = {}) => {
+    if (activeActivityRequestRef.current) {
+      return activeActivityRequestRef.current;
+    }
+
     if (!silent) {
       setIsLoading(true);
     }
 
     setErrorMessage("");
 
-    try {
-      const nextActivity = await getCurrentUserRecentListeningActivity();
-      setActivity(nextActivity);
-    } catch (error) {
-      if (isPremiumAccessDeniedError(error)) {
-        setActivity(null);
-        setErrorMessage("");
-        setHasPremiumPermission(false);
-        return;
-      }
+    const activityRequest = (async () => {
+      try {
+        const nextActivity = await getCurrentUserRecentListeningActivity();
+        setActivity(nextActivity);
+      } catch (error) {
+        if (isPremiumAccessDeniedError(error)) {
+          setActivity(null);
+          setErrorMessage("");
+          setPremiumDeniedUserKey(currentUserKey);
+          return;
+        }
 
-      if (!silent) {
-        setActivity(null);
-      }
+        if (!silent) {
+          setActivity(null);
+        }
 
-      setErrorMessage(
-        getApiErrorMessage(
-          error,
-          "Không thể tải hoạt động nghe gần đây lúc này."
-        )
-      );
-    } finally {
-      if (!silent) {
-        setIsLoading(false);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const resolvePremiumPermission = async () => {
-      if (!user) {
-        if (isMounted) {
-          setHasPremiumPermission(false);
-          setIsPremiumResolved(true);
+        setErrorMessage(
+          getApiErrorMessage(
+            error,
+            "Không thể tải hoạt động nghe gần đây lúc này."
+          )
+        );
+      } finally {
+        if (!silent) {
           setIsLoading(false);
         }
-        return;
-      }
 
-      setIsPremiumResolved(false);
-
-      try {
-        const latestUser = await refreshCurrentUser();
-
-        if (!isMounted) {
-          return;
-        }
-
-        setHasPremiumPermission(hasPremiumAccess(latestUser));
-      } catch {
-        if (!isMounted) {
-          return;
-        }
-
-        setHasPremiumPermission(hasPremiumAccess(user));
-      } finally {
-        if (isMounted) {
-          setIsPremiumResolved(true);
+        if (activeActivityRequestRef.current === activityRequest) {
+          activeActivityRequestRef.current = null;
         }
       }
-    };
+    })();
 
-    resolvePremiumPermission();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [refreshCurrentUser, user]);
+    activeActivityRequestRef.current = activityRequest;
+    return activityRequest;
+  }, [currentUserKey]);
 
   useEffect(() => {
-    if (!isPremiumResolved || !hasPremiumPermission) {
+    if (isAuthLoading) {
+      return;
+    }
+
+    if (!hasPremiumPermission) {
       setIsLoading(false);
       return;
     }
 
     loadActivity();
-  }, [hasPremiumPermission, isPremiumResolved, loadActivity]);
+  }, [hasPremiumPermission, isAuthLoading, loadActivity]);
 
   useEffect(() => {
     if (!hasPremiumPermission) {
       return undefined;
     }
-
-    const intervalId = window.setInterval(() => {
-      loadActivity({ silent: true });
-    }, 30000);
 
     const handleWindowFocus = () => {
       loadActivity({ silent: true });
@@ -585,7 +590,6 @@ const UserRecentListeningPage = () => {
     window.addEventListener("focus", handleWindowFocus);
 
     return () => {
-      window.clearInterval(intervalId);
       window.removeEventListener("focus", handleWindowFocus);
     };
   }, [hasPremiumPermission, loadActivity]);
@@ -642,7 +646,7 @@ const UserRecentListeningPage = () => {
     [summary.comparison]
   );
 
-  if (isAuthLoading || !isPremiumResolved || isLoading) {
+  if (isAuthLoading || isLoading) {
     return (
       <main className={pageShellClassName}>
         <section
@@ -724,7 +728,7 @@ const UserRecentListeningPage = () => {
         </section>
 
         {errorMessage ? (
-          <section className={`rounded-[24px] ${lightGrayBorderClassName} bg-[#111111] px-5 py-4 text-sm text-white/78`}>
+          <section className={`rounded-[16px] ${lightGrayBorderClassName} bg-[#111111] px-5 py-4 text-sm text-white/78`}>
             {errorMessage}
           </section>
         ) : null}

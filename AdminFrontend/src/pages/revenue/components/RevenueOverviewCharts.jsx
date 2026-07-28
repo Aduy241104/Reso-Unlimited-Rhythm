@@ -119,7 +119,7 @@ const ChartShell = ({
   children,
   className = "",
 }) => (
-  <article
+  <section
     className={`relative isolate overflow-hidden rounded-xl border p-5 shadow-[0_18px_45px_rgba(15,23,42,0.06)] ${className}`}
   >
     <div className="pointer-events-none absolute -right-16 -top-20 -z-10 h-52 w-52 rounded-full bg-white/70 blur-3xl" />
@@ -165,7 +165,7 @@ const ChartShell = ({
     <div className="mt-4 rounded-lg border border-white/90 bg-white/80 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-sm sm:p-3">
       {children}
     </div>
-  </article>
+  </section>
 );
 
 const RevenueOverviewCharts = ({ charts }) => {
@@ -431,78 +431,78 @@ const RevenueOverviewCharts = ({ charts }) => {
   }
 
   return (
-    <DashboardCard className="!rounded-xl overflow-hidden border-slate-200 bg-white">
-      <div className="flex flex-col gap-3 border-b border-slate-200 bg-[linear-gradient(135deg,#ffffff_0%,#f8fafc_100%)] px-5 py-5 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-600">
-            <TrendingUp size={14} />
-            Phân tích doanh thu
+    <section className="space-y-4">
+      <DashboardCard className="!rounded-xl border-slate-200 bg-white shadow-[0_12px_30px_rgba(15,23,42,0.04)]">
+        <div className="flex flex-col gap-3 bg-[linear-gradient(135deg,#ffffff_0%,#f8fafc_100%)] px-5 py-5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-600">
+              <TrendingUp size={14} />
+              Phân tích doanh thu
+            </div>
+            <h2 className="mt-2 text-xl font-bold tracking-tight text-slate-950">
+              Toàn cảnh biến động doanh thu
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              So sánh hiệu quả theo kỳ và theo dõi nhịp giao dịch gần nhất.
+            </p>
           </div>
-          <h2 className="mt-2 text-xl font-bold tracking-tight text-slate-950">
-            Toàn cảnh biến động doanh thu
-          </h2>
-          <p className="mt-1 text-sm text-slate-500">
-            So sánh hiệu quả theo kỳ và theo dõi nhịp giao dịch gần nhất.
-          </p>
+
+          <span className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]" />
+            Dữ liệu đã đồng bộ
+          </span>
         </div>
+      </DashboardCard>
 
-        <span className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
-          <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]" />
-          Dữ liệu đã đồng bộ
-        </span>
-      </div>
+      <ChartShell
+        eyebrow="Theo tháng"
+        title="Cơ cấu doanh thu qua các kỳ"
+        description="Premium, quỹ nghệ sĩ và phần doanh thu nền tảng."
+        icon={<CalendarDays size={19} />}
+        iconClassName="bg-blue-600 text-white"
+        metrics={[
+          {
+            label: "Kỳ gần nhất",
+            value: `${formatCompactCurrency(latestMonth?.premiumRevenue)} ₫`,
+          },
+          {
+            label: "Tăng trưởng",
+            value: formatPercentChange(monthlyChange),
+            valueClassName:
+              monthlyChange >= 0 ? "text-emerald-600" : "text-rose-600",
+          },
+        ]}
+        className="border-blue-100 bg-[linear-gradient(145deg,#eff6ff_0%,#f8fbff_46%,#eef2ff_100%)]"
+      >
+        <div className="h-[300px] lg:h-[360px]">
+          <canvas ref={monthlyRef} />
+        </div>
+      </ChartShell>
 
-      <div className="grid gap-5 p-5 xl:grid-cols-2">
-        <ChartShell
-          eyebrow="Theo tháng"
-          title="Cơ cấu doanh thu qua các kỳ"
-          description="Premium, quỹ nghệ sĩ và phần doanh thu nền tảng."
-          icon={<CalendarDays size={19} />}
-          iconClassName="bg-blue-600 text-white"
-          metrics={[
-            {
-              label: "Kỳ gần nhất",
-              value: `${formatCompactCurrency(latestMonth?.premiumRevenue)} ₫`,
-            },
-            {
-              label: "Tăng trưởng",
-              value: formatPercentChange(monthlyChange),
-              valueClassName:
-                monthlyChange >= 0 ? "text-emerald-600" : "text-rose-600",
-            },
-          ]}
-          className="border-blue-100 bg-[linear-gradient(145deg,#eff6ff_0%,#f8fbff_46%,#eef2ff_100%)]"
-        >
-          <div className="h-[300px]">
-            <canvas ref={monthlyRef} />
-          </div>
-        </ChartShell>
-
-        <ChartShell
-          eyebrow="14 ngày gần nhất"
-          title="Biến động doanh thu và giao dịch"
-          description="Theo dõi song song xu hướng doanh thu và giao dịch thành công mỗi ngày."
-          icon={<Activity size={19} />}
-          iconClassName="bg-violet-600 text-white"
-          metrics={[
-            {
-              label: "Doanh thu",
-              value: `${formatCompactCurrency(dailyRevenueTotal)} ₫`,
-            },
-            {
-              label: "Giao dịch",
-              value: formatNumber(dailyTransactionTotal),
-              valueClassName: "text-amber-600",
-            },
-          ]}
-          className="border-violet-100 bg-[linear-gradient(145deg,#faf5ff_0%,#fcfaff_48%,#fff7ed_100%)]"
-        >
-          <div className="h-[300px]">
-            <canvas ref={dailyRef} />
-          </div>
-        </ChartShell>
-      </div>
-    </DashboardCard>
+      <ChartShell
+        eyebrow="14 ngày gần nhất"
+        title="Biến động doanh thu và giao dịch"
+        description="Theo dõi song song xu hướng doanh thu và giao dịch thành công mỗi ngày."
+        icon={<Activity size={19} />}
+        iconClassName="bg-violet-600 text-white"
+        metrics={[
+          {
+            label: "Doanh thu",
+            value: `${formatCompactCurrency(dailyRevenueTotal)} ₫`,
+          },
+          {
+            label: "Giao dịch",
+            value: formatNumber(dailyTransactionTotal),
+            valueClassName: "text-amber-600",
+          },
+        ]}
+        className="border-violet-100 bg-[linear-gradient(145deg,#faf5ff_0%,#fcfaff_48%,#fff7ed_100%)]"
+      >
+        <div className="h-[300px] lg:h-[360px]">
+          <canvas ref={dailyRef} />
+        </div>
+      </ChartShell>
+    </section>
   );
 };
 

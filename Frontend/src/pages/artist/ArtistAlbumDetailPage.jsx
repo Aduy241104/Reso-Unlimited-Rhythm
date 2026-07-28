@@ -22,6 +22,7 @@ import {
   createPlaceholderImage,
   formatReleaseYear,
   formatTrackDuration,
+  resolveTrackAvatar,
   resolveAlbumTotalDurationSeconds,
 } from "../../utils/albumDetail";
 
@@ -412,11 +413,10 @@ const ArtistAlbumDetailPage = () => {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <img
-                            src={
-                              track.coverImage ||
-                              track.avatar ||
-                              createPlaceholderImage(track.title)
-                            }
+                            src={ resolveTrackAvatar(
+                              track,
+                              createPlaceholderImage(track.title),
+                            ) }
                             alt={track.title}
                             className="h-8 w-8 rounded object-cover"
                           />

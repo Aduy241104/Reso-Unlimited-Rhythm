@@ -451,10 +451,8 @@ const buildSeedData = async () => {
         },
         stats: { followers: 0, totalStreams: 0, monthlyListeners: 0 },
         revenue: {
-            totalEarnedAmount: 0,
             totalWithdrawnAmount: 0,
             availableAmount: 0,
-            pendingPayoutAmount: 0,
             confirmedRevenueSummaryIds: [],
         },
         payoutAccounts: [
@@ -1295,10 +1293,8 @@ const buildSeedData = async () => {
 
     artists.forEach((artist) => {
         const summaries = revenueSummaries.filter((item) => String(item.artistId) === String(artist._id));
-        artist.revenue.totalEarnedAmount = summaries.reduce((sum, item) => sum + item.artistRevenueAmount, 0);
         artist.revenue.totalWithdrawnAmount = summaries.reduce((sum, item) => sum + item.withdrawnAmount, 0);
         artist.revenue.availableAmount = summaries.reduce((sum, item) => sum + item.availableAmount, 0);
-        artist.revenue.pendingPayoutAmount = summaries.filter((item) => item.status !== "confirmed").reduce((sum, item) => sum + item.artistRevenueAmount, 0);
         artist.revenue.confirmedRevenueSummaryIds = summaries.filter((item) => item.status === "confirmed").map((item) => item._id);
     });
 

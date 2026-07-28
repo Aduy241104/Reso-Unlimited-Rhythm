@@ -9,9 +9,11 @@ const HeroMetaSeparator = () => (
 
 const TrackDetailHero = ({
   image,
+  coverImage,
   title,
   artistName,
   artistAvatar,
+  artistHref,
   albumTitle,
   albumHref,
   releaseYear,
@@ -22,10 +24,28 @@ const TrackDetailHero = ({
 
   return (
     <section className="relative overflow-hidden rounded-[10px] shadow-[0_30px_90px_rgba(0,0,0,0.34)]">
-      <div
-        className="absolute inset-0 transition-[background-image] duration-500"
-        style={{ backgroundImage: headerGradient }}
-      />
+      { coverImage ? (
+        <>
+          <img
+            src={ coverImage }
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full scale-110 object-cover opacity-45 blur-2xl"
+          />
+          <img
+            src={ coverImage }
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-contain object-center"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/55 to-[#121212]" />
+        </>
+      ) : (
+        <div
+          className="absolute inset-0 transition-[background-image] duration-500"
+          style={{ backgroundImage: headerGradient }}
+        />
+      ) }
       <div className="relative px-4 pb-5 pt-4 sm:px-5 sm:pb-6 sm:pt-6 lg:px-6 lg:pb-10">
         <div className="flex flex-col items-center gap-6 text-center md:flex-row md:items-end md:text-left">
           <div
@@ -50,14 +70,31 @@ const TrackDetailHero = ({
             </h1>
 
             <div className="mt-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-sm text-white/82 sm:text-[15px] md:justify-start">
-              <div className="flex items-center gap-3">
-                <img
-                  src={ artistAvatar }
-                  alt={ artistName }
-                  className="h-9 w-9 rounded-full border border-white/15 object-cover"
-                />
-                <span className="font-medium text-white">{ artistName }</span>
-              </div>
+              { artistHref ? (
+                <Link
+                  to={ artistHref }
+                  className="group flex items-center gap-3 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                  aria-label={ `Xem trang cá nhân của ${artistName}` }
+                >
+                  <img
+                    src={ artistAvatar }
+                    alt=""
+                    className="h-9 w-9 rounded-full border border-white/15 object-cover transition group-hover:border-white/40"
+                  />
+                  <span className="font-medium text-white group-hover:underline">
+                    { artistName }
+                  </span>
+                </Link>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <img
+                    src={ artistAvatar }
+                    alt={ artistName }
+                    className="h-9 w-9 rounded-full border border-white/15 object-cover"
+                  />
+                  <span className="font-medium text-white">{ artistName }</span>
+                </div>
+              ) }
               <HeroMetaSeparator />
               { albumHref ? (
                 <Link to={ albumHref } className="font-medium text-white/88 transition hover:text-white hover:underline">

@@ -480,11 +480,11 @@ const updateTrackApprovalStatus = async (
         }
 
         track.approvalStatus = "approved";
-
-        if (track.activeStatus === "draft") {
-            track.activeStatus = "active";
+        if (hasPendingUpdateUnderReview) {
+            track.activeStatus = track.activeStatus || "active";
+        } else {
+            track.activeStatus = "hidden";
         }
-
         track.rejectReason = "";
 
         if (track.copyright) {
