@@ -8,9 +8,11 @@ import {
   Eye,
   EyeOff,
   FileText,
+  LockKeyhole,
   Music4,
   Pencil,
   Send,
+  ShieldAlert,
   ShieldCheck,
   Trash2,
   X,
@@ -20,7 +22,10 @@ import ConfirmActionModal from "../../components/common/ConfirmActionModal";
 import { usePlayer } from "../../hooks/usePlayer";
 import { routePaths } from "../../routes/routePaths";
 import { trackService } from "../../services/trackService";
-import { getApiErrorFullMessage, getApiErrorMessage } from "../../utils/apiError";
+import {
+  showArtistError,
+  showArtistSuccess,
+} from "../../utils/artistNotification";
 import {
   canArtistEditTrack,
   canArtistSubmitTrack,
@@ -40,6 +45,16 @@ import {
   getTrackReleaseStatusMeta,
   resolveTrackArtwork,
 } from "../../utils/artistTrackPresentation";
+
+const VIOLATION_FLAG_LABELS = {
+  copyright: "Vi phạm bản quyền",
+  missing_rights_proof: "Thiếu bằng chứng quyền sở hữu",
+  wrong_metadata: "Thông tin bài hát không chính xác",
+  low_audio_quality: "Chất lượng âm thanh thấp",
+  explicit_content: "Nội dung nhạy cảm chưa được khai báo",
+  duplicate_track: "Bài hát bị trùng lặp",
+  other: "Vi phạm khác",
+};
 
 const MetricCard = ({ icon, label, value, helper }) => {
   const IconComponent = icon;
@@ -100,8 +115,6 @@ const ArtistTrackDetailPage = () => {
   const [track, setTrack] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
-  const [actionMessage, setActionMessage] = useState("");
-  const [actionError, setActionError] = useState("");
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [isSubmitConfirmOpen, setIsSubmitConfirmOpen] = useState(false);
   const [isLyricsModalOpen, setIsLyricsModalOpen] = useState(false);
@@ -121,15 +134,15 @@ const ArtistTrackDetailPage = () => {
         }
 
         setTrack(detail);
-      } catch (error) {
+      } catch {
         if (!isMounted) {
           return;
         }
 
+        const message = "Không thể tải bài hát này vào lúc này.";
         setTrack(null);
-        setErrorMessage(
-          getApiErrorMessage(error, "Không thể tải bài hát này lúc này.")
-        );
+        setErrorMessage(message);
+        showArtistError(message);
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -138,8 +151,10 @@ const ArtistTrackDetailPage = () => {
     };
 
     if (!id) {
+      const message = "Không tìm thấy mã bài hát.";
       setTrack(null);
-      setErrorMessage("Thiếu mã bài hát.");
+      setErrorMessage(message);
+      showArtistError(message);
       setIsLoading(false);
       return () => {
         isMounted = false;
@@ -152,6 +167,18 @@ const ArtistTrackDetailPage = () => {
       isMounted = false;
     };
   }, [id]);
+
+  useEffect(() => {
+    if (!location.state?.message) {
+      return;
+    }
+
+    showArtistSuccess(location.state.message);
+    navigate(`${location.pathname}${location.search}`, {
+      replace: true,
+      state: { ...location.state, message: null },
+    });
+  }, [location.pathname, location.search, location.state, navigate]);
 
   const artwork = useMemo(
     () => resolveTrackArtwork(track || { title: "Bài hát" }),
@@ -171,6 +198,9 @@ const ArtistTrackDetailPage = () => {
   const activeMeta = getTrackActiveStatusMeta(track?.activeStatus);
   const approvalMeta = getTrackApprovalStatusMeta(getArtistTrackReviewStatus(track));
   const releaseMeta = getTrackReleaseStatusMeta(track?.releaseStatus);
+  const violationFlags = Array.isArray(track?.moderation?.violationFlags)
+    ? track.moderation.violationFlags
+    : [];
 
   const handlePlay = async () => {
     if (!track) {
@@ -178,7 +208,7 @@ const ArtistTrackDetailPage = () => {
     }
 
     if (!canPlayTrack) {
-      setActionError(
+      showArtistError(
         "Bài hát chỉ có thể phát khi đang phát hành, đã được duyệt và có file âm thanh."
       );
       return;
@@ -218,7 +248,7 @@ const ArtistTrackDetailPage = () => {
     }
 
     if (!canEdit) {
-      setActionError("Bài hát này hiện đang bị khóa chỉnh sửa.");
+      showArtistError("Bài hát này hiện đang bị khóa chỉnh sửa.");
       return;
     }
 
@@ -231,7 +261,7 @@ const ArtistTrackDetailPage = () => {
     }
 
     if (submitIssues.length > 0) {
-      setActionError(
+      showArtistError(
         `Vui lòng hoàn thiện các mục sau trước khi gửi duyệt:\n${submitIssues
           .map((item) => `- ${item}`)
           .join("\n")}`
@@ -240,19 +270,15 @@ const ArtistTrackDetailPage = () => {
       return;
     }
 
-    setActionError("");
-    setActionMessage("");
     setIsActionLoading(true);
     setIsSubmitConfirmOpen(false);
 
     try {
       const updatedTrack = await trackService.submitForApproval(track._id);
       setTrack(updatedTrack);
-      setActionMessage("Đã gửi bài hát để duyệt thành công.");
-    } catch (error) {
-      setActionError(
-        getApiErrorFullMessage(error, "Không thể gửi bài hát này để duyệt.")
-      );
+      showArtistSuccess("Đã gửi bài hát để duyệt thành công.");
+    } catch {
+      showArtistError("Không thể gửi bài hát này để duyệt.");
     } finally {
       setIsActionLoading(false);
     }
@@ -272,25 +298,21 @@ const ArtistTrackDetailPage = () => {
     }
 
     if (track.releaseStatus === "scheduled") {
-      setActionError(
+      showArtistError(
         "Bài hát đang có lịch phát hành. Hãy hủy lịch trước khi thay đổi trạng thái hiển thị."
       );
       return;
     }
 
     if (track.activeStatus === "hidden") {
-      setActionError("");
-      setActionMessage("");
       setIsActionLoading(true);
 
       try {
         const updatedTrack = await trackService.unhideArtistTrack(track._id);
         setTrack(updatedTrack);
-        setActionMessage("Đã hiển thị lại bài hát thành công.");
-      } catch (error) {
-        setActionError(
-          getApiErrorMessage(error, "Không thể hiển thị lại bài hát này lúc này.")
-        );
+        showArtistSuccess("Đã hiển thị lại bài hát thành công.");
+      } catch {
+        showArtistError("Không thể hiển thị lại bài hát này vào lúc này.");
       } finally {
         setIsActionLoading(false);
       }
@@ -298,18 +320,14 @@ const ArtistTrackDetailPage = () => {
       return;
     }
 
-    setActionError("");
-    setActionMessage("");
     setIsActionLoading(true);
 
     try {
       const updatedTrack = await trackService.hideArtistTrack(track._id);
       setTrack(updatedTrack);
-      setActionMessage("Đã ẩn bài hát thành công.");
-    } catch (error) {
-      setActionError(
-        getApiErrorMessage(error, "Không thể ẩn bài hát này lúc này.")
-      );
+      showArtistSuccess("Đã ẩn bài hát thành công.");
+    } catch {
+      showArtistError("Không thể ẩn bài hát này vào lúc này.");
     } finally {
       setIsActionLoading(false);
     }
@@ -328,19 +346,14 @@ const ArtistTrackDetailPage = () => {
       return;
     }
 
-    setActionError("");
-    setActionMessage("");
     setIsActionLoading(true);
 
     try {
       await trackService.deleteArtistTrack(track._id);
-      navigate(routePaths.artistMusic, {
-        state: { message: "Đã xóa bài hát thành công." },
-      });
-    } catch (error) {
-      setActionError(
-        getApiErrorMessage(error, "Không thể xóa bài hát này lúc này.")
-      );
+      showArtistSuccess("Đã xóa bài hát thành công.");
+      navigate(routePaths.artistMusic, { replace: true });
+    } catch {
+      showArtistError("Không thể xóa bài hát này vào lúc này.");
     } finally {
       setIsActionLoading(false);
     }
@@ -374,12 +387,6 @@ const ArtistTrackDetailPage = () => {
         Quay lại quản lý bài hát
       </button>
 
-      {location.state?.message ? (
-        <div className="rounded-[22px] border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
-          {location.state.message}
-        </div>
-      ) : null}
-
       {track?.pendingUpdate?.status === "pending" ? (
         <div className="rounded-[22px] border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
           Bản chỉnh sửa mới đang chờ admin duyệt. Người nghe hiện vẫn nghe phiên bản đang phát hành.
@@ -389,18 +396,6 @@ const ArtistTrackDetailPage = () => {
       {track?.pendingUpdate?.status === "rejected" && track?.pendingUpdate?.rejectReason ? (
         <div className="rounded-[22px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
           Bản chỉnh sửa trước bị từ chối: {track.pendingUpdate.rejectReason}
-        </div>
-      ) : null}
-
-      {actionMessage ? (
-        <div className="rounded-[22px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          {actionMessage}
-        </div>
-      ) : null}
-
-      {actionError ? (
-        <div className="whitespace-pre-line rounded-[22px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          {actionError}
         </div>
       ) : null}
 
@@ -693,11 +688,7 @@ const ArtistTrackDetailPage = () => {
               {canSubmit ? (
                 <button
                   type="button"
-                  onClick={() => {
-                    setActionError("");
-                    setActionMessage("");
-                    setIsSubmitConfirmOpen(true);
-                  }}
+                  onClick={() => setIsSubmitConfirmOpen(true)}
                   disabled={isActionLoading || submitIssues.length > 0}
                   className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
                 >
@@ -750,6 +741,39 @@ const ArtistTrackDetailPage = () => {
                   <li key={issue}>{issue}</li>
                 ))}
               </ul>
+            </div>
+          ) : null}
+
+          {track?.activeStatus === "blocked" ? (
+            <div className="rounded-[28px] border border-rose-300 bg-rose-50 p-5 text-sm text-rose-950 shadow-[0_12px_35px_rgba(32,23,71,0.04)]">
+              <div className="flex items-center gap-2">
+                <LockKeyhole className="h-4 w-4 shrink-0" />
+                <p className="font-semibold">Lý do track bị khóa</p>
+              </div>
+              <p className="mt-3 leading-6">
+                {track.blockedReason?.trim() ||
+                  "Track đã bị khóa bởi quản trị viên. Hiện chưa có lý do chi tiết."}
+              </p>
+            </div>
+          ) : null}
+
+          {violationFlags.length > 0 ? (
+            <div className="rounded-[28px] border border-orange-200 bg-orange-50 p-5 text-sm text-orange-950 shadow-[0_12px_35px_rgba(32,23,71,0.04)]">
+              <div className="flex items-center gap-2">
+                <ShieldAlert className="h-4 w-4 shrink-0" />
+                <p className="font-semibold">Vi phạm được ghi nhận</p>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {violationFlags.map((flag) => (
+                  <span
+                    key={flag}
+                    className="rounded-full border border-orange-200 bg-white px-3 py-1.5 text-xs font-medium text-orange-900"
+                  >
+                    {VIOLATION_FLAG_LABELS[flag] ||
+                      String(flag).replaceAll("_", " ")}
+                  </span>
+                ))}
+              </div>
             </div>
           ) : null}
 

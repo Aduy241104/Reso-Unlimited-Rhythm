@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import trackService from "../../services/trackService";
 import genreService from "../../services/genreService";
 import { routePaths } from "../../routes/routePaths";
-import { getApiErrorFullMessage } from "../../utils/apiError";
+import { showArtistError } from "../../utils/artistNotification";
 import {
   MAX_GENRE_IDS,
   TITLE_MAX_LENGTH,
@@ -82,7 +82,6 @@ const CreateTrackForm = () => {
   const [uploadingQualities, setUploadingQualities] = useState(false);
   const [uploadedQualities, setUploadedQualities] = useState([]);
   const [uploadedAudioAnalysis, setUploadedAudioAnalysis] = useState(null);
-  const [errorMessage, setErrorMessage] = useState("");
   const [genres, setGenres] = useState([]);
   const [genresLoading, setGenresLoading] = useState(true);
   const [genresOpen, setGenresOpen] = useState(false);
@@ -204,7 +203,7 @@ const CreateTrackForm = () => {
       }
 
       if (prev.genreIds.length >= MAX_GENRE_IDS) {
-        setErrorMessage(`Bạn chỉ có thể chọn tối đa ${MAX_GENRE_IDS} thể loại.`);
+        showArtistError(`Bạn chỉ có thể chọn tối đa ${MAX_GENRE_IDS} thể loại.`);
         return prev;
       }
 
@@ -217,7 +216,6 @@ const CreateTrackForm = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setErrorMessage("");
     setFieldErrors({});
 
     const errors = {};
@@ -309,8 +307,8 @@ const CreateTrackForm = () => {
           },
         });
       }
-    } catch (error) {
-      setErrorMessage(getApiErrorFullMessage(error, "Không thể tạo bài hát lúc này."));
+    } catch {
+      showArtistError("Không thể tạo bài hát vào lúc này.");
       setUploadingQualities(false);
     } finally {
       setLoading(false);
@@ -320,12 +318,6 @@ const CreateTrackForm = () => {
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_290px] 2xl:grid-cols-[minmax(0,1.55fr)_320px]">
       <form id={formId} onSubmit={handleSubmit} className="space-y-6">
-        {errorMessage ? (
-          <div className="rounded-[22px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-            {errorMessage}
-          </div>
-        ) : null}
-
         <SectionCard
           icon={Music4}
           eyebrow="Tổng quan"

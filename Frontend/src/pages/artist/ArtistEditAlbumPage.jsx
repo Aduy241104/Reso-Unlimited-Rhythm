@@ -7,6 +7,10 @@ import {
 } from "../../services/artist/artistAlbumService";
 import { routePaths } from "../../routes/routePaths";
 import { getApiErrorMessage } from "../../utils/apiError";
+import {
+  showArtistError,
+  showArtistSuccess,
+} from "../../utils/artistNotification";
 
 const ArtistEditAlbumPage = () => {
   const navigate = useNavigate();
@@ -14,8 +18,6 @@ const ArtistEditAlbumPage = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingAlbum, setIsLoadingAlbum] = useState(true);
-  const [successMessage, setSuccessMessage] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
   const [loadError, setLoadError] = useState("");
 
   const [formData, setFormData] = useState({
@@ -37,7 +39,7 @@ const ArtistEditAlbumPage = () => {
         const album = await getArtistAlbumDetailService(albumId);
 
         if (!album) {
-          setLoadError("Album not found");
+          setLoadError("Không tìm thấy album.");
           return;
         }
 
@@ -51,7 +53,7 @@ const ArtistEditAlbumPage = () => {
         }));
       } catch (error) {
         setLoadError(
-          getApiErrorMessage(error, "Failed to load album details")
+          getApiErrorMessage(error, "Không thể tải thông tin album.")
         );
       } finally {
         setIsLoadingAlbum(false);
@@ -81,7 +83,7 @@ const ArtistEditAlbumPage = () => {
       if (!file.type.startsWith("image/")) {
         setFormErrors((prev) => ({
           ...prev,
-          coverImage: "Please select a valid image file",
+          coverImage: "Vui lòng chọn tệp ảnh hợp lệ.",
         }));
         return;
       }
@@ -117,11 +119,11 @@ const ArtistEditAlbumPage = () => {
     const errors = {};
 
     if (!formData.title.trim()) {
-      errors.title = "Album title is required";
+      errors.title = "Vui lòng nhập tên album.";
     }
 
     if (formData.releaseDate && isNaN(new Date(formData.releaseDate).getTime())) {
-      errors.releaseDate = "Please enter a valid date";
+      errors.releaseDate = "Vui lòng nhập ngày hợp lệ.";
     }
 
     setFormErrors(errors);
@@ -136,8 +138,6 @@ const ArtistEditAlbumPage = () => {
     }
 
     setIsLoading(true);
-    setErrorMessage("");
-    setSuccessMessage("");
 
     try {
       const payload = new FormData();
@@ -153,15 +153,13 @@ const ArtistEditAlbumPage = () => {
 
       await editAlbumService(albumId, payload);
 
-      setSuccessMessage("Album updated successfully! Redirecting...");
+      showArtistSuccess("Đã cập nhật album thành công.");
 
       setTimeout(() => {
         navigate(routePaths.artistAlbumDetail(albumId));
       }, 1500);
-    } catch (error) {
-      setErrorMessage(
-        getApiErrorMessage(error, "Failed to update album. Please try again.")
-      );
+    } catch {
+      showArtistError("Không thể cập nhật album. Vui lòng thử lại.");
     } finally {
       setIsLoading(false);
     }
@@ -230,18 +228,6 @@ const ArtistEditAlbumPage = () => {
               Update your album information and cover image.
             </p>
           </div>
-
-          {errorMessage && (
-            <div className="mb-4 rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-              {errorMessage}
-            </div>
-          )}
-
-          {successMessage && (
-            <div className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-              {successMessage}
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Title */}

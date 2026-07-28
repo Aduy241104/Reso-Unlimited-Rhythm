@@ -4,6 +4,10 @@ import { Loader2, Music2, Save, Search } from "lucide-react";
 import trackService from "../../services/trackService";
 import lyricsService from "../../services/lyricsService";
 import { getApiErrorMessage } from "../../utils/apiError";
+import {
+  showArtistError,
+  showArtistSuccess,
+} from "../../utils/artistNotification";
 
 const ArtistLyricsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -16,7 +20,6 @@ const ArtistLyricsPage = () => {
   const [query, setQuery] = useState("");
   const [lyricsStatic, setLyricsStatic] = useState("");
   const [initialLyrics, setInitialLyrics] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [lyricsFile, setLyricsFile] = useState(null);
   const [uploadingSync, setUploadingSync] = useState(false);
@@ -54,7 +57,7 @@ const ArtistLyricsPage = () => {
         }
 
         setTracks([]);
-        setErrorMessage(getApiErrorMessage(error, "Unable to load your tracks right now."));
+        setErrorMessage(getApiErrorMessage(error, "Không thể tải danh sách bài hát vào lúc này."));
       } finally {
         if (isMounted) {
           setTracksLoading(false);
@@ -101,7 +104,7 @@ const ArtistLyricsPage = () => {
         setSelectedTrack(null);
         setLyricsStatic("");
         setInitialLyrics("");
-        setErrorMessage(getApiErrorMessage(error, "Unable to load track lyrics right now."));
+        setErrorMessage(getApiErrorMessage(error, "Không thể tải lời bài hát vào lúc này."));
       } finally {
         if (isMounted) {
           setTrackLoading(false);
@@ -175,7 +178,6 @@ const ArtistLyricsPage = () => {
   const handleSelectTrack = (trackId) => {
     setSelectedTrackId(String(trackId));
     setSearchParams({ trackId: String(trackId) }, { replace: true });
-    setSuccessMessage("");
     setErrorMessage("");
   };
 
@@ -187,7 +189,6 @@ const ArtistLyricsPage = () => {
     }
 
     setSaving(true);
-    setSuccessMessage("");
     setErrorMessage("");
 
     try {
@@ -199,9 +200,9 @@ const ArtistLyricsPage = () => {
       setTracks((current) =>
         current.map((track) => (String(track._id) === String(updatedTrack?._id) ? updatedTrack : track))
       );
-      setSuccessMessage("Static lyrics saved successfully.");
-    } catch (error) {
-      setErrorMessage(getApiErrorMessage(error, "Failed to save lyrics."));
+      showArtistSuccess("Đã lưu lời bài hát thành công.");
+    } catch {
+      showArtistError("Không thể lưu lời bài hát vào lúc này.");
     } finally {
       setSaving(false);
     }
@@ -212,7 +213,6 @@ const ArtistLyricsPage = () => {
     if (!selectedTrackId || !lyricsFile) return;
 
     setUploadingSync(true);
-    setSuccessMessage("");
     setErrorMessage("");
 
     try {
@@ -222,10 +222,10 @@ const ArtistLyricsPage = () => {
       setTracks((current) =>
         current.map((track) => (String(track._id) === String(updatedTrack?._id) ? updatedTrack : track))
       );
-      setSuccessMessage("Synced lyrics updated successfully.");
+      showArtistSuccess("Đã cập nhật lời bài hát đồng bộ thành công.");
       setLyricsFile(null);
-    } catch (error) {
-      setErrorMessage(getApiErrorMessage(error, "Failed to upload synced lyrics."));
+    } catch {
+      showArtistError("Không thể tải lên lời bài hát đồng bộ vào lúc này.");
     } finally {
       setUploadingSync(false);
     }
@@ -267,12 +267,6 @@ const ArtistLyricsPage = () => {
       {errorMessage ? (
         <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
           {errorMessage}
-        </div>
-      ) : null}
-
-      {successMessage ? (
-        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          {successMessage}
         </div>
       ) : null}
 

@@ -5,6 +5,10 @@ import { getArtistAlbumsService, hideAlbumService, unhideAlbumService } from "..
 import { routePaths } from "../../routes/routePaths";
 import { getApiErrorMessage } from "../../utils/apiError";
 import {
+  showArtistError,
+  showArtistSuccess,
+} from "../../utils/artistNotification";
+import {
   createPlaceholderImage,
   formatReleaseYear,
   formatTrackDuration,
@@ -56,7 +60,7 @@ const ArtistAlbumPage = () => {
         setAlbums([]);
         setPagination(null);
         setErrorMessage(
-          getApiErrorMessage(error, "Unable to load albums from the backend right now.")
+          getApiErrorMessage(error, "Không thể tải danh sách album vào lúc này.")
         );
       } finally {
         if (isMounted) {
@@ -110,10 +114,9 @@ const ArtistAlbumPage = () => {
         )
       );
       setHideConfirm(null);
-    } catch (error) {
-      setErrorMessage(
-        getApiErrorMessage(error, "Failed to hide album. Please try again.")
-      );
+      showArtistSuccess("Đã ẩn album thành công.");
+    } catch {
+      showArtistError("Không thể ẩn album. Vui lòng thử lại.");
     } finally {
       setIsHiding(false);
     }
@@ -134,10 +137,9 @@ const ArtistAlbumPage = () => {
         )
       );
       setHideConfirm(null);
-    } catch (error) {
-      setErrorMessage(
-        getApiErrorMessage(error, "Failed to unhide album. Please try again.")
-      );
+      showArtistSuccess("Đã hiển thị lại album thành công.");
+    } catch {
+      showArtistError("Không thể hiển thị lại album. Vui lòng thử lại.");
     } finally {
       setIsHiding(false);
     }

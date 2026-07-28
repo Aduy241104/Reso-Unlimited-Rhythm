@@ -17,6 +17,10 @@ import {
 import { getArtistTracksService } from "../../services/artist/artistTrackService";
 import { routePaths } from "../../routes/routePaths";
 import { getApiErrorMessage } from "../../utils/apiError";
+import {
+  showArtistError,
+  showArtistSuccess,
+} from "../../utils/artistNotification";
 import ConfirmActionModal from "../../components/common/ConfirmActionModal";
 import {
   createPlaceholderImage,
@@ -41,7 +45,6 @@ const ArtistAlbumDetailPage = () => {
   const [isRemovingTrack, setIsRemovingTrack] = useState(false);
   const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
   const [isPublishingAlbum, setIsPublishingAlbum] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
     let isMounted = true;
@@ -49,7 +52,6 @@ const ArtistAlbumDetailPage = () => {
     const loadAlbumDetail = async () => {
       setIsLoading(true);
       setErrorMessage("");
-      setSuccessMessage("");
 
       try {
         const albumDetail = await getArtistAlbumDetailService(id);
@@ -68,7 +70,7 @@ const ArtistAlbumDetailPage = () => {
         setErrorMessage(
           getApiErrorMessage(
             error,
-            "Unable to load album detail from the backend right now.",
+            "Không thể tải chi tiết album vào lúc này.",
           ),
         );
       } finally {
@@ -80,7 +82,7 @@ const ArtistAlbumDetailPage = () => {
 
     if (!id) {
       setAlbum(null);
-      setErrorMessage("Album id is missing.");
+      setErrorMessage("Không tìm thấy mã album.");
       setIsLoading(false);
       return;
     }
@@ -103,8 +105,8 @@ const ArtistAlbumDetailPage = () => {
         (track) => !currentTrackIds.includes(String(track._id)),
       );
       setAvailableTracks(filteredTracks);
-    } catch (error) {
-      setErrorMessage(getApiErrorMessage(error, "Failed to load tracks"));
+    } catch {
+      showArtistError("Không thể tải danh sách bài hát để thêm vào album.");
     } finally {
       setTracksLoading(false);
     }
@@ -129,11 +131,9 @@ const ArtistAlbumDetailPage = () => {
       setAlbum(updatedAlbum);
       setSelectedTracks([]);
       setShowAddTracksModal(false);
-      setSuccessMessage("Đã thêm bài hát vào album.");
-    } catch (error) {
-      setErrorMessage(
-        getApiErrorMessage(error, "Failed to add tracks to album"),
-      );
+      showArtistSuccess("Đã thêm bài hát vào album.");
+    } catch {
+      showArtistError("Không thể thêm bài hát vào album.");
     } finally {
       setIsAddingTracks(false);
     }
@@ -151,15 +151,13 @@ const ArtistAlbumDetailPage = () => {
 
       setAlbum(updatedAlbum);
       setRemoveConfirm(null);
-      setSuccessMessage(
+      showArtistSuccess(
         previousStatus === "active" && updatedAlbum?.status === "draft"
           ? "Đã gỡ bài hát. Album đã chuyển về nháp vì hiện còn dưới 2 bài hát."
           : "Đã gỡ bài hát khỏi album."
       );
-    } catch (error) {
-      setErrorMessage(
-        getApiErrorMessage(error, "Failed to remove track from album"),
-      );
+    } catch {
+      showArtistError("Không thể gỡ bài hát khỏi album.");
     } finally {
       setIsRemovingTrack(false);
     }
@@ -176,11 +174,9 @@ const ArtistAlbumDetailPage = () => {
         status: updatedAlbum?.status || "active",
       }));
       setPublishConfirmOpen(false);
-      setSuccessMessage("Album đã được công khai thành công.");
-    } catch (error) {
-      setErrorMessage(
-        getApiErrorMessage(error, "Không thể công khai album lúc này.")
-      );
+      showArtistSuccess("Album đã được công khai thành công.");
+    } catch {
+      showArtistError("Không thể công khai album vào lúc này.");
     } finally {
       setIsPublishingAlbum(false);
     }
@@ -282,12 +278,6 @@ const ArtistAlbumDetailPage = () => {
       {errorMessage ? (
         <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {errorMessage}
-        </div>
-      ) : null}
-
-      {successMessage ? (
-        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-          {successMessage}
         </div>
       ) : null}
 

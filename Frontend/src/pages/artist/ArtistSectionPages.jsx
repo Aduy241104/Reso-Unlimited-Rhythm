@@ -20,7 +20,10 @@ import ConfirmActionModal from "../../components/common/ConfirmActionModal";
 import ArtistSectionPage from "./ArtistSectionPage";
 import trackService from "../../services/trackService";
 import { routePaths } from "../../routes/routePaths";
-import { getApiErrorFullMessage } from "../../utils/apiError";
+import {
+  showArtistError,
+  showArtistSuccess,
+} from "../../utils/artistNotification";
 import {
   canArtistSubmitTrack,
   getArtistTrackReviewStatus,
@@ -365,8 +368,6 @@ export const MyMusicPage = () => {
   const [tracks, setTracks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
-  const [actionMessage, setActionMessage] = useState("");
-  const [actionError, setActionError] = useState("");
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [submitTarget, setSubmitTarget] = useState(null);
   const [activeTab, setActiveTab] = useState("all");
@@ -423,6 +424,18 @@ export const MyMusicPage = () => {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!location.state?.message) {
+      return;
+    }
+
+    showArtistSuccess(location.state.message);
+    navigate(`${location.pathname}${location.search}`, {
+      replace: true,
+      state: { ...location.state, message: null },
+    });
+  }, [location.pathname, location.search, location.state, navigate]);
 
   const albumOptions = useMemo(() => {
     const entries = Array.from(
@@ -527,15 +540,13 @@ export const MyMusicPage = () => {
     }
 
     if (track.releaseStatus === "scheduled") {
-      setActionError(
+      showArtistError(
         "Bài hát đang có lịch phát hành. Hãy hủy lịch trước khi thay đổi trạng thái hiển thị."
       );
       return;
     }
 
     if (track.activeStatus === "hidden") {
-      setActionMessage("");
-      setActionError("");
       setIsActionLoading(true);
 
       try {
@@ -545,13 +556,9 @@ export const MyMusicPage = () => {
             item._id === updatedTrack?._id ? updatedTrack : item
           )
         );
-        setActionMessage("Đã hiển thị lại bài hát thành công.");
-      } catch (error) {
-        setActionError(
-          error?.message ||
-            error?.response?.data?.message ||
-            "Không thể hiển thị lại bài hát này lúc này."
-        );
+        showArtistSuccess("Đã hiển thị lại bài hát thành công.");
+      } catch {
+        showArtistError("Không thể hiển thị lại bài hát này vào lúc này.");
       } finally {
         setIsActionLoading(false);
       }
@@ -559,8 +566,6 @@ export const MyMusicPage = () => {
       return;
     }
 
-    setActionMessage("");
-    setActionError("");
     setIsActionLoading(true);
 
     try {
@@ -568,13 +573,9 @@ export const MyMusicPage = () => {
       setTracks((currentTracks) =>
         currentTracks.map((item) => (item._id === updatedTrack?._id ? updatedTrack : item))
       );
-      setActionMessage("Đã ẩn bài hát thành công.");
-    } catch (error) {
-      setActionError(
-        error?.message ||
-          error?.response?.data?.message ||
-          "Không thể ẩn bài hát này lúc này."
-      );
+      showArtistSuccess("Đã ẩn bài hát thành công.");
+    } catch {
+      showArtistError("Không thể ẩn bài hát này vào lúc này.");
     } finally {
       setIsActionLoading(false);
     }
@@ -593,20 +594,14 @@ export const MyMusicPage = () => {
       return;
     }
 
-    setActionMessage("");
-    setActionError("");
     setIsActionLoading(true);
 
     try {
       await trackService.deleteArtistTrack(track._id);
       setTracks((currentTracks) => currentTracks.filter((item) => item._id !== track._id));
-      setActionMessage("Đã xóa bài hát thành công.");
-    } catch (error) {
-      setActionError(
-        error?.message ||
-          error?.response?.data?.message ||
-          "Không thể xóa bài hát này lúc này."
-      );
+      showArtistSuccess("Đã xóa bài hát thành công.");
+    } catch {
+      showArtistError("Không thể xóa bài hát này vào lúc này.");
     } finally {
       setIsActionLoading(false);
     }
@@ -618,7 +613,7 @@ export const MyMusicPage = () => {
     }
 
     if (!canArtistSubmitTrack(track)) {
-      setActionError(
+      showArtistError(
         "Chỉ bài hát ở trạng thái bản nháp hoặc bị từ chối mới có thể gửi duyệt."
       );
       return;
@@ -627,7 +622,7 @@ export const MyMusicPage = () => {
     const submitIssues = getSubmitReadinessIssues(track);
 
     if (submitIssues.length > 0) {
-      setActionError(
+      showArtistError(
         `Vui lòng hoàn thiện các mục sau trước khi gửi duyệt:\n${submitIssues
           .map((item) => `- ${item}`)
           .join("\n")}\n\nBạn có thể mở trang chỉnh sửa để bổ sung thông tin còn thiếu.`
@@ -635,19 +630,15 @@ export const MyMusicPage = () => {
       return;
     }
 
-    setActionMessage("");
-    setActionError("");
     setIsActionLoading(true);
     setSubmitTarget(null);
 
     try {
       const updatedTrack = await trackService.submitForApproval(track._id);
       setTracks((current) => current.map((item) => (item._id === updatedTrack?._id ? updatedTrack : item)));
-      setActionMessage("Đã gửi bài hát để chờ duyệt.");
-    } catch (error) {
-      setActionError(
-        getApiErrorFullMessage(error, "Không thể gửi bài hát để duyệt lúc này.")
-      );
+      showArtistSuccess("Đã gửi bài hát để chờ duyệt.");
+    } catch {
+      showArtistError("Không thể gửi bài hát để duyệt vào lúc này.");
     } finally {
       setIsActionLoading(false);
     }
@@ -667,29 +658,12 @@ export const MyMusicPage = () => {
 
   return (
     <section className="-m-6 space-y-6">
-      {location.state?.message ? (
-        <div className="rounded-[22px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          {location.state.message}
-        </div>
-      ) : null}
-
       {errorMessage ? (
         <div className="rounded-[22px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {errorMessage}
         </div>
       ) : null}
 
-      {actionMessage ? (
-        <div className="rounded-[22px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          {actionMessage}
-        </div>
-      ) : null}
-
-      {actionError ? (
-        <div className="whitespace-pre-line rounded-[22px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          {actionError}
-        </div>
-      ) : null}
 
       <div className="bg-white p-6 sm:p-7">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
@@ -974,7 +948,7 @@ export const MyMusicPage = () => {
               const issues = getSubmitReadinessIssues(previewTrack);
 
               if (issues.length > 0) {
-                setActionError(
+                showArtistError(
                   `Vui lòng hoàn thiện các mục sau trước khi gửi duyệt:\n${issues
                     .map((item) => `- ${item}`)
                     .join("\n")}\n\nBạn có thể mở trang chỉnh sửa để bổ sung thông tin còn thiếu.`

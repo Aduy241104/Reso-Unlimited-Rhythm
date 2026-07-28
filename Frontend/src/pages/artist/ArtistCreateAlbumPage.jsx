@@ -3,13 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Upload, X } from "lucide-react";
 import { createAlbumService } from "../../services/artist/artistAlbumService";
 import { routePaths } from "../../routes/routePaths";
-import { getApiErrorMessage } from "../../utils/apiError";
+import {
+  showArtistError,
+  showArtistSuccess,
+} from "../../utils/artistNotification";
 
 const ArtistCreateAlbumPage = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
 
   const [formData, setFormData] = useState({
     title: "",
@@ -94,8 +95,6 @@ const ArtistCreateAlbumPage = () => {
     }
 
     setIsLoading(true);
-    setErrorMessage("");
-    setSuccessMessage("");
 
     try {
       const payload = new FormData();
@@ -107,7 +106,7 @@ const ArtistCreateAlbumPage = () => {
 
       const newAlbum = await createAlbumService(payload);
 
-      setSuccessMessage(
+      showArtistSuccess(
         "Đã tạo album nháp thành công. Hãy thêm ít nhất 2 bài hát để có thể công khai hoặc lên lịch phát hành."
       );
 
@@ -120,10 +119,8 @@ const ArtistCreateAlbumPage = () => {
       setTimeout(() => {
         navigate(routePaths.artistAlbumDetail(newAlbum.id));
       }, 1600);
-    } catch (error) {
-      setErrorMessage(
-        getApiErrorMessage(error, "Không thể tạo album. Vui lòng thử lại.")
-      );
+    } catch {
+      showArtistError("Không thể tạo album. Vui lòng thử lại.");
     } finally {
       setIsLoading(false);
     }
@@ -153,18 +150,6 @@ const ArtistCreateAlbumPage = () => {
               hát rồi công khai hoặc lên lịch phát hành khi album có ít nhất 2 bài.
             </p>
           </div>
-
-          {errorMessage && (
-            <div className="mb-4 rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-              {errorMessage}
-            </div>
-          )}
-
-          {successMessage && (
-            <div className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-              {successMessage}
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
