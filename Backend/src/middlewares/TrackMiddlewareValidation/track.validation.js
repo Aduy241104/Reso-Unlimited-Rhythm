@@ -167,6 +167,8 @@ const createTrackSchema = Joi.object({
 
     stats: Joi.forbidden(),
     activeStatus: Joi.forbidden(),
+    releaseStatus: Joi.forbidden(),
+    releasedAt: Joi.forbidden(),
     approvalStatus: Joi.forbidden(),
     moderation: Joi.forbidden(),
     rejectReason: Joi.forbidden(),
@@ -241,6 +243,8 @@ const updateTrackSchema = Joi.object({
 
     stats: Joi.forbidden(),
     activeStatus: Joi.forbidden(),
+    releaseStatus: Joi.forbidden(),
+    releasedAt: Joi.forbidden(),
     approvalStatus: Joi.forbidden(),
     moderation: Joi.forbidden(),
     rejectReason: Joi.forbidden(),

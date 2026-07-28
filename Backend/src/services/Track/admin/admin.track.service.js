@@ -4,6 +4,10 @@ import Artist from "../../../models/Artist.js";
 import Notification from "../../../models/Notification.js";
 import { normalizePositiveInteger } from "../../Playlist/playlist.helper.js";
 import { AppError } from "../../../utils/AppError.js";
+import {
+    resolveTrackReleasedAt,
+    resolveTrackReleaseStatus,
+} from "../../../utils/trackRelease.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
@@ -145,6 +149,8 @@ const formatAdminTrackListItem = (track) => {
         reviewSource: getReviewSource(track),
         pendingUpdateStatus: track.pendingUpdate?.status || "none",
         activeStatus: track.activeStatus,
+        releaseStatus: resolveTrackReleaseStatus(track),
+        releasedAt: resolveTrackReleasedAt(track),
         rejectReason: track.rejectReason || "",
         hiddenReason: track.hiddenReason || "",
         hiddenAt: track.hiddenAt || null,
@@ -181,6 +187,8 @@ const formatAdminTrackDetailItem = (track) => {
         })),
         stats: track.stats || { totalLike: 0, totalPlay: 0 },
         releaseDate: track.releaseDate || null,
+        releaseStatus: resolveTrackReleaseStatus(track),
+        releasedAt: resolveTrackReleasedAt(track),
         approvalStatus: track.approvalStatus,
         reviewStatus: getReviewStatus(track),
         reviewSource: getReviewSource(track),
@@ -332,6 +340,9 @@ const createTrackVisibilityNotification = async ({
     } else if (action === "unhide") {
         title = `Track "${track.title}" da duoc hien thi lai`;
         content = "Admin da mo lai hien thi cho track cua ban tren nen tang.";
+    } else if (action === "unblock") {
+        title = `Track "${track.title}" da duoc go khoa`;
+        content = "Admin da go khoa track cua ban tren he thong.";
     } else {
         return null;
     }
@@ -392,6 +403,10 @@ const listTracksForAdmin = async (query = {}) => {
 
     if (query.activeStatus) {
         conditions.push({ activeStatus: query.activeStatus });
+    }
+
+    if (query.releaseStatus) {
+        conditions.push({ releaseStatus: query.releaseStatus });
     }
 
     if (rawSearch) {
@@ -599,6 +614,18 @@ const updateTrackVisibility = async (
         track.hiddenReason = "";
         track.hiddenAt = null;
     } else if (payload.action === "unhide") {
+        track.blockedByAlbumId = null;
+        track.previousActiveStatusBeforeAlbumBlock = null;
+        track.previousHiddenReasonBeforeAlbumBlock = "";
+        track.previousHiddenAtBeforeAlbumBlock = null;
+        track.activeStatus = "active";
+        track.hiddenReason = "";
+        track.blockedReason = "";
+        track.hiddenAt = null;
+    } else if (payload.action === "unblock") {
+        if (track.activeStatus !== "blocked") {
+            throw new AppError("Only a blocked track can be unblocked.", 400, { field: "action" });
+        }
         track.blockedByAlbumId = null;
         track.previousActiveStatusBeforeAlbumBlock = null;
         track.previousHiddenReasonBeforeAlbumBlock = "";

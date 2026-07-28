@@ -19,14 +19,41 @@ import {
     validateTrackForSubmit,
 } from "../track.submit.validation.js";
 import Artist from "../../../models/Artist.js";
+import ReleaseSchedule from "../../../models/ReleaseSchedule.js";
 import Track from "../../../models/Track.js";
 import User from "../../../models/User.js";
 import { AppError } from "../../../utils/AppError.js";
 import { deleteCloudinaryAssetsByUrls } from "../../../utils/uploadCloud.js";
 import { formatTrackManagementDetail } from "../track.helper.js";
+import {
+    TRACK_RELEASE_STATUS,
+    resolveTrackReleaseStatus,
+} from "../../../utils/trackRelease.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 50;
+
+const assertTrackVisibilityCanBeChangedByArtist = async (track) => {
+    const hasScheduledRelease =
+        resolveTrackReleaseStatus(track) === TRACK_RELEASE_STATUS.SCHEDULED ||
+        Boolean(await ReleaseSchedule.exists({
+            type: "track",
+            targetId: track._id,
+            artistId: track.artist_artistId?._id || track.artist_artistId,
+            status: "scheduled",
+        }));
+
+    if (hasScheduledRelease) {
+        throw new AppError(
+            "Cancel the release schedule before changing track visibility.",
+            StatusCodes.CONFLICT,
+            {
+                field: "activeStatus",
+                code: "RELEASE_SCHEDULE_CANCELLATION_REQUIRED",
+            }
+        );
+    }
+};
 
 const normalizePositiveInteger = (value, fallback) => {
     const parsedValue = Number.parseInt(value, 10);
@@ -361,6 +388,8 @@ const createTrack = async (userId, trackData) => {
         lyricsStatic,
         lyricsSyncUrl: trackData.lyricsSyncUrl || "",
         releaseDate: null,
+        releaseStatus: TRACK_RELEASE_STATUS.UNRELEASED,
+        releasedAt: null,
         activeStatus: "draft",
         approvalStatus: "draft",
         stats: {
@@ -626,6 +655,15 @@ const getArtistTracks = async (userId, query = {}) => {
         }
     }
 
+    if (typeof query.releaseStatus === "string" && query.releaseStatus.trim() !== "") {
+        const allowedReleaseStatuses = new Set(Object.values(TRACK_RELEASE_STATUS));
+        const value = query.releaseStatus.trim().toLowerCase();
+
+        if (allowedReleaseStatuses.has(value)) {
+            filter.releaseStatus = value;
+        }
+    }
+
     const [tracks, total] = await Promise.all([
         Track.find(filter)
             .sort({ createdAt: -1, _id: -1 })
@@ -724,6 +762,8 @@ const hideArtistTrack = async (userId, trackId, reason = "") => {
         );
     }
 
+    await assertTrackVisibilityCanBeChangedByArtist(track);
+
     track.activeStatus = "hidden";
     track.hiddenReason = String(reason || "Hidden by artist.").trim() || "Hidden by artist.";
     track.hiddenAt = new Date();
@@ -744,6 +784,63 @@ const hideArtistTrack = async (userId, trackId, reason = "") => {
             select: "name",
         })
         .lean();
+
+    return formatTrackManagementDetail(populatedTrack);
+};
+
+const unhideArtistTrack = async (userId, trackId) => {
+    const artist = await Artist.findOne({ userId });
+
+    if (!artist) {
+        throw new AppError("Artist profile not found.", StatusCodes.NOT_FOUND);
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(trackId)) {
+        throw new AppError("Track id is invalid.", StatusCodes.BAD_REQUEST, {
+            field: "id",
+        });
+    }
+
+    const track = await Track.findOne({
+        _id: trackId,
+        artist_artistId: artist._id,
+    });
+
+    if (!track) {
+        throw new AppError(
+            "Track not found or you do not have permission to update it.",
+            StatusCodes.NOT_FOUND
+        );
+    }
+
+    await assertTrackVisibilityCanBeChangedByArtist(track);
+
+    if (resolveTrackReleaseStatus(track) !== TRACK_RELEASE_STATUS.RELEASED) {
+        throw new AppError(
+            "Only released tracks can be made active.",
+            StatusCodes.CONFLICT,
+            {
+                field: "activeStatus",
+                code: "TRACK_NOT_RELEASED",
+            }
+        );
+    }
+
+    if (track.approvalStatus !== "approved" || track.activeStatus === "blocked") {
+        throw new AppError(
+            "This track cannot be made active in its current state.",
+            StatusCodes.CONFLICT,
+            { field: "activeStatus" }
+        );
+    }
+
+    track.activeStatus = "active";
+    track.hiddenReason = "";
+    track.hiddenAt = null;
+
+    await track.save();
+
+    const populatedTrack = await populateManagementTrack(track._id);
 
     return formatTrackManagementDetail(populatedTrack);
 };
@@ -848,6 +945,7 @@ export default {
     getArtistTracks,
     getArtistTrackDetail,
     hideArtistTrack,
+    unhideArtistTrack,
     deleteArtistTrack,
     submitArtistTrack,
 };

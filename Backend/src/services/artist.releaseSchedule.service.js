@@ -4,6 +4,10 @@ import ReleaseSchedule from "../models/ReleaseSchedule.js";
 import Track from "../models/Track.js";
 import { AppError } from "../utils/AppError.js";
 import {
+    TRACK_RELEASE_STATUS,
+    resolveTrackReleaseStatus,
+} from "../utils/trackRelease.js";
+import {
     formatArtistComingRelease,
     normalizePositiveInteger,
 } from "./artistBrowse/artistBrowse.helper.js";
@@ -111,6 +115,29 @@ const ensureTargetCanBeReleased = ({ type, target }) => {
     }
 };
 
+const ensureTrackHasNotBeenReleased = async ({ artistId, target }) => {
+    if (resolveTrackReleaseStatus(target) === TRACK_RELEASE_STATUS.RELEASED) {
+        throw new AppError("Released tracks cannot be scheduled again.", 409, {
+            field: "targetId",
+            code: "TRACK_ALREADY_RELEASED",
+        });
+    }
+
+    const releasedScheduleExists = await ReleaseSchedule.exists({
+        artistId,
+        type: "track",
+        targetId: target?._id,
+        status: "released",
+    });
+
+    if (releasedScheduleExists) {
+        throw new AppError("Released tracks cannot be scheduled again.", 409, {
+            field: "targetId",
+            code: "TRACK_ALREADY_RELEASED",
+        });
+    }
+};
+
 const ensureNoConflictingScheduledRelease = async ({ artistId, type, targetId }) => {
     const existingSchedule = await ReleaseSchedule.findOne({
         artistId,
@@ -138,11 +165,18 @@ const syncTargetReleaseDate = async ({ type, targetId, scheduledAt }) => {
 
     await Track.updateOne(
         { _id: targetId },
-        { $set: { releaseDate: scheduledAt } }
+        {
+            $set: {
+                releaseDate: scheduledAt,
+                releaseStatus: TRACK_RELEASE_STATUS.SCHEDULED,
+                releasedAt: null,
+                activeStatus: "hidden",
+            },
+        }
     );
 };
 
-const syncTargetVisibilityForRelease = async ({ type, targetId }) => {
+const syncTargetVisibilityForRelease = async ({ type, targetId, releasedAt = new Date() }) => {
     if (type === "album") {
         await Album.updateOne(
             {
@@ -159,10 +193,16 @@ const syncTargetVisibilityForRelease = async ({ type, targetId }) => {
     await Track.updateOne(
         {
             _id: targetId,
-            activeStatus: { $in: ["draft", "hidden", "inactive"] },
+            activeStatus: { $ne: "blocked" },
         },
         {
-            $set: { activeStatus: "active" },
+            $set: {
+                activeStatus: "active",
+                releaseStatus: TRACK_RELEASE_STATUS.RELEASED,
+                releasedAt,
+                hiddenReason: "",
+                hiddenAt: null,
+            },
         }
     );
 };
@@ -243,14 +283,26 @@ const syncTargetReleaseDateAfterCancellation = async ({
     if (nextScheduledRelease?.scheduledAt) {
         await Track.updateOne(
             { _id: targetId, artist_artistId: artistId },
-            { $set: { releaseDate: nextScheduledRelease.scheduledAt } }
+            {
+                $set: {
+                    releaseDate: nextScheduledRelease.scheduledAt,
+                    releaseStatus: TRACK_RELEASE_STATUS.SCHEDULED,
+                    releasedAt: null,
+                },
+            }
         );
         return nextScheduledRelease.scheduledAt;
     }
 
     await Track.updateOne(
         { _id: targetId, artist_artistId: artistId },
-        { $unset: { releaseDate: 1 } }
+        {
+            $set: {
+                releaseStatus: TRACK_RELEASE_STATUS.UNRELEASED,
+                releasedAt: null,
+            },
+            $unset: { releaseDate: 1 },
+        }
     );
 
     return null;
@@ -331,20 +383,54 @@ const publishDueReleaseSchedules = async (extraFilter = {}, io = null) => {
         }
     }
 
+    let releasableTrackSchedules = [];
+
     if (dueTrackIds.length > 0) {
-        await Track.updateMany(
-            {
-                _id: { $in: dueTrackIds },
-                activeStatus: { $in: ["draft", "hidden", "inactive"] },
-            },
-            {
-                $set: { activeStatus: "active" },
-            }
+        const dueTracks = await Track.find({
+            _id: { $in: dueTrackIds },
+            approvalStatus: "approved",
+            activeStatus: { $ne: "blocked" },
+            releaseStatus: { $ne: TRACK_RELEASE_STATUS.RELEASED },
+        })
+            .select("_id")
+            .lean();
+
+        const releasableTrackIdSet = new Set(
+            dueTracks.map((track) => track._id.toString())
         );
+
+        releasableTrackSchedules = dueTrackSchedules.filter((schedule) =>
+            releasableTrackIdSet.has(schedule.targetId.toString())
+        );
+
+        if (releasableTrackSchedules.length > 0) {
+            await Track.bulkWrite(
+                releasableTrackSchedules.map((schedule) => ({
+                    updateOne: {
+                        filter: {
+                            _id: schedule.targetId,
+                            approvalStatus: "approved",
+                            activeStatus: { $ne: "blocked" },
+                            releaseStatus: { $ne: TRACK_RELEASE_STATUS.RELEASED },
+                        },
+                        update: {
+                            $set: {
+                                activeStatus: "active",
+                                releaseDate: schedule.scheduledAt,
+                                releaseStatus: TRACK_RELEASE_STATUS.RELEASED,
+                                releasedAt: schedule.scheduledAt,
+                                hiddenReason: "",
+                                hiddenAt: null,
+                            },
+                        },
+                    },
+                }))
+            );
+        }
     }
 
     const releasableScheduleIds = [
-        ...dueTrackSchedules.map((schedule) => schedule._id),
+        ...releasableTrackSchedules.map((schedule) => schedule._id),
         ...releasableAlbumScheduleIds,
     ];
 
@@ -609,6 +695,10 @@ const cancelMyReleaseSchedule = async (userId, scheduleId) => {
                 target: {
                     ...target,
                     releaseDate: nextReleaseDate,
+                    releaseStatus: nextReleaseDate
+                        ? TRACK_RELEASE_STATUS.SCHEDULED
+                        : TRACK_RELEASE_STATUS.UNRELEASED,
+                    releasedAt: null,
                 },
             }),
             createdAt: schedule.createdAt || null,
@@ -635,6 +725,13 @@ const createMyReleaseSchedule = async (userId, payload, io = null) => {
         type: payload.type,
         target,
     });
+
+    if (payload.type === "track") {
+        await ensureTrackHasNotBeenReleased({
+            artistId: artist._id,
+            target,
+        });
+    }
 
     if (payload.type === "album") {
         ensureAlbumCanBeScheduledForRelease(target);
@@ -665,18 +762,27 @@ const createMyReleaseSchedule = async (userId, payload, io = null) => {
         await syncTargetVisibilityForRelease({
             type: payload.type,
             targetId: payload.targetId,
+            releasedAt: scheduledAt,
         });
     }
     
     if (payload.type === "track") {
         try {
-            await createUpcomingReleaseNotificationForArtistFollowers({
-                artistId: artist._id,
-                trackId: payload.targetId,
-                io,
-            });
+            if (isImmediateRelease) {
+                await createNewReleaseNotificationForArtistFollowers({
+                    artistId: artist._id,
+                    trackId: payload.targetId,
+                    io,
+                });
+            } else {
+                await createUpcomingReleaseNotificationForArtistFollowers({
+                    artistId: artist._id,
+                    trackId: payload.targetId,
+                    io,
+                });
+            }
         } catch (error) {
-            console.error("Failed to create upcoming release notification:", error);
+            console.error("Failed to create release notification:", error);
         }
     }
 
@@ -690,6 +796,10 @@ const createMyReleaseSchedule = async (userId, payload, io = null) => {
             target: {
                 ...target,
                 releaseDate: scheduledAt,
+                releaseStatus: isImmediateRelease
+                    ? TRACK_RELEASE_STATUS.RELEASED
+                    : TRACK_RELEASE_STATUS.SCHEDULED,
+                releasedAt: isImmediateRelease ? scheduledAt : null,
             },
         }),
     };
@@ -716,6 +826,16 @@ const updateMyReleaseSchedule = async (userId, scheduleId, payload) => {
         targetId: schedule.targetId,
     });
 
+    if (
+        schedule.type === "track" &&
+        resolveTrackReleaseStatus(target) === TRACK_RELEASE_STATUS.RELEASED
+    ) {
+        throw new AppError("Released tracks cannot be scheduled again.", 409, {
+            field: "targetId",
+            code: "TRACK_ALREADY_RELEASED",
+        });
+    }
+
     schedule.scheduledAt = scheduledAt;
     schedule.releasedAt = null;
     await schedule.save();
@@ -737,6 +857,8 @@ const updateMyReleaseSchedule = async (userId, scheduleId, payload) => {
                 target: {
                     ...target,
                     releaseDate: scheduledAt,
+                    releaseStatus: TRACK_RELEASE_STATUS.SCHEDULED,
+                    releasedAt: null,
                 },
             }),
             createdAt: schedule.createdAt || null,

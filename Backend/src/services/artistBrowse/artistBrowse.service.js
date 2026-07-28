@@ -14,6 +14,7 @@ import ArtistStat from "../../models/ArtistStat.js";
 import Track from "../../models/Track.js";
 import redisClient from "../../config/redisConfig.js";
 import { AppError } from "../../utils/AppError.js";
+import { buildReleasedTrackFilter } from "../../utils/trackRelease.js";
 import { getAnalyticsTimezone } from "../analytics/trackStatAggregation.service.js";
 import {
     formatArtistAlbum,
@@ -213,6 +214,7 @@ const getArtistProfile = async (artistId) => {
             artist_artistId: artistId,
             activeStatus: "active",
             approvalStatus: "approved",
+            ...buildReleasedTrackFilter(),
         })
             .sort({ releaseDate: -1, "stats.totalPlay": -1, createdAt: -1, _id: -1 })
             .populate({
@@ -245,6 +247,7 @@ const getArtistTracks = async (artistId, query = {}) => {
         artist_artistId: artistId,
         activeStatus: "active",
         approvalStatus: "approved",
+        ...buildReleasedTrackFilter(),
     };
 
     const [tracks, total] = await Promise.all([

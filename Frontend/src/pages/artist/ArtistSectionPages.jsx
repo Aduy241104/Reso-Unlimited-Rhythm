@@ -4,6 +4,7 @@ import {
   AudioLines,
   BarChart3,
   Clock3,
+  Eye,
   EyeOff,
   Filter,
   Heart,
@@ -293,11 +294,28 @@ const PreviewSidebar = ({
           <button
             type="button"
             onClick={onHide}
-            disabled={isActionLoading || track?.activeStatus === "hidden"}
+            disabled={
+              isActionLoading ||
+              track?.releaseStatus === "scheduled" ||
+              (track?.activeStatus === "hidden" && track?.releaseStatus !== "released")
+            }
+            title={
+              track?.releaseStatus === "scheduled"
+                ? "Hãy hủy lịch phát hành trước khi thay đổi trạng thái hiển thị."
+                : undefined
+            }
             className="inline-flex items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <EyeOff className="h-4 w-4" />
-            {track?.activeStatus === "hidden" ? "Đã ẩn" : "Ẩn bài hát"}
+            {track?.activeStatus === "hidden" ? (
+              <Eye className="h-4 w-4" />
+            ) : (
+              <EyeOff className="h-4 w-4" />
+            )}
+            {track?.releaseStatus === "scheduled"
+              ? "Hủy lịch trước khi đổi hiển thị"
+              : track?.activeStatus === "hidden"
+                ? "Hiển thị bài hát"
+                : "Ẩn bài hát"}
           </button>
         </div>
       </div>
@@ -509,6 +527,39 @@ export const MyMusicPage = () => {
       return;
     }
 
+    if (track.releaseStatus === "scheduled") {
+      setActionError(
+        "Bài hát đang có lịch phát hành. Hãy hủy lịch trước khi thay đổi trạng thái hiển thị."
+      );
+      return;
+    }
+
+    if (track.activeStatus === "hidden") {
+      setActionMessage("");
+      setActionError("");
+      setIsActionLoading(true);
+
+      try {
+        const updatedTrack = await trackService.unhideArtistTrack(track._id);
+        setTracks((currentTracks) =>
+          currentTracks.map((item) =>
+            item._id === updatedTrack?._id ? updatedTrack : item
+          )
+        );
+        setActionMessage("Đã hiển thị lại bài hát thành công.");
+      } catch (error) {
+        setActionError(
+          error?.message ||
+            error?.response?.data?.message ||
+            "Không thể hiển thị lại bài hát này lúc này."
+        );
+      } finally {
+        setIsActionLoading(false);
+      }
+
+      return;
+    }
+
     const reason = window.prompt(
       "Nhập lý do ẩn bài hát (không bắt buộc):",
       track.hiddenReason || "Ẩn bởi nghệ sĩ."
@@ -625,7 +676,7 @@ export const MyMusicPage = () => {
   );
 
   return (
-    <section className="space-y-6">
+    <section className="-m-6 space-y-6">
       {location.state?.message ? (
         <div className="rounded-[22px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
           {location.state.message}
@@ -650,7 +701,7 @@ export const MyMusicPage = () => {
         </div>
       ) : null}
 
-      <div className="rounded-[30px] border border-[#ece8ff] bg-white p-5 shadow-[0_18px_50px_rgba(32,23,71,0.08)] sm:p-6 xl:p-7">
+      <div className="bg-white p-6 sm:p-7">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#7c6cf2]">
