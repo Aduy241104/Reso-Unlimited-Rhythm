@@ -38,11 +38,35 @@ export const APPROVAL_STATUS_META = {
   },
 };
 
+export const RELEASE_STATUS_META = {
+  unreleased: {
+    label: "Chưa phát hành",
+    className: "border-slate-200 bg-slate-100 text-slate-700",
+  },
+  scheduled: {
+    label: "Đã lên lịch",
+    className: "border-violet-200 bg-violet-50 text-violet-700",
+  },
+  released: {
+    label: "Đã phát hành",
+    className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  },
+};
+
 export const getTrackActiveStatusMeta = (value) =>
   ACTIVE_STATUS_META[value] || ACTIVE_STATUS_META.draft;
 
 export const getTrackApprovalStatusMeta = (value) =>
   APPROVAL_STATUS_META[value] || APPROVAL_STATUS_META.draft;
+
+export const getTrackReleaseStatusMeta = (value) =>
+  RELEASE_STATUS_META[value] || RELEASE_STATUS_META.unreleased;
+
+export const isTrackReleaseScheduled = (track) =>
+  track?.releaseStatus === "scheduled";
+
+export const isTrackReleased = (track) =>
+  track?.releaseStatus === "released";
 
 export const formatTrackCount = (value) =>
   new Intl.NumberFormat("vi-VN").format(Number(value) || 0);

@@ -183,6 +183,19 @@ export const trackService = {
     }
   },
 
+  unhideArtistTrack: async (trackId) => {
+    try {
+      const response = await axiosClient.patch(
+        `${TRACKS_API_PREFIX}/artist/me/${trackId}/unhide`
+      );
+
+      const payload = response?.data?.data;
+      return payload?.track || response?.data?.track || payload || null;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
   deleteArtistTrack: async (trackId) => {
     try {
       const response = await axiosClient.delete(
