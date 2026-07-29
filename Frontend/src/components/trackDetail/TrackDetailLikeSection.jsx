@@ -1,4 +1,4 @@
-import { Heart } from "lucide-react";
+import { Heart, Loader2 } from "lucide-react";
 
 const formatLikeCount = (value) => {
   const likeCount = Number(value);
@@ -52,15 +52,24 @@ const TrackDetailLikeSection = ({
           aria-pressed={ isLiked }
           className={ [
             "inline-flex h-12 items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold transition",
-            isLiked
+            isLikeLoading
+              ? "bg-[#181818] text-white"
+              : isLiked
               ? "bg-[#1ed760] text-[#04130a] hover:brightness-105"
               : "border border-black/8 bg-white text-[#18181b] hover:bg-black/[0.03] dark:border-white/10 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/[0.12]",
           ].join(" ") }
         >
-          <Heart className={ `h-4.5 w-4.5 ${isLiked ? "fill-current" : ""}` } />
-          { isLikeLoading
-            ? "\u0110ang x\u1eed l\u00fd..."
-            : (isLiked ? "\u0110\u00e3 th\u00edch" : "Th\u00edch b\u00e0i h\u00e1t") }
+          {isLikeLoading ? (
+            <>
+              <Loader2 className="h-4.5 w-4.5 animate-spin" aria-hidden />
+              {"\u0110ang x\u1eed l\u00fd..."}
+            </>
+          ) : (
+            <>
+              <Heart className={ `h-4.5 w-4.5 ${isLiked ? "fill-current" : ""}` } />
+              {isLiked ? "\u0110\u00e3 th\u00edch" : "Th\u00edch b\u00e0i h\u00e1t"}
+            </>
+          )}
         </button>
       </div>
     </div>

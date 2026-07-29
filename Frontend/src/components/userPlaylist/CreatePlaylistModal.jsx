@@ -415,7 +415,12 @@ const CreatePlaylistModal = ({
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="inline-flex min-w-[132px] items-center justify-center rounded-full bg-white px-7 py-3 text-base font-semibold text-[#111111] transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60 sm:px-8 sm:py-4 sm:text-xl"
+                  className={[
+                    "inline-flex min-w-[132px] items-center justify-center rounded-full px-7 py-3 text-base font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 sm:px-8 sm:py-4 sm:text-xl",
+                    isSubmitting
+                      ? "bg-[#111111] text-white"
+                      : "bg-white text-[#111111] hover:bg-white/90",
+                  ].join(" ")}
                 >
                   {isSubmitting ? (
                     <span className="inline-flex items-center gap-2">

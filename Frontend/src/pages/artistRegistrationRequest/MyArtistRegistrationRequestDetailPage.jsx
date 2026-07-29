@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import LoadingState from "../../components/common/LoadingState";
 import {
     ArrowLeft,
     CheckCircle2,
@@ -256,10 +257,7 @@ const MyArtistRegistrationRequestDetailPage = () => {
     if (loading) {
         return (
             <main className="min-h-full bg-[#0e0e12] px-4 py-8 text-white sm:px-6 lg:px-8">
-                <div className="mx-auto flex max-w-5xl flex-col items-center justify-center py-20">
-                    <Loader2 className="h-8 w-8 animate-spin text-[#f5b66f]" aria-hidden />
-                    <p className="mt-3 text-sm text-white/55">Đang tải chi tiết...</p>
-                </div>
+                <LoadingState message="Đang tải chi tiết..." className="mx-auto max-w-5xl py-20" spinnerClassName="h-8 w-8" />
             </main>
         );
     }

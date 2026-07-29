@@ -6,6 +6,7 @@ import {
   Shuffle,
 } from "lucide-react";
 import PlayButton from "../../components/common/PlayButton";
+import LoadingState from "../../components/common/LoadingState";
 import { useParams } from "react-router-dom";
 import TrackCard from "../../components/TrackCard";
 import TrackListSection from "../../components/trackList/TrackListSection";
@@ -171,6 +172,16 @@ const PlaylistDetailPage = () => {
     totalDuration,
   ].filter(Boolean);
 
+  if (isLoading) {
+    return (
+      <LoadingState
+        message="Loading playlist detail..."
+        className="min-h-[60vh]"
+        spinnerClassName="h-8 w-8"
+      />
+    );
+  }
+
   return (
     <section className="space-y-4 sm:space-y-6">
       <div
@@ -185,9 +196,7 @@ const PlaylistDetailPage = () => {
           style={{ backgroundImage: headerGradient }}
         >
           { isLoading ? (
-            <div className="flex min-h-[20rem] items-end">
-              <p className="text-sm text-white/82">Loading playlist detail...</p>
-            </div>
+            <LoadingState message="Loading playlist detail..." className="min-h-[20rem]" />
           ) : errorMessage ? (
             <div className="flex min-h-[20rem] items-end">
               <p className="max-w-xl text-sm text-white/88">{ errorMessage }</p>

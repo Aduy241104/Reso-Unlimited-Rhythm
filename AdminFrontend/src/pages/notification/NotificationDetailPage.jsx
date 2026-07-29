@@ -102,7 +102,7 @@ const NotificationDetailPage = () => {
 
     if (isLoading) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen space-y-3 bg-[#f8fafc]">
+            <div className="flex min-h-80 flex-col items-center justify-center space-y-3">
                 <Loader2 className="h-8 w-8 text-slate-900 animate-spin stroke-[1.5]" />
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Đang tải chi tiết dữ liệu...</p>
             </div>
@@ -110,13 +110,13 @@ const NotificationDetailPage = () => {
     }
 
     return (
-        <section className="mx-auto max-w-7xl space-y-6 p-6 bg-[#f8fafc] min-h-screen font-sans text-slate-800 antialiased">
+        <section className="-mt-3 space-y-6 pb-6 font-sans text-slate-900 antialiased [&_.border-slate-100]:border-slate-200 [&_.border-slate-50]:border-slate-200 [&_.text-slate-400]:text-slate-600 [&_.text-slate-500]:text-slate-700">
             
             {/* ACTION BAR: Thanh điều hướng & Thao tác nhanh */}
             <div className="flex items-center justify-between">
                 <Link
                     to={routePaths.notifications}
-                    className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-slate-900 transition bg-white px-4 py-2.5 rounded-xl shadow-sm border border-slate-100"
+                    className="inline-flex h-10 items-center gap-2 border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                 >
                     <ArrowLeft size={14} /> Quay lại danh sách
                 </Link>
@@ -124,7 +124,7 @@ const NotificationDetailPage = () => {
                 <div className="flex items-center gap-2">
                     <Link
                         to={routePaths.notificationEdit?.(id) || `/notifications/edit/${id}`}
-                        className="inline-flex items-center gap-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition bg-white px-4 py-2.5 rounded-xl shadow-sm border border-slate-200"
+                        className="inline-flex h-10 items-center gap-2 border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                     >
                         <Edit2 size={14} /> Chỉnh sửa
                     </Link>
@@ -132,7 +132,7 @@ const NotificationDetailPage = () => {
                     <button
                         type="button"
                         onClick={handleDeleteClick}
-                        className="inline-flex items-center gap-1 border border-rose-100 bg-rose-50/50 text-rose-600 hover:bg-rose-50 px-4 py-2.5 text-xs font-bold rounded-xl transition shadow-sm cursor-pointer"
+                        className="inline-flex h-10 items-center gap-2 border border-rose-200 bg-rose-50 px-4 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
                         title="Xóa thông báo hệ thống"
                     >
                         <Trash2 size={14} /> Xóa
@@ -141,27 +141,27 @@ const NotificationDetailPage = () => {
             </div>
 
             {/* HEADER BAR: Khối thông tin định danh tổng quan */}
-            <div className="flex flex-col gap-4 rounded-2xl bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between border border-slate-100">
+            <div className="flex flex-col gap-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-4">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-900 text-white shadow-inner">
-                        <Bell size={24} className="stroke-[1.8]" />
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-sky-100 bg-sky-50 text-sky-700">
+                        <Bell size={18} />
                     </div>
                     <div>
-                        <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Hệ thống quản trị thông báo</p>
-                        <h1 className="mt-1 text-xl font-bold text-slate-900 flex flex-wrap items-center gap-2 leading-tight">
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">Quản lý thông báo</p>
+                        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950 flex flex-wrap items-center gap-2 leading-tight">
                             {noti?.title || "Bản ghi thông báo"}
                         </h1>
                     </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3 self-start md:self-auto">
-                    <div className="rounded-xl bg-slate-50 px-4 py-2 border border-slate-100 min-w-[120px] text-center">
+                    <div className="border border-slate-200 bg-slate-50 px-4 py-3 min-w-[140px]">
                         <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Phân loại tin</p>
                         <p className="mt-0.5 text-xs font-bold text-slate-900">
                             {getTypeLabel(noti?.type)}
                         </p>
                     </div>
-                    <div className="rounded-xl bg-slate-50 px-4 py-2 border border-slate-100 min-w-[120px] text-center">
+                    <div className="border border-slate-200 bg-slate-50 px-4 py-3 min-w-[140px]">
                         <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Cơ chế đích</p>
                         <p className="mt-0.5 text-xs font-bold text-indigo-600 uppercase tracking-wide">
                             {noti?.receiverType === "all" ? "📢 Toàn sàn" : noti?.receiverType === "group" ? "👥 Theo nhóm" : "🎯 Đích danh"}
@@ -175,20 +175,20 @@ const NotificationDetailPage = () => {
                 
                 {/* CỘT TRÁI: Nội dung chi tiết & Deep Linking */}
                 <div className="lg:col-span-2 space-y-6">
-                    <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100 border-l-[4px] border-l-slate-900 space-y-4">
+                    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
                         <h2 className="text-base font-bold text-slate-900 border-b border-slate-50 pb-3 flex items-center gap-2">
-                            <Layers size={16} className="text-slate-400" /> Bản dịch nội dung phát hành
+                            <Layers size={16} className="text-sky-700" /> Nội dung thông báo
                         </h2>
 
                         <div className="space-y-4 pt-1">
                             <div>
                                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tiêu đề gốc hiển thị trên thiết bị</label>
-                                <p className="mt-1 text-sm font-bold text-slate-950 bg-slate-50/50 px-4 py-3 rounded-xl border border-slate-100/80">{noti?.title || "-"}</p>
+                                <p className="mt-2 border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-950">{noti?.title || "-"}</p>
                             </div>
 
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Chuỗi nội dung chi tiết (Message string)</label>
-                                <div className="bg-slate-50/80 rounded-xl p-4 text-sm text-slate-700 leading-relaxed font-semibold whitespace-pre-wrap border border-slate-100">
+                                <div className="mt-2 border border-slate-200 bg-slate-50 p-4 text-sm font-medium leading-7 text-slate-800 whitespace-pre-wrap">
                                     {noti?.content || "Không có nội dung văn bản đi kèm."}
                                 </div>
                             </div>
@@ -197,9 +197,9 @@ const NotificationDetailPage = () => {
 
                     {/* Deep Linking Target Routing */}
                     {noti?.targetType && (
-                        <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100 space-y-3">
+                        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
                             <h2 className="text-base font-bold text-slate-900 border-b border-slate-50 pb-3 flex items-center gap-2">
-                                <Link2 size={16} className="text-slate-400" /> Hành vi điều hướng ứng dụng (Deep Linking)
+                                <Link2 size={16} className="text-sky-700" /> Điều hướng khi mở thông báo
                             </h2>
                             <div className="grid gap-4 sm:grid-cols-2 pt-1">
                                 <div>
@@ -221,8 +221,8 @@ const NotificationDetailPage = () => {
 
                 {/* CỘT PHẢI: Logistics, Audits & Thông tin đối tượng nhận */}
                 <div className="space-y-6">
-                    <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100 space-y-4">
-                        <h2 className="text-base font-bold text-slate-900 border-b border-slate-50 pb-3">Logistics & Audits</h2>
+                    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+                        <h2 className="text-base font-bold text-slate-900 border-b border-slate-200 pb-3">Thông tin hệ thống</h2>
                         
                         <div className="space-y-4">
                             {/* Trạng thái xem/đọc tin */}
@@ -277,7 +277,7 @@ const NotificationDetailPage = () => {
 
                     {/* Khối hiển thị đối tượng nhận đích danh (Single target user) */}
                     {noti?.receiverType === "single" && noti?.userId && (
-                        <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100 space-y-4">
+                        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
                             <h2 className="text-base font-bold text-slate-900 border-b border-slate-50 pb-3 flex items-center gap-2">
                                 <User size={16} className="text-slate-400" /> Đối tượng đích danh
                             </h2>

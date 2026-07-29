@@ -1,5 +1,6 @@
 import { useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
+import LoadingState from "../../components/common/LoadingState";
 import { ArrowLeft, Clock, Eye, FileCheck2, FileX, Loader2, Plus, Search, XCircle, Home } from "lucide-react";
 import { routePaths } from "../../routes/routePaths";
 import { getApiErrorFullMessage } from "../../utils/apiError";
@@ -286,10 +287,7 @@ const MyArtistRegistrationRequestsPage = () => {
                 <div className="rounded-3xl border border-white/10 bg-white/[0.03] shadow-xl">
                     {/* Loading */}
                     {loading && (
-                        <div className="flex flex-col items-center justify-center py-20">
-                            <Loader2 className="h-8 w-8 animate-spin text-[#f5b66f]" aria-hidden />
-                            <p className="mt-3 text-sm text-white/55">Đang tải danh sách...</p>
-                        </div>
+                        <LoadingState message="Đang tải danh sách..." className="py-20" spinnerClassName="h-8 w-8" />
                     )}
 
                     {/* Error */}

@@ -17,6 +17,7 @@ import { usePlayer } from "../../hooks/usePlayer";
 import { routePaths } from "../../routes/routePaths";
 import { formatTrackDuration } from "../../utils/albumDetail";
 import { getLyricsThemeByIndex } from "../../utils/lyricsTheme";
+import defaultImage from "../../assets/images/default-image.svg";
 
 const iconButtonClassName =
   "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-black/20 text-white backdrop-blur-md transition hover:scale-105 hover:bg-black/35 disabled:cursor-not-allowed disabled:opacity-35";
@@ -95,7 +96,7 @@ const LyricsFullscreenPage = () => {
       {currentTrack?.image ? (
         <div
           className="pointer-events-none absolute -inset-16 -z-30 scale-110 bg-cover bg-center opacity-45 blur-[70px]"
-          style={{ backgroundImage: `url(${currentTrack.image})` }}
+          style={{ backgroundImage: `url(${currentTrack.image}), url(${defaultImage})` }}
         />
       ) : null}
       <div className="pointer-events-none absolute inset-0 -z-20 bg-black/45" />

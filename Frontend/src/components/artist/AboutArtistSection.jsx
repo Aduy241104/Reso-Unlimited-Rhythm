@@ -1,5 +1,6 @@
 import { formatFullNumber } from "../../utils/artistProfile";
 import SectionHeader from "./SectionHeader";
+import LoadingState from "../common/LoadingState";
 
 const AboutArtistSection = ({ profile, isLoading = false }) => {
   return (
@@ -11,7 +12,7 @@ const AboutArtistSection = ({ profile, isLoading = false }) => {
       />
 
       { isLoading ? (
-        <div className="h-[24rem] animate-pulse border border-white/6 bg-white/[0.04]" />
+        <LoadingState message="Đang tải thông tin nghệ sĩ..." className="min-h-[24rem]" />
       ) : (
         <article className="group relative overflow-hidden  bg-[#101010]">
           <div className="absolute inset-0 overflow-hidden">

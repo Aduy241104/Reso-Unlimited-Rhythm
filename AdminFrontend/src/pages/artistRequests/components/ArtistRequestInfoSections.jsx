@@ -1,4 +1,4 @@
-import { FileImage, Link2, ShieldCheck, UserRound } from "lucide-react";
+import { ArrowLeft, FileImage, Link2, ShieldCheck, UserRound } from "lucide-react";
 import { Link } from "react-router-dom";
 import { routePaths } from "../../../routes/routePaths";
 import {
@@ -27,8 +27,9 @@ const ArtistRequestInfoSections = ({
       <Section title="Tổng quan" icon={ UserRound }>
         <Link
           to={ routePaths.artistRequests }
-          className="inline-flex text-sm font-medium text-slate-500 transition hover:text-slate-900"
+          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
         >
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           Quay lại danh sách
         </Link>
 

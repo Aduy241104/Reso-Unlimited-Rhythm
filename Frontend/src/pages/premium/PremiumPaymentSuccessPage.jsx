@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
+import LoadingState from "../../components/common/LoadingState";
 import { useAuth } from "../../hooks/useAuth";
 import { useTheme } from "../../hooks/useTheme";
 import { routePaths } from "../../routes/routePaths";
@@ -176,10 +177,7 @@ const PremiumPaymentSuccessPage = () => {
           ].join(" ")}
         >
           {isLoading ? (
-            <div className="flex items-center gap-3 text-sm">
-              <Loader2 className="h-4 w-4 animate-spin text-[#f5b66f]" />
-              <span>Đang cập nhật trạng thái premium...</span>
-            </div>
+            <LoadingState message="Đang cập nhật trạng thái premium..." className="min-h-12" />
           ) : errorMessage ? (
             <p className={`text-sm ${isDark ? "text-red-100" : "text-red-700"}`}>
               {errorMessage}

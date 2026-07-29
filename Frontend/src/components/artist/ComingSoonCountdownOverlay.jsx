@@ -2,6 +2,7 @@ import { ArrowLeft, CalendarDays } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { routePaths } from "../../routes/routePaths";
+import defaultImage from "../../assets/images/default-image.svg";
 
 const COUNTDOWN_SEGMENTS = [
   { key: "days", label: "Ngàyy" },
@@ -147,7 +148,7 @@ const ComingSoonCountdownOverlay = ({
           <div
             className="absolute inset-0 bg-center bg-no-repeat blur-[3px]"
             style={ {
-              backgroundImage: `url(${backgroundImage})`,
+              backgroundImage: `url(${backgroundImage}), url(${defaultImage})`,
               backgroundSize: "contain",
               backgroundPosition: "center top",
               filter: "saturate(1.08) brightness(0.72)",

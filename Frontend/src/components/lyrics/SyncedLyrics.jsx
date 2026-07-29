@@ -1,6 +1,7 @@
-import { LoaderCircle, Mic2, Music2 } from "lucide-react";
+import { Mic2, Music2 } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { usePlayer } from "../../hooks/usePlayer";
+import LoadingState from "../common/LoadingState";
 
 const getLineOpacity = (index, activeIndex) => {
   if (activeIndex < 0) return 0.7;
@@ -82,12 +83,11 @@ const SyncedLyrics = ({
 
   if (isLyricsLoading) {
     return (
-      <div className={`flex h-full min-h-full items-center justify-center ${className}`}>
-        <div className="flex flex-col items-center gap-4" style={{ color: theme.supportText }}>
-          <LoaderCircle className="h-9 w-9 animate-spin" />
-          <span className="text-sm font-medium">Đang tải lời bài hát đồng bộ...</span>
-        </div>
-      </div>
+      <LoadingState
+        message="Đang tải lời bài hát đồng bộ..."
+        className={`h-full min-h-full ${className}`}
+        spinnerClassName="h-9 w-9"
+      />
     );
   }
 

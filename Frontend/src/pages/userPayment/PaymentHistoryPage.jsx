@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import PaymentFilterModal from "../../components/userPayment/PaymentFilterModal";
 import PaymentHistoryCard from "../../components/userPayment/PaymentHistoryCard";
+import LoadingState from "../../components/common/LoadingState";
 import { routePaths } from "../../routes/routePaths";
 import { getUserPaymentHistory } from "../../services/userPaymentService";
 import { getApiErrorMessage } from "../../utils/apiError";
@@ -116,18 +117,7 @@ const normalizePayments = (items) => {
 
 const LoadingSkeleton = () => {
   return (
-    <div className="space-y-4">
-      {[0, 1, 2].map((item) => (
-        <div
-          key={item}
-          className="animate-pulse bg-[#111111] px-5 py-5 shadow-[0_10px_26px_rgba(0,0,0,0.16)] sm:px-6"
-        >
-          <div className="h-6 w-40 rounded-full bg-[#1f1f1f]" />
-          <div className="mt-3 h-4 w-28 rounded-full bg-[#1f1f1f]" />
-        </div>
-      ))}
-      <p className="text-sm text-white/58">Đang tải lịch sử thanh toán...</p>
-    </div>
+    <LoadingState message="Đang tải lịch sử thanh toán..." className="min-h-[18rem]" />
   );
 };
 

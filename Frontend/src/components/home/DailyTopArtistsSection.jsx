@@ -2,6 +2,7 @@ import { ChevronRight, Crown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { routePaths } from "../../routes/routePaths";
 import { createPlaceholderImage } from "../../utils/artistProfile";
+import LoadingState from "../common/LoadingState";
 
 const FEATURED_ARTIST_COUNT = 3;
 
@@ -141,63 +142,10 @@ const DailyTopArtistsSection = ({
             { errorMessage }
           </div>
         ) : isLoading ? (
-          <div className="space-y-5 sm:space-y-8">
-            <div className="grid grid-cols-3 items-end gap-1 sm:gap-3">
-              { [2, 1, 3].map((rank) => {
-                const isChampion = rank === 1;
-
-                return (
-                  <div
-                    key={ rank }
-                    className={ [
-                      "flex animate-pulse flex-col items-center text-center",
-                      rank === 1 ? "mt-0" : "mt-4 sm:mt-8",
-                    ].join(" ") }
-                  >
-                    <div
-                      className={ [
-                        "rounded-full border border-black/8 bg-black/[0.03] dark:border-white/[0.08] dark:bg-white/[0.04]",
-                        isChampion ? "h-24 w-24 sm:h-48 sm:w-48" : "h-16 w-16 sm:h-32 sm:w-32",
-                      ].join(" ") }
-                    />
-                    <div
-                      className={ [
-                        "mt-[-0.8rem] w-full rounded-[22px] border border-black/8 bg-black/[0.03] px-2 pb-3 pt-8 dark:border-white/[0.08] dark:bg-white/[0.04] sm:mt-[-1.25rem] sm:rounded-[28px] sm:px-3 sm:pb-4",
-                        isChampion ? "min-h-[8.75rem] sm:min-h-[14.5rem] sm:pt-16" : "min-h-[7.5rem] sm:min-h-[12rem] sm:pt-14",
-                      ].join(" ") }
-                    >
-                      <div className="mx-auto h-5 w-12 rounded-full bg-black/8 dark:bg-white/10 sm:h-7 sm:w-16" />
-                      <div
-                        className={ [
-                          "mx-auto mt-4 rounded-full bg-black/8 dark:bg-white/10",
-                          isChampion ? "h-4 w-16 sm:h-7 sm:w-36" : "h-3.5 w-12 sm:h-5 sm:w-24",
-                        ].join(" ") }
-                      />
-                      <div className="mx-auto mt-3 h-1.5 w-8 rounded-full bg-black/8 dark:bg-white/10 sm:mt-4 sm:w-10" />
-                    </div>
-                  </div>
-                );
-              }) }
-            </div>
-
-            <div className="space-y-0">
-              { Array.from({ length: Math.max(rankingArtists.length, 3) }).map((_, index) => (
-                <div
-                  key={ index }
-                  className="
-                    grid animate-pulse grid-cols-[1.25rem_1.75rem_minmax(0,1fr)_0.75rem] items-center gap-1.5
-                    border-t border-black/6 py-2 dark:border-white/[0.06]
-                    sm:grid-cols-[1.75rem_2.25rem_minmax(0,1fr)_1rem] sm:gap-2.5 sm:py-2.5
-                  "
-                >
-                  <div className="h-3.5 w-3.5 rounded-full bg-black/8 dark:bg-white/10 sm:h-5 sm:w-5" />
-                  <div className="h-6 w-6 rounded-full bg-black/8 dark:bg-white/10 sm:h-8 sm:w-8" />
-                  <div className="h-3 w-14 rounded-full bg-black/8 dark:bg-white/10 sm:h-4 sm:w-24" />
-                  <div className="h-2.5 w-2.5 justify-self-end rounded-full bg-black/8 dark:bg-white/10 sm:h-3.5 sm:w-3.5" />
-                </div>
-              )) }
-            </div>
-          </div>
+          <LoadingState
+            message="Đang tải bảng xếp hạng nghệ sĩ..."
+            className="min-h-[18rem]"
+          />
         ) : items.length > 0 ? (
           <div className="space-y-5 sm:space-y-8">
             <div className="grid grid-cols-3 items-end gap-1 sm:gap-3">

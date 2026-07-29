@@ -6,6 +6,7 @@ import ArtistHeroSection from "../../components/artist/ArtistHeroSection";
 import DiscographySection from "../../components/artist/DiscographySection";
 import PopularTracksSection from "../../components/artist/PopularTracksSection";
 import CreateReportModal from "../../components/report/CreateReportModal";
+import LoadingState from "../../components/common/LoadingState";
 import { useAuth } from "../../hooks/useAuth";
 import { routePaths } from "../../routes/routePaths";
 import {
@@ -360,6 +361,16 @@ const ArtistProfileView = () => {
   const profile = artistData.profile;
   const nextComingRelease = artistData.comingReleases[0] || null;
 
+  if (isLoading) {
+    return (
+      <LoadingState
+        message="Đang tải hồ sơ nghệ sĩ..."
+        className="min-h-[60vh]"
+        spinnerClassName="h-8 w-8"
+      />
+    );
+  }
+
   return (
     <section
       ref={ pageRootRef }
@@ -412,15 +423,7 @@ const ArtistProfileView = () => {
             </div>
           </>
         ) : isLoading ? (
-          <div className="mx-auto max-w-6xl space-y-6">
-            <div className="h-[30rem] animate-pulse bg-white/[0.04]" />
-            <div className="grid gap-4 sm:grid-cols-2">
-              { Array.from({ length: 2 }).map((_, index) => (
-                <div key={ index } className="h-40 animate-pulse bg-white/[0.04]" />
-              )) }
-            </div>
-            <div className="h-[18rem] animate-pulse bg-white/[0.04]" />
-          </div>
+          <LoadingState message="Đang tải hồ sơ nghệ sĩ..." className="min-h-[60vh]" />
         ) : (
           <div className="mx-auto max-w-6xl space-y-8 px-1 lg:space-y-10">
             <PopularTracksSection
