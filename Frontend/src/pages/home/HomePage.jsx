@@ -1,4 +1,5 @@
 import ContentCardSection from "../../components/content/ContentCardSection";
+import LoadingState from "../../components/common/LoadingState";
 import TrackChartSection from "../../components/home/TrackChartSection";
 import { useAuth } from "../../hooks/useAuth";
 import { useContentPlayback } from "../../hooks/useContentPlayback";
@@ -56,6 +57,25 @@ const HomePage = () => {
   } = useContentPlayback();
   const recommendationUserName = getRecommendationUserDisplayName(user);
   const shouldShowRecommendationSection = isAuthenticated && !isAuthLoading;
+  const isPageLoading =
+    isAuthLoading ||
+    isLoadingAlbums ||
+    isLoadingSystemPlaylists ||
+    isLoadingDailyTopTracks ||
+    isLoadingMonthlyTopTracks ||
+    isLoadingMonthlyTopArtists ||
+    isLoadingDailyTopArtists ||
+    (shouldShowRecommendationSection && isLoadingRecommendationMixes);
+
+  if (isPageLoading) {
+    return (
+      <LoadingState
+        message="Đang tải trang chủ..."
+        className="min-h-[60vh] p-5"
+        spinnerClassName="h-8 w-8"
+      />
+    );
+  }
 
   return (
     <section className="min-w-0 space-y-6 p-5 sm:space-y-8 lg:space-y-10">
@@ -140,7 +160,6 @@ const HomePage = () => {
         label="Bảng xếp hạng ngày"
         title="Top bài hát theo ngày"
         items={ mapTopTracksToRankingCards(dailyTopTracks, { period: "daily" }) }
-        isLoading={ isLoadingDailyTopTracks }
         emptyMessage="Hiện chưa có dữ liệu bảng xếp hạng bài hát theo ngày."
         onPlay={ (item) => playTrackItem(item, dailyTopTracks) }
         actionLabel="Xem thêm"
@@ -151,7 +170,6 @@ const HomePage = () => {
         label="Bảng xếp hạng tháng"
         title="Top bài hát theo tháng"
         items={ mapTopTracksToRankingCards(monthlyTopTracks, { period: "monthly" }) }
-        isLoading={ isLoadingMonthlyTopTracks }
         emptyMessage="Hiện chưa có dữ liệu bảng xếp hạng bài hát theo tháng."
         onPlay={ (item) => playTrackItem(item, monthlyTopTracks) }
         actionLabel="Xem thêm"
@@ -162,7 +180,6 @@ const HomePage = () => {
         label="Nghệ sĩ nổi bật"
         title="Top nghệ sĩ theo ngày"
         items={ mapTopArtistsToRankingCards(dailyTopArtists, { period: "daily" }) }
-        isLoading={ isLoadingDailyTopArtists }
         emptyMessage="Hiện chưa có dữ liệu bảng xếp hạng nghệ sĩ theo ngày."
         showPlayButton={ false }
         actionLabel="Xem thêm"
@@ -174,7 +191,6 @@ const HomePage = () => {
         label="Nghệ sĩ nổi bật"
         title="Top nghệ sĩ theo tháng"
         items={ mapTopArtistsToRankingCards(monthlyTopArtists, { period: "monthly" }) }
-        isLoading={ isLoadingMonthlyTopArtists }
         emptyMessage="Hiện chưa có dữ liệu bảng xếp hạng nghệ sĩ theo tháng."
         showPlayButton={ false }
         actionLabel="Xem thêm"
@@ -185,7 +201,6 @@ const HomePage = () => {
       <ContentCardSection
         title="Playlist hệ thống"
         items={mapSystemPlaylistsToContentCards(systemPlaylists)}
-        isLoading={isLoadingSystemPlaylists}
         emptyMessage="Hiện chưa có dữ liệu playlist hệ thống."
         onPlay={playPlaylistItem}
       />
@@ -198,7 +213,6 @@ const HomePage = () => {
             recommendationMixes,
             recommendationUserName
           )}
-          isLoading={isLoadingRecommendationMixes}
           emptyMessage="Hôm nay chưa có playlist gợi ý cá nhân nào sẵn sàng."
           onPlay={(item) => playRecommendationMixItem(item, user)}
         />
@@ -208,7 +222,6 @@ const HomePage = () => {
         label="Album"
         title="Album nổi bật"
         items={mapAlbumsToContentCards(albums)}
-        isLoading={isLoadingAlbums}
         emptyMessage="Hiện chưa có dữ liệu album."
         onPlay={playAlbumItem}
       />

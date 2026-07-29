@@ -51,6 +51,18 @@
     font: inherit;
   }
 
+  /* Keep loading icons visually centered and stable inside every button. */
+  button svg.animate-spin {
+    display: block;
+    width: 1.25rem;
+    height: 1.25rem;
+    flex: 0 0 1.25rem;
+    transform-box: view-box;
+    transform-origin: 50% 50%;
+    vertical-align: middle;
+    will-change: transform;
+  }
+
   body {
     margin: 0;
     overflow-x: hidden;

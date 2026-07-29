@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import GoogleLoginButton from "../../components/auth/GoogleLoginButton";
 import { useAuth } from "../../hooks/useAuth";
 import loginBg from "../../assets/images/ChatGPT Image 10_35_18 29 thg 4, 2026.png";
@@ -211,7 +212,12 @@ const LoginPage = () => {
           disabled:cursor-not-allowed disabled:opacity-70
         "
                 >
-                  { loading ? "Đang đăng nhập..." : "Đăng nhập" }
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2 text-white">
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                      Đang đăng nhập...
+                    </span>
+                  ) : "Đăng nhập"}
                 </button>
               </form>
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import LoadingState from "../../components/common/LoadingState";
 import {
     AlertCircle,
     AlertTriangle,
@@ -11,7 +12,6 @@ import {
     Eye,
     FileSearch,
     ImageIcon,
-    Loader2,
     Mic2,
     Music,
     XCircle,
@@ -242,10 +242,11 @@ const CustomerReportDetailPage = () => {
 
                 {/* Loading */}
                 {loading && (
-                    <div className="flex flex-col items-center justify-center rounded-[28px] border border-white/10 bg-white/[0.03] py-24">
-                        <Loader2 className="h-8 w-8 animate-spin text-[#f5b66f]" aria-hidden />
-                        <p className="mt-3 text-sm text-white/55">Đang tải chi tiết báo cáo...</p>
-                    </div>
+                    <LoadingState
+                        message="Đang tải chi tiết báo cáo..."
+                        className="rounded-[28px] border border-white/10 bg-white/[0.03] py-24"
+                        spinnerClassName="h-8 w-8"
+                    />
                 )}
 
                 {/* Error */}

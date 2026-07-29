@@ -1,4 +1,4 @@
-import { CheckCircle2, MoreHorizontal } from "lucide-react";
+import { CheckCircle2, Loader2, MoreHorizontal } from "lucide-react";
 import ArtistAvatar from "./ArtistAvatar";
 import { formatFullNumber } from "../../utils/artistProfile";
 
@@ -69,7 +69,12 @@ const ArtistHeroSection = ({
                     disabled:cursor-not-allowed disabled:opacity-70
                   "
                 >
-                  { followButtonLabel }
+                  {isFollowLoading ? (
+                    <span className="flex items-center justify-center gap-2 text-white">
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                      {followButtonLabel}
+                    </span>
+                  ) : followButtonLabel}
                 </button>
 
                 <button

@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowRight, Eye, EyeOff, LockKeyhole } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Loader2, LockKeyhole } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -197,8 +197,17 @@ const ResetPasswordPage = () => {
                   disabled={isSubmitting || !token}
                   type="submit"
                 >
-                  {isSubmitting ? "Đang cập nhật mật khẩu..." : "Cập nhật mật khẩu"}
-                  <ArrowRight className="h-4 w-4" />
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                      Đang cập nhật mật khẩu...
+                    </>
+                  ) : (
+                    <>
+                      Cập nhật mật khẩu
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
                 </button>
               </div>
             </form>

@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from "react";
-import { Clock3, Heart, Music2 } from "lucide-react";
+import { Clock3, Heart, Loader2, Music2 } from "lucide-react";
 import PlayButton from "../../components/common/PlayButton";
 import TrackListSection from "../../components/trackList/TrackListSection";
 import UserFavoriteTrackRow from "../../components/userFavorite/UserFavoriteTrackRow";
@@ -475,7 +475,12 @@ const UserFavoriteTracksPage = () => {
                   dark:border-white/10 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/[0.12]
                 "
               >
-                { isLoadingMore ? "Đang tải..." : "Tải thêm" }
+                { isLoadingMore ? (
+                  <span className="flex items-center justify-center gap-2 text-white">
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                    Đang tải...
+                  </span>
+                ) : "Tải thêm" }
               </button>
             </div>
           ) : null }

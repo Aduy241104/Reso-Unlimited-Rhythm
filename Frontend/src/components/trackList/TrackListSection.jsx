@@ -1,4 +1,5 @@
 import { Clock3 } from "lucide-react";
+import LoadingState from "../common/LoadingState";
 
 const trackGridClassNameByType = {
   default:
@@ -81,7 +82,7 @@ const TrackListSection = ({
           .join(" ")
           .trim() }
       >
-        { loadingMessage }
+        <LoadingState message={loadingMessage} />
       </div>
     );
   }

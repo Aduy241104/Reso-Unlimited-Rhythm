@@ -1,6 +1,7 @@
 import { CirclePlus, Play } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import LoadingState from "../../components/common/LoadingState";
 import TrackTwoLevelMenu from "../../components/trackMenu/TrackTwoLevelMenu";
 import CreateReportModal from "../../components/report/CreateReportModal";
 import TrackDetailArtistCard from "../../components/trackDetail/TrackDetailArtistCard";
@@ -310,9 +311,10 @@ const TrackDetailPage = () => {
   if (isLoading) {
     return (
       <section className="rounded-[10px]">
-        <div className="rounded-[24px] bg-[#121212] px-6 py-20 text-sm text-white/82">
-          Đang tải chi tiết bài hát
-        </div>
+        <LoadingState
+          message="Đang tải chi tiết bài hát..."
+          className="min-h-[20rem] rounded-[24px] bg-[#121212] px-6 py-20"
+        />
       </section>
     );
   }
