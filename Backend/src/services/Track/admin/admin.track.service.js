@@ -582,27 +582,18 @@ const updateTrackVisibility = async (
 
     if (payload.action === "hide") {
         track.blockedByAlbumId = null;
-        track.previousActiveStatusBeforeAlbumBlock = null;
-        track.previousHiddenReasonBeforeAlbumBlock = "";
-        track.previousHiddenAtBeforeAlbumBlock = null;
         track.activeStatus = "hidden";
         track.hiddenReason = (payload.hiddenReason || payload.adminNote || "Hidden by administrator.").trim();
         track.blockedReason = "";
         track.hiddenAt = new Date();
     } else if (payload.action === "block") {
         track.blockedByAlbumId = null;
-        track.previousActiveStatusBeforeAlbumBlock = null;
-        track.previousHiddenReasonBeforeAlbumBlock = "";
-        track.previousHiddenAtBeforeAlbumBlock = null;
         track.activeStatus = "blocked";
         track.blockedReason = (payload.blockedReason || payload.adminNote || "Blocked by administrator.").trim();
         track.hiddenReason = "";
         track.hiddenAt = null;
     } else if (payload.action === "unhide") {
         track.blockedByAlbumId = null;
-        track.previousActiveStatusBeforeAlbumBlock = null;
-        track.previousHiddenReasonBeforeAlbumBlock = "";
-        track.previousHiddenAtBeforeAlbumBlock = null;
         track.activeStatus = "active";
         track.hiddenReason = "";
         track.blockedReason = "";
