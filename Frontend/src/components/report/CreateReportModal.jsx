@@ -387,7 +387,12 @@ const CreateReportModal = ({
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-[#f5b66f] px-5 text-sm font-semibold text-[#15181d] transition hover:bg-[#f7c789] disabled:cursor-not-allowed disabled:opacity-70"
+                className={[
+                  "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-70",
+                  isSubmitting
+                    ? "bg-[#111111] text-white"
+                    : "bg-[#f5b66f] text-[#15181d] hover:bg-[#f7c789]",
+                ].join(" ")}
               >
                 {isSubmitting ? (
                   <>

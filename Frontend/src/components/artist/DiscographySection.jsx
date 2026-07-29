@@ -1,6 +1,7 @@
 import ContentCard from "../content/ContentCard";
 import PillsFilter from "./PillsFilter";
 import SectionHeader from "./SectionHeader";
+import LoadingState from "../common/LoadingState";
 
 const filterMap = {
   popular: () => true,
@@ -38,17 +39,7 @@ const DiscographySection = ({
       />
 
       { isLoading ? (
-        <div className="flex gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          { Array.from({ length: 5 }).map((_, index) => (
-            <div key={ index } className="w-[14rem] min-w-[14rem] animate-pulse border border-white/6 bg-white/[0.03]">
-              <div className="aspect-square bg-white/8" />
-              <div className="space-y-2 px-4 py-4">
-                <div className="h-4 w-4/5 bg-white/10" />
-                <div className="h-3 w-2/3 bg-white/8" />
-              </div>
-            </div>
-          )) }
-        </div>
+        <LoadingState message="Đang tải danh sách phát hành..." className="min-h-[14rem]" />
       ) : filteredItems.length > 0 ? (
         <div className="flex gap-5 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           { filteredItems.map((item) => (
