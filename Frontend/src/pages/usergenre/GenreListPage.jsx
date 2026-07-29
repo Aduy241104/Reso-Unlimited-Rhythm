@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import CenteredLoadingState from "../../components/common/LoadingState";
 import GenreCard from "../../components/usergenre/GenreCard";
 import { getUserGenres } from "../../services/userGenreService";
 import { getApiErrorMessage } from "../../utils/apiError";
@@ -19,9 +19,7 @@ const normalizeGenres = (payload) => {
 const LoadingState = () => {
   return (
     <section className="flex min-h-[280px] items-center justify-center rounded-3xl bg-[#121212]">
-      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/5 text-white">
-        <Loader2 className="h-7 w-7 animate-spin" aria-hidden />
-      </div>
+      <CenteredLoadingState message="Đang tải thể loại..." spinnerClassName="h-7 w-7" />
     </section>
   );
 };

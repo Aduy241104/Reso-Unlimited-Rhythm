@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import PlayButton from "../../components/common/PlayButton";
+import LoadingState from "../../components/common/LoadingState";
 import TrackCard from "../../components/TrackCard";
 import TrackListSection from "../../components/trackList/TrackListSection";
 import { usePlayer } from "../../hooks/usePlayer";
@@ -7,6 +8,7 @@ import { routePaths } from "../../routes/routePaths";
 import { getMonthlyTopTracksService } from "../../services/trackService";
 import { formatTrackDuration } from "../../utils/albumDetail";
 import { getApiErrorMessage } from "../../utils/apiError";
+import defaultImage from "../../assets/images/default-image.svg";
 import {
   MONTHLY_TOP_TRACK_LIMIT,
   createMonthlyTopTracksCollectionMeta,
@@ -156,6 +158,16 @@ const MonthlyTopTracksPage = () => {
     });
   };
 
+  if (isLoading) {
+    return (
+      <LoadingState
+        message="Đang tải bảng xếp hạng tháng..."
+        className="min-h-[60vh]"
+        spinnerClassName="h-8 w-8"
+      />
+    );
+  }
+
   return (
     <section className="space-y-4 sm:space-y-6">
       <div
@@ -176,7 +188,7 @@ const MonthlyTopTracksPage = () => {
               <div
                 className="absolute inset-0 bg-center bg-cover bg-no-repeat"
                 style={ {
-                  backgroundImage: `url(${heroImage})`,
+                  backgroundImage: `url(${heroImage}), url(${defaultImage})`,
                   transform: "scale(1.08)",
                   filter: "blur(8px) saturate(1.08) brightness(0.95)",
                 } }
@@ -187,9 +199,10 @@ const MonthlyTopTracksPage = () => {
           ) : null }
 
           { isLoading ? (
-            <div className="relative z-10 flex min-h-[20rem] items-end">
-              <p className="text-sm text-white/82">Đang tải bảng xếp hạng tháng...</p>
-            </div>
+            <LoadingState
+              message="Đang tải bảng xếp hạng tháng..."
+              className="relative z-10 min-h-[20rem]"
+            />
           ) : errorMessage ? (
             <div className="relative z-10 flex min-h-[20rem] items-end">
               <p className="max-w-xl text-sm text-white/88">{ errorMessage }</p>

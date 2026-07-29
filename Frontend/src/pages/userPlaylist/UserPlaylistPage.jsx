@@ -1,5 +1,5 @@
 ﻿import { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2 } from "lucide-react";
+import CenteredLoadingState from "../../components/common/LoadingState";
 import PlaylistCard from "../../components/userPlaylist/PlaylistCard";
 import { getUserPlaylists } from "../../services/userPlaylistService";
 import { getApiErrorMessage } from "../../utils/apiError";
@@ -71,9 +71,7 @@ const getLocalPaginationMeta = (currentPage, totalItems) => {
 const LoadingState = () => {
   return (
     <section className="flex min-h-[280px] items-center justify-center rounded-3xl bg-black">
-      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/5 text-white">
-        <Loader2 className="h-7 w-7 animate-spin" aria-hidden />
-      </div>
+      <CenteredLoadingState message="Đang tải playlist..." spinnerClassName="h-7 w-7" />
     </section>
   );
 };

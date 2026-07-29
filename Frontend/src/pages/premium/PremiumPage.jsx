@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { createPortal } from "react-dom";
+import LoadingState from "../../components/common/LoadingState";
 import { Link } from "react-router-dom";
 import {
   createVnpayOrderService,
@@ -407,7 +408,10 @@ const PurchaseConfirmationModal = ({
             type="button"
             onClick={onConfirm}
             disabled={isProcessing}
-            className="inline-flex min-h-11 items-center justify-center rounded-full bg-white px-5 text-sm font-semibold text-black transition hover:bg-[#ececec] disabled:cursor-not-allowed disabled:opacity-60"
+            className={[
+              "inline-flex min-h-11 items-center justify-center rounded-full px-5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60",
+              isProcessing ? "bg-[#111111] text-white" : "bg-white text-black hover:bg-[#ececec]",
+            ].join(" ")}
           >
             {isProcessing ? (
               <span className="flex items-center gap-2">
@@ -647,10 +651,7 @@ const PremiumPage = () => {
 
           <section className="mx-auto mt-10 max-w-[1180px]">
             {isLoading ? (
-              <div className="flex min-h-[240px] items-center justify-center gap-3 text-[14px] text-white/70">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                <span>Đang tải danh sách gói...</span>
-              </div>
+              <LoadingState message="Đang tải danh sách gói..." className="min-h-[240px]" />
             ) : orderedPlans.length === 0 ? (
               <div className="flex min-h-[240px] items-center justify-center rounded-[28px] border border-white/10 bg-[#151515] px-6 text-[14px] text-white/62">
                 Hiện chưa có gói Premium khả dụng.
@@ -710,7 +711,12 @@ const PremiumPage = () => {
                         type="button"
                         onClick={() => openPurchasePlan(planId)}
                         disabled={isProcessing || isOpeningAnyModal}
-                        className="mt-4 inline-flex min-h-[46px] w-full items-center justify-center rounded-full bg-white text-[13px] font-semibold text-black transition hover:bg-[#ececec] disabled:cursor-not-allowed disabled:opacity-60"
+                        className={[
+                          "mt-4 inline-flex min-h-[46px] w-full items-center justify-center rounded-full text-[13px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-60",
+                          isProcessing || isOpeningThisPlan
+                            ? "bg-[#111111] text-white"
+                            : "bg-white text-black hover:bg-[#ececec]",
+                        ].join(" ")}
                       >
                         {isProcessing ? (
                           <span className="flex items-center gap-2">

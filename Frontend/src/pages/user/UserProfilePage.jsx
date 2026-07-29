@@ -1,9 +1,10 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronRight, Loader2, Sparkles } from "lucide-react";
+import { ChevronRight, Sparkles } from "lucide-react";
 import UserProfileAvatar from "../../components/userProfile/UserProfileAvatar";
 import UserProfileCard from "../../components/userProfile/UserProfileCard";
 import UserProfileInfo from "../../components/userProfile/UserProfileInfo";
+import LoadingState from "../../components/common/LoadingState";
 import { routePaths } from "../../routes/routePaths";
 import { getFollowedArtists } from "../../services/libaryService";
 import { getCurrentUserProfile } from "../../services/userProfileService";
@@ -142,14 +143,11 @@ const sectionPanelClassName =
 const LoadingCard = () => {
   return (
     <section className={sectionPanelClassName}>
-      <div className="flex min-h-[280px] flex-col items-center justify-center text-center text-white/65">
-        <div className="flex h-20 w-20 items-center justify-center rounded-3xl border border-white/12 bg-white/[0.05] text-white/85">
-          <Loader2 className="h-8 w-8 animate-spin" aria-hidden />
-        </div>
-        <p className="mt-5 text-sm font-medium tracking-[0.18em] text-white/90">
-          Đang tải hồ sơ của bạn...
-        </p>
-      </div>
+      <LoadingState
+        message="Đang tải hồ sơ của bạn..."
+        className="min-h-[280px]"
+        spinnerClassName="h-8 w-8"
+      />
     </section>
   );
 };
@@ -190,10 +188,10 @@ const SectionTitle = ({ eyebrow, title, description }) => {
 
 const SectionLoading = ({ message }) => {
   return (
-    <div className="flex items-center gap-3 rounded-[24px] border border-white/10 bg-white/[0.03] px-4 py-4 text-sm text-white/65">
-      <Loader2 className="h-4 w-4 animate-spin text-white/80" aria-hidden />
-      <span>{message}</span>
-    </div>
+    <LoadingState
+      message={message}
+      className="min-h-20 rounded-[24px] border border-white/10 bg-white/[0.03] px-4 py-4"
+    />
   );
 };
 
@@ -505,7 +503,13 @@ const UserProfilePage = () => {
     [subscriptionDetail.status]
   );
 
-  if (isLoading) {
+  const isPageLoading =
+    isLoading ||
+    isLoadingSubscription ||
+    isLoadingPlaylists ||
+    isLoadingFollowedArtists;
+
+  if (isPageLoading) {
     return (
       <main className={pageShellClassName}>
         <div className="mx-auto w-full max-w-7xl">
