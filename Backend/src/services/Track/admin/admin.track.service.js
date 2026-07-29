@@ -380,6 +380,12 @@ const listTracksForAdmin = async (query = {}) => {
 
     const conditions = [];
 
+    // Drafts stay private until submission. Pending records belong to the
+    // dedicated moderation queue, not the system catalog.
+    if (query.scope === "catalog") {
+        conditions.push({ approvalStatus: { $in: ["approved", "rejected"] } });
+    }
+
     if (query.approvalStatus) {
         if (query.approvalStatus === "pending") {
             conditions.push({
