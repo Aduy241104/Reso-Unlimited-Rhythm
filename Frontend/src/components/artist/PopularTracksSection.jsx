@@ -10,10 +10,11 @@ const getArtistName = (track) =>
   "Unknown Artist";
 
 const getTrackImage = (track) =>
+  track?.avatar ||
+  track?.artist?.avatar ||
   track?.image ||
   track?.coverImage ||
   track?.album?.coverImage ||
-  track?.avatar ||
   "";
 
 const PopularTracksSection = ({
