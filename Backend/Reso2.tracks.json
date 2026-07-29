@@ -1,0 +1,244 @@
+[{
+  "_id": {
+    "$oid": "6a2ff8f5457fe5bd88472a05"
+  },
+  "title": "STAY",
+  "artist_artistId": {
+    "$oid": "6a2ff3dc457fe5bd88472937"
+  },
+  "album_albumId": null,
+  "genreIds": [
+    {
+      "$oid": "681300000000000000000201"
+    }
+  ],
+  "audioFiles": [
+    {
+      "url": "https://res.cloudinary.com/do5o9r18f/video/upload/v1781528815/tracks/audio/original/ykghaq93g9c3oaaboyve.mp3",
+      "format": "mp3",
+      "bitrate": 320,
+      "label": "original",
+      "priority": 5,
+      "_id": {
+        "$oid": "6a2ff8f5457fe5bd88472a06"
+      }
+    },
+    {
+      "url": "https://res.cloudinary.com/do5o9r18f/video/upload/v1781528816/tracks/audio/high/zxga2xnerewbnsbznjlv.mp3",
+      "format": "mp3",
+      "bitrate": 320,
+      "label": "high",
+      "priority": 4,
+      "_id": {
+        "$oid": "6a2ff8f5457fe5bd88472a07"
+      }
+    },
+    {
+      "url": "https://res.cloudinary.com/do5o9r18f/video/upload/v1781528815/tracks/audio/medium/otgmuhykit6pgtwxmdg7.mp3",
+      "format": "mp3",
+      "bitrate": 192,
+      "label": "medium",
+      "priority": 3,
+      "_id": {
+        "$oid": "6a2ff8f5457fe5bd88472a08"
+      }
+    },
+    {
+      "url": "https://res.cloudinary.com/do5o9r18f/video/upload/v1781528816/tracks/audio/low/ifsklenzy2s0ku0dqpcc.mp3",
+      "format": "mp3",
+      "bitrate": 128,
+      "label": "low",
+      "priority": 2,
+      "_id": {
+        "$oid": "6a2ff8f5457fe5bd88472a09"
+      }
+    },
+    {
+      "url": "https://res.cloudinary.com/do5o9r18f/video/upload/v1781528815/tracks/audio/lowest/pzsysvdjf1stsslomoaa.mp3",
+      "format": "mp3",
+      "bitrate": 96,
+      "label": "lowest",
+      "priority": 1,
+      "_id": {
+        "$oid": "6a2ff8f5457fe5bd88472a0a"
+      }
+    }
+  ],
+  "duration": 139,
+  "versionTitle": "139",
+  "avatar": "https://res.cloudinary.com/do5o9r18f/image/upload/v1781528817/tracks/avatar/onweeh46bzpfqksvue5m.jpg",
+  "coverImage": [
+    "https://res.cloudinary.com/do5o9r18f/image/upload/v1781528819/tracks/cover/dtgljk6z29yjn4twbv9g.jpg"
+  ],
+  "lyricsStatic": "I do the same thing I told you that I never would\nI told you I changed, even when I knew I never could\nKnow that I can't find nobody else as good as you\nI need you to stay, need you to stay, hey\nI get drunk, wake up, I'm wasted still\nI realize the time that I wasted here\nI feel like you can't feel the way I feel\nI'll be fucked up if you can't be right here\nOh, whoa (oh, whoa, whoa)\nOh, whoa (oh, whoa)\nOh, whoa (oh, whoa)\nI'll be fucked up if you can't be right here\nI do the same thing I told you that I never would\nI told you I changed, even when I knew I never could\nKnow that I can't find nobody else as good as you\nI need you to stay, need you to stay, hey\nI do the same thing I told you that I never would\nI told you I changed, even when I knew I never could\nKnow that I can't find nobody else as good as you\nI need you to stay, need you to stay, hey\nWhen I'm away from you, I miss your touch (ooh)\nYou're the reason I believe in love\nIt's been difficult for me to trust (ooh)\nAnd I'm afraid that I'ma fuck it up\nAin't no way that I can leave you stranded\n'Cause you ain't never left me empty-handed\nAnd you know that I know that I can't live without you\nSo baby, stay\nOh, whoa (oh, whoa, whoa)\nOh, whoa (oh, whoa)\nOh, whoa (oh, whoa)\nI'll be fucked up if you can't be right here\nI do the same thing I told you that I never would\nI told you I changed, even when I knew I never could\nKnow that I can't find nobody else as good as you\nI need you to stay, need you to stay, yeah\nI do the same thing I told you that I never would\nI told you I changed, even when I knew I never could\nKnow that I can't find nobody else as good as you\nI need you to stay, need you to stay, hey\nWhoa\nI need you to stay, need you to stay, hey",
+  "lyricsSyncUrl": "https://res.cloudinary.com/do5o9r18f/raw/upload/v1781528821/tracks/lyrics/sync/oxspp9e5qg5f9jcb8qs9",
+  "stats": {
+    "totalLike": 0,
+    "totalPlay": 5
+  },
+  "releaseDate": {
+    "$date": "2026-07-26T00:00:00.000Z"
+  },
+  "activeStatus": "active",
+  "approvalStatus": "approved",
+  "copyright": {
+    "copyrightOwner": "dfasdf",
+    "recordingOwner": "ádfa",
+    "composer": "fadf",
+    "lyricist": "adfadf",
+    "producer": "adfadad",
+    "isOriginal": true,
+    "isCover": false,
+    "isRemix": false,
+    "usesSample": false,
+    "usesLicensedBeat": false,
+    "originalTrackTitle": "",
+    "originalArtistName": "",
+    "licenseDocumentUrls": [],
+    "declarationAccepted": true,
+    "copyrightNote": "fadf",
+    "copyrightStatus": "verified"
+  },
+  "moderation": {
+    "submittedAt": {
+      "$date": "2026-06-15T13:08:32.327Z"
+    },
+    "reviewedAt": {
+      "$date": "2026-06-15T13:11:07.940Z"
+    },
+    "adminNote": "đã duyệt",
+    "violationFlags": []
+  },
+  "rejectReason": "",
+  "blockedReason": "",
+  "hiddenReason": "",
+  "createdAt": {
+    "$date": "2026-06-15T13:07:01.241Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-22T07:08:00.996Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a35fa290c4a074aeaa12534"
+  },
+  "title": "Liệm",
+  "artist_artistId": {
+    "$oid": "6a35f7a20c4a074aeaa1245f"
+  },
+  "album_albumId": null,
+  "genreIds": [
+    {
+      "$oid": "681300000000000000000201"
+    }
+  ],
+  "audioFiles": [
+    {
+      "url": "https://res.cloudinary.com/do5o9r18f/video/upload/v1781922342/tracks/audio/original/cfh3ubwfm8hdzbabcea5.mp3",
+      "format": "mp3",
+      "bitrate": 320,
+      "label": "original",
+      "priority": 5,
+      "_id": {
+        "$oid": "6a35fa290c4a074aeaa12535"
+      }
+    },
+    {
+      "url": "https://res.cloudinary.com/do5o9r18f/video/upload/v1781922342/tracks/audio/high/qslvptwlcofhd1oohbwy.mp3",
+      "format": "mp3",
+      "bitrate": 320,
+      "label": "high",
+      "priority": 4,
+      "_id": {
+        "$oid": "6a35fa290c4a074aeaa12536"
+      }
+    },
+    {
+      "url": "https://res.cloudinary.com/do5o9r18f/video/upload/v1781922341/tracks/audio/medium/r9vuayr0txg5mdj862tj.mp3",
+      "format": "mp3",
+      "bitrate": 192,
+      "label": "medium",
+      "priority": 3,
+      "_id": {
+        "$oid": "6a35fa290c4a074aeaa12537"
+      }
+    },
+    {
+      "url": "https://res.cloudinary.com/do5o9r18f/video/upload/v1781922342/tracks/audio/low/hptjxy7piaiiivb5otoe.mp3",
+      "format": "mp3",
+      "bitrate": 128,
+      "label": "low",
+      "priority": 2,
+      "_id": {
+        "$oid": "6a35fa290c4a074aeaa12538"
+      }
+    },
+    {
+      "url": "https://res.cloudinary.com/do5o9r18f/video/upload/v1781922341/tracks/audio/lowest/iq7baxa7xwmfgbezlbnw.mp3",
+      "format": "mp3",
+      "bitrate": 96,
+      "label": "lowest",
+      "priority": 1,
+      "_id": {
+        "$oid": "6a35fa290c4a074aeaa12539"
+      }
+    }
+  ],
+  "duration": 335,
+  "versionTitle": "343",
+  "avatar": "https://res.cloudinary.com/do5o9r18f/image/upload/v1781922344/tracks/avatar/vraak2x0fseh9ntqgcd9.png",
+  "coverImage": [
+    "https://res.cloudinary.com/do5o9r18f/image/upload/v1781922345/tracks/cover/tdhro4l1lg50suckvpv6.png"
+  ],
+  "lyricsStatic": "[Lời bài hát \"Liệm\"]\n\n[Chorus]\nAnh đã nói quá nhiều về tình yêu\nNhưng lại chẳng biết anh muốn điều gì từ tình yêu\nVà đã có những vết cắt rất sâu, nhắc anh bao điều\nĐừng có tin khi con tim này còn phiêu\nỪ thì viết nốt lần này thôi\nChẳng thể để cảm xúc cứ mãi tồn đọng ở bờ môi\nVà anh sẽ xóa hết những thước phim khi em đi xa rồi\nChẳng còn đớn đau, chỉ là do con tim anh rã rời\n\n[Verse 1]\nThêm một party, thêm một ly on the weekend\nVậy đừng đỡ anh ra khỏi đây, anh đang say mèm\nAnh chẳng biết thế nào là tốt đâu\nAnh đang đi tìm chính mình\nGiết em luôn, không để cho em thay đổi tính tình\nFuck all the bitches, không thể tin, không thể phiêu được\nI got no chill dù anh trip hơi sâu, eh-eh-eh-eh\nVà thế nào là một thằng đàn ông?\nLà phải giang tay và ôm em vào lòng?\nSẽ trao cho em bao nụ hôn dù là chẳng còn lại gì ở bên trong?\nVà nếu cho anh quay ngược thời gian\nAnh sẽ yêu em như là yêu một người bạn\nNhư cách em đã từng yêu một người bạn (Yeah)\n[Chorus]\nYeah, yeah, vậy đừng có nói quá nhiều về tình yêu (Nói quá nhiều về tình yêu)\nNhư là mình biết tất cả mọi chuyện về tình yêu (Hah-uh-huh)\nĐã có những vết cắt rất sâu, nhắc anh bao điều\nĐừng có tin khi con tim này còn phiêu (Huh-huh-huh)\nVà anh chỉ viết nốt lần này thôi\nChẳng thể để cảm xúc cứ mãi tồn đọng ở bờ môi\nVà anh sẽ xóa hết những thước phim khi em đi xa rồi\nChẳng còn gì nữa đâu bởi vì con tim anh rã rời\n\n[Verse 2]\nAh, hết rồi (Huh), anh chưa từng nghĩ ngợi\nHãy để, cho anh được nghỉ ngơi\nNói hết, ra những lời trong lòng\nHiên ngang không quan tâm ai quy tội\nTrào lên bao nhiêu nghi ngờ vùi dập đi những khúc ca tình (Những khúc ca)\nCảm ơn vì những bài học này làm cho anh nhận ra mình (Hah-hah)\nEm làm đúng những thứ anh suy luận giờ đã sáng tỏ khung hình\nVà bước đi anh cần tôn trọng thằng đàn ông ở trong mình, yeah-eh\n\n[Interlude]\nEh-eh\nEh-eh\nEh-eh\nEh-eh, eh-eh\n[Verse 3]\nUh-uh, mọc đâu ra cây hoa ở ngoài hiên nhà\nMong cho hoa đưa hương bay thật xa\nAnh đã cảm thấy nơi đây như là thiên đường\nMặc người đời nói rằng anh điêu toa\nNgân nga câu hát ta và hoa đã từng đắm chìm\nNhưng anh biết, không phải bông hoa của riêng anh\nVà nếu anh muốn, chắc chắn anh sẽ làm\nAnh đủ yêu hoa để anh rời xa\n\n[Chorus]\nNói, về tình yêu\nMà chẳng biết, về tình yêu\nCắt rất sâu, bao điều\nĐừng tin khi tim còn phiêu\nViết, lần này thôi\nCảm xúc, đọng bờ môi\nXóa phim, đi xa rồi\nĐớn đau, tim rã rời, yeah\n\n[Outro]\nVậy đừng có nói quá nhiều về tình yêu (Quá nhiều về tình yêu)\nNhư là mình sẽ mãi mãi luôn bên nhau (Huh-huh), anh không bao giờ chạm vào nữa đâu\n(Nhưng tại sao mà anh lại tin khi con tim này còn phiêu, uh-huh)\n(Trao cho ai nhờ?)\nAnh chỉ viết nốt lần này (Viết nốt lần này)\n(Viết nốt lần này)\nChẳng còn cách nào có thể xóa được những buồn phiền khi em đi xa rồi\nChẳng còn đớn đau chẳng còn phù hợp (Uh-huh) thì giữ lại làm gì\n(Em đừng nói gì với tình yêu nữa)\n(Anh nghe chán rồi, yeah)\n(Em đừng nói gì với tình yêu nữa)",
+  "lyricsSyncUrl": "",
+  "stats": {
+    "totalLike": 0,
+    "totalPlay": 3
+  },
+  "releaseDate": {
+    "$date": "2026-06-18T01:00:00.000Z"
+  },
+  "activeStatus": "active",
+  "approvalStatus": "approved",
+  "copyright": {
+    "copyrightOwner": "MCK",
+    "recordingOwner": "MCK",
+    "composer": "MNCK",
+    "lyricist": "fdsf",
+    "producer": "sdfsda",
+    "isOriginal": true,
+    "isCover": false,
+    "isRemix": false,
+    "usesSample": false,
+    "usesLicensedBeat": false,
+    "originalTrackTitle": "",
+    "originalArtistName": "",
+    "licenseDocumentUrls": [],
+    "declarationAccepted": true,
+    "copyrightNote": "đầ",
+    "copyrightStatus": "verified"
+  },
+  "moderation": {
+    "submittedAt": {
+      "$date": "2026-06-20T02:25:51.864Z"
+    },
+    "reviewedAt": {
+      "$date": "2026-06-20T02:26:13.583Z"
+    },
+    "adminNote": "",
+    "violationFlags": []
+  },
+  "rejectReason": "",
+  "blockedReason": "",
+  "hiddenReason": "",
+  "createdAt": {
+    "$date": "2026-06-20T02:25:45.148Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-21T02:12:00.638Z"
+  },
+  "__v": 0
+}]

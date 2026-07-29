@@ -23,7 +23,7 @@ const AlbumSchema = new Schema(
         },
 
         blockedReason: { type: String, default: "" },
-        totalPlays: { type: Number, default: 0, min: 0 },
+        totalDuration: { type: Number, default: 0, min: 0 },
     },
     { timestamps: true }
 );

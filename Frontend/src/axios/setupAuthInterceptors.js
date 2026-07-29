@@ -73,6 +73,7 @@ export const setupAxiosInterceptors = ({
       const isRefreshRequest = url.includes(`${AUTH_API_PREFIX}/refresh-token`);
       const isNonRefreshableAuthRequest =
         url.includes(`${AUTH_API_PREFIX}/login`) ||
+        url.includes(`${AUTH_API_PREFIX}/google`) ||
         url.includes(`${AUTH_API_PREFIX}/register`) ||
         url.includes(`${AUTH_API_PREFIX}/forgot-password`) ||
         url.includes(`${AUTH_API_PREFIX}/reset-password`) ||

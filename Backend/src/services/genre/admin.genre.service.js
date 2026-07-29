@@ -91,10 +91,25 @@ const uploadGenreImage = async (fileBuffer) => {
     return uploadResult.secure_url;
 };
 
+
+const deleteGenre = async (id) => {
+    // Tìm và xóa bản ghi dựa vào ID được truyền từ controller
+    const genre = await Genre.findByIdAndDelete(id);
+    
+    // Nếu không tìm thấy ID cần xóa, có thể ném ra một lỗi để Error Handler xử lý
+    if (!genre) {
+        const error = new Error("Genre not found");
+        error.statusCode = 404;
+        throw error;
+    }
+    
+    return genre;
+};
 export default {
     getGenres,
     createGenre,
     getGenreById,
     updateGenre,
     uploadGenreImage,
+    deleteGenre
 };

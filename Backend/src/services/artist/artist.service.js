@@ -173,13 +173,6 @@ const updateMyProfileMediaByUserId = async (userId, { avatarFile, coverFile }) =
 const requestVerificationByUserId = async (userId, payload = {}) => {
     const artist = await findOwnedArtistDocumentOrThrow(userId);
 
-    if (artist.verificationStatus === "verified") {
-        throw new AppError(
-            "Your artist profile is already verified.",
-            StatusCodes.BAD_REQUEST
-        );
-    }
-
     const existing = await ArtistVerificationRequest.findOne({
         artistId: artist._id,
         status: "open",

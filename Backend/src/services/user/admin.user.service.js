@@ -55,6 +55,8 @@ const updateUser = async (id, body) => {
 
     if (typeof body.activeStatus !== "undefined") {
         updates.activeStatus = body.activeStatus;
+        // THÊM DÒNG NÀY: Nếu trạng thái là blocked thì lưu lý do, nếu unblock thì xóa lý do đi
+        updates.blockReason = body.activeStatus === "blocked" ? (body.blockReason || "Vi phạm điều khoản") : "";
     }
 
     if (body.fullName) {

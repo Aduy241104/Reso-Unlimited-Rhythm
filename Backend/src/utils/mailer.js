@@ -62,7 +62,7 @@ export const sendOtpEmail = async ({ to, code, type, ttlMinutes }) => {
 };
 
 
-export const sendResetPasswordLinkEmail = async ({ to, resetLink, ttlMinutes }) => {
+export const sendResetPasswordLinkEmail = async ({ to, resetLink, otp, ttlMinutes }) => {
   const subject = "Đặt lại mật khẩu (Reset Password)";
   const from = `"${process.env.MAIL_FROM_NAME || "App"}" <${process.env.MAIL_FROM_EMAIL || process.env.SMTP_USER}>`;
 
@@ -71,6 +71,7 @@ export const sendResetPasswordLinkEmail = async ({ to, resetLink, ttlMinutes }) 
       <h3>Đặt lại mật khẩu</h3>
       <p>Bạn vừa yêu cầu đặt lại mật khẩu. Nhấn vào link bên dưới để tạo mật khẩu mới:</p>
       <p><a href="${resetLink}" target="_blank">${resetLink}</a></p>
+      ${otp ? `<p>Hoac nhap ma OTP nay trong ung dung:</p><div style="font-size: 28px; font-weight: 700; letter-spacing: 6px">${otp}</div>` : ""}
       <p>Link có hiệu lực trong <b>${ttlMinutes}</b> phút.</p>
       <p>Nếu không phải bạn yêu cầu, hãy bỏ qua email này.</p>
     </div>

@@ -4,7 +4,7 @@ const formatLikeCount = (value) => {
   const likeCount = Number(value);
 
   if (!Number.isFinite(likeCount) || likeCount <= 0) {
-    return "Ch\u01b0a c\u00f3 l\u01b0\u1ee3t th\u00edch";
+    return "Chưa có lượt thích";
   }
 
   if (likeCount >= 1000000) {
@@ -19,11 +19,9 @@ const formatLikeCount = (value) => {
 };
 
 const TrackDetailLikeSection = ({
-  title,
-  artistName,
-  image,
   isLiked,
   likeCount,
+  isLikeLoading = false,
   onToggleLike,
 }) => (
   <section
@@ -32,7 +30,7 @@ const TrackDetailLikeSection = ({
       <div className="flex flex-wrap items-center gap-3">
         <div
           className="
-            min-w-[11rem] rounded-[18px] border border-black/6 bg-black/[0.03] px-4 py-3
+            w-full rounded-[18px] border border-black/6 bg-black/[0.03] px-4 py-3 sm:min-w-[11rem] sm:w-auto
             dark:border-white/10 dark:bg-white/[0.04]
           "
         >
@@ -50,6 +48,7 @@ const TrackDetailLikeSection = ({
         <button
           type="button"
           onClick={ onToggleLike }
+          disabled={ isLikeLoading }
           aria-pressed={ isLiked }
           className={ [
             "inline-flex h-12 items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold transition",
@@ -59,7 +58,9 @@ const TrackDetailLikeSection = ({
           ].join(" ") }
         >
           <Heart className={ `h-4.5 w-4.5 ${isLiked ? "fill-current" : ""}` } />
-          { isLiked ? "Liked" : "Like track" }
+          { isLikeLoading
+            ? "\u0110ang x\u1eed l\u00fd..."
+            : (isLiked ? "\u0110\u00e3 th\u00edch" : "Th\u00edch b\u00e0i h\u00e1t") }
         </button>
       </div>
     </div>

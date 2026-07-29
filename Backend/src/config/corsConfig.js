@@ -8,7 +8,11 @@ const allowedOrigins = [
     "http://127.0.0.1:5173",
     "http://127.0.0.1:5174",
     "http://127.0.0.1:5500",
-    "http://localhost:3001"
+    "http://localhost:3001",
+
+
+    "http://192.168.1.20:8081",
+    "exp://192.168.1.20:8081"
 ];
 
 export const corsOptions = {

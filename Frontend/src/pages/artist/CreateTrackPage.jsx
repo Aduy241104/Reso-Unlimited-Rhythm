@@ -9,9 +9,9 @@ const CreateTrackPage = () => {
     <div className="space-y-4">
       <button
         onClick={() => navigate(routePaths.artistMusic)}
-        className="text-sm text-neutral-600 hover:text-[#8b5e3c] transition-colors"
+        className="text-sm text-neutral-600 transition-colors hover:text-[#8b5e3c]"
       >
-        ← Back to My Music
+        ← Quay lại nhạc của tôi
       </button>
       <CreateTrackForm />
     </div>

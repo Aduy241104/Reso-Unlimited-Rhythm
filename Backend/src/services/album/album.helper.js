@@ -22,7 +22,7 @@ const formatAlbumItem = (album) => ({
     coverImage: album.coverImage,
     releaseDate: album.releaseDate,
     status: album.status,
-    totalPlays: album.totalPlays,
+    totalDuration: album.totalDuration,
     trackCount: Array.isArray(album.trackList) ? album.trackList.length : 0,
     artist: album.artistId
         ? {
@@ -74,7 +74,7 @@ const formatAlbumDetail = (album) => ({
     coverImage: album.coverImage,
     releaseDate: album.releaseDate,
     status: album.status,
-    totalPlays: album.totalPlays,
+    totalDuration: album.totalDuration,
     trackCount: Array.isArray(album.trackList) ? album.trackList.length : 0,
     artist: album.artistId
         ? {
@@ -83,7 +83,6 @@ const formatAlbumDetail = (album) => ({
             bio: album.artistId.bio,
             avatar: album.artistId.avatar,
             coverImage: album.artistId.coverImage,
-            verificationStatus: album.artistId.verificationStatus,
             activeStatus: album.artistId.activeStatus,
             stats: album.artistId.stats,
         }
@@ -95,8 +94,14 @@ const formatAlbumDetail = (album) => ({
     updatedAt: album.updatedAt,
 });
 
+const formatAlbumFollowState = ({ albumId, isFollowing }) => ({
+    albumId: toId(albumId),
+    isFollowing,
+});
+
 export {
     formatAlbumDetail,
+    formatAlbumFollowState,
     formatAlbumItem,
     normalizePositiveInteger,
 };

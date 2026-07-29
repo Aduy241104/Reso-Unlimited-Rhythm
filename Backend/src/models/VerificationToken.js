@@ -11,11 +11,6 @@ const VerificationTokenSchema = new Schema(
         type: { type: String, enum: ["reset_password", "verify_email"], required: true, index: true },
         expiresAt: { type: Date, required: true, index: true },
         isUsed: { type: Boolean, default: false, index: true },
-        payload: {
-            username: { type: String, trim: true, default: "" },
-            password: { type: String, default: "" },
-            fullName: { type: String, trim: true, default: "" },
-        },
     },
     { timestamps: true }
 );

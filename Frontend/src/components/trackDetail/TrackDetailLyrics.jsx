@@ -36,7 +36,7 @@ const TrackDetailLyrics = ({ lyrics }) => {
       <div className="relative mt-5">
         <p
           className={[
-            "whitespace-pre-line text-[15px] leading-8 text-[#27272a] dark:text-white/90 sm:text-base",
+            "whitespace-pre-line text-sm leading-7 text-[#27272a] dark:text-white/90 sm:text-base sm:leading-8",
             shouldCollapse && !isExpanded ? "max-h-64 overflow-hidden" : "",
           ].join(" ")}
         >
@@ -60,7 +60,7 @@ const TrackDetailLyrics = ({ lyrics }) => {
           onClick={ () => setIsExpanded((currentValue) => !currentValue) }
           className="mt-4 text-sm font-semibold text-[#111111] transition hover:opacity-80 dark:text-white"
         >
-          { isExpanded ? "Thu g\u1ecdn" : "Xem th\u00eam" }
+          { isExpanded ? "Thu gọn" : "Xem thêm" }
         </button>
       ) : null }
     </section>

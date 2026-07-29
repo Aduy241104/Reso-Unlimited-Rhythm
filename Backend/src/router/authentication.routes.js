@@ -13,6 +13,12 @@ router.post(
 );
 
 router.post(
+    "/google",
+    validate(authenticationValidation.googleLoginSchema),
+    authenticationController.googleLogin
+);
+
+router.post(
     "/register",
     validate(authenticationValidation.registerSchema),
     authenticationController.register
@@ -38,12 +44,13 @@ router.post(
 
 router.post(
     "/logout",
+    validate(authenticationValidation.logoutSchema),
     authenticationController.logout
 );
 
 router.post(
     "/refresh-token",
-    validate(authenticationValidation.refreshTokenCookieSchema, "cookies"),
+    validate(authenticationValidation.refreshTokenSchema),
     authenticationController.refreshToken
 );
 

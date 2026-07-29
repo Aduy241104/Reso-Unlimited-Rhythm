@@ -1,5 +1,6 @@
 import { useRoutes } from "react-router-dom";
 import { AuthProvider } from "../contexts/AuthContext";
+import { PlayerProvider } from "../contexts/PlayerContext";
 import { appRoutes } from "./routeConfig";
 
 const AppRouteTree = () => {
@@ -9,7 +10,9 @@ const AppRouteTree = () => {
 const AppRoutes = () => {
   return (
     <AuthProvider>
-      <AppRouteTree />
+      <PlayerProvider>
+        <AppRouteTree />
+      </PlayerProvider>
     </AuthProvider>
   );
 };

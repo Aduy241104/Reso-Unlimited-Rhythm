@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
-import { ArrowLeft, Loader2, Plus, Upload, X } from "lucide-react";
+import { ArrowLeft, Loader2, Save, Upload, X } from "lucide-react";
 import {
   getAdminGenreService,
   updateAdminGenreService,
@@ -28,7 +28,7 @@ const EditGenrePage = () => {
         const genre = await getAdminGenreService(genreId);
         if (!active) return;
         if (!genre) {
-          setMessage("Genre not found.");
+          setMessage("Thể loại không tồn tại hoặc đã bị xóa.");
           return;
         }
         setForm({
@@ -39,7 +39,7 @@ const EditGenrePage = () => {
         });
         setCoverPreview(genre.image || "");
       } catch (error) {
-        setMessage(error?.response?.data?.message || error?.message || "Could not load genre.");
+        setMessage(error?.response?.data?.message || error?.message || "Không thể tải thông tin thể loại.");
       } finally {
         if (active) setIsLoading(false);
       }
@@ -90,10 +90,10 @@ const EditGenrePage = () => {
         image: imageUrl,
       });
 
-      toast.success("Genre updated successfully.");
+      toast.success("Cập nhật thể loại thành công.");
       navigate(routePaths.genres, { replace: true });
     } catch (error) {
-      setMessage(error?.response?.data?.message || error?.message || "Could not update genre.");
+      setMessage(error?.response?.data?.message || error?.message || "Không thể cập nhật thể loại.");
     } finally {
       setIsSubmitting(false);
     }
@@ -101,113 +101,141 @@ const EditGenrePage = () => {
 
   if (isLoading) {
     return (
-      <div className="rounded border border-black bg-white p-8 text-center text-black/50">
-        <Loader2 className="mx-auto mb-4 h-6 w-6 animate-spin" />
-        Loading genre details...
+      <div className="mx-auto max-w-7xl p-8 text-center text-xs font-bold font-mono text-slate-400 min-h-[50vh] flex flex-col items-center justify-center gap-3">
+        <Loader2 className="h-6 w-6 animate-spin text-slate-900" />
+        Đang trích xuất cấu trúc dữ liệu thể loại...
       </div>
     );
   }
 
   return (
-    <section className="space-y-6">
-      <div className="flex flex-col gap-3 rounded border border-black bg-white p-8 md:flex-row md:items-center md:justify-between">
+    <section className="mx-auto max-w-5xl space-y-6 p-6 bg-[#f8fafc] min-h-screen font-sans text-slate-800 antialiased">
+      
+      {/* HEADER BAR */}
+      <div className="flex flex-col gap-4 rounded-2xl bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between border border-slate-100">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.32em] text-black/50">Genre Management</p>
-          <h1 className="mt-3 text-4xl font-semibold text-black">Edit Genre</h1>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-black/70">Update genre name, description, image, and active status.</p>
+          <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Genre Management</p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">Chỉnh sửa thể loại</h1>
+          <p className="mt-1 text-xs text-slate-400">Cập nhật tên, mô tả, ảnh đại diện và trạng thái hoạt động của thể loại nhạc.</p>
         </div>
         <Link
           to={routePaths.genres}
-          className="inline-flex items-center justify-center rounded bg-black px-5 py-3 text-sm font-semibold text-white transition hover:bg-black/90"
+          className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 self-start md:self-center"
         >
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to List
+          <ArrowLeft className="mr-2 h-3.5 w-3.5" /> Quay lại danh sách
         </Link>
       </div>
 
-      <form onSubmit={handleSubmit} className="rounded border border-black bg-white p-6 space-y-6">
+      {/* FORM CARD */}
+      <form onSubmit={handleSubmit} className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100 space-y-5">
         {message && (
-          <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs font-bold text-rose-600 shadow-sm animate-fade-in">
             {message}
           </div>
         )}
 
-        <div className="grid gap-4 md:grid-cols-[1fr_0.8fr]">
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-black/70">Genre Name</label>
+        {/* INPUTS ROW */}
+        <div className="grid gap-5 md:grid-cols-3">
+          <div className="space-y-1.5 md:col-span-2">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tên thể loại nhạc</label>
             <input
               type="text"
               value={form.name}
               onChange={handleChange("name")}
-              placeholder="e.g. Pop, Rock, Lofi"
+              placeholder="Ví dụ: Pop, Rock, Lofi, Rap Việt..."
               required
-              className="w-full rounded border border-black/10 bg-slate-50 px-4 py-3 text-sm text-black outline-none focus:border-black"
               disabled={isSubmitting}
+              className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-slate-400 focus:bg-white transition font-medium"
             />
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-black/70">Active</label>
-            <label className="inline-flex items-center gap-3 rounded border border-black/10 bg-slate-50 px-4 py-3 text-sm text-black">
+          
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Trạng thái hiển thị</label>
+            <label className={`flex items-center gap-3 rounded-xl border px-4 py-2.5 text-sm font-bold transition select-none cursor-pointer h-[42px] ${
+              form.isActive 
+                ? "bg-emerald-50/60 border-emerald-200 text-emerald-700" 
+                : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100/70"
+            }`}>
               <input
                 type="checkbox"
                 checked={form.isActive}
                 onChange={handleChange("isActive")}
                 disabled={isSubmitting}
-                className="h-4 w-4 rounded border-black/10"
+                className="h-4 w-4 rounded-md border-slate-300 text-slate-900 focus:ring-0 accent-slate-900 cursor-pointer"
               />
-              Enabled
+              {form.isActive ? "Đang hoạt động" : "Tạm ngưng"}
             </label>
           </div>
         </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-black/70">Description</label>
+        {/* DESCRIPTION */}
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Mô tả chi tiết thể loại</label>
           <textarea
             value={form.description}
             onChange={handleChange("description")}
             rows={4}
-            className="w-full rounded border border-black/10 bg-slate-50 px-4 py-3 text-sm text-black outline-none focus:border-black resize-y"
             disabled={isSubmitting}
-            placeholder="Optional description"
+            placeholder="Nhập ghi chú hoặc tiểu sử sơ lược đặc trưng của dòng nhạc này..."
+            className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-400 focus:bg-white transition resize-none font-medium"
           />
         </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-black/70">Genre Image</label>
-          <div className="rounded border border-black/10 bg-slate-50 p-4">
+        {/* IMAGE UPLOAD COVER BOX */}
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Ảnh bìa thể loại (Cover Image)</label>
+          <div className="rounded-2xl bg-slate-50/50 border border-slate-100 p-4">
             {coverPreview ? (
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <img src={coverPreview} alt="Preview" className="h-28 w-28 rounded object-cover border border-black/10" />
-                <div className="flex flex-1 items-center justify-between gap-3">
-                  <p className="text-sm text-black/70">Upload a new image or keep the current one.</p>
-                  <button type="button" onClick={clearCover} disabled={isSubmitting} className="inline-flex items-center gap-2 rounded border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-black/[0.03]">
-                    <X className="h-4 w-4" /> Remove
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                <img src={coverPreview} alt="Preview" className="h-24 w-24 rounded-xl object-cover border border-slate-200 shadow-sm bg-white" />
+                <div className="flex flex-1 flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-bold text-slate-800">Ảnh đã được chọn lưu trữ</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">Hệ thống sẽ giữ lại ảnh cũ trừ khi bạn tải lên tập tin mới.</p>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={clearCover} 
+                    disabled={isSubmitting} 
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50 hover:text-rose-600 transition"
+                  >
+                    <X className="h-3.5 w-3.5" /> Gỡ bỏ ảnh
                   </button>
                 </div>
               </div>
             ) : (
-              <label className="flex cursor-pointer items-center justify-center gap-3 rounded border border-dashed border-black/30 bg-white px-4 py-8 text-center text-sm font-semibold text-black/50 hover:border-black/40 hover:text-black/80">
-                <Upload className="h-5 w-5" />
-                Select image
+              <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-white px-4 py-8 text-center transition hover:border-slate-400 group">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-50 group-hover:bg-slate-100 transition border border-slate-100">
+                  <Upload className="h-4 w-4 text-slate-500" />
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-xs font-bold text-slate-800">Chọn tập tin ảnh đại diện</p>
+                  <p className="text-[10px] text-slate-400">Hỗ trợ định dạng PNG, JPG hoặc WEBP</p>
+                </div>
                 <input type="file" accept="image/*" className="sr-only" onChange={handleCoverChange} disabled={isSubmitting} />
               </label>
             )}
-            <p className="mt-3 text-xs text-black/40">Optional cover image for the genre.</p>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-3">
+        {/* ACTIONS FOOTER */}
+        <div className="flex flex-wrap gap-2.5 pt-4 border-t border-slate-50">
           <button
             type="submit"
             disabled={isSubmitting || !form.name.trim()}
-            className="inline-flex items-center gap-2 rounded bg-black px-5 py-3 text-sm font-semibold text-white transition hover:bg-black/90 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-5 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</> : <><Plus className="h-4 w-4" /> Update Genre</>}
+            {isSubmitting ? (
+              <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Đang lưu...</>
+            ) : (
+              <><Save className="h-3.5 w-3.5" /> Cập nhật thể loại</>
+            )}
           </button>
           <Link
             to={routePaths.genres}
-            className="inline-flex items-center justify-center rounded border border-black/10 bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-black/[0.03]"
+            className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50"
           >
-            Cancel
+            Hủy bỏ
           </Link>
         </div>
       </form>

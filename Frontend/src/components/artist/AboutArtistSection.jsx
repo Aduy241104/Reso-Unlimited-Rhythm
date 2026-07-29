@@ -5,9 +5,9 @@ const AboutArtistSection = ({ profile, isLoading = false }) => {
   return (
     <section className="space-y-5">
       <SectionHeader
-        eyebrow="Identity"
-        title="About The Artist"
-        description="Built like a cinematic profile card, with room for story, scale, and branding."
+        eyebrow="Thông tin"
+        title="Về nghệ sĩ"
+        description="Khám phá câu chuyện, dấu ấn và màu sắc riêng của nghệ sĩ."
       />
 
       { isLoading ? (
@@ -31,8 +31,8 @@ const AboutArtistSection = ({ profile, isLoading = false }) => {
             <div className="flex h-full items-end">
               <div className="max-w-3xl">
                 <div className="mb-5 flex flex-wrap gap-6 text-sm text-white/72">
-                  <span>{ formatFullNumber(profile.monthlyListeners) } monthly listeners</span>
-                  <span>{ formatFullNumber(profile.followers) } followers</span>
+                  <span>{ formatFullNumber(profile.monthlyListeners) } người nghe hằng tháng</span>
+                  <span>{ formatFullNumber(profile.followers) } người theo dõi</span>
                   { profile.location ? <span>{ profile.location }</span> : null }
                 </div>
 

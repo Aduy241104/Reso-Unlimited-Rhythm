@@ -26,6 +26,7 @@ Backend/coverage/
 Backend/tmp/
 Backend/temp/
 Backend/logs/
+Backend/guide/
 Backend/data/        # MongoDB local (nếu có)
 
 # =========================
@@ -73,3 +74,10 @@ temp/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# =========================
+# Local Codex instructions
+# =========================
+AGENTS.md
+Backend/AGENTS.md
+AdminFrontend/AGENTS.md

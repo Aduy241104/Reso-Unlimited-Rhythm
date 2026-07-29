@@ -1,19 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   AlertTriangle,
   CalendarDays,
   Disc3,
   FileText,
-  Flag,
   Music2,
-  Play,
   ShieldAlert,
   Sparkles,
   BadgeCheck,
   Pencil,
+  Send,
+  X,
 } from "lucide-react";
+import PlayButton from "../../components/common/PlayButton";
+import ConfirmActionModal from "../../components/common/ConfirmActionModal";
 import { usePlayer } from "../../hooks/usePlayer";
 import { routePaths } from "../../routes/routePaths";
 import { trackService } from "../../services/trackService";
@@ -22,7 +24,13 @@ import {
   formatReleaseYear,
   formatTrackDuration,
 } from "../../utils/albumDetail";
-import { getApiErrorMessage } from "../../utils/apiError";
+import { getApiErrorFullMessage, getApiErrorMessage } from "../../utils/apiError";
+import {
+  canArtistEditTrack,
+  canArtistSubmitTrack,
+  getSubmitReadinessIssues,
+  usesThirdPartyRights,
+} from "../../utils/trackWorkflow";
 
 const statusMeta = {
   active: {
@@ -85,6 +93,21 @@ const formatCount = (value) => {
   return new Intl.NumberFormat("vi-VN").format(count);
 };
 
+const getMediaFileName = (value) => {
+  if (!value || typeof value !== "string") {
+    return "Không xác định";
+  }
+
+  try {
+    const decoded = decodeURIComponent(value);
+    const segments = decoded.split("/");
+    return segments[segments.length - 1] || decoded;
+  } catch {
+    const segments = value.split("/");
+    return segments[segments.length - 1] || value;
+  }
+};
+
 const InfoCard = ({ icon, label, value, helper }) => (
   <div className="rounded-md border border-neutral-200 bg-white p-4 shadow-sm">
     <div className="flex items-start gap-3">
@@ -105,6 +128,7 @@ const InfoCard = ({ icon, label, value, helper }) => (
 const ArtistTrackDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { playTrack } = usePlayer();
   const [track, setTrack] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -112,6 +136,8 @@ const ArtistTrackDetailPage = () => {
   const [actionMessage, setActionMessage] = useState("");
   const [actionError, setActionError] = useState("");
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const [isSubmitConfirmOpen, setIsSubmitConfirmOpen] = useState(false);
+  const [isLyricsModalOpen, setIsLyricsModalOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -185,10 +211,26 @@ const ArtistTrackDetailPage = () => {
   const releaseYear = formatReleaseYear(track?.releaseDate);
   const duration = formatTrackDuration(track?.duration);
   const genres = Array.isArray(track?.genres) ? track.genres : [];
-  const audioFiles = Array.isArray(track?.audioFiles) ? track.audioFiles : [];
+  const canPlayTrack =
+    track?.activeStatus === "active" &&
+    track?.approvalStatus === "approved" &&
+    Array.isArray(track?.audioFiles) &&
+    track.audioFiles.length > 0;
+  const canEdit = canArtistEditTrack(track);
+  const canSubmit = canArtistSubmitTrack(track);
+  const submitIssues = useMemo(() => getSubmitReadinessIssues(track), [track]);
+  const locationMessage = location.state?.message || "";
+  const hasLyrics = Boolean(track?.lyricsStatic?.trim());
 
   const handlePlay = async () => {
     if (!track) {
+      return;
+    }
+
+    if (!canPlayTrack) {
+      setActionError(
+        "This track cannot be played until it is active, approved, and has audio files."
+      );
       return;
     }
 
@@ -225,7 +267,53 @@ const ArtistTrackDetailPage = () => {
       return;
     }
 
+    if (!canEdit) {
+      setActionError("Bài nhạc này không thể chỉnh sửa khi đang chờ duyệt hoặc đã được phê duyệt.");
+      return;
+    }
+
     navigate(routePaths.artistTrackEdit(track._id));
+  };
+
+  const handleSubmitForApproval = async () => {
+    if (!track || isActionLoading || !canSubmit) {
+      return;
+    }
+
+    if (submitIssues.length > 0) {
+      setActionError(
+        `Vui lòng hoàn tất bài nhạc trước khi gửi duyệt:\n${submitIssues
+          .map((item) => `• ${item}`)
+          .join("\n")}`
+      );
+      navigate(routePaths.artistTrackEdit(track._id));
+      return;
+    }
+
+    setActionError("");
+    setActionMessage("");
+    setIsActionLoading(true);
+    setIsSubmitConfirmOpen(false);
+
+    try {
+      const updatedTrack = await trackService.submitForApproval(track._id);
+      setTrack(updatedTrack);
+      setActionMessage("Đã gửi bài nhạc lên để chờ phê duyệt.");
+    } catch (error) {
+      setActionError(
+        getApiErrorFullMessage(error, "Không thể gửi bài nhạc để phê duyệt.")
+      );
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleEditLyrics = () => {
+    if (!track) {
+      return;
+    }
+
+    navigate(`${routePaths.artistLyrics}?trackId=${track._id}`);
   };
 
   const handleHideTrack = async () => {
@@ -335,18 +423,22 @@ const ArtistTrackDetailPage = () => {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handlePlay}
-              className="inline-flex h-12 items-center gap-2 rounded-full bg-[#1ed760] px-5 text-sm font-semibold text-black transition hover:scale-[1.02] hover:brightness-105"
-            >
-              <Play className="h-5 w-5 fill-current" />
-              Play
-            </button>
+            <PlayButton 
+              onClick={handlePlay} 
+              label={canPlayTrack ? "Play" : "Play unavailable"}
+              size="compact" 
+              disabled={!canPlayTrack}
+            />
           </div>
         </div>
 
         <div className="space-y-6 p-5 sm:p-8">
+          {locationMessage ? (
+            <div className="rounded-md border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+              {locationMessage}
+            </div>
+          ) : null}
+
           {actionMessage ? (
             <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
               {actionMessage}
@@ -354,7 +446,7 @@ const ArtistTrackDetailPage = () => {
           ) : null}
 
           {actionError ? (
-            <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+            <div className="whitespace-pre-line rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
               {actionError}
             </div>
           ) : null}
@@ -363,11 +455,37 @@ const ArtistTrackDetailPage = () => {
             <button
               type="button"
               onClick={handleEditTrack}
-              disabled={!track}
+              disabled={!track || !canEdit}
               className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-medium text-sky-900 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Pencil className="h-4 w-4" />
-              Edit track
+              {canEdit ? "Edit track" : "Edit locked"}
+            </button>
+
+            {canSubmit ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setActionError("");
+                  setActionMessage("");
+                  setIsSubmitConfirmOpen(true);
+                }}
+                disabled={isActionLoading || submitIssues.length > 0}
+                className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-900 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Send className="h-4 w-4" />
+                Gửi duyệt bài nhạc
+              </button>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={handleEditLyrics}
+              disabled={!track}
+              className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-4 py-2 text-sm font-medium text-violet-900 transition hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <FileText className="h-4 w-4" />
+              Edit lyrics
             </button>
 
             <button
@@ -449,19 +567,42 @@ const ArtistTrackDetailPage = () => {
               </div>
 
               <div className="rounded-md border border-neutral-200 bg-white p-5 shadow-sm">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-[#8b5e3c]" />
-                  <h2 className="text-lg font-semibold text-[#241b15]">Lyrics</h2>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-[#8b5e3c]" />
+                    <h2 className="text-lg font-semibold text-[#241b15]">Lyrics</h2>
+                  </div>
+                  {hasLyrics ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsLyricsModalOpen(true)}
+                      className="rounded-full border border-[#8b5e3c]/20 bg-[#fcfaf7] px-4 py-2 text-sm font-medium text-[#8b5e3c] transition hover:bg-[#f6efe5]"
+                    >
+                      Xem toàn bộ
+                    </button>
+                  ) : null}
                 </div>
                 <div className="mt-4 rounded-md border border-neutral-200 bg-[#fcfaf7] p-4 text-sm leading-7 text-neutral-700">
-                  {track?.lyricsStatic?.trim() ? (
-                    <pre className="whitespace-pre-wrap font-sans">{track.lyricsStatic}</pre>
+                  {hasLyrics ? (
+                    <div className="relative">
+                      <pre className="max-h-72 overflow-hidden whitespace-pre-wrap font-sans">
+                        {track.lyricsStatic}
+                      </pre>
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#fcfaf7] via-[#fcfaf7]/95 to-transparent" />
+                    </div>
                   ) : (
                     <p>No static lyrics added yet.</p>
                   )}
                 </div>
+                {hasLyrics ? (
+                  <p className="mt-3 text-xs text-neutral-500">
+                    Chỉ đang hiển thị bản xem trước. Nhấn `Xem toàn bộ` để đọc đầy đủ lời
+                    bài hát.
+                  </p>
+                ) : null}
                 <div className="mt-4 text-sm text-neutral-500">
-                  Sync URL: {track?.lyricsSyncUrl || "Not provided"}
+                  <span className="font-medium text-[#241b15]">Tệp lời đồng bộ:</span>{" "}
+                  {track?.lyricsSyncUrl ? getMediaFileName(track.lyricsSyncUrl) : "Chưa cung cấp"}
                 </div>
               </div>
             </div>
@@ -499,38 +640,126 @@ const ArtistTrackDetailPage = () => {
                       <p className="mt-1 text-sm">{formatDateTime(track.hiddenAt)}</p>
                     </div>
                   ) : null}
+                  {track?.rejectReason ? (
+                    <div className="rounded-md border border-rose-200 bg-rose-50 p-3 text-rose-900">
+                      <p className="font-medium">Reject reason</p>
+                      <p className="mt-1 text-sm text-rose-800">{track.rejectReason}</p>
+                    </div>
+                  ) : null}
+                  {track?.moderation?.submittedAt ? (
+                    <div className="rounded-md border border-neutral-200 bg-neutral-50 p-3 text-neutral-700">
+                      <p className="font-medium">Submitted at</p>
+                      <p className="mt-1 text-sm">{formatDateTime(track.moderation.submittedAt)}</p>
+                    </div>
+                  ) : null}
+                  {canSubmit && submitIssues.length > 0 ? (
+                    <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-900">
+                      <p className="font-medium">Before you can submit</p>
+                      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
+                        {submitIssues.map((issue) => (
+                          <li key={issue}>{issue}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
                 </div>
               </div>
 
               <div className="rounded-md border border-neutral-200 bg-white p-5 shadow-sm">
                 <div className="flex items-center gap-2">
-                  <Flag className="h-5 w-5 text-[#8b5e3c]" />
-                  <h2 className="text-lg font-semibold text-[#241b15]">Audio files</h2>
+                  <BadgeCheck className="h-5 w-5 text-[#8b5e3c]" />
+                  <h2 className="text-lg font-semibold text-[#241b15]">Copyright</h2>
                 </div>
-
-                <div className="mt-4 space-y-3">
-                  {audioFiles.length > 0 ? audioFiles.map((file, index) => (
-                    <div key={`${file.url}-${index}`} className="rounded-md border border-neutral-200 bg-[#fcfaf7] p-3 text-sm text-neutral-700">
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <p className="font-medium text-[#241b15]">{file.label || "original"}</p>
-                          <p className="mt-1 break-all text-xs text-neutral-500">{file.url}</p>
-                        </div>
-                        <div className="text-right text-xs text-neutral-500">
-                          <p>{file.format || "unknown"}</p>
-                          <p>{file.bitrate ? `${file.bitrate} kbps` : "Unknown bitrate"}</p>
-                        </div>
-                      </div>
-                    </div>
-                  )) : (
-                    <p className="text-sm text-neutral-500">No audio files available.</p>
+                <div className="mt-4 space-y-2 text-sm text-neutral-700">
+                  <p>
+                    <span className="font-medium text-[#241b15]">Copyright owner:</span>{" "}
+                    {track?.copyright?.copyrightOwner || "Not provided"}
+                  </p>
+                  <p>
+                    <span className="font-medium text-[#241b15]">Recording owner:</span>{" "}
+                    {track?.copyright?.recordingOwner || "Not provided"}
+                  </p>
+                  <p>
+                    <span className="font-medium text-[#241b15]">Declaration:</span>{" "}
+                    {track?.copyright?.declarationAccepted ? "Accepted" : "Not accepted"}
+                  </p>
+                  {usesThirdPartyRights(track?.copyright) ? (
+                    <>
+                      <p>
+                        <span className="font-medium text-[#241b15]">Original track:</span>{" "}
+                        {track?.copyright?.originalTrackTitle || "—"} by{" "}
+                        {track?.copyright?.originalArtistName || "—"}
+                      </p>
+                      <p>
+                        <span className="font-medium text-[#241b15]">License documents:</span>{" "}
+                        {track?.copyright?.licenseDocumentUrls?.length || 0}
+                      </p>
+                    </>
+                  ) : (
+                    <p>
+                      <span className="font-medium text-[#241b15]">Rights type:</span>{" "}
+                      {track?.copyright?.isOriginal ? "Original work" : "Not specified"}
+                    </p>
                   )}
                 </div>
               </div>
+
             </div>
           </div>
         </div>
       </div>
+
+      <ConfirmActionModal
+        isOpen={isSubmitConfirmOpen}
+        title="Gửi duyệt bài nhạc?"
+        message="Sau khi gửi duyệt, bạn sẽ không thể chỉnh sửa bài nhạc trong thời gian chờ phê duyệt. Bạn có muốn tiếp tục không?"
+        confirmText="Xác nhận gửi duyệt"
+        cancelText="Quay lại"
+        isLoading={isActionLoading}
+        onCancel={() => setIsSubmitConfirmOpen(false)}
+        onConfirm={handleSubmitForApproval}
+      />
+
+      {isLyricsModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div
+            className="absolute inset-0"
+            onClick={() => setIsLyricsModalOpen(false)}
+          />
+          <div className="relative flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-2xl">
+            <div className="flex items-center justify-between gap-4 border-b border-neutral-200 px-6 py-5">
+              <div>
+                <h3 className="text-lg font-semibold text-[#241b15]">
+                  Toàn bộ lời bài hát
+                </h3>
+                <p className="mt-1 text-sm text-neutral-500">
+                  {track?.title || "Bài nhạc chưa có tên"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsLyricsModalOpen(false)}
+                className="rounded-full border border-neutral-200 p-2 text-neutral-600 transition hover:bg-neutral-50 hover:text-[#241b15]"
+                aria-label="Đóng"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto px-6 py-5">
+              <div className="rounded-2xl border border-neutral-200 bg-[#fcfaf7] p-5 text-sm leading-7 text-neutral-700">
+                {hasLyrics ? (
+                  <pre className="whitespace-pre-wrap font-sans">
+                    {track.lyricsStatic}
+                  </pre>
+                ) : (
+                  <p>Chưa có lời bài hát tĩnh.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 };

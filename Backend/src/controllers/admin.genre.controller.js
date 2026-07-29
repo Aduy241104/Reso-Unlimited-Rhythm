@@ -81,10 +81,26 @@ const uploadGenreImage = async (req, res, next) => {
     }
 };
 
+const deleteGenre = async (req, res, next) => {
+    try {
+        // Gọi đến service để xử lý xóa trong database bằng ID truyền từ URL params
+        const deletedGenre = await adminGenreService.deleteGenre(req.params.id);
+
+        return formatResponse.success(
+            res,
+            { genre: deletedGenre }, // Trả về thông tin genre đã xóa (hoặc để trống tùy logic hệ thống của bạn)
+            "Genre deleted successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getGenres,
     createGenre,
     getGenre,
     updateGenre,
     uploadGenreImage,
+    deleteGenre,
 };

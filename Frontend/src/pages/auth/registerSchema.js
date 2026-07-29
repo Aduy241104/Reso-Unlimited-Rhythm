@@ -1,28 +1,56 @@
 import { z } from "zod";
 
+const genderOptions = ["male", "female", "other", "prefer_not_to_say"];
+
+const passwordSchema = z
+  .string()
+  .min(8, "Mật khẩu phải có ít nhất 8 ký tự.")
+  .max(33, "Mật khẩu không được vượt quá 33 ký tự.")
+  .regex(/[A-Z]/, "Mật khẩu phải có ít nhất một chữ cái in hoa.")
+  .regex(/[a-z]/, "Mật khẩu phải có ít nhất một chữ cái thường.")
+  .regex(/\d/, "Mật khẩu phải có ít nhất một chữ số.")
+  .regex(/[^A-Za-z0-9]/, "Mật khẩu phải có ít nhất một ký tự đặc biệt.");
+
+const dateOfBirthSchema = z
+  .string()
+  .trim()
+  .min(1, "Vui lòng chọn ngày sinh.")
+  .refine((value) => !Number.isNaN(Date.parse(value)), {
+    message: "Ngày sinh không hợp lệ.",
+  })
+  .refine((value) => {
+    const selectedDate = new Date(`${value}T00:00:00`);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return selectedDate <= today;
+  }, {
+    message: "Ngày sinh không được ở tương lai.",
+  });
+
 export const registerDetailsSchema = z
   .object({
     fullName: z
       .string()
       .trim()
-      .max(100, "Họ và tên tối đa 100 ký tự."),
+      .min(1, "Vui lòng nhập họ và tên.")
+      .max(100, "Họ và tên không được vượt quá 100 ký tự."),
     email: z
       .string()
       .trim()
-      .min(1, "Email là bắt buộc.")
+      .min(1, "Vui lòng nhập email.")
       .email("Email không đúng định dạng."),
-    password: z
-      .string()
-      .min(6, "Mật khẩu phải có ít nhất 6 ký tự.")
-      .max(128, "Mật khẩu không được vượt quá 128 ký tự."),
-    confirmPassword: z.string().min(1, "Vui lòng nhập lại mật khẩu."),
+    password: passwordSchema,
+    confirmPassword: z.string().min(1, "Vui lòng xác nhận mật khẩu."),
+    gender: z.enum(genderOptions).default("prefer_not_to_say"),
+    dateOfBirth: dateOfBirthSchema,
   })
   .superRefine(({ password, confirmPassword }, context) => {
     if (password !== confirmPassword) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["confirmPassword"],
-        message: "Mật khẩu nhập lại chưa khớp.",
+        message: "Mật khẩu xác nhận không khớp.",
       });
     }
   });
@@ -31,5 +59,5 @@ export const registerOtpSchema = z.object({
   otp: z
     .string()
     .trim()
-    .regex(/^\d{6}$/, "OTP phải gồm đúng 6 chữ số."),
+    .regex(/^\d{6}$/, "Mã OTP phải gồm đúng 6 chữ số."),
 });

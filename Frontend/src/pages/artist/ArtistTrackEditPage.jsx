@@ -1,10 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2, Save } from "lucide-react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, Loader2, Save, Send } from "lucide-react";
+import TrackCopyrightFields from "../../components/artist/TrackCopyrightFields";
+import ConfirmActionModal from "../../components/common/ConfirmActionModal";
 import genreService from "../../services/genreService";
 import trackService from "../../services/trackService";
 import { routePaths } from "../../routes/routePaths";
-import { getApiErrorMessage } from "../../utils/apiError";
+import { getApiErrorFullMessage, getApiErrorMessage } from "../../utils/apiError";
+import {
+  canArtistEditTrack,
+  canArtistSubmitTrack,
+  getSubmitReadinessIssues,
+  mapTrackCopyrightToForm,
+  MAX_GENRE_IDS,
+  serializeCopyrightForApi,
+  TITLE_MAX_LENGTH,
+} from "../../utils/trackWorkflow";
 
 const toDateInputValue = (value) => {
   if (!value) {
@@ -24,13 +35,17 @@ const toDateInputValue = (value) => {
 const ArtistTrackEditPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [track, setTrack] = useState(null);
   const [albums, setAlbums] = useState([]);
   const [genres, setGenres] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [submittingForApproval, setSubmittingForApproval] = useState(false);
+  const [copyrightForm, setCopyrightForm] = useState(mapTrackCopyrightToForm());
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const [audioFile, setAudioFile] = useState(null);
   const [avatarFile, setAvatarFile] = useState(null);
   const [coverImageFiles, setCoverImageFiles] = useState([]);
@@ -42,8 +57,10 @@ const ArtistTrackEditPage = () => {
   const [lyricsPreviewText, setLyricsPreviewText] = useState("");
   const objectUrlsRef = useRef([]);
   const [genresOpen, setGenresOpen] = useState(false);
+  const [isSubmitConfirmOpen, setIsSubmitConfirmOpen] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
+    versionTitle: "",
     duration: "",
     lyricsStatic: "",
     album_albumId: "",
@@ -80,8 +97,10 @@ const ArtistTrackEditPage = () => {
         setLyricsPreviewText(trackDetail?.lyricsSyncUrl ? trackDetail.lyricsSyncUrl.split("/").pop() : "");
         setAlbums(albumResponse?.data?.albums || []);
         setGenres(Array.isArray(genreList) ? genreList : []);
+        setCopyrightForm(mapTrackCopyrightToForm(trackDetail?.copyright));
         setFormData({
           title: trackDetail?.title || "",
+          versionTitle: trackDetail?.versionTitle || "",
           duration: trackDetail?.duration ?? "",
           lyricsStatic: trackDetail?.lyricsStatic || "",
           album_albumId: trackDetail?.album?._id || "",
@@ -122,6 +141,22 @@ const ArtistTrackEditPage = () => {
   }, [id]);
 
   const genreOptions = useMemo(() => genres || [], [genres]);
+  const canEdit = canArtistEditTrack(track);
+  const canSubmit = canArtistSubmitTrack(track);
+  const submitIssues = useMemo(
+    () =>
+      getSubmitReadinessIssues(
+        track
+          ? {
+              ...track,
+              genres: track.genres,
+              copyright: serializeCopyrightForApi(copyrightForm),
+            }
+          : null
+      ),
+    [track, copyrightForm]
+  );
+  const draftMessage = location.state?.message || "";
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
@@ -133,12 +168,24 @@ const ArtistTrackEditPage = () => {
 
   const handleGenreToggle = (genreId) => {
     const nextGenreId = String(genreId);
-    setFormData((current) => ({
-      ...current,
-      genreIds: current.genreIds.includes(nextGenreId)
-        ? current.genreIds.filter((item) => item !== nextGenreId)
-        : [...current.genreIds, nextGenreId],
-    }));
+    setFormData((current) => {
+      if (current.genreIds.includes(nextGenreId)) {
+        return {
+          ...current,
+          genreIds: current.genreIds.filter((item) => item !== nextGenreId),
+        };
+      }
+
+      if (current.genreIds.length >= MAX_GENRE_IDS) {
+        setErrorMessage(`Bạn chỉ có thể chọn tối đa ${MAX_GENRE_IDS} thể loại.`);
+        return current;
+      }
+
+      return {
+        ...current,
+        genreIds: [...current.genreIds, nextGenreId],
+      };
+    });
   };
 
   const handleAudioChange = (event) => {
@@ -197,11 +244,156 @@ const ArtistTrackEditPage = () => {
     }
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    setSubmitting(true);
+  const validateFormFields = () => {
+    const errors = {};
+    
+    const title = formData.title.trim();
+    if (!title) {
+      errors.title = "Vui lòng nhập tên bài nhạc.";
+    } else if (title.length > TITLE_MAX_LENGTH) {
+      errors.title = `Tên bài nhạc không được vượt quá ${TITLE_MAX_LENGTH} ký tự.`;
+    }
+
+    if (formData.genreIds.length === 0) {
+      errors.genres = "Vui lòng chọn ít nhất một thể loại.";
+    }
+
+    const audioFiles = Array.isArray(track?.audioFiles) ? track.audioFiles : [];
+    if (audioFiles.length === 0 && !audioFile) {
+      errors.audio = "Vui lòng tải lên ít nhất một tệp âm thanh.";
+    }
+
+    if (!formData.duration || formData.duration <= 0) {
+      errors.duration = "Thời lượng phải lớn hơn 0 giây.";
+    }
+
+    const hasAvatar = avatarFile || (track?.avatar && typeof track.avatar === "string" && track.avatar.trim());
+    const hasCovers = coverImageFiles.length > 0 || (Array.isArray(track?.coverImage) && track.coverImage.length > 0);
+    if (!hasAvatar && !hasCovers) {
+      errors.media = "Vui lòng thêm ảnh đại diện bài nhạc hoặc ít nhất một ảnh bìa.";
+    }
+
+    if (!copyrightForm.copyrightOwner?.trim()) {
+      errors.copyrightOwner = "Vui lòng nhập chủ sở hữu bản quyền.";
+    }
+
+    if (!copyrightForm.recordingOwner?.trim()) {
+      errors.recordingOwner = "Vui lòng nhập chủ sở hữu bản ghi âm.";
+    }
+
+    if (!copyrightForm.declarationAccepted) {
+      errors.declarationAccepted = "Vui lòng xác nhận chính sách bản quyền.";
+    }
+
+    return errors;
+  };
+
+  const handleSubmitForApproval = async () => {
+    if (!track || !canSubmit) {
+      return;
+    }
+
+    const issues = getSubmitReadinessIssues({
+      ...track,
+      title: formData.title.trim() || track.title,
+      duration: formData.duration !== "" ? Number(formData.duration) : track.duration,
+      genres: formData.genreIds.map((genreId) => ({ _id: genreId })),
+      copyright: serializeCopyrightForApi(copyrightForm),
+    });
+
+    if (issues.length > 0) {
+      setErrorMessage(
+        `Vui lòng hoàn tất các mục sau trước khi gửi duyệt:\n${issues
+          .map((item) => `• ${item}`)
+          .join("\n")}`
+      );
+      return;
+    }
+
+    setSubmittingForApproval(true);
     setSuccessMessage("");
     setErrorMessage("");
+    setIsSubmitConfirmOpen(false);
+
+    try {
+      let uploadedMedia = null;
+      const shouldUploadMedia = Boolean(
+        audioFile || avatarFile || lyricsSyncFile || coverImageFiles.length > 0
+      );
+
+      if (shouldUploadMedia) {
+        setIsUploadingMedia(true);
+        const uploadResponse = await trackService.uploadFiles(
+          audioFile,
+          avatarFile,
+          coverImageFiles,
+          lyricsSyncFile
+        );
+        uploadedMedia = uploadResponse?.data || null;
+        setIsUploadingMedia(false);
+      }
+
+      const savePayload = {
+        title: formData.title.trim(),
+        versionTitle: formData.versionTitle.trim(),
+        duration: Number(formData.duration),
+        lyricsStatic: formData.lyricsStatic,
+        album_albumId: formData.album_albumId,
+        genreIds: formData.genreIds,
+        releaseDate: formData.releaseDate || null,
+        copyright: serializeCopyrightForApi(copyrightForm),
+        avatar: uploadedMedia?.avatar || track?.avatar || "",
+        coverImage:
+          uploadedMedia?.coverImages?.length > 0
+            ? uploadedMedia.coverImages
+            : Array.isArray(track?.coverImage)
+              ? track.coverImage
+              : [],
+        lyricsSyncUrl:
+          uploadedMedia?.lyricsSyncUrl !== undefined && uploadedMedia?.lyricsSyncUrl !== ""
+            ? uploadedMedia.lyricsSyncUrl
+            : track?.lyricsSyncUrl || "",
+      };
+
+      if (uploadedMedia?.audioFiles?.length > 0) {
+        savePayload.audioFiles = uploadedMedia.audioFiles;
+      }
+
+      const savedTrack = await trackService.updateArtistTrack(id, savePayload);
+      setTrack(savedTrack);
+
+      await trackService.submitForApproval(id);
+      navigate(routePaths.artistTrackDetail(id), {
+        state: { message: "Đã gửi bài nhạc lên để chờ phê duyệt." },
+      });
+    } catch (error) {
+      setErrorMessage(
+        getApiErrorFullMessage(error, "Không thể gửi bài nhạc để phê duyệt.")
+      );
+    } finally {
+      setSubmittingForApproval(false);
+    }
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!canEdit) {
+      setErrorMessage("Bài nhạc này không thể chỉnh sửa ở trạng thái phê duyệt hiện tại.");
+      return;
+    }
+
+    setSuccessMessage("");
+    setErrorMessage("");
+    setFieldErrors({});
+
+    const errors = validateFormFields();
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
+    }
+
+    setSubmitting(true);
 
     try {
       let uploadedMedia = null;
@@ -223,11 +415,13 @@ const ArtistTrackEditPage = () => {
 
       const payload = {
         title: formData.title.trim(),
+        versionTitle: formData.versionTitle.trim(),
         duration: Number(formData.duration),
         lyricsStatic: formData.lyricsStatic,
         album_albumId: formData.album_albumId,
         genreIds: formData.genreIds,
         releaseDate: formData.releaseDate || null,
+        copyright: serializeCopyrightForApi(copyrightForm),
         avatar: uploadedMedia?.avatar || track?.avatar || "",
         coverImage:
           uploadedMedia?.coverImages?.length > 0
@@ -256,10 +450,10 @@ const ArtistTrackEditPage = () => {
           : ""
       );
       setLyricsPreviewText(updatedTrack?.lyricsSyncUrl ? updatedTrack.lyricsSyncUrl.split("/").pop() : "");
-      setSuccessMessage("Track updated successfully.");
+      setSuccessMessage("Đã cập nhật bài nhạc thành công.");
 
       setTimeout(() => {
-        navigate(routePaths.artistTrackDetail(id));
+        navigate(routePaths.artistMusic);
       }, 900);
 
       setAudioFile(null);
@@ -268,7 +462,7 @@ const ArtistTrackEditPage = () => {
       setLyricsSyncFile(null);
     } catch (error) {
       setErrorMessage(
-        getApiErrorMessage(error, "Unable to update this track right now.")
+        getApiErrorFullMessage(error, "Không thể cập nhật bài nhạc lúc này.")
       );
     } finally {
       setIsUploadingMedia(false);
@@ -331,9 +525,24 @@ const ArtistTrackEditPage = () => {
             Edit Track
           </h1>
           <p className="mt-2 text-sm text-neutral-600">
-            Update the track information, album, genres, and published metadata.
+            Complete draft details, copyright, and media, then submit for admin approval.
           </p>
         </div>
+
+        {draftMessage ? (
+          <div className="mt-4 rounded-md border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+            {draftMessage}
+          </div>
+        ) : null}
+
+        {!canEdit ? (
+          <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            This track is {track?.approvalStatus || "locked"} and cannot be edited.
+            {track?.approvalStatus === "rejected" && track?.rejectReason
+              ? ` Reason: ${track.rejectReason}`
+              : ""}
+          </div>
+        ) : null}
 
         {successMessage ? (
           <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
@@ -342,28 +551,51 @@ const ArtistTrackEditPage = () => {
         ) : null}
 
         {errorMessage ? (
-          <div className="mt-4 rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+          <div className="mt-4 whitespace-pre-line rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
             {errorMessage}
+          </div>
+        ) : null}
+
+        {canSubmit ? (
+          <div className="mt-4 rounded-md border border-neutral-200 bg-white p-4">
+            <p className="text-sm font-medium text-[#241b15]">Submit readiness</p>
+            {submitIssues.length === 0 ? (
+              <p className="mt-2 text-sm text-emerald-700">
+                All required fields look ready. Save changes, then submit for approval.
+              </p>
+            ) : (
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-neutral-600">
+                {submitIssues.map((issue) => (
+                  <li key={issue}>{issue}</li>
+                ))}
+              </ul>
+            )}
           </div>
         ) : null}
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-6">
           <div className="rounded-md border border-neutral-200 bg-[#fcfaf7] p-4">
-            <p className="text-sm font-medium text-[#241b15]">Replace Media (Optional)</p>
-            <p className="mt-1 text-xs text-neutral-600">
-              If you upload new media and save, old replaced files will be removed from Cloudinary automatically.
+            <p className="text-sm font-medium text-[#241b15]">Media *</p>
+            <p className={`mt-1 text-xs ${
+              fieldErrors.audio || fieldErrors.media ? "text-red-500" : "text-neutral-600"
+            }`}>
+              {fieldErrors.audio || fieldErrors.media || "Upload or verify your audio, avatar, and cover images."}
             </p>
 
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-[#241b15]">
-                  New audio file
+                  Audio file {!audioPreviewUrl && !audioFile ? "*" : ""}
                 </label>
                 <input
                   type="file"
-                  accept="audio/*,video/mp4"
+                  accept=".mp3,.wav,.flac,.aac,.m4a,audio/mpeg,audio/wav,audio/flac,audio/aac,audio/mp4"
                   onChange={handleAudioChange}
-                  className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm"
+                  className={`mt-2 w-full rounded-md border px-3 py-2 text-sm ${
+                    fieldErrors.audio
+                      ? "border-red-500"
+                      : "border-neutral-200"
+                  }`}
                 />
                 {audioFile ? (
                   <p className="mt-2 text-xs text-neutral-600">Selected: {audioFile.name}</p>
@@ -378,13 +610,17 @@ const ArtistTrackEditPage = () => {
 
               <div>
                 <label className="block text-sm font-medium text-[#241b15]">
-                  New avatar image
+                  Avatar image {!avatarPreview && !avatarFile ? "*" : ""}
                 </label>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleAvatarChange}
-                  className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm"
+                  className={`mt-2 w-full rounded-md border px-3 py-2 text-sm ${
+                    fieldErrors.media
+                      ? "border-red-500"
+                      : "border-neutral-200"
+                  }`}
                 />
                 {avatarFile ? (
                   <p className="mt-2 text-xs text-neutral-600">Selected: {avatarFile.name}</p>
@@ -469,8 +705,31 @@ const ArtistTrackEditPage = () => {
                 name="title"
                 value={formData.title}
                 onChange={handleInputChange}
-                className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm focus:border-[#8b5e3c] focus:outline-none"
+                maxLength={TITLE_MAX_LENGTH}
+                disabled={!canEdit || submitting}
+                className={`mt-2 w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${
+                  fieldErrors.title
+                    ? "border-red-500 focus:border-red-500"
+                    : "border-neutral-200 focus:border-[#8b5e3c]"
+                }`}
                 required
+              />
+              {fieldErrors.title && (
+                <p className="mt-1 text-xs text-red-500">{fieldErrors.title}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-[#241b15]">
+                Version title
+              </label>
+              <input
+                type="text"
+                name="versionTitle"
+                value={formData.versionTitle}
+                onChange={handleInputChange}
+                disabled={!canEdit || submitting}
+                className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm focus:border-[#8b5e3c] focus:outline-none"
               />
             </div>
 
@@ -485,11 +744,26 @@ const ArtistTrackEditPage = () => {
                 onChange={handleInputChange}
                 min="1"
                 step="1"
-                className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm focus:border-[#8b5e3c] focus:outline-none"
+                disabled={!canEdit || submitting}
+                className={`mt-2 w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${
+                  fieldErrors.duration
+                    ? "border-red-500 focus:border-red-500"
+                    : "border-neutral-200 focus:border-[#8b5e3c]"
+                }`}
                 required
               />
+              {fieldErrors.duration && (
+                <p className="mt-1 text-xs text-red-500">{fieldErrors.duration}</p>
+              )}
             </div>
           </div>
+
+          <TrackCopyrightFields
+            value={copyrightForm}
+            onChange={setCopyrightForm}
+            disabled={!canEdit || submitting}
+            errors={fieldErrors}
+          />
 
           <div className="grid gap-4 md:grid-cols-2">
             <div>
@@ -521,13 +795,22 @@ const ArtistTrackEditPage = () => {
 
           <div className="relative">
             <label className="block text-sm font-medium text-[#241b15]">
-              Genres
+              Genres *
             </label>
+            <p className={`mt-1 text-xs ${
+              fieldErrors.genres ? "text-red-500" : "text-neutral-500"
+            }`}>
+              {fieldErrors.genres || `Select at least one genre (max ${MAX_GENRE_IDS})`}
+            </p>
             <button
               type="button"
               onClick={() => setGenresOpen((current) => !current)}
-              disabled={submitting}
-              className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-left text-sm flex items-center justify-between"
+              disabled={!canEdit || submitting}
+              className={`mt-2 w-full rounded-md border px-3 py-2 text-left text-sm flex items-center justify-between ${
+                fieldErrors.genres
+                  ? "border-red-500"
+                  : "border-neutral-200"
+              }`}
             >
               <span className="truncate text-neutral-700">
                 {formData.genreIds.length === 0
@@ -606,10 +889,10 @@ const ArtistTrackEditPage = () => {
             </select>
           </div>
 
-          <div className="flex gap-2 pt-4">
+          <div className="flex flex-wrap gap-2 pt-4">
             <button
               type="submit"
-              disabled={submitting}
+              disabled={!canEdit || submitting || submittingForApproval}
               className="inline-flex items-center gap-2 rounded-md bg-[#8b5e3c] px-4 py-2 font-medium text-white hover:bg-[#6d4a2f] disabled:opacity-50"
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -617,19 +900,50 @@ const ArtistTrackEditPage = () => {
                 ? isUploadingMedia
                   ? "Uploading media..."
                   : "Saving..."
-                : "Save Changes"}
+                : "Save draft changes"}
             </button>
+
+            {canSubmit ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setSuccessMessage("");
+                  setErrorMessage("");
+                  setIsSubmitConfirmOpen(true);
+                }}
+                disabled={!canEdit || submitting || submittingForApproval || submitIssues.length > 0}
+                className="inline-flex items-center gap-2 rounded-md border border-sky-200 bg-sky-50 px-4 py-2 font-medium text-sky-900 hover:bg-sky-100 disabled:opacity-50"
+              >
+                {submittingForApproval ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+                {submittingForApproval ? "Đang gửi duyệt..." : "Gửi duyệt bài nhạc"}
+              </button>
+            ) : null}
 
             <button
               type="button"
               onClick={() => navigate(routePaths.artistTrackDetail(id))}
               className="rounded-md border border-neutral-200 px-4 py-2 font-medium text-neutral-700 transition hover:bg-neutral-50"
             >
-              Cancel
+              Hủy
             </button>
           </div>
         </form>
       </div>
+
+      <ConfirmActionModal
+        isOpen={isSubmitConfirmOpen}
+        title="Gửi duyệt bài nhạc?"
+        message="Sau khi gửi duyệt, bạn sẽ không thể chỉnh sửa bài nhạc trong thời gian chờ phê duyệt. Bạn có muốn tiếp tục không?"
+        confirmText="Xác nhận gửi duyệt"
+        cancelText="Quay lại"
+        isLoading={submittingForApproval}
+        onCancel={() => setIsSubmitConfirmOpen(false)}
+        onConfirm={handleSubmitForApproval}
+      />
     </section>
   );
 };

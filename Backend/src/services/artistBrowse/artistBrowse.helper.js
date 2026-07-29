@@ -22,7 +22,7 @@ const formatArtistAlbum = (album) => ({
     coverImage: album.coverImage,
     releaseDate: album.releaseDate,
     status: album.status,
-    totalPlays: album.totalPlays,
+    totalDuration: album.totalDuration,
     trackCount: Array.isArray(album.trackList) ? album.trackList.length : 0,
 });
 
@@ -99,9 +99,16 @@ const formatArtistProfile = ({ artist, artistStat, albums, tracks }) => ({
     tracks: tracks.map(formatArtistTrack),
 });
 
+const formatArtistFollowState = ({ artistId, isFollowing, followers }) => ({
+    artistId: toId(artistId),
+    isFollowing,
+    followers,
+});
+
 export {
     formatArtistAlbum,
     formatArtistComingRelease,
+    formatArtistFollowState,
     formatArtistTrack,
     formatArtistProfile,
     normalizePositiveInteger,

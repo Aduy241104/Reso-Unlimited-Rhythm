@@ -9,11 +9,18 @@ const TrackMonthlyStatSchema = new Schema(
         month: { type: Number, required: true, min: 1, max: 12 },
         playCount: { type: Number, default: 0, min: 0 },
         uniqueListeners: { type: Number, default: 0, min: 0 },
+        revenue: {
+            eligibleStreams: { type: Number, default: 0, min: 0 },
+            revenueAmount: { type: Number, default: 0, min: 0 },
+            artistRevenueAmount: { type: Number, default: 0, min: 0 },
+            calculatedAt: { type: Date, default: null },
+        },
     },
     { timestamps: true }
 );
 
 TrackMonthlyStatSchema.index({ trackId: 1, year: 1, month: 1 }, { unique: true });
+TrackMonthlyStatSchema.index({ year: 1, month: 1, "revenue.artistRevenueAmount": -1 });
 
 const TrackMonthlyStat = model("TrackMonthlyStat", TrackMonthlyStatSchema);
 
