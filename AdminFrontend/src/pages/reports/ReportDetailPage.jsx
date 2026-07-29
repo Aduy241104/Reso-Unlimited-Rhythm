@@ -145,6 +145,11 @@ const ReportDetailPage = () => {
     e.preventDefault();
     if (!detail) return;
 
+    if (pendingReports.length === 0) {
+      setError("Không có báo cáo mới nào đang chờ duyệt. Đợt báo cáo này đã được xử lý hoàn tất.");
+      return;
+    }
+
     if (hasAnyValidEvaluation && selectedAction === "reject") {
       setError("Không thể chọn Từ chối (Reject) khi có ít nhất 1 báo cáo được đánh giá là Vi phạm hợp lệ.");
       return;
@@ -526,186 +531,205 @@ const ReportDetailPage = () => {
           <div className="rounded-2xl bg-white p-6 shadow-[0_12px_32px_rgba(15,23,42,0.06)] border border-slate-200/80 sticky top-6 space-y-5">
             <div>
               <h2 className="text-lg font-bold text-slate-950 flex items-center gap-2">
-                <ShieldAlert size={20} className="text-amber-500" />
+                <ShieldAlert size={20} className={pendingReports.length === 0 ? "text-emerald-600" : "text-amber-500"} />
                 Quyết định xử lý
               </h2>
               <p className="text-xs text-slate-500 mt-1">
-                Chọn hình thức xử lý áp dụng cho nội dung và nghệ sĩ sở hữu.
+                {pendingReports.length === 0
+                  ? "Trạng thái đợt kiểm duyệt hiện tại."
+                  : "Chọn hình thức xử lý áp dụng cho nội dung và nghệ sĩ sở hữu."}
               </p>
             </div>
 
-            {/* Impact Notification Warning */}
-            <div
-              className={`rounded-xl p-4 border text-xs space-y-1.5 transition ${
-                selectedAction === "reject"
-                  ? "bg-slate-100 border-slate-300 text-slate-700"
-                  : "bg-amber-50 border-amber-200 text-amber-800"
-              }`}
-            >
-              <div className="flex items-center gap-1.5 font-bold">
-                <AlertTriangle size={15} />
-                <span>
-                  {selectedAction === "reject"
-                    ? "Đang chọn Từ chối báo cáo (Reject)"
-                    : "Xác nhận xử lý vi phạm"}
-                </span>
-              </div>
-              <p className="leading-relaxed">
-                {selectedAction === "reject"
-                  ? "👉 Báo cáo bị từ chối/bác bỏ. KHÔNG tăng số lần vi phạm và KHÔNG gửi cảnh báo tới nghệ sĩ."
-                  : `👉 Số lần vi phạm của nghệ sĩ (${artistName}) sẽ TĂNG THÊM 1 (hiện tại: ${artistViolations} → ${
-                      artistViolations + 1
-                    }) và tự động gửi 1 thông báo cảnh báo/xử phạt tới nghệ sĩ.`}
-              </p>
-
-              <div className="text-[11px] opacity-90 pt-1 border-t border-amber-200/60 space-y-0.5">
-                <strong>Chính sách vi phạm 5 cấp độ (có gửi thông báo cho nghệ sĩ):</strong>
-                <ul className="list-disc list-inside text-[10.5px]">
-                  <li><strong>1 lần:</strong> Cảnh báo lần 1</li>
-                  <li><strong>2 lần:</strong> Cảnh báo mức cao hơn (Lần 2)</li>
-                  <li><strong>3 lần:</strong> Cảnh báo mức nghiêm trọng (Lần 3)</li>
-                  <li><strong>4 lần:</strong> Ẩn nội dung bị báo cáo</li>
-                  <li><strong>5 lần:</strong> Khóa tài khoản nghệ sĩ</li>
-                </ul>
-              </div>
-            </div>
-
-            <form onSubmit={handleSubmitResolution} className="space-y-4">
-              {/* Action Selection */}
-              <div className="space-y-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
-                  Hình thức xử lý chính <span className="text-red-500">*</span>
-                </label>
-
-                <div className="space-y-2">
-                  <label
-                    className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition ${
-                      selectedAction === "warn"
-                        ? "border-blue-500 bg-blue-50/50"
-                        : "border-slate-200 hover:border-slate-300"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="action"
-                      value="warn"
-                      checked={selectedAction === "warn"}
-                      onChange={(e) => setSelectedAction(e.target.value)}
-                      className="mt-0.5 h-4 w-4 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                    />
-                    <div>
-                      <p className="text-sm font-bold text-slate-900">Cảnh báo (Warn)</p>
-                      <p className="text-xs text-slate-500">
-                        Gửi thông báo cảnh báo vi phạm tới nghệ sĩ.
-                      </p>
-                    </div>
-                  </label>
-
-                  <label
-                    className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition ${
-                      selectedAction === "hide"
-                        ? "border-amber-500 bg-amber-50/50"
-                        : "border-slate-200 hover:border-slate-300"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="action"
-                      value="hide"
-                      checked={selectedAction === "hide"}
-                      onChange={(e) => setSelectedAction(e.target.value)}
-                      className="mt-0.5 h-4 w-4 text-amber-600 focus:ring-amber-500 cursor-pointer"
-                    />
-                    <div>
-                      <p className="text-sm font-bold text-slate-900">Ẩn nội dung (Hide)</p>
-                      <p className="text-xs text-slate-500">
-                        Ẩn bài hát / album này khỏi hệ thống công khai.
-                      </p>
-                    </div>
-                  </label>
-
-                  <label
-                    className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition ${
-                      selectedAction === "block"
-                        ? "border-red-500 bg-red-50/50"
-                        : "border-slate-200 hover:border-slate-300"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="action"
-                      value="block"
-                      checked={selectedAction === "block"}
-                      onChange={(e) => setSelectedAction(e.target.value)}
-                      className="mt-0.5 h-4 w-4 text-red-600 focus:ring-red-500 cursor-pointer"
-                    />
-                    <div>
-                      <p className="text-sm font-bold text-slate-900">Khóa tài khoản Nghệ sĩ (Block)</p>
-                      <p className="text-xs text-slate-500">
-                        Khóa trực tiếp tài khoản của nghệ sĩ và gửi thông báo khóa.
-                      </p>
-                    </div>
-                  </label>
-
-                  {/* Reject option */}
-                  <label
-                    className={`flex items-start gap-3 rounded-xl border p-3 transition cursor-pointer ${
-                      selectedAction === "reject"
-                        ? "border-slate-400 bg-slate-100"
-                        : "border-slate-200 hover:border-slate-300"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="action"
-                      value="reject"
-                      checked={selectedAction === "reject"}
-                      onChange={(e) => setSelectedAction(e.target.value)}
-                      className="mt-0.5 h-4 w-4 text-slate-600 focus:ring-slate-500 cursor-pointer"
-                    />
-                    <div>
-                      <p className="text-sm font-bold text-slate-900">Từ chối báo cáo (Reject)</p>
-                      <p className="text-xs text-slate-500">
-                        Báo cáo không đúng thực tế, từ chối xử lý nội dung.
-                      </p>
-                    </div>
-                  </label>
+            {pendingReports.length === 0 ? (
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5 space-y-3 text-xs text-emerald-950">
+                <div className="flex items-center gap-2 font-bold text-emerald-800 text-sm">
+                  <CheckCircle2 size={18} className="text-emerald-600" />
+                  <span>Đã hoàn thành đợt xử lý</span>
+                </div>
+                <p className="leading-relaxed text-[#234d38]">
+                  Tất cả các báo cáo trong đợt này đã được duyệt xong. Hiện tại <strong>không có báo cáo mới nào đang chờ xử lý</strong> (`Báo cáo mới cần xử lý: 0`).
+                </p>
+                <div className="pt-2 border-t border-emerald-200/80 text-[11.5px] text-emerald-700 space-y-1">
+                  <p>🔒 <strong>Quy tắc bảo vệ:</strong> Để tránh gửi cảnh báo hoặc tính số lần vi phạm trùng lặp cho nghệ sĩ khi không có báo cáo mới, form xử lý đã được tự động vô hiệu hóa.</p>
                 </div>
               </div>
+            ) : (
+              <>
+                {/* Impact Notification Warning */}
+                <div
+                  className={`rounded-xl p-4 border text-xs space-y-1.5 transition ${
+                    selectedAction === "reject"
+                      ? "bg-slate-100 border-slate-300 text-slate-700"
+                      : "bg-amber-50 border-amber-200 text-amber-800"
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 font-bold">
+                    <AlertTriangle size={15} />
+                    <span>
+                      {selectedAction === "reject"
+                        ? "Đang chọn Từ chối báo cáo (Reject)"
+                        : "Xác nhận xử lý vi phạm"}
+                    </span>
+                  </div>
+                  <p className="leading-relaxed">
+                    {selectedAction === "reject"
+                      ? "👉 Báo cáo bị từ chối/bác bỏ. KHÔNG tăng số lần vi phạm và KHÔNG gửi cảnh báo tới nghệ sĩ."
+                      : `👉 Số lần vi phạm của nghệ sĩ (${artistName}) sẽ TĂNG THÊM 1 (hiện tại: ${artistViolations} → ${
+                          artistViolations + 1
+                        }) và tự động gửi 1 thông báo cảnh báo/xử phạt tới nghệ sĩ.`}
+                  </p>
 
-              {/* Admin Note */}
-              <div className="space-y-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
-                  Ghi chú xử lý của Admin
-                </label>
-                <textarea
-                  value={resolutionNote}
-                  onChange={(e) => setResolutionNote(e.target.value)}
-                  placeholder="Nhập ghi chú hoặc lý do xử lý..."
-                  rows={3}
-                  className="w-full rounded-xl border border-slate-200 p-3 text-sm outline-none transition focus:border-blue-500 resize-none"
-                />
-              </div>
+                  <div className="text-[11px] opacity-90 pt-1 border-t border-amber-200/60 space-y-0.5">
+                    <strong>Chính sách vi phạm 5 cấp độ (có gửi thông báo cho nghệ sĩ):</strong>
+                    <ul className="list-disc list-inside text-[10.5px]">
+                      <li><strong>1 lần:</strong> Cảnh báo lần 1</li>
+                      <li><strong>2 lần:</strong> Cảnh báo mức cao hơn (Lần 2)</li>
+                      <li><strong>3 lần:</strong> Cảnh báo mức nghiêm trọng (Lần 3)</li>
+                      <li><strong>4 lần:</strong> Ẩn nội dung bị báo cáo</li>
+                      <li><strong>5 lần:</strong> Khóa tài khoản nghệ sĩ</li>
+                    </ul>
+                  </div>
+                </div>
 
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-50"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" />
-                    <span>Đang lưu xử lý...</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 size={18} />
-                    <span>Xác nhận xử lý báo cáo</span>
-                  </>
-                )}
-              </button>
-            </form>
+                <form onSubmit={handleSubmitResolution} className="space-y-4">
+                  {/* Action Selection */}
+                  <div className="space-y-2">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+                      Hình thức xử lý chính <span className="text-red-500">*</span>
+                    </label>
+
+                    <div className="space-y-2">
+                      <label
+                        className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition ${
+                          selectedAction === "warn"
+                            ? "border-blue-500 bg-blue-50/50"
+                            : "border-slate-200 hover:border-slate-300"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="action"
+                          value="warn"
+                          checked={selectedAction === "warn"}
+                          onChange={(e) => setSelectedAction(e.target.value)}
+                          className="mt-0.5 h-4 w-4 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        />
+                        <div>
+                          <p className="text-sm font-bold text-slate-900">Cảnh báo (Warn)</p>
+                          <p className="text-xs text-slate-500">
+                            Gửi thông báo cảnh báo vi phạm tới nghệ sĩ.
+                          </p>
+                        </div>
+                      </label>
+
+                      <label
+                        className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition ${
+                          selectedAction === "hide"
+                            ? "border-amber-500 bg-amber-50/50"
+                            : "border-slate-200 hover:border-slate-300"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="action"
+                          value="hide"
+                          checked={selectedAction === "hide"}
+                          onChange={(e) => setSelectedAction(e.target.value)}
+                          className="mt-0.5 h-4 w-4 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                        />
+                        <div>
+                          <p className="text-sm font-bold text-slate-900">Ẩn nội dung (Hide)</p>
+                          <p className="text-xs text-slate-500">
+                            Ẩn bài hát / album này khỏi hệ thống công khai.
+                          </p>
+                        </div>
+                      </label>
+
+                      <label
+                        className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition ${
+                          selectedAction === "block"
+                            ? "border-red-500 bg-red-50/50"
+                            : "border-slate-200 hover:border-slate-300"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="action"
+                          value="block"
+                          checked={selectedAction === "block"}
+                          onChange={(e) => setSelectedAction(e.target.value)}
+                          className="mt-0.5 h-4 w-4 text-red-600 focus:ring-red-500 cursor-pointer"
+                        />
+                        <div>
+                          <p className="text-sm font-bold text-slate-900">Khóa tài khoản Nghệ sĩ (Block)</p>
+                          <p className="text-xs text-slate-500">
+                            Khóa trực tiếp tài khoản của nghệ sĩ và gửi thông báo khóa.
+                          </p>
+                        </div>
+                      </label>
+
+                      {/* Reject option */}
+                      <label
+                        className={`flex items-start gap-3 rounded-xl border p-3 transition cursor-pointer ${
+                          selectedAction === "reject"
+                            ? "border-slate-400 bg-slate-100"
+                            : "border-slate-200 hover:border-slate-300"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="action"
+                          value="reject"
+                          checked={selectedAction === "reject"}
+                          onChange={(e) => setSelectedAction(e.target.value)}
+                          className="mt-0.5 h-4 w-4 text-slate-600 focus:ring-slate-500 cursor-pointer"
+                        />
+                        <div>
+                          <p className="text-sm font-bold text-slate-900">Từ chối báo cáo (Reject)</p>
+                          <p className="text-xs text-slate-500">
+                            Báo cáo không đúng thực tế, từ chối xử lý nội dung.
+                          </p>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Admin Note */}
+                  <div className="space-y-2">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+                      Ghi chú xử lý của Admin
+                    </label>
+                    <textarea
+                      value={resolutionNote}
+                      onChange={(e) => setResolutionNote(e.target.value)}
+                      placeholder="Nhập ghi chú hoặc lý do xử lý..."
+                      rows={3}
+                      className="w-full rounded-xl border border-slate-200 p-3 text-sm outline-none transition focus:border-blue-500 resize-none"
+                    />
+                  </div>
+
+                  {/* Submit Button */}
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        <span>Đang lưu xử lý...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 size={18} />
+                        <span>Xác nhận xử lý báo cáo</span>
+                      </>
+                    )}
+                  </button>
+                </form>
+              </>
+            )}
           </div>
         </div>
       </div>
