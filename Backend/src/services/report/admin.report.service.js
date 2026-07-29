@@ -227,6 +227,14 @@ const resolveGroupedReport = async (targetType, targetId, body, adminId) => {
 
     const groupReports = await Report.find({ targetType, targetId });
 
+    const pendingGroupReports = groupReports.filter(
+        (r) => r.status === "pending" || r.status === "reviewing"
+    );
+
+    if (groupReports.length > 0 && pendingGroupReports.length === 0) {
+        throw new AppError("Không có báo cáo mới nào đang chờ duyệt. Đợt báo cáo này đã được xử lý hoàn tất.", 400);
+    }
+
     for (const report of groupReports) {
         const isValid = evaluationMap.has(String(report._id))
             ? evaluationMap.get(String(report._id))
@@ -261,9 +269,9 @@ const resolveGroupedReport = async (targetType, targetId, body, adminId) => {
     if (shouldIncrementViolation && artistId && mongoose.Types.ObjectId.isValid(artistId)) {
         const artist = await Artist.findById(artistId);
         if (artist) {
-            const targetTitle = targetInfo?.title || targetInfo?.name || targetType;
+            const targetTypeName = targetType === "track" ? "bài hát" : targetType === "album" ? "album" : "hồ sơ nghệ sĩ";
             artist.violations.push({
-                content: `Báo cáo vi phạm [${targetType.toUpperCase()}]: ${targetTitle}`,
+                content: `Báo cáo vi phạm đối với ${targetTypeName} "${targetTitle}"`,
                 violatedAt: new Date(),
             });
 
