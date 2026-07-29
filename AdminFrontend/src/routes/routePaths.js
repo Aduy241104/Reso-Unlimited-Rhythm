@@ -39,6 +39,9 @@ export const routePaths = {
     `/revenue-sharing/${periodId}`,
   reports: "/reports",
   artistViolations: "/artist-violations",
+  createArtistViolation: "/artist-violations/new",
+  artistViolationDetail: (targetType = ":targetType", targetId = ":targetId") =>
+    `/artist-violations/detail/${targetType}/${targetId}`,
   reportDetail: (reportId = ":reportId") => `/reports/${reportId}`,
   groupedReportDetail: (targetType = ":targetType", targetId = ":targetId") =>
     `/reports/grouped/${targetType}/${targetId}`,

@@ -17,7 +17,7 @@ import {
   Disc3,
   Mic2,
 } from "lucide-react";
-import { getGroupedReportsService, resolveGroupedReportService } from "../../services/reportService";
+import { getGroupedReportsService, getGroupedReportDetailService, resolveGroupedReportService } from "../../services/reportService";
 import { searchAdminArtistsService, updateAdminArtistStatusService } from "../../services/artistService";
 import { routePaths } from "../../routes/routePaths";
 
@@ -274,8 +274,44 @@ export default function ArtistViolationHistoryPage() {
     }
   };
 
-  const total = pagination?.total ?? reportGroups.length;
-  const visibleCount = reportGroups.length;
+  // Open Modal and fetch live group details including exact artistViolationsCount
+  const handleOpenDetail = async (group) => {
+    setSelectedGroup(group);
+    try {
+      const detail = await getGroupedReportDetailService(group.targetType, group.targetId);
+      if (detail) {
+        setSelectedGroup({
+          ...group,
+          artistViolationsCount: detail.artistViolationsCount ?? detail.targetInfo?.violationsCount ?? group.targetInfo?.violationsCount ?? 1,
+          artistActiveStatus: detail.artistActiveStatus || detail.targetInfo?.activeStatus || group.targetInfo?.activeStatus || "active",
+          targetInfo: detail.targetInfo || group.targetInfo,
+          reports: detail.reports || [],
+        });
+      }
+    } catch (err) {
+      console.warn("Error fetching live report detail:", err);
+    }
+  };
+
+  // Filter reportGroups to ONLY include confirmed artist violations with at least 1 warning/violation
+  const confirmedViolations = useMemo(() => {
+    return reportGroups.filter((group) => {
+      const violationsCount =
+        group.targetInfo?.violationsCount ||
+        (Array.isArray(group.targetInfo?.violations) ? group.targetInfo.violations.length : 0) ||
+        group.resolvedReports ||
+        (group.latestReport?.status === "resolved" ? 1 : 0);
+
+      const isBlocked = group.targetInfo?.activeStatus === "blocked";
+      const hasWarningPenalty = group.latestReport?.resolution === "warning" || group.latestReport?.resolution === "block_artist";
+
+      // Only show if artist has at least 1 confirmed warning / violation
+      return violationsCount >= 1 || isBlocked || hasWarningPenalty;
+    });
+  }, [reportGroups]);
+
+  const total = pagination?.total ?? confirmedViolations.length;
+  const visibleCount = confirmedViolations.length;
   const pageLabel = pagination ? `${pagination.page}/${pagination.totalPages}` : "1/1";
 
   return (
@@ -301,6 +337,12 @@ export default function ArtistViolationHistoryPage() {
             <HeaderStat label="Hiển thị" value={visibleCount} />
             <HeaderStat label="Trang" value={pageLabel} />
           </div>
+          <Link
+            to={routePaths.createArtistViolation || "/artist-violations/new"}
+            className="bg-slate-950 hover:bg-slate-800 text-white px-5 py-3 text-sm font-semibold rounded-xl transition whitespace-nowrap inline-block text-center shadow-sm"
+          >
+            + Ghi nhận vi phạm
+          </Link>
         </div>
       </div>
 
@@ -360,10 +402,10 @@ export default function ArtistViolationHistoryPage() {
       </form>
 
       {/* Main Table View */}
-      {reportGroups.length === 0 ? (
+      {confirmedViolations.length === 0 ? (
         <div className="rounded-2xl bg-white px-6 py-20 text-center shadow-[0_12px_30px_rgba(15,23,42,0.05)] border border-slate-200">
-          <p className="text-base font-semibold text-slate-900">Không tìm thấy lịch sử vi phạm nào.</p>
-          <p className="mt-1 text-sm text-slate-400">Hồ sơ trống hoặc không có bản ghi nào khớp điều kiện lọc.</p>
+          <p className="text-base font-semibold text-slate-900">Không có nghệ sĩ nào có lịch sử bị gửi cảnh báo / vi phạm.</p>
+          <p className="mt-1 text-sm text-slate-400">Các báo cáo chưa qua kiểm duyệt hoặc chưa áp dụng cảnh báo sẽ hiển thị ở mục Báo cáo (Reports).</p>
         </div>
       ) : (
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
@@ -378,7 +420,7 @@ export default function ArtistViolationHistoryPage() {
 
           <div className="overflow-x-auto">
             <div className="min-w-[1020px] divide-y divide-slate-100">
-              {reportGroups.map((group, idx) => {
+              {confirmedViolations.map((group, idx) => {
                 const targetName =
                   group.targetInfo?.name ||
                   group.targetInfo?.title ||
@@ -409,7 +451,6 @@ export default function ArtistViolationHistoryPage() {
                       />
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-slate-950">{targetName}</p>
-                        <p className="text-[11px] text-slate-400 font-mono">ID: {group.targetId}</p>
                       </div>
                     </div>
 
@@ -431,12 +472,12 @@ export default function ArtistViolationHistoryPage() {
 
                     {/* Action */}
                     <div className="flex justify-end pr-2">
-                      <button
-                        onClick={() => setSelectedGroup(group)}
-                        className="inline-flex items-center gap-1 rounded-xl bg-slate-900 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800 shadow-sm"
+                      <Link
+                        to={routePaths.artistViolationDetail ? routePaths.artistViolationDetail(group.targetType, group.targetId) : `/artist-violations/detail/${group.targetType}/${group.targetId}`}
+                        className="inline-flex items-center gap-1 rounded-xl bg-slate-950 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800 shadow-sm"
                       >
                         Chi tiết <ArrowUpRight size={14} />
-                      </button>
+                      </Link>
                     </div>
                   </article>
                 );
@@ -503,6 +544,8 @@ export default function ArtistViolationHistoryPage() {
 
             {/* Modal Body */}
             <div className="flex-1 overflow-y-auto p-6 space-y-5">
+              
+              {/* Profile Card Header */}
               <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <div className="flex items-center gap-3">
                   <img
@@ -523,8 +566,38 @@ export default function ArtistViolationHistoryPage() {
                 </div>
 
                 <div className="text-right">
-                  <p className="text-[11px] font-semibold uppercase text-slate-400">Tổng báo cáo</p>
-                  <p className="text-base font-bold text-rose-600">{selectedGroup.totalReports || 1} lượt</p>
+                  <span className="text-[11px] font-semibold uppercase text-slate-400 block">Tổng báo cáo thô</span>
+                  <span className="text-sm font-bold text-slate-700">{selectedGroup.totalReports || 1} lượt</span>
+                </div>
+              </div>
+
+              {/* Exact Artist Violations Count Card matching ReportDetailPage.jsx */}
+              <div className="rounded-2xl border border-slate-200 bg-[#fbfcfd] p-5 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
+                    <ShieldAlert size={16} className="text-amber-500" />
+                    <span>Số lần vi phạm của nghệ sĩ</span>
+                  </div>
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${
+                      (selectedGroup.artistActiveStatus || selectedGroup.targetInfo?.activeStatus) === "blocked"
+                        ? "bg-rose-50 text-rose-600 border border-rose-100"
+                        : "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                    }`}
+                  >
+                    {(selectedGroup.artistActiveStatus || selectedGroup.targetInfo?.activeStatus) === "blocked" ? "Đã bị khóa" : "Hoạt động"}
+                  </span>
+                </div>
+
+                <div className="flex items-baseline justify-between">
+                  <span className="text-4xl font-extrabold text-slate-900">
+                    {selectedGroup.artistViolationsCount ?? selectedGroup.targetInfo?.violationsCount ?? 1}
+                  </span>
+                  <span className="text-xs font-semibold text-slate-500">
+                    {(selectedGroup.artistViolationsCount ?? selectedGroup.targetInfo?.violationsCount ?? 1) >= 5
+                      ? "⚠️ Đã đạt hạn mức tối đa"
+                      : `${selectedGroup.artistViolationsCount ?? selectedGroup.targetInfo?.violationsCount ?? 1}/5 vi phạm`}
+                  </span>
                 </div>
               </div>
 

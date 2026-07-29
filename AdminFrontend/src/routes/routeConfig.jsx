@@ -35,6 +35,8 @@ import NotificationEditPage from "../pages/notification/NotificationUpdatePage";
 import ReportsListPage from "../pages/reports/ReportsListPage";
 import ReportDetailPage from "../pages/reports/ReportDetailPage";
 import ArtistViolationHistoryPage from "../pages/artistViolations/ArtistViolationHistoryPage";
+import CreateArtistViolationPage from "../pages/artistViolations/CreateArtistViolationPage";
+import ArtistViolationDetailPage from "../pages/artistViolations/ArtistViolationDetailPage";
 import SubscriptionPlansPage from "../pages/subscriptions/SubscriptionPlansPage";
 import SubscriptionPlanDetailPage from "../pages/subscriptions/SubscriptionPlanDetailPage";
 import CreateSubscriptionPlanPage from "../pages/subscriptions/CreateSubscriptionPlanPage";
@@ -198,6 +200,14 @@ export const appRoutes = [
               {
                 path: "artist-violations",
                 element: <ArtistViolationHistoryPage />,
+              },
+              {
+                path: "artist-violations/new",
+                element: <CreateArtistViolationPage />,
+              },
+              {
+                path: "artist-violations/detail/:targetType/:targetId",
+                element: <ArtistViolationDetailPage />,
               },
               {
                 path: "reports/:reportId",

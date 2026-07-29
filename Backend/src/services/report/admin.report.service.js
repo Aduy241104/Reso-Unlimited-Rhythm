@@ -351,7 +351,7 @@ const resolveGroupedReport = async (targetType, targetId, body, adminId) => {
                         targetType: targetType,
                         targetName: targetTitle,
                         receiverType: "single",
-                        targetRoles: ["artist"],
+                        targetRoles: [],
                         sourceType: "system_auto",
                         createdBy: adminId || null,
                     });
@@ -386,7 +386,7 @@ const resolveGroupedReport = async (targetType, targetId, body, adminId) => {
                     targetId: targetId,
                     targetType: targetType,
                     receiverType: "single",
-                    targetRoles: ["artist"],
+                    targetRoles: [],
                     sourceType: "admin_manual",
                     createdBy: adminId || null,
                 });
