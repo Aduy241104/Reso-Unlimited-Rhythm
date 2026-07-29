@@ -286,6 +286,7 @@ const TRACK_TITLES = [
     "Home Again",
 ];
 const COUNTRIES = ["Việt Nam", "Singapore", "Nhật Bản", "Hàn Quốc", "Thái Lan"];
+const DEVICES = ["Chrome / Windows", "Safari / iPhone", "Reso Android", "Edge / Windows", "Safari / macOS"];
 const SOURCES = ["track_detail", "album", "playlist", "search", "artist_profile"];
 
 const dateContext = () => {
@@ -366,6 +367,7 @@ const buildSeedData = async () => {
             activeStatus: "active",
             emailVerified: true,
             profile: { fullName: "Reso Seed Admin", gender: "other", dateOfBirth: new Date("1992-04-12"), country: "Việt Nam" },
+            settings: { language: "vi", notificationsEnabled: true, shufflePlayDefault: false },
             stats: { totalListeningTime: 0, totalTracksPlayed: 0 },
         },
         ...ARTIST_FULL_NAMES.map((fullName, index) => ({
@@ -383,6 +385,7 @@ const buildSeedData = async () => {
                 dateOfBirth: new Date(`${1992 + index}-0${(index % 8) + 1}-15`),
                 country: COUNTRIES[index % 2],
             },
+            settings: { language: index % 4 === 0 ? "en" : "vi", notificationsEnabled: true, shufflePlayDefault: index % 2 === 0 },
             stats: { totalListeningTime: 0, totalTracksPlayed: 0 },
         })),
         ...LISTENER_NAMES.map((fullName, index) => {
@@ -404,6 +407,7 @@ const buildSeedData = async () => {
                     dateOfBirth: new Date(`${1996 + (index % 9)}-${String((index % 12) + 1).padStart(2, "0")}-12`),
                     country: COUNTRIES[index % COUNTRIES.length],
                 },
+                settings: { language: index % 5 === 0 ? "en" : "vi", notificationsEnabled: index % 7 !== 0, shufflePlayDefault: index % 2 === 0 },
                 subscription: premium
                     ? { isPremium: true, currentPlanId: plan._id, premiumEndDate: dates.at(20 + index).toDate() }
                     : { isPremium: false },
@@ -420,6 +424,7 @@ const buildSeedData = async () => {
             activeStatus: "active",
             emailVerified: true,
             profile: { fullName, gender: index % 2 ? "female" : "male", dateOfBirth: new Date(`${1998 + index}-06-18`), country: "Việt Nam" },
+            settings: { language: "vi", notificationsEnabled: true, shufflePlayDefault: false },
             stats: { totalListeningTime: 0, totalTracksPlayed: 0 },
         })),
     ];
@@ -451,8 +456,10 @@ const buildSeedData = async () => {
         },
         stats: { followers: 0, totalStreams: 0, monthlyListeners: 0 },
         revenue: {
+            totalEarnedAmount: 0,
             totalWithdrawnAmount: 0,
             availableAmount: 0,
+            pendingPayoutAmount: 0,
             confirmedRevenueSummaryIds: [],
         },
         payoutAccounts: [
@@ -511,6 +518,14 @@ const buildSeedData = async () => {
             lyricsSyncUrl: "",
             stats: { totalLike: 0, totalPlay: 0 },
             releaseDate: dates.at(-150 + index * 3).toDate(),
+            releaseStatus:
+                approvalStatus === "approved" && ["active", "hidden"].includes(activeStatus)
+                    ? "released"
+                    : "unreleased",
+            releasedAt:
+                approvalStatus === "approved" && ["active", "hidden"].includes(activeStatus)
+                    ? dates.at(-150 + index * 3).toDate()
+                    : null,
             activeStatus,
             approvalStatus,
             copyright: {
@@ -599,6 +614,8 @@ const buildSeedData = async () => {
                     duration: listenedDuration,
                     completed: listenPercent >= 90,
                     skipped: !isValidStream && listenPercent < 30,
+                    device: DEVICES[(userIndex + order) % DEVICES.length],
+                    country: user.profile.country,
                     createdAt: listenedAt,
                     updatedAt: listenedAt,
                 };
@@ -926,6 +943,19 @@ const buildSeedData = async () => {
             releasedAt: state === "released" ? scheduledAt : null,
             status: state,
         });
+
+        if (isTrack && state === "scheduled") {
+            target.releaseDate = scheduledAt;
+            target.releaseStatus = "scheduled";
+            target.releasedAt = null;
+            if (target.activeStatus !== "blocked") {
+                target.activeStatus = "hidden";
+            }
+        } else if (isTrack && state === "released") {
+            target.releaseDate = scheduledAt;
+            target.releaseStatus = "released";
+            target.releasedAt = scheduledAt;
+        }
     }
 
     const reportReasons = ["Nghi ngờ vi phạm bản quyền", "Metadata không chính xác", "Nội dung không phù hợp", "Giả mạo nghệ sĩ"];
@@ -1293,8 +1323,10 @@ const buildSeedData = async () => {
 
     artists.forEach((artist) => {
         const summaries = revenueSummaries.filter((item) => String(item.artistId) === String(artist._id));
+        artist.revenue.totalEarnedAmount = summaries.reduce((sum, item) => sum + item.artistRevenueAmount, 0);
         artist.revenue.totalWithdrawnAmount = summaries.reduce((sum, item) => sum + item.withdrawnAmount, 0);
         artist.revenue.availableAmount = summaries.reduce((sum, item) => sum + item.availableAmount, 0);
+        artist.revenue.pendingPayoutAmount = summaries.filter((item) => item.status !== "confirmed").reduce((sum, item) => sum + item.artistRevenueAmount, 0);
         artist.revenue.confirmedRevenueSummaryIds = summaries.filter((item) => item.status === "confirmed").map((item) => item._id);
     });
 

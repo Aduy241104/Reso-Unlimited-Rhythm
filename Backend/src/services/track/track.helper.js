@@ -1,5 +1,9 @@
 import Subscription from "../../models/Subscription.js";
 import { AppError } from "../../utils/AppError.js";
+import {
+    resolveTrackReleasedAt,
+    resolveTrackReleaseStatus,
+} from "../../utils/trackRelease.js";
 
 const PREMIUM_AUDIO_FEATURES = new Set([
     "HIGH_QUALITY_AUDIO",
@@ -99,6 +103,8 @@ const formatTrackManagementDetail = (track) => {
             totalPlay: 0,
         },
         releaseDate: track.releaseDate,
+        releaseStatus: resolveTrackReleaseStatus(track),
+        releasedAt: resolveTrackReleasedAt(track),
         activeStatus: track.activeStatus,
         approvalStatus: track.approvalStatus,
         copyright: track.copyright || null,
@@ -140,6 +146,9 @@ const formatTrackItem = (track) => {
         duration: track.duration,
         avatar: track.avatar,
         stats: track.stats,
+        releaseDate: track.releaseDate || null,
+        releaseStatus: resolveTrackReleaseStatus(track),
+        releasedAt: resolveTrackReleasedAt(track),
         activeStatus: track.activeStatus,
         approvalStatus: track.approvalStatus,
     };
@@ -348,6 +357,8 @@ const formatTrackDetailBase = (track) => ({
     avatar: track.avatar,
     coverImage: track.coverImage,
     releaseDate: track.releaseDate,
+    releaseStatus: resolveTrackReleaseStatus(track),
+    releasedAt: resolveTrackReleasedAt(track),
     stats: track.stats,
     artist: formatTrackArtist(track.artist_artistId),
     album: formatTrackAlbum(track.album_albumId),
@@ -403,6 +414,8 @@ const formatTrackPlayback = (track, audioFiles, accessState) => {
         avatar: track.avatar,
         coverImage: track.coverImage,
         releaseDate: track.releaseDate,
+        releaseStatus: resolveTrackReleaseStatus(track),
+        releasedAt: resolveTrackReleasedAt(track),
         stats: track.stats,
         artist: formatTrackArtist(track.artist_artistId),
         album: formatTrackAlbum(track.album_albumId),

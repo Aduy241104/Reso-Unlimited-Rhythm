@@ -1,3 +1,8 @@
+import {
+    resolveTrackReleasedAt,
+    resolveTrackReleaseStatus,
+} from "../../utils/trackRelease.js";
+
 const toId = (value) => {
     if (!value) {
         return null;
@@ -44,6 +49,8 @@ const formatPlaylistTrack = (playlistTrack) => {
                 lyricsSyncUrl: trackDoc.lyricsSyncUrl,
                 stats: trackDoc.stats,
                 releaseDate: trackDoc.releaseDate,
+                releaseStatus: resolveTrackReleaseStatus(trackDoc),
+                releasedAt: resolveTrackReleasedAt(trackDoc),
                 activeStatus: trackDoc.activeStatus,
                 approvalStatus: trackDoc.approvalStatus,
                 isBlocked: isBlockedTrack(trackDoc),
