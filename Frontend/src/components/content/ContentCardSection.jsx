@@ -1,5 +1,5 @@
 import ContentCard from "./ContentCard";
-import ContentCardSkeleton from "./ContentCardSkeleton";
+import LoadingState from "../common/LoadingState";
 
 const ContentCardSection = ({
   label,
@@ -31,16 +31,7 @@ const ContentCardSection = ({
       </div>
 
       { isLoading ? (
-        <div className="flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-4">
-          { Array.from({ length: 5 }).map((_, index) => (
-            <div
-              key={ index }
-              className="h-[12.75rem] w-[8.5rem] min-w-[8.5rem] shrink-0 snap-start sm:h-[15.25rem] sm:w-[10.75rem] sm:min-w-[10.75rem] lg:h-[17rem] lg:w-[12rem] lg:min-w-[12rem]"
-            >
-              <ContentCardSkeleton />
-            </div>
-          )) }
-        </div>
+        <LoadingState message="Đang tải nội dung..." className="min-h-[12rem]" />
       ) : items.length > 0 ? (
         <div className="mt-1 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mt-2 sm:gap-4">
           { items.map((item) => (

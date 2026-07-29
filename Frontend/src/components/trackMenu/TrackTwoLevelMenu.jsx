@@ -481,7 +481,7 @@ const TrackTwoLevelMenu = ({
                         "
                     >
                         { isSubmittingFavorite || isFavoriteStatusLoading ? (
-                            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[#9ca3af]" />
+                            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-white" />
                         ) : resolvedIsFavorite ? (
                             <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-[#22c55e]" />
                         ) : (
@@ -604,14 +604,18 @@ const TrackTwoLevelMenu = ({
                                                         disabled:opacity-50
                                                     "
                                                 >
-                                                    <span className="truncate">
-                                                        { getPlaylistTitle(playlist) }
-                                                    </span>
-
                                                     { isSubmitting ? (
-                                                        <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[#9ca3af]" />
+                                                        <span className="flex w-full items-center justify-center gap-2 text-white">
+                                                            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+                                                            Đang thêm...
+                                                        </span>
                                                     ) : (
-                                                        <Plus className="h-3.5 w-3.5 shrink-0 text-[#9ca3af]" />
+                                                        <>
+                                                            <span className="truncate">
+                                                                { getPlaylistTitle(playlist) }
+                                                            </span>
+                                                            <Plus className="h-3.5 w-3.5 shrink-0 text-[#9ca3af]" />
+                                                        </>
                                                     ) }
                                                 </button>
                                             );

@@ -277,25 +277,30 @@ const CreateNotificationPage = () => {
     };
 
     return (
-        <section className="mx-auto max-w-5xl space-y-6 p-6 bg-[#f8fafc] min-h-screen font-sans text-slate-800 antialiased">
+        <section className="-mt-3 space-y-6 pb-6 font-sans text-slate-900 antialiased [&_.border-slate-100]:border-slate-200 [&_.text-slate-400]:text-slate-600 [&_.text-slate-500]:text-slate-700">
 
             {/* HEADER BAR */}
-            <div className="flex flex-col gap-4 rounded-2xl bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between border border-slate-100">
-                <div>
-                    <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Quản lý thông báo</p>
-                    <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">Tạo thông báo</h1>
-                    <p className="mt-1 text-xs text-slate-400">Khởi tạo và phát hành thông tin thông báo, điều hướng thời gian thực đến người dùng.</p>
+            <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center gap-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-sky-100 bg-sky-50 text-sky-700">
+                        <Bell size={18} />
+                    </div>
+                    <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">Quản lý thông báo</p>
+                    <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">Tạo thông báo</h1>
+                    <p className="mt-1 text-sm text-slate-700">Soạn và phát hành thông báo đến người dùng theo thời gian thực.</p>
+                    </div>
                 </div>
                 <Link
                     to={routePaths.notifications || "#"}
-                    className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 self-start md:self-center"
+                    className="inline-flex h-10 items-center justify-center gap-2 border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 self-start md:self-center"
                 >
                     <ArrowLeft className="mr-2 h-3.5 w-3.5" /> Quay lại danh sách
                 </Link>
             </div>
 
             {/* FORM CARD */}
-            <form onSubmit={handleSubmit} className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100 space-y-5">
+            <form onSubmit={handleSubmit} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6 [&_input]:border-slate-300 [&_select]:border-slate-300 [&_textarea]:border-slate-300">
 
                 {message && (
                     <div className="rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs font-bold text-rose-600 shadow-sm animate-fade-in">

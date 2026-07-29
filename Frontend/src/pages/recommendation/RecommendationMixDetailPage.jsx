@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CirclePlus, Download, MoreHorizontal, Shuffle } from "lucide-react";
 import { useParams } from "react-router-dom";
 import PlayButton from "../../components/common/PlayButton";
+import LoadingState from "../../components/common/LoadingState";
 import TrackCard from "../../components/TrackCard";
 import TrackListSection from "../../components/trackList/TrackListSection";
 import { useAuth } from "../../hooks/useAuth";
@@ -161,6 +162,16 @@ const RecommendationMixDetailPage = () => {
     totalTracks > 0 ? `${totalTracks} tracks` : "",
   ].filter(Boolean);
 
+  if (isLoading) {
+    return (
+      <LoadingState
+        message="Loading recommendation detail..."
+        className="min-h-[60vh]"
+        spinnerClassName="h-8 w-8"
+      />
+    );
+  }
+
   return (
     <section className="space-y-4 sm:space-y-6">
       <div
@@ -178,9 +189,7 @@ const RecommendationMixDetailPage = () => {
           "
         >
           {isLoading ? (
-            <div className="flex min-h-[20rem] items-end">
-              <p className="text-sm text-white/82">Loading recommendation detail...</p>
-            </div>
+            <LoadingState message="Loading recommendation detail..." className="min-h-[20rem]" />
           ) : errorMessage ? (
             <div className="flex min-h-[20rem] items-end">
               <p className="max-w-xl text-sm text-white/88">{errorMessage}</p>

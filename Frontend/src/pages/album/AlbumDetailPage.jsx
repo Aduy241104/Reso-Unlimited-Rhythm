@@ -9,6 +9,7 @@ import {
   Shuffle,
 } from "lucide-react";
 import PlayButton from "../../components/common/PlayButton";
+import LoadingState from "../../components/common/LoadingState";
 import CreateReportModal from "../../components/report/CreateReportModal";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import TrackCard from "../../components/TrackCard";
@@ -304,6 +305,16 @@ const AlbumDetailPage = () => {
         ? "Đã theo dõi"
         : "Theo dõi";
 
+  if (isLoading) {
+    return (
+      <LoadingState
+        message="Đang tải chi tiết album..."
+        className="min-h-[60vh]"
+        spinnerClassName="h-8 w-8"
+      />
+    );
+  }
+
   return (
     <section className="space-y-4 sm:space-y-6">
       <div
@@ -319,9 +330,7 @@ const AlbumDetailPage = () => {
         >
           
           { isLoading ? (
-            <div className="flex min-h-[20rem] items-end">
-              <p className="text-sm text-white/82">Đang tải chi tiết album...</p>
-            </div>
+            <LoadingState message="Đang tải chi tiết album..." className="min-h-[20rem]" />
           ) : errorMessage ? (
             <div className="flex min-h-[20rem] items-end">
               <p className="max-w-xl text-sm text-white/88">{ errorMessage }</p>
@@ -382,7 +391,9 @@ const AlbumDetailPage = () => {
               disabled={ isFollowLoading || isFollowStatusLoading || isAuthLoading }
               className={ [
                 followButtonClassName,
-                isFollowing
+                isFollowLoading || isFollowStatusLoading
+                  ? "border-white/20 bg-[#111111] text-white"
+                  : isFollowing
                   ? "border-[#f5b66f]/70 bg-[#f5b66f] text-[#111111] hover:bg-[#f8c27f]"
                   : "",
               ].join(" ") }

@@ -7,6 +7,7 @@ const listTracksQuerySchema = Joi.object({
     // BỔ SUNG 2 DÒNG NÀY ĐỂ NHẬN BỘ LỌC TỪ FRONTEND:
     approvalStatus: Joi.string().valid("pending", "approved", "rejected").optional(),
     activeStatus: Joi.string().valid("draft", "active", "hidden", "blocked").optional(),
+    releaseStatus: Joi.string().valid("unreleased", "scheduled", "released").optional(),
 });
 
 const updateTrackApprovalSchema = Joi.object({
@@ -29,7 +30,7 @@ const updateTrackApprovalSchema = Joi.object({
 });
 
 const updateTrackVisibilitySchema = Joi.object({
-    action: Joi.string().valid("hide", "unhide", "block").required(),
+    action: Joi.string().valid("hide", "unhide", "block", "unblock").required(),
     hiddenReason: Joi.string().trim().max(1000).allow("").default(""),
     blockedReason: Joi.string().trim().max(1000).allow("").default(""),
     adminNote: Joi.string().trim().max(1000).allow("").default(""),

@@ -6,6 +6,7 @@ import {
   Eye,
   EyeOff,
   LockKeyhole,
+  Loader2,
   Mail,
   UserRound,
 } from "lucide-react";
@@ -199,8 +200,17 @@ const RegisterDetailsStep = ({
             disabled={isSubmitting}
             type="submit"
           >
-            {isSubmitting ? "Đang gửi mã..." : "Tiếp tục"}
-            <ArrowRight className="h-4 w-4" />
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                Đang gửi mã...
+              </>
+            ) : (
+              <>
+                Tiếp tục
+                <ArrowRight className="h-4 w-4" />
+              </>
+            )}
           </button>
         </div>
       </form>

@@ -1,5 +1,9 @@
 import { AppError } from "../../utils/AppError.js";
 import mongoose from "mongoose";
+import {
+    resolveTrackReleasedAt,
+    resolveTrackReleaseStatus,
+} from "../../utils/trackRelease.js";
 
 export const normalizePositiveInteger = (value, defaultValue) => {
     const number = Number(value);
@@ -192,6 +196,8 @@ const formatPlaylistTrack = (playlistTrack) => {
             lyricsSyncUrl: track.lyricsSyncUrl || "",
             stats: track.stats || {},
             releaseDate: track.releaseDate,
+            releaseStatus: resolveTrackReleaseStatus(track),
+            releasedAt: resolveTrackReleasedAt(track),
             activeStatus: track.activeStatus,
             approvalStatus: track.approvalStatus,
             isBlocked: isBlockedTrack(track),

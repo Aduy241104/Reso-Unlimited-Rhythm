@@ -7,7 +7,8 @@ import {
   useState,
 } from "react";
 import { Link } from "react-router-dom";
-import { Clock3, Headphones, LoaderCircle, Music2, Tags } from "lucide-react";
+import { Clock3, Headphones, Music2, Tags } from "lucide-react";
+import LoadingState from "../../components/common/LoadingState";
 import { useAuth } from "../../hooks/useAuth";
 import { routePaths } from "../../routes/routePaths";
 import { getCurrentUserRecentListeningActivity } from "../../services/user.recentListening.service";
@@ -652,10 +653,7 @@ const UserRecentListeningPage = () => {
         <section
           className={`mx-auto flex min-h-[60vh] w-full max-w-7xl items-center justify-center ${panelClassName}`}
         >
-          <div className="flex items-center gap-3 text-sm text-white/60">
-            <LoaderCircle className="h-5 w-5 animate-spin text-white" />
-            Đang tải hoạt động nghe gần đây...
-          </div>
+          <LoadingState message="Đang tải hoạt động nghe gần đây..." />
         </section>
       </main>
     );

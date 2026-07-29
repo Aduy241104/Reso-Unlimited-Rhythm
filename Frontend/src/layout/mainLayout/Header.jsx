@@ -1,5 +1,6 @@
 ﻿import { Menu } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import SearchBar from "../../components/search/SearchBar";
 import brandArtwork from "../../assets/images/ChatGPT Image 13_16_10 4 thg 5, 2026.png";
 import { useAuth } from "../../hooks/useAuth";
@@ -104,12 +105,13 @@ const Header = ({ onToggleSidebar, isDesktopSidebarVisible }) => {
                 {isLoading ? (
                     <div
                         className={[
-                            "shrink-0 rounded-full border px-2 py-1.5 text-[11px] sm:px-3 sm:text-xs",
+                            "inline-flex shrink-0 items-center justify-center gap-2 rounded-full border px-2 py-1.5 text-[11px] text-white sm:px-3 sm:text-xs",
                             isDark
-                                ? "border-[#f5b66f]/10 bg-[#1c1820] text-[#b8b0aa]"
-                                : "border-[#e5e7eb] bg-white text-[#6b7280]",
+                                ? "border-[#f5b66f]/10 bg-[#1c1820]"
+                                : "border-[#e5e7eb] bg-[#111111]",
                         ].join(" ")}
                     >
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
                         Đang tải...
                     </div>
                 ) : !isAuthenticated ? (

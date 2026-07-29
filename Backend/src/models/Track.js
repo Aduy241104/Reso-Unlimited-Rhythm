@@ -113,6 +113,13 @@ const TrackSchema = new Schema(
         },
 
         releaseDate: { type: Date },
+        releaseStatus: {
+            type: String,
+            enum: ["unreleased", "scheduled", "released"],
+            default: "unreleased",
+            index: true,
+        },
+        releasedAt: { type: Date, default: null },
         activeStatus: {
             type: String,
             enum: ["draft", "active", "hidden", "blocked"],

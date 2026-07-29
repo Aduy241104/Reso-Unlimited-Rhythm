@@ -6,6 +6,7 @@ import TrackDailyRanking from "../../models/TrackDailyRanking.js";
 import TrackDailyStat from "../../models/TrackDailyStat.js";
 import TrackMonthlyRanking from "../../models/TrackMonthlyRanking.js";
 import { AppError } from "../../utils/AppError.js";
+import { buildReleasedTrackFilter } from "../../utils/trackRelease.js";
 import {
     deleteDailyMixCache,
     getDailyMixCache,
@@ -55,6 +56,7 @@ const fetchValidTracksByIds = async (trackIds) => {
         _id: { $in: trackIds },
         activeStatus: "active",
         approvalStatus: "approved",
+        ...buildReleasedTrackFilter(),
     })
         .select(
             "_id title duration avatar coverImage artist_artistId genreIds stats releaseDate"
@@ -864,6 +866,7 @@ const loadStoredDailyMixes = async (userId, dateKey) => {
             match: {
                 activeStatus: "active",
                 approvalStatus: "approved",
+                ...buildReleasedTrackFilter(),
             },
             select:
                 "_id title duration avatar coverImage artist_artistId genreIds activeStatus approvalStatus",
@@ -1059,13 +1062,18 @@ const buildSimilarCandidates = async ({
         _id: { $nin: excludedTrackIds },
         activeStatus: "active",
         approvalStatus: "approved",
-        $or: [
-            ...(preferenceArtistIds.length > 0
-                ? [{ artist_artistId: { $in: preferenceArtistIds } }]
-                : []),
-            ...(preferenceGenreIds.length > 0
-                ? [{ genreIds: { $in: preferenceGenreIds } }]
-                : []),
+        $and: [
+            buildReleasedTrackFilter(),
+            {
+                $or: [
+                    ...(preferenceArtistIds.length > 0
+                        ? [{ artist_artistId: { $in: preferenceArtistIds } }]
+                        : []),
+                    ...(preferenceGenreIds.length > 0
+                        ? [{ genreIds: { $in: preferenceGenreIds } }]
+                        : []),
+                ],
+            },
         ],
     })
         .select(

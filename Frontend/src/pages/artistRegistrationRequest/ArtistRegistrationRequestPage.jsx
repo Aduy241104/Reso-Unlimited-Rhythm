@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import LoadingState from "../../components/common/LoadingState";
 import {
   CheckCircle2,
   FileCheck2,
@@ -1083,12 +1084,11 @@ const ArtistRegistrationRequestPage = () => {
   if (authLoading || isPendingRequestLoading) {
     return (
       <main className={pageShellClassName}>
-        <div className="mx-auto flex min-h-[60vh] max-w-5xl items-center justify-center">
-          <div className="flex flex-col items-center gap-4 text-center text-white/70">
-            <Loader2 className="h-8 w-8 animate-spin text-[#f5b66f]" aria-hidden />
-            <p className="text-sm">Đang tải trang đăng kí nghệ sĩ...</p>
-          </div>
-        </div>
+        <LoadingState
+          message="Đang tải trang đăng kí nghệ sĩ..."
+          className="mx-auto min-h-[60vh] max-w-5xl"
+          spinnerClassName="h-8 w-8"
+        />
       </main>
     );
   }
@@ -1437,7 +1437,12 @@ const ArtistRegistrationRequestPage = () => {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="inline-flex min-h-[54px] items-center justify-center gap-2 rounded-2xl bg-[#f5b66f] px-6 text-sm font-semibold text-[#15181d] transition hover:bg-[#f7c789] disabled:cursor-not-allowed disabled:opacity-70"
+                    className={[
+                      "inline-flex min-h-[54px] items-center justify-center gap-2 rounded-2xl px-6 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-70",
+                      isSubmitting
+                        ? "bg-[#111111] text-white"
+                        : "bg-[#f5b66f] text-[#15181d] hover:bg-[#f7c789]",
+                    ].join(" ")}
                   >
                     {isSubmitting ? (
                       <Loader2 className="h-4 w-4 animate-spin" aria-hidden />

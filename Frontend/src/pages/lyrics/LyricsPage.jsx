@@ -4,6 +4,7 @@ import SyncedLyrics from "../../components/lyrics/SyncedLyrics";
 import { usePlayer } from "../../hooks/usePlayer";
 import { routePaths } from "../../routes/routePaths";
 import { getLyricsThemeByIndex } from "../../utils/lyricsTheme";
+import defaultImage from "../../assets/images/default-image.svg";
 
 const LyricsPage = () => {
   const { currentTrack, isPlaying } = usePlayer();
@@ -29,7 +30,7 @@ const LyricsPage = () => {
           {currentTrack?.image ? (
             <div
               className="pointer-events-none absolute inset-0 -z-20 bg-cover bg-center opacity-20 blur-3xl scale-110"
-              style={{ backgroundImage: `url(${currentTrack.image})` }}
+              style={{ backgroundImage: `url(${currentTrack.image}), url(${defaultImage})` }}
             />
           ) : null}
           <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-black/5 via-transparent to-black/45" />

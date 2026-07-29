@@ -233,9 +233,9 @@ const DeletePlaylistConfirmModal = ({
               disabled={isDeleting}
             >
               {isDeleting ? (
-                <span className="inline-flex items-center gap-2 text-inherit">
+                <span className="inline-flex items-center justify-center gap-2 text-white">
                   <Loader2 className="h-5 w-5 animate-spin" />
-                  {confirmLabel}
+                  Đang xóa...
                 </span>
               ) : (
                 confirmLabel

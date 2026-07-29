@@ -55,6 +55,12 @@ artistMeRouter.patch(
 );
 
 artistMeRouter.patch(
+    "/me/:id/unhide",
+    validate(trackValidation.trackIdParamSchema, "params"),
+    artistTrackController.unhideMyTrack
+);
+
+artistMeRouter.patch(
     "/me/:id/submit",
     validate(trackValidation.trackIdParamSchema, "params"),
     artistTrackController.submitMyTrack

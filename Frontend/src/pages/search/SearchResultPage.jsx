@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import SearchResultItem, {
   SEARCH_RESULT_TYPES,
 } from "../../components/search/SearchResultItem";
+import CenteredLoadingState from "../../components/common/LoadingState";
 import { normalizeSearchAllPayload, searchAll } from "../../services/searchService";
 import { getApiErrorMessage } from "../../utils/apiError";
 
@@ -28,14 +29,7 @@ const buildCombinedResults = (results) => {
 };
 
 const LoadingState = () => (
-  <section className="space-y-4 py-2">
-    <div className="h-4 w-24 animate-pulse rounded-full bg-[#232323]" />
-    <div className="space-y-2">
-      <div className="h-16 animate-pulse rounded-2xl bg-[#1a1a1a]" />
-      <div className="h-16 animate-pulse rounded-2xl bg-[#1a1a1a]" />
-      <div className="h-16 animate-pulse rounded-2xl bg-[#1a1a1a]" />
-    </div>
-  </section>
+  <CenteredLoadingState message="Đang tải kết quả tìm kiếm..." className="min-h-[320px]" />
 );
 
 const EmptyState = () => (

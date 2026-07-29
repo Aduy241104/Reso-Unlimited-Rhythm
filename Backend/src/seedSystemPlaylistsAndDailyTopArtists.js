@@ -152,6 +152,8 @@ const buildSampleSources = () => {
         artist_artistId: artists[index % artists.length]._id,
         duration: 210 + (index % 12) * 11,
         releaseDate: dayjs().subtract(index * 3, "day").toDate(),
+        releaseStatus: "released",
+        releasedAt: dayjs().subtract(index * 3, "day").toDate(),
         stats: { totalPlay: 2000 + index * 370, totalLike: 180 + index * 29 },
         genreIds: [
             { name: ["Seed · Pop Việt", "Seed · Indie", "Seed · Chill", "Seed · Electronic"][index % 4] },

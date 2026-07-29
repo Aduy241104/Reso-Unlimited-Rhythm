@@ -83,6 +83,23 @@ const hideMyTrack = async (req, res, next) => {
     }
 };
 
+const unhideMyTrack = async (req, res, next) => {
+    try {
+        const track = await artistTrackService.unhideArtistTrack(
+            req.user.id,
+            req.params.id
+        );
+
+        return formatResponse.success(
+            res,
+            { track },
+            "Artist track made active successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 const deleteMyTrack = async (req, res, next) => {
     try {
         const result = await artistTrackService.deleteArtistTrack(
@@ -120,6 +137,7 @@ export default {
     getMyTracks,
     getMyTrackDetail,
     hideMyTrack,
+    unhideMyTrack,
     deleteMyTrack,
     submitMyTrack,
 };
