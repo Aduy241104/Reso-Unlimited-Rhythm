@@ -33,8 +33,6 @@ const DiscographySection = ({
         onChange={ onFilterChange }
         items={[
           { label: "Nổi bật", value: "popular" },
-          { label: "Album", value: "albums" },
-          { label: "Single & EP", value: "singles" },
         ]}
       />
 
