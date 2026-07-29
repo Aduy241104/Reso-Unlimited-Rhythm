@@ -755,7 +755,8 @@ export const MyMusicPage = () => {
           </div>
         </div>
 
-        <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_170px_170px_160px_auto]">
+        {false && (
+          <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_170px_170px_160px_auto]">
           <label className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9e98b8]" />
             <input
@@ -818,7 +819,8 @@ export const MyMusicPage = () => {
             <Filter className="h-4 w-4" />
             Đặt lại
           </button>
-        </div>
+          </div>
+        )}
 
         <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_280px] 2xl:grid-cols-[minmax(0,1.75fr)_300px]">
           <div className="overflow-hidden rounded-[28px] border border-[#ece8ff] bg-white">

@@ -1,118 +1,132 @@
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Upload, X } from "lucide-react";
 import {
-  getArtistAlbumDetailService,
+  ArrowLeft,
+  CalendarDays,
+  ImageUp,
+  Info,
+  Loader2,
+  Music2,
+  Save,
+} from "lucide-react";
+import {
   editAlbumService,
+  getArtistAlbumDetailService,
 } from "../../services/artist/artistAlbumService";
 import { routePaths } from "../../routes/routePaths";
-import { getApiErrorMessage } from "../../utils/apiError";
 import {
   showArtistError,
   showArtistSuccess,
 } from "../../utils/artistNotification";
 
+const MAX_COVER_SIZE = 10 * 1024 * 1024;
+
 const ArtistEditAlbumPage = () => {
   const navigate = useNavigate();
   const { id: albumId } = useParams();
-
-  const [isLoading, setIsLoading] = useState(false);
+  const fileInputRef = useRef(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [isLoadingAlbum, setIsLoadingAlbum] = useState(true);
   const [loadError, setLoadError] = useState("");
-
   const [formData, setFormData] = useState({
     title: "",
     releaseDate: "",
     coverImage: null,
     coverImagePreview: "",
   });
-
   const [formErrors, setFormErrors] = useState({});
 
-  // Load album data on mount
   useEffect(() => {
-    const loadAlbumData = async () => {
-      try {
-        setIsLoadingAlbum(true);
-        setLoadError("");
+    let isMounted = true;
 
+    const loadAlbumData = async () => {
+      setIsLoadingAlbum(true);
+      setLoadError("");
+
+      try {
         const album = await getArtistAlbumDetailService(albumId);
+
+        if (!isMounted) {
+          return;
+        }
 
         if (!album) {
           setLoadError("Không tìm thấy album.");
           return;
         }
 
-        setFormData((prev) => ({
-          ...prev,
+        setFormData({
           title: album.title || "",
           releaseDate: album.releaseDate
             ? new Date(album.releaseDate).toISOString().split("T")[0]
             : "",
+          coverImage: null,
           coverImagePreview: album.coverImage || "",
-        }));
-      } catch (error) {
-        setLoadError(
-          getApiErrorMessage(error, "Không thể tải thông tin album.")
-        );
+        });
+      } catch {
+        if (isMounted) {
+          setLoadError("Không thể tải thông tin album.");
+        }
       } finally {
-        setIsLoadingAlbum(false);
+        if (isMounted) {
+          setIsLoadingAlbum(false);
+        }
       }
     };
 
     loadAlbumData();
+
+    return () => {
+      isMounted = false;
+    };
   }, [albumId]);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
+  const handleInputChange = (event) => {
+    const { name, value } = event.target;
+
+    setFormData((current) => ({
+      ...current,
       [name]: value,
     }));
+
     if (formErrors[name]) {
-      setFormErrors((prev) => ({
-        ...prev,
-        [name]: "",
+      setFormErrors((current) => ({ ...current, [name]: "" }));
+    }
+  };
+
+  const handleCoverImageChange = (event) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setFormErrors((current) => ({
+        ...current,
+        coverImage: "Vui lòng chọn một tệp ảnh hợp lệ.",
       }));
+      return;
     }
-  };
 
-  const handleCoverImageChange = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (!file.type.startsWith("image/")) {
-        setFormErrors((prev) => ({
-          ...prev,
-          coverImage: "Vui lòng chọn tệp ảnh hợp lệ.",
-        }));
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData((prev) => ({
-          ...prev,
-          coverImage: file,
-          coverImagePreview: reader.result,
-        }));
-      };
-      reader.readAsDataURL(file);
-
-      if (formErrors.coverImage) {
-        setFormErrors((prev) => ({
-          ...prev,
-          coverImage: "",
-        }));
-      }
+    if (file.size > MAX_COVER_SIZE) {
+      setFormErrors((current) => ({
+        ...current,
+        coverImage: "Ảnh bìa không được vượt quá 10 MB.",
+      }));
+      return;
     }
-  };
 
-  const removeCoverImage = () => {
-    setFormData((prev) => ({
-      ...prev,
-      coverImage: null,
-      coverImagePreview: "",
-    }));
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormData((current) => ({
+        ...current,
+        coverImage: file,
+        coverImagePreview: reader.result,
+      }));
+    };
+    reader.readAsDataURL(file);
+    setFormErrors((current) => ({ ...current, coverImage: "" }));
   };
 
   const validateForm = () => {
@@ -120,31 +134,39 @@ const ArtistEditAlbumPage = () => {
 
     if (!formData.title.trim()) {
       errors.title = "Vui lòng nhập tên album.";
+    } else if (formData.title.trim().length > 100) {
+      errors.title = "Tên album không được vượt quá 100 ký tự.";
     }
 
-    if (formData.releaseDate && isNaN(new Date(formData.releaseDate).getTime())) {
-      errors.releaseDate = "Vui lòng nhập ngày hợp lệ.";
+    if (
+      formData.releaseDate &&
+      Number.isNaN(new Date(formData.releaseDate).getTime())
+    ) {
+      errors.releaseDate = "Vui lòng chọn ngày phát hành hợp lệ.";
     }
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
 
     if (!validateForm()) {
       return;
     }
 
-    setIsLoading(true);
+    setIsSaving(true);
 
     try {
       const payload = new FormData();
       payload.append("title", formData.title.trim());
 
       if (formData.releaseDate) {
-        payload.append("releaseDate", new Date(formData.releaseDate).toISOString());
+        payload.append(
+          "releaseDate",
+          new Date(formData.releaseDate).toISOString()
+        );
       }
 
       if (formData.coverImage) {
@@ -152,193 +174,249 @@ const ArtistEditAlbumPage = () => {
       }
 
       await editAlbumService(albumId, payload);
-
       showArtistSuccess("Đã cập nhật album thành công.");
-
-      setTimeout(() => {
-        navigate(routePaths.artistAlbumDetail(albumId));
-      }, 1500);
+      navigate(routePaths.artistAlbumDetail(albumId));
     } catch {
       showArtistError("Không thể cập nhật album. Vui lòng thử lại.");
     } finally {
-      setIsLoading(false);
+      setIsSaving(false);
     }
   };
 
   if (isLoadingAlbum) {
     return (
-      <div className="space-y-6">
-        <button
-          onClick={() => navigate(routePaths.artistAlbums)}
-          className="flex items-center gap-2 text-sm font-medium text-[#8b5e3c] hover:text-[#6d4a2f] transition"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Albums
-        </button>
-
-        <div className="rounded-md border border-neutral-200 bg-white p-6">
-          <div className="max-w-2xl">
-            <p className="text-sm text-neutral-500">Loading album data...</p>
-          </div>
-        </div>
+      <div className="flex min-h-[520px] items-center justify-center gap-3 text-sm text-[#8d87aa]">
+        <Loader2 className="h-5 w-5 animate-spin text-[#6f5cf1]" />
+        Đang tải thông tin album...
       </div>
     );
   }
 
   if (loadError) {
     return (
-      <div className="space-y-6">
+      <section className="mx-auto max-w-[1200px] space-y-5">
         <button
+          type="button"
           onClick={() => navigate(routePaths.artistAlbums)}
-          className="flex items-center gap-2 text-sm font-medium text-[#8b5e3c] hover:text-[#6d4a2f] transition"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-[#6f5cf1]"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Albums
+          Quay lại danh sách album
         </button>
-
-        <div className="rounded-md border border-neutral-200 bg-white p-6">
-          <div className="max-w-2xl">
-            <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-              {loadError}
-            </div>
-          </div>
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">
+          {loadError}
         </div>
-      </div>
+      </section>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <section className="mx-auto max-w-[1200px] space-y-5">
       <button
-        onClick={() => navigate(routePaths.artistAlbums)}
-        className="flex items-center gap-2 text-sm font-medium text-[#8b5e3c] hover:text-[#6d4a2f] transition"
+        type="button"
+        onClick={() => navigate(routePaths.artistAlbumDetail(albumId))}
+        className="inline-flex items-center gap-2 text-sm font-semibold text-[#6f5cf1] transition hover:text-[#5946db]"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to Albums
+        Quay lại chi tiết album
       </button>
 
-      <div className="rounded-md border border-neutral-200 bg-white p-6">
-        <div className="max-w-2xl">
-          <div className="mb-6">
-            <p className="text-xs uppercase tracking-[0.3em] text-[#8b5e3c]">
-              Artist Dashboard
-            </p>
-            <h1 className="mt-2 text-2xl font-bold text-[#241b15]">Edit Album</h1>
-            <p className="mt-2 text-sm text-neutral-600">
-              Update your album information and cover image.
-            </p>
+      <header>
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#6f5cf1]">
+          Thông tin album
+        </p>
+        <h1 className="mt-2 text-3xl font-bold tracking-tight text-[#241b45]">
+          Chỉnh sửa album
+        </h1>
+        <p className="mt-2 text-sm text-[#817a99]">
+          Cập nhật tên, ngày phát hành hoặc ảnh bìa của album.
+        </p>
+      </header>
+
+      <form onSubmit={handleSubmit}>
+        <div className="rounded-[24px] border border-[#ece8ff] bg-white p-5 shadow-[0_14px_36px_rgba(32,23,71,0.06)] sm:p-6">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f3efff] text-[#6f5cf1]">
+              <Music2 className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-[#332a52]">
+                Nội dung chỉnh sửa
+              </h2>
+              <p className="mt-1 text-xs text-[#9690ac]">
+                Những thay đổi sẽ được áp dụng cho album hiện tại
+              </p>
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Title */}
+          <div className="mt-6 grid gap-7 lg:grid-cols-[280px_minmax(0,1fr)]">
             <div>
-              <label htmlFor="title" className="block text-sm font-medium text-[#241b15]">
-                Album Title <span className="text-rose-600">*</span>
-              </label>
-              <input
-                type="text"
-                id="title"
-                name="title"
-                value={formData.title}
-                onChange={handleInputChange}
-                placeholder="Enter album title"
-                className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm focus:border-[#8b5e3c] focus:outline-none focus:ring-1 focus:ring-[#8b5e3c]"
-              />
-              {formErrors.title && (
-                <p className="mt-1 text-xs text-rose-600">{formErrors.title}</p>
-              )}
-            </div>
-
-            {/* Release Date */}
-            <div>
-              <label htmlFor="releaseDate" className="block text-sm font-medium text-[#241b15]">
-                Release Date
-              </label>
-              <input
-                type="date"
-                id="releaseDate"
-                name="releaseDate"
-                value={formData.releaseDate}
-                onChange={handleInputChange}
-                className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm focus:border-[#8b5e3c] focus:outline-none focus:ring-1 focus:ring-[#8b5e3c]"
-              />
-              {formErrors.releaseDate && (
-                <p className="mt-1 text-xs text-rose-600">{formErrors.releaseDate}</p>
-              )}
-            </div>
-
-            <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              Trạng thái phát hành của album được quản lý riêng. Album chỉ có thể công khai
-              hoặc lên lịch phát hành khi đã có ít nhất 2 bài hát.
-            </div>
-
-            {/* Cover Image Upload */}
-            <div>
-              <label className="block text-sm font-medium text-[#241b15]">
-                Cover Image
+              <label className="text-sm font-semibold text-[#40375e]">
+                Ảnh bìa
               </label>
 
               {formData.coverImagePreview ? (
-                <div className="mt-2 relative inline-block">
+                <div className="mt-2 aspect-square overflow-hidden rounded-2xl border border-[#e7e2f5]">
                   <img
                     src={formData.coverImagePreview}
-                    alt="Cover preview"
-                    className="h-40 w-40 rounded-md object-cover border border-neutral-200"
+                    alt="Ảnh bìa album đang xem trước"
+                    className="h-full w-full object-cover"
                   />
-                  <button
-                    type="button"
-                    onClick={removeCoverImage}
-                    className="absolute top-2 right-2 rounded-full bg-rose-600 p-1 text-white hover:bg-rose-700"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
                 </div>
               ) : (
-                <label className="mt-2 block cursor-pointer">
-                  <div className="flex flex-col items-center justify-center rounded-md border-2 border-dashed border-neutral-300 bg-neutral-50 px-6 py-8 transition hover:border-[#8b5e3c] hover:bg-[#fcfaf7]">
-                    <Upload className="h-8 w-8 text-neutral-400 mb-2" />
-                    <span className="text-sm font-medium text-[#241b15]">
-                      Click to upload cover image
-                    </span>
-                    <span className="text-xs text-neutral-500">
-                      PNG, JPG, GIF up to 10MB
-                    </span>
-                  </div>
+                <label className="mt-2 flex aspect-square cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#dcd5f7] bg-[#fcfbff] px-5 text-center transition hover:border-[#a99cf5] hover:bg-[#f9f7ff]">
+                  <ImageUp className="h-10 w-10 text-[#7664ef]" />
+                  <p className="mt-4 text-sm font-semibold text-[#40375e]">
+                    Chọn ảnh bìa mới
+                  </p>
+                  <p className="mt-1 text-xs text-[#9690ac]">
+                    JPG, PNG, GIF hoặc WEBP
+                  </p>
                   <input
+                    ref={fileInputRef}
                     type="file"
-                    accept="image/*"
+                    accept="image/png,image/jpeg,image/gif,image/webp"
                     onChange={handleCoverImageChange}
-                    className="hidden"
+                    className="sr-only"
                   />
                 </label>
               )}
-              {formErrors.coverImage && (
-                <p className="mt-1 text-xs text-rose-600">{formErrors.coverImage}</p>
-              )}
+
+              {formData.coverImagePreview ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-[#ddd7ff] bg-[#f7f4ff] text-sm font-semibold text-[#6552df] transition hover:bg-[#eeeaff]"
+                  >
+                    <ImageUp className="h-4 w-4" />
+                    Thay ảnh bìa
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/gif,image/webp"
+                    onChange={handleCoverImageChange}
+                    className="sr-only"
+                  />
+                </>
+              ) : null}
+
+              {formErrors.coverImage ? (
+                <p className="mt-2 text-xs text-rose-600">
+                  {formErrors.coverImage}
+                </p>
+              ) : null}
+              <p className="mt-3 text-xs leading-5 text-[#9690ac]">
+                Ảnh vuông được khuyến nghị. Dung lượng tối đa 10 MB.
+              </p>
             </div>
 
-            {/* Buttons */}
-            <div className="flex gap-3 pt-4">
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="flex-1 rounded-md bg-[#8b5e3c] px-4 py-2.5 font-medium text-white transition hover:bg-[#6d4a2f] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isLoading ? "Updating..." : "Update Album"}
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate(routePaths.artistAlbumDetail(albumId))}
-                disabled={isLoading}
-                className="rounded-md border border-neutral-200 px-4 py-2.5 font-medium text-[#241b15] transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Cancel
-              </button>
+            <div className="space-y-5">
+              <div>
+                <label
+                  htmlFor="title"
+                  className="block text-sm font-semibold text-[#40375e]"
+                >
+                  Tên album <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative mt-2">
+                  <input
+                    type="text"
+                    id="title"
+                    name="title"
+                    value={formData.title}
+                    onChange={handleInputChange}
+                    maxLength={100}
+                    placeholder="Nhập tên album"
+                    className={`h-12 w-full rounded-xl border px-4 pr-16 text-sm text-[#332a52] outline-none transition placeholder:text-[#aaa4bd] focus:ring-4 focus:ring-[#7664ef]/10 ${
+                      formErrors.title
+                        ? "border-rose-300 focus:border-rose-400"
+                        : "border-[#e8e3f5] focus:border-[#9484f5]"
+                    }`}
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-[#aaa4bd]">
+                    {formData.title.length}/100
+                  </span>
+                </div>
+                {formErrors.title ? (
+                  <p className="mt-2 text-xs text-rose-600">
+                    {formErrors.title}
+                  </p>
+                ) : null}
+              </div>
+
+              <div>
+                <label
+                  htmlFor="releaseDate"
+                  className="block text-sm font-semibold text-[#40375e]"
+                >
+                  Ngày phát hành
+                </label>
+                <div className="relative mt-2">
+                  <CalendarDays className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9690ac]" />
+                  <input
+                    type="date"
+                    id="releaseDate"
+                    name="releaseDate"
+                    value={formData.releaseDate}
+                    onChange={handleInputChange}
+                    className={`h-12 w-full rounded-xl border bg-white pl-11 pr-4 text-sm text-[#514969] outline-none transition focus:ring-4 focus:ring-[#7664ef]/10 ${
+                      formErrors.releaseDate
+                        ? "border-rose-300 focus:border-rose-400"
+                        : "border-[#e8e3f5] focus:border-[#9484f5]"
+                    }`}
+                  />
+                </div>
+                {formErrors.releaseDate ? (
+                  <p className="mt-2 text-xs text-rose-600">
+                    {formErrors.releaseDate}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                <div className="flex items-start gap-3">
+                  <Info className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                  <div>
+                    <h3 className="text-sm font-bold text-amber-800">
+                      Trạng thái phát hành
+                    </h3>
+                    <p className="mt-1.5 text-sm leading-6 text-amber-800/85">
+                      Trạng thái được quản lý riêng. Album cần ít nhất 2 bài hát
+                      trước khi có thể phát hành hoặc lên lịch.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
-          </form>
+          </div>
         </div>
-      </div>
-    </div>
+
+        <div className="mt-5 flex flex-col-reverse gap-3 rounded-[20px] border border-[#ece8ff] bg-white p-4 sm:flex-row sm:items-center">
+          <button
+            type="button"
+            onClick={() => navigate(routePaths.artistAlbumDetail(albumId))}
+            disabled={isSaving}
+            className="inline-flex h-11 items-center justify-center rounded-xl border border-[#e1dced] px-6 text-sm font-semibold text-[#514969] transition hover:bg-[#faf9ff] disabled:opacity-50"
+          >
+            Hủy
+          </button>
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-[#6f5cf1] px-6 text-sm font-semibold text-white shadow-[0_8px_22px_rgba(99,78,225,0.22)] transition hover:bg-[#5e4bdd] disabled:opacity-50 sm:max-w-sm"
+          >
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            {isSaving ? "Đang lưu thay đổi..." : "Lưu thay đổi"}
+          </button>
+        </div>
+      </form>
+    </section>
   );
 };
 

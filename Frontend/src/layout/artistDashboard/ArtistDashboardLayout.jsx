@@ -245,7 +245,7 @@ const ArtistDashboardLayout = () => {
   return (
     <div
       data-artist-dashboard
-      className="scheme-light h-screen overflow-hidden bg-white text-[#221a14] [color-scheme:light]"
+      className="scheme-light fixed inset-0 overflow-hidden bg-white text-[#221a14] [color-scheme:light]"
     >
       <ArtistBlockedModal
         isOpen={Boolean(artistBlockStatus?.isBlocked)}
@@ -340,7 +340,7 @@ const ArtistDashboardLayout = () => {
                 </div>
               </div>
             ) : (
-              <div className="p-4 sm:p-5 xl:p-6 2xl:p-7">
+              <div className="min-h-full bg-white p-4 sm:p-5 xl:p-6 2xl:p-7">
                 <Outlet />
               </div>
             )}
