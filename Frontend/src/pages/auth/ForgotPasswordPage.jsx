@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowRight, Mail } from "lucide-react";
+import { ArrowRight, Loader2, Mail } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
@@ -162,12 +162,19 @@ const ForgotPasswordPage = () => {
                   disabled={isSubmitting || remainingSeconds > 0}
                   type="submit"
                 >
-                  {isSubmitting
-                    ? "Đang gửi liên kết..."
-                    : remainingSeconds > 0
-                      ? `Thử lại sau ${remainingSeconds}s`
-                      : "Gửi liên kết đặt lại mật khẩu"}
-                  <ArrowRight className="h-4 w-4" />
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                      Đang gửi liên kết...
+                    </>
+                  ) : (
+                    <>
+                      {remainingSeconds > 0
+                        ? `Thử lại sau ${remainingSeconds}s`
+                        : "Gửi liên kết đặt lại mật khẩu"}
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
                 </button>
               </div>
             </form>

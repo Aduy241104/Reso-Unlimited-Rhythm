@@ -16,6 +16,7 @@ import {
     ShieldAlert,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
+import LoadingState from "../../components/common/LoadingState";
 import { useSocket } from "../../hooks/useSocket";
 import { routePaths } from "../../routes/routePaths";
 import {
@@ -266,6 +267,7 @@ const NotificationsPage = () => {
     const [, setUnreadCount] = useState(0);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
+    const [isLoading, setIsLoading] = useState(true);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [detailTarget, setDetailTarget] = useState(null);
     const [deleteTarget, setDeleteTarget] = useState(null);
@@ -275,6 +277,8 @@ const NotificationsPage = () => {
             if (isLoadMore) {
                 setIsLoadingMore(true);
                 await delay(LOAD_MORE_DELAY_MS);
+            } else {
+                setIsLoading(true);
             }
 
             const data = await getMyNotificationsService({
@@ -299,7 +303,11 @@ const NotificationsPage = () => {
         } catch (error) {
             console.error("Không thể tải thông báo:", error);
         } finally {
-            if (isLoadMore) setIsLoadingMore(false);
+            if (isLoadMore) {
+                setIsLoadingMore(false);
+            } else {
+                setIsLoading(false);
+            }
         }
     }, []);
 
@@ -577,7 +585,9 @@ const NotificationsPage = () => {
                     </header>
 
                     <div className="min-h-0 flex-1 bg-[#121212]">
-                        {notifications.length === 0 ? (
+                        {isLoading ? (
+                            <LoadingState message="Đang tải thông báo..." className="min-h-[260px]" />
+                        ) : notifications.length === 0 ? (
                             <div className="flex min-h-[260px] flex-col items-center justify-center text-center">
                                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#242424] text-neutral-500">
                                     <Radio className="h-7 w-7" />
@@ -598,9 +608,7 @@ const NotificationsPage = () => {
                         )}
 
                         {isLoadingMore && (
-                            <div className="flex justify-center py-5">
-                                <div className="h-5 w-5 animate-spin rounded-full border-2 border-neutral-600 border-t-white" />
-                            </div>
+                            <LoadingState message="Đang tải thêm..." className="py-5" />
                         )}
 
                         {hasMore && notifications.length > 0 && !isLoadingMore && (

@@ -20,6 +20,7 @@ import { routePaths } from "../routes/routePaths";
 import AuthContext from "./auth-context";
 
 const TOKEN_REFRESH_BUFFER_IN_SECONDS = 30;
+const CURRENT_USER_SYNC_INTERVAL_IN_MS = 5 * 60 * 1000;
 
 const decodeJwtPayload = (token) => {
   if (!token || typeof token !== "string") {
@@ -311,30 +312,37 @@ export const AuthProvider = ({ children }) => {
   ]);
 
   useEffect(() => {
-    if (!user || !accessToken) {
+    if (!accessToken) {
       return undefined;
     }
 
-    const syncCurrentUser = () => {
-      refreshCurrentUser().catch(() => {
-        // Ignore sync failures and keep the current in-memory session.
-      });
-    };
+    let isSyncing = false;
 
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        syncCurrentUser();
+    const syncCurrentUser = async () => {
+      if (document.visibilityState !== "visible" || isSyncing) {
+        return;
+      }
+
+      isSyncing = true;
+
+      try {
+        await refreshCurrentUser();
+      } catch {
+        // Ignore sync failures and keep the current in-memory session.
+      } finally {
+        isSyncing = false;
       }
     };
 
-    window.addEventListener("focus", syncCurrentUser);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    const intervalId = window.setInterval(
+      syncCurrentUser,
+      CURRENT_USER_SYNC_INTERVAL_IN_MS
+    );
 
     return () => {
-      window.removeEventListener("focus", syncCurrentUser);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.clearInterval(intervalId);
     };
-  }, [accessToken, refreshCurrentUser, user]);
+  }, [accessToken, refreshCurrentUser]);
 
   const value = useMemo(
     () => ({
