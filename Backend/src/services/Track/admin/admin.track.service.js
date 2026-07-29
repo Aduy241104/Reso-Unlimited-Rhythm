@@ -618,9 +618,6 @@ const updateTrackVisibility = async (
             throw new AppError("Only a blocked track can be unblocked.", 400, { field: "action" });
         }
         track.blockedByAlbumId = null;
-        track.previousActiveStatusBeforeAlbumBlock = null;
-        track.previousHiddenReasonBeforeAlbumBlock = "";
-        track.previousHiddenAtBeforeAlbumBlock = null;
         track.activeStatus = "active";
         track.hiddenReason = "";
         track.blockedReason = "";

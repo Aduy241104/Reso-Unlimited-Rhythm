@@ -26,6 +26,7 @@ import { formatCompactNumber, formatDateLabel, resolveImageUri } from '../../uti
 const SIDEBAR_CLOSE_DELAY = 180;
 const CARD_WIDTH = 104;
 const CARD_GAP = 16;
+const SHOW_RECOMMENDATION_MIXES = false;
 
 const initialHomeState = {
   dailyTopTracks: [],
@@ -161,7 +162,8 @@ export default function HomeScreen() {
 
     try {
       const data = await homeService.getHomepageData({
-        includeRecommendations: isAuthenticated,
+        includeRecommendations:
+          SHOW_RECOMMENDATION_MIXES && isAuthenticated,
         topTrackLimit: 5,
         topArtistLimit: 5,
         playlistLimit: 10,
@@ -467,7 +469,7 @@ export default function HomeScreen() {
       renderItem: renderPlaylistCard,
       emptyMessage: 'Chưa có playlist hệ thống.',
     },
-    isAuthenticated
+    SHOW_RECOMMENDATION_MIXES && isAuthenticated
       ? {
         sectionKey: 'recommendations',
         title: `Dành cho ${displayName}`,

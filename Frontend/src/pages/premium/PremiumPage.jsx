@@ -1,15 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  AudioLines,
+  ChartNoAxesCombined,
   ChevronLeft,
-  Bot,
-  Brain,
   Check,
-  Download,
-  ImagePlus,
-  Infinity as InfinityIcon,
+  FastForward,
+  ListMusic,
   Loader2,
-  Sparkles,
+  SkipForward,
+  SlidersHorizontal,
   X,
 } from "lucide-react";
 import { createPortal } from "react-dom";
@@ -30,46 +28,34 @@ const currencyFormatter = new Intl.NumberFormat("vi-VN", {
 
 const VAT_RATE = 0.1;
 
+const PREMIUM_FEATURES = [
+  "UNLIMITED_PLAYLISTS",
+  "ACTIVITY_ANALYTICS",
+  "AUDIO_QUALITY_OPTIONS",
+  "UNLIMITED_SKIP",
+  "FREE_SEEK",
+];
+
 const FEATURE_META = {
-  NO_ADS: {
-    label: "Nghe nhạc không quảng cáo",
-    Icon: AudioLines,
+  UNLIMITED_PLAYLISTS: {
+    label: "Tạo playlist và thêm bài hát không giới hạn",
+    Icon: ListMusic,
   },
-  HIGH_QUALITY_AUDIO: {
-    label: "Chất lượng âm thanh cao",
-    Icon: Sparkles,
+  ACTIVITY_ANALYTICS: {
+    label: "Xem phân tích hoạt động",
+    Icon: ChartNoAxesCombined,
   },
-  LOSSLESS_AUDIO: {
-    label: "Âm thanh lossless",
-    Icon: AudioLines,
+  AUDIO_QUALITY_OPTIONS: {
+    label: "Tùy chọn chất lượng âm thanh",
+    Icon: SlidersHorizontal,
   },
   UNLIMITED_SKIP: {
-    label: "Bỏ qua bài hát không giới hạn",
-    Icon: InfinityIcon,
+    label: "Chuyển bài không giới hạn",
+    Icon: SkipForward,
   },
-  OFFLINE_DOWNLOAD: {
-    label: "Tải về ngoại tuyến",
-    Icon: Download,
-  },
-  BACKGROUND_PLAY: {
-    label: "Nghe nền",
-    Icon: AudioLines,
-  },
-  AI_SMART_PLAYLIST: {
-    label: "Playlist AI thông minh",
-    Icon: Bot,
-  },
-  ADVANCED_RECOMMENDATION: {
-    label: "Gợi ý nội dung tốt hơn",
-    Icon: Brain,
-  },
-  EARLY_ACCESS: {
-    label: "Ưu tiên trải nghiệm sớm",
-    Icon: Sparkles,
-  },
-  EXCLUSIVE_CONTENT: {
-    label: "Nội dung độc quyền",
-    Icon: ImagePlus,
+  FREE_SEEK: {
+    label: "Tua nhạc tự do",
+    Icon: FastForward,
   },
 };
 
@@ -177,7 +163,7 @@ const PlanDetailModal = ({ isOpen, plan, onClose, onPurchase }) => {
     return null;
   }
 
-  const features = Array.isArray(plan.features) ? plan.features : [];
+  const features = PREMIUM_FEATURES;
 
   return createPortal(
     <div
@@ -660,9 +646,7 @@ const PremiumPage = () => {
               <div className="mx-auto grid w-fit justify-center gap-4 lg:grid-cols-2 xl:grid-cols-3">
                 {orderedPlans.map((plan) => {
                   const planId = plan?._id || plan?.id || "";
-                  const features = Array.isArray(plan?.features)
-                    ? plan.features.slice(0, 5)
-                    : [];
+                  const features = PREMIUM_FEATURES;
                   const isProcessing = checkoutPlanId === planId;
                   const isOpeningThisPlan = modalOpeningState.planId === planId;
                   const isOpeningAnyModal = Boolean(modalOpeningState.type);
