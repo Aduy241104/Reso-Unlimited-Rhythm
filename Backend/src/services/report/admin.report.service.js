@@ -269,6 +269,7 @@ const resolveGroupedReport = async (targetType, targetId, body, adminId) => {
     if (shouldIncrementViolation && artistId && mongoose.Types.ObjectId.isValid(artistId)) {
         const artist = await Artist.findById(artistId);
         if (artist) {
+            const targetTitle = targetInfo?.title || targetInfo?.name || targetType;
             const targetTypeName = targetType === "track" ? "bài hát" : targetType === "album" ? "album" : "hồ sơ nghệ sĩ";
             artist.violations.push({
                 content: `Báo cáo vi phạm đối với ${targetTypeName} "${targetTitle}"`,
