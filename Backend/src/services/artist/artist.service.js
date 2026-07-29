@@ -215,10 +215,156 @@ const requestVerificationByUserId = async (userId, payload = {}) => {
     return getMyProfileByUserId(userId);
 };
 
+const getMyViolationsByUserId = async (userId) => {
+    const artist = await Artist.findOne({ userId }).lean();
+    if (!artist) {
+        throw new AppError(
+            "Artist profile not found for this account.",
+            StatusCodes.NOT_FOUND
+        );
+    }
+
+    const Report = (await import("../../models/Report.js")).default;
+    const Track = (await import("../../models/Track.js")).default;
+    const Album = (await import("../../models/Album.js")).default;
+
+    const [tracks, albums] = await Promise.all([
+        Track.find({ artistId: artist._id }).select("_id title").lean(),
+        Album.find({ artistId: artist._id }).select("_id title").lean(),
+    ]);
+
+    const trackIds = tracks.map((t) => t._id);
+    const albumIds = albums.map((a) => a._id);
+
+    const targetTitleMap = {};
+    targetTitleMap[String(artist._id)] = artist.name;
+    tracks.forEach((t) => { targetTitleMap[String(t._id)] = t.title; });
+    albums.forEach((a) => { targetTitleMap[String(a._id)] = a.title; });
+
+    const reports = await Report.find({
+        $or: [
+            { targetType: "artist", targetId: artist._id },
+            { targetType: "track", targetId: { $in: trackIds } },
+            { targetType: "album", targetId: { $in: albumIds } },
+        ],
+    })
+        .sort({ createdAt: -1 })
+        .lean();
+
+    const REASON_LABEL_MAP = {
+        copyright_infringement: "Vi phạm bản quyền",
+        harassment_or_hate: "Quấy rối / Phát ngôn thù ghét",
+        nudity_or_sexual_content: "Nội dung đồi trụy / Nhạy cảm",
+        violence_or_dangerous_content: "Bạo lực / Hành vi nguy hiểm",
+        spam_or_scam: "Spam / Gian lận lượt nghe",
+        misleading_information: "Thông tin sai lệch",
+        impersonation: "Giả mạo nghệ sĩ / Thương hiệu",
+        other: "Vi phạm quy định",
+    };
+
+    const PENALTY_LABEL_MAP = {
+        warning: "Cảnh báo chính thức (+1 vi phạm)",
+        hide_content: "Tạm ẩn / Gỡ nội dung",
+        remove_content: "Gỡ bỏ tác phẩm",
+        block_artist: "Đình chỉ / Khóa tài khoản",
+        ignore: "Lưu hồ sơ theo dõi",
+        reject: "Báo cáo bị từ chối",
+        "": "Chưa áp dụng",
+    };
+
+    const violationItems = reports.map((r) => ({
+        id: r._id,
+        violationDate: r.handledAt || r.createdAt,
+        createdAt: r.createdAt,
+        violationType: REASON_LABEL_MAP[r.reason] || r.reason || "Vi phạm quy định",
+        rawType: r.reason,
+        description: r.description || "Báo cáo vi phạm nội dung",
+        penalty: PENALTY_LABEL_MAP[r.resolution] || (r.status === "rejected" ? "Báo cáo bị từ chối" : "Đang xem xét"),
+        rawPenalty: r.resolution,
+        status: r.status,
+        adminNotes: r.resolutionNote || "",
+        images: r.images || [],
+        targetType: r.targetType,
+        targetTitle: targetTitleMap[String(r.targetId)] || (r.targetType === "artist" ? artist.name : r.targetType.toUpperCase()),
+    }));
+
+    const parseManualContent = (content) => {
+        if (!content) return { targetType: "artist", targetTitle: artist.name, description: "Ghi nhận vi phạm kiểm duyệt" };
+        const match = content.match(/\[(TRACK|ALBUM|ARTIST)\]:\s*(.*)/i);
+        if (match) {
+            const rawType = match[1].toLowerCase();
+            const rawTitle = match[2].trim();
+            const targetTypeName = rawType === "track" ? "bài hát" : rawType === "album" ? "album" : "hồ sơ nghệ sĩ";
+            return {
+                targetType: rawType,
+                targetTitle: rawTitle || artist.name,
+                description: `Báo cáo vi phạm quy định đối với ${targetTypeName} "${rawTitle || artist.name}"`,
+            };
+        }
+        return {
+            targetType: "artist",
+            targetTitle: artist.name,
+            description: content,
+        };
+    };
+
+    const manualViolations = (artist.violations || []).map((v, index) => {
+        const parsed = parseManualContent(v.content);
+        return {
+            id: `manual-${v._id || index}`,
+            violationDate: v.violatedAt || artist.updatedAt,
+            createdAt: v.violatedAt || artist.updatedAt,
+            violationType: "Vi phạm quy định nghệ sĩ",
+            rawType: "other",
+            description: parsed.description,
+            penalty: "Cảnh báo chính thức (+1 vi phạm)",
+            rawPenalty: "warning",
+            status: "resolved",
+            adminNotes: "Ghi nhận vi phạm trực tiếp bởi Ban quản trị",
+            images: [],
+            targetType: parsed.targetType,
+            targetTitle: parsed.targetTitle,
+        };
+    });
+
+    let combinedViolations = [];
+    if (violationItems.length > 0) {
+        combinedViolations = [...violationItems];
+        const resolvedReportsCount = violationItems.filter((r) => r.status === "resolved").length;
+        if (manualViolations.length > resolvedReportsCount) {
+            const extraManuals = manualViolations.slice(resolvedReportsCount);
+            combinedViolations.push(...extraManuals);
+        }
+    } else {
+        combinedViolations = manualViolations;
+    }
+
+    // Sort strictly newest first (mới nhất lên đầu)
+    combinedViolations.sort((a, b) => {
+        const dateA = new Date(a.violationDate || a.createdAt).getTime();
+        const dateB = new Date(b.violationDate || b.createdAt).getTime();
+        return dateB - dateA;
+    });
+
+    return {
+        artistInfo: {
+            id: artist._id,
+            name: artist.name,
+            avatar: artist.avatar,
+            activeStatus: artist.activeStatus,
+            blockedReason: artist.blockedReason || "",
+            violationsCount: artist.violations?.length || 0,
+            maxAllowedViolations: 5,
+        },
+        violations: combinedViolations,
+    };
+};
+
 export default {
     getMyProfileByUserId,
     getMyBlockStatusByUserId,
     updateMyProfileByUserId,
     updateMyProfileMediaByUserId,
     requestVerificationByUserId,
+    getMyViolationsByUserId,
 };

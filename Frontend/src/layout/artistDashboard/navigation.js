@@ -1,4 +1,4 @@
-﻿import {
+import {
   Album,
   BarChart3,
   Bell,
@@ -7,6 +7,7 @@
   Landmark,
   LayoutDashboard,
   Music2,
+  ShieldAlert,
   Users,
   Wallet,
   Waves,
@@ -55,6 +56,11 @@ export const artistNavigation = [
     icon: Landmark,
   },
   {
+    label: "Lịch sử vi phạm",
+    to: routePaths.artistViolations,
+    icon: ShieldAlert,
+  },
+  {
     label: "Thông báo",
     to: routePaths.artistNotifications,
     icon: Bell,
@@ -83,6 +89,7 @@ export const artistPageTitles = {
   [routePaths.artistRoyalties]: "Số dư khả dụng",
   [routePaths.artistBalanceManagement]: "Quản lý số dư",
   [routePaths.artistWithdrawalRequests]: "Yêu cầu rút tiền",
+  [routePaths.artistViolations]: "Lịch sử vi phạm",
   [routePaths.artistNotifications]: "Thông báo",
   [routePaths.artistFollowers]: "Người theo dõi",
   [routePaths.artistProfile]: "Hồ sơ nghệ sĩ",

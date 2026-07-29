@@ -1,19 +1,59 @@
 import adminReportService from "../services/report/admin.report.service.js";
 import formatResponse from "../utils/formatResponse.js";
 
-const getReports = async (req, res, next) => {
+const getGroupedReports = async (req, res, next) => {
     try {
-        const { reports, meta } = await adminReportService.getReports(req.query);
+        const { groups, meta } = await adminReportService.getGroupedReports(req.query);
 
         return formatResponse.success(
             res,
-            { reports },
-            "Reports fetched successfully",
+            { groups },
+            "Grouped reports fetched successfully",
             meta
         );
     } catch (error) {
         next(error);
     }
+};
+
+const getGroupedReportDetail = async (req, res, next) => {
+    try {
+        const { targetType, targetId } = req.params;
+        const detail = await adminReportService.getGroupedReportDetail(targetType, targetId);
+
+        return formatResponse.success(
+            res,
+            { detail },
+            "Grouped report detail fetched successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+const resolveGroupedReport = async (req, res, next) => {
+    try {
+        const { targetType, targetId } = req.params;
+        const adminId = req.user?.id;
+        const result = await adminReportService.resolveGroupedReport(
+            targetType,
+            targetId,
+            req.body,
+            adminId
+        );
+
+        return formatResponse.success(
+            res,
+            { result },
+            "Grouped report resolved successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+const getReports = async (req, res, next) => {
+    return getGroupedReports(req, res, next);
 };
 
 const getReportDetail = async (req, res, next) => {
@@ -35,7 +75,7 @@ const updateReportStatus = async (req, res, next) => {
         const report = await adminReportService.updateReportStatus(
             req.params.id,
             req.body,
-            req.user.id
+            req.user?.id
         );
 
         return formatResponse.success(
@@ -49,6 +89,9 @@ const updateReportStatus = async (req, res, next) => {
 };
 
 export default {
+    getGroupedReports,
+    getGroupedReportDetail,
+    resolveGroupedReport,
     getReports,
     getReportDetail,
     updateReportStatus,

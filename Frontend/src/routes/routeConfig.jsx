@@ -1,4 +1,4 @@
-﻿import { Navigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import ArtistDashboardLayout from "../layout/artistDashboard/ArtistDashboardLayout";
 import MainLayout from "../layout/mainLayout/MainLayout";
 import AlbumDetailPage from "../pages/album/AlbumDetailPage";
@@ -12,6 +12,7 @@ import ArtistProfileEditPage from "../pages/artist/ArtistProfileEditPage";
 import ArtistProfilePage from "../pages/artist/ArtistProfilePage";
 import ArtistRoyaltiesPage from "../pages/artist/ArtistRoyaltiesPage";
 import ArtistWithdrawalRequestsPage from "../pages/artist/ArtistWithdrawalRequestsPage";
+import ArtistViolationsPage from "../pages/artist/ArtistViolationsPage";
 import ArtistAlbumPage from "../pages/artist/ArtistAlbumPage";
 import ArtistAlbumDetailPage from "../pages/artist/ArtistAlbumDetailPage";
 import ArtistCreateAlbumPage from "../pages/artist/ArtistCreateAlbumPage";
@@ -331,6 +332,10 @@ export const appRoutes = [
               {
                 path: routePaths.artistWithdrawalRequests,
                 element: <ArtistWithdrawalRequestsPage />,
+              },
+              {
+                path: routePaths.artistViolations,
+                element: <ArtistViolationsPage />,
               },
               {
                 path: routePaths.artistSettings,
