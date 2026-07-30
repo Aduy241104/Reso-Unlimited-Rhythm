@@ -147,8 +147,7 @@ const photo = (index, width, height) =>
 const portrait = (index) =>
     imageUrl(PORTRAIT_IDS[index % PORTRAIT_IDS.length], 800, 800);
 const audioUrl = (index) =>
-    `https://www.soundhelix.com/examples/mp3/SoundHelix-Song-${
-        (index % 16) + 1
+    `https://www.soundhelix.com/examples/mp3/SoundHelix-Song-${(index % 16) + 1
     }.mp3`;
 
 const ARTIST_NAMES = [
