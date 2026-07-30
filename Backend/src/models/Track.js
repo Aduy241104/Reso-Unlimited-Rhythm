@@ -180,6 +180,11 @@ const TrackSchema = new Schema(
         blockedReason: { type: String, default: "" },
         hiddenReason: { type: String, default: "" },
         hiddenAt: { type: Date },
+        previousActiveStatusBeforeArtistHide: {
+            type: String,
+            enum: ["draft", "active", null],
+            default: null,
+        },
         pendingUpdate: {
             type: pendingTrackUpdateSchema,
             default: () => ({

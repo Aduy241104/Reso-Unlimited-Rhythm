@@ -12,7 +12,7 @@ import { routePaths } from "../../routes/routePaths";
 import ArtistBlockedModal from "../../components/artist/ArtistBlockedModal";
 import { artistNavigation, artistProfile } from "./navigationConfig";
 
-const SIDEBAR_WIDTH = "264px";
+const SIDEBAR_WIDTH = "244px";
 const ARTIST_NOTIFICATIONS_PATH = routePaths.artistNotifications;
 const ARTIST_ADMIN_EMAIL =
   import.meta.env.VITE_ARTIST_ADMIN_EMAIL || "admin.seed@reso.local";
@@ -245,7 +245,7 @@ const ArtistDashboardLayout = () => {
   return (
     <div
       data-artist-dashboard
-      className="scheme-light h-screen overflow-hidden bg-white text-[#221a14] [color-scheme:light]"
+      className="scheme-light fixed inset-0 overflow-hidden bg-white text-[#221a14] [color-scheme:light]"
     >
       <ArtistBlockedModal
         isOpen={Boolean(artistBlockStatus?.isBlocked)}
@@ -275,16 +275,16 @@ const ArtistDashboardLayout = () => {
 
         <aside
           className={[
-            "fixed inset-y-0 left-0 z-50 w-[264px] max-w-[85vw] border-r border-[#ece8ff] transition-transform duration-200 lg:hidden",
+            "fixed inset-y-0 left-0 z-50 w-[244px] max-w-[85vw] border-r border-[#ece8ff] transition-transform duration-200 lg:hidden",
             isSidebarOpen ? "translate-x-0" : "-translate-x-full",
           ].join(" ")}
         >
           {renderSidebar()}
         </aside>
 
-        <div className="flex min-w-0 flex-1 flex-col lg:pl-[264px]">
+        <div className="flex min-w-0 flex-1 flex-col lg:pl-[244px]">
           <header className="border-b border-[#ece8ff] bg-white">
-            <div className="flex items-center justify-between gap-4 px-6 py-4">
+            <div className="flex items-center justify-between gap-4 px-4 py-4 sm:px-5 xl:px-6">
               <div className="flex items-center gap-3">
                 <button
                   type="button"
@@ -302,7 +302,7 @@ const ArtistDashboardLayout = () => {
                   <input
                     type="search"
                     placeholder="Tìm bản phát hành hoặc bài hát"
-                    className="h-10 w-60 rounded-sm border border-[#ece8ff] bg-white pl-9 pr-3 text-sm text-[#2f2747] outline-none transition placeholder:text-[#9a93b8] focus:border-[#7c6cf2]"
+                    className="h-10 w-52 rounded-sm border border-[#ece8ff] bg-white pl-9 pr-3 text-sm text-[#2f2747] outline-none transition placeholder:text-[#9a93b8] focus:border-[#7c6cf2] xl:w-56 2xl:w-64"
                   />
                 </label>
 
@@ -340,7 +340,7 @@ const ArtistDashboardLayout = () => {
                 </div>
               </div>
             ) : (
-              <div className="p-6">
+              <div className="min-h-full bg-white p-4 sm:p-5 xl:p-6 2xl:p-7">
                 <Outlet />
               </div>
             )}

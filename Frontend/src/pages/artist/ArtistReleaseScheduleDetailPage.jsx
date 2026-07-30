@@ -20,6 +20,10 @@ import {
   cancelMyReleaseScheduleService,
   getMyReleaseScheduleDetailService,
 } from "../../services/artistReleaseScheduleService";
+import {
+  showArtistError,
+  showArtistSuccess,
+} from "../../utils/artistNotification";
 
 const statusMeta = {
   scheduled: {
@@ -272,8 +276,6 @@ const ArtistReleaseScheduleDetailPage = () => {
   const [releaseSchedule, setReleaseSchedule] = useState(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
-  const [actionMessage, setActionMessage] = useState(location.state?.message || "");
-  const [actionError, setActionError] = useState("");
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
 
@@ -290,7 +292,6 @@ const ArtistReleaseScheduleDetailPage = () => {
 
       setLoading(true);
       setErrorMessage("");
-      setActionError("");
 
       try {
         const response = await getMyReleaseScheduleDetailService(id);
@@ -328,10 +329,16 @@ const ArtistReleaseScheduleDetailPage = () => {
   }, [id]);
 
   useEffect(() => {
-    if (location.state?.message) {
-      setActionMessage(location.state.message);
+    if (!location.state?.message) {
+      return;
     }
-  }, [location.state]);
+
+    showArtistSuccess(location.state.message);
+    navigate(`${location.pathname}${location.search}`, {
+      replace: true,
+      state: { ...location.state, message: null },
+    });
+  }, [location.pathname, location.search, location.state, navigate]);
 
   const normalizedStatus = String(releaseSchedule?.status || "")
     .trim()
@@ -390,7 +397,6 @@ const ArtistReleaseScheduleDetailPage = () => {
       return;
     }
 
-    setActionError("");
     setIsCancelModalOpen(true);
   };
 
@@ -408,24 +414,16 @@ const ArtistReleaseScheduleDetailPage = () => {
     }
 
     setIsCancelling(true);
-    setActionError("");
-    setActionMessage("");
 
     try {
       const response = await cancelMyReleaseScheduleService(releaseSchedule.id);
 
       setArtistName(response?.artist?.name || artistName);
       setReleaseSchedule(response?.releaseSchedule || releaseSchedule);
-      setActionMessage(
-        response?.message || "Đã hủy lịch phát hành thành công."
-      );
+      showArtistSuccess("Đã hủy lịch phát hành thành công.");
       setIsCancelModalOpen(false);
-    } catch (error) {
-      setActionError(
-        error?.response?.data?.message ||
-          error?.message ||
-          "Không thể hủy lịch phát hành lúc này."
-      );
+    } catch {
+      showArtistError("Không thể hủy lịch phát hành vào lúc này.");
     } finally {
       setIsCancelling(false);
     }
@@ -522,18 +520,6 @@ const ArtistReleaseScheduleDetailPage = () => {
           ) : null}
         </div>
       </div>
-
-      {actionMessage ? (
-        <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-800">
-          {actionMessage}
-        </div>
-      ) : null}
-
-      {actionError ? (
-        <div className="rounded-[24px] border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-800">
-          {actionError}
-        </div>
-      ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.75fr)_320px]">
         <div className="space-y-6">

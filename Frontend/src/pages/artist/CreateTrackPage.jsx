@@ -17,11 +17,11 @@ const CreateTrackPage = () => {
         Quay lại quản lý bài hát
       </button>
 
-      <div className="rounded-[30px] border border-[#ece8ff] bg-white p-6 shadow-[0_18px_50px_rgba(32,23,71,0.08)] sm:p-7">
+      <div className="rounded-[30px] border border-[#ece8ff] bg-white p-5 shadow-[0_18px_50px_rgba(32,23,71,0.08)] sm:p-6 xl:p-7">
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#7c6cf2]">
           Tạo bài hát
         </p>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight text-[#241b45]">
+        <h1 className="mt-3 text-2xl font-semibold tracking-tight text-[#241b45] sm:text-[32px]">
           Tạo bản nháp bài hát mới
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-[#8d87aa]">
