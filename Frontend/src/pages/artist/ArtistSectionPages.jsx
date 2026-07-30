@@ -20,7 +20,10 @@ import ConfirmActionModal from "../../components/common/ConfirmActionModal";
 import ArtistSectionPage from "./ArtistSectionPage";
 import trackService from "../../services/trackService";
 import { routePaths } from "../../routes/routePaths";
-import { getApiErrorFullMessage } from "../../utils/apiError";
+import {
+  showArtistError,
+  showArtistSuccess,
+} from "../../utils/artistNotification";
 import {
   canArtistSubmitTrack,
   getArtistTrackReviewStatus,
@@ -146,11 +149,11 @@ const MetricCard = ({ icon, label, value, helper, tint }) => {
   const IconComponent = icon;
 
   return (
-    <div className="rounded-[22px] border border-[#ece8ff] bg-white p-5 shadow-[0_12px_35px_rgba(32,23,71,0.06)]">
+    <div className="rounded-[22px] border border-[#ece8ff] bg-white p-4 shadow-[0_12px_35px_rgba(32,23,71,0.06)] sm:p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-[#8d87aa]">{label}</p>
-          <p className="mt-3 text-[30px] font-semibold leading-none tracking-tight text-[#241b45]">
+          <p className="mt-3 text-[28px] font-semibold leading-none tracking-tight text-[#241b45] sm:text-[30px]">
             {value}
           </p>
           <p className="mt-2 text-xs text-[#9e98b8]">{helper}</p>
@@ -216,7 +219,7 @@ const PreviewSidebar = ({
   const submitIssues = getSubmitReadinessIssues(track);
 
   return (
-    <aside className="rounded-[28px] border border-[#ece8ff] bg-white p-5 shadow-[0_18px_40px_rgba(32,23,71,0.08)] xl:sticky xl:top-6">
+    <aside className="rounded-[28px] border border-[#ece8ff] bg-white p-5 shadow-[0_18px_40px_rgba(32,23,71,0.08)] sm:p-6 xl:sticky xl:top-6">
       <div className="overflow-hidden rounded-[24px] bg-[#f6f2ff]">
         <img
           src={artwork}
@@ -256,7 +259,7 @@ const PreviewSidebar = ({
 
       <div className="mt-6">
         <p className="text-sm font-semibold text-[#241b45]">Quản lý nhanh</p>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-1">
           <button
             type="button"
             onClick={onEdit}
@@ -296,8 +299,7 @@ const PreviewSidebar = ({
             onClick={onHide}
             disabled={
               isActionLoading ||
-              track?.releaseStatus === "scheduled" ||
-              (track?.activeStatus === "hidden" && track?.releaseStatus !== "released")
+              track?.releaseStatus === "scheduled"
             }
             title={
               track?.releaseStatus === "scheduled"
@@ -366,8 +368,6 @@ export const MyMusicPage = () => {
   const [tracks, setTracks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
-  const [actionMessage, setActionMessage] = useState("");
-  const [actionError, setActionError] = useState("");
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [submitTarget, setSubmitTarget] = useState(null);
   const [activeTab, setActiveTab] = useState("all");
@@ -424,6 +424,18 @@ export const MyMusicPage = () => {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!location.state?.message) {
+      return;
+    }
+
+    showArtistSuccess(location.state.message);
+    navigate(`${location.pathname}${location.search}`, {
+      replace: true,
+      state: { ...location.state, message: null },
+    });
+  }, [location.pathname, location.search, location.state, navigate]);
 
   const albumOptions = useMemo(() => {
     const entries = Array.from(
@@ -528,15 +540,13 @@ export const MyMusicPage = () => {
     }
 
     if (track.releaseStatus === "scheduled") {
-      setActionError(
+      showArtistError(
         "Bài hát đang có lịch phát hành. Hãy hủy lịch trước khi thay đổi trạng thái hiển thị."
       );
       return;
     }
 
     if (track.activeStatus === "hidden") {
-      setActionMessage("");
-      setActionError("");
       setIsActionLoading(true);
 
       try {
@@ -546,13 +556,9 @@ export const MyMusicPage = () => {
             item._id === updatedTrack?._id ? updatedTrack : item
           )
         );
-        setActionMessage("Đã hiển thị lại bài hát thành công.");
-      } catch (error) {
-        setActionError(
-          error?.message ||
-            error?.response?.data?.message ||
-            "Không thể hiển thị lại bài hát này lúc này."
-        );
+        showArtistSuccess("Đã hiển thị lại bài hát thành công.");
+      } catch {
+        showArtistError("Không thể hiển thị lại bài hát này vào lúc này.");
       } finally {
         setIsActionLoading(false);
       }
@@ -560,31 +566,16 @@ export const MyMusicPage = () => {
       return;
     }
 
-    const reason = window.prompt(
-      "Nhập lý do ẩn bài hát (không bắt buộc):",
-      track.hiddenReason || "Ẩn bởi nghệ sĩ."
-    );
-
-    if (reason === null) {
-      return;
-    }
-
-    setActionMessage("");
-    setActionError("");
     setIsActionLoading(true);
 
     try {
-      const updatedTrack = await trackService.hideArtistTrack(track._id, reason);
+      const updatedTrack = await trackService.hideArtistTrack(track._id);
       setTracks((currentTracks) =>
         currentTracks.map((item) => (item._id === updatedTrack?._id ? updatedTrack : item))
       );
-      setActionMessage("Đã ẩn bài hát thành công.");
-    } catch (error) {
-      setActionError(
-        error?.message ||
-          error?.response?.data?.message ||
-          "Không thể ẩn bài hát này lúc này."
-      );
+      showArtistSuccess("Đã ẩn bài hát thành công.");
+    } catch {
+      showArtistError("Không thể ẩn bài hát này vào lúc này.");
     } finally {
       setIsActionLoading(false);
     }
@@ -603,20 +594,14 @@ export const MyMusicPage = () => {
       return;
     }
 
-    setActionMessage("");
-    setActionError("");
     setIsActionLoading(true);
 
     try {
       await trackService.deleteArtistTrack(track._id);
       setTracks((currentTracks) => currentTracks.filter((item) => item._id !== track._id));
-      setActionMessage("Đã xóa bài hát thành công.");
-    } catch (error) {
-      setActionError(
-        error?.message ||
-          error?.response?.data?.message ||
-          "Không thể xóa bài hát này lúc này."
-      );
+      showArtistSuccess("Đã xóa bài hát thành công.");
+    } catch {
+      showArtistError("Không thể xóa bài hát này vào lúc này.");
     } finally {
       setIsActionLoading(false);
     }
@@ -628,7 +613,7 @@ export const MyMusicPage = () => {
     }
 
     if (!canArtistSubmitTrack(track)) {
-      setActionError(
+      showArtistError(
         "Chỉ bài hát ở trạng thái bản nháp hoặc bị từ chối mới có thể gửi duyệt."
       );
       return;
@@ -637,7 +622,7 @@ export const MyMusicPage = () => {
     const submitIssues = getSubmitReadinessIssues(track);
 
     if (submitIssues.length > 0) {
-      setActionError(
+      showArtistError(
         `Vui lòng hoàn thiện các mục sau trước khi gửi duyệt:\n${submitIssues
           .map((item) => `- ${item}`)
           .join("\n")}\n\nBạn có thể mở trang chỉnh sửa để bổ sung thông tin còn thiếu.`
@@ -645,19 +630,15 @@ export const MyMusicPage = () => {
       return;
     }
 
-    setActionMessage("");
-    setActionError("");
     setIsActionLoading(true);
     setSubmitTarget(null);
 
     try {
       const updatedTrack = await trackService.submitForApproval(track._id);
       setTracks((current) => current.map((item) => (item._id === updatedTrack?._id ? updatedTrack : item)));
-      setActionMessage("Đã gửi bài hát để chờ duyệt.");
-    } catch (error) {
-      setActionError(
-        getApiErrorFullMessage(error, "Không thể gửi bài hát để duyệt lúc này.")
-      );
+      showArtistSuccess("Đã gửi bài hát để chờ duyệt.");
+    } catch {
+      showArtistError("Không thể gửi bài hát để duyệt vào lúc này.");
     } finally {
       setIsActionLoading(false);
     }
@@ -677,29 +658,12 @@ export const MyMusicPage = () => {
 
   return (
     <section className="-m-6 space-y-6">
-      {location.state?.message ? (
-        <div className="rounded-[22px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          {location.state.message}
-        </div>
-      ) : null}
-
       {errorMessage ? (
         <div className="rounded-[22px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {errorMessage}
         </div>
       ) : null}
 
-      {actionMessage ? (
-        <div className="rounded-[22px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          {actionMessage}
-        </div>
-      ) : null}
-
-      {actionError ? (
-        <div className="whitespace-pre-line rounded-[22px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          {actionError}
-        </div>
-      ) : null}
 
       <div className="bg-white p-6 sm:p-7">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
@@ -707,7 +671,7 @@ export const MyMusicPage = () => {
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#7c6cf2]">
               Quản lý bài hát
             </p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-[#241b45]">
+            <h1 className="mt-3 text-2xl font-semibold tracking-tight text-[#241b45] sm:text-[32px]">
               Quản lý kho bài hát của nghệ sĩ
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-[#8d87aa]">
@@ -719,7 +683,7 @@ export const MyMusicPage = () => {
           <button
             type="button"
             onClick={() => navigate(routePaths.artistCreateTrack)}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#2f225d] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#221745]"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#2f225d] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#221745] sm:w-auto"
           >
             <Plus className="h-4 w-4" />
             Tạo bài hát
@@ -765,7 +729,7 @@ export const MyMusicPage = () => {
         </div>
 
         <div className="mt-8 border-b border-[#ece8ff]">
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
             {LIST_TABS.map((tab) => {
               const isActive = activeTab === tab.key;
 
@@ -791,7 +755,8 @@ export const MyMusicPage = () => {
           </div>
         </div>
 
-        <div className="mt-6 flex flex-col gap-3 xl:flex-row xl:items-center">
+        {false && (
+          <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_170px_170px_160px_auto]">
           <label className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9e98b8]" />
             <input
@@ -806,7 +771,7 @@ export const MyMusicPage = () => {
           <select
             value={selectedAlbum}
             onChange={(event) => setSelectedAlbum(event.target.value)}
-            className="h-12 rounded-2xl border border-[#e6e0ff] bg-white px-4 text-sm text-[#241b45] outline-none transition focus:border-[#7c6cf2]"
+            className="h-12 w-full rounded-2xl border border-[#e6e0ff] bg-white px-4 text-sm text-[#241b45] outline-none transition focus:border-[#7c6cf2]"
           >
             <option value="all">Tất cả album</option>
             {albumOptions.map((album) => (
@@ -819,7 +784,7 @@ export const MyMusicPage = () => {
           <select
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
-            className="h-12 rounded-2xl border border-[#e6e0ff] bg-white px-4 text-sm text-[#241b45] outline-none transition focus:border-[#7c6cf2]"
+            className="h-12 w-full rounded-2xl border border-[#e6e0ff] bg-white px-4 text-sm text-[#241b45] outline-none transition focus:border-[#7c6cf2]"
           >
             {STATUS_FILTER_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -831,7 +796,7 @@ export const MyMusicPage = () => {
           <select
             value={sortOrder}
             onChange={(event) => setSortOrder(event.target.value)}
-            className="h-12 rounded-2xl border border-[#e6e0ff] bg-white px-4 text-sm text-[#241b45] outline-none transition focus:border-[#7c6cf2]"
+            className="h-12 w-full rounded-2xl border border-[#e6e0ff] bg-white px-4 text-sm text-[#241b45] outline-none transition focus:border-[#7c6cf2]"
           >
             {SORT_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -849,17 +814,18 @@ export const MyMusicPage = () => {
               setSortOrder("latest");
               setActiveTab("all");
             }}
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#ddd4ff] bg-[#f8f6ff] px-4 text-sm font-medium text-[#5d4fe0] transition hover:bg-[#f1edff]"
+            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-[#ddd4ff] bg-[#f8f6ff] px-4 text-sm font-medium text-[#5d4fe0] transition hover:bg-[#f1edff]"
           >
             <Filter className="h-4 w-4" />
             Đặt lại
           </button>
-        </div>
+          </div>
+        )}
 
-        <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_360px]">
+        <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_280px] 2xl:grid-cols-[minmax(0,1.75fr)_300px]">
           <div className="overflow-hidden rounded-[28px] border border-[#ece8ff] bg-white">
             <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
+              <table className="w-full min-w-[760px] text-left text-sm">
                 <thead className="bg-[#faf8ff] text-[#8d87aa]">
                   <tr>
                     <th className="px-5 py-4 font-semibold">Bài hát</th>
@@ -984,7 +950,7 @@ export const MyMusicPage = () => {
               const issues = getSubmitReadinessIssues(previewTrack);
 
               if (issues.length > 0) {
-                setActionError(
+                showArtistError(
                   `Vui lòng hoàn thiện các mục sau trước khi gửi duyệt:\n${issues
                     .map((item) => `- ${item}`)
                     .join("\n")}\n\nBạn có thể mở trang chỉnh sửa để bổ sung thông tin còn thiếu.`

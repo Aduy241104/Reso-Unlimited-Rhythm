@@ -14,7 +14,12 @@ import ConfirmActionModal from "../../components/common/ConfirmActionModal";
 import genreService from "../../services/genreService";
 import trackService from "../../services/trackService";
 import { routePaths } from "../../routes/routePaths";
-import { getApiErrorFullMessage, getApiErrorMessage } from "../../utils/apiError";
+import { getApiErrorMessage } from "../../utils/apiError";
+import {
+  showArtistError,
+  showArtistInfo,
+  showArtistSuccess,
+} from "../../utils/artistNotification";
 import {
   canArtistEditTrack,
   canArtistSubmitTrack,
@@ -52,7 +57,7 @@ const SectionCard = ({ icon, eyebrow, title, description, children }) => {
   const IconComponent = icon;
 
   return (
-    <section className="rounded-[28px] border border-[#ece8ff] bg-white p-6 shadow-[0_12px_35px_rgba(32,23,71,0.06)]">
+    <section className="rounded-[28px] border border-[#ece8ff] bg-white p-5 shadow-[0_12px_35px_rgba(32,23,71,0.06)] sm:p-6">
       <div className="flex items-start gap-4">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#e6e0ff] bg-[#f8f6ff] text-[#6f5cf1]">
           <IconComponent className="h-5 w-5" />
@@ -75,7 +80,7 @@ const SectionCard = ({ icon, eyebrow, title, description, children }) => {
 };
 
 const SidebarCard = ({ title, children }) => (
-  <div className="rounded-[28px] border border-[#ece8ff] bg-white p-5 shadow-[0_18px_40px_rgba(32,23,71,0.08)]">
+  <div className="rounded-[28px] border border-[#ece8ff] bg-white p-5 shadow-[0_18px_40px_rgba(32,23,71,0.08)] sm:p-6">
     <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-[#8d87aa]">
       {title}
     </h3>
@@ -117,7 +122,6 @@ const ArtistTrackEditPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submittingForApproval, setSubmittingForApproval] = useState(false);
   const [copyrightForm, setCopyrightForm] = useState(mapTrackCopyrightToForm());
-  const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [audioFile, setAudioFile] = useState(null);
@@ -214,6 +218,18 @@ const ArtistTrackEditPage = () => {
   }, [id]);
 
   useEffect(() => {
+    if (!location.state?.message) {
+      return;
+    }
+
+    showArtistSuccess(location.state.message);
+    navigate(`${location.pathname}${location.search}`, {
+      replace: true,
+      state: { ...location.state, message: null },
+    });
+  }, [location.pathname, location.search, location.state, navigate]);
+
+  useEffect(() => {
     return () => {
       objectUrlsRef.current.forEach((url) => {
         try {
@@ -308,7 +324,7 @@ const ArtistTrackEditPage = () => {
       }
 
       if (current.genreIds.length >= MAX_GENRE_IDS) {
-        setErrorMessage(`Bạn chỉ có thể chọn tối đa ${MAX_GENRE_IDS} thể loại.`);
+        showArtistError(`Bạn chỉ có thể chọn tối đa ${MAX_GENRE_IDS} thể loại.`);
         return current;
       }
 
@@ -492,7 +508,6 @@ const ArtistTrackEditPage = () => {
       return;
     }
 
-    setSuccessMessage("");
     setErrorMessage("");
     setFieldErrors({});
 
@@ -569,20 +584,17 @@ const ArtistTrackEditPage = () => {
       }
 
       if (Object.keys(payload).length === 0) {
-        setSuccessMessage("Chưa có thay đổi nào để lưu.");
+        showArtistInfo("Chưa có thay đổi nào để lưu.");
       } else if (willRequireReview && latestTrack?.pendingUpdate?.status === "pending") {
-        setSuccessMessage("Đã lưu thay đổi và chuyển bài hát về trạng thái chờ duyệt.");
+        showArtistSuccess("Đã lưu thay đổi và chuyển bài hát về trạng thái chờ duyệt.");
       } else {
-        setSuccessMessage("Đã lưu thay đổi bài hát thành công.");
+        showArtistSuccess("Đã lưu thay đổi bài hát thành công.");
       }
-    } catch (error) {
-      setErrorMessage(
-        getApiErrorFullMessage(
-          error,
-          submitAfterSave
-            ? "Không thể gửi bài hát để duyệt lúc này."
-            : "Không thể lưu thay đổi bài hát lúc này."
-        )
+    } catch {
+      showArtistError(
+        submitAfterSave
+          ? "Không thể gửi bài hát để duyệt vào lúc này."
+          : "Không thể lưu thay đổi bài hát vào lúc này."
       );
     } finally {
       setIsUploadingMedia(false);
@@ -595,7 +607,7 @@ const ArtistTrackEditPage = () => {
     event.preventDefault();
 
     if (!canEdit) {
-      setErrorMessage("Bài hát này hiện không thể chỉnh sửa.");
+      showArtistError("Bài hát này hiện không thể chỉnh sửa.");
       return;
     }
 
@@ -616,7 +628,7 @@ const ArtistTrackEditPage = () => {
     }
 
     if (submitIssues.length > 0) {
-      setErrorMessage(
+      showArtistError(
         `Vui lòng hoàn thiện các mục sau trước khi gửi duyệt:\n${submitIssues
           .map((issue) => `- ${issue}`)
           .join("\n")}`
@@ -659,12 +671,6 @@ const ArtistTrackEditPage = () => {
         Quay lại chi tiết bài hát
       </button>
 
-      {location.state?.message ? (
-        <div className="rounded-[22px] border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
-          {location.state.message}
-        </div>
-      ) : null}
-
       {track?.pendingUpdate?.status === "pending" ? (
         <div className="rounded-[22px] border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
           Bản chỉnh sửa của bài hát đã được gửi admin duyệt. Người nghe vẫn tiếp tục nghe phiên bản đang phát hành.
@@ -689,19 +695,13 @@ const ArtistTrackEditPage = () => {
         </div>
       ) : null}
 
-      {successMessage ? (
-        <div className="rounded-[22px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          {successMessage}
-        </div>
-      ) : null}
-
       {errorMessage ? (
         <div className="whitespace-pre-line rounded-[22px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {errorMessage}
         </div>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_360px]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_290px] 2xl:grid-cols-[minmax(0,1.55fr)_320px]">
         <form onSubmit={handleFormSubmit} className="space-y-6">
           <SectionCard
             icon={Music4}
@@ -926,7 +926,7 @@ const ArtistTrackEditPage = () => {
           </SectionCard>
         </form>
 
-        <div className="space-y-6">
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-1">
           <SidebarCard title="Trạng thái hiện tại">
             <div className="overflow-hidden rounded-[24px] bg-[#f6f2ff]">
               <img
@@ -1047,7 +1047,6 @@ const ArtistTrackEditPage = () => {
               <button
                 type="button"
                 onClick={() => {
-                  setSuccessMessage("");
                   setErrorMessage("");
                   setIsSubmitConfirmOpen(true);
                 }}

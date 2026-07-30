@@ -55,6 +55,19 @@ const assertTrackVisibilityCanBeChangedByArtist = async (track) => {
     }
 };
 
+const resolveArtistTrackStatusAfterUnhide = (track) => {
+    if (["active", "draft"].includes(track?.previousActiveStatusBeforeArtistHide)) {
+        return track.previousActiveStatusBeforeArtistHide;
+    }
+
+    // Hidden tracks created before the previous-status field existed need a safe fallback.
+    if (track?.approvalStatus === "approved") {
+        return "active";
+    }
+
+    return "draft";
+};
+
 const normalizePositiveInteger = (value, fallback) => {
     const parsedValue = Number.parseInt(value, 10);
 
@@ -737,7 +750,7 @@ const getArtistTrackDetail = async (userId, trackId) => {
     return formatTrackManagementDetail(track);
 };
 
-const hideArtistTrack = async (userId, trackId, reason = "") => {
+const hideArtistTrack = async (userId, trackId) => {
     const artist = await Artist.findOne({ userId });
 
     if (!artist) {
@@ -764,8 +777,21 @@ const hideArtistTrack = async (userId, trackId, reason = "") => {
 
     await assertTrackVisibilityCanBeChangedByArtist(track);
 
+    if (track.activeStatus === "blocked") {
+        throw new AppError(
+            "This track cannot be hidden in its current state.",
+            StatusCodes.CONFLICT,
+            { field: "activeStatus" }
+        );
+    }
+
+    if (track.activeStatus !== "hidden") {
+        track.previousActiveStatusBeforeArtistHide =
+            track.activeStatus === "active" ? "active" : "draft";
+    }
+
     track.activeStatus = "hidden";
-    track.hiddenReason = String(reason || "Hidden by artist.").trim() || "Hidden by artist.";
+    track.hiddenReason = "";
     track.hiddenAt = new Date();
 
     await track.save();
@@ -815,28 +841,20 @@ const unhideArtistTrack = async (userId, trackId) => {
 
     await assertTrackVisibilityCanBeChangedByArtist(track);
 
-    if (resolveTrackReleaseStatus(track) !== TRACK_RELEASE_STATUS.RELEASED) {
-        throw new AppError(
-            "Only released tracks can be made active.",
-            StatusCodes.CONFLICT,
-            {
-                field: "activeStatus",
-                code: "TRACK_NOT_RELEASED",
-            }
-        );
-    }
-
     if (track.approvalStatus !== "approved" || track.activeStatus === "blocked") {
-        throw new AppError(
-            "This track cannot be made active in its current state.",
-            StatusCodes.CONFLICT,
-            { field: "activeStatus" }
-        );
+        if (track.activeStatus === "blocked") {
+            throw new AppError(
+                "This track cannot be made active in its current state.",
+                StatusCodes.CONFLICT,
+                { field: "activeStatus" }
+            );
+        }
     }
 
-    track.activeStatus = "active";
+    track.activeStatus = resolveArtistTrackStatusAfterUnhide(track);
     track.hiddenReason = "";
     track.hiddenAt = null;
+    track.previousActiveStatusBeforeArtistHide = null;
 
     await track.save();
 

@@ -21,6 +21,10 @@ import {
   cancelMyReleaseScheduleService,
   getMyReleaseSchedulesService,
 } from "../../services/artistReleaseScheduleService";
+import {
+  showArtistError,
+  showArtistSuccess,
+} from "../../utils/artistNotification";
 
 const PAGE_SIZE = 6;
 const FETCH_LIMIT = 50;
@@ -176,7 +180,6 @@ const ArtistReleaseSchedulePage = () => {
   const [releaseSchedules, setReleaseSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
-  const [actionMessage, setActionMessage] = useState("");
   const [serverStatus, setServerStatus] = useState("");
   const [serverType, setServerType] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -328,7 +331,6 @@ const ArtistReleaseSchedulePage = () => {
       return;
     }
 
-    setActionMessage("");
     setErrorMessage("");
     setPendingCancelRelease(release);
   };
@@ -347,7 +349,6 @@ const ArtistReleaseSchedulePage = () => {
     }
 
     setIsCancelling(true);
-    setActionMessage("");
     setErrorMessage("");
 
     try {
@@ -362,16 +363,10 @@ const ArtistReleaseSchedulePage = () => {
             : release
         )
       );
-      setActionMessage(
-        response?.message || "Đã hủy lịch phát hành thành công."
-      );
+      showArtistSuccess("Đã hủy lịch phát hành thành công.");
       setPendingCancelRelease(null);
-    } catch (error) {
-      setErrorMessage(
-        error?.response?.data?.message ||
-          error?.message ||
-          "Không thể hủy lịch phát hành lúc này."
-      );
+    } catch {
+      showArtistError("Không thể hủy lịch phát hành vào lúc này.");
     } finally {
       setIsCancelling(false);
     }
@@ -399,12 +394,6 @@ const ArtistReleaseSchedulePage = () => {
       {errorMessage ? (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {errorMessage}
-        </div>
-      ) : null}
-
-      {actionMessage ? (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-          {actionMessage}
         </div>
       ) : null}
 

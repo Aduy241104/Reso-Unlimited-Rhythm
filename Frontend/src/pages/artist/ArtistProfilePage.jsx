@@ -8,6 +8,10 @@ import {
 import { routePaths } from "../../routes/routePaths";
 import { getApiErrorMessage } from "../../utils/apiError";
 import {
+  showArtistError,
+  showArtistSuccess,
+} from "../../utils/artistNotification";
+import {
   activeStatusBadgeClass,
   formatCount,
   formatDate,
@@ -29,10 +33,6 @@ const ArtistProfilePage = () => {
   const [artist, setArtist] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
-  const [verificationFeedback, setVerificationFeedback] = useState({
-    type: "",
-    text: "",
-  });
   const [isRequestingVerification, setIsRequestingVerification] = useState(false);
 
   const isBlocked = artist?.activeStatus === "blocked";
@@ -60,7 +60,7 @@ const ArtistProfilePage = () => {
         setErrorMessage(
           getApiErrorMessage(
             error,
-            "Unable to load your artist profile from the server."
+            "Không thể tải hồ sơ nghệ sĩ từ máy chủ."
           )
         );
       } finally {
@@ -82,21 +82,16 @@ const ArtistProfilePage = () => {
       return;
     }
 
-    setVerificationFeedback({ type: "", text: "" });
     setIsRequestingVerification(true);
 
     try {
       const updated = await postArtistVerificationRequestService({});
       setArtist(updated);
-      setVerificationFeedback({
-        type: "success",
-        text: "Your verification request has been sent. Our team will review it soon.",
-      });
-    } catch (error) {
-      setVerificationFeedback({
-        type: "error",
-        text: getApiErrorMessage(error, "Could not submit your verification request."),
-      });
+      showArtistSuccess(
+        "Đã gửi yêu cầu xác minh nghệ sĩ. Đội ngũ quản trị sẽ sớm xem xét."
+      );
+    } catch {
+      showArtistError("Không thể gửi yêu cầu xác minh nghệ sĩ vào lúc này.");
     } finally {
       setIsRequestingVerification(false);
     }
@@ -305,19 +300,6 @@ const ArtistProfilePage = () => {
               )}
             </button>
           </div>
-          {verificationFeedback.text ? (
-            <div
-              className={[
-                "mt-4 rounded-sm border px-4 py-3 text-sm",
-                verificationFeedback.type === "success"
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-900"
-                  : "border-red-200 bg-red-50 text-red-900",
-              ].join(" ")}
-              role="status"
-            >
-              {verificationFeedback.text}
-            </div>
-          ) : null}
         </div>
       ) : null}
 

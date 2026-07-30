@@ -16,6 +16,10 @@ import trackService from "../../services/trackService";
 import { getArtistAlbumsService } from "../../services/artist/artistAlbumService";
 import { createMyReleaseScheduleService } from "../../services/artistReleaseScheduleService";
 import { routePaths } from "../../routes/routePaths";
+import {
+  showArtistError,
+  showArtistSuccess,
+} from "../../utils/artistNotification";
 
 const TIMEZONE_LABEL = "(GMT+07:00) Bangkok, Hanoi, Jakarta";
 const TIME_INPUT_STEP_SECONDS = 300;
@@ -310,13 +314,14 @@ const ArtistCreateReleaseSchedulePage = () => {
         scheduledAt: isImmediateRelease ? null : scheduledAtIso,
       });
 
-      navigate(routePaths.artistReleases);
-    } catch (error) {
-      setErrorMessage(
-        error?.response?.data?.message ||
-          error?.message ||
-          "Không thể tạo lịch phát hành mới."
+      showArtistSuccess(
+        isImmediateRelease
+          ? "Đã phát hành nội dung thành công."
+          : "Đã tạo lịch phát hành thành công."
       );
+      navigate(routePaths.artistReleases);
+    } catch {
+      showArtistError("Không thể tạo lịch phát hành mới.");
     } finally {
       setIsSubmitting(false);
     }

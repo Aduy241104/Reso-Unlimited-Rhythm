@@ -14,6 +14,7 @@
     "@fortawesome/react-fontawesome": "^3.1.1",
     "@hookform/resolvers": "^5.2.2",
     "@reduxjs/toolkit": "^2.11.0",
+    "antd": "^6.5.2",
     "axios": "^1.13.2",
     "caniuse-lite": "^1.0.30001792",
     "chart.js": "^4.5.1",

@@ -135,7 +135,7 @@ const ArtistTrackInsightsPage = () => {
       ) : null }
 
       { !selectedTrackId ? (
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(300px,0.9fr)]">
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.6fr)_minmax(280px,0.9fr)] 2xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.95fr)]">
           <section className="rounded-[20px] border border-dashed border-[#d8d0ff] bg-white p-8 text-center shadow-sm sm:p-9">
             <p className="text-lg font-semibold text-[#2f2747]">
               Chọn một bài hát để xem phân tích
@@ -158,7 +158,7 @@ const ArtistTrackInsightsPage = () => {
         </div>
       ) : (
         <>
-          <div className="grid gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(300px,0.9fr)]">
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1.6fr)_minmax(280px,0.9fr)] 2xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.95fr)]">
             <TrackInsightsHero
               analytics={ analytics }
               displayedTrack={ displayedTrack }
@@ -189,7 +189,7 @@ const ArtistTrackInsightsPage = () => {
             </div>
           ) : null }
 
-          <section className="flex items-center justify-between gap-3 bg-transparent">
+          <section className="flex flex-col gap-3 bg-transparent sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8b82b8]">
                 Khoảng thời gian

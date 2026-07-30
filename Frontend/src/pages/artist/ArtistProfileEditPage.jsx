@@ -10,6 +10,10 @@ import {
 } from "../../services/artistService";
 import { routePaths } from "../../routes/routePaths";
 import { getApiErrorMessage } from "../../utils/apiError";
+import {
+  showArtistError,
+  showArtistSuccess,
+} from "../../utils/artistNotification";
 import { artistProfileEditSchema } from "./artistProfileFormSchema";
 import {
   activeStatusBadgeClass,
@@ -35,7 +39,6 @@ const ArtistProfileEditPage = () => {
   const [artist, setArtist] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
-  const [saveFeedback, setSaveFeedback] = useState({ type: "", text: "" });
   const [isSaving, setIsSaving] = useState(false);
   const [avatarFile, setAvatarFile] = useState(null);
   const [coverFile, setCoverFile] = useState(null);
@@ -89,7 +92,7 @@ const ArtistProfileEditPage = () => {
         setErrorMessage(
           getApiErrorMessage(
             error,
-            "Unable to load your artist profile from the server."
+            "Không thể tải hồ sơ nghệ sĩ từ máy chủ."
           )
         );
       } finally {
@@ -136,7 +139,6 @@ const ArtistProfileEditPage = () => {
       return;
     }
 
-    setSaveFeedback({ type: "", text: "" });
     setIsSaving(true);
 
     try {
@@ -171,12 +173,10 @@ const ArtistProfileEditPage = () => {
 
       const updated = await patchMyArtistProfileService(body);
       setArtist(updated);
+      showArtistSuccess("Đã cập nhật hồ sơ nghệ sĩ thành công.");
       navigate(routePaths.artistProfile, { replace: true });
-    } catch (error) {
-      setSaveFeedback({
-        type: "error",
-        text: getApiErrorMessage(error, "Could not save your changes."),
-      });
+    } catch {
+      showArtistError("Không thể lưu thay đổi hồ sơ nghệ sĩ.");
     } finally {
       setIsSaving(false);
     }
@@ -550,20 +550,6 @@ const ArtistProfileEditPage = () => {
             ) : null}
           </div>
         </div>
-
-        {saveFeedback.text ? (
-          <div
-            className={[
-              "rounded-sm border px-4 py-3 text-sm",
-              saveFeedback.type === "success"
-                ? "border-emerald-200 bg-emerald-50 text-emerald-900"
-                : "border-red-200 bg-red-50 text-red-900",
-            ].join(" ")}
-            role="status"
-          >
-            {saveFeedback.text}
-          </div>
-        ) : null}
 
         <div className="border-t border-neutral-200 pt-6">
           <button
