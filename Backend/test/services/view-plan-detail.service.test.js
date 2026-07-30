@@ -2,15 +2,7 @@ import { jest } from "@jest/globals";
 import createAwaitableQuery from "./helpers/createAwaitableQuery.js";
 
 const mockPlanModel = {
-    find: jest.fn(),
-};
-
-const mockSubscriptionModel = {
     findOne: jest.fn(),
-};
-
-const mockUserModel = {
-    findById: jest.fn(),
 };
 
 const loadSubscriptionService = async () => {
@@ -20,16 +12,37 @@ const loadSubscriptionService = async () => {
         default: mockPlanModel,
     }));
     jest.unstable_mockModule("../../src/models/Subscription.js", () => ({
-        default: mockSubscriptionModel,
+        default: {
+            findOne: jest.fn(),
+            findById: jest.fn(),
+            updateMany: jest.fn(),
+            create: jest.fn(),
+            findByIdAndUpdate: jest.fn(),
+            find: jest.fn(),
+        },
     }));
     jest.unstable_mockModule("../../src/models/Transaction.js", () => ({
-        default: { findOne: jest.fn(), updateMany: jest.fn(), find: jest.fn() },
+        default: {
+            findOne: jest.fn(),
+            updateMany: jest.fn(),
+            create: jest.fn(),
+            findByIdAndUpdate: jest.fn(),
+            collection: { findOne: jest.fn() },
+            find: jest.fn(),
+        },
     }));
     jest.unstable_mockModule("../../src/models/User.js", () => ({
-        default: mockUserModel,
+        default: {
+            findById: jest.fn(),
+            updateMany: jest.fn(),
+        },
     }));
     jest.unstable_mockModule("../../src/services/vnpay.service.js", () => ({
-        default: { getVnpayConfig: jest.fn(), buildPaymentUrl: jest.fn(), verifyCallback: jest.fn() },
+        default: {
+            getVnpayConfig: jest.fn(),
+            buildPaymentUrl: jest.fn(),
+            verifyCallback: jest.fn(),
+        },
     }));
 
     const { default: subscriptionService } = await import(
@@ -39,174 +52,77 @@ const loadSubscriptionService = async () => {
     return { subscriptionService };
 };
 
-describe("View Plan Detail - subscriptionService.getMySubscriptionStatus", () => {
+describe("View Plan Detail - subscriptionService.getActivePlanDetail", () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        jest.useFakeTimers();
-        jest.setSystemTime(new Date("2026-07-13T00:00:00.000Z"));
     });
 
-    afterEach(() => {
-        jest.useRealTimers();
-    });
-
-    test("returns the populated current plan and active subscription detail", async () => {
+    test("returns the requested active plan with the same id and active status", async () => {
         const { subscriptionService } = await loadSubscriptionService();
 
-        mockUserModel.findById.mockReturnValue(
-            createAwaitableQuery({
-                _id: "507f1f77bcf86cd799439191",
-                subscription: {
-                    isPremium: true,
-                    premiumEndDate: new Date("2026-08-13T00:00:00.000Z"),
-                    currentPlanId: {
-                        _id: "507f1f77bcf86cd799439291",
-                        name: "Premium 1M",
-                        price: 99000,
-                        durationDays: 30,
-                    },
-                },
-            }, ["populate", "lean"])
-        );
-        mockSubscriptionModel.findOne.mockReturnValue(
-            createAwaitableQuery({
-                _id: "507f1f77bcf86cd799439391",
-                status: "active",
-                startDate: new Date("2026-07-13T00:00:00.000Z"),
-                endDate: new Date("2026-08-13T00:00:00.000Z"),
-                planId: {
-                    _id: "507f1f77bcf86cd799439291",
-                    name: "Premium 1M",
-                    price: 99000,
-                    durationDays: 30,
-                },
-            }, ["populate", "sort", "lean"])
+        const activePlan = {
+            _id: "507f1f77bcf86cd799439991",
+            status: "active",
+        };
+        mockPlanModel.findOne.mockReturnValue(createAwaitableQuery(activePlan, ["lean"]));
+
+        const result = await subscriptionService.getActivePlanDetail(
+            "507f1f77bcf86cd799439991"
         );
 
-        const result = await subscriptionService.getMySubscriptionStatus(
-            "507f1f77bcf86cd799439191"
-        );
-
-        expect(result).toEqual({
-            isPremium: true,
-            currentPlan: {
-                _id: "507f1f77bcf86cd799439291",
-                name: "Premium 1M",
-                price: 99000,
-                durationDays: 30,
-                taxRate: 0.1,
-                taxAmount: 9900,
-                totalPrice: 108900,
-            },
-            premiumEndDate: new Date("2026-08-13T00:00:00.000Z"),
-            activeSubscription: {
-                _id: "507f1f77bcf86cd799439391",
-                status: "active",
-                startDate: new Date("2026-07-13T00:00:00.000Z"),
-                endDate: new Date("2026-08-13T00:00:00.000Z"),
-                planId: "507f1f77bcf86cd799439291",
-                plan: {
-                    _id: "507f1f77bcf86cd799439291",
-                    name: "Premium 1M",
-                    price: 99000,
-                    durationDays: 30,
-                    taxRate: 0.1,
-                    taxAmount: 9900,
-                    totalPrice: 108900,
-                },
-            },
+        expect(mockPlanModel.findOne).toHaveBeenCalledWith({
+            _id: "507f1f77bcf86cd799439991",
+            status: "active",
+        });
+        expect(result).toMatchObject({
+            _id: "507f1f77bcf86cd799439991",
+            status: "active",
         });
     });
 
-    test("falls back to the active subscription plan when the user has no populated currentPlanId", async () => {
+    test("throws 400 when planId is invalid", async () => {
         const { subscriptionService } = await loadSubscriptionService();
 
-        mockUserModel.findById.mockReturnValue(
-            createAwaitableQuery({
-                _id: "507f1f77bcf86cd799439192",
-                subscription: {
-                    isPremium: true,
-                    premiumEndDate: new Date("2026-08-13T00:00:00.000Z"),
-                    currentPlanId: null,
-                },
-            }, ["populate", "lean"])
-        );
-        mockSubscriptionModel.findOne.mockReturnValue(
-            createAwaitableQuery({
-                _id: "507f1f77bcf86cd799439392",
-                status: "active",
-                startDate: new Date("2026-07-13T00:00:00.000Z"),
-                endDate: new Date("2026-08-13T00:00:00.000Z"),
-                planId: {
-                    _id: "507f1f77bcf86cd799439292",
-                    name: "Premium 3M",
-                    price: 249000,
-                    durationDays: 90,
-                },
-            }, ["populate", "sort", "lean"])
-        );
-
-        const result = await subscriptionService.getMySubscriptionStatus(
-            "507f1f77bcf86cd799439192"
-        );
-
-        expect(result.currentPlan).toEqual({
-            _id: "507f1f77bcf86cd799439292",
-            name: "Premium 3M",
-            price: 249000,
-            durationDays: 90,
-            taxRate: 0.1,
-            taxAmount: 24900,
-            totalPrice: 273900,
-        });
-    });
-
-    test("returns a non-premium state when the premium end date has expired", async () => {
-        const { subscriptionService } = await loadSubscriptionService();
-
-        mockUserModel.findById.mockReturnValue(
-            createAwaitableQuery({
-                _id: "507f1f77bcf86cd799439193",
-                subscription: {
-                    isPremium: true,
-                    premiumEndDate: new Date("2026-07-01T00:00:00.000Z"),
-                    currentPlanId: null,
-                },
-            }, ["populate", "lean"])
-        );
-        mockSubscriptionModel.findOne.mockReturnValue(
-            createAwaitableQuery(null, ["populate", "sort", "lean"])
-        );
-
-        const result = await subscriptionService.getMySubscriptionStatus(
-            "507f1f77bcf86cd799439193"
-        );
-
-        expect(result).toEqual({
-            isPremium: false,
-            currentPlan: null,
-            premiumEndDate: new Date("2026-07-01T00:00:00.000Z"),
-            activeSubscription: null,
-        });
-    });
-
-    test("throws 404 when the user does not exist", async () => {
-        const { subscriptionService } = await loadSubscriptionService();
-
-        mockUserModel.findById.mockReturnValue(
-            createAwaitableQuery(null, ["populate", "lean"])
-        );
-        mockSubscriptionModel.findOne.mockReturnValue(
-            createAwaitableQuery(null, ["populate", "sort", "lean"])
-        );
+        const invalidPlanId = "bad-id";
 
         await expect(
-            subscriptionService.getMySubscriptionStatus(
-                "507f1f77bcf86cd799439194"
-            )
+            subscriptionService.getActivePlanDetail(invalidPlanId)
         ).rejects.toMatchObject({
-            message: "User does not exist.",
-            statusCode: 404,
+            message: "planId is invalid.",
+            statusCode: 400,
+            details: { field: "planId" },
         });
+        expect(mockPlanModel.findOne).not.toHaveBeenCalled();
+    });
+
+    test("throws 404 when the plan is inactive", async () => {
+        const { subscriptionService } = await loadSubscriptionService();
+
+        mockPlanModel.findOne.mockReturnValue(createAwaitableQuery(null, ["lean"]));
+
+        await expect(
+            subscriptionService.getActivePlanDetail("507f1f77bcf86cd799439992")
+        ).rejects.toMatchObject({
+            message: "Subscription plan not found or inactive.",
+            statusCode: 404,
+            details: { field: "planId" },
+        });
+        expect(mockPlanModel.findOne).toHaveBeenCalledWith({
+            _id: "507f1f77bcf86cd799439992",
+            status: "active",
+        });
+    });
+
+    test("propagates database errors from Plan.findOne", async () => {
+        const { subscriptionService } = await loadSubscriptionService();
+
+        const databaseError = new Error("Database unavailable");
+        mockPlanModel.findOne.mockReturnValue({
+            lean: jest.fn().mockRejectedValue(databaseError),
+        });
+
+        await expect(
+            subscriptionService.getActivePlanDetail("507f1f77bcf86cd799439993")
+        ).rejects.toThrow("Database unavailable");
     });
 });

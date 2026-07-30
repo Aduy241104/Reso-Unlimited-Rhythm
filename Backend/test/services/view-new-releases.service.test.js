@@ -2,8 +2,25 @@ import { jest } from "@jest/globals";
 import createAwaitableQuery from "./helpers/createAwaitableQuery.js";
 
 const mockAlbumModel = {
-    find: jest.fn(),
-    countDocuments: jest.fn(),
+    aggregate: jest.fn(),
+};
+
+const mockArtistModel = {
+    collection: {
+        name: "artists",
+    },
+};
+
+const mockTrackModel = {
+    collection: {
+        name: "tracks",
+    },
+};
+
+const mockInteractionModel = {
+    collection: {
+        name: "interactions",
+    },
 };
 
 const mockEnrichAlbumsWithTotalDuration = jest.fn();
@@ -15,10 +32,13 @@ const loadAlbumService = async () => {
         default: mockAlbumModel,
     }));
     jest.unstable_mockModule("../../src/models/Artist.js", () => ({
-        default: { findOne: jest.fn() },
+        default: mockArtistModel,
+    }));
+    jest.unstable_mockModule("../../src/models/Interaction.js", () => ({
+        default: mockInteractionModel,
     }));
     jest.unstable_mockModule("../../src/models/Track.js", () => ({
-        default: { find: jest.fn() },
+        default: mockTrackModel,
     }));
     jest.unstable_mockModule("../../src/services/album/album.sync.js", () => ({
         enrichAlbumWithTotalDuration: jest.fn(),
@@ -39,7 +59,8 @@ describe("View New Releases - albumService.getAlbumList", () => {
 
     test("returns active albums as release-sorted items with pagination", async () => {
         const { albumService } = await loadAlbumService();
-        const albums = [
+        // Arrange
+        const aggregatedAlbums = [
             {
                 _id: "507f1f77bcf86cd799439111",
                 title: "Latest Album",
@@ -58,26 +79,42 @@ describe("View New Releases - albumService.getAlbumList", () => {
                 updatedAt: new Date("2026-07-02T00:00:00.000Z"),
             },
         ];
+        mockAlbumModel.aggregate.mockResolvedValue([
+            {
+                albums: aggregatedAlbums,
+                metadata: [{ total: 11 }],
+            },
+        ]);
 
-        const albumQuery = createAwaitableQuery(albums);
-        mockAlbumModel.find.mockReturnValue(albumQuery);
-        mockAlbumModel.countDocuments.mockResolvedValue(11);
-
+        // Act
         const result = await albumService.getAlbumList({
             page: "2",
             limit: "5",
+            criteria: "new_release",
         });
 
-        expect(mockAlbumModel.find).toHaveBeenCalledWith({ status: "active" });
-        expect(albumQuery.sort).toHaveBeenCalledWith({
-            releaseDate: -1,
-            totalDuration: -1,
-            createdAt: -1,
-            _id: -1,
+        // Assert
+        const pipeline = mockAlbumModel.aggregate.mock.calls[0][0];
+        expect(pipeline[0].$match).toEqual({
+            status: "active",
+            $or: expect.any(Array),
         });
-        expect(albumQuery.skip).toHaveBeenCalledWith(5);
-        expect(albumQuery.limit).toHaveBeenCalledWith(5);
-        expect(mockEnrichAlbumsWithTotalDuration).toHaveBeenCalledWith(albums);
+        expect(pipeline[pipeline.length - 1].$facet.albums).toEqual([
+            {
+                $sort: {
+                    releaseDate: -1,
+                    albumFollowCount: -1,
+                    totalTrackPlays: -1,
+                    createdAt: -1,
+                    _id: -1,
+                },
+            },
+            { $skip: 5 },
+            { $limit: 5 },
+        ]);
+        expect(mockEnrichAlbumsWithTotalDuration).toHaveBeenCalledWith(
+            aggregatedAlbums
+        );
         expect(result).toEqual({
             albums: [
                 expect.objectContaining({
@@ -95,28 +132,49 @@ describe("View New Releases - albumService.getAlbumList", () => {
                 limit: 5,
                 total: 11,
                 totalPages: 3,
+                criteria: "new_release",
             },
         });
     });
 
     test("falls back to default page and caps limit at 50", async () => {
         const { albumService } = await loadAlbumService();
-        const albumQuery = createAwaitableQuery([]);
-        mockAlbumModel.find.mockReturnValue(albumQuery);
-        mockAlbumModel.countDocuments.mockResolvedValue(0);
 
+        // Arrange
+        mockAlbumModel.aggregate.mockResolvedValue([
+            {
+                albums: [],
+                metadata: [{ total: 0 }],
+            },
+        ]);
+
+        // Act
         const result = await albumService.getAlbumList({
             page: "0",
             limit: "999",
         });
 
-        expect(albumQuery.skip).toHaveBeenCalledWith(0);
-        expect(albumQuery.limit).toHaveBeenCalledWith(50);
+        // Assert
+        const pipeline = mockAlbumModel.aggregate.mock.calls[0][0];
+        expect(pipeline[pipeline.length - 1].$facet.albums).toEqual([
+            {
+                $sort: {
+                    isUpcoming: 1,
+                    rankingScore: -1,
+                    releaseDate: -1,
+                    createdAt: -1,
+                    _id: -1,
+                },
+            },
+            { $skip: 0 },
+            { $limit: 50 },
+        ]);
         expect(result.pagination).toEqual({
             page: 1,
             limit: 50,
             total: 0,
             totalPages: 0,
+            criteria: "featured",
         });
     });
 });

@@ -5,6 +5,7 @@ import {
     ensureActiveUser,
     sanitizeUser,
 } from "../../services/Authentication/authentication.helper.js";
+import { resolveCurrentUserPremiumState } from "../../services/user/user.service.helper.js";
 import { StatusCodes } from "http-status-codes";
 
 const extractAccessToken = (req) => {
@@ -116,6 +117,22 @@ export const authorizeRoles = (...roles) => authenticate(roles);
 export const requireAdmin = authenticate("admin");
 export const requireArtist = authenticate("artist");
 export const requireUser = authenticate("user");
+export const requirePremiumUser = async (req, res, next) => {
+    try {
+        const hasPremiumAccess = await resolveCurrentUserPremiumState(req.user);
+
+        if (!hasPremiumAccess) {
+            throw new AppError(
+                "Premium subscription is required to access this resource.",
+                StatusCodes.FORBIDDEN
+            );
+        }
+
+        next();
+    } catch (error) {
+        next(error);
+    }
+};
 export { optionalAuthenticate };
 
 export default authenticate;

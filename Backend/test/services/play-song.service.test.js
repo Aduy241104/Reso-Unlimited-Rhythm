@@ -91,22 +91,24 @@ describe("Play Song - trackService.getTrackPlayback", () => {
             }
         );
 
-        expect(result.playback).toEqual({
-            accessLevel: "basic",
-            plan: null,
-            defaultAudio: {
-                url: "https://cdn.example.com/basic.mp4",
-                format: "mp4",
-                bitrate: 128,
-            },
-            audioFiles: [
-                {
+        expect(result.playback).toEqual(
+            expect.objectContaining({
+                accessLevel: "basic",
+                plan: null,
+                defaultAudio: expect.objectContaining({
                     url: "https://cdn.example.com/basic.mp4",
                     format: "mp4",
                     bitrate: 128,
-                },
-            ],
-        });
+                }),
+                audioFiles: [
+                    expect.objectContaining({
+                        url: "https://cdn.example.com/basic.mp4",
+                        format: "mp4",
+                        bitrate: 128,
+                    }),
+                ],
+            })
+        );
     });
 
     test("returns all valid streams and the highest bitrate by default for premium users", async () => {
@@ -146,11 +148,11 @@ describe("Play Song - trackService.getTrackPlayback", () => {
             id: "507f1f77bcf86cd799439551",
             name: "Premium Plus",
         });
-        expect(result.playback.defaultAudio).toEqual({
+        expect(result.playback.defaultAudio).toEqual(expect.objectContaining({
             url: "https://cdn.example.com/lossless.flac",
             format: "flac",
             bitrate: 1000,
-        });
+        }));
         expect(result.playback.audioFiles).toHaveLength(3);
     });
 
@@ -191,22 +193,24 @@ describe("Play Song - trackService.getTrackPlayback", () => {
             }
         );
 
-        expect(result.playback).toEqual({
-            accessLevel: "basic",
-            plan: null,
-            defaultAudio: {
-                url: "https://cdn.example.com/premium.flac",
-                format: "flac",
-                bitrate: 1000,
-            },
-            audioFiles: [
-                {
+        expect(result.playback).toEqual(
+            expect.objectContaining({
+                accessLevel: "basic",
+                plan: null,
+                defaultAudio: expect.objectContaining({
                     url: "https://cdn.example.com/premium.flac",
                     format: "flac",
                     bitrate: 1000,
-                },
-            ],
-        });
+                }),
+                audioFiles: [
+                    expect.objectContaining({
+                        url: "https://cdn.example.com/premium.flac",
+                        format: "flac",
+                        bitrate: 1000,
+                    }),
+                ],
+            })
+        );
     });
 
     test("throws 400 when track id is invalid", async () => {

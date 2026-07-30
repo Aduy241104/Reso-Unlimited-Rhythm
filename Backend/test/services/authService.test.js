@@ -229,6 +229,7 @@ describe("authentication login validation", () => {
             "Refresh token is required for mobile client."
         );
     });
+
 });
 
 describe("authenticationService.login", () => {

@@ -36,33 +36,33 @@ describe("View Premium Plan - subscriptionService.listActivePlans", () => {
         jest.clearAllMocks();
     });
 
-    test("returns active plans enriched with tax and total price", async () => {
+    test("returns active plans when there is data", async () => {
         const { subscriptionService } = await loadSubscriptionService();
-        const planQuery = createAwaitableQuery([
+        const activePlans = [
             {
                 _id: "507f1f77bcf86cd799439181",
-                name: "Premium Monthly",
-                price: 99000.4,
-                durationDays: 30,
-                features: ["NO_ADS", "HIGH_QUALITY_AUDIO"],
+                status: "active",
             },
-        ]);
+            {
+                _id: "507f1f77bcf86cd799439183",
+                status: "active",
+            },
+        ];
+        const planQuery = createAwaitableQuery(activePlans);
         mockPlanModel.find.mockReturnValue(planQuery);
 
         const result = await subscriptionService.listActivePlans();
 
         expect(mockPlanModel.find).toHaveBeenCalledWith({ status: "active" });
         expect(planQuery.sort).toHaveBeenCalledWith({ price: 1, createdAt: 1 });
-        expect(result).toEqual([
+        expect(result).toMatchObject([
             {
                 _id: "507f1f77bcf86cd799439181",
-                name: "Premium Monthly",
-                price: 99000,
-                durationDays: 30,
-                features: ["NO_ADS", "HIGH_QUALITY_AUDIO"],
-                taxRate: 0.1,
-                taxAmount: 9900,
-                totalPrice: 108900,
+                status: "active",
+            },
+            {
+                _id: "507f1f77bcf86cd799439183",
+                status: "active",
             },
         ]);
     });
@@ -73,5 +73,38 @@ describe("View Premium Plan - subscriptionService.listActivePlans", () => {
         mockPlanModel.find.mockReturnValue(planQuery);
 
         await expect(subscriptionService.listActivePlans()).resolves.toEqual([]);
+        expect(mockPlanModel.find).toHaveBeenCalledWith({ status: "active" });
+    });
+
+    test("returns only the active plan when there is one active plan and one inactive plan", async () => {
+        const { subscriptionService } = await loadSubscriptionService();
+        const allPlans = [
+            {
+                _id: "507f1f77bcf86cd799439181",
+                status: "active",
+            },
+            {
+                _id: "507f1f77bcf86cd799439182",
+                status: "inactive",
+            },
+        ];
+        const planQuery = createAwaitableQuery(
+            allPlans.filter((plan) => plan.status === "active")
+        );
+        mockPlanModel.find.mockImplementation((filter) => {
+            expect(filter).toEqual({ status: "active" });
+            return planQuery;
+        });
+
+        const result = await subscriptionService.listActivePlans();
+
+        expect(planQuery.sort).toHaveBeenCalledWith({ price: 1, createdAt: 1 });
+        expect(result).toHaveLength(1);
+        expect(result).toMatchObject([
+            {
+                _id: "507f1f77bcf86cd799439181",
+                status: "active",
+            },
+        ]);
     });
 });

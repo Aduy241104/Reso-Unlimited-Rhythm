@@ -15,6 +15,9 @@ const mockTransactionModel = {
     create: jest.fn(),
     findOne: jest.fn(),
     findByIdAndUpdate: jest.fn(),
+    collection: {
+        findOne: jest.fn(),
+    },
 };
 
 const mockUserModel = {
@@ -106,10 +109,9 @@ describe("subscriptionService premium purchase snapshot flow", () => {
             ipAddr: "127.0.0.1",
         });
 
-        expect(mockTransactionModel.create).toHaveBeenCalledWith(
+        expect(mockSubscriptionModel.create).toHaveBeenCalledWith(
             expect.objectContaining({
                 userId: "user-1",
-                subscriptionId: "subscription-1",
                 planSnapshot: {
                     originalPlanId: "plan-premium-1",
                     name: "Premium 30 Days",
@@ -119,6 +121,14 @@ describe("subscriptionService premium purchase snapshot flow", () => {
                     features: ["NO_ADS", "BACKGROUND_PLAY"],
                     status: "active",
                 },
+                planId: "plan-premium-1",
+                status: "pending",
+            })
+        );
+        expect(mockTransactionModel.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+                userId: "user-1",
+                subscriptionId: "subscription-1",
                 amount: 99000,
                 tax: 9900,
                 totalAmount: 108900,
@@ -199,6 +209,7 @@ describe("subscriptionService premium purchase snapshot flow", () => {
             gatewayTransactionId: "VNPAY-123",
         });
         mockTransactionModel.findOne.mockResolvedValue(transaction);
+        mockTransactionModel.collection.findOne.mockResolvedValue(null);
         mockSubscriptionModel.findById.mockResolvedValue(subscription);
         mockUserModel.findById.mockResolvedValue(user);
 

@@ -3,6 +3,7 @@ import createAwaitableQuery from "./helpers/createAwaitableQuery.js";
 
 const mockPlaylistModel = {
     find: jest.fn(),
+    findOne: jest.fn(),
     countDocuments: jest.fn(),
 };
 

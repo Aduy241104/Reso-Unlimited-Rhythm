@@ -52,7 +52,7 @@ const hasActivePremiumSubscription = async (userId) => {
     return Boolean(activeSubscription);
 };
 
-const resolveCurrentUserPremiumState = async (user = {}) => {
+export const resolveCurrentUserPremiumState = async (user = {}) => {
     const now = new Date();
     const premiumEndDate = user.subscription?.premiumEndDate
         ? new Date(user.subscription.premiumEndDate)

@@ -180,6 +180,15 @@ describe("Subscribe Premium - subscriptionService.createVnpayOrder", () => {
         expect(mockSubscriptionModel.create).toHaveBeenCalledWith({
             userId: "507f1f77bcf86cd799439204",
             planId: "507f1f77bcf86cd799439303",
+            planSnapshot: {
+                originalPlanId: "507f1f77bcf86cd799439303",
+                name: "Premium 1M",
+                price: 99000,
+                durationDays: 30,
+                description: "",
+                features: [],
+                status: "active",
+            },
             status: "pending",
             autoRenew: false,
         });
@@ -203,6 +212,18 @@ describe("Subscribe Premium - subscriptionService.createVnpayOrder", () => {
             tax: 9900,
             taxRate: 0.1,
             totalAmount: 108900,
+            plan: {
+                originalPlanId: "507f1f77bcf86cd799439303",
+                name: "Premium 1M",
+                price: 99000,
+                durationDays: 30,
+                description: "",
+                features: [],
+                status: "active",
+                taxRate: 0.1,
+                taxAmount: 9900,
+                totalPrice: 108900,
+            },
         });
     });
 
