@@ -8,8 +8,8 @@ export const USER_INPUT_LIMITS = Object.freeze({
   playlistTitle: 120,
   playlistDescription: 500,
   reportDescription: 2000,
-  bio: 500,
+  bio: 1000,
   identityNumber: 20,
-  url: 2048,
-  portfolioDescription: 2000,
+  url: 500,
+  portfolioDescription: 1000,
 });
