@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import ReactPaginate from "react-paginate";
 import { Link, useNavigate } from "react-router-dom";
 import { Search, ArrowUpRight } from "lucide-react";
@@ -19,29 +19,70 @@ const HeaderStat = ({ label, value }) => (
   </div>
 );
 
+const MODERATION_COPY = {
+  track_release: {
+    eyebrow: "Kiểm duyệt phát hành",
+    title: "Hàng chờ duyệt bài hát mới",
+    searchPlaceholder: "Tìm bài hát mới hoặc nghệ sĩ đang chờ duyệt...",
+    emptyTitle: "Không có bài hát mới đang chờ duyệt.",
+    emptyDescription: "Các bản chỉnh sửa được quản lý trong danh sách duyệt riêng.",
+    columnTitle: "Bài hát mới chờ duyệt",
+    itemLabel: "Bài hát mới",
+    actionLabel: "Thẩm định",
+  },
+  pending_update: {
+    eyebrow: "Kiểm duyệt chỉnh sửa",
+    title: "Hàng chờ duyệt bản chỉnh sửa",
+    searchPlaceholder: "Tìm bản chỉnh sửa hoặc nghệ sĩ đang chờ duyệt...",
+    emptyTitle: "Không có bản chỉnh sửa đang chờ duyệt.",
+    emptyDescription: "Các yêu cầu phát hành bài hát mới nằm trong danh sách duyệt riêng.",
+    columnTitle: "Bản chỉnh sửa chờ duyệt",
+    itemLabel: "Bản chỉnh sửa",
+    actionLabel: "Xem thay đổi",
+  },
+};
+
 const SystemTracksModerationPage = () => {
   const navigate = useNavigate();
+  const requestIdRef = useRef(0);
+  const [activeQueue, setActiveQueue] = useState("track_release");
+  const pageCopy =
+    MODERATION_COPY[activeQueue] || MODERATION_COPY.track_release;
   const [tracks, setTracks] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [query, setQuery] = useState({ q: "", approvalStatus: "pending", page: 1, limit: 10 });
+  const [query, setQuery] = useState({
+    q: "",
+    approvalStatus: "pending",
+    reviewSource: "track_release",
+    page: 1,
+    limit: 10,
+  });
   const [pagination, setPagination] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const loadPendingTracks = async (params = query) => {
+  const loadPendingTracks = useCallback(async (params) => {
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
     setIsLoading(true);
     try {
-      const cleanParams = Object.fromEntries(Object.entries(params).filter(([_, v]) => v !== ""));
+      const cleanParams = Object.fromEntries(Object.entries(params).filter(([, value]) => value !== ""));
       const result = await searchAdminTracksService(cleanParams);
+
+      if (requestId !== requestIdRef.current) return;
+
       setTracks(result.tracks ?? []);
       setPagination(result.pagination ?? null);
     } catch (error) {
+      if (requestId !== requestIdRef.current) return;
       console.error(error);
     } finally {
-      setIsLoading(false);
+      if (requestId === requestIdRef.current) {
+        setIsLoading(false);
+      }
     }
-  };
+  }, []);
 
-  useEffect(() => { void loadPendingTracks(query); }, [query]);
+  useEffect(() => { void loadPendingTracks(query); }, [loadPendingTracks, query]);
 
   const handleSearchSubmit = (event) => {
     event.preventDefault();
@@ -50,6 +91,23 @@ const SystemTracksModerationPage = () => {
 
   const handlePageChange = ({ selected }) => {
     setQuery((prev) => ({ ...prev, page: selected + 1 }));
+  };
+
+  const handleQueueChange = (nextQueue) => {
+    if (nextQueue === activeQueue) return;
+
+    requestIdRef.current += 1;
+    setActiveQueue(nextQueue);
+    setSearchTerm("");
+    setTracks([]);
+    setPagination(null);
+    setQuery({
+      q: "",
+      approvalStatus: "pending",
+      reviewSource: nextQueue,
+      page: 1,
+      limit: 10,
+    });
   };
 
   // ĐÃ SỬA: Tính toán an toàn số trang hiển thị để tránh lỗi 1/0 khi trống lịch sơ
@@ -84,38 +142,77 @@ const SystemTracksModerationPage = () => {
         </div>
       </div>
 
+      <div
+        role="tablist"
+        aria-label={pageCopy.title}
+        className="inline-flex w-full items-center gap-1 rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm sm:w-auto"
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeQueue === "track_release"}
+          onClick={() => handleQueueChange("track_release")}
+          className={[
+            "inline-flex h-10 flex-1 items-center justify-center whitespace-nowrap rounded-lg px-5 text-sm font-semibold transition-colors sm:min-w-[180px]",
+            activeQueue === "track_release"
+              ? "bg-blue-600 text-white shadow-sm"
+              : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+          ].join(" ")}
+        >
+          Bài hát mới
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeQueue === "pending_update"}
+          onClick={() => handleQueueChange("pending_update")}
+          className={[
+            "inline-flex h-10 flex-1 items-center justify-center whitespace-nowrap rounded-lg px-5 text-sm font-semibold transition-colors sm:min-w-[180px]",
+            activeQueue === "pending_update"
+              ? "bg-blue-600 text-white shadow-sm"
+              : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+          ].join(" ")}
+        >
+          Bản chỉnh sửa
+        </button>
+      </div>
+
       {/* Khung 2: Tìm kiếm */}
       <form onSubmit={handleSearchSubmit} className="grid gap-3 rounded-2xl bg-white p-4 shadow-[0_12px_32px_rgba(15,23,42,0.06)] sm:grid-cols-[1fr_132px]">
         <label className="relative block">
           <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Tìm tác phẩm hoặc nghệ sĩ chờ kiểm duyệt..." className="w-full rounded-lg bg-slate-100 py-3 pl-11 pr-4 text-sm text-slate-900 outline-none transition focus:bg-sky-50" />
+          <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={pageCopy.searchPlaceholder} className="w-full rounded-lg bg-slate-100 py-3 pl-11 pr-4 text-sm text-slate-900 outline-none transition focus:bg-sky-50" />
         </label>
         <button type="submit" className="rounded-lg bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">Tìm kiếm</button>
       </form>
 
       {/* Khung 3: Danh sách hàng Spaced Rows */}
-      {tracks.length === 0 ? (
+      {isLoading && tracks.length === 0 ? (
+        <div className="rounded-2xl bg-white px-6 py-20 text-center text-sm font-semibold text-slate-500 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+          Đang tải danh sách {pageCopy.itemLabel.toLowerCase()}...
+        </div>
+      ) : tracks.length === 0 ? (
         <div className="rounded-2xl bg-white px-6 py-20 text-center shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
-          <p className="text-base font-semibold text-slate-900">Hàng đợi kiểm duyệt trống.</p>
-          <p className="mt-1 text-sm text-slate-400">Hiện hành không ghi nhận hồ sơ tác phẩm nào chờ xử lý.</p>
+          <p className="text-base font-semibold text-slate-900">{pageCopy.emptyTitle}</p>
+          <p className="mt-1 text-sm text-slate-400">{pageCopy.emptyDescription}</p>
         </div>
       ) : (
         <div className="overflow-hidden rounded-2xl bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
-          <div className="grid min-w-[1020px] grid-cols-[minmax(0,1.5fr)_minmax(0,1.2fr)_100px_160px_120px] gap-4 border-b border-slate-200 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-            <span>Bài hát chờ duyệt</span>
+          <div className="grid min-w-[1060px] grid-cols-[minmax(0,1.5fr)_minmax(0,1.2fr)_100px_160px_160px] gap-4 border-b border-slate-200 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+            <span>{pageCopy.columnTitle}</span>
             <span>Nghệ sĩ nộp</span>
             <span>Thời lượng</span>
             <span>Trạng thái</span>
-            <span className="text-right pr-4">Hành động</span>
+            <span className="text-center">Hành động</span>
           </div>
 
           <div className="overflow-x-auto">
-            <div className="min-w-[1020px] divide-y divide-slate-100">
+            <div className="min-w-[1060px] divide-y divide-slate-100">
               {isLoading ? (
                 <div className="p-12 text-center text-sm font-medium text-slate-400 uppercase tracking-wider">Đang tải danh sách hàng đợi...</div>
               ) : (
                 tracks.map((track) => (
-                  <article key={track.id} className="relative grid grid-cols-[minmax(0,1.5fr)_minmax(0,1.2fr)_100px_160px_120px] gap-4 px-6 py-4 transition hover:bg-slate-50/60 items-center">
+                  <article key={track.id} className="relative grid grid-cols-[minmax(0,1.5fr)_minmax(0,1.2fr)_100px_160px_160px] gap-4 px-6 py-4 transition hover:bg-slate-50/60 items-center">
                     <div className="absolute inset-y-2 left-0 w-1 rounded-r bg-amber-500" />
 
                     <div className="flex min-w-0 items-center gap-3 pl-2">
@@ -124,7 +221,29 @@ const SystemTracksModerationPage = () => {
                       ) : (
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-[10px] font-black text-white uppercase">TRACK</div>
                       )}
-                      <p className="truncate text-sm font-semibold text-slate-950">{track.title}</p>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-slate-950">{track.title}</p>
+                        <div className="mt-1 flex min-w-0 items-center gap-2">
+                          <span
+                            className={[
+                              "shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+                              track.reviewSource === "pending_update"
+                                ? "border-sky-200 bg-sky-50 text-sky-700"
+                                : "border-violet-200 bg-violet-50 text-violet-700",
+                            ].join(" ")}
+                          >
+                            {pageCopy.itemLabel}
+                          </span>
+                          {track.reviewSource === "pending_update" ? (
+                            <span className="truncate text-[10px] text-slate-500">
+                              {track.changedFields?.length || 0} trường thay đổi
+                              {track.liveTitle && track.liveTitle !== track.title
+                                ? ` • Tên đang phát hành: ${track.liveTitle}`
+                                : ""}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
                     </div>
 
                     <p className="truncate text-sm text-slate-600 font-medium">{track.artist?.name || "—"}</p>
@@ -137,9 +256,9 @@ const SystemTracksModerationPage = () => {
                       </span>
                     </div>
 
-                    <div className="flex justify-end pr-2">
-                      <Link to={routePaths.trackDetail(track.id)} className="inline-flex items-center gap-1 rounded-xl bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-700 shadow-sm">
-                        Thẩm định <ArrowUpRight size={14} />
+                    <div className="flex justify-center">
+                      <Link to={routePaths.trackDetail(track.id)} className="inline-flex h-9 w-[140px] items-center justify-center gap-1.5 whitespace-nowrap rounded-xl bg-blue-600 px-4 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-700">
+                        {pageCopy.actionLabel} <ArrowUpRight size={14} />
                       </Link>
                     </div>
                   </article>
