@@ -15,6 +15,12 @@ const ArtistSchema = new Schema(
             facebook: { type: String, default: "" },
             instagram: { type: String, default: "" },
             youtube: { type: String, default: "" },
+            tiktok: { type: String, default: "" },
+            spotify: { type: String, default: "" },
+            soundcloud: { type: String, default: "" },
+            website: { type: String, default: "" },
+            twitter: { type: String, default: "" },
+            other: { type: String, default: "" },
         },
 
         stats: {

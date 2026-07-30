@@ -140,12 +140,18 @@ const CreateSubscriptionPlanPage = () => {
         className="w-full space-y-6 rounded-2xl bg-white p-6 shadow-[0_12px_32px_rgba(15,23,42,0.06)]"
       >
         <div className="space-y-2">
-          <label className="block text-sm font-semibold text-slate-700">
-            Tên gói <span className="text-red-500">*</span>
-          </label>
+          <div className="flex items-center justify-between">
+            <label className="block text-sm font-semibold text-slate-700">
+              Tên gói <span className="text-red-500">*</span>
+            </label>
+            <span className="text-xs font-medium text-slate-400">
+              {formData.name.length}/100 ký tự
+            </span>
+          </div>
           <input
             type="text"
             name="name"
+            maxLength={100}
             value={formData.name}
             onChange={handleChange}
             placeholder="VD: Premium, Basic, VIP..."
@@ -207,12 +213,18 @@ const CreateSubscriptionPlanPage = () => {
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
           <div className="space-y-2">
-            <label className="block text-sm font-semibold text-slate-700">Mô tả</label>
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-semibold text-slate-700">Mô tả</label>
+              <span className="text-xs font-medium text-slate-400">
+                {formData.description.length}/500 ký tự
+              </span>
+            </div>
             <textarea
               name="description"
+              maxLength={500}
               value={formData.description}
               onChange={handleChange}
-              placeholder="Mô tả ngắn về gói đăng ký..."
+              placeholder="Mô tả ngắn về gói đăng ký (tối đa 500 ký tự)..."
               rows={4}
               className="w-full resize-none rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-500"
             />

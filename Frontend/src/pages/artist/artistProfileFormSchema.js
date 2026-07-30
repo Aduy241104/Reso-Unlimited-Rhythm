@@ -2,7 +2,7 @@ import { z } from "zod";
 
 const optionalHttpUrl = z
   .string()
-  .max(2000)
+  .max(500, "Đường dẫn URL tối đa 500 ký tự.")
   .superRefine((value, ctx) => {
     const trimmed = value.trim();
 
@@ -16,21 +16,31 @@ const optionalHttpUrl = z
       if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "Use an http or https link.",
+          message: "Vui lòng sử dụng đường dẫn bắt đầu bằng http:// hoặc https://",
         });
       }
     } catch {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Enter a valid URL or leave the field blank.",
+        message: "Vui lòng nhập đường dẫn URL hợp lệ hoặc để trống.",
       });
     }
   });
 
 export const artistProfileEditSchema = z.object({
-  name: z.string().trim().min(1, "Display name is required.").max(120),
-  bio: z.string().max(5000, "Bio must be at most 5000 characters."),
+  name: z
+    .string()
+    .trim()
+    .min(1, "Vui lòng nhập tên hiển thị nghệ sĩ.")
+    .max(100, "Tên nghệ sĩ tối đa 100 ký tự."),
+  bio: z.string().max(1000, "Tiểu sử nghệ sĩ tối đa 1000 ký tự."),
   socialFacebook: optionalHttpUrl,
   socialInstagram: optionalHttpUrl,
   socialYoutube: optionalHttpUrl,
+  socialTiktok: optionalHttpUrl,
+  socialSpotify: optionalHttpUrl,
+  socialSoundcloud: optionalHttpUrl,
+  socialWebsite: optionalHttpUrl,
+  socialTwitter: optionalHttpUrl,
+  socialOther: optionalHttpUrl,
 });
