@@ -382,31 +382,19 @@ const SystemPlaylistEditPage = () => {
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="mb-4 text-sm font-bold text-slate-900">Cài đặt</h2>
-          <div className="space-y-5">
-            <div>
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: "#64748b" }}>
-                Quyền riêng tư
-              </p>
-              <ToggleField
-                checked={form.isPublic}
-                onChange={handleChange("isPublic")}
-                label="Công khai"
-                hint="Hiển thị cho tất cả người dùng."
-                disabled={isBusy}
-              />
-            </div>
-            <div>
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: "#64748b" }}>
-                Trạng thái
-              </p>
-              <ToggleField
-                checked={form.isHidden}
-                onChange={handleChange("isHidden")}
-                label="Ẩn"
-                hint="Không hiển thị trong danh sách công khai."
-                disabled={isBusy}
-              />
-            </div>
+          <div>
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: "#64748b" }}>
+              Quyền riêng tư
+            </p>
+            <ToggleField
+              checked={form.isPublic}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, isPublic: e.target.checked, isHidden: !e.target.checked }))
+              }
+              label="Công khai"
+              hint="Hiển thị cho tất cả người dùng."
+              disabled={isBusy}
+            />
           </div>
         </div>
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import LoadingState from "../../components/common/LoadingState";
 import {
     AlertCircle,
     AlertTriangle,
@@ -9,7 +10,6 @@ import {
     Disc3,
     Eye,
     FileSearch,
-    Loader2,
     Mic2,
     Music,
     Search,
@@ -44,20 +44,20 @@ const STATUS_CONFIG = {
     reviewing: {
         label: "Đang xem xét",
         icon: FileSearch,
-        badgeClass: "bg-blue-50 text-blue-700 border-blue-200",
-        iconClass: "text-blue-500",
+        badgeClass: "border-blue-500/20 bg-blue-500/10 text-blue-300",
+        iconClass: "text-blue-400",
     },
     resolved: {
         label: "Đã xử lý",
         icon: CheckCircle,
-        badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
-        iconClass: "text-emerald-500",
+        badgeClass: "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
+        iconClass: "text-emerald-400",
     },
     rejected: {
         label: "Bị từ chối",
         icon: XCircle,
-        badgeClass: "bg-rose-50 text-rose-700 border-rose-200",
-        iconClass: "text-rose-500",
+        badgeClass: "border-rose-500/20 bg-rose-500/10 text-rose-300",
+        iconClass: "text-rose-400",
     },
 };
 
@@ -259,10 +259,7 @@ const CustomerReportListPage = () => {
                 <div className="rounded-3xl border border-white/10 bg-white/[0.03] shadow-xl">
                     {/* Loading */}
                     {loading && (
-                        <div className="flex flex-col items-center justify-center py-20">
-                            <Loader2 className="h-8 w-8 animate-spin text-[#f5b66f]" aria-hidden />
-                            <p className="mt-3 text-sm text-white/55">Đang tải danh sách...</p>
-                        </div>
+                        <LoadingState message="Đang tải danh sách..." className="py-20" spinnerClassName="h-8 w-8" />
                     )}
 
                     {/* Error */}

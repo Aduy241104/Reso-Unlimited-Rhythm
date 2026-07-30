@@ -1,5 +1,6 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import LoadingState from "../components/common/LoadingState";
 import { routePaths } from "./routePaths";
 
 const ProtectedRoute = () => {
@@ -7,7 +8,7 @@ const ProtectedRoute = () => {
   const location = useLocation();
 
   if (isLoading) {
-    return <p>Loading...</p>;
+    return <LoadingState className="min-h-screen bg-black" />;
   }
 
   if (!isAuthenticated) {

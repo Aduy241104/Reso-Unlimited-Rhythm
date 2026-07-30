@@ -75,3 +75,8 @@ export const patchMyArtistProfileMediaService = async (formData) => {
   );
   return response?.data?.data?.artist ?? null;
 };
+
+export const getMyArtistViolationsService = async () => {
+  const response = await axiosClient.get(`${ARTIST_API_PREFIX}/me/violations`);
+  return response?.data?.data ?? null;
+};

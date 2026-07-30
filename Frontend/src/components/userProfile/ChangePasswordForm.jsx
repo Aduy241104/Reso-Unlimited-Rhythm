@@ -260,7 +260,11 @@ const ChangePasswordForm = ({ onCancel, onSaved }) => {
           Hủy
         </button>
 
-        <button type="submit" disabled={isSaving} className={primaryButtonClassName}>
+        <button
+          type="submit"
+          disabled={isSaving}
+          className={`${primaryButtonClassName} ${isSaving ? "!bg-[#111111] !text-white" : ""}`}
+        >
           {isSaving ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden />

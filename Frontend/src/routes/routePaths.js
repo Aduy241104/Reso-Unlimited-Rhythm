@@ -1,4 +1,4 @@
-﻿export const routePaths = {
+export const routePaths = {
   home: "/",
   search: "/search",
   userGenres: "/genres",
@@ -52,6 +52,7 @@
   artistRevenueHistory: "/artist/royalties/history",
   artistRevenuePeriodDetail: (periodId = ":id") => `/artist/royalties/history/${periodId}`,
   artistWithdrawalRequests: "/artist/withdrawal-requests",
+  artistViolations: "/artist/violations",
   artistSettings: "/artist/settings",
   artistProfile: "/artist/profile",
   artistProfileEdit: "/artist/profile/edit",

@@ -287,7 +287,7 @@ const buildPopularTracksFromApi = (tracks = []) =>
         _id: resolvedTrackId,
         id: resolvedTrackId,
         title: track?.title || "Untitled track",
-        image: track?.coverImage || track?.album?.coverImage || track?.avatar || "",
+        image: track?.avatar || track?.artist?.avatar || track?.coverImage || track?.album?.coverImage || "",
         artist: track?.artist || null,
         artistName:
           track?.artistName ||
@@ -593,3 +593,4 @@ export const getMonthlyTopArtistsService = async ({ month, limit = 9 }) => {
     meta: response.data.meta,
   };
 };
+

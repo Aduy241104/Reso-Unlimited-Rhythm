@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import LoadingState from "../../components/common/LoadingState";
 import {
     ArrowLeft,
     CheckCircle2,
@@ -7,6 +8,7 @@ import {
     FileCheck2,
     FileText,
     FileX,
+    Home,
     Loader2,
     Music2,
     Star,
@@ -255,10 +257,7 @@ const MyArtistRegistrationRequestDetailPage = () => {
     if (loading) {
         return (
             <main className="min-h-full bg-[#0e0e12] px-4 py-8 text-white sm:px-6 lg:px-8">
-                <div className="mx-auto flex max-w-5xl flex-col items-center justify-center py-20">
-                    <Loader2 className="h-8 w-8 animate-spin text-[#f5b66f]" aria-hidden />
-                    <p className="mt-3 text-sm text-white/55">Đang tải chi tiết...</p>
-                </div>
+                <LoadingState message="Đang tải chi tiết..." className="mx-auto max-w-5xl py-20" spinnerClassName="h-8 w-8" />
             </main>
         );
     }
@@ -305,13 +304,22 @@ const MyArtistRegistrationRequestDetailPage = () => {
     return (
         <main className="min-h-full bg-[radial-gradient(circle_at_top_left,_rgba(214,176,106,0.14),_transparent_18%),radial-gradient(circle_at_top_right,_rgba(255,255,255,0.05),_transparent_16%),radial-gradient(circle_at_bottom_right,_rgba(124,92,255,0.10),_transparent_24%),linear-gradient(145deg,_#060608_0%,_#0b0b11_42%,_#12121a_100%)] px-4 py-8 text-white sm:px-6 lg:px-8">
             <div className="mx-auto max-w-6xl space-y-6">
-                <button
-                    onClick={() => navigate(routePaths.artistRegistrationRequestsList)}
-                    className="inline-flex items-center gap-2 rounded-full bg-white/[0.035] px-4 py-2 text-xs font-medium text-white/62 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] transition hover:bg-white/[0.06] hover:text-white"
-                >
-                    <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
-                    Quay lại danh sách yêu cầu
-                </button>
+                <div className="flex flex-wrap items-center gap-3">
+                    <button
+                        onClick={() => navigate(routePaths.artistRegistrationRequestsList)}
+                        className="inline-flex items-center gap-2 rounded-full bg-white/[0.035] px-4 py-2 text-xs font-medium text-white/62 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] transition hover:bg-white/[0.06] hover:text-white"
+                    >
+                        <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
+                        Quay lại danh sách yêu cầu
+                    </button>
+                    <button
+                        onClick={() => navigate(routePaths.home)}
+                        className="inline-flex items-center gap-2 rounded-full bg-white/[0.035] px-4 py-2 text-xs font-medium text-[#f5b66f] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] transition hover:bg-white/[0.06] hover:text-white"
+                    >
+                        <Home className="h-3.5 w-3.5" aria-hidden />
+                        Trang chủ
+                    </button>
+                </div>
 
                 <section className="relative overflow-hidden rounded-[30px] bg-[linear-gradient(135deg,rgba(18,18,26,0.96),rgba(12,12,18,0.88))] shadow-[0_24px_90px_rgba(0,0,0,0.34)]">
                     <div className="pointer-events-none absolute -left-20 top-6 h-48 w-48 rounded-full blur-3xl" style={{ backgroundColor: "rgba(214,176,106,0.10)" }} />

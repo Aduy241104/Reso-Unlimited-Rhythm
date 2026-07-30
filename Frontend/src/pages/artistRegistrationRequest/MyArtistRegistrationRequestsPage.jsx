@@ -1,6 +1,7 @@
 import { useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import { Clock, Eye, FileCheck2, FileX, Loader2, Plus, Search, XCircle } from "lucide-react";
+import LoadingState from "../../components/common/LoadingState";
+import { ArrowLeft, Clock, Eye, FileCheck2, FileX, Loader2, Plus, Search, XCircle, Home } from "lucide-react";
 import { routePaths } from "../../routes/routePaths";
 import { getApiErrorFullMessage } from "../../utils/apiError";
 import {
@@ -217,6 +218,17 @@ const MyArtistRegistrationRequestsPage = () => {
     return (
         <main className="min-h-full bg-[#0e0e12] px-4 py-8 text-white sm:px-6 lg:px-8">
             <div className="mx-auto max-w-5xl space-y-6">
+                {/* Top Left Back Arrow to Homepage */}
+                <div>
+                    <button
+                        onClick={() => navigate(routePaths.home)}
+                        className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-xs font-semibold text-white/70 shadow-sm transition hover:border-white/20 hover:bg-white/10 hover:text-white"
+                    >
+                        <ArrowLeft className="h-4 w-4 text-[#f5b66f]" aria-hidden />
+                        <span>Trang chủ</span>
+                    </button>
+                </div>
+
                 {/* Page Header */}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
@@ -275,10 +287,7 @@ const MyArtistRegistrationRequestsPage = () => {
                 <div className="rounded-3xl border border-white/10 bg-white/[0.03] shadow-xl">
                     {/* Loading */}
                     {loading && (
-                        <div className="flex flex-col items-center justify-center py-20">
-                            <Loader2 className="h-8 w-8 animate-spin text-[#f5b66f]" aria-hidden />
-                            <p className="mt-3 text-sm text-white/55">Đang tải danh sách...</p>
-                        </div>
+                        <LoadingState message="Đang tải danh sách..." className="py-20" spinnerClassName="h-8 w-8" />
                     )}
 
                     {/* Error */}

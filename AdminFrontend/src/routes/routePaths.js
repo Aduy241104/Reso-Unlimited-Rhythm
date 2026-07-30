@@ -1,4 +1,4 @@
-﻿export const routePaths = {
+export const routePaths = {
   home: "/",
   login: "/login",
   systemTracks: "/system-tracks",
@@ -38,7 +38,13 @@
   revenueSharingDetail: (periodId = ":periodId") =>
     `/revenue-sharing/${periodId}`,
   reports: "/reports",
+  artistViolations: "/artist-violations",
+  createArtistViolation: "/artist-violations/new",
+  artistViolationDetail: (targetType = ":targetType", targetId = ":targetId") =>
+    `/artist-violations/detail/${targetType}/${targetId}`,
   reportDetail: (reportId = ":reportId") => `/reports/${reportId}`,
+  groupedReportDetail: (targetType = ":targetType", targetId = ":targetId") =>
+    `/reports/grouped/${targetType}/${targetId}`,
   subscriptions: "/subscriptions",
   subscriptionDetail: (planId = ":planId") => `/subscriptions/${planId}`,
   subscriptionEdit: (planId = ":planId") => `/subscriptions/${planId}/edit`,

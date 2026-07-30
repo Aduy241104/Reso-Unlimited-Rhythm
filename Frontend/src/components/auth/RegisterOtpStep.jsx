@@ -1,4 +1,4 @@
-import { ArrowRight, RotateCcw } from "lucide-react";
+import { ArrowRight, Loader2, RotateCcw } from "lucide-react";
 import { Link } from "react-router-dom";
 import systemLogo from "../../assets/images/ChatGPT Image 13_16_10 4 thg 5, 2026.png";
 import { routePaths } from "../../routes/routePaths";
@@ -82,8 +82,17 @@ const RegisterOtpStep = ({
           disabled={isSubmitting}
           type="submit"
         >
-          {isSubmitting ? "Đang xác thực..." : "Tạo tài khoản"}
-          <ArrowRight className="h-4 w-4" />
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              Đang xác thực...
+            </>
+          ) : (
+            <>
+              Tạo tài khoản
+              <ArrowRight className="h-4 w-4" />
+            </>
+          )}
         </button>
       </form>
 
@@ -97,17 +106,29 @@ const RegisterOtpStep = ({
         </button>
 
         <button
-          className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400"
+          className={[
+            "inline-flex min-h-[42px] items-center justify-center gap-2 rounded-[14px] border border-slate-200 px-4 py-3 text-sm font-medium transition disabled:cursor-not-allowed",
+            isResending
+              ? "bg-[#111827] text-white"
+              : "bg-white text-slate-900 hover:bg-slate-50 disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400",
+          ].join(" ")}
           disabled={isResending || remainingSeconds > 0}
           onClick={onResendOtp}
           type="button"
         >
-          <RotateCcw className="h-4 w-4" />
-          {isResending
-            ? "Đang gửi lại OTP..."
-            : remainingSeconds > 0
-              ? `Thử lại sau ${remainingSeconds}s`
-              : "Gửi lại OTP"}
+          {isResending ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              Đang gửi lại OTP...
+            </>
+          ) : (
+            <>
+              <RotateCcw className="h-4 w-4" />
+              {remainingSeconds > 0
+                ? `Thử lại sau ${remainingSeconds}s`
+                : "Gửi lại OTP"}
+            </>
+          )}
         </button>
       </div>
     </AuthCard>

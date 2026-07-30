@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import GenreTrackCard from "../../components/usergenre/GenreTrackCard";
+import LoadingState from "../../components/common/LoadingState";
 import { getUserGenreTracks } from "../../services/userGenreService";
 import { getApiErrorMessage } from "../../utils/apiError";
 
@@ -61,21 +62,7 @@ const normalizePagination = (payload, currentPage, totalItems) => {
 
 const LoadingGrid = () => {
   return (
-    <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6">
-      {Array.from({ length: 10 }, (_, index) => (
-        <div
-          key={`genre-track-skeleton-${index}`}
-          className="animate-pulse rounded-2xl bg-[#181818] p-3"
-        >
-          <div className="aspect-square rounded-xl bg-[#252525]" />
-          <div className="mt-4 space-y-2 px-1 pb-1">
-            <div className="h-4 w-4/5 rounded-full bg-[#2e2e2e]" />
-            <div className="h-3 w-3/5 rounded-full bg-[#262626]" />
-            <div className="h-3 w-2/5 rounded-full bg-[#222222]" />
-          </div>
-        </div>
-      ))}
-    </section>
+    <LoadingState message="Đang tải bài hát theo thể loại..." className="min-h-[320px]" />
   );
 };
 

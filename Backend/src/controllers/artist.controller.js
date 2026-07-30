@@ -77,10 +77,24 @@ const requestVerification = async (req, res, next) => {
     }
 };
 
+const getMyViolations = async (req, res, next) => {
+    try {
+        const data = await artistService.getMyViolationsByUserId(req.user.id);
+        return formatResponse.success(
+            res,
+            data,
+            "Artist violation records fetched successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getMyProfile,
     getMyBlockStatus,
     updateMyProfile,
     updateMyProfileMedia,
     requestVerification,
+    getMyViolations,
 };

@@ -59,7 +59,7 @@ const SubscriptionPlanStatisticsTab = () => {
       <div className="overflow-hidden rounded-2xl bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
         <div className="overflow-x-auto">
           <div className="min-w-[1150px]">
-            <div className="grid grid-cols-[minmax(0,1.6fr)_140px_120px_120px_140px_140px_140px_120px] gap-4 border-b border-slate-200 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+            <div className="grid grid-cols-[minmax(0,1.6fr)_130px_110px_110px_120px_120px_120px_110px_110px] gap-4 border-b border-slate-200 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
               <span>Gói đăng ký</span>
               <span>Giá</span>
               <span>Thời hạn</span>
@@ -68,6 +68,7 @@ const SubscriptionPlanStatisticsTab = () => {
               <span>Hoạt động</span>
               <span>Hết hạn</span>
               <span>Đang chờ</span>
+              <span>Đã hủy</span>
             </div>
 
             {isLoading ? (
@@ -86,13 +87,10 @@ const SubscriptionPlanStatisticsTab = () => {
               ? planStats.map((item) => (
                   <div
                     key={item.planId}
-                    className="grid grid-cols-[minmax(0,1.6fr)_140px_120px_120px_140px_140px_140px_120px] gap-4 border-b border-slate-100 px-6 py-4 text-sm text-slate-700 last:border-b-0"
+                    className="grid grid-cols-[minmax(0,1.6fr)_130px_110px_110px_120px_120px_120px_110px_110px] gap-4 border-b border-slate-100 px-6 py-4 text-sm text-slate-700 last:border-b-0"
                   >
                     <div>
                       <p className="font-semibold text-slate-900">{item.planName}</p>
-                      <p className="mt-1 text-xs text-slate-400">
-                        Đã hủy: {item.cancelledSubscriptions ?? 0}
-                      </p>
                     </div>
                     <span>{formatCurrency(item.planPrice)}</span>
                     <span>{item.planDurationDays} ngày</span>
@@ -107,6 +105,9 @@ const SubscriptionPlanStatisticsTab = () => {
                       {item.expiredSubscriptions ?? 0}
                     </span>
                     <span>{item.pendingSubscriptions ?? 0}</span>
+                    <span className="font-semibold text-rose-600">
+                      {item.cancelledSubscriptions ?? 0}
+                    </span>
                   </div>
                 ))
               : null}
