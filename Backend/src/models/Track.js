@@ -2,19 +2,104 @@ import mongoose from "mongoose";
 
 const { Schema, model } = mongoose;
 
+const audioFileSchema = new Schema(
+    {
+        url: { type: String, required: true },
+        format: { type: String, required: true },
+        bitrate: { type: Number, required: true },
+        label: {
+            type: String,
+            enum: ["original", "high", "medium", "low", "lowest"],
+            default: "original",
+        },
+        priority: { type: Number, default: 0 },
+    },
+    { _id: false }
+);
+
+const copyrightSchema = new Schema(
+    {
+        copyrightOwner: { type: String, default: "" },
+        recordingOwner: { type: String, default: "" },
+
+        composer: { type: String, default: "" },
+        lyricist: { type: String, default: "" },
+        producer: { type: String, default: "" },
+
+        isOriginal: { type: Boolean, default: true },
+        isCover: { type: Boolean, default: false },
+        isRemix: { type: Boolean, default: false },
+        usesSample: { type: Boolean, default: false },
+        usesLicensedBeat: { type: Boolean, default: false },
+
+        originalTrackTitle: { type: String, default: "" },
+        originalArtistName: { type: String, default: "" },
+
+        licenseDocumentUrls: [{ type: String }],
+
+        declarationAccepted: { type: Boolean, default: false },
+
+        copyrightStatus: {
+            type: String,
+            enum: ["pending", "verified", "rejected", "disputed"],
+            default: "pending",
+        },
+
+        copyrightNote: { type: String, default: "" },
+    },
+    { _id: false }
+);
+
+const pendingTrackUpdateDataSchema = new Schema(
+    {
+        title: { type: String, trim: true, default: "" },
+        versionTitle: { type: String, trim: true, default: "" },
+        description: { type: String, default: "" },
+        tags: [{ type: String, trim: true }],
+        genreIds: [{ type: Schema.Types.ObjectId, ref: "Genre" }],
+        audioFiles: [audioFileSchema],
+        duration: { type: Number, min: 0, default: 0 },
+        avatar: { type: String, default: "" },
+        coverImage: [{ type: String }],
+        lyricsStatic: { type: String, default: "" },
+        lyricsSyncUrl: { type: String, default: "" },
+        copyright: copyrightSchema,
+    },
+    { _id: false }
+);
+
+const pendingTrackUpdateSchema = new Schema(
+    {
+        status: {
+            type: String,
+            enum: ["none", "pending", "rejected"],
+            default: "none",
+        },
+        data: {
+            type: pendingTrackUpdateDataSchema,
+            default: null,
+        },
+        changedFields: [{ type: String, trim: true }],
+        submittedAt: { type: Date, default: null },
+        lastSavedAt: { type: Date, default: null },
+        reviewedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
+        reviewedAt: { type: Date, default: null },
+        adminNote: { type: String, default: "" },
+        rejectReason: { type: String, default: "" },
+    },
+    { _id: false }
+);
+
 const TrackSchema = new Schema(
     {
         title: { type: String, required: true, trim: true, index: true },
+        versionTitle: { type: String, default: "", trim: true },
+        description: { type: String, default: "" },
+        tags: [{ type: String, trim: true }],
         artist_artistId: { type: Schema.Types.ObjectId, ref: "Artist", required: true, index: true },
         album_albumId: { type: Schema.Types.ObjectId, ref: "Album", index: true },
         genreIds: [{ type: Schema.Types.ObjectId, ref: "Genre" }],
-        audioFiles: [{
-            url: { type: String, required: true },
-            format: { type: String, required: true },
-            bitrate: { type: Number, required: true },
-            label: { type: String, enum: ["original", "high", "medium", "low", "lowest"], default: "original" },
-            priority: { type: Number, default: 0 },
-        }],
+        audioFiles: [audioFileSchema],
 
         duration: { type: Number, required: true, min: 0 },
         avatar: { type: String, default: "" },
@@ -28,6 +113,13 @@ const TrackSchema = new Schema(
         },
 
         releaseDate: { type: Date },
+        releaseStatus: {
+            type: String,
+            enum: ["unreleased", "scheduled", "released"],
+            default: "unreleased",
+            index: true,
+        },
+        releasedAt: { type: Date, default: null },
         activeStatus: {
             type: String,
             enum: ["draft", "active", "hidden", "blocked"],
@@ -40,35 +132,7 @@ const TrackSchema = new Schema(
             default: "draft",
             index: true,
         },
-        copyright: {
-            copyrightOwner: { type: String, default: "" },
-            recordingOwner: { type: String, default: "" },
-
-            composer: { type: String, default: "" },
-            lyricist: { type: String, default: "" },
-            producer: { type: String, default: "" },
-
-            isOriginal: { type: Boolean, default: true },
-            isCover: { type: Boolean, default: false },
-            isRemix: { type: Boolean, default: false },
-            usesSample: { type: Boolean, default: false },
-            usesLicensedBeat: { type: Boolean, default: false },
-
-            originalTrackTitle: { type: String, default: "" },
-            originalArtistName: { type: String, default: "" },
-
-            licenseDocumentUrls: [{ type: String }],
-
-            declarationAccepted: { type: Boolean, default: false },
-
-            copyrightStatus: {
-                type: String,
-                enum: ["pending", "verified", "rejected", "disputed"],
-                default: "pending",
-            },
-
-            copyrightNote: { type: String, default: "" },
-        },
+        copyright: copyrightSchema,
 
         moderation: {
             submittedAt: { type: Date, default: null },
@@ -89,14 +153,52 @@ const TrackSchema = new Schema(
                 ]
             }]
         },
-        rejectReason: {
+        rejectReason: { 
             type: String,
             default: "",
         },
 
+        blockedByAlbumId: {
+            type: Schema.Types.ObjectId,
+            ref: "Album",
+            default: null,
+            index: true,
+        },
+        previousActiveStatusBeforeAlbumBlock: {
+            type: String,
+            enum: ["draft", "active", "hidden", null],
+            default: null,
+        },
+        previousHiddenReasonBeforeAlbumBlock: {
+            type: String,
+            default: "",
+        },
+        previousHiddenAtBeforeAlbumBlock: {
+            type: Date,
+            default: null,
+        },
         blockedReason: { type: String, default: "" },
         hiddenReason: { type: String, default: "" },
         hiddenAt: { type: Date },
+        previousActiveStatusBeforeArtistHide: {
+            type: String,
+            enum: ["draft", "active", null],
+            default: null,
+        },
+        pendingUpdate: {
+            type: pendingTrackUpdateSchema,
+            default: () => ({
+                status: "none",
+                data: null,
+                changedFields: [],
+                submittedAt: null,
+                lastSavedAt: null,
+                reviewedBy: null,
+                reviewedAt: null,
+                adminNote: "",
+                rejectReason: "",
+            }),
+        },
     },
     { timestamps: true }
 );

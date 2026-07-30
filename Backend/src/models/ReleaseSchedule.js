@@ -14,6 +14,15 @@ const ReleaseScheduleSchema = new Schema(
     { timestamps: true }
 );
 
+ReleaseScheduleSchema.index(
+    { type: 1, targetId: 1, status: 1 },
+    {
+        unique: true,
+        partialFilterExpression: { status: "scheduled" },
+        name: "unique_scheduled_release_per_target",
+    }
+);
+
 const ReleaseSchedule = model("ReleaseSchedule", ReleaseScheduleSchema);
 
 export default ReleaseSchedule;

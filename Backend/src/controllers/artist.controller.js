@@ -15,6 +15,20 @@ const getMyProfile = async (req, res, next) => {
     }
 };
 
+const getMyBlockStatus = async (req, res, next) => {
+    try {
+        const blockStatus = await artistService.getMyBlockStatusByUserId(req.user.id);
+
+        return formatResponse.success(
+            res,
+            { blockStatus },
+            "Artist block status fetched successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 const updateMyProfile = async (req, res, next) => {
     try {
         const artist = await artistService.updateMyProfileByUserId(req.user.id, req.body);
@@ -63,9 +77,24 @@ const requestVerification = async (req, res, next) => {
     }
 };
 
+const getMyViolations = async (req, res, next) => {
+    try {
+        const data = await artistService.getMyViolationsByUserId(req.user.id);
+        return formatResponse.success(
+            res,
+            data,
+            "Artist violation records fetched successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getMyProfile,
+    getMyBlockStatus,
     updateMyProfile,
     updateMyProfileMedia,
     requestVerification,
+    getMyViolations,
 };

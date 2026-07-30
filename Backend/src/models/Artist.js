@@ -24,10 +24,8 @@ const ArtistSchema = new Schema(
         },
 
         revenue: {
-            totalEarnedAmount: Number,
             totalWithdrawnAmount: Number,
             availableAmount: Number,
-            pendingPayoutAmount: Number,
             confirmedRevenueSummaryIds: [
                 {
                     type: Schema.Types.ObjectId,
@@ -55,6 +53,13 @@ const ArtistSchema = new Schema(
             default: "active",
             index: true,
         },
+
+        violations: [
+            {
+                content: { type: String, required: true, trim: true },
+                violatedAt: { type: Date, default: Date.now },
+            },
+        ],
 
         blockedReason: { type: String, default: "" },
     },

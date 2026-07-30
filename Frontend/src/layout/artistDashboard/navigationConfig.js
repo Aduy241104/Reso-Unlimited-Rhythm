@@ -6,6 +6,8 @@ import {
   FileText,
   LayoutDashboard,
   Music2,
+  ShieldAlert,
+  Users,
   UserCircle2,
   Wallet,
   Waves,
@@ -54,6 +56,16 @@ export const artistNavigation = [
     icon: Bell,
   },
   {
+    label: "Lịch sử vi phạm",
+    to: routePaths.artistViolations,
+    icon: ShieldAlert,
+  },
+  {
+    label: "Người theo dõi",
+    to: routePaths.artistFollowers,
+    icon: Users,
+  },
+  {
     label: "Hồ sơ nghệ sĩ",
     to: routePaths.artistProfile,
     icon: UserCircle2,
@@ -72,6 +84,8 @@ export const artistPageTitles = {
   [routePaths.artistRoyalties]: "Doanh thu",
   [routePaths.artistBalanceManagement]: "Quản lý số dư",
   [routePaths.artistNotifications]: "Thông báo",
+  [routePaths.artistViolations]: "Lịch sử vi phạm",
+  [routePaths.artistFollowers]: "Người theo dõi",
   [routePaths.artistProfile]: "Hồ sơ nghệ sĩ",
   [routePaths.artistProfileEdit]: "Chỉnh sửa hồ sơ nghệ sĩ",
 };

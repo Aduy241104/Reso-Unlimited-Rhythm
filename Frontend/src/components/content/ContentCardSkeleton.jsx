@@ -2,7 +2,7 @@ const ContentCardSkeleton = () => {
   return (
     <div
       className="
-        animate-pulse rounded-[16px] border border-black/5 bg-white/70 p-2.5
+        h-full animate-pulse rounded-[16px] border border-black/5 bg-white/70 p-2.5
         dark:border-white/10 dark:bg-[#181818]
         sm:rounded-[18px] sm:p-3
       "

@@ -1,5 +1,9 @@
 import { AppError } from "../../utils/AppError.js";
 import mongoose from "mongoose";
+import {
+    resolveTrackReleasedAt,
+    resolveTrackReleaseStatus,
+} from "../../utils/trackRelease.js";
 
 export const normalizePositiveInteger = (value, defaultValue) => {
     const number = Number(value);
@@ -168,6 +172,8 @@ const getTrackCoverImage = (track) => {
     return track.coverImage || track.avatar || "";
 };
 
+const isBlockedTrack = (track) => track?.activeStatus === "blocked";
+
 const formatPlaylistTrack = (playlistTrack) => {
     const track = playlistTrack.trackId;
 
@@ -190,6 +196,11 @@ const formatPlaylistTrack = (playlistTrack) => {
             lyricsSyncUrl: track.lyricsSyncUrl || "",
             stats: track.stats || {},
             releaseDate: track.releaseDate,
+            releaseStatus: resolveTrackReleaseStatus(track),
+            releasedAt: resolveTrackReleasedAt(track),
+            activeStatus: track.activeStatus,
+            approvalStatus: track.approvalStatus,
+            isBlocked: isBlockedTrack(track),
             artist: track.artist_artistId
                 ? {
                     id: toId(track.artist_artistId._id),

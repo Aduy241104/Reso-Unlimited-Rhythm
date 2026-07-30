@@ -1,6 +1,6 @@
 import express from "express";
 import authenticate, {
-    requirePremiumUser,
+    requirePremiumAccess,
 } from "../middlewares/Authentication/authentication.middleware.js";
 import userRecentListeningController from "../controllers/user.recentListening.controller.js";
 
@@ -8,8 +8,8 @@ const router = express.Router();
 
 router.get(
     "/me/recent-listening-activity",
-    authenticate(["user"]),
-    requirePremiumUser,
+    authenticate(["user", "artist"]),
+    requirePremiumAccess,
     userRecentListeningController.getMyRecentListeningActivity
 );
 

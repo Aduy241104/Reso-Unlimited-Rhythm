@@ -26,6 +26,7 @@ import userRecentListeningRoutes from "./user.recentListening.routes.js";
 import userPlaylistRoutes from "./user.playlist.routes.js"
 import adminArtistRouter from "./admin.artist.router.js";
 import adminNotificationRouter from "./admin.notification.router.js";
+import adminTransactionRoutes from "./admin.transaction.route.js";
 import userReportRoutes from "./user.report.routes.js";
 import userGenreRoutes from "./user.genre.routes.js";
 import searchRoutes from "./search.routes.js";
@@ -56,6 +57,7 @@ function route(app) {
     app.use("/api/tracks", trackRoutes);
     app.use("/api/listen-events", listenEventRoutes);
     app.use("/api/artist/lyrics", lyricsRoutes);
+    app.use("/api/admin/transactions", adminTransactionRoutes);
     app.use("/api/admin", adminRoutes);
     app.use("/api/libary", libaryRoutes);
     app.use("/api", subscriptionRoutes);
@@ -77,5 +79,7 @@ function route(app) {
 }
 
 export default route;
+
+
 
 

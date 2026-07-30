@@ -74,6 +74,16 @@ const normalizeArtistDetail = (payload, tracks = []) => {
 };
 
 export const artistService = {
+  async getDailyTopArtists(params) {
+    const response = await axiosClient.get(API_ENDPOINTS.ARTISTS.TOP_DAILY, { params });
+    const payload = getPayload(response);
+
+    return {
+      items: Array.isArray(payload.topArtists) ? payload.topArtists.map(normalizeArtistRanking) : [],
+      meta: response?.meta || payload?.meta || null,
+    };
+  },
+
   async getMonthlyTopArtists(params) {
     const response = await axiosClient.get(API_ENDPOINTS.ARTISTS.TOP_MONTHLY, { params });
     const payload = getPayload(response);

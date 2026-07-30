@@ -76,6 +76,8 @@ const normalizeTrackRanking = (item) => {
     ...track,
     ...rawItem,
     id: pickFirstDefined(rawItem.id, rawItem._id, track.id, track._id, ''),
+    entityType: 'track',
+    entityId: pickFirstDefined(track.id, track._id, rawItem.trackId, rawItem.id, rawItem._id, ''),
     title: pickFirstDefined(rawItem.title, track.title, 'Bài hát không xác định'),
     artistId: pickFirstDefined(rawItem.artistId, artist?.id, artist?._id, ''),
     artistName: pickFirstDefined(rawItem.artistName, rawItem.artist?.name, artist?.name, 'Nghệ sĩ không xác định'),

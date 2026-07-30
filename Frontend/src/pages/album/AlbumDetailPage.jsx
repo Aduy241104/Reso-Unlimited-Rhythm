@@ -9,12 +9,14 @@ import {
   Shuffle,
 } from "lucide-react";
 import PlayButton from "../../components/common/PlayButton";
+import LoadingState from "../../components/common/LoadingState";
 import CreateReportModal from "../../components/report/CreateReportModal";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import TrackCard from "../../components/TrackCard";
 import TrackListSection from "../../components/trackList/TrackListSection";
 import { useAuth } from "../../hooks/useAuth";
 import { usePlayer } from "../../hooks/usePlayer";
+import useDominantColorGradient from "../../hooks/useDominantColorGradient";
 import { routePaths } from "../../routes/routePaths";
 import {
   followAlbumService,
@@ -27,8 +29,10 @@ import {
   formatAlbumDuration,
   formatReleaseYear,
   formatTrackDuration,
+  resolveTrackAvatar,
 } from "../../utils/albumDetail";
 import { getApiErrorMessage } from "../../utils/apiError";
+import { isBlockedTrack } from "../../utils/trackStatus";
 
 const actionButtonClassName = `
   inline-flex h-10 w-10 items-center justify-center rounded-full border border-black/8
@@ -187,6 +191,7 @@ const AlbumDetailPage = () => {
 
   const albumCoverImage =
     album?.coverImage || createPlaceholderImage(album?.title);
+  const headerGradient = useDominantColorGradient(albumCoverImage);
 
   const trackItems = album?.tracks ?? [];
   const albumArtistName = album?.artist?.name || "Nghệ sĩ không xác định";
@@ -300,6 +305,16 @@ const AlbumDetailPage = () => {
         ? "Đã theo dõi"
         : "Theo dõi";
 
+  if (isLoading) {
+    return (
+      <LoadingState
+        message="Đang tải chi tiết album..."
+        className="min-h-[60vh]"
+        spinnerClassName="h-8 w-8"
+      />
+    );
+  }
+
   return (
     <section className="space-y-4 sm:space-y-6">
       <div
@@ -310,17 +325,12 @@ const AlbumDetailPage = () => {
         "
       >
         <div
-          className="
-            bg-gradient-to-b from-[#d97706] via-[#7c3f00] to-transparent
-            px-4 pb-5 pt-6 dark:from-[#f59e0b] dark:via-[#8f4b13] dark:to-[#121212]
-            sm:px-8 sm:pb-8 sm:pt-10
-          "
+          className="px-4 pb-5 pt-6 transition-[background-image] duration-500 sm:px-8 sm:pb-8 sm:pt-10"
+          style={{ backgroundImage: headerGradient }}
         >
           
           { isLoading ? (
-            <div className="flex min-h-[20rem] items-end">
-              <p className="text-sm text-white/82">Đang tải chi tiết album...</p>
-            </div>
+            <LoadingState message="Đang tải chi tiết album..." className="min-h-[20rem]" />
           ) : errorMessage ? (
             <div className="flex min-h-[20rem] items-end">
               <p className="max-w-xl text-sm text-white/88">{ errorMessage }</p>
@@ -381,7 +391,9 @@ const AlbumDetailPage = () => {
               disabled={ isFollowLoading || isFollowStatusLoading || isAuthLoading }
               className={ [
                 followButtonClassName,
-                isFollowing
+                isFollowLoading || isFollowStatusLoading
+                  ? "border-white/20 bg-[#111111] text-white"
+                  : isFollowing
                   ? "border-[#f5b66f]/70 bg-[#f5b66f] text-[#111111] hover:bg-[#f8c27f]"
                   : "",
               ].join(" ") }
@@ -428,23 +440,21 @@ const AlbumDetailPage = () => {
           >
             { trackItems.map((trackItem, index) => {
               const track = trackItem?.track;
+              const isTrackBlocked = isBlockedTrack(trackItem);
 
               return (
                 <TrackCard
                   key={ track?.id || `${trackItem?.order}-${index}` }
                   index={ trackItem?.order || index + 1 }
                   track={ track }
-                  image={
-                    track?.coverImage ||
-                    track?.artist?.avatar ||
-                    albumCoverImage
-                  }
+                  image={ resolveTrackAvatar(track) }
                   title={ track?.title || "Untitled track" }
                   trackId={track?.id}
                   artist={ track?.artist?.name || albumArtistName }
                   duration={ formatTrackDuration(track?.duration) }
                   explicit={ false }
                   liked={ false }
+                  isBlocked={ isTrackBlocked }
                   href={ track?.id ? routePaths.trackDetail(track.id) : undefined }
                   isPlaybackActive={ currentTrack?.id === track?.id }
                   isPlaying={ isPlaying }

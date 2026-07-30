@@ -43,6 +43,11 @@ const statusConfig = {
   },
 };
 
+const methodLabels = {
+  bank: "Ngân hàng",
+  momo: "MoMo",
+};
+
 const formatCurrency = (value) => new Intl.NumberFormat("vi-VN", {
   style: "currency",
   currency: "VND",
@@ -100,13 +105,13 @@ const getArtistAvatar = (withdrawal) => {
 
 const getStatusBadge = (status) => {
   const config = statusConfig[status] || {
-    label: status || "Unknown",
+    label: "Không xác định",
     className: "border-slate-200 bg-slate-50 text-slate-600",
     dot: "bg-slate-400",
   };
 
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-semibold ${config.className}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1 text-sm font-semibold ${config.className}`}>
       <span className={`h-2 w-2 rounded-full ${config.dot}`} />
       {config.label}
     </span>
@@ -121,7 +126,7 @@ const getErrorMessage = (error, fallback) => (
 );
 
 const DetailCard = ({ title, children }) => (
-  <div className="rounded-2xl bg-white p-6 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+  <div className="rounded-lg bg-white p-6 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
     <h2 className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-400">
       {title}
     </h2>
@@ -188,6 +193,9 @@ const WithdrawalRequestDetailPage = () => {
   const isMomo = method === "momo";
   const MethodIcon = isMomo ? WalletCards : CreditCard;
   const avatar = getArtistAvatar(withdrawal);
+  const artistId = withdrawal?.artistId?._id || (
+    typeof withdrawal?.artistId === "string" ? withdrawal.artistId : null
+  );
   const canApprove = withdrawal?.status === "pending";
   const canMarkPaid = withdrawal?.status === "approved";
 
@@ -287,7 +295,7 @@ const WithdrawalRequestDetailPage = () => {
       setIsPaidConfirmOpen(false);
     } catch (err) {
       console.error(err);
-      setError(getErrorMessage(err, "Không thể mark withdrawal request as paid."));
+      setError(getErrorMessage(err, "Không thể đánh dấu yêu cầu rút tiền là đã thanh toán."));
     } finally {
       setIsMarkingPaid(false);
     }
@@ -295,57 +303,48 @@ const WithdrawalRequestDetailPage = () => {
 
   return (
     <section className="mx-auto min-h-screen max-w-6xl space-y-6 bg-slate-50/50 p-6 text-slate-800 antialiased">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
-          >
-            <ArrowLeft size={16} />
-            Quay lại
-          </button>
-          <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
-            Chi tiết yêu cầu rút tiền
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
-            Chi tiết yêu cầu rút tiền
-          </h1>
-        </div>
-
-        <Link
-          to={routePaths.withdrawals}
-          className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+      <div>
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
         >
-          Về danh sách
-        </Link>
+          <ArrowLeft size={16} />
+          Quay lại
+        </button>
+        <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
+          Chi tiết yêu cầu rút tiền
+        </p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
+          Chi tiết yêu cầu rút tiền
+        </h1>
       </div>
 
       {successMessage ? (
-        <div className="flex items-start gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 px-5 py-4 text-emerald-600">
+        <div className="flex items-start gap-3 rounded-lg border border-emerald-100 bg-emerald-50 px-5 py-4 text-emerald-600">
           <CheckCircle2 size={18} className="mt-0.5 shrink-0" />
           <p className="text-sm leading-6">{successMessage}</p>
         </div>
       ) : null}
 
       {isLoading ? (
-        <div className="flex min-h-[360px] items-center justify-center rounded-2xl bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+        <div className="flex min-h-[360px] items-center justify-center rounded-lg bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
           <div className="flex items-center gap-3 text-slate-500">
             <Loader2 size={22} className="animate-spin" />
             <span className="text-sm font-medium">Đang tải chi tiết...</span>
           </div>
         </div>
       ) : error ? (
-        <div className="flex items-start gap-3 rounded-2xl border border-rose-100 bg-rose-50 px-5 py-4 text-rose-600">
+        <div className="flex items-start gap-3 rounded-lg border border-rose-100 bg-rose-50 px-5 py-4 text-rose-600">
           <AlertCircle size={18} className="mt-0.5 shrink-0" />
           <p className="text-sm leading-6">{error}</p>
         </div>
       ) : withdrawal ? (
         <>
-          <div className="rounded-3xl bg-slate-950 p-6 text-white shadow-[0_20px_50px_rgba(15,23,42,0.18)]">
+          <div className="rounded-xl bg-slate-950 p-6 text-white shadow-[0_20px_50px_rgba(15,23,42,0.18)]">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex min-w-0 items-center gap-4">
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white/10">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white/10">
                   {avatar ? (
                     <img
                       src={avatar}
@@ -357,9 +356,18 @@ const WithdrawalRequestDetailPage = () => {
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-xl font-semibold">
-                    {getArtistName(withdrawal)}
-                  </p>
+                  {artistId ? (
+                    <Link
+                      to={routePaths.artistDetail(artistId)}
+                      className="block truncate text-xl font-semibold text-white transition hover:text-sky-300 hover:underline"
+                    >
+                      {getArtistName(withdrawal)}
+                    </Link>
+                  ) : (
+                    <p className="truncate text-xl font-semibold">
+                      {getArtistName(withdrawal)}
+                    </p>
+                  )}
                   <p className="mt-1 truncate text-sm text-white/55">
                     {getArtistEmail(withdrawal)}
                   </p>
@@ -368,9 +376,9 @@ const WithdrawalRequestDetailPage = () => {
 
               <div className="flex flex-wrap items-center gap-3">
                 {getStatusBadge(withdrawal.status)}
-                <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-sm font-semibold uppercase text-white">
+                <span className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/10 px-3 py-1 text-sm font-semibold uppercase text-white">
                   <MethodIcon size={14} />
-                  {method}
+                  {methodLabels[method] || "Không xác định"}
                 </span>
                 {canApprove ? (
                   <button
@@ -381,7 +389,7 @@ const WithdrawalRequestDetailPage = () => {
                       setIsApproveConfirmOpen(true);
                     }}
                     disabled={isApproving}
-                    className="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center gap-2 rounded-md bg-emerald-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {isApproving ? (
                       <Loader2 size={15} className="animate-spin" />
@@ -401,7 +409,7 @@ const WithdrawalRequestDetailPage = () => {
                       setIsRejectConfirmOpen(true);
                     }}
                     disabled={isRejecting}
-                    className="inline-flex items-center gap-2 rounded-full bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center gap-2 rounded-md bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {isRejecting ? (
                       <Loader2 size={15} className="animate-spin" />
@@ -422,7 +430,7 @@ const WithdrawalRequestDetailPage = () => {
                       setIsPaidConfirmOpen(true);
                     }}
                     disabled={isMarkingPaid}
-                    className="inline-flex items-center gap-2 rounded-full bg-sky-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center gap-2 rounded-md bg-sky-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {isMarkingPaid ? (
                       <Loader2 size={15} className="animate-spin" />
@@ -436,25 +444,25 @@ const WithdrawalRequestDetailPage = () => {
             </div>
 
             <div className="mt-8 grid gap-4 sm:grid-cols-3">
-              <div className="rounded-2xl bg-white/10 p-4">
+              <div className="rounded-lg bg-white/10 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/40">
-                  Amount
+                  Số tiền
                 </p>
                 <p className="mt-2 font-mono text-2xl font-semibold">
                   {formatCurrency(withdrawal.amount)}
                 </p>
               </div>
-              <div className="rounded-2xl bg-white/10 p-4">
+              <div className="rounded-lg bg-white/10 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/40">
-                  Request ID
+                  Mã yêu cầu
                 </p>
                 <p className="mt-2 break-all font-mono text-sm font-semibold">
                   {withdrawal._id || withdrawal.id}
                 </p>
               </div>
-              <div className="rounded-2xl bg-white/10 p-4">
+              <div className="rounded-lg bg-white/10 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/40">
-                  Created At
+                  Ngày tạo
                 </p>
                 <p className="mt-2 text-sm font-semibold">
                   {formatDateTime(withdrawal.createdAt || withdrawal.requestedAt)}
@@ -464,19 +472,19 @@ const WithdrawalRequestDetailPage = () => {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
-            <DetailCard title="Artist information">
-              <InfoRow label="Artist name" value={getArtistName(withdrawal)} />
-              <InfoRow label="Email" value={getArtistEmail(withdrawal)} />
-              <InfoRow label="Artist ID" value={withdrawal.artistId?._id || withdrawal.artistId} />
-              <InfoRow label="User ID" value={withdrawal.artistId?.userId?._id} />
+            <DetailCard title="Thông tin nghệ sĩ">
+              <InfoRow label="Tên nghệ sĩ" value={getArtistName(withdrawal)} />
+              <InfoRow label="Thư điện tử" value={getArtistEmail(withdrawal)} />
+              <InfoRow label="Mã nghệ sĩ" value={withdrawal.artistId?._id || withdrawal.artistId} />
+              <InfoRow label="Mã người dùng" value={withdrawal.artistId?.userId?._id} />
             </DetailCard>
 
-            <DetailCard title="Payment information">
-              <InfoRow label="Payment method" value={method} />
+            <DetailCard title="Thông tin thanh toán">
+              <InfoRow label="Phương thức thanh toán" value={methodLabels[method] || "Không xác định"} />
               {isMomo ? (
                 <>
                   <InfoRow
-                    label="MoMo phone"
+                    label="Số điện thoại MoMo"
                     value={
                       accountInfo.momoPhone ||
                       accountInfo.walletPhone ||
@@ -485,48 +493,48 @@ const WithdrawalRequestDetailPage = () => {
                     }
                   />
                   <InfoRow
-                    label="Wallet name"
+                    label="Tên chủ ví"
                     value={accountInfo.walletName || accountInfo.accountHolderName}
                   />
                 </>
               ) : (
                 <>
-                  <InfoRow label="Bank name" value={accountInfo.bankName} />
-                  <InfoRow label="Account number" value={accountInfo.accountNumber} />
-                  <InfoRow label="Account holder" value={accountInfo.accountHolderName} />
+                  <InfoRow label="Tên ngân hàng" value={accountInfo.bankName} />
+                  <InfoRow label="Số tài khoản" value={accountInfo.accountNumber} />
+                  <InfoRow label="Chủ tài khoản" value={accountInfo.accountHolderName} />
                 </>
               )}
             </DetailCard>
 
-            <DetailCard title="Timeline">
+            <DetailCard title="Lịch sử xử lý">
               <div className="space-y-3">
-                <div className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
+                <div className="flex items-center gap-3 rounded-md bg-slate-50 px-4 py-3">
                   <Clock3 size={16} className="text-slate-400" />
-                  <InfoRow label="Created At" value={formatDateTime(withdrawal.createdAt || withdrawal.requestedAt)} />
+                  <InfoRow label="Ngày tạo" value={formatDateTime(withdrawal.createdAt || withdrawal.requestedAt)} />
                 </div>
-                <div className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
+                <div className="flex items-center gap-3 rounded-md bg-slate-50 px-4 py-3">
                   <Clock3 size={16} className="text-slate-400" />
                   <InfoRow label="Ngày duyệt" value={formatDateTime(withdrawal.approvedAt)} />
                 </div>
-                <div className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
+                <div className="flex items-center gap-3 rounded-md bg-slate-50 px-4 py-3">
                   <Clock3 size={16} className="text-slate-400" />
                   <InfoRow label="Ngày từ chối" value={formatDateTime(withdrawal.rejectedAt)} />
                 </div>
-                <div className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
+                <div className="flex items-center gap-3 rounded-md bg-slate-50 px-4 py-3">
                   <Clock3 size={16} className="text-slate-400" />
                   <InfoRow label="Ngày thanh toán" value={formatDateTime(withdrawal.paidAt)} />
                 </div>
               </div>
             </DetailCard>
 
-            <DetailCard title="Admin notes">
+            <DetailCard title="Ghi chú quản trị">
               <InfoRow label="Lý do từ chối" value={withdrawal.rejectReason} />
-              <InfoRow label="Admin note" value={withdrawal.adminNote} />
-              <InfoRow label="Payment reference" value={withdrawal.paymentReference} />
-              <InfoRow label="Payment note" value={withdrawal.paymentNote} />
-              <InfoRow label="Processed At" value={formatDateTime(withdrawal.processedAt)} />
+              <InfoRow label="Ghi chú của quản trị viên" value={withdrawal.adminNote} />
+              <InfoRow label="Mã giao dịch thanh toán" value={withdrawal.paymentReference} />
+              <InfoRow label="Ghi chú thanh toán" value={withdrawal.paymentNote} />
+              <InfoRow label="Thời gian xử lý" value={formatDateTime(withdrawal.processedAt)} />
               <InfoRow
-                label="Processed By"
+                label="Người xử lý"
                 value={
                   withdrawal.processedBy?.profile?.fullName ||
                   withdrawal.processedBy?.email ||
@@ -538,7 +546,7 @@ const WithdrawalRequestDetailPage = () => {
           </div>
         </>
       ) : (
-        <div className="rounded-2xl bg-white px-6 py-16 text-center shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+        <div className="rounded-lg bg-white px-6 py-16 text-center shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
           <Banknote size={28} className="mx-auto text-slate-300" />
           <p className="mt-4 text-sm font-semibold text-slate-900">
             Không tìm thấy yêu cầu rút tiền.
@@ -548,9 +556,9 @@ const WithdrawalRequestDetailPage = () => {
 
       {isApproveConfirmOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-[0_24px_80px_rgba(15,23,42,0.25)]">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-[0_24px_80px_rgba(15,23,42,0.25)]">
             <div className="flex items-start gap-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
                 <CheckCircle2 size={22} />
               </div>
               <div>
@@ -558,9 +566,9 @@ const WithdrawalRequestDetailPage = () => {
                   Duyệt yêu cầu rút tiền?
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Request của {getArtistName(withdrawal)} sẽ chuyển từ pending
-                  sang approved. Hành động này chưa đánh dấu đã chuyển tiền và
-                  không cập nhật doanh thu artist.
+                  Yêu cầu của {getArtistName(withdrawal)} sẽ chuyển từ trạng thái
+                  chờ xử lý sang đã duyệt. Hành động này chưa xác nhận việc chuyển
+                  tiền và không cập nhật doanh thu của nghệ sĩ.
                 </p>
                 <p className="mt-3 font-mono text-base font-semibold text-slate-900">
                   {formatCurrency(withdrawal?.amount)}
@@ -573,7 +581,7 @@ const WithdrawalRequestDetailPage = () => {
                 type="button"
                 onClick={() => setIsApproveConfirmOpen(false)}
                 disabled={isApproving}
-                className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-md border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Hủy
               </button>
@@ -581,7 +589,7 @@ const WithdrawalRequestDetailPage = () => {
                 type="button"
                 onClick={handleApproveWithdrawalRequest}
                 disabled={isApproving}
-                className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isApproving ? (
                   <Loader2 size={16} className="animate-spin" />
@@ -597,9 +605,9 @@ const WithdrawalRequestDetailPage = () => {
 
       {isRejectConfirmOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-[0_24px_80px_rgba(15,23,42,0.25)]">
+          <div className="w-full max-w-lg rounded-lg bg-white p-6 shadow-[0_24px_80px_rgba(15,23,42,0.25)]">
             <div className="flex items-start gap-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-rose-50 text-rose-600">
                 <XCircle size={22} />
               </div>
               <div className="min-w-0 flex-1">
@@ -607,8 +615,9 @@ const WithdrawalRequestDetailPage = () => {
                   Từ chối yêu cầu rút tiền?
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Request của {getArtistName(withdrawal)} sẽ bị từ chối và số tiền
-                  sẽ được hoàn lại vào availableAmount của artist revenue summary.
+                  Yêu cầu của {getArtistName(withdrawal)} sẽ bị từ chối và số tiền
+                  sẽ được hoàn lại vào số dư khả dụng trong phần tổng hợp doanh thu
+                  của nghệ sĩ.
                 </p>
                 <label className="mt-5 block">
                   <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
@@ -622,11 +631,11 @@ const WithdrawalRequestDetailPage = () => {
                     }}
                     rows={4}
                     placeholder="Nhập lý do từ chối..."
-                    className="mt-2 w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-rose-200 focus:bg-white focus:ring-4 focus:ring-rose-50"
+                    className="mt-2 w-full resize-none rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-rose-200 focus:bg-white focus:ring-4 focus:ring-rose-50"
                   />
                 </label>
                 {error ? (
-                  <div className="mt-3 rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-600">
+                  <div className="mt-3 rounded-md border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-600">
                     {error}
                   </div>
                 ) : null}
@@ -641,7 +650,7 @@ const WithdrawalRequestDetailPage = () => {
                   setRejectReason("");
                 }}
                 disabled={isRejecting}
-                className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-md border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Hủy
               </button>
@@ -649,7 +658,7 @@ const WithdrawalRequestDetailPage = () => {
                 type="button"
                 onClick={handleRejectWithdrawalRequest}
                 disabled={isRejecting || !rejectReason.trim()}
-                className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-md bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isRejecting ? (
                   <Loader2 size={16} className="animate-spin" />
@@ -665,9 +674,9 @@ const WithdrawalRequestDetailPage = () => {
 
       {isPaidConfirmOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-[0_24px_80px_rgba(15,23,42,0.25)]">
+          <div className="w-full max-w-lg rounded-lg bg-white p-6 shadow-[0_24px_80px_rgba(15,23,42,0.25)]">
             <div className="flex items-start gap-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sky-50 text-sky-600">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-sky-50 text-sky-600">
                 <Banknote size={22} />
               </div>
               <div className="min-w-0 flex-1">
@@ -675,9 +684,9 @@ const WithdrawalRequestDetailPage = () => {
                   Đánh dấu yêu cầu đã thanh toán?
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Chỉ bấm paid sau khi admin hoặc bộ phận tài chính đã chuyển tiền
-                  thủ công ngoài hệ thống cho artist. Hành động này chỉ ghi nhận
-                  thanh toán trong hệ thống.
+                  Chỉ xác nhận đã thanh toán sau khi quản trị viên hoặc bộ phận tài
+                  chính đã chuyển tiền thủ công ngoài hệ thống cho nghệ sĩ. Hành
+                  động này chỉ ghi nhận thanh toán trong hệ thống.
                 </p>
 
                 <label className="mt-5 block">
@@ -690,8 +699,8 @@ const WithdrawalRequestDetailPage = () => {
                       setPaymentReference(event.target.value);
                       if (error === "Vui lòng nhập mã giao dịch hoặc ghi chú thanh toán.") setError("");
                     }}
-                    placeholder="BANK-TXN-123456"
-                    className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-200 focus:bg-white focus:ring-4 focus:ring-sky-50"
+                    placeholder="GD-NH-123456"
+                    className="mt-2 w-full rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-200 focus:bg-white focus:ring-4 focus:ring-sky-50"
                   />
                 </label>
 
@@ -706,13 +715,13 @@ const WithdrawalRequestDetailPage = () => {
                       if (error === "Vui lòng nhập mã giao dịch hoặc ghi chú thanh toán.") setError("");
                     }}
                     rows={4}
-                    placeholder="Transferred to artist bank account manually..."
-                    className="mt-2 w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-200 focus:bg-white focus:ring-4 focus:ring-sky-50"
+                    placeholder="Đã chuyển thủ công vào tài khoản ngân hàng của nghệ sĩ..."
+                    className="mt-2 w-full resize-none rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-200 focus:bg-white focus:ring-4 focus:ring-sky-50"
                   />
                 </label>
 
                 {error ? (
-                  <div className="mt-3 rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-600">
+                  <div className="mt-3 rounded-md border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-600">
                     {error}
                   </div>
                 ) : null}
@@ -728,7 +737,7 @@ const WithdrawalRequestDetailPage = () => {
                   setPaymentNote("");
                 }}
                 disabled={isMarkingPaid}
-                className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-md border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Hủy
               </button>
@@ -736,7 +745,7 @@ const WithdrawalRequestDetailPage = () => {
                 type="button"
                 onClick={handleMarkWithdrawalRequestAsPaid}
                 disabled={isMarkingPaid || (!paymentReference.trim() && !paymentNote.trim())}
-                className="inline-flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-md bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isMarkingPaid ? (
                   <Loader2 size={16} className="animate-spin" />

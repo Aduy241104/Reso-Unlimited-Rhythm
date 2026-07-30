@@ -6,10 +6,13 @@ import { AppError } from "../../utils/AppError.js";
 
 export const TITLE_MIN_LENGTH = 1;
 export const TITLE_MAX_LENGTH = 150;
+export const DESCRIPTION_MAX_LENGTH = 5000;
 export const LYRICS_STATIC_MAX_LENGTH = 20000;
 export const MAX_GENRE_IDS = 5;
 export const MAX_COVER_IMAGES = 3;
 export const MAX_AUDIO_FILES = 5;
+export const MAX_TAGS = 10;
+export const MAX_TAG_LENGTH = 50;
 export const MIN_AUDIO_BITRATE = 64;
 
 export const AUDIO_FORMATS = new Set(["mp3", "wav", "flac", "aac", "m4a"]);
@@ -18,6 +21,8 @@ export const AUDIO_LABELS = new Set(["original", "high", "medium", "low", "lowes
 export const FORBIDDEN_ARTIST_TRACK_FIELDS = [
     "stats",
     "activeStatus",
+    "releaseStatus",
+    "releasedAt",
     "approvalStatus",
     "moderation",
     "rejectReason",
@@ -80,6 +85,66 @@ export const validateDraftTitle = (title) => {
     }
 
     return normalizedTitle;
+};
+
+export const validateOptionalDescription = (description) => {
+    if (description === undefined || description === null) {
+        return "";
+    }
+
+    const normalizedDescription = String(description).trim();
+
+    if (normalizedDescription.length > DESCRIPTION_MAX_LENGTH) {
+        throw new AppError(
+            `Description cannot exceed ${DESCRIPTION_MAX_LENGTH} characters.`,
+            StatusCodes.BAD_REQUEST,
+            { field: "description" }
+        );
+    }
+
+    return normalizedDescription;
+};
+
+export const validateOptionalTags = (tags) => {
+    if (tags === undefined || tags === null) {
+        return [];
+    }
+
+    if (!Array.isArray(tags)) {
+        throw new AppError("Tags must be an array.", StatusCodes.BAD_REQUEST, {
+            field: "tags",
+        });
+    }
+
+    const normalizedTags = tags
+        .map((tag) => String(tag || "").trim())
+        .filter(Boolean);
+
+    if (normalizedTags.length > MAX_TAGS) {
+        throw new AppError(
+            `A track can have at most ${MAX_TAGS} tags.`,
+            StatusCodes.BAD_REQUEST,
+            { field: "tags" }
+        );
+    }
+
+    normalizedTags.forEach((tag, index) => {
+        if (tag.length > MAX_TAG_LENGTH) {
+            throw new AppError(
+                `Tag cannot exceed ${MAX_TAG_LENGTH} characters.`,
+                StatusCodes.BAD_REQUEST,
+                { field: `tags[${index}]` }
+            );
+        }
+    });
+
+    if (new Set(normalizedTags.map((tag) => tag.toLowerCase())).size !== normalizedTags.length) {
+        throw new AppError("Duplicate tags are not allowed.", StatusCodes.BAD_REQUEST, {
+            field: "tags",
+        });
+    }
+
+    return normalizedTags;
 };
 
 export const resolveArtistIdForCreate = (trackData, artist) => {
@@ -248,6 +313,24 @@ export const validateOptionalDuration = (duration, hasAudioFiles) => {
         throw new AppError("Duration must be greater than 0 when audio files are provided.", StatusCodes.BAD_REQUEST, {
             field: "duration",
         });
+    }
+
+    return parsedDuration;
+};
+
+export const validateDurationFromAudioAnalysis = (audioAnalysis, hasAudioFiles) => {
+    if (!hasAudioFiles) {
+        return 0;
+    }
+
+    const parsedDuration = Number(audioAnalysis?.duration);
+
+    if (!Number.isFinite(parsedDuration) || parsedDuration <= 0) {
+        throw new AppError(
+            "Duration must be extracted from the uploaded audio file.",
+            StatusCodes.BAD_REQUEST,
+            { field: "audioAnalysis.duration" }
+        );
     }
 
     return parsedDuration;

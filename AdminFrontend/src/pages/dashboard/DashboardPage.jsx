@@ -23,6 +23,12 @@ const formatDuration = (seconds) => {
 
 const toDDMMYYYY = (dateStr) => {
     if (!dateStr) return "—";
+    if (typeof dateStr === "string" && dateStr.includes("-")) {
+        const parts = dateStr.split("T")[0].split("-");
+        if (parts.length === 3) {
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+    }
     const d = new Date(dateStr);
     const dd = String(d.getDate()).padStart(2, "0");
     const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -339,8 +345,8 @@ const DashboardPage = () => {
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                     <StatCard
                         label="Tổng lượt phát"
-                        value={formatNumber(overview.streamsThisMonth)}
-                        sub={`Toàn thời gian: ${formatNumber(overview.streamsAllTime)}`}
+                        value={formatNumber(overview.streamsAllTime)}
+                        sub={`Trong tháng này: ${formatNumber(overview.streamsThisMonth)}`}
                     />
                     <StatCard
                         label="Tổng người dùng"

@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { createPortal } from "react-dom";
+import LoadingState from "../../components/common/LoadingState";
 import { Link } from "react-router-dom";
 import {
   createVnpayOrderService,
@@ -180,12 +181,12 @@ const PlanDetailModal = ({ isOpen, plan, onClose, onPurchase }) => {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/82 p-4 backdrop-blur-sm [animation:premiumModalOverlayIn_180ms_ease-out]"
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-black/82 p-3 backdrop-blur-sm [animation:premiumModalOverlayIn_180ms_ease-out] sm:p-4"
       onClick={onClose}
       aria-hidden="true"
     >
       <div
-        className="w-full max-w-[760px] rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,#181818_0%,#101010_100%)] p-6 text-white shadow-[0_32px_120px_rgba(0,0,0,0.62)] [animation:premiumModalContentIn_220ms_ease-out_both] sm:p-7"
+        className="max-h-[calc(100dvh-1.5rem)] w-full max-w-[760px] overflow-y-auto overscroll-contain rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,#181818_0%,#101010_100%)] p-4 text-white shadow-[0_32px_120px_rgba(0,0,0,0.62)] [animation:premiumModalContentIn_220ms_ease-out_both] sm:max-h-[calc(100dvh-2rem)] sm:rounded-[30px] sm:p-7"
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -309,12 +310,12 @@ const PurchaseConfirmationModal = ({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/84 p-4 backdrop-blur-sm [animation:premiumModalOverlayIn_180ms_ease-out]"
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-black/84 p-3 backdrop-blur-sm [animation:premiumModalOverlayIn_180ms_ease-out] sm:p-4"
       onClick={isProcessing ? undefined : onClose}
       aria-hidden="true"
     >
       <div
-        className="w-full max-w-[620px] rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,#1a1a1a_0%,#111111_100%)] p-6 text-white shadow-[0_32px_120px_rgba(0,0,0,0.65)] [animation:premiumModalContentIn_220ms_ease-out_both] sm:p-7"
+        className="max-h-[calc(100dvh-1.5rem)] w-full max-w-[620px] overflow-y-auto overscroll-contain rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,#1a1a1a_0%,#111111_100%)] p-4 text-white shadow-[0_32px_120px_rgba(0,0,0,0.65)] [animation:premiumModalContentIn_220ms_ease-out_both] sm:max-h-[calc(100dvh-2rem)] sm:rounded-[30px] sm:p-7"
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -407,7 +408,10 @@ const PurchaseConfirmationModal = ({
             type="button"
             onClick={onConfirm}
             disabled={isProcessing}
-            className="inline-flex min-h-11 items-center justify-center rounded-full bg-white px-5 text-sm font-semibold text-black transition hover:bg-[#ececec] disabled:cursor-not-allowed disabled:opacity-60"
+            className={[
+              "inline-flex min-h-11 items-center justify-center rounded-full px-5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60",
+              isProcessing ? "bg-[#111111] text-white" : "bg-white text-black hover:bg-[#ececec]",
+            ].join(" ")}
           >
             {isProcessing ? (
               <span className="flex items-center gap-2">
@@ -647,10 +651,7 @@ const PremiumPage = () => {
 
           <section className="mx-auto mt-10 max-w-[1180px]">
             {isLoading ? (
-              <div className="flex min-h-[240px] items-center justify-center gap-3 text-[14px] text-white/70">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                <span>Đang tải danh sách gói...</span>
-              </div>
+              <LoadingState message="Đang tải danh sách gói..." className="min-h-[240px]" />
             ) : orderedPlans.length === 0 ? (
               <div className="flex min-h-[240px] items-center justify-center rounded-[28px] border border-white/10 bg-[#151515] px-6 text-[14px] text-white/62">
                 Hiện chưa có gói Premium khả dụng.
@@ -710,7 +711,12 @@ const PremiumPage = () => {
                         type="button"
                         onClick={() => openPurchasePlan(planId)}
                         disabled={isProcessing || isOpeningAnyModal}
-                        className="mt-4 inline-flex min-h-[46px] w-full items-center justify-center rounded-full bg-white text-[13px] font-semibold text-black transition hover:bg-[#ececec] disabled:cursor-not-allowed disabled:opacity-60"
+                        className={[
+                          "mt-4 inline-flex min-h-[46px] w-full items-center justify-center rounded-full text-[13px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-60",
+                          isProcessing || isOpeningThisPlan
+                            ? "bg-[#111111] text-white"
+                            : "bg-white text-black hover:bg-[#ececec]",
+                        ].join(" ")}
                       >
                         {isProcessing ? (
                           <span className="flex items-center gap-2">

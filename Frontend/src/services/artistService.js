@@ -7,6 +7,11 @@ export const getMyArtistProfileService = async () => {
   return response?.data?.data?.artist ?? null;
 };
 
+export const getMyArtistBlockStatusService = async () => {
+  const response = await axiosClient.get(`${ARTIST_API_PREFIX}/me/block-status`);
+  return response?.data?.data?.blockStatus ?? null;
+};
+
 export const getMyArtistRevenueSummaryService = async () => {
   const response = await axiosClient.get(`${ARTIST_API_PREFIX}/me/revenue-summary`);
   return response?.data?.data?.revenue ?? null;
@@ -69,4 +74,9 @@ export const patchMyArtistProfileMediaService = async (formData) => {
     formData
   );
   return response?.data?.data?.artist ?? null;
+};
+
+export const getMyArtistViolationsService = async () => {
+  const response = await axiosClient.get(`${ARTIST_API_PREFIX}/me/violations`);
+  return response?.data?.data ?? null;
 };

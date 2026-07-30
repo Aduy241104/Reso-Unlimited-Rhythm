@@ -1,6 +1,7 @@
 import albumService from './albumService';
 import artistService from './artistService';
 import playlistService from './playlistService';
+import recommendationService from './recommendationService';
 import trackService from './trackService';
 
 const formatLocalDate = (date) => {
@@ -11,6 +12,13 @@ const formatLocalDate = (date) => {
   return `${year}-${month}-${day}`;
 };
 
+const getPreviousLocalDate = (date) => {
+  const previousDate = new Date(date);
+  previousDate.setDate(previousDate.getDate() - 1);
+
+  return formatLocalDate(previousDate);
+};
+
 const formatLocalMonth = (date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -19,89 +27,108 @@ const formatLocalMonth = (date) => {
 };
 
 const getErrorMessage = (error, fallback) => error?.message || fallback;
+const getItems = (result) => (result.status === 'fulfilled' ? result.value.items : []);
 
 export const homeService = {
   async getHomepageData(options = {}) {
     const now = new Date();
-    const date = options.date || formatLocalDate(now);
+    const date = options.date || getPreviousLocalDate(now);
     const month = options.month || formatLocalMonth(now);
-    const topTrackPreviewLimit = options.topTrackPreviewLimit || 1;
-    const topArtistLimit = options.topArtistLimit || 10;
+    const includeRecommendations = Boolean(options.includeRecommendations);
+    const topTrackLimit = options.topTrackLimit || 5;
+    const topArtistLimit = options.topArtistLimit || 5;
     const playlistLimit = options.playlistLimit || 10;
     const albumLimit = options.albumLimit || 10;
 
-    const [dailyTopTracks, monthlyTopTracks, monthlyTopArtists, systemPlaylists, recentAlbums] = await Promise.allSettled([
-      trackService.getDailyTopTracks({ date, limit: topTrackPreviewLimit }),
-      trackService.getMonthlyTopTracks({ month, limit: topTrackPreviewLimit }),
+    const [
+      dailyTopTracks,
+      monthlyTopTracks,
+      dailyTopArtists,
+      monthlyTopArtists,
+      systemPlaylists,
+      recentAlbums,
+      recommendedPlaylists,
+    ] = await Promise.allSettled([
+      trackService.getDailyTopTracks({ date, limit: topTrackLimit }),
+      trackService.getMonthlyTopTracks({ month, limit: topTrackLimit }),
+      artistService.getDailyTopArtists({ date, limit: topArtistLimit }),
       artistService.getMonthlyTopArtists({ month, limit: topArtistLimit }),
       playlistService.getSystemPlaylists({ page: 1, limit: playlistLimit }),
       albumService.getRecentAlbums({ page: 1, limit: albumLimit }),
+      includeRecommendations
+        ? recommendationService.getDailyMixes()
+        : Promise.resolve({ items: [] }),
     ]);
 
     const sectionErrors = {};
-    const topTrackCollections = [];
-
-    if (dailyTopTracks.status === 'fulfilled') {
-      topTrackCollections.push(
-        trackService.buildTopTrackCollectionSummary({
-          period: 'daily',
-          date,
-          items: dailyTopTracks.value.items,
-          totalItems: dailyTopTracks.value.totalItems,
-        })
-      );
-    }
-
-    if (monthlyTopTracks.status === 'fulfilled') {
-      topTrackCollections.push(
-        trackService.buildTopTrackCollectionSummary({
-          period: 'monthly',
-          month,
-          items: monthlyTopTracks.value.items,
-          totalItems: monthlyTopTracks.value.totalItems,
-        })
-      );
-    }
-
     const result = {
-      topTrackCollections,
-      monthlyTopArtists: monthlyTopArtists.status === 'fulfilled' ? monthlyTopArtists.value.items : [],
-      systemPlaylists: systemPlaylists.status === 'fulfilled' ? systemPlaylists.value.items : [],
-      recentAlbums: recentAlbums.status === 'fulfilled' ? recentAlbums.value.items : [],
+      dailyTopTracks: getItems(dailyTopTracks),
+      monthlyTopTracks: getItems(monthlyTopTracks),
+      dailyTopArtists: getItems(dailyTopArtists),
+      monthlyTopArtists: getItems(monthlyTopArtists),
+      systemPlaylists: getItems(systemPlaylists),
+      recentAlbums: getItems(recentAlbums),
+      recommendedPlaylists: getItems(recommendedPlaylists),
       sectionErrors,
       query: { date, month },
     };
 
-    if (topTrackCollections.length === 0 && (dailyTopTracks.status === 'rejected' || monthlyTopTracks.status === 'rejected')) {
-      const trackErrors = [];
+    if (dailyTopTracks.status === 'rejected') {
+      sectionErrors.dailyTopTracks = getErrorMessage(
+        dailyTopTracks.reason,
+        'Không thể tải bảng xếp hạng bài hát theo ngày.'
+      );
+    }
 
-      if (dailyTopTracks.status === 'rejected') {
-        trackErrors.push(getErrorMessage(dailyTopTracks.reason, 'Không thể tải top bài hát ngày.'));
-      }
+    if (monthlyTopTracks.status === 'rejected') {
+      sectionErrors.monthlyTopTracks = getErrorMessage(
+        monthlyTopTracks.reason,
+        'Không thể tải bảng xếp hạng bài hát theo tháng.'
+      );
+    }
 
-      if (monthlyTopTracks.status === 'rejected') {
-        trackErrors.push(getErrorMessage(monthlyTopTracks.reason, 'Không thể tải top bài hát tháng.'));
-      }
-
-      sectionErrors.topTrackCollections = trackErrors.join(' ');
+    if (dailyTopArtists.status === 'rejected') {
+      sectionErrors.dailyTopArtists = getErrorMessage(
+        dailyTopArtists.reason,
+        'Không thể tải bảng xếp hạng nghệ sĩ theo ngày.'
+      );
     }
 
     if (monthlyTopArtists.status === 'rejected') {
-      sectionErrors.monthlyTopArtists = getErrorMessage(monthlyTopArtists.reason, 'Không thể tải nghệ sĩ nổi bật theo tháng.');
+      sectionErrors.monthlyTopArtists = getErrorMessage(
+        monthlyTopArtists.reason,
+        'Không thể tải bảng xếp hạng nghệ sĩ theo tháng.'
+      );
     }
 
     if (systemPlaylists.status === 'rejected') {
-      sectionErrors.systemPlaylists = getErrorMessage(systemPlaylists.reason, 'Không thể tải playlist hệ thống.');
+      sectionErrors.systemPlaylists = getErrorMessage(
+        systemPlaylists.reason,
+        'Không thể tải playlist hệ thống.'
+      );
     }
 
     if (recentAlbums.status === 'rejected') {
-      sectionErrors.recentAlbums = getErrorMessage(recentAlbums.reason, 'Không thể tải album mới.');
+      sectionErrors.recentAlbums = getErrorMessage(
+        recentAlbums.reason,
+        'Không thể tải album nổi bật.'
+      );
+    }
+
+    if (includeRecommendations && recommendedPlaylists.status === 'rejected') {
+      sectionErrors.recommendedPlaylists = getErrorMessage(
+        recommendedPlaylists.reason,
+        'Không thể tải playlist gợi ý lúc này.'
+      );
     }
 
     if (
-      result.topTrackCollections.length === 0 &&
+      result.dailyTopTracks.length === 0 &&
+      result.monthlyTopTracks.length === 0 &&
+      result.dailyTopArtists.length === 0 &&
       result.monthlyTopArtists.length === 0 &&
       result.systemPlaylists.length === 0 &&
+      result.recommendedPlaylists.length === 0 &&
       result.recentAlbums.length === 0 &&
       Object.keys(sectionErrors).length > 0
     ) {

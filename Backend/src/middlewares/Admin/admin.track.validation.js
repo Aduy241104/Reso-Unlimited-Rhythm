@@ -4,9 +4,11 @@ const listTracksQuerySchema = Joi.object({
     q: Joi.string().trim().max(200).allow("").default(""),
     page: Joi.number().integer().min(1).default(1),
     limit: Joi.number().integer().min(1).max(50).default(20),
+    scope: Joi.string().valid("catalog").optional(),
     // BỔ SUNG 2 DÒNG NÀY ĐỂ NHẬN BỘ LỌC TỪ FRONTEND:
     approvalStatus: Joi.string().valid("pending", "approved", "rejected").optional(),
     activeStatus: Joi.string().valid("draft", "active", "hidden", "blocked").optional(),
+    releaseStatus: Joi.string().valid("unreleased", "scheduled", "released").optional(),
 });
 
 const updateTrackApprovalSchema = Joi.object({
@@ -29,7 +31,7 @@ const updateTrackApprovalSchema = Joi.object({
 });
 
 const updateTrackVisibilitySchema = Joi.object({
-    action: Joi.string().valid("hide", "unhide", "block").required(),
+    action: Joi.string().valid("hide", "unhide", "block", "unblock").required(),
     hiddenReason: Joi.string().trim().max(1000).allow("").default(""),
     blockedReason: Joi.string().trim().max(1000).allow("").default(""),
     adminNote: Joi.string().trim().max(1000).allow("").default(""),

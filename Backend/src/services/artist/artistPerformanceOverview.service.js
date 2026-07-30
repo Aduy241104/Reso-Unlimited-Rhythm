@@ -180,6 +180,11 @@ const resolveCurrentYearPeriod = () => {
     };
 };
 
+const resolveAllTimeSummaryPeriod = () => ({
+    startDate: new Date(0),
+    endDateExclusive: getTodayInAnalyticsTimezone().add(1, "day").toDate(),
+});
+
 const aggregatePeriodSummary = async ({ artistId, startDate, endDateExclusive }) => {
     const [summary] = await ListenEvent.aggregate([
         {
@@ -196,7 +201,9 @@ const aggregatePeriodSummary = async ({ artistId, startDate, endDateExclusive })
             $group: {
                 _id: null,
                 streamCount: { $sum: 1 },
-                uniqueListeners: { $addToSet: "$userId" },
+                uniqueListeners: {
+                    $addToSet: { $ifNull: ["$userId", "$guestId"] },
+                },
             },
         },
         {
@@ -324,7 +331,9 @@ const aggregateDailyStats = async ({ artistId, startDate, endDateExclusive }) =>
                                 },
                             },
                             streamCount: { $sum: 1 },
-                            uniqueListeners: { $addToSet: "$userId" },
+                            uniqueListeners: {
+                                $addToSet: { $ifNull: ["$userId", "$guestId"] },
+                            },
                         },
                     },
                     {
@@ -743,7 +752,7 @@ const buildAgeGroupBreakdown = ({ listeners = [], referenceDate }) => {
 const buildRegionBreakdown = ({ listeners = [] }) => {
     const regionCounts = listeners.reduce((accumulator, listener) => {
         const regionLabel = String(
-            listener?.country || listener?.fallbackCountry || UNKNOWN_REGION_LABEL
+            listener?.country || UNKNOWN_REGION_LABEL
         ).trim() || UNKNOWN_REGION_LABEL;
 
         accumulator.set(regionLabel, Number(accumulator.get(regionLabel) || 0) + 1);
@@ -789,7 +798,6 @@ const aggregateAudienceProfiles = async ({ artistId, startDate, endDateExclusive
         {
             $group: {
                 _id: "$userId",
-                country: { $first: "$country" },
             },
         },
     ]);
@@ -809,8 +817,7 @@ const aggregateAudienceProfiles = async ({ artistId, startDate, endDateExclusive
 
         return {
             userId: String(listener._id),
-            country: String(listener?.country || "").trim(),
-            fallbackCountry: String(user?.profile?.country || "").trim(),
+            country: String(user?.profile?.country || "").trim(),
             dateOfBirth: user?.profile?.dateOfBirth || null,
         };
     });
@@ -833,6 +840,7 @@ export const getArtistPerformanceOverview = async ({
     const monthlyPeriod = resolveMonthlyPeriod(selectedYear);
     const currentYear = getTodayInAnalyticsTimezone().year();
     const yearlyPeriod = resolveYearlyPeriod(currentYear);
+    const allTimeSummaryPeriod = resolveAllTimeSummaryPeriod();
     const yearSeries = buildYearSeries(currentYear);
 
     const [
@@ -841,6 +849,7 @@ export const getArtistPerformanceOverview = async ({
         yearlyStats,
         availableYears,
         trackCount,
+        totalStreams,
     ] = await Promise.all([
         aggregateDailyStats({
             artistId: artist._id,
@@ -862,6 +871,11 @@ export const getArtistPerformanceOverview = async ({
         }),
         Track.countDocuments({
             artist_artistId: artist._id,
+        }),
+        aggregatePeriodStreamCount({
+            artistId: artist._id,
+            startDate: allTimeSummaryPeriod.startDate,
+            endDateExclusive: allTimeSummaryPeriod.endDateExclusive,
         }),
     ]);
 
@@ -894,7 +908,7 @@ export const getArtistPerformanceOverview = async ({
         summary: {
             followers: Number(artist?.stats?.followers || 0),
             trackCount: Number(trackCount || 0),
-            totalStreams: Number(artist?.stats?.totalStreams || 0),
+            totalStreams: Number(totalStreams || 0),
         },
         dailyStats: filledDailyStats,
         monthlyStats: filledMonthlyStats,

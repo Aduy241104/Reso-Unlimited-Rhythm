@@ -6,12 +6,16 @@ import Transaction from "../models/Transaction.js";
 import User from "../models/User.js";
 import { AppError } from "../utils/AppError.js";
 import { addDays } from "../utils/date.util.js";
+import { resolveUserPremiumState } from "../utils/premiumAccess.js";
 import vnpayService from "./vnpay.service.js";
+import paymentConfirmationEmailService from "./paymentConfirmationEmail.service.js";
 
 const PENDING_PAYMENT_TIMEOUT_MINUTES =
     Number(process.env.PAYMENT_PENDING_TIMEOUT_MINUTES || 15) || 15;
 const VNPAY_SUCCESS_CODE = "00";
 const PREMIUM_TAX_RATE = 0.1;
+const DEFAULT_PAYMENT_CLIENT_PLATFORM = "web";
+const PAYMENT_CLIENT_PLATFORMS = ["web", "mobile"];
 
 const roundVndAmount = (value) => Math.round(Number(value) || 0);
 
@@ -114,8 +118,8 @@ const assertObjectId = (value, fieldName) => {
     }
 };
 
-const buildInvoiceNumber = (userId) =>
-    `VNPAY_${Date.now()}_${String(userId).slice(-6)}_${Math.floor(Math.random() * 100000)}`;
+const buildInvoiceNumber = (userId, clientPlatform) =>
+    `VNPAY_${normalizePaymentClientPlatform(clientPlatform).toUpperCase()}_${Date.now()}_${String(userId).slice(-6)}_${Math.floor(Math.random() * 100000)}`;
 
 const buildFailureReason = (paymentResult) => {
     if (!paymentResult?.responseCode) {
@@ -124,6 +128,38 @@ const buildFailureReason = (paymentResult) => {
 
     return `VNPAY payment failed with response code ${paymentResult.responseCode}.`;
 };
+
+const normalizePaymentClientPlatform = (value) =>
+    PAYMENT_CLIENT_PLATFORMS.includes(value)
+        ? value
+        : DEFAULT_PAYMENT_CLIENT_PLATFORM;
+
+const getPaymentRedirectUrls = (clientPlatform) => {
+    const normalizedPlatform = normalizePaymentClientPlatform(clientPlatform);
+    const isMobile = normalizedPlatform === "mobile";
+    const successUrl = isMobile
+        ? process.env.MOBILE_PAYMENT_SUCCESS_URL
+        : process.env.CLIENT_PAYMENT_SUCCESS_URL;
+    const failedUrl = isMobile
+        ? process.env.MOBILE_PAYMENT_FAILED_URL
+        : process.env.CLIENT_PAYMENT_FAILED_URL;
+
+    if (!successUrl || !failedUrl) {
+        throw new AppError("Missing client payment redirect configuration.", 500, {
+            clientPlatform: normalizedPlatform,
+        });
+    }
+
+    return {
+        successUrl,
+        failedUrl,
+    };
+};
+
+const getPaymentClientPlatformFromInvoiceNumber = (invoiceNumber) =>
+    String(invoiceNumber || "").startsWith("VNPAY_MOBILE_")
+        ? "mobile"
+        : DEFAULT_PAYMENT_CLIENT_PLATFORM;
 
 const buildCallbackUrl = (baseUrl, params = {}) => {
     if (!baseUrl) {
@@ -243,18 +279,25 @@ const findPaymentContextByInvoiceNumber = async (invoiceNumber) => {
     }
 
     const subscription = await Subscription.findById(transaction.subscriptionId);
-    const legacyTransactionData = await Transaction.collection.findOne({
-        _id: transaction._id,
-    });
     const planSnapshot =
         (await resolvePlanSnapshotFromSource(subscription)) ||
-        (await resolvePlanSnapshotFromSource(legacyTransactionData)) ||
         (await resolvePlanSnapshotFromSource(transaction));
+
+    let resolvedPlanSnapshot = planSnapshot;
+
+    if (!resolvedPlanSnapshot) {
+        const legacyTransactionData = await Transaction.collection.findOne({
+            _id: transaction._id,
+        });
+        resolvedPlanSnapshot = await resolvePlanSnapshotFromSource(
+            legacyTransactionData
+        );
+    }
 
     return {
         transaction,
         subscription,
-        planSnapshot,
+        planSnapshot: resolvedPlanSnapshot,
     };
 };
 
@@ -301,6 +344,7 @@ const getMySubscriptionStatus = async (userId) => {
         throw new AppError("User does not exist.", 404);
     }
 
+    const isPremium = await resolveUserPremiumState(user, now);
     const currentPlan =
         user.subscription?.currentPlanId && typeof user.subscription.currentPlanId === "object"
             ? {
@@ -316,9 +360,7 @@ const getMySubscriptionStatus = async (userId) => {
     const pricedCurrentPlan = enrichPlanPricing(currentPlan);
 
     return {
-        isPremium:
-            Boolean(user.subscription?.isPremium) &&
-            (!user.subscription?.premiumEndDate || new Date(user.subscription.premiumEndDate) > now),
+        isPremium,
         currentPlan: pricedCurrentPlan,
         premiumEndDate: user.subscription?.premiumEndDate || null,
         activeSubscription: activeSubscription
@@ -337,6 +379,7 @@ const getMySubscriptionStatus = async (userId) => {
 const createVnpayOrder = async ({
     userId,
     planId,
+    clientPlatform = DEFAULT_PAYMENT_CLIENT_PLATFORM,
     ipAddr,
 }) => {
     assertObjectId(userId, "userId");
@@ -361,8 +404,12 @@ const createVnpayOrder = async ({
     const amount = roundVndAmount(plan.price);
     const tax = calculateTaxAmount(amount);
     const totalAmount = calculateTotalAmount(amount);
-    const invoiceNumber = buildInvoiceNumber(user._id);
     const planSnapshot = buildPlanSnapshot(plan);
+    const normalizedClientPlatform = normalizePaymentClientPlatform(clientPlatform);
+    const invoiceNumber = buildInvoiceNumber(
+        user._id,
+        normalizedClientPlatform
+    );
     let subscription;
     let transaction;
 
@@ -383,6 +430,7 @@ const createVnpayOrder = async ({
             userId: user._id,
             subscriptionId: subscription._id,
             planId: plan._id,
+            planSnapshot,
             amount,
             tax,
             totalAmount,
@@ -411,6 +459,7 @@ const createVnpayOrder = async ({
             invoiceNumber,
             transactionId: transaction._id,
             subscriptionId: subscription._id,
+            clientPlatform: normalizedClientPlatform,
             amount: transaction.amount,
             tax: transaction.tax,
             taxRate: PREMIUM_TAX_RATE,
@@ -441,6 +490,7 @@ const settleVnpayPayment = async (paymentResult) => {
         return {
             code: "97",
             message: "Invalid signature",
+            clientPlatform: DEFAULT_PAYMENT_CLIENT_PLATFORM,
         };
     }
 
@@ -450,15 +500,26 @@ const settleVnpayPayment = async (paymentResult) => {
         return {
             code: "01",
             message: "Order not found",
+            clientPlatform: DEFAULT_PAYMENT_CLIENT_PLATFORM,
         };
     }
 
     const { transaction, subscription, planSnapshot } = context;
+    const clientPlatform = getPaymentClientPlatformFromInvoiceNumber(
+        paymentResult.invoiceNumber
+    );
 
     if (transaction.status === "success") {
+        await paymentConfirmationEmailService.sendPremiumPaymentConfirmationEmail({
+            transaction,
+            subscription,
+            planSnapshot,
+        });
+
         return {
             code: "02",
             message: "Order already confirmed",
+            clientPlatform,
         };
     }
 
@@ -466,20 +527,29 @@ const settleVnpayPayment = async (paymentResult) => {
         return {
             code: "04",
             message: "Invalid amount",
+            clientPlatform,
         };
     }
 
     if (paymentResult.responseCode === VNPAY_SUCCESS_CODE) {
-        await markTransactionSuccessful({
+        const successfulPayment = await markTransactionSuccessful({
             transaction,
             subscription,
             planSnapshot,
             paymentResult,
         });
 
+        await paymentConfirmationEmailService.sendPremiumPaymentConfirmationEmail({
+            transaction: successfulPayment.transaction,
+            subscription: successfulPayment.subscription,
+            planSnapshot,
+            user: successfulPayment.user,
+        });
+
         return {
             code: "00",
             message: "Confirm success",
+            clientPlatform,
         };
     }
 
@@ -492,6 +562,7 @@ const settleVnpayPayment = async (paymentResult) => {
     return {
         code: "00",
         message: "Confirm success",
+        clientPlatform,
     };
 };
 
@@ -507,28 +578,36 @@ const processVnpayIpn = async (query) => {
 
 const handleVnpayReturn = async (query) => {
     const paymentResult = vnpayService.verifyCallback(query);
-    const successBaseUrl = process.env.CLIENT_PAYMENT_SUCCESS_URL;
-    const failedBaseUrl = process.env.CLIENT_PAYMENT_FAILED_URL;
 
     if (!paymentResult.isValid) {
-        return buildCallbackUrl(failedBaseUrl, {
+        const clientPlatform = getPaymentClientPlatformFromInvoiceNumber(
+            paymentResult.invoiceNumber
+        );
+        const { failedUrl } = getPaymentRedirectUrls(
+            clientPlatform
+        );
+
+        return buildCallbackUrl(failedUrl, {
             invoiceNumber: paymentResult.invoiceNumber,
             reason: "invalid_signature",
         });
     }
 
     const settlement = await settleVnpayPayment(paymentResult);
+    const { successUrl, failedUrl } = getPaymentRedirectUrls(
+        settlement.clientPlatform
+    );
 
     if (
         (settlement.code === "00" || settlement.code === "02") &&
         paymentResult.responseCode === VNPAY_SUCCESS_CODE
     ) {
-        return buildCallbackUrl(successBaseUrl, {
+        return buildCallbackUrl(successUrl, {
             invoiceNumber: paymentResult.invoiceNumber,
         });
     }
 
-    return buildCallbackUrl(failedBaseUrl, {
+    return buildCallbackUrl(failedUrl, {
         invoiceNumber: paymentResult.invoiceNumber,
         reason: settlement.message,
     });
@@ -595,7 +674,7 @@ const expireEndedSubscriptions = async () => {
     const now = new Date();
     const expiredSubscriptions = await Subscription.find({
         status: "active",
-        endDate: { $lt: now },
+        endDate: { $lte: now },
     }).select("_id userId");
 
     if (expiredSubscriptions.length === 0) {
@@ -623,7 +702,7 @@ const expireEndedSubscriptions = async () => {
         User.updateMany(
             {
                 _id: { $in: userIds },
-                "subscription.premiumEndDate": { $lt: now },
+                "subscription.premiumEndDate": { $lte: now },
             },
             {
                 $set: {

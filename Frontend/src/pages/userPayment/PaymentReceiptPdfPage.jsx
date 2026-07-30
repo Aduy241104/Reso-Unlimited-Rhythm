@@ -1,6 +1,7 @@
 ﻿import { ChevronLeft } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import LoadingState from "../../components/common/LoadingState";
 import { routePaths } from "../../routes/routePaths";
 import { getUserPaymentReceiptPdf } from "../../services/userPaymentService";
 
@@ -115,13 +116,11 @@ const PaymentReceiptPdfPage = () => {
       </header>
 
       {loading ? (
-        <div className="flex h-[calc(100vh-56px)] items-center justify-center px-6 text-sm text-white/78">
-          Đang tải biên nhận...
-        </div>
+        <LoadingState message="Đang tải biên nhận..." className="h-[calc(100dvh-56px)] px-6" />
       ) : null}
 
       {!loading && error ? (
-        <div className="flex h-[calc(100vh-56px)] items-center justify-center px-6 text-sm text-white/78">
+        <div className="flex h-[calc(100dvh-56px)] items-center justify-center px-6 text-sm text-white/78">
           {error}
         </div>
       ) : null}
@@ -130,7 +129,7 @@ const PaymentReceiptPdfPage = () => {
         <iframe
           src={pdfUrl}
           title="Purchase receipt"
-          className="h-[calc(100vh-56px)] w-full border-0"
+          className="h-[calc(100dvh-56px)] w-full border-0"
         />
       ) : null}
     </main>

@@ -73,12 +73,6 @@ const UserSchema = new Schema(
             country: { type: String, trim: true, default: "" },
         },
 
-        settings: {
-            language: { type: String, default: "vi" },
-            notificationsEnabled: { type: Boolean, default: true },
-            shufflePlayDefault: { type: Boolean, default: false },
-        },
-
         subscription: {
             isPremium: { type: Boolean, default: false, index: true },
             currentPlanId: { type: Schema.Types.ObjectId, ref: "Plan", index: true },

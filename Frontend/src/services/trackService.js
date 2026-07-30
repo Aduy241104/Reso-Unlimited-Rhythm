@@ -169,11 +169,23 @@ export const trackService = {
     }
   },
 
-  hideArtistTrack: async (trackId, reason = "") => {
+  hideArtistTrack: async (trackId) => {
     try {
       const response = await axiosClient.patch(
-        `${TRACKS_API_PREFIX}/artist/me/${trackId}/hide`,
-        { reason }
+        `${TRACKS_API_PREFIX}/artist/me/${trackId}/hide`
+      );
+
+      const payload = response?.data?.data;
+      return payload?.track || response?.data?.track || payload || null;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  unhideArtistTrack: async (trackId) => {
+    try {
+      const response = await axiosClient.patch(
+        `${TRACKS_API_PREFIX}/artist/me/${trackId}/unhide`
       );
 
       const payload = response?.data?.data;

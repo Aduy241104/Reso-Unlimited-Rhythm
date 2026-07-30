@@ -1,6 +1,6 @@
 import express from "express";
 import multer from "multer";
-import authenticate from "../middlewares/Authentication/authentication.middleware.js";
+import { authorizeRoles } from "../middlewares/Authentication/authentication.middleware.js";
 import userReportController from "../controllers/user.report.controller.js";
 import { AppError } from "../utils/AppError.js";
 
@@ -53,8 +53,21 @@ const runReportUpload = (req, res, next) => {
   });
 };
 
-router.get("/reports", authenticate("user"), userReportController.getMyReports);
-router.get("/reports/:id", authenticate("user"), userReportController.getMyReportDetail);
-router.post("/reports", authenticate("user"), runReportUpload, userReportController.createReport);
+router.get(
+  "/reports",
+  authorizeRoles("user", "artist"),
+  userReportController.getMyReports
+);
+router.get(
+  "/reports/:id",
+  authorizeRoles("user", "artist"),
+  userReportController.getMyReportDetail
+);
+router.post(
+  "/reports",
+  authorizeRoles("user", "artist"),
+  runReportUpload,
+  userReportController.createReport
+);
 
 export default router;

@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppLoader from '../../components/common/AppLoader';
 import AddTrackToPlaylistModal from '../../components/detail/AddTrackToPlaylistModal';
 import ArtistFollowButton from '../../components/detail/ArtistFollowButton';
+import FeaturedCollectionCard from '../../components/home/FeaturedCollectionCard';
 import TrackFavoriteButton from '../../components/detail/TrackFavoriteButton';
 import TrackActionsBottomSheet from '../../components/detail/TrackActionsBottomSheet';
 import ErrorState from '../../components/common/ErrorState';
@@ -25,7 +26,7 @@ import profileArtistService from '../../services/profileArtistService';
 import trackService from '../../services/trackService';
 import userFavoriteService from '../../services/userFavoriteService';
 import userPlaylistService from '../../services/userPlaylistService';
-import { formatCompactNumber, getErrorMessage, getInitials } from '../../utils/media';
+import { formatCompactNumber, formatDuration, getErrorMessage, getInitials } from '../../utils/media';
 import { buildPlayableQueue, normalizePlayerTrack } from '../../utils/player';
 import { Artwork, TrackListItem } from './EntityDetailComponents';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -103,6 +104,7 @@ export default function EntityDetailScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [isTrackActionsVisible, setIsTrackActionsVisible] = useState(false);
+  const [isArtistActionsVisible, setIsArtistActionsVisible] = useState(false);
   const [isAlbumFollowing, setIsAlbumFollowing] = useState(false);
   const [isAlbumFollowUpdating, setIsAlbumFollowUpdating] = useState(false);
   const [isArtistFollowing, setIsArtistFollowing] = useState(false);
@@ -322,6 +324,14 @@ export default function EntityDetailScreen() {
 
   const closeTrackActions = useCallback(() => {
     setIsTrackActionsVisible(false);
+  }, []);
+
+  const openArtistActions = useCallback(() => {
+    setIsArtistActionsVisible(true);
+  }, []);
+
+  const closeArtistActions = useCallback(() => {
+    setIsArtistActionsVisible(false);
   }, []);
 
   const loadMyPlaylists = useCallback(async () => {
@@ -718,10 +728,29 @@ export default function EntityDetailScreen() {
       targetTitle: detailTitle,
     });
   }, [detail?.entityId, detail?.id, detailTitle, entityId, isAlbum, isArtist, isAuthenticated, isTrackDetail, navigation]);
-  const shouldShowDetailStats = !isAlbum && detailStats.length > 0;
-  const shouldShowDetailMeta = !isAlbum && detailMeta.length > 0;
+
+  const artistOverviewStats = isArtist
+    ? detailStats.filter((item) => {
+      const normalizedLabel = item.label.toLocaleLowerCase('vi-VN');
+
+      return (
+        normalizedLabel.includes('người nghe hàng tháng') ||
+        normalizedLabel.includes('lượt phát') ||
+        normalizedLabel.includes('bài hát')
+      );
+    })
+    : [];
+  const shouldShowDetailStats = !isAlbum && !isArtist && detailStats.length > 0;
+  const shouldShowDetailMeta = !isAlbum && !isArtist && detailMeta.length > 0;
   const albumTrackCount = Number(detail?.trackCount) || (Array.isArray(detail?.items) ? detail.items.length : 0);
   const albumTrackLabel = isAlbum && albumTrackCount > 0 ? `${albumTrackCount} bài hát` : '';
+  const albumTracksDuration = Array.isArray(detail?.items)
+    ? detail.items.reduce((total, track) => total + Math.max(0, Number(track?.duration) || 0), 0)
+    : 0;
+  const albumTotalDuration = Number(detail?.totalDuration) > 0
+    ? Number(detail.totalDuration)
+    : albumTracksDuration;
+  const albumDurationLabel = isAlbum ? formatDuration(albumTotalDuration) : '';
 
   const artistName = detailSubtitle || detail?.artistName || detail?.artist?.name || '';
   const artistImage =
@@ -733,6 +762,7 @@ export default function EntityDetailScreen() {
   const metaLineParts = [
     badgeLabel,
     albumTrackLabel,
+    albumDurationLabel,
     detailDescription || detailExtraText || '',
   ].filter(Boolean);
 
@@ -864,9 +894,41 @@ export default function EntityDetailScreen() {
     navigation,
   ]);
 
+  const artistActionItems = useMemo(
+    () => [
+      {
+        key: 'toggle-artist-follow',
+        label: isArtistFollowing ? 'Dừng theo dõi' : 'Theo dõi',
+        icon: isArtistFollowing ? 'person-remove-outline' : 'person-add-outline',
+        description: isArtistFollowing
+          ? 'Bỏ nghệ sĩ này khỏi danh sách đang theo dõi.'
+          : 'Thêm nghệ sĩ này vào danh sách đang theo dõi.',
+        disabled: isArtistFollowUpdating,
+        onPress: handleToggleArtistFollow,
+      },
+      {
+        key: 'report-artist',
+        label: 'Báo cáo nghệ sĩ',
+        icon: 'flag-outline',
+        description: 'Gửi báo cáo về nghệ sĩ này.',
+        onPress: handleOpenCreateReport,
+      },
+    ],
+    [
+      handleOpenCreateReport,
+      handleToggleArtistFollow,
+      isArtistFollowing,
+      isArtistFollowUpdating,
+    ]
+  );
+
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#d9272b" />
+      <StatusBar barStyle="light-content" backgroundColor="#121212" />
+      <View
+        pointerEvents="none"
+        style={[styles.statusBarBackground, { height: insets.top }]}
+      />
 
       <TouchableOpacity
         style={[styles.backButton, { top: insets.top + (isOpenedFromPlayer ? 2 : 8) }]}
@@ -896,7 +958,16 @@ export default function EntityDetailScreen() {
           ]}
           showsVerticalScrollIndicator={false}
         >
-          <View style={[styles.heroSection, { paddingTop: insets.top + (isOpenedFromPlayer ? 12 : 48) }]}>
+          <View
+            style={[
+              styles.heroSection,
+              {
+                paddingTop: isArtist
+                  ? insets.top + 8
+                  : insets.top + (isOpenedFromPlayer ? 12 : 48),
+              },
+            ]}
+          >
             {/* <View style={styles.heroRedLayer} />
             <View style={styles.heroDarkLayer} />
             <View style={styles.heroBlackLayer} /> */}
@@ -911,13 +982,15 @@ export default function EntityDetailScreen() {
                   locations={ [0, 0.25, 0.5, 0.78, 1] }
                   start={ { x: 0.5, y: 0 } }
                   end={ { x: 0.5, y: 1 } }
-                  style={ StyleSheet.absoluteFillObject }
+                  style={[
+                    StyleSheet.absoluteFillObject,
+                    isArtist ? { top: insets.top + 8 } : null,
+                  ]}
                 />
 
             <Artwork
               uri={detail?.image}
               label={detailTitle}
-              rounded={isArtist}
               style={[styles.heroImage, isArtist && styles.heroArtistImage]}
               textStyle={styles.heroFallbackText}
             />
@@ -947,12 +1020,6 @@ export default function EntityDetailScreen() {
             </Text>
 
             <View style={styles.actionRow}>
-              {!isAlbum && !isArtist ? (
-                <TouchableOpacity style={styles.deviceButton} activeOpacity={0.75}>
-                  <Ionicons name="phone-portrait-outline" size={23} color="#d6d6d6" />
-                </TouchableOpacity>
-              ) : null}
-
               {isAlbum ? (
                 <TouchableOpacity
                   style={[
@@ -979,11 +1046,13 @@ export default function EntityDetailScreen() {
                 />
               ) : null}
 
-              <TouchableOpacity style={styles.iconActionButton} activeOpacity={0.75}>
-                <Ionicons name="arrow-down-circle-outline" size={25} color="#b3b3b3" />
-              </TouchableOpacity>
+              {!isArtist ? (
+                <TouchableOpacity style={styles.iconActionButton} activeOpacity={0.75}>
+                  <Ionicons name="arrow-down-circle-outline" size={25} color="#b3b3b3" />
+                </TouchableOpacity>
+              ) : null}
 
-              {isReportableDetail ? (
+              {isReportableDetail && !isArtist ? (
                 <TouchableOpacity
                   style={styles.iconActionButton}
                   activeOpacity={0.75}
@@ -1006,20 +1075,31 @@ export default function EntityDetailScreen() {
               <TouchableOpacity
                 style={styles.iconActionButton}
                 activeOpacity={0.75}
-                onPress={canOpenHeroTrackActions ? () => openTrackActions(detail, 0) : undefined}
+                onPress={
+                  isArtist
+                    ? openArtistActions
+                    : canOpenHeroTrackActions
+                      ? () => openTrackActions(detail, 0)
+                      : undefined
+                }
               >
                 <Ionicons name="ellipsis-horizontal" size={24} color="#b3b3b3" />
               </TouchableOpacity>
 
               <View style={styles.actionSpacer} />
 
-              <TouchableOpacity style={styles.shuffleButton} activeOpacity={0.75}>
-                <Ionicons name="shuffle" size={26} color="#1ed760" />
-              </TouchableOpacity>
+              {!isArtist ? (
+                <TouchableOpacity style={styles.shuffleButton} activeOpacity={0.75}>
+                  <Ionicons name="shuffle" size={26} color="#1ed760" />
+                </TouchableOpacity>
+              ) : null}
 
-              {playableQueue.length > 0 ? (
+              {!isArtist && playableQueue.length > 0 ? (
                 <TouchableOpacity
-                  style={styles.playCircleButton}
+                  style={[
+                    styles.playCircleButton,
+                    isTrackDetail ? styles.trackPlayCircleButton : null,
+                  ]}
                   onPress={() => handlePlayAll()}
                   activeOpacity={0.85}
                 >
@@ -1027,6 +1107,17 @@ export default function EntityDetailScreen() {
                 </TouchableOpacity>
               ) : null}
             </View>
+
+            {isArtist && artistOverviewStats.length > 0 ? (
+              <View style={styles.artistStatsList}>
+                {artistOverviewStats.map((item, index) => (
+                  <View key={`${item.label}-${index}`} style={styles.artistStatRow}>
+                    <Text style={styles.artistStatValue} numberOfLines={1}>{item.value}</Text>
+                    <Text style={styles.artistStatLabel}>{item.label}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : null}
           </View>
 
           {shouldShowDetailStats ? (
@@ -1128,11 +1219,44 @@ export default function EntityDetailScreen() {
                 style={[
                   styles.infoPanel,
                   isAlbum ? styles.albumInfoPlain : null,
+                  isArtist ? styles.artistInfoPlain : null,
                   isTrackDetail ? styles.trackInfoPlain : null,
                 ]}
               >
                 <Text style={styles.extraText}>{detailExtraText}</Text>
               </View>
+            </View>
+          ) : null}
+
+          {isArtist && Array.isArray(detail?.albums) && detail.albums.length > 0 ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Album</Text>
+
+              <ScrollView
+                horizontal
+                contentContainerStyle={styles.artistAlbumList}
+                showsHorizontalScrollIndicator={false}
+              >
+                {detail.albums.map((album, index) => (
+                  <FeaturedCollectionCard
+                    key={`${album.entityId || album.id || 'album'}-${index}`}
+                    title={getDisplayText(album.title, 'Album chưa có tên')}
+                    description={getDisplayText(album.description, 'Album')}
+                    image={album.image || album.coverImage}
+                    style={styles.artistAlbumCard}
+                    onPress={
+                      album.entityId || album.id
+                        ? () =>
+                          handleOpenNestedDetail(
+                            'album',
+                            album.entityId || album.id,
+                            album.title
+                          )
+                        : undefined
+                    }
+                  />
+                ))}
+              </ScrollView>
             </View>
           ) : null}
 
@@ -1146,6 +1270,7 @@ export default function EntityDetailScreen() {
                     : [
                       styles.panel,
                       isAlbum ? styles.albumSurfacePlain : null,
+                      isArtist ? styles.artistTrackPanelPlain : null,
                       isTrackDetail ? styles.trackPanelPlain : null,
                     ]
                 }
@@ -1153,8 +1278,10 @@ export default function EntityDetailScreen() {
                 {detail.items.map((item, index) => (
                   <TrackListItem
                     key={`${item.entityId || item.id}-${index}`}
+                    artworkStyle={isArtist ? styles.artistTrackArtwork : null}
                     item={item}
                     index={index}
+                    style={isArtist ? styles.artistTrackListItem : null}
                     showIndex={detail?.type === 'topTrackCollection'}
                     isFavorite={Boolean(favoriteStatusMap[getTrackId(item)])}
                     isFavoriteLoading={Boolean(favoriteUpdatingMap[getTrackId(item)])}
@@ -1189,6 +1316,13 @@ export default function EntityDetailScreen() {
         track={selectedTrack}
         actions={trackActionItems}
         onClose={closeTrackActions}
+      />
+
+      <TrackActionsBottomSheet
+        visible={isArtistActionsVisible}
+        track={detail}
+        actions={artistActionItems}
+        onClose={closeArtistActions}
       />
 
       <AddTrackToPlaylistModal

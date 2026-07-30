@@ -20,6 +20,16 @@ const RANGE_ALIASES = new Map([
 
 const roundToTwoDecimals = (value) => Number(Number(value || 0).toFixed(2));
 
+export const calculateSkipRate = (playCount, skipCount) => {
+    const normalizedPlayCount = Number(playCount || 0);
+    const normalizedSkipCount = Number(skipCount || 0);
+    const totalListenAttempts = normalizedPlayCount + normalizedSkipCount;
+
+    return totalListenAttempts > 0
+        ? roundToTwoDecimals((normalizedSkipCount / totalListenAttempts) * 100)
+        : 0;
+};
+
 const convertSecondsToMinutes = (value) =>
     roundToTwoDecimals(Number(value || 0) / 60);
 
@@ -278,9 +288,7 @@ export const buildDailySummary = (stats = []) => {
     const averageListenDuration = convertSecondsToMinutes(
         averageListenDurationInSeconds
     );
-    const skipRate = totalPlays
-        ? roundToTwoDecimals((skipCount / totalPlays) * 100)
-        : 0;
+    const skipRate = calculateSkipRate(totalPlays, skipCount);
 
     return {
         totalPlays,
@@ -369,6 +377,7 @@ export default {
     buildDailySummary,
     buildMonthlySummary,
     buildTrackPayload,
+    calculateSkipRate,
     clampPeriodToTrackReleaseDate,
     fillMissingDailyStats,
     fillRecentMonthlyChartStats,

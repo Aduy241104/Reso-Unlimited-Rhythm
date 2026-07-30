@@ -2,10 +2,12 @@ export const routePaths = {
   home: "/",
   login: "/login",
   systemTracks: "/system-tracks",
+  systemAlbums: "/system-albums",
   trackModeration: "/system-tracks/moderation",
   artistRequests: "/artist-requests",
   artistRequestDetail: (requestId = ":requestId") => `/artist-requests/${requestId}`,
   trackDetail: (trackId = ":id") => `/system-tracks/${trackId}`,
+  albumDetail: (albumId = ":id") => `/system-albums/${albumId}`,
   systemPlaylists: "/system-playlists",
   genres: "/genres",
   genreNew: "/genres/new",
@@ -36,9 +38,17 @@ export const routePaths = {
   revenueSharingDetail: (periodId = ":periodId") =>
     `/revenue-sharing/${periodId}`,
   reports: "/reports",
+  artistViolations: "/artist-violations",
+  createArtistViolation: "/artist-violations/new",
+  artistViolationDetail: (targetType = ":targetType", targetId = ":targetId") =>
+    `/artist-violations/detail/${targetType}/${targetId}`,
   reportDetail: (reportId = ":reportId") => `/reports/${reportId}`,
+  groupedReportDetail: (targetType = ":targetType", targetId = ":targetId") =>
+    `/reports/grouped/${targetType}/${targetId}`,
   subscriptions: "/subscriptions",
   subscriptionDetail: (planId = ":planId") => `/subscriptions/${planId}`,
   subscriptionEdit: (planId = ":planId") => `/subscriptions/${planId}/edit`,
   subscriptionNew: "/subscriptions/new",
+  transactions: "/transactions",
+  transactionDetail: (transactionId = ":id") => `/transactions/${transactionId}`,
 };

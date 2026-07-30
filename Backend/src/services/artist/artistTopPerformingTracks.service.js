@@ -7,6 +7,7 @@ import ListenEvent from "../../models/ListenEvent.js";
 import Track from "../../models/Track.js";
 import { getAnalyticsTimezone } from "../analytics/trackStatAggregation.service.js";
 import { AppError } from "../../utils/AppError.js";
+import { calculateSkipRate } from "./trackAnalytics.helper.js";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -156,12 +157,7 @@ const buildTopTrackPayload = ({ track, stats, rank }) => ({
         Number(stats?.averageListenDuration || 0)
     ),
     skipCount: Number(stats?.skipCount || 0),
-    skipRate:
-        Number(stats?.playCount || 0) > 0
-            ? roundToTwoDecimals(
-                (Number(stats?.skipCount || 0) / Number(stats?.playCount || 0)) * 100
-            )
-            : 0,
+    skipRate: calculateSkipRate(stats?.playCount, stats?.skipCount),
     completionRate:
         Number(stats?.playCount || 0) > 0
             ? roundToTwoDecimals(
@@ -194,7 +190,11 @@ const fetchTopTrackPerformanceStats = async ({ artistId, from, to }) =>
                 },
                 uniqueListeners: {
                     $addToSet: {
-                        $cond: [{ $eq: ["$isValidStream", true] }, "$userId", null],
+                        $cond: [
+                            { $eq: ["$isValidStream", true] },
+                            { $ifNull: ["$userId", "$guestId"] },
+                            null,
+                        ],
                     },
                 },
                 totalListenDuration: {

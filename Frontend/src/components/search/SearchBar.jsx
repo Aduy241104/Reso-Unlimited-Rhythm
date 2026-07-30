@@ -227,20 +227,20 @@ const SearchBar = ({
         className="
           flex
           items-center
-          h-12
+          h-10 sm:h-12
           w-full
           min-w-0
           rounded-full
           bg-[#242424]
           border
           border-[#3a3a3a]
-          px-4
+          px-3 sm:px-4
           transition
           hover:border-[#5a5a5a]
           focus-within:border-[#ffffff33]
         "
       >
-        <Search className="h-5 w-5 shrink-0 text-[#b3b3b3]" />
+        <Search className="h-4 w-4 shrink-0 text-[#b3b3b3] sm:h-5 sm:w-5" />
 
         <input
           ref={inputRef}
@@ -257,7 +257,8 @@ const SearchBar = ({
             flex-1
             min-w-0
             bg-transparent
-            px-3
+            px-2 sm:px-3
+            text-sm sm:text-base
             text-white
             outline-none
             placeholder:text-[#b3b3b3]
@@ -280,7 +281,8 @@ const SearchBar = ({
 
         <div
           className="
-            mx-3
+            mx-2
+            hidden min-[420px]:block sm:mx-3
             h-6
             w-px
             shrink-0
@@ -295,7 +297,7 @@ const SearchBar = ({
           aria-label="Duy\u1EC7t th\u1EC3 lo\u1EA1i"
           onClick={handleBrowseGenres}
           className="
-            flex
+            hidden min-[420px]:flex
             h-9
             w-9
             shrink-0

@@ -30,6 +30,7 @@ import {
   buildWorkflowSteps,
   getConfirmedByName,
   getDistributionSummary,
+  getRevenueActionUnavailableReason,
   getRevenuePeriodLabel,
   getWorkflowStateTone,
   isActionAvailable,
@@ -124,6 +125,18 @@ const RevenuePeriodDetailPage = () => {
   };
 
   const openActionModal = (actionKey) => {
+    const period = detail?.period;
+    const availableActions = detail?.availableActions ?? [];
+
+    if (!isActionAvailable(availableActions, actionKey, period)) {
+      setError(
+        getRevenueActionUnavailableReason(period, actionKey) ||
+          "Thao tác này hiện chưa sẵn sàng."
+      );
+      return;
+    }
+
+    setError("");
     setActionModal({
       isOpen: true,
       actionKey,
@@ -147,6 +160,18 @@ const RevenuePeriodDetailPage = () => {
     const currentPeriodId = detail?.period?.id || detail?.id;
 
     if (!actionKey || !executor || !currentPeriodId) {
+      return;
+    }
+
+    if (!isActionAvailable(detail?.availableActions ?? [], actionKey, detail?.period)) {
+      setActionModal((currentState) => ({
+        ...currentState,
+        phase: "error",
+        result: null,
+        error:
+          getRevenueActionUnavailableReason(detail?.period, actionKey) ||
+          "Thao tác này hiện chưa sẵn sàng.",
+      }));
       return;
     }
 
@@ -187,11 +212,13 @@ const RevenuePeriodDetailPage = () => {
   const artists = Array.isArray(distribution?.artists) ? distribution.artists : [];
   const workflowCards = buildWorkflowSteps(
     lifecycleTimestamps,
-    availableActions
+    availableActions,
+    period
   ).map((step) => ({
     ...step,
     tone: getWorkflowStateTone(step.state),
-    isAvailable: isActionAvailable(availableActions, step.key),
+    isAvailable: isActionAvailable(availableActions, step.key, period),
+    unavailableReason: getRevenueActionUnavailableReason(period, step.key),
   }));
   const lifecycleItems = buildLifecycleItems(
     lifecycleTimestamps,

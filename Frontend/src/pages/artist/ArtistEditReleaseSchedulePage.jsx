@@ -18,6 +18,7 @@ import {
   getMyReleaseScheduleDetailService,
   updateMyReleaseScheduleService,
 } from "../../services/artistReleaseScheduleService";
+import { showArtistError } from "../../utils/artistNotification";
 
 const TIMEZONE_LABEL = "(GMT+07:00) Bangkok, Hanoi, Jakarta";
 const TIMEZONE_NAME = "Asia/Bangkok";
@@ -285,12 +286,8 @@ const ArtistEditReleaseSchedulePage = () => {
           message: "Đã cập nhật lịch phát hành thành công.",
         },
       });
-    } catch (error) {
-      setErrorMessage(
-        error?.response?.data?.message ||
-          error?.message ||
-          "Không thể cập nhật lịch phát hành lúc này."
-      );
+    } catch {
+      showArtistError("Không thể cập nhật lịch phát hành vào lúc này.");
     } finally {
       setIsSubmitting(false);
     }

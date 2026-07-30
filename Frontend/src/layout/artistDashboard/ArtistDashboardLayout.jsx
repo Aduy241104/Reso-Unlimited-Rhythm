@@ -4,12 +4,18 @@ import { Bell, Menu, Search, X } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useSocket } from "../../hooks/useSocket";
 import { getMyArtistNotificationsService } from "../../services/artist.notification.service";
-import { getMyArtistProfileService } from "../../services/artistService";
+import {
+  getMyArtistBlockStatusService,
+  getMyArtistProfileService,
+} from "../../services/artistService";
 import { routePaths } from "../../routes/routePaths";
+import ArtistBlockedModal from "../../components/artist/ArtistBlockedModal";
 import { artistNavigation, artistProfile } from "./navigationConfig";
 
-const SIDEBAR_WIDTH = "264px";
+const SIDEBAR_WIDTH = "244px";
 const ARTIST_NOTIFICATIONS_PATH = routePaths.artistNotifications;
+const ARTIST_ADMIN_EMAIL =
+  import.meta.env.VITE_ARTIST_ADMIN_EMAIL || "admin.seed@reso.local";
 
 const ArtistDashboardLayout = () => {
   const navigate = useNavigate();
@@ -19,6 +25,8 @@ const ArtistDashboardLayout = () => {
   const [sidebarArtistName, setSidebarArtistName] = useState("");
   const [sidebarArtistSubtitle, setSidebarArtistSubtitle] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isCheckingBlockStatus, setIsCheckingBlockStatus] = useState(true);
+  const [artistBlockStatus, setArtistBlockStatus] = useState(null);
 
   const fetchUnreadCount = useCallback(async () => {
     try {
@@ -32,6 +40,40 @@ const ArtistDashboardLayout = () => {
     } catch (error) {
       console.error("Unable to load artist notification unread count:", error);
     }
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const checkArtistBlockStatus = async () => {
+      setIsCheckingBlockStatus(true);
+
+      try {
+        const blockStatus = await getMyArtistBlockStatusService();
+
+        if (!isMounted) {
+          return;
+        }
+
+        setArtistBlockStatus(blockStatus);
+      } catch (error) {
+        console.error("Unable to load artist block status:", error);
+
+        if (isMounted) {
+          setArtistBlockStatus(null);
+        }
+      } finally {
+        if (isMounted) {
+          setIsCheckingBlockStatus(false);
+        }
+      }
+    };
+
+    checkArtistBlockStatus();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -203,8 +245,15 @@ const ArtistDashboardLayout = () => {
   return (
     <div
       data-artist-dashboard
-      className="scheme-light h-screen overflow-hidden bg-white text-[#221a14] [color-scheme:light]"
+      className="scheme-light fixed inset-0 overflow-hidden bg-white text-[#221a14] [color-scheme:light]"
     >
+      <ArtistBlockedModal
+        isOpen={Boolean(artistBlockStatus?.isBlocked)}
+        blockedReason={artistBlockStatus?.blockedReason || ""}
+        adminEmail={ARTIST_ADMIN_EMAIL}
+        onLeave={() => navigate(routePaths.home, { replace: true })}
+      />
+
       <div className="flex h-full overflow-hidden">
         <aside
           className="fixed inset-y-0 left-0 z-30 hidden border-r border-[#ece8ff] lg:block"
@@ -226,16 +275,16 @@ const ArtistDashboardLayout = () => {
 
         <aside
           className={[
-            "fixed inset-y-0 left-0 z-50 w-[264px] max-w-[85vw] border-r border-[#ece8ff] transition-transform duration-200 lg:hidden",
+            "fixed inset-y-0 left-0 z-50 w-[244px] max-w-[85vw] border-r border-[#ece8ff] transition-transform duration-200 lg:hidden",
             isSidebarOpen ? "translate-x-0" : "-translate-x-full",
           ].join(" ")}
         >
           {renderSidebar()}
         </aside>
 
-        <div className="flex min-w-0 flex-1 flex-col lg:pl-[264px]">
+        <div className="flex min-w-0 flex-1 flex-col lg:pl-[244px]">
           <header className="border-b border-[#ece8ff] bg-white">
-            <div className="flex items-center justify-between gap-4 px-6 py-4">
+            <div className="flex items-center justify-between gap-4 px-4 py-4 sm:px-5 xl:px-6">
               <div className="flex items-center gap-3">
                 <button
                   type="button"
@@ -253,7 +302,7 @@ const ArtistDashboardLayout = () => {
                   <input
                     type="search"
                     placeholder="Tìm bản phát hành hoặc bài hát"
-                    className="h-10 w-60 rounded-sm border border-[#ece8ff] bg-white pl-9 pr-3 text-sm text-[#2f2747] outline-none transition placeholder:text-[#9a93b8] focus:border-[#7c6cf2]"
+                    className="h-10 w-52 rounded-sm border border-[#ece8ff] bg-white pl-9 pr-3 text-sm text-[#2f2747] outline-none transition placeholder:text-[#9a93b8] focus:border-[#7c6cf2] xl:w-56 2xl:w-64"
                   />
                 </label>
 
@@ -275,9 +324,26 @@ const ArtistDashboardLayout = () => {
           </header>
 
           <main className="min-h-0 flex-1 overflow-y-auto bg-white">
-            <div className="p-6">
-              <Outlet />
-            </div>
+            {isCheckingBlockStatus ? (
+              <div className="flex min-h-full items-center justify-center p-6">
+                <div className="w-full max-w-md rounded-3xl border border-neutral-200 bg-white px-6 py-8 text-center shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-500">
+                    Artist Access
+                  </p>
+                  <h2 className="mt-3 text-xl font-semibold text-black">
+                    Dang kiem tra trang thai tai khoan
+                  </h2>
+                  <p className="mt-2 text-sm leading-6 text-neutral-600">
+                    He thong dang xac minh quyen truy cap khu vuc artist truoc
+                    khi hien thi noi dung.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="min-h-full bg-white p-4 sm:p-5 xl:p-6 2xl:p-7">
+                <Outlet />
+              </div>
+            )}
           </main>
         </div>
       </div>

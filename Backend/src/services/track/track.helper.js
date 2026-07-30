@@ -1,5 +1,9 @@
 import Subscription from "../../models/Subscription.js";
 import { AppError } from "../../utils/AppError.js";
+import {
+    resolveTrackReleasedAt,
+    resolveTrackReleaseStatus,
+} from "../../utils/trackRelease.js";
 
 const PREMIUM_AUDIO_FEATURES = new Set([
     "HIGH_QUALITY_AUDIO",
@@ -23,6 +27,41 @@ const toId = (value) => {
     return value.toString();
 };
 
+const formatPendingTrackUpdateData = (data) => {
+    if (!data) {
+        return null;
+    }
+
+    return {
+        title: data.title || "",
+        versionTitle: data.versionTitle || "",
+        description: data.description || "",
+        tags: data.tags || [],
+        genreIds: Array.isArray(data.genreIds)
+            ? data.genreIds.map((genre) => toId(genre?._id || genre)).filter(Boolean)
+            : [],
+        genres: Array.isArray(data.genreIds)
+            ? data.genreIds
+                .map((genre) => (
+                    genre && typeof genre === "object" && "name" in genre
+                        ? {
+                            _id: genre._id,
+                            name: genre.name,
+                        }
+                        : null
+                ))
+                .filter(Boolean)
+            : [],
+        audioFiles: data.audioFiles || [],
+        duration: data.duration || 0,
+        avatar: data.avatar || "",
+        coverImage: data.coverImage || [],
+        lyricsStatic: data.lyricsStatic || "",
+        lyricsSyncUrl: data.lyricsSyncUrl || "",
+        copyright: data.copyright || null,
+    };
+};
+
 const formatTrackManagementDetail = (track) => {
     if (!track) return null;
 
@@ -30,6 +69,8 @@ const formatTrackManagementDetail = (track) => {
         _id: track._id,
         title: track.title,
         versionTitle: track.versionTitle || "",
+        description: track.description || "",
+        tags: track.tags || [],
         artist: track.artist_artistId
             ? {
                   _id: track.artist_artistId._id,
@@ -62,6 +103,8 @@ const formatTrackManagementDetail = (track) => {
             totalPlay: 0,
         },
         releaseDate: track.releaseDate,
+        releaseStatus: resolveTrackReleaseStatus(track),
+        releasedAt: resolveTrackReleasedAt(track),
         activeStatus: track.activeStatus,
         approvalStatus: track.approvalStatus,
         copyright: track.copyright || null,
@@ -72,6 +115,16 @@ const formatTrackManagementDetail = (track) => {
         hiddenAt: track.hiddenAt,
         createdAt: track.createdAt,
         updatedAt: track.updatedAt,
+        pendingUpdate: {
+            status: track.pendingUpdate?.status || "none",
+            changedFields: track.pendingUpdate?.changedFields || [],
+            submittedAt: track.pendingUpdate?.submittedAt || null,
+            lastSavedAt: track.pendingUpdate?.lastSavedAt || null,
+            reviewedAt: track.pendingUpdate?.reviewedAt || null,
+            adminNote: track.pendingUpdate?.adminNote || "",
+            rejectReason: track.pendingUpdate?.rejectReason || "",
+            data: formatPendingTrackUpdateData(track.pendingUpdate?.data || null),
+        },
     };
 };
 
@@ -81,6 +134,8 @@ const formatTrackItem = (track) => {
     return {
         _id: track._id,
         title: track.title,
+        description: track.description || "",
+        tags: track.tags || [],
         artist: track.artist_artistId
             ? {
                   _id: track.artist_artistId._id,
@@ -91,6 +146,9 @@ const formatTrackItem = (track) => {
         duration: track.duration,
         avatar: track.avatar,
         stats: track.stats,
+        releaseDate: track.releaseDate || null,
+        releaseStatus: resolveTrackReleaseStatus(track),
+        releasedAt: resolveTrackReleasedAt(track),
         activeStatus: track.activeStatus,
         approvalStatus: track.approvalStatus,
     };
@@ -225,6 +283,25 @@ const formatTrackArtist = (artist) =>
         }
         : null;
 
+const formatTrackDetailArtist = (artist) => {
+    const formattedArtist = formatTrackArtist(artist);
+
+    if (!formattedArtist) {
+        return null;
+    }
+
+    return {
+        ...formattedArtist,
+        bio: artist.bio || "",
+        activeStatus: artist.activeStatus,
+        stats: artist.stats || {
+            followers: 0,
+            totalStreams: 0,
+            monthlyListeners: 0,
+        },
+    };
+};
+
 const formatTrackAlbum = (album) =>
     album
         ? {
@@ -234,6 +311,20 @@ const formatTrackAlbum = (album) =>
         }
         : null;
 
+const formatTrackDetailAlbum = (album) => {
+    const formattedAlbum = formatTrackAlbum(album);
+
+    if (!formattedAlbum) {
+        return null;
+    }
+
+    return {
+        ...formattedAlbum,
+        releaseDate: album.releaseDate || null,
+        status: album.status,
+    };
+};
+
 const formatTrackGenres = (genres = []) =>
     genres.map((genre) => ({
         id: toId(genre._id),
@@ -241,13 +332,33 @@ const formatTrackGenres = (genres = []) =>
         image: genre.image,
     }));
 
-const formatTrackDetail = (track) => ({
+const formatPublicTrackCopyright = (copyright = {}) => ({
+    copyrightOwner: copyright.copyrightOwner || "",
+    recordingOwner: copyright.recordingOwner || "",
+    composer: copyright.composer || "",
+    lyricist: copyright.lyricist || "",
+    producer: copyright.producer || "",
+    isOriginal: copyright.isOriginal ?? true,
+    isCover: copyright.isCover ?? false,
+    isRemix: copyright.isRemix ?? false,
+    usesSample: copyright.usesSample ?? false,
+    usesLicensedBeat: copyright.usesLicensedBeat ?? false,
+    originalTrackTitle: copyright.originalTrackTitle || "",
+    originalArtistName: copyright.originalArtistName || "",
+});
+
+const formatTrackDetailBase = (track) => ({
     id: toId(track._id),
     title: track.title,
+    versionTitle: track.versionTitle || "",
+    description: track.description || "",
+    tags: track.tags || [],
     duration: track.duration,
     avatar: track.avatar,
     coverImage: track.coverImage,
     releaseDate: track.releaseDate,
+    releaseStatus: resolveTrackReleaseStatus(track),
+    releasedAt: resolveTrackReleasedAt(track),
     stats: track.stats,
     artist: formatTrackArtist(track.artist_artistId),
     album: formatTrackAlbum(track.album_albumId),
@@ -257,6 +368,18 @@ const formatTrackDetail = (track) => ({
         syncUrl: track.lyricsSyncUrl,
     },
 });
+
+const formatTrackDetail = (track, personalization = {}) => ({
+    ...formatTrackDetailBase(track),
+    versionTitle: track.versionTitle || "",
+    artist: formatTrackDetailArtist(track.artist_artistId),
+    album: formatTrackDetailAlbum(track.album_albumId),
+    copyright: formatPublicTrackCopyright(track.copyright),
+    isFavorite: Boolean(personalization.isFavorite),
+    favoritedAt: personalization.favoritedAt || null,
+});
+
+const formatTrackRankingDetail = (track) => formatTrackDetailBase(track);
 
 const formatTrackPlayback = (track, audioFiles, accessState) => {
     const isPremium = accessState.isPremium;
@@ -284,10 +407,15 @@ const formatTrackPlayback = (track, audioFiles, accessState) => {
     return {
         id: toId(track._id),
         title: track.title,
+        versionTitle: track.versionTitle || "",
+        description: track.description || "",
+        tags: track.tags || [],
         duration: track.duration,
         avatar: track.avatar,
         coverImage: track.coverImage,
         releaseDate: track.releaseDate,
+        releaseStatus: resolveTrackReleaseStatus(track),
+        releasedAt: resolveTrackReleasedAt(track),
         stats: track.stats,
         artist: formatTrackArtist(track.artist_artistId),
         album: formatTrackAlbum(track.album_albumId),
@@ -308,6 +436,8 @@ export {
     formatTrackManagementDetail,
     formatTrackItem,
     formatTrackDetail,
+    formatTrackRankingDetail,
+    formatPublicTrackCopyright,
     formatTrackPlayback,
     getPremiumAccessState,
     getValidAudioFiles,

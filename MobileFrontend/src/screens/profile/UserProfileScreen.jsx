@@ -372,7 +372,7 @@ export default function UserProfileScreen() {
             </View>
           ) : null}
 
-          {user?.role === 'user' ? (
+          {['user', 'artist'].includes(user?.role) ? (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Báo cáo của bạn</Text>
               <TouchableOpacity

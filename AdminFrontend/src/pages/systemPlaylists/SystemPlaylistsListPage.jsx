@@ -175,7 +175,7 @@ const SystemPlaylistsListPage = () => {
     });
 
   return (
-    <section className="space-y-5 p-3 lg:p-5 bg-slate-50/50 min-h-screen text-slate-800 font-sans antialiased">
+    <section className="space-y-6">
 
       {/* Header */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between px-1">
@@ -192,9 +192,9 @@ const SystemPlaylistsListPage = () => {
         </div>
 
         <div className="flex items-center gap-4 self-start lg:self-auto">
-          <div className="rounded-xl bg-slate-100 px-4 py-2.5 min-w-[100px] text-center">
+          <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 min-w-[112px]">
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Tổng số</p>
-            <p className="mt-0.5 text-base font-bold text-slate-900">{filteredPlaylists.length}</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">{filteredPlaylists.length}</p>
           </div>
 
           <Link
@@ -208,7 +208,7 @@ const SystemPlaylistsListPage = () => {
       </div>
 
       {/* Search Toolbar */}
-      <form className="grid gap-3 rounded-2xl bg-white p-4 shadow-[0_12px_32px_rgba(15,23,42,0.06)] grid-cols-1 sm:grid-cols-[1fr_200px]">
+      <form className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 grid-cols-1 sm:grid-cols-[1fr_200px]">
         <label className="relative block">
           <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
@@ -216,7 +216,7 @@ const SystemPlaylistsListPage = () => {
             placeholder="Tìm theo tiêu đề hoặc mô tả..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-lg bg-slate-100 py-3 pl-11 pr-4 text-sm text-slate-900 outline-none transition focus:bg-sky-50"
+            className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-900 outline-none transition focus:border-slate-400"
           />
           {searchQuery && (
             <button
@@ -248,7 +248,7 @@ const SystemPlaylistsListPage = () => {
       )}
 
       {/* Table */}
-      <div className="overflow-hidden rounded-2xl bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
         <div className="grid min-w-[900px] grid-cols-[40px_80px_minmax(0,1.5fr)_100px_140px_140px_140px_120px] gap-4 border-b border-slate-200 px-5 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
           <span>#</span>
           <span>Ảnh bìa</span>
@@ -284,7 +284,6 @@ const SystemPlaylistsListPage = () => {
                     className="relative grid grid-cols-[40px_80px_minmax(0,1.5fr)_100px_140px_140px_140px_120px] gap-4 px-5 py-4 transition hover:bg-slate-50/60 items-center"
                   >
                     {/* Accent bar */}
-                    <div className={`absolute inset-y-2 left-0 w-1 rounded-r ${getAccentClasses(item)}`} />
 
                     <span className="text-sm text-slate-400 font-medium pl-2">{index + 1}</span>
 

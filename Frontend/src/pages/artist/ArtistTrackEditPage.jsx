@@ -1,49 +1,127 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2, Save, Send } from "lucide-react";
+import {
+  ArrowLeft,
+  Disc3,
+  FileAudio,
+  FileText,
+  Loader2,
+  Music4,
+  ShieldCheck,
+} from "lucide-react";
 import TrackCopyrightFields from "../../components/artist/TrackCopyrightFields";
 import ConfirmActionModal from "../../components/common/ConfirmActionModal";
 import genreService from "../../services/genreService";
 import trackService from "../../services/trackService";
 import { routePaths } from "../../routes/routePaths";
-import { getApiErrorFullMessage, getApiErrorMessage } from "../../utils/apiError";
+import { getApiErrorMessage } from "../../utils/apiError";
+import {
+  showArtistError,
+  showArtistInfo,
+  showArtistSuccess,
+} from "../../utils/artistNotification";
 import {
   canArtistEditTrack,
   canArtistSubmitTrack,
+  getArtistTrackReviewStatus,
   getSubmitReadinessIssues,
+  LYRICS_STATIC_MAX_LENGTH,
   mapTrackCopyrightToForm,
   MAX_GENRE_IDS,
   serializeCopyrightForApi,
   TITLE_MAX_LENGTH,
 } from "../../utils/trackWorkflow";
+import {
+  formatTrackDate,
+  formatTrackDateTime,
+  getTrackDisplayDuration,
+  getTrackActiveStatusMeta,
+  getTrackApprovalStatusMeta,
+  resolveTrackArtwork,
+} from "../../utils/artistTrackPresentation";
 
-const toDateInputValue = (value) => {
-  if (!value) {
-    return "";
-  }
+const getEditableTrackSource = (track) => track?.pendingUpdate?.data || track || null;
 
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
+const FieldShell = ({ label, helper, error, children }) => (
+  <label className="block">
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-sm font-semibold text-[#241b45]">{label}</span>
+      {helper ? <span className="text-xs text-[#9e98b8]">{helper}</span> : null}
+    </div>
+    <div className="mt-2">{children}</div>
+    {error ? <p className="mt-2 text-xs text-rose-600">{error}</p> : null}
+  </label>
+);
 
-  return date.toISOString().slice(0, 10);
+const SectionCard = ({ icon, eyebrow, title, description, children }) => {
+  const IconComponent = icon;
+
+  return (
+    <section className="rounded-[28px] border border-[#ece8ff] bg-white p-5 shadow-[0_12px_35px_rgba(32,23,71,0.06)] sm:p-6">
+      <div className="flex items-start gap-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#e6e0ff] bg-[#f8f6ff] text-[#6f5cf1]">
+          <IconComponent className="h-5 w-5" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#8d87aa]">
+            {eyebrow}
+          </p>
+          <h2 className="mt-2 text-xl font-semibold tracking-tight text-[#241b45]">
+            {title}
+          </h2>
+          {description ? (
+            <p className="mt-2 text-sm leading-6 text-[#8d87aa]">{description}</p>
+          ) : null}
+        </div>
+      </div>
+      <div className="mt-6">{children}</div>
+    </section>
+  );
 };
 
-// (removed unused helper)
+const SidebarCard = ({ title, children }) => (
+  <div className="rounded-[28px] border border-[#ece8ff] bg-white p-5 shadow-[0_18px_40px_rgba(32,23,71,0.08)] sm:p-6">
+    <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-[#8d87aa]">
+      {title}
+    </h3>
+    <div className="mt-4">{children}</div>
+  </div>
+);
+
+const getFormDataFromTrack = (track) => {
+  const source = getEditableTrackSource(track);
+
+  return {
+    title: source?.title || "",
+    versionTitle: source?.versionTitle || "",
+    description: source?.description || "",
+    lyricsStatic: source?.lyricsStatic || "",
+    genreIds: Array.isArray(source?.genres) && source.genres.length > 0
+      ? source.genres.map((genre) => String(genre._id || genre.id || genre))
+      : Array.isArray(source?.genreIds)
+        ? source.genreIds.map((genre) => String(genre?._id || genre?.id || genre))
+        : [],
+  };
+};
+
+const sortStringArray = (values = []) =>
+  values.map((value) => String(value)).sort();
+
+const areArraysEqual = (left = [], right = []) =>
+  JSON.stringify(sortStringArray(left)) === JSON.stringify(sortStringArray(right));
+
+const stringifyValue = (value) => JSON.stringify(value ?? null);
 
 const ArtistTrackEditPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const [track, setTrack] = useState(null);
-  const [albums, setAlbums] = useState([]);
   const [genres, setGenres] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submittingForApproval, setSubmittingForApproval] = useState(false);
   const [copyrightForm, setCopyrightForm] = useState(mapTrackCopyrightToForm());
-  const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [audioFile, setAudioFile] = useState(null);
@@ -55,18 +133,16 @@ const ArtistTrackEditPage = () => {
   const [coverPreviews, setCoverPreviews] = useState([]);
   const [audioPreviewUrl, setAudioPreviewUrl] = useState("");
   const [lyricsPreviewText, setLyricsPreviewText] = useState("");
-  const objectUrlsRef = useRef([]);
   const [genresOpen, setGenresOpen] = useState(false);
   const [isSubmitConfirmOpen, setIsSubmitConfirmOpen] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     versionTitle: "",
-    duration: "",
+    description: "",
     lyricsStatic: "",
-    album_albumId: "",
     genreIds: [],
-    releaseDate: "",
   });
+  const objectUrlsRef = useRef([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -76,9 +152,8 @@ const ArtistTrackEditPage = () => {
       setErrorMessage("");
 
       try {
-        const [trackDetail, albumResponse, genreList] = await Promise.all([
+        const [trackDetail, genreList] = await Promise.all([
           trackService.getArtistTrackDetail(id),
-          trackService.getArtistAlbums(),
           genreService.getGenresService(),
         ]);
 
@@ -86,37 +161,39 @@ const ArtistTrackEditPage = () => {
           return;
         }
 
+        const editableTrack = getEditableTrackSource(trackDetail);
+
         setTrack(trackDetail);
-        setAvatarPreview(trackDetail?.avatar || "");
-        setCoverPreviews(Array.isArray(trackDetail?.coverImage) ? trackDetail.coverImage : []);
+        setGenres(Array.isArray(genreList) ? genreList : []);
+        setFormData(getFormDataFromTrack(trackDetail));
+        setCopyrightForm(mapTrackCopyrightToForm(editableTrack?.copyright || trackDetail?.copyright));
+        setAvatarPreview(editableTrack?.avatar || trackDetail?.avatar || "");
+        setCoverPreviews(
+          Array.isArray(editableTrack?.coverImage)
+            ? editableTrack.coverImage
+            : Array.isArray(trackDetail?.coverImage)
+              ? trackDetail.coverImage
+              : []
+        );
         setAudioPreviewUrl(
-          Array.isArray(trackDetail?.audioFiles) && trackDetail.audioFiles.length > 0
-            ? trackDetail.audioFiles[0].url
+          Array.isArray(editableTrack?.audioFiles) && editableTrack.audioFiles.length > 0
+            ? editableTrack.audioFiles[0].url
             : ""
         );
-        setLyricsPreviewText(trackDetail?.lyricsSyncUrl ? trackDetail.lyricsSyncUrl.split("/").pop() : "");
-        setAlbums(albumResponse?.data?.albums || []);
-        setGenres(Array.isArray(genreList) ? genreList : []);
-        setCopyrightForm(mapTrackCopyrightToForm(trackDetail?.copyright));
-        setFormData({
-          title: trackDetail?.title || "",
-          versionTitle: trackDetail?.versionTitle || "",
-          duration: trackDetail?.duration ?? "",
-          lyricsStatic: trackDetail?.lyricsStatic || "",
-          album_albumId: trackDetail?.album?._id || "",
-          genreIds: Array.isArray(trackDetail?.genres)
-            ? trackDetail.genres.map((genre) => String(genre._id))
-            : [],
-          releaseDate: toDateInputValue(trackDetail?.releaseDate),
-        });
+        setLyricsPreviewText(
+          editableTrack?.lyricsSyncUrl
+            ? editableTrack.lyricsSyncUrl.split("/").pop()
+            : ""
+        );
       } catch (error) {
         if (!isMounted) {
           return;
         }
 
         setTrack(null);
+        setGenres([]);
         setErrorMessage(
-          getApiErrorMessage(error, "Unable to load track edit data right now.")
+          getApiErrorMessage(error, "Không thể tải dữ liệu chỉnh sửa bài hát lúc này.")
         );
       } finally {
         if (isMounted) {
@@ -127,7 +204,7 @@ const ArtistTrackEditPage = () => {
 
     if (!id) {
       setLoading(false);
-      setErrorMessage("Track id is missing.");
+      setErrorMessage("Thiếu mã bài hát.");
       return () => {
         isMounted = false;
       };
@@ -140,34 +217,104 @@ const ArtistTrackEditPage = () => {
     };
   }, [id]);
 
-  const genreOptions = useMemo(() => genres || [], [genres]);
+  useEffect(() => {
+    if (!location.state?.message) {
+      return;
+    }
+
+    showArtistSuccess(location.state.message);
+    navigate(`${location.pathname}${location.search}`, {
+      replace: true,
+      state: { ...location.state, message: null },
+    });
+  }, [location.pathname, location.search, location.state, navigate]);
+
+  useEffect(() => {
+    return () => {
+      objectUrlsRef.current.forEach((url) => {
+        try {
+          URL.revokeObjectURL(url);
+        } catch {
+          // ignore
+        }
+      });
+      objectUrlsRef.current = [];
+    };
+  }, []);
+
   const canEdit = canArtistEditTrack(track);
   const canSubmit = canArtistSubmitTrack(track);
+  const reviewStatus = getArtistTrackReviewStatus(track);
+
+  const previewTrackForSubmit = useMemo(() => {
+    if (!track) {
+      return null;
+    }
+
+    const editableTrack = getEditableTrackSource(track);
+
+    return {
+      ...track,
+      ...editableTrack,
+      title: formData.title.trim() || editableTrack?.title || track.title,
+      versionTitle: formData.versionTitle.trim(),
+      description: formData.description.trim(),
+      lyricsStatic: formData.lyricsStatic,
+      genres: formData.genreIds.map((genreId) => ({ _id: genreId })),
+      genreIds: formData.genreIds,
+      copyright: serializeCopyrightForApi(copyrightForm),
+      avatar: avatarPreview || editableTrack?.avatar || track.avatar,
+      coverImage:
+        coverPreviews.length > 0
+          ? coverPreviews
+          : editableTrack?.coverImage || track.coverImage,
+    };
+  }, [avatarPreview, copyrightForm, coverPreviews, formData, track]);
+
   const submitIssues = useMemo(
-    () =>
-      getSubmitReadinessIssues(
-        track
-          ? {
-              ...track,
-              genres: track.genres,
-              copyright: serializeCopyrightForApi(copyrightForm),
-            }
-          : null
-      ),
-    [track, copyrightForm]
+    () => getSubmitReadinessIssues(previewTrackForSubmit),
+    [previewTrackForSubmit]
   );
-  const draftMessage = location.state?.message || "";
+
+  const selectedGenres = useMemo(
+    () =>
+      genres.filter((genre) => formData.genreIds.includes(String(genre._id))),
+    [formData.genreIds, genres]
+  );
+
+  const activeMeta = getTrackActiveStatusMeta(track?.activeStatus);
+  const approvalMeta = getTrackApprovalStatusMeta(reviewStatus);
+
+  const readinessItems = [
+    {
+      label: "Thông tin cơ bản đã đầy đủ",
+      ready: Boolean(formData.title.trim() && formData.genreIds.length > 0),
+    },
+    {
+      label: "Đã có file âm thanh",
+      ready: Boolean(audioFile || audioPreviewUrl),
+    },
+    {
+      label: "Đã có ảnh minh họa",
+      ready: Boolean(avatarPreview || coverPreviews.length > 0),
+    },
+    {
+      label: "Đã xác nhận bản quyền",
+      ready: Boolean(copyrightForm.declarationAccepted),
+    },
+  ];
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
     setFormData((current) => ({
       ...current,
-      [name]: name === "duration" ? value : value,
+      [name]: value,
     }));
   };
 
   const handleGenreToggle = (genreId) => {
     const nextGenreId = String(genreId);
+
     setFormData((current) => {
       if (current.genreIds.includes(nextGenreId)) {
         return {
@@ -177,7 +324,7 @@ const ArtistTrackEditPage = () => {
       }
 
       if (current.genreIds.length >= MAX_GENRE_IDS) {
-        setErrorMessage(`Bạn chỉ có thể chọn tối đa ${MAX_GENRE_IDS} thể loại.`);
+        showArtistError(`Bạn chỉ có thể chọn tối đa ${MAX_GENRE_IDS} thể loại.`);
         return current;
       }
 
@@ -191,201 +338,169 @@ const ArtistTrackEditPage = () => {
   const handleAudioChange = (event) => {
     const file = event.target.files?.[0] || null;
     setAudioFile(file);
+
     if (file) {
       const url = URL.createObjectURL(file);
       objectUrlsRef.current.push(url);
       setAudioPreviewUrl(url);
-    } else {
-      const first = Array.isArray(track?.audioFiles) ? track.audioFiles[0] : null;
-      setAudioPreviewUrl(first?.url || "");
+      return;
     }
+
+    setAudioPreviewUrl(
+      Array.isArray(getEditableTrackSource(track)?.audioFiles) &&
+      getEditableTrackSource(track).audioFiles.length > 0
+        ? getEditableTrackSource(track).audioFiles[0].url
+        : ""
+    );
   };
 
   const handleAvatarChange = (event) => {
     const file = event.target.files?.[0] || null;
     setAvatarFile(file);
+
     if (file) {
       const url = URL.createObjectURL(file);
       objectUrlsRef.current.push(url);
       setAvatarPreview(url);
-    } else {
-      setAvatarPreview(track?.avatar || "");
+      return;
     }
+
+    setAvatarPreview(getEditableTrackSource(track)?.avatar || track?.avatar || "");
   };
 
   const handleCoverImageChange = (event) => {
     const files = Array.from(event.target.files || []);
     setCoverImageFiles(files);
+
     if (files.length > 0) {
-      const previews = files.map((f) => {
-        const url = URL.createObjectURL(f);
+      const previews = files.map((file) => {
+        const url = URL.createObjectURL(file);
         objectUrlsRef.current.push(url);
         return url;
       });
       setCoverPreviews(previews);
-    } else {
-      setCoverPreviews(Array.isArray(track?.coverImage) ? track.coverImage : []);
+      return;
     }
+
+    setCoverPreviews(
+      Array.isArray(getEditableTrackSource(track)?.coverImage)
+        ? getEditableTrackSource(track).coverImage
+        : Array.isArray(track?.coverImage)
+          ? track.coverImage
+          : []
+    );
   };
 
   const handleLyricsSyncChange = (event) => {
     const file = event.target.files?.[0] || null;
     setLyricsSyncFile(file);
+
     if (file) {
       const reader = new FileReader();
       reader.onload = () => {
         const text = String(reader.result || "");
-        const lines = text.split(/\r?\n/).slice(0, 10).join("\n");
-        setLyricsPreviewText(lines);
+        setLyricsPreviewText(text.split(/\r?\n/).slice(0, 10).join("\n"));
       };
       reader.readAsText(file);
-    } else {
-      setLyricsPreviewText(track?.lyricsSyncUrl ? track.lyricsSyncUrl.split("/").pop() : "");
+      return;
     }
+
+    setLyricsPreviewText(
+      getEditableTrackSource(track)?.lyricsSyncUrl
+        ? getEditableTrackSource(track).lyricsSyncUrl.split("/").pop()
+        : ""
+    );
   };
 
   const validateFormFields = () => {
     const errors = {};
-    
     const title = formData.title.trim();
+
     if (!title) {
-      errors.title = "Vui lòng nhập tên bài nhạc.";
+      errors.title = "Vui lòng nhập tên bài hát.";
     } else if (title.length > TITLE_MAX_LENGTH) {
-      errors.title = `Tên bài nhạc không được vượt quá ${TITLE_MAX_LENGTH} ký tự.`;
+      errors.title = `Tên bài hát không được vượt quá ${TITLE_MAX_LENGTH} ký tự.`;
     }
 
     if (formData.genreIds.length === 0) {
       errors.genres = "Vui lòng chọn ít nhất một thể loại.";
     }
 
-    const audioFiles = Array.isArray(track?.audioFiles) ? track.audioFiles : [];
-    if (audioFiles.length === 0 && !audioFile) {
-      errors.audio = "Vui lòng tải lên ít nhất một tệp âm thanh.";
-    }
-
-    if (!formData.duration || formData.duration <= 0) {
-      errors.duration = "Thời lượng phải lớn hơn 0 giây.";
-    }
-
-    const hasAvatar = avatarFile || (track?.avatar && typeof track.avatar === "string" && track.avatar.trim());
-    const hasCovers = coverImageFiles.length > 0 || (Array.isArray(track?.coverImage) && track.coverImage.length > 0);
-    if (!hasAvatar && !hasCovers) {
-      errors.media = "Vui lòng thêm ảnh đại diện bài nhạc hoặc ít nhất một ảnh bìa.";
-    }
-
-    if (!copyrightForm.copyrightOwner?.trim()) {
-      errors.copyrightOwner = "Vui lòng nhập chủ sở hữu bản quyền.";
-    }
-
-    if (!copyrightForm.recordingOwner?.trim()) {
-      errors.recordingOwner = "Vui lòng nhập chủ sở hữu bản ghi âm.";
-    }
-
-    if (!copyrightForm.declarationAccepted) {
-      errors.declarationAccepted = "Vui lòng xác nhận chính sách bản quyền.";
+    if (String(formData.lyricsStatic || "").length > LYRICS_STATIC_MAX_LENGTH) {
+      errors.lyricsStatic = `Lời bài hát không được vượt quá ${LYRICS_STATIC_MAX_LENGTH} ký tự.`;
     }
 
     return errors;
   };
 
-  const handleSubmitForApproval = async () => {
-    if (!track || !canSubmit) {
-      return;
+  const buildPayload = (uploadedMedia) => {
+    if (!track) {
+      return {};
     }
 
-    const issues = getSubmitReadinessIssues({
-      ...track,
-      title: formData.title.trim() || track.title,
-      duration: formData.duration !== "" ? Number(formData.duration) : track.duration,
-      genres: formData.genreIds.map((genreId) => ({ _id: genreId })),
-      copyright: serializeCopyrightForApi(copyrightForm),
-    });
+    const editableTrack = getEditableTrackSource(track);
+    const payload = {};
+    const nextTitle = formData.title.trim();
+    const nextVersionTitle = formData.versionTitle.trim();
+    const nextDescription = formData.description.trim();
+    const nextGenreIds = formData.genreIds;
+    const nextCopyright = serializeCopyrightForApi(copyrightForm);
+    const currentGenreIds =
+      Array.isArray(editableTrack?.genres) && editableTrack.genres.length > 0
+        ? editableTrack.genres.map((genre) => String(genre._id || genre.id || genre))
+        : Array.isArray(editableTrack?.genreIds)
+          ? editableTrack.genreIds.map((genre) => String(genre?._id || genre?.id || genre))
+          : [];
+    const currentCopyright = serializeCopyrightForApi(editableTrack?.copyright || {});
 
-    if (issues.length > 0) {
-      setErrorMessage(
-        `Vui lòng hoàn tất các mục sau trước khi gửi duyệt:\n${issues
-          .map((item) => `• ${item}`)
-          .join("\n")}`
-      );
-      return;
+    if (nextTitle !== String(editableTrack?.title || "").trim()) {
+      payload.title = nextTitle;
     }
 
-    setSubmittingForApproval(true);
-    setSuccessMessage("");
-    setErrorMessage("");
-    setIsSubmitConfirmOpen(false);
-
-    try {
-      let uploadedMedia = null;
-      const shouldUploadMedia = Boolean(
-        audioFile || avatarFile || lyricsSyncFile || coverImageFiles.length > 0
-      );
-
-      if (shouldUploadMedia) {
-        setIsUploadingMedia(true);
-        const uploadResponse = await trackService.uploadFiles(
-          audioFile,
-          avatarFile,
-          coverImageFiles,
-          lyricsSyncFile
-        );
-        uploadedMedia = uploadResponse?.data || null;
-        setIsUploadingMedia(false);
-      }
-
-      const savePayload = {
-        title: formData.title.trim(),
-        versionTitle: formData.versionTitle.trim(),
-        duration: Number(formData.duration),
-        lyricsStatic: formData.lyricsStatic,
-        album_albumId: formData.album_albumId,
-        genreIds: formData.genreIds,
-        releaseDate: formData.releaseDate || null,
-        copyright: serializeCopyrightForApi(copyrightForm),
-        avatar: uploadedMedia?.avatar || track?.avatar || "",
-        coverImage:
-          uploadedMedia?.coverImages?.length > 0
-            ? uploadedMedia.coverImages
-            : Array.isArray(track?.coverImage)
-              ? track.coverImage
-              : [],
-        lyricsSyncUrl:
-          uploadedMedia?.lyricsSyncUrl !== undefined && uploadedMedia?.lyricsSyncUrl !== ""
-            ? uploadedMedia.lyricsSyncUrl
-            : track?.lyricsSyncUrl || "",
-      };
-
-      if (uploadedMedia?.audioFiles?.length > 0) {
-        savePayload.audioFiles = uploadedMedia.audioFiles;
-      }
-
-      const savedTrack = await trackService.updateArtistTrack(id, savePayload);
-      setTrack(savedTrack);
-
-      await trackService.submitForApproval(id);
-      navigate(routePaths.artistTrackDetail(id), {
-        state: { message: "Đã gửi bài nhạc lên để chờ phê duyệt." },
-      });
-    } catch (error) {
-      setErrorMessage(
-        getApiErrorFullMessage(error, "Không thể gửi bài nhạc để phê duyệt.")
-      );
-    } finally {
-      setSubmittingForApproval(false);
+    if (nextVersionTitle !== String(editableTrack?.versionTitle || "").trim()) {
+      payload.versionTitle = nextVersionTitle;
     }
+
+    if (nextDescription !== String(editableTrack?.description || "").trim()) {
+      payload.description = nextDescription;
+    }
+
+    if (String(formData.lyricsStatic || "") !== String(editableTrack?.lyricsStatic || "")) {
+      payload.lyricsStatic = formData.lyricsStatic;
+    }
+
+    if (!areArraysEqual(nextGenreIds, currentGenreIds)) {
+      payload.genreIds = nextGenreIds;
+    }
+
+    if (stringifyValue(nextCopyright) !== stringifyValue(currentCopyright)) {
+      payload.copyright = nextCopyright;
+    }
+
+    if (uploadedMedia?.avatar) {
+      payload.avatar = uploadedMedia.avatar;
+    }
+
+    if (Array.isArray(uploadedMedia?.coverImages) && uploadedMedia.coverImages.length > 0) {
+      payload.coverImage = uploadedMedia.coverImages;
+    }
+
+    if (uploadedMedia?.lyricsSyncUrl) {
+      payload.lyricsSyncUrl = uploadedMedia.lyricsSyncUrl;
+    }
+
+    if (Array.isArray(uploadedMedia?.audioFiles) && uploadedMedia.audioFiles.length > 0) {
+      payload.audioFiles = uploadedMedia.audioFiles;
+      payload.audioAnalysis = uploadedMedia.audioAnalysis;
+    }
+
+    return payload;
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-
-    if (!canEdit) {
-      setErrorMessage("Bài nhạc này không thể chỉnh sửa ở trạng thái phê duyệt hiện tại.");
+  const saveTrackChanges = async ({ submitAfterSave = false }) => {
+    if (!track) {
       return;
     }
-
-    setSuccessMessage("");
-    setErrorMessage("");
-    setFieldErrors({});
 
     const errors = validateFormFields();
     if (Object.keys(errors).length > 0) {
@@ -393,7 +508,14 @@ const ArtistTrackEditPage = () => {
       return;
     }
 
-    setSubmitting(true);
+    setErrorMessage("");
+    setFieldErrors({});
+
+    if (submitAfterSave) {
+      setSubmittingForApproval(true);
+    } else {
+      setSubmitting(true);
+    }
 
     try {
       let uploadedMedia = null;
@@ -409,88 +531,121 @@ const ArtistTrackEditPage = () => {
           coverImageFiles,
           lyricsSyncFile
         );
-
         uploadedMedia = uploadResponse?.data || null;
       }
 
-      const payload = {
-        title: formData.title.trim(),
-        versionTitle: formData.versionTitle.trim(),
-        duration: Number(formData.duration),
-        lyricsStatic: formData.lyricsStatic,
-        album_albumId: formData.album_albumId,
-        genreIds: formData.genreIds,
-        releaseDate: formData.releaseDate || null,
-        copyright: serializeCopyrightForApi(copyrightForm),
-        avatar: uploadedMedia?.avatar || track?.avatar || "",
-        coverImage:
-          uploadedMedia?.coverImages?.length > 0
-            ? uploadedMedia.coverImages
-            : Array.isArray(track?.coverImage)
-              ? track.coverImage
-              : [],
-        lyricsSyncUrl:
-          uploadedMedia?.lyricsSyncUrl !== undefined && uploadedMedia?.lyricsSyncUrl !== ""
-            ? uploadedMedia.lyricsSyncUrl
-            : track?.lyricsSyncUrl || "",
-      };
+      const payload = buildPayload(uploadedMedia);
+      const willRequireReview =
+        track?.approvalStatus === "approved" &&
+        Object.keys(payload).length > 0;
 
-      if (uploadedMedia?.audioFiles?.length > 0) {
-        payload.audioFiles = uploadedMedia.audioFiles;
+      let latestTrack = track;
+
+      if (Object.keys(payload).length > 0) {
+        latestTrack = await trackService.updateArtistTrack(id, payload);
+        const editableLatestTrack = getEditableTrackSource(latestTrack);
+        setTrack(latestTrack);
+        setFormData(getFormDataFromTrack(latestTrack));
+        setCopyrightForm(
+          mapTrackCopyrightToForm(editableLatestTrack?.copyright || latestTrack?.copyright)
+        );
+        setAvatarPreview(editableLatestTrack?.avatar || latestTrack?.avatar || "");
+        setCoverPreviews(
+          Array.isArray(editableLatestTrack?.coverImage)
+            ? editableLatestTrack.coverImage
+            : Array.isArray(latestTrack?.coverImage)
+              ? latestTrack.coverImage
+              : []
+        );
+        setAudioPreviewUrl(
+          Array.isArray(editableLatestTrack?.audioFiles) && editableLatestTrack.audioFiles.length > 0
+            ? editableLatestTrack.audioFiles[0].url
+            : ""
+        );
+        setLyricsPreviewText(
+          editableLatestTrack?.lyricsSyncUrl
+            ? editableLatestTrack.lyricsSyncUrl.split("/").pop()
+            : ""
+        );
       }
-
-      const updatedTrack = await trackService.updateArtistTrack(id, payload);
-
-      setTrack(updatedTrack);
-      setAvatarPreview(updatedTrack?.avatar || "");
-      setCoverPreviews(Array.isArray(updatedTrack?.coverImage) ? updatedTrack.coverImage : []);
-      setAudioPreviewUrl(
-        Array.isArray(updatedTrack?.audioFiles) && updatedTrack.audioFiles.length > 0
-          ? updatedTrack.audioFiles[0].url
-          : ""
-      );
-      setLyricsPreviewText(updatedTrack?.lyricsSyncUrl ? updatedTrack.lyricsSyncUrl.split("/").pop() : "");
-      setSuccessMessage("Đã cập nhật bài nhạc thành công.");
-
-      setTimeout(() => {
-        navigate(routePaths.artistMusic);
-      }, 900);
 
       setAudioFile(null);
       setAvatarFile(null);
       setCoverImageFiles([]);
       setLyricsSyncFile(null);
-    } catch (error) {
-      setErrorMessage(
-        getApiErrorFullMessage(error, "Không thể cập nhật bài nhạc lúc này.")
+
+      if (submitAfterSave) {
+        const submittedTrack = await trackService.submitForApproval(id);
+        setTrack(submittedTrack);
+        navigate(routePaths.artistTrackDetail(id), {
+          state: { message: "Đã gửi bài hát để admin duyệt." },
+        });
+        return;
+      }
+
+      if (Object.keys(payload).length === 0) {
+        showArtistInfo("Chưa có thay đổi nào để lưu.");
+      } else if (willRequireReview && latestTrack?.pendingUpdate?.status === "pending") {
+        showArtistSuccess("Đã lưu thay đổi và chuyển bài hát về trạng thái chờ duyệt.");
+      } else {
+        showArtistSuccess("Đã lưu thay đổi bài hát thành công.");
+      }
+    } catch {
+      showArtistError(
+        submitAfterSave
+          ? "Không thể gửi bài hát để duyệt vào lúc này."
+          : "Không thể lưu thay đổi bài hát vào lúc này."
       );
     } finally {
       setIsUploadingMedia(false);
       setSubmitting(false);
+      setSubmittingForApproval(false);
     }
   };
 
-  useEffect(() => {
-    return () => {
-      if (objectUrlsRef.current && objectUrlsRef.current.length > 0) {
-        objectUrlsRef.current.forEach((u) => {
-          try {
-            URL.revokeObjectURL(u);
-          } catch {
-            // ignore
-          }
-        });
-        objectUrlsRef.current = [];
-      }
-    };
-  }, []);
+  const handleFormSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!canEdit) {
+      showArtistError("Bài hát này hiện không thể chỉnh sửa.");
+      return;
+    }
+
+    await saveTrackChanges({ submitAfterSave: false });
+  };
+
+  const handleSaveClick = async () => {
+    if (!canEdit || submitting || submittingForApproval) {
+      return;
+    }
+
+    await saveTrackChanges({ submitAfterSave: false });
+  };
+
+  const handleSubmitForApproval = async () => {
+    if (!track || !canSubmit) {
+      return;
+    }
+
+    if (submitIssues.length > 0) {
+      showArtistError(
+        `Vui lòng hoàn thiện các mục sau trước khi gửi duyệt:\n${submitIssues
+          .map((issue) => `- ${issue}`)
+          .join("\n")}`
+      );
+      return;
+    }
+
+    setIsSubmitConfirmOpen(false);
+    await saveTrackChanges({ submitAfterSave: true });
+  };
 
   if (loading) {
     return (
-      <section className="rounded-md border border-neutral-200 bg-white p-8 text-sm text-neutral-600 shadow-sm">
+      <section className="rounded-[28px] border border-[#ece8ff] bg-white p-8 text-sm text-[#6b6682] shadow-sm">
         <div className="flex items-center gap-3">
-          <Loader2 className="h-5 w-5 animate-spin text-[#8b5e3c]" />
-          Loading track editor...
+          <Loader2 className="h-5 w-5 animate-spin text-[#6f5cf1]" />
+          Đang tải trình chỉnh sửa bài hát...
         </div>
       </section>
     );
@@ -498,8 +653,8 @@ const ArtistTrackEditPage = () => {
 
   if (errorMessage && !track) {
     return (
-      <section className="rounded-md border border-rose-200 bg-rose-50 p-6 text-rose-900">
-        <h2 className="text-lg font-semibold">Could not load track</h2>
+      <section className="rounded-[28px] border border-rose-200 bg-rose-50 p-6 text-rose-900">
+        <h2 className="text-lg font-semibold">Không thể tải bài hát</h2>
         <p className="mt-2 text-sm leading-6">{errorMessage}</p>
       </section>
     );
@@ -510,436 +665,417 @@ const ArtistTrackEditPage = () => {
       <button
         type="button"
         onClick={() => navigate(routePaths.artistTrackDetail(id))}
-        className="inline-flex items-center gap-2 text-sm font-medium text-neutral-600 transition hover:text-[#8b5e3c]"
+        className="inline-flex items-center gap-2 text-sm font-medium text-[#6b6682] transition hover:text-[#3d2d73]"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to Track Detail
+        Quay lại chi tiết bài hát
       </button>
 
-      <div className="rounded-md border border-neutral-200 bg-white p-6 shadow-sm">
-        <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-[#8b5e3c]">
-            Artist Dashboard
-          </p>
-          <h1 className="mt-3 text-2xl font-semibold tracking-tight text-[#241b15]">
-            Edit Track
-          </h1>
-          <p className="mt-2 text-sm text-neutral-600">
-            Complete draft details, copyright, and media, then submit for admin approval.
-          </p>
+      {track?.pendingUpdate?.status === "pending" ? (
+        <div className="rounded-[22px] border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
+          Bản chỉnh sửa của bài hát đã được gửi admin duyệt. Người nghe vẫn tiếp tục nghe phiên bản đang phát hành.
         </div>
+      ) : null}
 
-        {draftMessage ? (
-          <div className="mt-4 rounded-md border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
-            {draftMessage}
-          </div>
-        ) : null}
+      {track?.pendingUpdate?.status === "rejected" && track?.pendingUpdate?.rejectReason ? (
+        <div className="rounded-[22px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+          Bản chỉnh sửa trước bị từ chối: {track.pendingUpdate.rejectReason}
+        </div>
+      ) : null}
 
-        {!canEdit ? (
-          <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            This track is {track?.approvalStatus || "locked"} and cannot be edited.
-            {track?.approvalStatus === "rejected" && track?.rejectReason
-              ? ` Reason: ${track.rejectReason}`
-              : ""}
-          </div>
-        ) : null}
+      {!canEdit ? (
+        <div className="rounded-[22px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Bài hát này hiện đang bị khóa chỉnh sửa.
+        </div>
+      ) : null}
 
-        {successMessage ? (
-          <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-            {successMessage}
-          </div>
-        ) : null}
+      {track?.approvalStatus === "rejected" && track?.rejectReason ? (
+        <div className="rounded-[22px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+          Lý do từ chối: {track.rejectReason}
+        </div>
+      ) : null}
 
-        {errorMessage ? (
-          <div className="mt-4 whitespace-pre-line rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-            {errorMessage}
-          </div>
-        ) : null}
+      {errorMessage ? (
+        <div className="whitespace-pre-line rounded-[22px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {errorMessage}
+        </div>
+      ) : null}
 
-        {canSubmit ? (
-          <div className="mt-4 rounded-md border border-neutral-200 bg-white p-4">
-            <p className="text-sm font-medium text-[#241b15]">Submit readiness</p>
-            {submitIssues.length === 0 ? (
-              <p className="mt-2 text-sm text-emerald-700">
-                All required fields look ready. Save changes, then submit for approval.
-              </p>
-            ) : (
-              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-neutral-600">
-                {submitIssues.map((issue) => (
-                  <li key={issue}>{issue}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-        ) : null}
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_290px] 2xl:grid-cols-[minmax(0,1.55fr)_320px]">
+        <form onSubmit={handleFormSubmit} className="space-y-6">
+          <SectionCard
+            icon={Music4}
+            eyebrow="Chỉnh sửa"
+            title="Thông tin bài hát"
+            description="Cập nhật phần nhận diện chính của bài hát. Khi thay đổi tên bài hát, tên phiên bản, file âm thanh hoặc thông tin bản quyền, bài hát có thể quay lại trạng thái chờ duyệt."
+          >
+            <div className="grid gap-5 md:grid-cols-2">
+              <FieldShell
+                label="Tên bài hát"
+                helper={`${formData.title.length}/${TITLE_MAX_LENGTH}`}
+                error={fieldErrors.title}
+              >
+                <input
+                  type="text"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleInputChange}
+                  maxLength={TITLE_MAX_LENGTH}
+                  disabled={!canEdit}
+                  className={`h-12 w-full rounded-2xl border bg-white px-4 text-sm text-[#241b45] outline-none transition ${
+                    fieldErrors.title
+                      ? "border-rose-300 focus:border-rose-400"
+                      : "border-[#e6e0ff] focus:border-[#7c6cf2]"
+                  }`}
+                />
+              </FieldShell>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-6">
-          <div className="rounded-md border border-neutral-200 bg-[#fcfaf7] p-4">
-            <p className="text-sm font-medium text-[#241b15]">Media *</p>
-            <p className={`mt-1 text-xs ${
-              fieldErrors.audio || fieldErrors.media ? "text-red-500" : "text-neutral-600"
-            }`}>
-              {fieldErrors.audio || fieldErrors.media || "Upload or verify your audio, avatar, and cover images."}
-            </p>
+              <FieldShell label="Tên phiên bản" helper="Không bắt buộc">
+                <input
+                  type="text"
+                  name="versionTitle"
+                  value={formData.versionTitle}
+                  onChange={handleInputChange}
+                  disabled={!canEdit}
+                  className="h-12 w-full rounded-2xl border border-[#e6e0ff] bg-white px-4 text-sm text-[#241b45] outline-none transition focus:border-[#7c6cf2]"
+                />
+              </FieldShell>
+            </div>
 
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="block text-sm font-medium text-[#241b15]">
-                  Audio file {!audioPreviewUrl && !audioFile ? "*" : ""}
-                </label>
+            <div className="mt-5">
+              <FieldShell label="Mô tả">
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  rows="4"
+                  disabled={!canEdit}
+                  className="w-full rounded-3xl border border-[#e6e0ff] bg-white px-4 py-4 text-sm leading-6 text-[#241b45] outline-none transition focus:border-[#7c6cf2]"
+                />
+              </FieldShell>
+            </div>
+          </SectionCard>
+
+          <SectionCard
+            icon={FileAudio}
+            eyebrow="Tệp"
+            title="Âm thanh và hình ảnh"
+            description="Thay thế file âm thanh gốc, ảnh đại diện, ảnh bìa hoặc file lời đồng bộ mà không làm thay đổi logic backend hiện tại."
+          >
+            <div className="grid gap-5 md:grid-cols-2">
+              <FieldShell label="File âm thanh gốc">
                 <input
                   type="file"
                   accept=".mp3,.wav,.flac,.aac,.m4a,audio/mpeg,audio/wav,audio/flac,audio/aac,audio/mp4"
                   onChange={handleAudioChange}
-                  className={`mt-2 w-full rounded-md border px-3 py-2 text-sm ${
-                    fieldErrors.audio
-                      ? "border-red-500"
-                      : "border-neutral-200"
-                  }`}
+                  disabled={!canEdit}
+                  className="block h-12 w-full rounded-2xl border border-[#e6e0ff] bg-white px-4 py-3 text-sm text-[#241b45] file:mr-3 file:rounded-xl file:border-0 file:bg-[#f3efff] file:px-3 file:py-2 file:text-xs file:font-semibold file:text-[#5c4fe0]"
                 />
                 {audioFile ? (
-                  <p className="mt-2 text-xs text-neutral-600">Selected: {audioFile.name}</p>
+                  <p className="mt-2 text-sm text-[#5e5678]">{audioFile.name}</p>
                 ) : null}
                 {audioPreviewUrl ? (
-                  <div className="mt-2">
-                    <p className="text-xs text-neutral-600">Current / Selected Audio</p>
-                    <audio controls src={audioPreviewUrl} className="mt-2 w-full" />
-                  </div>
+                  <audio controls src={audioPreviewUrl} className="mt-3 w-full" />
                 ) : null}
-              </div>
+              </FieldShell>
 
-              <div>
-                <label className="block text-sm font-medium text-[#241b15]">
-                  Avatar image {!avatarPreview && !avatarFile ? "*" : ""}
-                </label>
+              <FieldShell label="Ảnh đại diện">
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleAvatarChange}
-                  className={`mt-2 w-full rounded-md border px-3 py-2 text-sm ${
-                    fieldErrors.media
-                      ? "border-red-500"
-                      : "border-neutral-200"
-                  }`}
+                  disabled={!canEdit}
+                  className="block h-12 w-full rounded-2xl border border-[#e6e0ff] bg-white px-4 py-3 text-sm text-[#241b45] file:mr-3 file:rounded-xl file:border-0 file:bg-[#f3efff] file:px-3 file:py-2 file:text-xs file:font-semibold file:text-[#5c4fe0]"
                 />
-                {avatarFile ? (
-                  <p className="mt-2 text-xs text-neutral-600">Selected: {avatarFile.name}</p>
-                ) : null}
                 {avatarPreview ? (
-                  <div className="mt-2 flex items-start gap-3">
-                    <div>
-                      <p className="text-xs text-neutral-600">Current / Selected Avatar</p>
-                      <img
-                        src={avatarPreview}
-                        alt="Avatar preview"
-                        className="mt-2 h-24 w-24 rounded object-cover border border-neutral-200"
-                      />
-                    </div>
-                  </div>
+                  <img
+                    src={avatarPreview}
+                    alt="Xem trước ảnh đại diện"
+                    className="mt-3 h-28 w-28 rounded-[22px] object-cover"
+                  />
                 ) : null}
-              </div>
+              </FieldShell>
             </div>
 
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="block text-sm font-medium text-[#241b15]">
-                  New cover images
-                </label>
+            <div className="mt-5 grid gap-5 md:grid-cols-2">
+              <FieldShell label="Ảnh bìa">
                 <input
                   type="file"
                   accept="image/*"
                   multiple
                   onChange={handleCoverImageChange}
-                  className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm"
+                  disabled={!canEdit}
+                  className="block h-12 w-full rounded-2xl border border-[#e6e0ff] bg-white px-4 py-3 text-sm text-[#241b45] file:mr-3 file:rounded-xl file:border-0 file:bg-[#f3efff] file:px-3 file:py-2 file:text-xs file:font-semibold file:text-[#5c4fe0]"
                 />
-                {coverImageFiles.length > 0 ? (
-                  <p className="mt-2 text-xs text-neutral-600">
-                    Selected: {coverImageFiles.length} file(s)
-                  </p>
-                ) : null}
-                {coverPreviews && coverPreviews.length > 0 ? (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {coverPreviews.map((url, idx) => (
+                {coverPreviews.length > 0 ? (
+                  <div className="mt-3 flex flex-wrap gap-3">
+                    {coverPreviews.map((url, index) => (
                       <img
-                        key={idx}
+                        key={`${url}-${index}`}
                         src={url}
-                        alt={`Cover ${idx + 1}`}
-                        className="h-20 w-20 rounded object-cover border border-neutral-200"
+                        alt={`Ảnh bìa ${index + 1}`}
+                        className="h-20 w-20 rounded-2xl object-cover"
                       />
                     ))}
                   </div>
                 ) : null}
-              </div>
+              </FieldShell>
 
-              <div>
-                <label className="block text-sm font-medium text-[#241b15]">
-                  New sync lyrics (.lrc)
-                </label>
+              <FieldShell label="Lời đồng bộ (.lrc)">
                 <input
                   type="file"
                   accept=".lrc,text/plain"
                   onChange={handleLyricsSyncChange}
-                  className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm"
+                  disabled={!canEdit}
+                  className="block h-12 w-full rounded-2xl border border-[#e6e0ff] bg-white px-4 py-3 text-sm text-[#241b45] file:mr-3 file:rounded-xl file:border-0 file:bg-[#f3efff] file:px-3 file:py-2 file:text-xs file:font-semibold file:text-[#5c4fe0]"
                 />
-                {lyricsSyncFile ? (
-                  <p className="mt-2 text-xs text-neutral-600">Selected: {lyricsSyncFile.name}</p>
-                ) : null}
                 {lyricsPreviewText ? (
-                  <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded bg-neutral-50 p-2 text-xs text-neutral-700">
+                  <pre className="mt-3 max-h-44 overflow-auto rounded-3xl border border-[#ece8ff] bg-[#fbfaff] p-4 text-xs leading-6 text-[#5e5678]">
                     {lyricsPreviewText}
                   </pre>
-                ) : track?.lyricsSyncUrl ? (
-                  <p className="mt-2 text-xs text-neutral-600">Current lyrics: {track.lyricsSyncUrl.split('/').pop()}</p>
                 ) : null}
+              </FieldShell>
+            </div>
+          </SectionCard>
+
+          <SectionCard
+            icon={FileText}
+            eyebrow="Nội dung"
+            title="Lời bài hát và thể loại"
+            description="Điều chỉnh phần nội dung hỗ trợ cho việc kiểm duyệt và hiển thị trong danh mục bài hát."
+          >
+            <FieldShell label="Lời bài hát tĩnh" error={fieldErrors.lyricsStatic}>
+              <textarea
+                name="lyricsStatic"
+                value={formData.lyricsStatic}
+                onChange={handleInputChange}
+                rows="8"
+                disabled={!canEdit}
+                className="w-full rounded-3xl border border-[#e6e0ff] bg-white px-4 py-4 text-sm leading-6 text-[#241b45] outline-none transition focus:border-[#7c6cf2]"
+              />
+            </FieldShell>
+
+            <div className="mt-5">
+              <FieldShell
+                label="Thể loại"
+                helper={`${formData.genreIds.length}/${MAX_GENRE_IDS} đã chọn`}
+                error={fieldErrors.genres}
+              >
+                <button
+                  type="button"
+                  onClick={() => setGenresOpen((current) => !current)}
+                  disabled={!canEdit}
+                  className={`flex min-h-[52px] w-full items-center justify-between rounded-2xl border bg-white px-4 text-left text-sm text-[#241b45] transition ${
+                    fieldErrors.genres
+                      ? "border-rose-300"
+                      : "border-[#e6e0ff] hover:border-[#d5ccff]"
+                  }`}
+                >
+                  <span className="truncate">
+                    {selectedGenres.length === 0
+                      ? "Chọn thể loại..."
+                      : selectedGenres.map((genre) => genre.name).join(", ")}
+                  </span>
+                  <Disc3 className="h-4 w-4 text-[#8d87aa]" />
+                </button>
+
+                {genresOpen ? (
+                  <div className="mt-3 grid gap-2 rounded-3xl border border-[#ece8ff] bg-[#fbfaff] p-3 md:grid-cols-2">
+                    {genres.map((genre) => {
+                      const genreId = String(genre._id);
+                      const checked = formData.genreIds.includes(genreId);
+
+                      return (
+                        <label
+                          key={genreId}
+                          className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 text-sm transition ${
+                            checked
+                              ? "border-[#cfc4ff] bg-white text-[#3f3164]"
+                              : "border-transparent bg-transparent text-[#5e5678] hover:border-[#ece8ff] hover:bg-white"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => handleGenreToggle(genreId)}
+                            disabled={!canEdit}
+                            className="h-4 w-4 rounded border-neutral-300 text-[#6f5cf1]"
+                          />
+                          <span className="truncate">{genre.name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </FieldShell>
+            </div>
+          </SectionCard>
+
+          <SectionCard
+            icon={ShieldCheck}
+            eyebrow="Bản quyền"
+            title="Thông tin quyền sở hữu"
+            description="Cập nhật metadata bản quyền mà không thay đổi cách backend kiểm tra và lưu bài hát."
+          >
+            <TrackCopyrightFields
+              value={copyrightForm}
+              onChange={setCopyrightForm}
+              disabled={!canEdit}
+              errors={fieldErrors}
+            />
+          </SectionCard>
+        </form>
+
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-1">
+          <SidebarCard title="Trạng thái hiện tại">
+            <div className="overflow-hidden rounded-[24px] bg-[#f6f2ff]">
+              <img
+                src={
+                  avatarPreview ||
+                  coverPreviews[0] ||
+                  resolveTrackArtwork(track || { title: formData.title || "Bài hát" })
+                }
+                alt={formData.title || "Xem trước bài hát"}
+                className="aspect-square w-full object-cover"
+              />
+            </div>
+            <h3 className="mt-5 text-xl font-semibold tracking-tight text-[#241b45]">
+              {formData.title.trim() || "Chưa có tên bài hát"}
+            </h3>
+            <p className="mt-1 text-sm text-[#8d87aa]">
+              {formData.versionTitle.trim() || "Phiên bản gốc"}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <span className={["rounded-full border px-3 py-1 text-xs font-semibold", activeMeta.className].join(" ")}>
+                {activeMeta.label}
+              </span>
+              <span className={["rounded-full border px-3 py-1 text-xs font-semibold", approvalMeta.className].join(" ")}>
+                {approvalMeta.label}
+              </span>
+            </div>
+          </SidebarCard>
+
+          <SidebarCard title="Mức độ hoàn thiện">
+            <div className="space-y-3">
+              {readinessItems.map((item) => (
+                <div
+                  key={item.label}
+                  className="flex items-center justify-between gap-4 rounded-2xl border border-[#f0ebff] bg-[#fbfaff] px-4 py-3 text-sm"
+                >
+                  <span className="text-[#5e5678]">{item.label}</span>
+                  <span
+                    className={[
+                      "rounded-full px-3 py-1 text-xs font-semibold",
+                      item.ready
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-slate-100 text-slate-500",
+                    ].join(" ")}
+                  >
+                    {item.ready ? "Đã sẵn sàng" : "Chưa xong"}
+                  </span>
+                </div>
+              ))}
+            </div>
+            {canSubmit ? (
+              <div className="mt-5 rounded-[22px] border border-[#ece8ff] bg-[#fbfaff] p-4">
+                <p className="text-sm font-semibold text-[#241b45]">
+                  Danh sách cần kiểm tra trước khi gửi duyệt
+                </p>
+                {submitIssues.length === 0 ? (
+                  <p className="mt-2 text-sm text-emerald-700">
+                    Bài hát này đã sẵn sàng để gửi duyệt.
+                  </p>
+                ) : (
+                  <ul className="mt-2 space-y-2 text-sm text-[#5e5678]">
+                    {submitIssues.map((issue) => (
+                      <li key={issue}>{issue}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ) : null}
+          </SidebarCard>
+
+          <SidebarCard title="Thông tin nhanh">
+            <div className="space-y-4 text-sm">
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-[#8d87aa]">Thời lượng</span>
+                <span className="text-right font-medium text-[#241b45]">
+                  {getTrackDisplayDuration(track?.duration)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-[#8d87aa]">Thể loại</span>
+                <span className="text-right font-medium text-[#241b45]">
+                  {selectedGenres.length > 0
+                    ? selectedGenres.map((genre) => genre.name).join(", ")
+                    : "Chưa chọn"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-[#8d87aa]">Cập nhật</span>
+                <span className="text-right font-medium text-[#241b45]">
+                  {formatTrackDate(track?.updatedAt)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-[#8d87aa]">Ngày tạo</span>
+                <span className="text-right font-medium text-[#241b45]">
+                  {formatTrackDateTime(track?.createdAt)}
+                </span>
               </div>
             </div>
-          </div>
+          </SidebarCard>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-[#241b15]">
-                Track Title *
-              </label>
-              <input
-                type="text"
-                name="title"
-                value={formData.title}
-                onChange={handleInputChange}
-                maxLength={TITLE_MAX_LENGTH}
-                disabled={!canEdit || submitting}
-                className={`mt-2 w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${
-                  fieldErrors.title
-                    ? "border-red-500 focus:border-red-500"
-                    : "border-neutral-200 focus:border-[#8b5e3c]"
-                }`}
-                required
-              />
-              {fieldErrors.title && (
-                <p className="mt-1 text-xs text-red-500">{fieldErrors.title}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-[#241b15]">
-                Version title
-              </label>
-              <input
-                type="text"
-                name="versionTitle"
-                value={formData.versionTitle}
-                onChange={handleInputChange}
-                disabled={!canEdit || submitting}
-                className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm focus:border-[#8b5e3c] focus:outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-[#241b15]">
-                Duration (seconds) *
-              </label>
-              <input
-                type="number"
-                name="duration"
-                value={formData.duration}
-                onChange={handleInputChange}
-                min="1"
-                step="1"
-                disabled={!canEdit || submitting}
-                className={`mt-2 w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${
-                  fieldErrors.duration
-                    ? "border-red-500 focus:border-red-500"
-                    : "border-neutral-200 focus:border-[#8b5e3c]"
-                }`}
-                required
-              />
-              {fieldErrors.duration && (
-                <p className="mt-1 text-xs text-red-500">{fieldErrors.duration}</p>
-              )}
-            </div>
-          </div>
-
-          <TrackCopyrightFields
-            value={copyrightForm}
-            onChange={setCopyrightForm}
-            disabled={!canEdit || submitting}
-            errors={fieldErrors}
-          />
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-[#241b15]">
-                Release Date
-              </label>
-              <input
-                type="date"
-                name="releaseDate"
-                value={formData.releaseDate}
-                onChange={handleInputChange}
-                className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm focus:border-[#8b5e3c] focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-[#241b15]">
-              Static Lyrics
-            </label>
-            <textarea
-              name="lyricsStatic"
-              value={formData.lyricsStatic}
-              onChange={handleInputChange}
-              rows="5"
-              className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm focus:border-[#8b5e3c] focus:outline-none"
-            />
-          </div>
-
-          <div className="relative">
-            <label className="block text-sm font-medium text-[#241b15]">
-              Genres *
-            </label>
-            <p className={`mt-1 text-xs ${
-              fieldErrors.genres ? "text-red-500" : "text-neutral-500"
-            }`}>
-              {fieldErrors.genres || `Select at least one genre (max ${MAX_GENRE_IDS})`}
-            </p>
+          <div className="rounded-[28px] border border-[#ece8ff] bg-white p-5 shadow-[0_18px_40px_rgba(32,23,71,0.08)]">
             <button
               type="button"
-              onClick={() => setGenresOpen((current) => !current)}
-              disabled={!canEdit || submitting}
-              className={`mt-2 w-full rounded-md border px-3 py-2 text-left text-sm flex items-center justify-between ${
-                fieldErrors.genres
-                  ? "border-red-500"
-                  : "border-neutral-200"
-              }`}
-            >
-              <span className="truncate text-neutral-700">
-                {formData.genreIds.length === 0
-                  ? "Select genres..."
-                  : genreOptions
-                      .filter((genre) => formData.genreIds.includes(String(genre._id)))
-                      .map((genre) => genre.name)
-                      .join(", ")}
-              </span>
-              <span className="ml-2 text-neutral-500">▾</span>
-            </button>
-
-            {genresOpen ? (
-              <div className="absolute z-20 mt-2 w-full max-h-56 overflow-auto rounded-md border border-neutral-200 bg-white p-2 shadow">
-                {genreOptions.map((genre) => {
-                  const idValue = String(genre._id);
-                  return (
-                    <label
-                      key={idValue}
-                      className="flex items-center gap-2 px-2 py-1 text-sm text-neutral-700 hover:bg-neutral-50"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={formData.genreIds.includes(idValue)}
-                        onChange={() => handleGenreToggle(idValue)}
-                        disabled={submitting}
-                        className="h-4 w-4 rounded border-neutral-300 text-[#8b5e3c] focus:ring-[#8b5e3c]"
-                      />
-                      <span className="truncate">{genre.name}</span>
-                    </label>
-                  );
-                })}
-
-                <div className="mt-2 flex items-center justify-between px-2">
-                  <button
-                    type="button"
-                    onClick={() => setFormData((current) => ({ ...current, genreIds: [] }))}
-                    className="text-sm text-red-500"
-                  >
-                    Clear
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setGenresOpen(false)}
-                    className="text-sm text-neutral-700"
-                  >
-                    Done
-                  </button>
-                </div>
-              </div>
-            ) : null}
-
-            {formData.genreIds.length > 0 ? (
-              <p className="mt-2 text-sm text-neutral-600">
-                Selected {formData.genreIds.length} genres
-              </p>
-            ) : null}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-[#241b15]">
-              Album (Optional)
-            </label>
-            <select
-              name="album_albumId"
-              value={formData.album_albumId}
-              onChange={handleInputChange}
-              className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm focus:border-[#8b5e3c] focus:outline-none"
-            >
-              <option value="">No album</option>
-              {albums.map((album) => (
-                <option key={album._id} value={album._id}>
-                  {album.title}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex flex-wrap gap-2 pt-4">
-            <button
-              type="submit"
+              onClick={handleSaveClick}
               disabled={!canEdit || submitting || submittingForApproval}
-              className="inline-flex items-center gap-2 rounded-md bg-[#8b5e3c] px-4 py-2 font-medium text-white hover:bg-[#6d4a2f] disabled:opacity-50"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#2f225d] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#221745] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {submitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : null}
               {submitting
                 ? isUploadingMedia
-                  ? "Uploading media..."
-                  : "Saving..."
-                : "Save draft changes"}
+                  ? "Đang tải media..."
+                  : "Đang lưu thay đổi..."
+                : "Lưu thay đổi"}
             </button>
-
             {canSubmit ? (
               <button
                 type="button"
                 onClick={() => {
-                  setSuccessMessage("");
                   setErrorMessage("");
                   setIsSubmitConfirmOpen(true);
                 }}
-                disabled={!canEdit || submitting || submittingForApproval || submitIssues.length > 0}
-                className="inline-flex items-center gap-2 rounded-md border border-sky-200 bg-sky-50 px-4 py-2 font-medium text-sky-900 hover:bg-sky-100 disabled:opacity-50"
+                disabled={submitting || submittingForApproval || submitIssues.length > 0}
+                className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-sky-200 bg-sky-50 px-5 py-3 text-sm font-medium text-sky-800 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submittingForApproval ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
-                {submittingForApproval ? "Đang gửi duyệt..." : "Gửi duyệt bài nhạc"}
+                ) : null}
+                {submittingForApproval ? "Đang gửi duyệt..." : "Gửi duyệt"}
               </button>
             ) : null}
-
             <button
               type="button"
               onClick={() => navigate(routePaths.artistTrackDetail(id))}
-              className="rounded-md border border-neutral-200 px-4 py-2 font-medium text-neutral-700 transition hover:bg-neutral-50"
+              className="mt-3 inline-flex w-full items-center justify-center rounded-2xl border border-[#e6e0ff] px-5 py-3 text-sm font-medium text-[#4d4569] transition hover:bg-[#faf8ff]"
             >
               Hủy
             </button>
           </div>
-        </form>
+        </div>
       </div>
 
       <ConfirmActionModal
         isOpen={isSubmitConfirmOpen}
-        title="Gửi duyệt bài nhạc?"
-        message="Sau khi gửi duyệt, bạn sẽ không thể chỉnh sửa bài nhạc trong thời gian chờ phê duyệt. Bạn có muốn tiếp tục không?"
-        confirmText="Xác nhận gửi duyệt"
-        cancelText="Quay lại"
+        title="Gửi bài hát để duyệt?"
+        message="Sau khi gửi duyệt, bạn sẽ không thể chỉnh sửa bài hát cho đến khi quá trình kiểm duyệt hoàn tất. Bạn có muốn tiếp tục không?"
+        confirmText="Gửi duyệt"
+        cancelText="Hủy"
         isLoading={submittingForApproval}
         onCancel={() => setIsSubmitConfirmOpen(false)}
         onConfirm={handleSubmitForApproval}

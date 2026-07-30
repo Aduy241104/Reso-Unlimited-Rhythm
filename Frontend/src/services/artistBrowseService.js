@@ -281,11 +281,20 @@ const buildPopularTracksFromApi = (tracks = []) =>
         track?.plays ||
         track?.streamCount ||
         0;
+      const resolvedTrackId = track?._id || track?.id || `track-${index}`;
 
       return {
-        id: track?.id || `track-${index}`,
+        _id: resolvedTrackId,
+        id: resolvedTrackId,
         title: track?.title || "Untitled track",
-        image: track?.coverImage || track?.album?.coverImage || track?.avatar || "",
+        image: track?.avatar || track?.artist?.avatar || track?.coverImage || track?.album?.coverImage || "",
+        artist: track?.artist || null,
+        artistName:
+          track?.artistName ||
+          track?.artist?.name ||
+          track?.artistId?.name ||
+          "Unknown Artist",
+        artistId: track?.artistId || track?.artist?.id || null,
         plays: formatCompactNumber(totalPlays),
         duration: formatDuration(track?.duration),
         totalPlays,
@@ -294,9 +303,13 @@ const buildPopularTracksFromApi = (tracks = []) =>
     .sort((trackA, trackB) => trackB.totalPlays - trackA.totalPlays)
     .slice(0, 5)
     .map((track) => ({
+      _id: track._id,
       id: track.id,
       title: track.title,
       image: track.image,
+      artist: track.artist,
+      artistName: track.artistName,
+      artistId: track.artistId,
       plays: track.plays,
       duration: track.duration,
     }));
@@ -332,16 +345,16 @@ const buildComingReleasesFromApi = (comingReleases = []) =>
 
 const normalizeDailyTopArtistItem = (item) => ({
   artist: {
-    id: item.artist.id,
-    name: item.artist.name,
-    avatar: item.artist.avatar,
+    id: item?.artist?.id || item?.artist?._id || "",
+    name: item?.artist?.name || "Unknown artist",
+    avatar: item?.artist?.avatar || "",
   },
-  rank: item.rank,
-  date: item.date,
-  score: item.score,
-  uniqueListeners: item.uniqueListeners,
-  playCount: item.playCount,
-  completedPlayCount: item.completedPlayCount,
+  rank: Number(item?.rank) || 0,
+  date: item?.date || "",
+  score: Number(item?.score) || 0,
+  uniqueListeners: Number(item?.uniqueListeners) || 0,
+  playCount: Number(item?.playCount) || 0,
+  completedPlayCount: Number(item?.completedPlayCount) || 0,
 });
 
 const normalizeMonthlyTopArtistItem = (item) => ({
@@ -554,9 +567,16 @@ export const getDailyTopArtistsService = async ({ date, limit = 9 }) => {
     },
   });
 
+  const payload = response?.data?.data;
+  const topArtists = Array.isArray(payload?.topArtists)
+    ? payload.topArtists
+        .map(normalizeDailyTopArtistItem)
+        .filter((item) => item.artist.id)
+    : [];
+
   return {
-    topArtists: response.data.data.topArtists.map(normalizeDailyTopArtistItem),
-    meta: response.data.meta,
+    topArtists,
+    meta: response?.data?.meta || {},
   };
 };
 
@@ -573,3 +593,4 @@ export const getMonthlyTopArtistsService = async ({ month, limit = 9 }) => {
     meta: response.data.meta,
   };
 };
+

@@ -1,12 +1,14 @@
-import { CirclePlus, Download, Play, ShieldAlert } from "lucide-react";
+import { CirclePlus, Play } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import LoadingState from "../../components/common/LoadingState";
 import TrackTwoLevelMenu from "../../components/trackMenu/TrackTwoLevelMenu";
 import CreateReportModal from "../../components/report/CreateReportModal";
 import TrackDetailArtistCard from "../../components/trackDetail/TrackDetailArtistCard";
 import TrackDetailHero from "../../components/trackDetail/TrackDetailHero";
 import TrackDetailLikeSection from "../../components/trackDetail/TrackDetailLikeSection";
 import TrackDetailLyrics from "../../components/trackDetail/TrackDetailLyrics";
+import TrackInformationModal from "../../components/trackDetail/TrackInformationModal";
 import { useAuth } from "../../hooks/useAuth";
 import { usePlayer } from "../../hooks/usePlayer";
 import { routePaths } from "../../routes/routePaths";
@@ -59,6 +61,20 @@ const getPlaylistTitle = (playlist) => {
   return "Danh s\u00e1ch ph\u00e1t ch\u01b0a \u0111\u1eb7t t\u00ean";
 };
 
+const getTrackArtistId = (track) => {
+  const artistId =
+    track?.artist?.id ||
+    track?.artist?._id ||
+    track?.artist?.artistId ||
+    track?.artistId?.id ||
+    track?.artistId?._id ||
+    track?.artistId;
+
+  return typeof artistId === "string" || typeof artistId === "number"
+    ? String(artistId).trim()
+    : "";
+};
+
 const TrackDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -69,6 +85,7 @@ const TrackDetailPage = () => {
   const [likeCount, setLikeCount] = useState(0);
   const [isLikeLoading, setIsLikeLoading] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isInformationModalOpen, setIsInformationModalOpen] = useState(false);
   const [playlistFeedback, setPlaylistFeedback] = useState(null);
   const { playTrack } = usePlayer();
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
@@ -165,12 +182,15 @@ const TrackDetailPage = () => {
 
   const trackImage = useMemo(
     () =>
-      track?.coverImage ||
-      track?.avatar ||
-      track?.album?.coverImage ||
-      track?.artist?.coverImage ||
-      track?.artist?.avatar ||
+      (Array.isArray(track?.avatar) ? track.avatar[0] : track?.avatar) ||
       createPlaceholderImage(track?.title || "B\u00e0i h\u00e1t", "#1db954", "#07170c"),
+    [track]
+  );
+  const trackCoverImage = useMemo(
+    () =>
+      (Array.isArray(track?.coverImage)
+        ? track.coverImage[0]
+        : track?.coverImage) || "",
     [track]
   );
   const artistAvatar = useMemo(
@@ -186,6 +206,10 @@ const TrackDetailPage = () => {
   const listensLabel = formatListenCount(track?.stats?.totalPlay);
   const lyrics = track?.lyrics?.static?.trim?.() || "";
   const artistRole = track?.artist?.role || "Ngh\u1ec7 s\u0129";
+  const artistId = getTrackArtistId(track);
+  const artistHref = artistId
+    ? routePaths.artistBrowseProfile(artistId)
+    : undefined;
   const albumHref = track?.album?.id ? routePaths.albumDetail(track.album.id) : undefined;
   const trackId = track?.id;
 
@@ -231,10 +255,6 @@ const TrackDetailPage = () => {
 
   const handleAddToLibrary = () => {
     console.log("Add track to library:", track?.title);
-  };
-
-  const handleDownload = () => {
-    console.log("Download track:", track?.title);
   };
 
   const handleReportTrack = () => {
@@ -291,9 +311,10 @@ const TrackDetailPage = () => {
   if (isLoading) {
     return (
       <section className="rounded-[10px]">
-        <div className="rounded-[24px] bg-[#121212] px-6 py-20 text-sm text-white/82">
-          Đang tải chi tiết bài hát
-        </div>
+        <LoadingState
+          message="Đang tải chi tiết bài hát..."
+          className="min-h-[20rem] rounded-[24px] bg-[#121212] px-6 py-20"
+        />
       </section>
     );
   }
@@ -313,9 +334,11 @@ const TrackDetailPage = () => {
       <div className="space-y-5 sm:space-y-6">
         <TrackDetailHero
           image={ trackImage }
+          coverImage={ trackCoverImage }
           title={ track?.title || "B\u00e0i h\u00e1t ch\u01b0a c\u00f3 t\u00ean" }
           artistName={ artistName }
           artistAvatar={ artistAvatar }
+          artistHref={ artistHref }
           albumTitle={ albumTitle }
           albumHref={ albumHref }
           releaseYear={ releaseYear }
@@ -342,19 +365,11 @@ const TrackDetailPage = () => {
             Thêm vào thư viện
           </button>
 
-          <button type="button" onClick={ handleDownload } className={ secondaryActionClassName }>
-            <Download className="h-4.5 w-4.5" />
-            Tải xuống
-          </button>
-
-          <button type="button" onClick={ handleReportTrack } className={ secondaryActionClassName }>
-            <ShieldAlert className="h-4.5 w-4.5" />
-            Báo cáo
-          </button>
-
           <TrackTwoLevelMenu
             trackId={ trackId }
             track={ track }
+            onViewInfo={ () => setIsInformationModalOpen(true) }
+            onReport={ handleReportTrack }
             onTrackAdded={ (updatedPlaylist, playlist) => {
               if (typeof handleAddTrackToPlaylist === "function") {
                 handleAddTrackToPlaylist(updatedPlaylist || playlist);
@@ -392,6 +407,7 @@ const TrackDetailPage = () => {
           avatar={ artistAvatar }
           name={ artistName }
           role={ artistRole }
+          artistHref={ artistHref }
         />
       </div>
 
@@ -400,6 +416,14 @@ const TrackDetailPage = () => {
         onClose={ () => setIsReportModalOpen(false) }
         targetId={ track?.id }
         targetType="track"
+      />
+
+      <TrackInformationModal
+        isOpen={ isInformationModalOpen }
+        onClose={ () => setIsInformationModalOpen(false) }
+        track={ track }
+        image={ trackImage }
+        artistHref={ artistHref }
       />
     </section>
   );

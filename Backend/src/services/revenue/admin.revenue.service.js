@@ -221,17 +221,30 @@ const buildRevenuePeriodReminder = (status) => {
     }
 };
 
-const buildRevenuePeriodActions = (status) => ({
-    canClose: status === "open",
-    canCalculate: status === "closed" || status === "calculated",
-    canRecalculate: status === "calculated",
-    canConfirm: status === "calculated",
+const hasRevenuePeriodEnded = (revenuePeriod, currentDate = new Date()) => {
+    const periodEndTimestamp = new Date(revenuePeriod?.periodEnd).getTime();
+    const currentTimestamp = new Date(currentDate).getTime();
+
+    return (
+        Number.isFinite(periodEndTimestamp) &&
+        Number.isFinite(currentTimestamp) &&
+        currentTimestamp >= periodEndTimestamp
+    );
+};
+
+const buildRevenuePeriodActions = (revenuePeriod) => ({
+    canClose:
+        revenuePeriod?.status === "open" && hasRevenuePeriodEnded(revenuePeriod),
+    canCalculate:
+        revenuePeriod?.status === "closed" || revenuePeriod?.status === "calculated",
+    canRecalculate: revenuePeriod?.status === "calculated",
+    canConfirm: revenuePeriod?.status === "calculated",
 });
 
-const buildRevenuePeriodAvailableActions = (status) => {
-    switch (status) {
+const buildRevenuePeriodAvailableActions = (revenuePeriod) => {
+    switch (revenuePeriod?.status) {
         case "open":
-            return ["close"];
+            return hasRevenuePeriodEnded(revenuePeriod) ? ["close"] : [];
         case "closed":
             return ["calculate"];
         case "calculated":
@@ -249,7 +262,7 @@ const buildRevenuePeriodWorkflow = (revenuePeriod) => {
     return {
         needsAttention: Boolean(reminder),
         reminder,
-        actions: buildRevenuePeriodActions(status),
+        actions: buildRevenuePeriodActions(revenuePeriod),
     };
 };
 
@@ -277,7 +290,7 @@ const formatRevenuePeriodListItem = (revenuePeriod, distributionStats = {}) => (
             distributionStats.distributedArtistRevenueAmount || 0
         ),
     },
-    availableActions: buildRevenuePeriodAvailableActions(revenuePeriod.status),
+    availableActions: buildRevenuePeriodAvailableActions(revenuePeriod),
     workflow: buildRevenuePeriodWorkflow(revenuePeriod),
     timestamps: formatRevenuePeriodTimestamps(revenuePeriod),
 });
@@ -446,7 +459,7 @@ const buildRevenuePeriodResponse = async (revenuePeriod) => {
         distribution: shouldIncludeRevenueDistribution(revenuePeriod.status)
             ? buildRevenuePeriodDistribution(distributedArtists)
             : null,
-        availableActions: buildRevenuePeriodAvailableActions(revenuePeriod.status),
+        availableActions: buildRevenuePeriodAvailableActions(revenuePeriod),
         confirmedBy: formatRevenuePeriodConfirmedBy(revenuePeriod.confirmedBy),
     };
 };
@@ -838,6 +851,14 @@ const closeRevenuePeriod = async (revenuePeriodId) => {
         });
     }
 
+    if (!hasRevenuePeriodEnded(revenuePeriod)) {
+        throw new AppError(
+            "Revenue period cannot be closed before its end time.",
+            400,
+            { field: "periodEnd" }
+        );
+    }
+
     const now = new Date();
     const [transactionSummary, totalEligibleStreams] = await Promise.all([
         aggregateRevenuePeriodTransactions(revenuePeriod),
@@ -1095,7 +1116,7 @@ const confirmRevenueDistribution = async (revenuePeriodId, adminUserId) => {
         month: revenuePeriod.month,
         status: { $in: ["calculated", "confirmed"] },
     })
-        .select("_id artistId artistRevenueAmount status")
+        .select("_id artistId artistRevenueAmount withdrawnAmount status")
         .lean();
 
     const artistIds = [
@@ -1147,9 +1168,6 @@ const confirmRevenueDistribution = async (revenuePeriodId, adminUserId) => {
                 },
                 update: {
                     $inc: {
-                        "revenue.totalEarnedAmount": Number(
-                            summary.artistRevenueAmount || 0
-                        ),
                         "revenue.availableAmount": Number(
                             summary.artistRevenueAmount || 0
                         ),
@@ -1166,17 +1184,24 @@ const confirmRevenueDistribution = async (revenuePeriodId, adminUserId) => {
     }
 
     if (artistRevenueSummaries.length > 0) {
-        await ArtistRevenueSummary.updateMany(
-            {
-                _id: { $in: artistRevenueSummaries.map((summary) => summary._id) },
-            },
-            {
-                $set: {
-                    status: "confirmed",
-                    confirmedAt: now,
-                    confirmedBy: adminUserId,
+        await ArtistRevenueSummary.bulkWrite(
+            artistRevenueSummaries.map((summary) => ({
+                updateOne: {
+                    filter: { _id: summary._id },
+                    update: {
+                        $set: {
+                            availableAmount: Math.max(
+                                Number(summary.artistRevenueAmount || 0) -
+                                    Number(summary.withdrawnAmount || 0),
+                                0
+                            ),
+                            status: "confirmed",
+                            confirmedAt: now,
+                            confirmedBy: adminUserId,
+                        },
+                    },
                 },
-            }
+            }))
         );
     }
 

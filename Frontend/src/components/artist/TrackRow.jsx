@@ -1,15 +1,38 @@
+﻿import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { routePaths } from "../../routes/routePaths";
+
 const TrackRow = ({
   index,
   image,
   title,
+  artistName = "Unknown Artist",
   plays,
   duration,
+  track = null,
+  trackId,
+  menu = null,
 }) => {
+  const navigate = useNavigate();
+  const resolvedTrackId = useMemo(
+    () => track?._id || track?.id || trackId || "",
+    [track?._id, track?.id, trackId]
+  );
+
+  const handleTrackClick = () => {
+    if (!resolvedTrackId) {
+      return;
+    }
+
+    navigate(routePaths.trackDetail(resolvedTrackId));
+  };
+
   return (
     <div
       className="
         group grid grid-cols-[2.25rem_minmax(0,1fr)_auto] items-center gap-3
-        px-3 py-3 transition duration-300 hover:bg-white/[0.045] sm:grid-cols-[2.25rem_minmax(0,1.2fr)_minmax(0,0.8fr)_4rem]
+        px-3 py-3 transition duration-300 hover:bg-white/[0.045]
+        sm:grid-cols-[2.25rem_minmax(0,1.2fr)_minmax(0,0.8fr)_4rem_2.5rem]
       "
     >
       <span className="text-sm font-medium text-white/42">{ index }</span>
@@ -28,17 +51,20 @@ const TrackRow = ({
         </div>
 
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-white sm:text-[15px]">
+          <button
+            type="button"
+            onClick={ handleTrackClick }
+            disabled={ !resolvedTrackId }
+            className="truncate text-left text-sm font-semibold text-white transition-colors duration-200 hover:text-[#1DB954] disabled:cursor-default disabled:hover:text-white sm:text-[15px]"
+          >
             { title }
-          </p>
-          <p className="mt-1 text-xs uppercase tracking-[0.22em] text-white/34">
-            Catalog highlight
-          </p>
+          </button>
         </div>
       </div>
 
       <span className="hidden truncate text-sm text-white/48 sm:block">{ plays }</span>
       <span className="text-right text-sm text-white/44">{ duration }</span>
+      <div className="hidden items-center justify-end sm:flex">{ menu }</div>
     </div>
   );
 };

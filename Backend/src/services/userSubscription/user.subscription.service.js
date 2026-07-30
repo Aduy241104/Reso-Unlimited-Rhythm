@@ -6,8 +6,11 @@ import {
     calculateDaysRemaining,
 } from "./user.subscription.service.helper.js";
 
-const buildSubscriptionStatusResponse = (user, subscription) => {
-    const now = new Date();
+const buildSubscriptionStatusResponse = (
+    user,
+    subscription,
+    now = new Date()
+) => {
     const plan =
         subscription.planId && typeof subscription.planId === "object"
             ? subscription.planId
@@ -20,8 +23,8 @@ const buildSubscriptionStatusResponse = (user, subscription) => {
         (!premiumEndDate || premiumEndDate > now);
     const isPremiumFromSubscription =
         subscription.status === "active" &&
-        Boolean(subscription.endDate) &&
-        new Date(subscription.endDate) > now;
+        (!subscription.startDate || new Date(subscription.startDate) <= now) &&
+        (!subscription.endDate || new Date(subscription.endDate) > now);
 
     return {
         isPremium: isPremiumFromUser || isPremiumFromSubscription,
@@ -38,10 +41,68 @@ const buildSubscriptionStatusResponse = (user, subscription) => {
     };
 };
 
+const synchronizePremiumState = async (userId, now = new Date()) => {
+    await Subscription.updateMany(
+        {
+            userId,
+            status: "active",
+            endDate: { $lte: now },
+        },
+        {
+            $set: {
+                status: "expired",
+            },
+        }
+    );
+
+    const activeSubscription = await Subscription.findOne({
+        userId,
+        status: "active",
+        $and: [
+            {
+                $or: [
+                    { startDate: null },
+                    { startDate: { $lte: now } },
+                ],
+            },
+            {
+                $or: [
+                    { endDate: null },
+                    { endDate: { $gt: now } },
+                ],
+            },
+        ],
+    })
+        .sort({ endDate: -1, createdAt: -1 })
+        .lean();
+
+    if (activeSubscription) {
+        return;
+    }
+
+    await User.updateOne(
+        {
+            _id: userId,
+            "subscription.isPremium": true,
+            "subscription.premiumEndDate": { $lte: now },
+        },
+        {
+            $set: {
+                "subscription.isPremium": false,
+                "subscription.currentPlanId": null,
+            },
+        }
+    );
+};
+
 const getSubscriptionStatus = async (userId) => {
     if (!userId) {
         throw new AppError("Unauthorized.", 401);
     }
+
+    const now = new Date();
+
+    await synchronizePremiumState(userId, now);
 
     const [user, newestSubscription] = await Promise.all([
         User.findById(userId).select("subscription").lean(),
@@ -59,14 +120,26 @@ const getSubscriptionStatus = async (userId) => {
     }
 
     if (!newestSubscription) {
-        return buildEmptySubscriptionResponse();
+        return {
+            ...buildEmptySubscriptionResponse(),
+            isPremium:
+                Boolean(user.subscription?.isPremium) &&
+                (!user.subscription?.premiumEndDate ||
+                    new Date(user.subscription.premiumEndDate) > now),
+            planId: user.subscription?.currentPlanId?.toString?.() || null,
+            endDate: user.subscription?.premiumEndDate || null,
+            daysRemaining: calculateDaysRemaining(
+                user.subscription?.premiumEndDate
+            ),
+        };
     }
 
-    return buildSubscriptionStatusResponse(user, newestSubscription);
+    return buildSubscriptionStatusResponse(user, newestSubscription, now);
 };
 
-export { getSubscriptionStatus };
+export { getSubscriptionStatus, synchronizePremiumState };
 
 export default {
     getSubscriptionStatus,
+    synchronizePremiumState,
 };

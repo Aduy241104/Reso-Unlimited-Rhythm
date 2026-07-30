@@ -9,6 +9,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppButton from '../../components/common/AppButton';
@@ -18,7 +20,8 @@ import { useAuth } from '../../hooks/useAuth';
 import libraryService from '../../services/libraryService';
 import { getErrorMessage, getInitials, resolveImageUri } from '../../utils/media';
 
-const accentPalette = ['#111111', '#2f2f2f', '#4a4a4a', '#686868', '#8a8a8a'];
+const accentPalette = ['#243347', '#2f2442', '#2f3e28', '#3f2a30', '#25383d'];
+const LOAD_MORE_STEP = 10;
 
 const readText = (value, fallback = '') => {
   if (typeof value === 'string' || typeof value === 'number') {
@@ -29,43 +32,42 @@ const readText = (value, fallback = '') => {
   return fallback;
 };
 
-const Artwork = ({ uri, label, color, style, textStyle }) => {
+const AlbumArtwork = ({ uri, label, color }) => {
   const imageUri = resolveImageUri(uri);
 
   if (imageUri) {
-    return <Image source={{ uri: imageUri }} style={[styles.artwork, style]} resizeMode="cover" />;
+    return <Image source={{ uri: imageUri }} style={styles.albumArtwork} resizeMode="cover" />;
   }
 
   return (
-    <View style={[styles.artwork, styles.artworkFallback, { backgroundColor: color }, style]}>
-      <Text style={[styles.artworkText, textStyle]}>{getInitials(label)}</Text>
+    <View style={[styles.albumArtwork, styles.albumArtworkFallback, { backgroundColor: color }]}>
+      <Text style={styles.albumArtworkText}>{getInitials(label)}</Text>
     </View>
   );
 };
 
 const AlbumRow = ({ album, index, onPress }) => {
   const accentColor = accentPalette[index % accentPalette.length];
-  const title = readText(album?.title, 'Album không xác định');
+  const title = readText(album?.title, 'Album chưa có tên');
   const artistName = readText(album?.artistName, 'Nghệ sĩ không xác định');
   const trackCount = Number(album?.trackCount) || 0;
 
   return (
     <TouchableOpacity style={styles.albumRow} activeOpacity={0.85} onPress={onPress}>
-      <Artwork
-        uri={album?.coverImage || album?.image}
-        label={title}
-        color={accentColor}
-        style={styles.albumArtwork}
-        textStyle={styles.albumArtworkText}
-      />
+      <AlbumArtwork uri={album?.coverImage || album?.image} label={title} color={accentColor} />
       <View style={styles.albumContent}>
-        <Text style={styles.albumTitle} numberOfLines={1}>{title}</Text>
+        <View style={styles.albumTopRow}>
+          <Text style={styles.albumTitle} numberOfLines={1}>{title}</Text>
+          <View style={styles.albumBadge}>
+            <Text style={styles.albumBadgeText}>Album</Text>
+          </View>
+        </View>
         <Text style={styles.albumMeta} numberOfLines={1}>{artistName}</Text>
         <Text style={styles.albumMetaSecondary} numberOfLines={1}>
-          {trackCount > 0 ? `${trackCount} bài hát` : 'Album bạn đang theo dõi'}
+          {trackCount > 0 ? `${trackCount} bài hát` : 'Album bạn đã theo dõi'}
         </Text>
       </View>
-      <Text style={styles.albumAction}>Mở</Text>
+      <Ionicons name="chevron-forward" size={18} color="#7f8894" />
     </TouchableOpacity>
   );
 };
@@ -78,6 +80,7 @@ export default function FollowedAlbumsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [visibleAlbumsCount, setVisibleAlbumsCount] = useState(LOAD_MORE_STEP);
 
   const loadFollowedAlbums = useCallback(async ({ refresh = false } = {}) => {
     if (!isAuthenticated) {
@@ -85,6 +88,7 @@ export default function FollowedAlbumsScreen() {
       setErrorMessage('');
       setIsLoading(false);
       setIsRefreshing(false);
+      setVisibleAlbumsCount(LOAD_MORE_STEP);
       return;
     }
 
@@ -101,9 +105,11 @@ export default function FollowedAlbumsScreen() {
       });
 
       setAlbums(Array.isArray(result?.items) ? result.items : []);
+      setVisibleAlbumsCount(LOAD_MORE_STEP);
       setErrorMessage('');
     } catch (error) {
       setAlbums([]);
+      setVisibleAlbumsCount(LOAD_MORE_STEP);
       setErrorMessage(getErrorMessage(error, 'Không thể tải danh sách album đang theo dõi lúc này.'));
     } finally {
       setIsLoading(false);
@@ -113,12 +119,14 @@ export default function FollowedAlbumsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadFollowedAlbums();
+      void loadFollowedAlbums();
       return undefined;
     }, [loadFollowedAlbums])
   );
 
   const albumCountLabel = useMemo(() => `${albums.length} album`, [albums.length]);
+  const visibleAlbums = useMemo(() => albums.slice(0, visibleAlbumsCount), [albums, visibleAlbumsCount]);
+  const canLoadMoreAlbums = visibleAlbums.length < albums.length;
 
   const handleOpenAlbumDetail = useCallback((album) => {
     const albumId = album?.entityId || album?.id;
@@ -137,20 +145,20 @@ export default function FollowedAlbumsScreen() {
   if (!isAuthenticated) {
     return (
       <View style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor="#000000" />
-        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+        <StatusBar barStyle="light-content" backgroundColor="#050608" />
+        <View style={[styles.topBar, { paddingTop: insets.top + 10 }]}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} activeOpacity={0.8}>
-            <Text style={styles.backButtonText}>Quay lại</Text>
+            <Ionicons name="chevron-back" size={22} color="#ffffff" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Album đang theo dõi</Text>
-          <View style={styles.headerSpacer} />
+          <Text style={styles.topBarTitle}>Album theo dõi</Text>
+          <View style={styles.backButton} />
         </View>
         <View style={styles.centerState}>
           <Text style={styles.emptyTitle}>Cần đăng nhập</Text>
           <Text style={styles.emptyText}>
-            Các album bạn theo dõi được gắn với tài khoản, nên hãy đăng nhập trước.
+            Danh sách album theo dõi được gắn với tài khoản của bạn.
           </Text>
-          <AppButton title="Đi đến đăng nhập" onPress={() => navigation.navigate('Login')} style={styles.loginButton} />
+          <AppButton title="Đi đến đăng nhập" onPress={() => navigation.navigate('Login')} style={styles.primaryButton} />
         </View>
       </View>
     );
@@ -158,14 +166,16 @@ export default function FollowedAlbumsScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+      <StatusBar barStyle="light-content" backgroundColor="#050608" />
 
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+      <View style={[styles.topBar, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} activeOpacity={0.8}>
-          <Text style={styles.backButtonText}>Quay lại</Text>
+          <Ionicons name="chevron-back" size={22} color="#ffffff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Album đang theo dõi</Text>
-        <View style={styles.headerSpacer} />
+        <Text style={styles.topBarTitle}>Album theo dõi</Text>
+        <TouchableOpacity style={styles.backButton} activeOpacity={0.8} onPress={() => navigation.navigate('Search')}>
+          <Ionicons name="search" size={18} color="#ffffff" />
+        </TouchableOpacity>
       </View>
 
       {isLoading ? (
@@ -179,7 +189,7 @@ export default function FollowedAlbumsScreen() {
         </View>
       ) : (
         <ScrollView
-          contentContainerStyle={[styles.scrollBody, { paddingBottom: 32 + insets.bottom }]}
+          contentContainerStyle={[styles.scrollBody, { paddingBottom: 28 + insets.bottom }]}
           showsVerticalScrollIndicator={false}
           refreshControl={(
             <RefreshControl
@@ -189,39 +199,47 @@ export default function FollowedAlbumsScreen() {
             />
           )}
         >
-          <View style={styles.heroCard}>
-            <Text style={styles.heroEyebrow}>THƯ VIỆN CỦA BẠN</Text>
-            <Text style={styles.heroTitle}>Tất cả album bạn đang theo dõi</Text>
+          <LinearGradient colors={['#364827', '#151b22', '#0c0e12']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.heroCard}>
+            <Text style={styles.heroEyebrow}>Thư viện của bạn</Text>
+            <Text style={styles.heroTitle}>Những album bạn không muốn bỏ lỡ</Text>
             <Text style={styles.heroText}>
-              Quay lại nhanh với những album bạn đã lưu theo dõi và mở thẳng vào trang chi tiết bất cứ lúc nào.
+              Mở lại nhanh những album đã theo dõi với bố cục tối ưu cho điện thoại và thao tác chạm rõ ràng hơn.
             </Text>
-
-            <View style={styles.heroMetaWrap}>
-              <View style={styles.metaPill}>
-                <Text style={styles.metaPillText}>{albumCountLabel}</Text>
-              </View>
+            <View style={styles.heroPill}>
+              <Text style={styles.heroPillText}>{albumCountLabel}</Text>
             </View>
+          </LinearGradient>
+
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Tất cả album</Text>
+            <Text style={styles.sectionCaption}>Danh sách đã lưu trong thư viện của bạn</Text>
           </View>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Album đã theo dõi</Text>
-            <View style={styles.panel}>
-              {albums.length > 0 ? (
-                albums.map((album, index) => (
-                  <AlbumRow
-                    key={album?.entityId || album?.id || `followed-album-${index}`}
-                    album={album}
-                    index={index}
-                    onPress={() => handleOpenAlbumDetail(album)}
-                  />
-                ))
-              ) : (
-                <Text style={styles.emptyPanelText}>
-                  Bạn chưa theo dõi album nào. Hãy theo dõi album từ màn chi tiết để chúng xuất hiện ở đây.
-                </Text>
-              )}
-            </View>
+          <View style={styles.panel}>
+            {albums.length > 0 ? (
+              visibleAlbums.map((album, index) => (
+                <AlbumRow
+                  key={album?.entityId || album?.id || `followed-album-${index}`}
+                  album={album}
+                  index={index}
+                  onPress={() => handleOpenAlbumDetail(album)}
+                />
+              ))
+            ) : (
+              <Text style={styles.emptyPanelText}>
+                Bạn chưa theo dõi album nào. Hãy theo dõi từ trang chi tiết để chúng xuất hiện ở đây.
+              </Text>
+            )}
           </View>
+          {canLoadMoreAlbums ? (
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => setVisibleAlbumsCount((current) => current + LOAD_MORE_STEP)}
+              style={styles.loadMoreButton}
+            >
+              <Text style={styles.loadMoreButtonText}>Hiện thêm 10 album</Text>
+            </TouchableOpacity>
+          ) : null}
         </ScrollView>
       )}
     </View>
@@ -231,37 +249,29 @@ export default function FollowedAlbumsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#050608',
   },
-  header: {
+  topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1f1f1f',
-    backgroundColor: '#000000',
+    paddingHorizontal: 16,
+    paddingBottom: 14,
   },
   backButton: {
-    minWidth: 56,
-    paddingVertical: 8,
+    width: 38,
+    height: 38,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#212530',
+    backgroundColor: '#101319',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  backButtonText: {
+  topBarTitle: {
     color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '700',
-    marginHorizontal: 12,
-  },
-  headerSpacer: {
-    width: 56,
+    fontSize: 16,
+    fontWeight: '800',
   },
   centerState: {
     flex: 1,
@@ -270,66 +280,66 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   scrollBody: {
-    padding: 16,
+    paddingHorizontal: 16,
   },
   heroCard: {
-    backgroundColor: '#141414',
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#262626',
-    padding: 16,
+    borderRadius: 28,
+    padding: 18,
+    marginBottom: 18,
   },
   heroEyebrow: {
-    color: '#8a8a8a',
+    color: '#b5f09f',
     fontSize: 10,
     fontWeight: '800',
-    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    letterSpacing: 1.4,
   },
   heroTitle: {
     color: '#ffffff',
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '800',
+    lineHeight: 34,
     marginTop: 10,
   },
   heroText: {
-    color: '#b5b5b5',
+    color: '#bcc4cf',
     fontSize: 13,
     lineHeight: 20,
-    marginTop: 8,
+    marginTop: 10,
   },
-  heroMetaWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+  heroPill: {
+    alignSelf: 'flex-start',
     marginTop: 14,
-  },
-  metaPill: {
-    backgroundColor: '#171717',
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#2b2b2b',
-    paddingHorizontal: 10,
-    paddingVertical: 7,
+    borderColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
-  metaPillText: {
-    color: '#d4d4d4',
+  heroPillText: {
+    color: '#edf2f7',
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
   },
-  section: {
-    marginTop: 18,
+  sectionHeader: {
+    marginBottom: 10,
   },
   sectionTitle: {
     color: '#ffffff',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '800',
-    marginBottom: 10,
+  },
+  sectionCaption: {
+    color: '#93a0ae',
+    fontSize: 12,
+    marginTop: 4,
   },
   panel: {
-    backgroundColor: '#141414',
-    borderRadius: 14,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: '#262626',
+    borderColor: '#1f232d',
+    backgroundColor: '#101319',
     overflow: 'hidden',
   },
   albumRow: {
@@ -338,58 +348,70 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#242424',
+    borderBottomColor: '#1b2029',
   },
-  artwork: {
-    width: 58,
-    height: 58,
-    borderRadius: 12,
-    backgroundColor: '#202020',
+  albumArtwork: {
+    width: 62,
+    height: 62,
+    borderRadius: 18,
+    backgroundColor: '#1f1f1f',
   },
-  artworkFallback: {
+  albumArtworkFallback: {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  artworkText: {
+  albumArtworkText: {
     color: '#ffffff',
     fontSize: 18,
     fontWeight: '800',
   },
-  albumArtwork: {
-    marginRight: 12,
-  },
-  albumArtworkText: {
-    fontSize: 18,
-  },
   albumContent: {
     flex: 1,
+    marginLeft: 12,
+    marginRight: 12,
+  },
+  albumTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   albumTitle: {
     color: '#ffffff',
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '800',
+    flex: 1,
+    marginRight: 10,
+  },
+  albumBadge: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#2b3642',
+    backgroundColor: '#171d25',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  albumBadgeText: {
+    color: '#dfe6ee',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
   },
   albumMeta: {
-    color: '#a3a3a3',
-    fontSize: 11,
-    marginTop: 5,
+    color: '#98a3af',
+    fontSize: 12,
+    marginTop: 6,
   },
   albumMetaSecondary: {
-    color: '#7f7f7f',
-    fontSize: 10,
+    color: '#7f8894',
+    fontSize: 11,
     marginTop: 4,
   },
-  albumAction: {
-    color: '#1ed760',
-    fontSize: 11,
-    fontWeight: '800',
-    marginLeft: 10,
-  },
   emptyPanelText: {
-    color: '#a3a3a3',
+    color: '#98a3af',
     fontSize: 12,
     lineHeight: 19,
-    padding: 14,
+    padding: 16,
   },
   emptyTitle: {
     color: '#ffffff',
@@ -398,7 +420,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   emptyText: {
-    color: '#a3a3a3',
+    color: '#98a3af',
     fontSize: 12,
     lineHeight: 18,
     textAlign: 'center',
@@ -407,13 +429,28 @@ const styles = StyleSheet.create({
   retryButton: {
     minWidth: 160,
     marginTop: 16,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#151922',
     borderWidth: 1,
-    borderColor: '#2c2c2c',
+    borderColor: '#252b36',
   },
-  loginButton: {
+  primaryButton: {
     minWidth: 180,
     marginTop: 16,
     backgroundColor: '#1ed760',
+  },
+  loadMoreButton: {
+    marginTop: 10,
+    alignSelf: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#2a313d',
+    backgroundColor: '#101319',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  loadMoreButtonText: {
+    color: '#dfe6ee',
+    fontSize: 12,
+    fontWeight: '800',
   },
 });

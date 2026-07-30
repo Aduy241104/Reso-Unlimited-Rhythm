@@ -4,11 +4,14 @@ import {
   Bell,
   CircleDollarSign,
   CreditCard,
+  Disc3,
   Flag,
   LayoutDashboard,
   ListMusic,
   Mic2,
   Music2,
+  ReceiptText,
+  ShieldAlert,
   Tags,
   UserCheck,
   Users,
@@ -20,7 +23,7 @@ import { routePaths } from "../routes/routePaths";
 const navigationItems = [
   {
     to: routePaths.home,
-    label: "T\u1ed5ng quan",
+    label: "Tổng quan",
     icon: LayoutDashboard,
     end: true,
   },
@@ -39,9 +42,21 @@ const navigationItems = [
     activePaths: [routePaths.withdrawals, "/withdrawal-requests"],
   },
   {
+    to: routePaths.transactions,
+    label: "Giao dịch",
+    icon: ReceiptText,
+    end: false,
+  },
+  {
     to: routePaths.systemTracks,
     label: "Bài hát hệ thống",
     icon: Music2,
+    end: false,
+  },
+  {
+    to: routePaths.systemAlbums,
+    label: "Album h\u1ec7 th\u1ed1ng",
+    icon: Disc3,
     end: false,
   },
   {
@@ -52,7 +67,7 @@ const navigationItems = [
   },
   {
     to: routePaths.systemPlaylists,
-    label: "Playlist h\u1ec7 th\u1ed1ng",
+    label: "Playlist hệ thống",
     icon: ListMusic,
     end: false,
   },
@@ -64,13 +79,13 @@ const navigationItems = [
   },
   {
     to: routePaths.genres,
-    label: "Th\u1ec3 lo\u1ea1i",
+    label: "Thể loại",
     icon: Tags,
     end: false,
   },
   {
     to: routePaths.users,
-    label: "Ng\u01b0\u1eddi d\u00f9ng",
+    label: "Người dùng",
     icon: Users,
     end: false,
   },
@@ -82,13 +97,19 @@ const navigationItems = [
   },
   {
     to: routePaths.reports,
-    label: "B\u00e1o c\u00e1o",
+    label: "Báo cáo",
     icon: Flag,
     end: false,
   },
   {
+    to: routePaths.artistViolations,
+    label: "Vi phạm nghệ sĩ",
+    icon: ShieldAlert,
+    end: false,
+  },
+  {
     to: routePaths.subscriptions,
-    label: "G\u00f3i \u0111\u0103ng k\u00fd",
+    label: "Gói đăng ký",
     icon: CreditCard,
     end: false,
   },

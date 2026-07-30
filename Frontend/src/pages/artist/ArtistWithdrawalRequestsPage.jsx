@@ -15,6 +15,10 @@ import {
   getMyArtistWithdrawalRequestsService,
 } from "../../services/artistService";
 import { getApiErrorMessage } from "../../utils/apiError";
+import {
+  showArtistError,
+  showArtistSuccess,
+} from "../../utils/artistNotification";
 
 const WITHDRAWAL_REQUEST_PAGE_SIZE = 10;
 const BANK_OPTIONS = [
@@ -132,9 +136,6 @@ const ArtistWithdrawalRequestsPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [actionMessage, setActionMessage] = useState("");
-  const [payoutAccountErrorMessage, setPayoutAccountErrorMessage] = useState("");
-  const [withdrawalErrorMessage, setWithdrawalErrorMessage] = useState("");
   const [withdrawalAmountFieldError, setWithdrawalAmountFieldError] = useState("");
   const [withdrawalPasswordFieldError, setWithdrawalPasswordFieldError] = useState("");
   const [isSavingPayoutAccount, setIsSavingPayoutAccount] = useState(false);
@@ -279,15 +280,11 @@ const ArtistWithdrawalRequestsPage = () => {
   const handleCreatePayoutAccount = async (event) => {
     event.preventDefault();
 
-    setPayoutAccountErrorMessage("");
-    setWithdrawalErrorMessage("");
-    setActionMessage("");
-
     if (
       !hasWithdrawalPassword &&
       payoutAccountForm.withdrawalPassword !== payoutAccountForm.confirmWithdrawalPassword
     ) {
-      setPayoutAccountErrorMessage("Mật khẩu rút tiền xác nhận không khớp.");
+      showArtistError("Mật khẩu rút tiền xác nhận không khớp.");
       return;
     }
 
@@ -305,7 +302,7 @@ const ArtistWithdrawalRequestsPage = () => {
 
       await loadRevenue();
       setPayoutAccountForm(initialPayoutAccountForm);
-      setActionMessage("Đã lưu tài khoản nhận tiền thành công.");
+      showArtistSuccess("Đã lưu tài khoản nhận tiền thành công.");
 
       if (result?.payoutAccount?.id) {
         setWithdrawalForm((currentForm) => ({
@@ -313,10 +310,8 @@ const ArtistWithdrawalRequestsPage = () => {
           payoutAccountId: result.payoutAccount.id,
         }));
       }
-    } catch (error) {
-      setPayoutAccountErrorMessage(
-        getApiErrorMessage(error, "Không thể lưu tài khoản nhận tiền lúc này.")
-      );
+    } catch {
+      showArtistError("Không thể lưu tài khoản nhận tiền vào lúc này.");
     } finally {
       setIsSavingPayoutAccount(false);
     }
@@ -325,11 +320,8 @@ const ArtistWithdrawalRequestsPage = () => {
   const handleSubmitWithdrawal = async (event) => {
     event.preventDefault();
 
-    setWithdrawalErrorMessage("");
     setWithdrawalAmountFieldError("");
     setWithdrawalPasswordFieldError("");
-    setPayoutAccountErrorMessage("");
-    setActionMessage("");
     setIsSubmittingWithdrawal(true);
 
     try {
@@ -353,22 +345,18 @@ const ArtistWithdrawalRequestsPage = () => {
         amount: "",
         withdrawalPassword: "",
       }));
-      setActionMessage(
+      showArtistSuccess(
         "Yêu cầu rút tiền đã được tạo thành công. Bạn có thể theo dõi trạng thái ở danh sách bên dưới."
       );
     } catch (error) {
       const fieldName = error?.response?.data?.errors?.field || "";
-      const apiMessage = getApiErrorMessage(
-        error,
-        "Không thể tạo yêu cầu rút tiền lúc này."
-      );
 
       if (fieldName === "amount") {
-        setWithdrawalAmountFieldError(apiMessage);
+        setWithdrawalAmountFieldError("Số tiền rút không hợp lệ.");
       } else if (fieldName === "withdrawalPassword") {
-        setWithdrawalPasswordFieldError(apiMessage);
+        setWithdrawalPasswordFieldError("Mật khẩu rút tiền không chính xác.");
       } else {
-        setWithdrawalErrorMessage(apiMessage);
+        showArtistError("Không thể tạo yêu cầu rút tiền vào lúc này.");
       }
     } finally {
       setIsSubmittingWithdrawal(false);
@@ -403,24 +391,6 @@ const ArtistWithdrawalRequestsPage = () => {
       {errorMessage ? (
         <div className="rounded-[22px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
           {errorMessage}
-        </div>
-      ) : null}
-
-      {actionMessage ? (
-        <div className="rounded-[22px] border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-800">
-          {actionMessage}
-        </div>
-      ) : null}
-
-      {payoutAccountErrorMessage ? (
-        <div className="rounded-[22px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-          {payoutAccountErrorMessage}
-        </div>
-      ) : null}
-
-      {withdrawalErrorMessage ? (
-        <div className="rounded-[22px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-          {withdrawalErrorMessage}
         </div>
       ) : null}
 

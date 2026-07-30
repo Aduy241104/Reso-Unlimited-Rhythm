@@ -110,7 +110,9 @@ const normalizePlaylistDetail = (item) => {
   const visibilityLabel = normalizeVisibilityLabel(rawItem);
   const createdDate = formatDateLabel(rawItem?.createdAt);
   const updatedDate = formatDateLabel(rawItem?.updatedAt);
-  const totalDuration = pickNumber(rawItem?.totalDuration, rawItem?.duration);
+  const providedTotalDuration = pickNumber(rawItem?.totalDuration, rawItem?.duration);
+  const tracksDuration = tracks.reduce((total, track) => total + Math.max(0, Number(track?.duration) || 0), 0);
+  const totalDuration = providedTotalDuration > 0 ? providedTotalDuration : tracksDuration;
   const coverImage = pickFirstDefined(
     resolveImageUri(rawItem?.coverImage),
     resolveImageUri(rawItem?.image),
@@ -124,6 +126,7 @@ const normalizePlaylistDetail = (item) => {
     id: pickFirstDefined(rawItem?.id, rawItem?._id, ''),
     type: 'playlist',
     playlistType: pickFirstDefined(rawItem?.type, 'playlist'),
+    totalDuration,
     badgeLabel: rawItem?.type === 'system' ? 'PLAYLIST HỆ THỐNG' : 'PLAYLIST',
     title: pickFirstDefined(rawItem?.title, 'Playlist chưa có tên'),
     subtitle: pickFirstDefined(rawItem?.subtitle, ownerLabel),

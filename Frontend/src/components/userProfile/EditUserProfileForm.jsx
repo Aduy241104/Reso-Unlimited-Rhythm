@@ -571,9 +571,9 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
               ].join(" ")}
             >
               {isLoading ? (
-                <div className="flex items-center gap-3 px-3 py-4 text-sm text-gray-300">
+                <div className="flex items-center justify-center gap-3 px-3 py-4 text-center text-sm text-white">
                   <Loader2
-                    className="h-4 w-4 animate-spin text-[#ff9f43]"
+                    className="h-4 w-4 animate-spin text-white"
                     aria-hidden
                   />
                   Đang tải danh sách quốc gia...

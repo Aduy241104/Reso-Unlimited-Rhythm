@@ -1,5 +1,6 @@
 ﻿import {
   formatCurrency,
+  formatDate,
   formatDateTime,
   formatNumber,
   formatPeriodLabel,
@@ -68,10 +69,92 @@ export const getRevenuePeriodLabel = (period) =>
     ? formatPeriodLabel(period.year, period.month)
     : "Kỳ hiện tại");
 
-export const isActionAvailable = (availableActions, actionKey) =>
-  Array.isArray(availableActions) && availableActions.includes(actionKey);
+const getPeriodEndTimestamp = (period) => {
+  if (period?.periodEnd) {
+    const rawPeriodEnd = String(period.periodEnd);
 
-export const buildWorkflowSteps = (lifecycleTimestamps, availableActions) => {
+    // API đôi khi chỉ trả về YYYY-MM-DD. Khi đó ngày kết thúc vẫn được tính
+    // trọn ngày, tránh cho phép chốt ngay từ 00:00 của ngày cuối kỳ.
+    const dateOnlyMatch = rawPeriodEnd.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+    if (dateOnlyMatch) {
+      const [, year, month, day] = dateOnlyMatch;
+      return new Date(
+        Number(year),
+        Number(month) - 1,
+        Number(day) + 1
+      ).getTime();
+    }
+
+    const parsedPeriodEnd = new Date(rawPeriodEnd).getTime();
+    if (Number.isFinite(parsedPeriodEnd)) {
+      return parsedPeriodEnd;
+    }
+  }
+
+  const year = Number(period?.year);
+  const month = Number(period?.month);
+
+  if (Number.isInteger(year) && Number.isInteger(month) && month >= 1 && month <= 12) {
+    return new Date(year, month, 1).getTime();
+  }
+
+  return null;
+};
+
+export const isRevenuePeriodEnded = (period, now = new Date()) => {
+  const periodEndTimestamp = getPeriodEndTimestamp(period);
+  const nowTimestamp = now instanceof Date ? now.getTime() : new Date(now).getTime();
+
+  return (
+    Number.isFinite(periodEndTimestamp) &&
+    Number.isFinite(nowTimestamp) &&
+    nowTimestamp >= periodEndTimestamp
+  );
+};
+
+export const getRevenueActionUnavailableReason = (period, actionKey) => {
+  if (actionKey !== "close" || isRevenuePeriodEnded(period)) {
+    return "";
+  }
+
+  const dateOnlyMatch = String(period?.periodEnd || "").match(
+    /^(\d{4})-(\d{2})-(\d{2})$/
+  );
+  const dateOnlyValue = dateOnlyMatch
+    ? new Date(
+        Number(dateOnlyMatch[1]),
+        Number(dateOnlyMatch[2]) - 1,
+        Number(dateOnlyMatch[3])
+      )
+    : null;
+  const endLabel = period?.periodEnd
+    ? ` Kỳ hiện tại kết thúc vào ${
+        dateOnlyValue
+          ? formatDate(dateOnlyValue)
+          : formatDateTime(period.periodEnd)
+      }.`
+    : "";
+
+  return `Chỉ có thể chốt doanh thu sau khi kỳ đã kết thúc.${endLabel}`;
+};
+
+export const isActionAvailable = (availableActions, actionKey, period) => {
+  const isAllowedByBackend =
+    Array.isArray(availableActions) && availableActions.includes(actionKey);
+
+  if (!isAllowedByBackend) {
+    return false;
+  }
+
+  return actionKey !== "close" || isRevenuePeriodEnded(period);
+};
+
+export const buildWorkflowSteps = (
+  lifecycleTimestamps,
+  availableActions,
+  period
+) => {
   const isClosed = Boolean(
     lifecycleTimestamps?.closedAt ||
       lifecycleTimestamps?.calculatedAt ||
@@ -89,7 +172,7 @@ export const buildWorkflowSteps = (lifecycleTimestamps, availableActions) => {
       description: REVENUE_ACTIONS.close.description,
       state: isClosed
         ? "completed"
-        : isActionAvailable(availableActions, "close")
+        : isActionAvailable(availableActions, "close", period)
           ? "active"
           : "pending",
       timestamp: lifecycleTimestamps?.closedAt ?? null,
@@ -100,7 +183,7 @@ export const buildWorkflowSteps = (lifecycleTimestamps, availableActions) => {
       description: REVENUE_ACTIONS.calculate.description,
       state: isCalculated
         ? "completed"
-        : isActionAvailable(availableActions, "calculate")
+        : isActionAvailable(availableActions, "calculate", period)
           ? "active"
           : "pending",
       timestamp: lifecycleTimestamps?.calculatedAt ?? null,
@@ -111,7 +194,7 @@ export const buildWorkflowSteps = (lifecycleTimestamps, availableActions) => {
       description: REVENUE_ACTIONS.confirm.description,
       state: isConfirmed
         ? "completed"
-        : isActionAvailable(availableActions, "confirm")
+        : isActionAvailable(availableActions, "confirm", period)
           ? "active"
           : "pending",
       timestamp: lifecycleTimestamps?.confirmedAt ?? null,

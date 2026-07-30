@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import {
@@ -16,6 +16,7 @@ import {
     ShieldAlert,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
+import LoadingState from "../../components/common/LoadingState";
 import { useSocket } from "../../hooks/useSocket";
 import { routePaths } from "../../routes/routePaths";
 import {
@@ -266,6 +267,7 @@ const NotificationsPage = () => {
     const [, setUnreadCount] = useState(0);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
+    const [isLoading, setIsLoading] = useState(true);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [detailTarget, setDetailTarget] = useState(null);
     const [deleteTarget, setDeleteTarget] = useState(null);
@@ -275,6 +277,8 @@ const NotificationsPage = () => {
             if (isLoadMore) {
                 setIsLoadingMore(true);
                 await delay(LOAD_MORE_DELAY_MS);
+            } else {
+                setIsLoading(true);
             }
 
             const data = await getMyNotificationsService({
@@ -299,7 +303,11 @@ const NotificationsPage = () => {
         } catch (error) {
             console.error("Không thể tải thông báo:", error);
         } finally {
-            if (isLoadMore) setIsLoadingMore(false);
+            if (isLoadMore) {
+                setIsLoadingMore(false);
+            } else {
+                setIsLoading(false);
+            }
         }
     }, []);
 
@@ -397,6 +405,9 @@ const NotificationsPage = () => {
     };
 
     const navigateToTarget = (notification) => {
+        // Report notifications should open the Detail Modal to view warning reasons & notes, instead of auto-navigating away
+        if (notification.type === "report") return false;
+
         const targetId = getTargetId(notification);
 
         if (
@@ -559,9 +570,9 @@ const NotificationsPage = () => {
             </style>
 
             <section
-                className="spotify-notification-scroll h-[calc(100vh-176px)] min-h-[520px] overflow-y-auto overflow-x-hidden rounded-3xl bg-[#121212] text-white shadow-[0_24px_80px_rgba(0,0,0,0.28)] max-sm:h-[calc(100vh-150px)] max-sm:min-h-[420px]"
+                className="spotify-notification-scroll h-[calc(100dvh-150px)] min-h-0 overflow-y-auto overflow-x-hidden rounded-2xl bg-[#121212] text-white shadow-[0_24px_80px_rgba(0,0,0,0.28)] sm:h-[calc(100dvh-176px)] sm:min-h-[520px] sm:rounded-3xl"
             >
-                <div className="mx-auto flex min-h-[calc(100vh-190px)] w-full max-w-[760px] flex-col px-5 pb-12 pt-8 max-sm:px-4">
+                <div className="mx-auto flex min-h-full w-full max-w-[760px] flex-col px-4 pb-8 pt-6 sm:px-5 sm:pb-12 sm:pt-8">
                     <header className="shrink-0 bg-[#121212] pb-6">
                         <div className="flex items-start justify-between gap-5">
                             <div className="min-w-0">
@@ -577,7 +588,9 @@ const NotificationsPage = () => {
                     </header>
 
                     <div className="min-h-0 flex-1 bg-[#121212]">
-                        {notifications.length === 0 ? (
+                        {isLoading ? (
+                            <LoadingState message="Đang tải thông báo..." className="min-h-[260px]" />
+                        ) : notifications.length === 0 ? (
                             <div className="flex min-h-[260px] flex-col items-center justify-center text-center">
                                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#242424] text-neutral-500">
                                     <Radio className="h-7 w-7" />
@@ -598,9 +611,7 @@ const NotificationsPage = () => {
                         )}
 
                         {isLoadingMore && (
-                            <div className="flex justify-center py-5">
-                                <div className="h-5 w-5 animate-spin rounded-full border-2 border-neutral-600 border-t-white" />
-                            </div>
+                            <LoadingState message="Đang tải thêm..." className="py-5" />
                         )}
 
                         {hasMore && notifications.length > 0 && !isLoadingMore && (
@@ -644,6 +655,88 @@ const NotificationsPage = () => {
                         ]
                             .map((row) => ({ ...row, value: formatDetailValue(row.value) }))
                             .filter((row) => row.value);
+
+                        if (detailTarget.type === "report") {
+                            return (
+                                <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/85 p-4 backdrop-blur-md">
+                                    <div className="max-h-[90vh] w-full max-w-xl overflow-hidden rounded-3xl border border-red-500/30 bg-[#141414] text-white shadow-2xl shadow-black">
+                                        {/* Header Banner */}
+                                        <div className="relative flex h-28 items-center gap-4 bg-gradient-to-r from-red-950/90 via-amber-950/60 to-[#181818] px-6">
+                                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-500/20 text-red-400 border border-red-500/30 shadow-lg">
+                                                <ShieldAlert className="h-6 w-6" />
+                                            </div>
+                                            <div className="min-w-0 pr-8">
+                                                <span className="inline-block rounded-full bg-red-500/20 border border-red-500/30 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-300">
+                                                    Cảnh báo vi phạm
+                                                </span>
+                                                <h3 className="mt-1 text-lg font-black leading-tight text-white truncate">
+                                                    {detailTarget.title || "Thông báo vi phạm"}
+                                                </h3>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={closeDetail}
+                                                className="absolute right-4 top-4 rounded-full bg-black/60 p-2 text-neutral-300 transition hover:bg-black hover:text-white"
+                                                aria-label="Đóng chi tiết thông báo"
+                                            >
+                                                <X className="h-5 w-5" />
+                                            </button>
+                                        </div>
+
+                                        {/* Body */}
+                                        <div className="spotify-notification-scroll max-h-[calc(90vh-112px)] overflow-y-auto p-6 space-y-4">
+                                            {/* Target item info */}
+                                            {detailTarget.targetName && (
+                                                <div className="rounded-2xl bg-white/[0.05] p-4 border border-white/10 flex items-center justify-between">
+                                                    <div>
+                                                        <p className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">
+                                                            Đối tượng bị báo cáo ({getTargetTypeLabel(detailTarget.targetType)})
+                                                        </p>
+                                                        <p className="text-base font-bold text-white mt-0.5">
+                                                            {detailTarget.targetName}
+                                                        </p>
+                                                    </div>
+                                                    <span className="text-xs font-semibold text-neutral-400">
+                                                        {formatNotificationDate(detailTarget.createdAt)}
+                                                    </span>
+                                                </div>
+                                            )}
+
+                                            {/* Main Warning Reason Box */}
+                                            <div className="rounded-2xl bg-red-950/30 border border-red-500/30 p-5 space-y-2">
+                                                <p className="text-xs font-bold uppercase tracking-wider text-red-400 flex items-center gap-1.5">
+                                                    <ShieldAlert className="h-4 w-4" />
+                                                    Nguyên nhân & Ghi chú từ Quản trị viên
+                                                </p>
+                                                <p className="whitespace-pre-wrap text-sm leading-relaxed text-neutral-200">
+                                                    {content}
+                                                </p>
+                                            </div>
+
+                                            {/* Footer Buttons */}
+                                            <div className="mt-6 flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+                                                <button
+                                                    type="button"
+                                                    onClick={closeDetail}
+                                                    className="rounded-full bg-white/10 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-white/20"
+                                                >
+                                                    Đóng
+                                                </button>
+                                                {targetId && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={(event) => handleOpenTarget(event, detailTarget)}
+                                                        className="rounded-full bg-white px-6 py-2.5 text-sm font-bold text-black transition hover:scale-[1.02] hover:bg-neutral-200"
+                                                    >
+                                                        Xem nội dung
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        }
 
                         return (
                             <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">

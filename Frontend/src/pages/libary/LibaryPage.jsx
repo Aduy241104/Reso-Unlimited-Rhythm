@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import CenteredLoadingState from "../../components/common/LoadingState";
 import ArtistCard from "../../components/libary/ArtistCard";
 import { routePaths } from "../../routes/routePaths";
 import { getFollowedArtists } from "../../services/libaryService";
@@ -13,11 +13,10 @@ import {
 const LoadingState = () => {
   return (
     <section className="rounded-[24px] bg-[#181818] px-6 py-14 text-center shadow-[0_18px_50px_rgba(0,0,0,0.28)]">
-      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#1ed760]/10 text-[#1ed760]">
-        <Loader2 className="h-7 w-7 animate-spin" aria-hidden />
-      </div>
-      <h2 className="mt-6 text-2xl font-bold text-white">{LIBARY_TEXT.loadingTitle}</h2>
-      <p className="mt-2 text-sm text-white/60">{LIBARY_TEXT.loadingDescription}</p>
+      <CenteredLoadingState
+        message={LIBARY_TEXT.loadingTitle || "Loading..."}
+        spinnerClassName="h-7 w-7"
+      />
     </section>
   );
 };

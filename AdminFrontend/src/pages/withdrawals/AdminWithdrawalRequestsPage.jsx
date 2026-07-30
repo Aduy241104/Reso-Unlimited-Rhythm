@@ -25,9 +25,14 @@ const statusFilters = [
 
 const methodFilters = [
   { value: "", label: "Tất cả phương thức" },
-  { value: "bank", label: "Bank" },
-  { value: "momo", label: "Momo" },
+  { value: "bank", label: "Ngân hàng" },
+  { value: "momo", label: "MoMo" },
 ];
+
+const methodLabels = {
+  bank: "Ngân hàng",
+  momo: "MoMo",
+};
 
 const sortOrderFilters = [
   { value: "desc", label: "Mới nhất trước" },
@@ -120,7 +125,7 @@ const getAvatar = (withdrawal) => {
 
 const getStatusBadge = (status) => {
   const config = statusConfig[status] || {
-    label: status || "Unknown",
+    label: "Không xác định",
     badge: "bg-slate-50 text-slate-600 border-slate-200",
     dot: "bg-slate-400",
   };
@@ -144,29 +149,29 @@ const getMethodBadge = (method) => {
         : "border-indigo-100 bg-indigo-50 text-indigo-600"
     }`}>
       <Icon size={12} />
-      {method || "—"}
+      {methodLabels[method] || "Không xác định"}
     </span>
   );
 };
 
 const HeaderStat = ({ label, value }) => (
-  <div className="min-w-[112px] rounded-xl bg-slate-100 px-4 py-3">
-    <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400">
+  <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4">
+    <p className="text-xs font-medium text-slate-500">
       {label}
     </p>
-    <p className="mt-1.5 text-lg font-semibold text-slate-900">{value}</p>
+    <p className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">{value}</p>
   </div>
 );
 
 const AdminWithdrawalRequestsPage = () => {
   const [withdrawals, setWithdrawals] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("");
+  const [filterStatus, setFilterStatus] = useState("pending");
   const [filterMethod, setFilterMethod] = useState("");
   const [sortOrder, setSortOrder] = useState("desc");
   const [query, setQuery] = useState({
     q: "",
-    status: "",
+    status: "pending",
     method: "",
     page: 1,
     limit: 10,
@@ -222,12 +227,12 @@ const AdminWithdrawalRequestsPage = () => {
 
   const handleResetFilters = () => {
     setSearchTerm("");
-    setFilterStatus("");
+    setFilterStatus("pending");
     setFilterMethod("");
     setSortOrder("desc");
     setQuery({
       q: "",
-      status: "",
+      status: "pending",
       method: "",
       page: 1,
       limit: 10,
@@ -246,11 +251,11 @@ const AdminWithdrawalRequestsPage = () => {
   const pageLabel = `${page}/${totalPages}`;
 
   return (
-    <section className="mx-auto min-h-screen max-w-[1400px] space-y-6 bg-slate-50/50 p-6 text-slate-800 antialiased">
+    <section className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
-            Quản lý doanh thu artist
+            Quản lý doanh thu nghệ sĩ
           </p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
             Danh sách yêu cầu rút tiền
@@ -269,7 +274,7 @@ const AdminWithdrawalRequestsPage = () => {
 
       <form
         onSubmit={handleSearchSubmit}
-        className="grid grid-cols-1 gap-3 rounded-2xl bg-white p-4 shadow-[0_12px_32px_rgba(15,23,42,0.06)] md:grid-cols-[1.5fr_1fr_1fr_1fr_100px_100px]"
+        className="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-white p-4 md:grid-cols-[1.5fr_1fr_1fr_1fr_100px_100px]"
       >
         <label className="relative block">
           <Search
@@ -279,8 +284,8 @@ const AdminWithdrawalRequestsPage = () => {
           <input
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Tìm artist, tên user hoặc email..."
-            className="w-full rounded-lg bg-slate-100 py-3 pl-11 pr-4 text-sm text-slate-900 outline-none transition focus:bg-sky-50"
+            placeholder="Tìm nghệ sĩ, tên người dùng hoặc thư điện tử..."
+            className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-900 outline-none transition focus:border-slate-400"
           />
         </label>
 
@@ -330,7 +335,7 @@ const AdminWithdrawalRequestsPage = () => {
 
         <button
           type="submit"
-          className="rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+          className="rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
         >
           Tìm kiếm
         </button>
@@ -343,14 +348,14 @@ const AdminWithdrawalRequestsPage = () => {
         </div>
       ) : null}
 
-      <div className="overflow-hidden rounded-2xl bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
         <div className="grid min-w-[960px] grid-cols-[minmax(0,1.8fr)_160px_130px_140px_180px_130px] gap-4 border-b border-slate-200 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-          <span>Artist</span>
-          <span>Amount</span>
-          <span>Method</span>
-          <span>Status</span>
-          <span>Created At</span>
-          <span className="text-right pr-2">Action</span>
+          <span>Nghệ sĩ</span>
+          <span>Số tiền</span>
+          <span>Phương thức</span>
+          <span>Trạng thái</span>
+          <span>Ngày tạo</span>
+          <span className="text-right pr-2">Thao tác</span>
         </div>
 
         <div className="overflow-x-auto">
@@ -374,7 +379,6 @@ const AdminWithdrawalRequestsPage = () => {
               </div>
             ) : (
               withdrawals.map((withdrawal) => {
-                const config = statusConfig[withdrawal.status] || {};
                 const avatar = getAvatar(withdrawal);
                 const withdrawalId = withdrawal._id || withdrawal.id;
 
@@ -383,7 +387,6 @@ const AdminWithdrawalRequestsPage = () => {
                     key={withdrawalId}
                     className="relative grid grid-cols-[minmax(0,1.8fr)_160px_130px_140px_180px_130px] items-center gap-4 px-6 py-4 transition hover:bg-slate-50/70"
                   >
-                    <div className={`absolute inset-y-2 left-0 w-1 rounded-r ${config.accent || "bg-slate-300"}`} />
 
                     <div className="flex min-w-0 items-center gap-3 pl-2">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-900 text-white shadow-sm">
@@ -438,7 +441,7 @@ const AdminWithdrawalRequestsPage = () => {
       </div>
 
       {pagination ? (
-        <div className="flex flex-col gap-4 rounded-2xl bg-white px-6 py-5 shadow-[0_12px_30px_rgba(15,23,42,0.05)] sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm font-medium text-slate-500">
             Trang {page} / {totalPages}
             <span className="mx-2 text-slate-300">|</span>

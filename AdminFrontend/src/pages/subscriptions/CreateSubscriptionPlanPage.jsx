@@ -4,17 +4,17 @@ import { ArrowLeft, Save, X } from "lucide-react";
 import { createPlanService } from "../../services/subscriptionService";
 import { routePaths } from "../../routes/routePaths";
 
-const PLAN_FEATURES = [
-  { value: "NO_ADS", label: "Không quảng cáo" },
-  { value: "HIGH_QUALITY_AUDIO", label: "Chất lượng cao" },
-  { value: "LOSSLESS_AUDIO", label: "Âm thanh lossless" },
-  { value: "UNLIMITED_SKIP", label: "Bỏ qua không giới hạn" },
-  { value: "OFFLINE_DOWNLOAD", label: "Tải offline" },
-  { value: "BACKGROUND_PLAY", label: "Phát nền" },
-  { value: "AI_SMART_PLAYLIST", label: "Playlist thông minh AI" },
-  { value: "ADVANCED_RECOMMENDATION", label: "Đề xuất nâng cao" },
-  { value: "EARLY_ACCESS", label: "Truy cập sớm" },
-  { value: "EXCLUSIVE_CONTENT", label: "Nội dung độc quyền" },
+const ALL_FEATURES = [
+  "NO_ADS",
+  "HIGH_QUALITY_AUDIO",
+  "LOSSLESS_AUDIO",
+  "UNLIMITED_SKIP",
+  "OFFLINE_DOWNLOAD",
+  "BACKGROUND_PLAY",
+  "AI_SMART_PLAYLIST",
+  "ADVANCED_RECOMMENDATION",
+  "EARLY_ACCESS",
+  "EXCLUSIVE_CONTENT",
 ];
 
 const DURATIONS = [
@@ -32,7 +32,6 @@ const CreateSubscriptionPlanPage = () => {
     price: "",
     durationDays: 30,
     description: "",
-    features: [],
     status: "active",
   });
   const [errors, setErrors] = useState({});
@@ -59,10 +58,6 @@ const CreateSubscriptionPlanPage = () => {
       newErrors.durationDays = "Thời hạn là bắt buộc";
     }
 
-    if (formData.features.length === 0) {
-      newErrors.features = "Phải chọn ít nhất 1 tính năng";
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -72,18 +67,6 @@ const CreateSubscriptionPlanPage = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
-  };
-
-  const handleFeatureToggle = (featureValue) => {
-    setFormData((prev) => ({
-      ...prev,
-      features: prev.features.includes(featureValue)
-        ? prev.features.filter((feature) => feature !== featureValue)
-        : [...prev.features, featureValue],
-    }));
-    if (errors.features) {
-      setErrors((prev) => ({ ...prev, features: undefined }));
     }
   };
 
@@ -100,7 +83,7 @@ const CreateSubscriptionPlanPage = () => {
         price: Number(formData.price),
         durationDays: Number(formData.durationDays),
         description: formData.description.trim(),
-        features: formData.features,
+        features: ALL_FEATURES,
         status: formData.status,
       });
 
@@ -247,33 +230,6 @@ const CreateSubscriptionPlanPage = () => {
               <option value="inactive">Ẩn</option>
             </select>
           </div>
-        </div>
-
-        <div className="space-y-3">
-          <label className="block text-sm font-semibold text-slate-700">
-            Tính năng <span className="text-red-500">*</span>
-          </label>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-            {PLAN_FEATURES.map((feature) => (
-              <label
-                key={feature.value}
-                className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition ${
-                  formData.features.includes(feature.value)
-                    ? "border-blue-300 bg-blue-50"
-                    : "border-slate-200 hover:border-slate-300"
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  checked={formData.features.includes(feature.value)}
-                  onChange={() => handleFeatureToggle(feature.value)}
-                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm">{feature.label}</span>
-              </label>
-            ))}
-          </div>
-          {errors.features ? <p className="text-xs text-red-500">{errors.features}</p> : null}
         </div>
 
         <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-4">

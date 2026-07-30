@@ -59,7 +59,9 @@ export const getOverviewStats = async () => {
                 $group: {
                     _id: { $dateToString: { format: "%Y-%m-%d", date: "$listenedAt", timezone: analyticsTimezone } },
                     streams: { $sum: 1 },
-                    uniqueUsers: { $addToSet: "$userId" },
+                    uniqueUsers: {
+                        $addToSet: { $ifNull: ["$userId", "$guestId"] },
+                    },
                 },
             },
             { $sort: { _id: 1 } },
@@ -154,7 +156,9 @@ export const getDailyStats = async (date) => {
                             ],
                         },
                     },
-                    uniqueUsers: { $addToSet: "$userId" },
+                    uniqueUsers: {
+                        $addToSet: { $ifNull: ["$userId", "$guestId"] },
+                    },
                 },
             },
         ]),
@@ -170,7 +174,9 @@ export const getDailyStats = async (date) => {
                 $group: {
                     _id: "$trackId",
                     playCount: { $sum: 1 },
-                    uniqueListeners: { $addToSet: "$userId" },
+                    uniqueListeners: {
+                        $addToSet: { $ifNull: ["$userId", "$guestId"] },
+                    },
                 },
             },
             { $sort: { playCount: -1 } },
@@ -250,7 +256,9 @@ export const syncPlatformMonthlyStats = async (year, month) => {
                         },
                     },
                     totalStreams: { $sum: 1 },
-                    uniqueUsers: { $addToSet: "$userId" },
+                    uniqueUsers: {
+                        $addToSet: { $ifNull: ["$userId", "$guestId"] },
+                    },
                     totalListeningTime: {
                         $sum: {
                             $cond: [

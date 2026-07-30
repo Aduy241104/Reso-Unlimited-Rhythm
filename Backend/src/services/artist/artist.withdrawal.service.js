@@ -129,8 +129,8 @@ const getRevenueSummaryData = async (artist) => {
         },
         balance: {
             currency: "VND",
-            availableAmount: Number(latestSummary?.availableAmount || 0),
-            withdrawnAmount: Number(latestSummary?.withdrawnAmount || 0),
+            availableAmount: Number(artist.revenue?.availableAmount || 0),
+            withdrawnAmount: Number(artist.revenue?.totalWithdrawnAmount || 0),
             totalEligibleStreams: Number(totals.totalEligibleStreams || 0),
             lifetimeGrossRevenueAmount: Number(
                 totals.lifetimeGrossRevenueAmount || 0
@@ -277,7 +277,7 @@ export const createWithdrawalRequestByUserId = async (userId, payload = {}) => {
         );
     }
 
-    if (Number(latestSummary.availableAmount || 0) < amount) {
+    if (Number(artist.revenue?.availableAmount || 0) < amount) {
         throw new AppError(
             "Số dư khả dụng của bạn không đủ để tạo yêu cầu rút tiền này.",
             StatusCodes.CONFLICT,
@@ -321,35 +321,51 @@ export const createWithdrawalRequestByUserId = async (userId, payload = {}) => {
         );
     }
 
-    latestSummary.availableAmount = Math.max(
-        Number(latestSummary.availableAmount || 0) - amount,
-        0
-    );
-    await latestSummary.save();
-
-    await Artist.updateOne(
-        { _id: artist._id },
+    const balanceUpdateResult = await Artist.updateOne(
         {
-            $set: {
-                "revenue.availableAmount": latestSummary.availableAmount,
-            },
+            _id: artist._id,
+            "revenue.availableAmount": { $gte: amount },
+        },
+        {
             $inc: {
-                "revenue.pendingPayoutAmount": amount,
+                "revenue.availableAmount": -amount,
             },
         }
     );
 
-    const withdrawalRequest = await WithdrawalRequest.create({
-        artistId: artist._id,
-        amount,
-        method: "bank",
-        accountInfo: {
-            bankName: payoutAccount.bankName,
-            accountNumber: payoutAccount.accountNumber,
-            accountHolderName: payoutAccount.accountHolderName,
-        },
-        status: "pending",
-    });
+    if (balanceUpdateResult.matchedCount === 0) {
+        throw new AppError(
+            "Số dư khả dụng của bạn không đủ để tạo yêu cầu rút tiền này.",
+            StatusCodes.CONFLICT,
+            { field: "amount" }
+        );
+    }
+
+    let withdrawalRequest;
+
+    try {
+        withdrawalRequest = await WithdrawalRequest.create({
+            artistId: artist._id,
+            amount,
+            method: "bank",
+            accountInfo: {
+                bankName: payoutAccount.bankName,
+                accountNumber: payoutAccount.accountNumber,
+                accountHolderName: payoutAccount.accountHolderName,
+            },
+            status: "pending",
+        });
+    } catch (error) {
+        await Artist.updateOne(
+            { _id: artist._id },
+            {
+                $inc: {
+                    "revenue.availableAmount": amount,
+                },
+            }
+        );
+        throw error;
+    }
 
     return {
         withdrawalRequest: formatWithdrawalRequest(withdrawalRequest),

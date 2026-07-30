@@ -21,9 +21,12 @@ import UsersListPage from "../pages/users/UsersListPage";
 import UserDetailPage from "../pages/users/UserDetailPage";
 import ArtistRequestsListPage from "../pages/artistRequests/ArtistRequestsListPage";
 import ArtistRequestDetailPage from "../pages/artistRequests/ArtistRequestDetailPage";
+import SystemAlbumsListPage from "../pages/albums/SystemAlbumsListPage";
+import SystemAlbumDetailPage from "../pages/albums/SystemAlbumDetailPage";
 import SystemArtistsListPage from "../pages/artist/SystemArtistsListPage";
 import SystemArtistDetailPage from "../pages/artist/ArtistDetailPage";
 import SystemTracksModerationPage from "../pages/systemTracks/SystemTracksModerationPage";
+import AlbumDetailPage from "../pages/albums/AlbumDetailPage";
 import CreateNotificationPage from "../pages/notification/CreateNotificationPage";
 import AdminListPage from "../pages/users/AdminListPage";
 import NotificationsListPage from "../pages/notification/NotificationListPage";
@@ -31,10 +34,15 @@ import NotificationDetailPage from "../pages/notification/NotificationDetailPage
 import NotificationEditPage from "../pages/notification/NotificationUpdatePage";
 import ReportsListPage from "../pages/reports/ReportsListPage";
 import ReportDetailPage from "../pages/reports/ReportDetailPage";
+import ArtistViolationHistoryPage from "../pages/artistViolations/ArtistViolationHistoryPage";
+import CreateArtistViolationPage from "../pages/artistViolations/CreateArtistViolationPage";
+import ArtistViolationDetailPage from "../pages/artistViolations/ArtistViolationDetailPage";
 import SubscriptionPlansPage from "../pages/subscriptions/SubscriptionPlansPage";
 import SubscriptionPlanDetailPage from "../pages/subscriptions/SubscriptionPlanDetailPage";
 import CreateSubscriptionPlanPage from "../pages/subscriptions/CreateSubscriptionPlanPage";
 import EditSubscriptionPlanPage from "../pages/subscriptions/EditSubscriptionPlanPage";
+import TransactionDetail from "../pages/transactions/TransactionDetail";
+import TransactionList from "../pages/transactions/TransactionList";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import RoleRoute from "./RoleRoute";
@@ -90,7 +98,6 @@ export const appRoutes = [
                 element: <RevenuePeriodDetailPage />,
               },
               {
-
                 path: "withdrawals",
                 element: <AdminWithdrawalRequestsPage />,
               },
@@ -116,11 +123,11 @@ export const appRoutes = [
               },
               {
                 path: "notifications",
-                element: <NotificationsListPage />, // Đổi thành List trang chủ thông báo
+                element: <NotificationsListPage />,
               },
               {
                 path: "notifications/new",
-                element: <CreateNotificationPage />, // Đổi thành /notifications/new để khớp với routePaths.createNotification
+                element: <CreateNotificationPage />,
               },
               {
                 path: "notifications/:id",
@@ -143,6 +150,14 @@ export const appRoutes = [
                 element: <SystemTracksModerationPage />,
               },
               {
+                path: "system-albums",
+                element: <SystemAlbumsListPage />,
+              },
+              {
+                path: "system-albums/:id",
+                element: <SystemAlbumDetailPage />,
+              },
+              {
                 path: "artist-requests",
                 element: <ArtistRequestsListPage />,
               },
@@ -163,6 +178,10 @@ export const appRoutes = [
                 element: <TrackDetailPage />,
               },
               {
+                path: "system-albums/:id",
+                element: <AlbumDetailPage />,
+              },
+              {
                 path: "genres",
                 element: <GenresListPage />,
               },
@@ -179,7 +198,23 @@ export const appRoutes = [
                 element: <ReportsListPage />,
               },
               {
+                path: "artist-violations",
+                element: <ArtistViolationHistoryPage />,
+              },
+              {
+                path: "artist-violations/new",
+                element: <CreateArtistViolationPage />,
+              },
+              {
+                path: "artist-violations/detail/:targetType/:targetId",
+                element: <ArtistViolationDetailPage />,
+              },
+              {
                 path: "reports/:reportId",
+                element: <ReportDetailPage />,
+              },
+              {
+                path: "reports/grouped/:targetType/:targetId",
                 element: <ReportDetailPage />,
               },
               {
@@ -197,6 +232,14 @@ export const appRoutes = [
               {
                 path: "subscriptions/:planId/edit",
                 element: <EditSubscriptionPlanPage />,
+              },
+              {
+                path: routePaths.transactions,
+                element: <TransactionList />,
+              },
+              {
+                path: routePaths.transactionDetail(),
+                element: <TransactionDetail />,
               },
             ],
           },

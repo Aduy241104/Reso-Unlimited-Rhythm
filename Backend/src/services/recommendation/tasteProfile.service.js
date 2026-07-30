@@ -13,12 +13,12 @@ import { getAnalyticsTimezone } from "../analytics/trackStatAggregation.service.
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-export const DAILY_MIX_COUNT = 3;
+export const DAILY_MIX_COUNT = 6;
 export const TRACKS_PER_MIX = 20;
 export const LISTENING_WINDOW_DAYS = 30;
 export const ACTIVE_USER_WINDOW_DAYS = 7;
 export const RECOMMENDATION_CACHE_TTL_SECONDS = 6 * 60 * 60;
-export const ALGORITHM_VERSION = "rule_based_v1";
+export const ALGORITHM_VERSION = "behavior_rule_based_v2";
 
 export const SCORE_RULES = {
     listen: 3,
@@ -174,6 +174,20 @@ const ensureTrackReasonBucket = (tasteProfile, trackId) => {
     return tasteProfile.trackReasons[trackId];
 };
 
+const ensureTrackBehaviorMetrics = (tasteProfile, trackId) => {
+    if (!tasteProfile.trackBehaviorMetrics[trackId]) {
+        tasteProfile.trackBehaviorMetrics[trackId] = {
+            playCount: 0,
+            completedCount: 0,
+            skippedCount: 0,
+            repeatCount: 0,
+            lastListenedAt: null,
+        };
+    }
+
+    return tasteProfile.trackBehaviorMetrics[trackId];
+};
+
 const applyMetadataScores = (tasteProfile, metadata, score) => {
     if (!metadata || !Number.isFinite(score) || score === 0) {
         return;
@@ -251,7 +265,10 @@ const buildEmptyTasteProfile = (userId) => ({
     playlistTrackIds: [],
     searchKeywords: [],
     trackReasons: {},
+    trackBehaviorMetrics: {},
     skipCounts: {},
+    recentArtistIds: [],
+    recentGenreIds: [],
     artistNames: {},
     genreNames: {},
     signalStats: {
@@ -406,6 +423,7 @@ export const buildTasteProfile = async (
     for (const event of listenEventsAscending) {
         const trackId = String(event.trackId);
         const repeatIndex = repeatCountByTrackId[trackId] || 0;
+        const behaviorMetrics = ensureTrackBehaviorMetrics(tasteProfile, trackId);
         const score = scoreListenEvent({
             listenedAt: event.listenedAt,
             completed: event.completed,
@@ -415,6 +433,14 @@ export const buildTasteProfile = async (
         });
 
         applyTrackScore(tasteProfile, trackId, score, trackMetadataById);
+        behaviorMetrics.playCount += 1;
+        behaviorMetrics.completedCount += event.completed ? 1 : 0;
+        behaviorMetrics.skippedCount += event.skipped ? 1 : 0;
+        behaviorMetrics.repeatCount = Math.max(
+            behaviorMetrics.repeatCount,
+            repeatIndex
+        );
+        behaviorMetrics.lastListenedAt = event.listenedAt;
 
         repeatCountByTrackId[trackId] = repeatIndex + 1;
         if (repeatCountByTrackId[trackId] >= 2) {
@@ -435,6 +461,20 @@ export const buildTasteProfile = async (
             listenEventsDescending.map((event) => String(event.trackId))
         ),
     ].slice(0, 50);
+    tasteProfile.recentArtistIds = [
+        ...new Set(
+            tasteProfile.recentlyPlayedTrackIds
+                .map((trackId) => trackMetadataById.get(trackId)?.artistId)
+                .filter(Boolean)
+        ),
+    ].slice(0, 12);
+    tasteProfile.recentGenreIds = [
+        ...new Set(
+            tasteProfile.recentlyPlayedTrackIds.flatMap(
+                (trackId) => trackMetadataById.get(trackId)?.genreIds || []
+            )
+        ),
+    ].slice(0, 12);
 
     for (const trackId of tasteProfile.likedTrackIds) {
         ensureTrackReasonBucket(tasteProfile, trackId).liked = true;

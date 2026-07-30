@@ -4,6 +4,7 @@ import Artist from "../../models/Artist.js";
 import Album from "../../models/Album.js";
 import ArtistStat from "../../models/ArtistStat.js";
 import ArtistRevenueSummary from "../../models/ArtistRevenueSummary.js";
+import Notification from "../../models/Notification.js";
 import { normalizePositiveInteger } from "../Playlist/playlist.helper.js";
 import { AppError } from "../../utils/AppError.js";
 
@@ -68,8 +69,8 @@ const formatAdminArtistDetailItem = (
         demographics: advancedStats?.demographics?.countries || {},
         finance: revenueSummary
             ? {
-                availableAmount: revenueSummary.availableAmount || 0,
-                withdrawnAmount: revenueSummary.withdrawnAmount || 0,
+                availableAmount: artist.revenue?.availableAmount || 0,
+                withdrawnAmount: artist.revenue?.totalWithdrawnAmount || 0,
                 grossRevenueAmount: revenueSummary.grossRevenueAmount || 0,
                 lastCalculatedPeriod: `Month ${revenueSummary.month}/${revenueSummary.year}`,
                 status: revenueSummary.status,
@@ -240,6 +241,30 @@ const updateArtistStatusForAdmin = async (
 
     if (!updatedArtist) {
         throw new AppError("Artist not found.", 404, { field: "id" });
+    }
+
+    // Send notification to artist user
+    if (updatedArtist.userId) {
+        try {
+            const isUnblocking = activeStatus === "active";
+            await Notification.create({
+                userId: updatedArtist.userId,
+                type: "system",
+                title: isUnblocking
+                    ? "Thông báo mở khóa tài khoản Nghệ sĩ"
+                    : "Thông báo khóa tài khoản Nghệ sĩ",
+                content: isUnblocking
+                    ? "Tài khoản nghệ sĩ của bạn đã được Admin mở khóa thành công. Bạn có thể tiếp tục quản lý bài hát và hoạt động bình thường."
+                    : `Tài khoản nghệ sĩ của bạn đã bị khóa. Lý do: ${updateData.blockedReason}`,
+                targetId: artistId,
+                targetType: "artist",
+                receiverType: "single",
+                targetRoles: ["artist"],
+                sourceType: "admin_manual",
+            });
+        } catch (err) {
+            console.error("Error creating artist status notification:", err);
+        }
     }
 
     return {

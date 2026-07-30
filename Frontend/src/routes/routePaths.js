@@ -1,15 +1,18 @@
-﻿export const routePaths = {
+export const routePaths = {
   home: "/",
   search: "/search",
   userGenres: "/genres",
   userGenreDetail: (genreId = ":id") => `/genres/${genreId}`,
   dailyTopTracks: "/charts/daily-top-tracks",
   monthlyTopTracks: "/charts/monthly-top-tracks",
+  dailyTopArtists: "/charts/daily-top-artists",
+  monthlyTopArtists: "/charts/monthly-top-artists",
   albumDetail: (albumId = ":id") => `/albums/${albumId}`,
   playlistDetail: (playlistId = ":id") => `/playlists/${playlistId}`,
   recommendationMixDetail: (mixId = ":id") =>
     `/recommendations/daily-mixes/${mixId}`,
   lyrics: "/lyrics",
+  lyricsFullscreen: "/lyrics/fullscreen",
   trackDetail: (trackId = ":id") => `/tracks/${trackId}`,
   artistTrackDetail: (trackId = ":id") => `/artist/music/${trackId}`,
   artistTrackEdit: (trackId = ":id") => `/artist/music/${trackId}/edit`,
@@ -49,6 +52,7 @@
   artistRevenueHistory: "/artist/royalties/history",
   artistRevenuePeriodDetail: (periodId = ":id") => `/artist/royalties/history/${periodId}`,
   artistWithdrawalRequests: "/artist/withdrawal-requests",
+  artistViolations: "/artist/violations",
   artistSettings: "/artist/settings",
   artistProfile: "/artist/profile",
   artistProfileEdit: "/artist/profile/edit",
