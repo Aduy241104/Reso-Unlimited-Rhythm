@@ -16,6 +16,7 @@ import {
   getCurrentUserProfile,
   updateCurrentUserProfile,
 } from "../../services/userProfileService";
+import { USER_INPUT_LIMITS } from "../../constants/userInputLimits";
 import { getApiErrorMessage } from "../../utils/apiError";
 import { createUserProfileSnapshot } from "./UserProfileCard";
 
@@ -463,6 +464,7 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
         >
           <input
             type="text"
+            maxLength={USER_INPUT_LIMITS.fullName}
             value={formValues.fullName}
             onChange={(event) => updateField("fullName", event.target.value)}
             placeholder="Nhập họ và tên"

@@ -1,6 +1,7 @@
 ﻿import { useState } from "react";
 import { KeyRound, Loader2, LockKeyhole, Save, ShieldAlert, X } from "lucide-react";
 import { changeCurrentUserPassword } from "../../services/userProfileService";
+import { USER_INPUT_LIMITS } from "../../constants/userInputLimits";
 import { getApiErrorMessage } from "../../utils/apiError";
 
 const inputClassName =
@@ -202,6 +203,7 @@ const ChangePasswordForm = ({ onCancel, onSaved }) => {
         >
           <input
             type="password"
+            maxLength={USER_INPUT_LIMITS.password}
             value={formValues.currentPassword}
             onChange={(event) => updateField("currentPassword", event.target.value)}
             placeholder="Nhập mật khẩu hiện tại"
@@ -218,6 +220,7 @@ const ChangePasswordForm = ({ onCancel, onSaved }) => {
         >
           <input
             type="password"
+            maxLength={USER_INPUT_LIMITS.password}
             value={formValues.newPassword}
             onChange={(event) => updateField("newPassword", event.target.value)}
             placeholder="Nhập mật khẩu mới"
@@ -234,6 +237,7 @@ const ChangePasswordForm = ({ onCancel, onSaved }) => {
         >
           <input
             type="password"
+            maxLength={USER_INPUT_LIMITS.password}
             value={formValues.confirmPassword}
             onChange={(event) => updateField("confirmPassword", event.target.value)}
             placeholder="Nhập lại mật khẩu mới"

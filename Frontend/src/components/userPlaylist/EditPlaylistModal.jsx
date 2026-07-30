@@ -9,6 +9,7 @@ import {
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { updateUserPlaylist } from "../../services/userPlaylistService";
+import { USER_INPUT_LIMITS } from "../../constants/userInputLimits";
 import { getApiErrorMessage } from "../../utils/apiError";
 
 const ANIMATION_DURATION = 300;
@@ -388,7 +389,7 @@ const EditPlaylistModal = ({
                     }}
                     placeholder="Nhâp tên playlist"
                     className="w-full rounded-xl border border-white/8 bg-[#464646] px-4 py-3 text-lg font-semibold text-white placeholder:text-white/45 focus:border-white/20 focus:outline-none sm:px-5 sm:py-4 sm:text-2xl"
-                    maxLength={120}
+                    maxLength={USER_INPUT_LIMITS.playlistTitle}
                     disabled={isSubmitting}
                   />
                   {titleError ? (
@@ -412,7 +413,7 @@ const EditPlaylistModal = ({
                     }}
                     placeholder="Thêm phần mô tả không bắt buộc"
                     className="min-h-[120px] w-full resize-none rounded-xl border border-white/8 bg-[#464646] px-4 py-3 text-base text-white placeholder:text-white/35 focus:border-white/20 focus:outline-none sm:min-h-[154px] sm:px-5 sm:py-4"
-                    maxLength={500}
+                    maxLength={USER_INPUT_LIMITS.playlistDescription}
                     disabled={isSubmitting}
                   />
                 </div>

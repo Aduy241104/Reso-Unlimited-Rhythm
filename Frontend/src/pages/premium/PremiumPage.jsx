@@ -427,6 +427,8 @@ const PremiumPage = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [checkoutPlanId, setCheckoutPlanId] = useState("");
   const modalOpenTimerRef = useRef(null);
+  const checkoutAbortControllerRef = useRef(null);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
     let isMounted = true;
@@ -496,14 +498,42 @@ const PremiumPage = () => {
     [modalOpeningState.planId, orderedPlans]
   );
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    const resetRestoredPaymentState = (event) => {
+      if (!event.persisted) {
+        return;
+      }
+
       if (modalOpenTimerRef.current) {
         window.clearTimeout(modalOpenTimerRef.current);
+        modalOpenTimerRef.current = null;
       }
-    },
-    []
-  );
+
+      checkoutAbortControllerRef.current?.abort();
+      checkoutAbortControllerRef.current = null;
+      setDetailPlanId("");
+      setPurchasePlanId("");
+      setModalOpeningState({ type: "", planId: "" });
+      setCheckoutPlanId("");
+    };
+
+    window.addEventListener("pageshow", resetRestoredPaymentState);
+
+    return () => {
+      isMountedRef.current = false;
+      window.removeEventListener("pageshow", resetRestoredPaymentState);
+
+      if (modalOpenTimerRef.current) {
+        window.clearTimeout(modalOpenTimerRef.current);
+        modalOpenTimerRef.current = null;
+      }
+
+      checkoutAbortControllerRef.current?.abort();
+      checkoutAbortControllerRef.current = null;
+    };
+  }, []);
 
   const clearModalOpeningState = () => {
     if (modalOpenTimerRef.current) {
@@ -576,11 +606,23 @@ const PremiumPage = () => {
       return;
     }
 
+    checkoutAbortControllerRef.current?.abort();
+    const abortController = new AbortController();
+    checkoutAbortControllerRef.current = abortController;
+
     setCheckoutPlanId(planId);
     setErrorMessage("");
 
     try {
-      const response = await createVnpayOrderService({ planId });
+      const response = await createVnpayOrderService(
+        { planId },
+        { signal: abortController.signal }
+      );
+
+      if (!isMountedRef.current || abortController.signal.aborted) {
+        return;
+      }
+
       const paymentUrl = response?.paymentUrl?.trim?.() || "";
 
       if (!paymentUrl) {
@@ -589,10 +631,22 @@ const PremiumPage = () => {
 
       window.location.assign(paymentUrl);
     } catch (error) {
+      if (
+        !isMountedRef.current ||
+        abortController.signal.aborted ||
+        error?.code === "ERR_CANCELED"
+      ) {
+        return;
+      }
+
       setCheckoutPlanId("");
       setErrorMessage(
         getApiErrorMessage(error, "Không thể tạo đơn thanh toán VNPAY.")
       );
+    } finally {
+      if (checkoutAbortControllerRef.current === abortController) {
+        checkoutAbortControllerRef.current = null;
+      }
     }
   };
 

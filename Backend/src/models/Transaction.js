@@ -19,6 +19,7 @@ const TransactionSchema = new Schema(
 
         paymentMethod: { type: String, enum: ["momo", "vnpay", "stripe", "card"], required: true, index: true },
         paymentGateway: { type: String, enum: ["momo", "vnpay", "stripe"], required: true, index: true },
+        clientPlatform: { type: String, enum: ["web", "mobile"], default: "web", index: true },
         gatewayTransactionId: { type: String, trim: true, default: "", index: true },
 
         status: {
@@ -32,6 +33,8 @@ const TransactionSchema = new Schema(
         failedAt: { type: Date },
         failureReason: { type: String, default: "" },
         invoiceNumber: { type: String, trim: true, default: "", index: true },
+        paymentUrl: { type: String, trim: true, default: "" },
+        paymentExpiresAt: { type: Date, index: true },
 
         confirmationEmailStatus: {
             type: String,
@@ -44,6 +47,16 @@ const TransactionSchema = new Schema(
     },
     { timestamps: true }
 );
+
+TransactionSchema.index({
+    userId: 1,
+    planId: 1,
+    paymentGateway: 1,
+    clientPlatform: 1,
+    status: 1,
+    paymentExpiresAt: -1,
+    createdAt: -1,
+});
 
 const Transaction = model("Transaction", TransactionSchema);
 

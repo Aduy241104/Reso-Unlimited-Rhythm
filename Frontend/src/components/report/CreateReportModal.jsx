@@ -10,6 +10,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { createReportService } from "../../services/report/user.report.service";
+import { USER_INPUT_LIMITS } from "../../constants/userInputLimits";
 import { getApiErrorFullMessage } from "../../utils/apiError";
 import ReportReasonSelect from "./ReportReasonSelect";
 
@@ -305,6 +306,7 @@ const CreateReportModal = ({
               </label>
               <textarea
                 name="description"
+                maxLength={USER_INPUT_LIMITS.reportDescription}
                 rows={5}
                 value={formData.description}
                 onChange={handleChange}
