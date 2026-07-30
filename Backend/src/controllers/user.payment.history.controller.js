@@ -1,10 +1,16 @@
-﻿import userPaymentHistoryService from "../services/userPaymentHistory/user.payment.history.service.js";
+import userPaymentHistoryService from "../services/userPaymentHistory/user.payment.history.service.js";
 import formatResponse from "../utils/formatResponse.js";
 import { AppError } from "../utils/AppError.js";
 
 const getMyPaymentHistory = async (req, res, next) => {
     try {
         const userId = req.user?._id || req.user?.id || req.user?.userId;
+        const {
+            page,
+            status,
+            paymentGateway,
+            paymentMethod,
+        } = req.query;
 
         if (!userId) {
             throw new AppError("Unauthorized.", 401);
@@ -12,7 +18,12 @@ const getMyPaymentHistory = async (req, res, next) => {
 
         const result = await userPaymentHistoryService.getMyPaymentHistory(
             userId,
-            req.query
+            {
+                page,
+                status,
+                paymentGateway,
+                paymentMethod,
+            }
         );
 
         return formatResponse.success(

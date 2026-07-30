@@ -1,15 +1,14 @@
-﻿import mongoose from "mongoose";
+import mongoose from "mongoose";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { AppError } from "../../utils/AppError.js";
 import {
+    PAYMENT_HISTORY_PAGE_SIZE,
     countPaymentHistoryByUserId,
     findPaymentDetailByUserId,
     findPaymentHistoryByUserId,
 } from "./user.payment.history.service.helper.js";
 
 const DEFAULT_PAGE = 1;
-const DEFAULT_LIMIT = 10;
-const MAX_LIMIT = 50;
 
 const ALLOWED_STATUSES = ["pending", "success", "failed", "refunded"];
 const ALLOWED_PAYMENT_GATEWAYS = ["momo", "vnpay", "stripe"];
@@ -355,8 +354,7 @@ const getMyPaymentHistory = async (userId, query = {}) => {
     }
 
     const page = normalizePositiveInteger(query.page, DEFAULT_PAGE);
-    const requestedLimit = normalizePositiveInteger(query.limit, DEFAULT_LIMIT);
-    const limit = Math.min(requestedLimit, MAX_LIMIT);
+    const limit = PAYMENT_HISTORY_PAGE_SIZE;
     const skip = (page - 1) * limit;
     const filter = buildPaymentHistoryFilter(userId, query);
 
