@@ -14,6 +14,7 @@ import {
     X,
 } from "lucide-react";
 import DeletePlaylistConfirmModal from "../userPlaylist/DeletePlaylistConfirmModal";
+import { USER_INPUT_LIMITS } from "../../constants/userInputLimits";
 import { usePlayer } from "../../hooks/usePlayer";
 import {
     addTrackToFavorite,
@@ -560,6 +561,7 @@ const TrackTwoLevelMenu = ({
                                     <input
                                         type="text"
                                         value={ searchValue }
+                                        maxLength={ USER_INPUT_LIMITS.search }
                                         onChange={ (event) =>
                                             setSearchValue(event.target.value)
                                         }

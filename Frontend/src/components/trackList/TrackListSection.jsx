@@ -4,6 +4,8 @@ import LoadingState from "../common/LoadingState";
 const trackGridClassNameByType = {
   default:
     "grid-cols-[2.5rem_minmax(0,1fr)_4rem_3.25rem_2.75rem]",
+  withoutLike:
+    "grid-cols-[2.5rem_minmax(0,1fr)_3.25rem_2.75rem]",
 
   rank:
     "grid-cols-[2.5rem_3rem_minmax(0,1fr)_8.75rem_3.25rem_2rem]",
@@ -14,6 +16,17 @@ const headerColumnsByType = {
     { label: "#", className: "justify-center" },
     { label: "Tiêu đề", className: "justify-start" },
     { label: "Đã lưu", className: "justify-center text-center" },
+    {
+      icon: Clock3,
+      className: "justify-end pr-1",
+      iconClassName: "h-3.5 w-3.5",
+    },
+    { label: "", className: "justify-end" },
+  ],
+
+  withoutLike: [
+    { label: "#", className: "justify-center" },
+    { label: "Tiêu đề", className: "justify-start" },
     {
       icon: Clock3,
       className: "justify-end pr-1",

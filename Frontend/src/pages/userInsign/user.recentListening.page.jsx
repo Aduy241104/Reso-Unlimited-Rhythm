@@ -7,7 +7,15 @@ import {
   useState,
 } from "react";
 import { Link } from "react-router-dom";
-import { Clock3, Headphones, Music2, Tags } from "lucide-react";
+import {
+  ArrowRight,
+  Clock3,
+  Crown,
+  Headphones,
+  LockKeyhole,
+  Music2,
+  Tags,
+} from "lucide-react";
 import LoadingState from "../../components/common/LoadingState";
 import { useAuth } from "../../hooks/useAuth";
 import { routePaths } from "../../routes/routePaths";
@@ -284,36 +292,114 @@ const isPremiumAccessDeniedError = (error) => {
 };
 
 const PremiumRequiredState = () => (
-  <main className={pageShellClassName}>
-    <section className="mx-auto flex w-full max-w-3xl items-center justify-center">
-      <div
-        className={`${panelClassName} w-full overflow-hidden border border-[#f1c27d]/20 bg-[radial-gradient(circle_at_top,rgba(241,194,125,0.18),transparent_52%),#0b0b0b] p-7 sm:p-8`}
-      >
-        <div className="mx-auto max-w-2xl text-center">
-          <p className="text-xs uppercase tracking-[0.32em] text-[#f1c27d]/78">
-            Premium Required
-          </p>
-          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-[2.7rem] sm:leading-[1.06]">
-            Tinh nang user insight chi danh cho tai khoan Premium
-          </h1>
-          <p className="mt-5 text-sm leading-7 text-white/62 sm:text-base">
-            Ban can nang cap Premium de xem thong ke nghe gan day, top the loai
-            va top bai hat ca nhan trong 7 ngay qua.
-          </p>
+  <main className={`${pageShellClassName} relative overflow-hidden`}>
+    <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+      <div className="absolute left-1/2 top-[-18rem] h-[42rem] w-[42rem] -translate-x-1/2 rounded-full bg-[#f1c27d]/10 blur-[110px]" />
+      <div className="absolute -right-32 bottom-[-10rem] h-80 w-80 rounded-full bg-[#9672ff]/[0.08] blur-[100px]" />
+    </div>
 
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link
-              to={routePaths.premium}
-              className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#f1c27d] px-6 text-sm font-semibold text-[#18120a] transition hover:bg-[#f4cf95]"
-            >
-              Xem cac goi Premium
-            </Link>
-            <Link
-              to={routePaths.home}
-              className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/12 px-6 text-sm font-semibold text-white/76 transition hover:border-white/20 hover:text-white"
-            >
-              Ve trang chu
-            </Link>
+    <section className="relative mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-6xl items-center justify-center">
+      <div className="relative w-full overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(145deg,rgba(24,22,18,0.98),rgba(10,10,10,0.98)_48%,rgba(8,8,8,1))] shadow-[0_30px_100px_rgba(0,0,0,0.52)]">
+        <div className="pointer-events-none absolute -left-20 -top-24 h-72 w-72 rounded-full bg-[#f1c27d]/10 blur-3xl" />
+
+        <div className="relative grid gap-10 p-6 sm:p-9 lg:grid-cols-[1.02fr_0.98fr] lg:items-center lg:p-12">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#f1c27d]/20 bg-[#f1c27d]/[0.08] px-3.5 py-2 text-xs font-semibold text-[#f4cf95]">
+              <Crown className="h-4 w-4" />
+              Dành cho thành viên Premium
+            </div>
+
+            <h1 className="mt-6 max-w-xl text-[2.25rem] font-semibold leading-[1.08] tracking-[-0.035em] text-white sm:text-[3.25rem]">
+              Khám phá câu chuyện âm nhạc của bạn
+            </h1>
+            <p className="mt-5 max-w-xl text-sm leading-7 text-white/58 sm:text-base">
+              Nâng cấp Premium để xem hoạt động nghe nhạc trong 7 ngày gần nhất,
+              thể loại nổi bật và những bài hát bạn yêu thích nhất.
+            </p>
+
+            <div className="mt-7 grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+              {[
+                { Icon: Headphones, label: "Thống kê 7 ngày" },
+                { Icon: Tags, label: "Thể loại nổi bật" },
+                { Icon: Music2, label: "Bài hát yêu thích" },
+              ].map((benefit) => (
+                <div
+                  key={benefit.label}
+                  className="flex items-center gap-3 rounded-2xl border border-white/[0.07] bg-white/[0.035] px-4 py-3.5"
+                >
+                  <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#f1c27d]/10 text-[#f1c27d]">
+                    <benefit.Icon className="h-[18px] w-[18px]" />
+                  </span>
+                  <span className="text-xs font-medium leading-5 text-white/72">
+                    {benefit.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link
+                to={routePaths.premium}
+                className="group inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#f1c27d] px-6 text-sm font-semibold text-[#18120a] transition hover:-translate-y-0.5 hover:bg-[#f4cf95]"
+              >
+                Xem các gói Premium
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              </Link>
+              <Link
+                to={routePaths.home}
+                className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/12 px-6 text-sm font-semibold text-white/68 transition hover:border-white/20 hover:bg-white/[0.04] hover:text-white"
+              >
+                Về trang chủ
+              </Link>
+            </div>
+          </div>
+
+          <div className="relative mx-auto w-full max-w-lg" aria-hidden="true">
+            <div className="absolute inset-5 rounded-[28px] bg-[#f1c27d]/10 blur-3xl" />
+            <div className="relative overflow-hidden rounded-[24px] border border-white/10 bg-[#101010]/95 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.42)] sm:p-6">
+              <div className="flex items-center justify-between gap-4 border-b border-white/[0.07] pb-5">
+                <div>
+                  <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/32">
+                    Hoạt động nghe gần đây
+                  </p>
+                  <p className="mt-2 text-lg font-semibold text-white/88">
+                    Tổng quan 7 ngày
+                  </p>
+                </div>
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#f1c27d]/20 bg-[#f1c27d]/10 text-[#f1c27d]">
+                  <LockKeyhole className="h-4 w-4" />
+                </span>
+              </div>
+
+              <div className="mt-5 grid grid-cols-3 gap-2.5">
+                {["Lượt nghe", "Phút nghe", "Bài hát"].map((label) => (
+                  <div
+                    key={label}
+                    className="rounded-2xl border border-white/[0.06] bg-white/[0.03] px-3 py-3"
+                  >
+                    <div className="h-5 w-12 rounded-md bg-white/10" />
+                    <p className="mt-2 truncate text-[10px] text-white/30">{label}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 flex h-40 items-end justify-between gap-2 rounded-2xl border border-white/[0.06] bg-white/[0.02] px-4 pb-4 pt-6">
+                {[38, 58, 44, 82, 64, 92, 72].map((height, index) => (
+                  <div key={`${height}-${index}`} className="flex h-full flex-1 items-end">
+                    <div
+                      className="w-full rounded-t-md bg-[linear-gradient(180deg,rgba(241,194,125,0.72),rgba(241,194,125,0.14))]"
+                      style={{ height: `${height}%` }}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="absolute inset-0 flex items-center justify-center bg-black/15 backdrop-blur-[2px]">
+                <div className="rounded-full border border-white/10 bg-[#111111]/90 px-4 py-2 text-xs font-semibold text-white/72 shadow-xl">
+                  Nâng cấp để mở khóa
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -2,9 +2,7 @@ import { useEffect, useState } from "react";
 import {
   Check,
   CirclePlus,
-  Download,
   Loader2,
-  MoreHorizontal,
   ShieldAlert,
   Shuffle,
 } from "lucide-react";
@@ -236,10 +234,6 @@ const AlbumDetailPage = () => {
     });
   };
 
-  const handleLikeTrack = (track) => {
-    console.log("Toggle like track:", track?.title);
-  };
-
   const redirectToLogin = () => {
     navigate(routePaths.login, {
       replace: false,
@@ -408,9 +402,6 @@ const AlbumDetailPage = () => {
               ) }
               <span>{ followButtonLabel }</span>
             </button>
-            <button type="button" className={ actionButtonClassName } aria-label="Tải album">
-              <Download className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
-            </button>
             <button
               type="button"
               className={ actionButtonClassName }
@@ -418,9 +409,6 @@ const AlbumDetailPage = () => {
               onClick={ handleReportAlbum }
             >
               <ShieldAlert className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
-            </button>
-            <button type="button" className={ actionButtonClassName } aria-label="More options">
-              <MoreHorizontal className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </button>
           </div>
 
@@ -431,6 +419,7 @@ const AlbumDetailPage = () => {
           ) : null }
 
           <TrackListSection
+            type="withoutLike"
             isLoading={ isLoading }
             errorMessage={ errorMessage }
             loadingMessage="Đang tải bài hát..."
@@ -459,7 +448,8 @@ const AlbumDetailPage = () => {
                   isPlaybackActive={ currentTrack?.id === track?.id }
                   isPlaying={ isPlaying }
                   onPlaybackAction={ () => handlePlayTrack(track, index) }
-                  onLike={ () => handleLikeTrack(track) }
+                  mobileLayoutClassName="grid-cols-[2rem_minmax(0,1fr)]"
+                  desktopLayoutClassName="sm:grid-cols-[2.5rem_minmax(0,1fr)_3.25rem_2.75rem]"
                 />
               );
             }) }

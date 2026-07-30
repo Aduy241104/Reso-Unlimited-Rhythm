@@ -177,6 +177,74 @@ const buildCallbackUrl = (baseUrl, params = {}) => {
     return url.toString();
 };
 
+const buildVnpayOrderResponse = ({
+    transaction,
+    subscription,
+    planSnapshot,
+    clientPlatform,
+    reused = false,
+}) => ({
+    paymentUrl: transaction.paymentUrl,
+    paymentExpiresAt: transaction.paymentExpiresAt || null,
+    invoiceNumber: transaction.invoiceNumber,
+    transactionId: transaction._id,
+    subscriptionId: subscription._id,
+    clientPlatform,
+    amount: Number(transaction.amount || 0),
+    tax: Number(transaction.tax || 0),
+    taxRate: PREMIUM_TAX_RATE,
+    totalAmount: Number(transaction.totalAmount || 0),
+    plan: enrichPlanPricing(planSnapshot),
+    reused,
+});
+
+const findReusableVnpayOrder = async ({
+    userId,
+    planId,
+    clientPlatform,
+    now,
+}) => {
+    const transaction = await Transaction.findOne(
+        {
+            userId,
+            planId,
+            paymentGateway: "vnpay",
+            clientPlatform,
+            status: "pending",
+            paymentUrl: { $nin: ["", null] },
+            paymentExpiresAt: { $gt: now },
+        },
+        null,
+        { sort: { createdAt: -1 } }
+    );
+
+    if (!transaction?.subscriptionId) {
+        return null;
+    }
+
+    const subscription = await Subscription.findById(transaction.subscriptionId);
+
+    if (!subscription || subscription.status !== "pending") {
+        return null;
+    }
+
+    const planSnapshot =
+        (await resolvePlanSnapshotFromSource(transaction)) ||
+        (await resolvePlanSnapshotFromSource(subscription));
+
+    if (!planSnapshot) {
+        return null;
+    }
+
+    return buildVnpayOrderResponse({
+        transaction,
+        subscription,
+        planSnapshot,
+        clientPlatform,
+        reused: true,
+    });
+};
+
 const markTransactionFailed = async ({
     transaction,
     subscription,
@@ -417,6 +485,30 @@ const createVnpayOrder = async ({
         throw new AppError("Could not snapshot the selected subscription plan.", 500);
     }
 
+    const createDate = new Date();
+    const reusableOrder = await findReusableVnpayOrder({
+        userId: user._id,
+        planId: plan._id,
+        clientPlatform: normalizedClientPlatform,
+        now: createDate,
+    });
+
+    if (reusableOrder) {
+        return reusableOrder;
+    }
+
+    const expireDate = new Date(
+        createDate.getTime() + vnpayConfig.expiryMinutes * 60 * 1000
+    );
+    const paymentUrl = vnpayService.buildPaymentUrl({
+        amount: totalAmount,
+        invoiceNumber,
+        orderInfo: `Thanh toan goi Premium: ${plan.name}`,
+        ipAddr,
+        createDate,
+        expireDate,
+    });
+
     try {
         subscription = await Subscription.create({
             userId: user._id,
@@ -437,35 +529,20 @@ const createVnpayOrder = async ({
             currency: "VND",
             paymentMethod: "vnpay",
             paymentGateway: "vnpay",
+            clientPlatform: normalizedClientPlatform,
             invoiceNumber,
             status: "pending",
-        });
-
-        const createDate = new Date();
-        const expireDate = new Date(
-            createDate.getTime() + vnpayConfig.expiryMinutes * 60 * 1000
-        );
-        const paymentUrl = vnpayService.buildPaymentUrl({
-            amount: transaction.totalAmount,
-            invoiceNumber,
-            orderInfo: `Thanh toan goi Premium: ${plan.name}`,
-            ipAddr,
-            createDate,
-            expireDate,
-        });
-
-        return {
             paymentUrl,
-            invoiceNumber,
-            transactionId: transaction._id,
-            subscriptionId: subscription._id,
+            paymentExpiresAt: expireDate,
+        });
+
+        return buildVnpayOrderResponse({
+            transaction,
+            subscription,
+            planSnapshot,
             clientPlatform: normalizedClientPlatform,
-            amount: transaction.amount,
-            tax: transaction.tax,
-            taxRate: PREMIUM_TAX_RATE,
-            totalAmount: transaction.totalAmount,
-            plan: enrichPlanPricing(planSnapshot),
-        };
+            reused: false,
+        });
     } catch (error) {
         if (transaction?.status === "pending") {
             await Transaction.findByIdAndUpdate(transaction._id, {
@@ -621,8 +698,18 @@ const cancelTimedOutPendingTransactions = async () => {
 
     const timedOutTransactions = await Transaction.find({
         status: "pending",
-        createdAt: { $lte: threshold },
         paymentGateway: "vnpay",
+        $or: [
+            { paymentExpiresAt: { $lte: now } },
+            {
+                paymentExpiresAt: { $exists: false },
+                createdAt: { $lte: threshold },
+            },
+            {
+                paymentExpiresAt: null,
+                createdAt: { $lte: threshold },
+            },
+        ],
     }).select("_id subscriptionId");
 
     if (timedOutTransactions.length === 0) {

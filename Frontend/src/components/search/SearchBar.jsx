@@ -12,6 +12,7 @@ import {
   searchAll,
 } from "../../services/searchService";
 import SearchSuggestionDropdown from "./SearchSuggestionDropdown";
+import { USER_INPUT_LIMITS } from "../../constants/userInputLimits";
 
 const EMPTY_RESULTS = {
   songs: [],
@@ -266,6 +267,7 @@ const SearchBar = ({
             disabled:opacity-60
           "
           {...inputProps}
+          maxLength={USER_INPUT_LIMITS.search}
         />
 
         {normalizedKeyword ? (

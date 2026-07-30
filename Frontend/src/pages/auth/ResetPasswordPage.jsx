@@ -7,6 +7,7 @@ import systemLogo from "../../assets/images/ChatGPT Image 13_16_10 4 thg 5, 2026
 import AuthCard from "../../components/auth/AuthCard";
 import AuthField from "../../components/auth/AuthField";
 import { routePaths } from "../../routes/routePaths";
+import { USER_INPUT_LIMITS } from "../../constants/userInputLimits";
 import { resetPasswordService } from "../../services/authService";
 import { resetPasswordSchema } from "./passwordRecoverySchema";
 
@@ -143,6 +144,7 @@ const ResetPasswordPage = () => {
               <div className="space-y-3.5">
                 <AuthField
                   label="Mật khẩu mới"
+                  maxLength={USER_INPUT_LIMITS.password}
                   labelClassName="text-sm font-medium normal-case tracking-normal text-slate-700"
                   type={showPassword ? "text" : "password"}
                   placeholder="Nhập mật khẩu mới"
@@ -169,6 +171,7 @@ const ResetPasswordPage = () => {
 
                 <AuthField
                   label="Xác nhận mật khẩu"
+                  maxLength={USER_INPUT_LIMITS.password}
                   labelClassName="text-sm font-medium normal-case tracking-normal text-slate-700"
                   type={showConfirmPassword ? "text" : "password"}
                   placeholder="Nhập lại mật khẩu mới"

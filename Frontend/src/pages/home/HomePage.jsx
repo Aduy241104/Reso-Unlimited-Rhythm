@@ -19,6 +19,8 @@ import {
   mapRecommendationMixesToContentCards,
 } from "../../utils/recommendation";
 
+const SHOW_RECOMMENDATION_MIXES = false;
+
 const HomePage = () => {
   const { isAuthenticated, isLoading: isAuthLoading, user } = useAuth();
   const {
@@ -46,7 +48,8 @@ const HomePage = () => {
     isLoading: isLoadingRecommendationMixes,
     errorMessage: recommendationMixesError,
   } = useRecommendationMixes({
-    enabled: isAuthenticated && !isAuthLoading,
+    enabled:
+      SHOW_RECOMMENDATION_MIXES && isAuthenticated && !isAuthLoading,
   });
   const {
     playbackError,
@@ -56,7 +59,8 @@ const HomePage = () => {
     playTrackItem,
   } = useContentPlayback();
   const recommendationUserName = getRecommendationUserDisplayName(user);
-  const shouldShowRecommendationSection = isAuthenticated && !isAuthLoading;
+  const shouldShowRecommendationSection =
+    SHOW_RECOMMENDATION_MIXES && isAuthenticated && !isAuthLoading;
   const isPageLoading =
     isAuthLoading ||
     isLoadingAlbums ||

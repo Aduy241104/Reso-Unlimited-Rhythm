@@ -1,4 +1,4 @@
-import { CirclePlus, Play } from "lucide-react";
+import { Play } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import LoadingState from "../../components/common/LoadingState";
@@ -24,12 +24,6 @@ import {
   formatTrackDuration,
 } from "../../utils/albumDetail";
 import { getApiErrorMessage } from "../../utils/apiError";
-
-const secondaryActionClassName = `
-  inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border border-black/8 bg-white/80 px-4
-  text-sm font-medium text-[#18181b] transition hover:bg-white sm:w-auto
-  dark:border-white/10 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/[0.12]
-`;
 
 const formatListenCount = (value) => {
   const listenCount = Number(value);
@@ -253,10 +247,6 @@ const TrackDetailPage = () => {
     });
   };
 
-  const handleAddToLibrary = () => {
-    console.log("Add track to library:", track?.title);
-  };
-
   const handleReportTrack = () => {
     if (!track?.id) {
       return;
@@ -358,11 +348,6 @@ const TrackDetailPage = () => {
             "
           >
             <Play className="h-6 w-6 fill-current" />
-          </button>
-
-          <button type="button" onClick={ handleAddToLibrary } className={ secondaryActionClassName }>
-            <CirclePlus className="h-4.5 w-4.5" />
-            Thêm vào thư viện
           </button>
 
           <TrackTwoLevelMenu

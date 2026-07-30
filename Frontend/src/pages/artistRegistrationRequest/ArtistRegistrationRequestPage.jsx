@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { routePaths } from "../../routes/routePaths";
+import { USER_INPUT_LIMITS } from "../../constants/userInputLimits";
 import {
   getApiErrorDetailsText,
   getApiErrorFullMessage,
@@ -302,6 +303,7 @@ const UrlListEditor = ({
     <div className="flex flex-col gap-3 sm:flex-row">
       <TextInput
         type="url"
+        maxLength={USER_INPUT_LIMITS.url}
         value={inputValue}
         onChange={(event) => onInputChange(event.target.value)}
         placeholder={placeholder}
@@ -1191,6 +1193,7 @@ const ArtistRegistrationRequestPage = () => {
                       <FieldLabel required>Tên nghệ sĩ (Stage name)</FieldLabel>
                       <TextInput
                         name="stageName"
+                        maxLength={USER_INPUT_LIMITS.stageName}
                         value={formData.stageName}
                         onChange={handleChange}
                         placeholder="Tên bạn muốn hiển thị trên nền tảng"
@@ -1203,6 +1206,7 @@ const ArtistRegistrationRequestPage = () => {
                       <FieldLabel>Tiểu sử</FieldLabel>
                       <TextArea
                         name="bio"
+                        maxLength={USER_INPUT_LIMITS.bio}
                         value={formData.bio}
                         onChange={handleChange}
                         rows={3}
@@ -1232,6 +1236,7 @@ const ArtistRegistrationRequestPage = () => {
                       <FieldLabel required>Họ và tên thật</FieldLabel>
                       <TextInput
                         name="fullName"
+                        maxLength={USER_INPUT_LIMITS.fullName}
                         value={formData.fullName}
                         onChange={handleChange}
                         placeholder="Theo giấy tờ tùy thân"
@@ -1244,6 +1249,7 @@ const ArtistRegistrationRequestPage = () => {
                       <FieldLabel required>Số CCCD/CMND</FieldLabel>
                       <TextInput
                         name="idNumber"
+                        maxLength={USER_INPUT_LIMITS.identityNumber}
                         value={formData.idNumber}
                         onChange={handleChange}
                         placeholder="Nhập số giấy tờ tùy thân"
@@ -1328,6 +1334,7 @@ const ArtistRegistrationRequestPage = () => {
                         <TextInput
                           name={field.key}
                           type="url"
+                          maxLength={USER_INPUT_LIMITS.url}
                           value={formData.socialLinks[field.key]}
                           onChange={handleSocialLinkChange}
                           placeholder={field.placeholder}
@@ -1339,6 +1346,7 @@ const ArtistRegistrationRequestPage = () => {
                       <TextInput
                         name="other"
                         type="url"
+                        maxLength={USER_INPUT_LIMITS.url}
                         value={formData.socialLinks.other}
                         onChange={handleSocialLinkChange}
                         placeholder="Liên kết nghệ sĩ hoặc portfolio khác"
@@ -1393,6 +1401,7 @@ const ArtistRegistrationRequestPage = () => {
                       <FieldLabel>Mô tả thêm về hoạt động âm nhạc</FieldLabel>
                       <TextArea
                         name="portfolioDescription"
+                        maxLength={USER_INPUT_LIMITS.portfolioDescription}
                         value={formData.portfolioDescription}
                         onChange={handleChange}
                         rows={4}

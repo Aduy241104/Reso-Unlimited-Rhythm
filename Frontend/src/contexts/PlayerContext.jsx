@@ -14,7 +14,11 @@ import {
   resolveTrackMediaUrlForQuality,
   recordListenService,
 } from "../services/playerService";
-import { isBlockedTrack } from "../utils/trackStatus";
+import {
+  isBlockedTrack,
+  isHiddenTrack,
+  isPlayableTrack,
+} from "../utils/trackStatus";
 
 const DEFAULT_VOLUME = 0.75;
 const FREE_SKIP_LIMIT = 6;
@@ -240,6 +244,7 @@ const normalizeQueueTrack = (item, options = {}) => {
       track?.listenSource || options.listenSource || options.collectionType
     ),
     isBlocked: isBlockedTrack(item),
+    isHidden: isHiddenTrack(item),
     playback: track?.playback || null,
     raw: track?.raw || track,
   };
@@ -258,7 +263,7 @@ const normalizeQueue = (tracks, collection = null) =>
         queueSource: CONTEXT_QUEUE_SOURCE,
       })
     )
-    .filter((track) => Boolean(track?.id) && !isBlockedTrack(track));
+    .filter((track) => Boolean(track?.id) && isPlayableTrack(track));
 
 const createPersistedQueueTrack = (
   trackId,
@@ -1287,8 +1292,22 @@ export const PlayerProvider = ({ children }) => {
       return;
     }
 
-    if (isBlockedTrack(nextTrack)) {
-      setErrorMessage("This track is blocked and cannot be played.");
+    if (!isPlayableTrack(nextTrack)) {
+      const nextPlayableIndex = workingQueue.findIndex(
+        (queueTrack, queueIndex) =>
+          queueIndex > nextIndex && isPlayableTrack(queueTrack)
+      );
+
+      if (nextPlayableIndex >= 0) {
+        await playTrackByIndexRef.current?.(
+          nextPlayableIndex,
+          incomingQueue,
+          options
+        );
+      } else {
+        setErrorMessage("Không còn bài hát khả dụng để phát trong danh sách này.");
+      }
+
       return;
     }
 
@@ -1519,7 +1538,7 @@ export const PlayerProvider = ({ children }) => {
   const addTrackToQueue = (track, options = {}) => {
     const baseTrack = track?.track ?? track ?? null;
 
-    if (!baseTrack || !getTrackId(baseTrack) || isBlockedTrack(track)) {
+    if (!baseTrack || !getTrackId(baseTrack) || !isPlayableTrack(track)) {
       return;
     }
 
@@ -1550,14 +1569,7 @@ export const PlayerProvider = ({ children }) => {
         ? options.queue
         : [track];
 
-    if (isBlockedTrack(track)) {
-      setErrorMessage("This track is blocked and cannot be played.");
-      return;
-    }
-
-    const playableQueue = queueToPlay.filter(
-      (queueItem) => !isBlockedTrack(queueItem)
-    );
+    const playableQueue = queueToPlay.filter(isPlayableTrack);
 
     const normalizedTrack = normalizeQueueTrack(track, {
       image: options.collection?.image,
@@ -1575,18 +1587,30 @@ export const PlayerProvider = ({ children }) => {
       return getTrackId(candidate) === normalizedTrack.id;
     });
 
-    const playableStartIndex = playableQueue.findIndex((queueItem) => {
-      const candidate = queueItem?.track ?? queueItem;
-      return getTrackId(candidate) === normalizedTrack.id;
-    });
+    const requestedQueueIndex =
+      explicitStartIndex >= 0 && explicitStartIndex < queueToPlay.length
+        ? explicitStartIndex
+        : Math.max(fallbackStartIndex, 0);
+    const requestedTrackIsPlayable =
+      isPlayableTrack(track) && isPlayableTrack(queueToPlay[requestedQueueIndex]);
+    const playbackSourceIndex = requestedTrackIsPlayable
+      ? requestedQueueIndex
+      : queueToPlay.findIndex(
+          (queueItem, queueIndex) =>
+            queueIndex > requestedQueueIndex && isPlayableTrack(queueItem)
+        );
+
+    if (playbackSourceIndex < 0) {
+      setErrorMessage("Không còn bài hát khả dụng để phát trong danh sách này.");
+      return;
+    }
+
+    const playableStartIndex = queueToPlay
+      .slice(0, playbackSourceIndex)
+      .filter(isPlayableTrack).length;
 
     await playCollection(playableQueue, {
-      startIndex:
-        playableStartIndex >= 0
-          ? playableStartIndex
-          : explicitStartIndex >= 0
-          ? explicitStartIndex
-          : Math.max(fallbackStartIndex, 0),
+      startIndex: playableStartIndex,
       collection: options.collection || null,
     });
   };

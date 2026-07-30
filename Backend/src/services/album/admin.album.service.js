@@ -407,8 +407,6 @@ const  updateAlbumStatusForAdmin = async (
             : await Track.find({ _id: { $in: albumTrackIds } }).select([
                 "_id",
                 "activeStatus",
-                "hiddenReason",
-                "hiddenAt",
                 "blockedByAlbumId",
             ].join(" "));
 
@@ -445,12 +443,6 @@ const  updateAlbumStatusForAdmin = async (
                             hiddenReason: "",
                             hiddenAt: null,
                             blockedByAlbumId: album._id,
-                            previousActiveStatusBeforeAlbumBlock:
-                                track.activeStatus || "active",
-                            previousHiddenReasonBeforeAlbumBlock:
-                                track.hiddenReason || "",
-                            previousHiddenAtBeforeAlbumBlock:
-                                track.hiddenAt || null,
                         },
                     },
                 },
@@ -482,41 +474,22 @@ const  updateAlbumStatusForAdmin = async (
         const tracks = await Track.find({
             album_albumId: album._id,
             blockedByAlbumId: album._id,
-        }).select([
-            "_id",
-            "previousActiveStatusBeforeAlbumBlock",
-            "previousHiddenReasonBeforeAlbumBlock",
-            "previousHiddenAtBeforeAlbumBlock",
-        ].join(" "));
+        }).select("_id");
 
-        const operations = tracks.map((track) => {
-            const restoredTrackStatus =
-                track.previousActiveStatusBeforeAlbumBlock || "active";
-
-            return {
-                updateOne: {
-                    filter: { _id: track._id },
-                    update: {
-                        $set: {
-                            activeStatus: restoredTrackStatus,
-                            blockedReason: "",
-                            hiddenReason:
-                                restoredTrackStatus === "hidden"
-                                    ? track.previousHiddenReasonBeforeAlbumBlock || ""
-                                    : "",
-                            hiddenAt:
-                                restoredTrackStatus === "hidden"
-                                    ? track.previousHiddenAtBeforeAlbumBlock || new Date()
-                                    : null,
-                            blockedByAlbumId: null,
-                            previousActiveStatusBeforeAlbumBlock: null,
-                            previousHiddenReasonBeforeAlbumBlock: "",
-                            previousHiddenAtBeforeAlbumBlock: null,
-                        },
+        const operations = tracks.map((track) => ({
+            updateOne: {
+                filter: { _id: track._id },
+                update: {
+                    $set: {
+                        activeStatus: "active",
+                        blockedReason: "",
+                        hiddenReason: "",
+                        hiddenAt: null,
+                        blockedByAlbumId: null,
                     },
                 },
-            };
-        });
+            },
+        }));
 
         if (operations.length > 0) {
             await Track.bulkWrite(operations);
