@@ -273,23 +273,6 @@ const SubscriptionPlanDetailPage = () => {
               </div>
             </div>
 
-            <div>
-              <h3 className="mb-3 text-sm font-semibold text-slate-700">Tính năng bao gồm</h3>
-              <div className="flex flex-wrap gap-2">
-                {plan.features?.map((feature) => (
-                  <span
-                    key={feature}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-violet-100 bg-violet-50 px-3 py-1.5 text-sm font-medium text-violet-700"
-                  >
-                    <Check size={14} />
-                    {PLAN_FEATURES[feature] || feature}
-                  </span>
-                ))}
-                {!plan.features || plan.features.length === 0 ? (
-                  <span className="text-sm italic text-slate-400">Không có tính năng</span>
-                ) : null}
-              </div>
-            </div>
           </div>
         </div>
 

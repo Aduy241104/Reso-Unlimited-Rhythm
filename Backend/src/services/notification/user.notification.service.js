@@ -95,7 +95,7 @@ const buildNotificationFilter = (userId, userRole, query = {}, followedArtistIds
         $or: [
             { userId, isDeleted: false },
             { isGlobal: true },
-            { targetRoles: userRole },
+            { receiverType: "group", targetRoles: userRole },
             { receiverType: "followers", artistId: { $in: followedArtistIds } },
         ],
     };
@@ -113,14 +113,14 @@ const buildNotificationFilter = (userId, userRole, query = {}, followedArtistIds
             filter.$or = [
                 { userId, isRead: true, isDeleted: false },
                 { isGlobal: true, readBy: userId },
-                { targetRoles: userRole, readBy: userId },
+                { receiverType: "group", targetRoles: userRole, readBy: userId },
                 { receiverType: "followers", artistId: { $in: followedArtistIds }, readBy: userId }
             ];
         } else {
             filter.$or = [
                 { userId, isRead: false, isDeleted: false },
                 { isGlobal: true, readBy: { $ne: userId } },
-                { targetRoles: userRole, readBy: { $ne: userId } },
+                { receiverType: "group", targetRoles: userRole, readBy: { $ne: userId } },
                 { receiverType: "followers", artistId: { $in: followedArtistIds }, readBy: { $ne: userId } }
             ];
         }

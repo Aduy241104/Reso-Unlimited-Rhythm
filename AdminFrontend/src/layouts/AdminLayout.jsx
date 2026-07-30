@@ -1,4 +1,4 @@
-﻿import { Outlet } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 import {
   Banknote,
   Bell,
@@ -11,6 +11,7 @@ import {
   Mic2,
   Music2,
   ReceiptText,
+  ShieldAlert,
   Tags,
   UserCheck,
   Users,
@@ -98,6 +99,12 @@ const navigationItems = [
     to: routePaths.reports,
     label: "Báo cáo",
     icon: Flag,
+    end: false,
+  },
+  {
+    to: routePaths.artistViolations,
+    label: "Vi phạm nghệ sĩ",
+    icon: ShieldAlert,
     end: false,
   },
   {

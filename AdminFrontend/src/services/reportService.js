@@ -1,6 +1,6 @@
 import axiosClient from "../axios/axiosClient";
 
-export const getReportsService = async (filters = {}) => {
+export const getGroupedReportsService = async (filters = {}) => {
     const params = {};
     if (filters.search) params.q = filters.search;
     if (filters.status) params.status = filters.status;
@@ -8,11 +8,28 @@ export const getReportsService = async (filters = {}) => {
     if (filters.page) params.page = filters.page;
     if (filters.limit) params.limit = filters.limit;
 
-    const res = await axiosClient.get("/api/admin/reports", { params });
+    const res = await axiosClient.get("/api/admin/reports/grouped", { params });
     return {
-        reports: res.data?.data?.reports ?? [],
+        groups: res.data?.data?.groups ?? [],
         meta: res.data?.meta ?? {},
     };
+};
+
+export const getGroupedReportDetailService = async (targetType, targetId) => {
+    const res = await axiosClient.get(`/api/admin/reports/grouped/${targetType}/${targetId}`);
+    return res.data?.data?.detail ?? null;
+};
+
+export const resolveGroupedReportService = async (targetType, targetId, data) => {
+    const res = await axiosClient.post(
+        `/api/admin/reports/grouped/${targetType}/${targetId}/resolve`,
+        data
+    );
+    return res.data?.data?.result ?? res.data;
+};
+
+export const getReportsService = async (filters = {}) => {
+    return getGroupedReportsService(filters);
 };
 
 export const getReportDetailService = async (id) => {
@@ -26,6 +43,9 @@ export const updateReportStatusService = async (id, data) => {
 };
 
 export default {
+    getGroupedReportsService,
+    getGroupedReportDetailService,
+    resolveGroupedReportService,
     getReportsService,
     getReportDetailService,
     updateReportStatusService,

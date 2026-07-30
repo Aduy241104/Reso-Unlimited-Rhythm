@@ -11,9 +11,10 @@ const ReportSchema = new Schema(
         description: { type: String, default: "" },
         images: [{ type: String }],
         status: { type: String, enum: ["pending", "reviewing", "resolved", "rejected"], default: "pending", index: true },
+        isValidReason: { type: Boolean, default: null },
         handledBy: { type: Schema.Types.ObjectId, ref: "User" },
         handledAt: { type: Date },
-        resolution: { type: String, enum: ["remove_content", "ignore", "warning", ""], default: "" },
+        resolution: { type: String, enum: ["remove_content", "hide_content", "block_artist", "ignore", "warning", "reject", ""], default: "" },
         resolutionNote: { type: String, default: "" },
     },
     { timestamps: true }

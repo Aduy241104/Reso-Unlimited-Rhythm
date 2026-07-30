@@ -281,19 +281,18 @@ const SubscriptionPlansPage = () => {
           ) : null}
 
           <div className="overflow-hidden rounded-2xl bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
-            <div className="grid min-w-[1200px] grid-cols-[minmax(0,1.5fr)_120px_100px_140px_minmax(0,2fr)_180px_180px_140px] gap-4 border-b border-slate-200 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+            <div className="grid min-w-[900px] grid-cols-[minmax(0,2fr)_140px_120px_140px_160px_160px_140px] gap-4 border-b border-slate-200 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
               <span>Tên gói</span>
               <span>Giá</span>
               <span>Thời hạn</span>
               <span>Trạng thái</span>
-              <span>Tính năng</span>
               <span>Ngày tạo</span>
               <span>Cập nhật</span>
               <span className="pr-4 text-right">Hành động</span>
             </div>
 
             <div className="overflow-x-auto">
-              <div className="min-w-[1200px] divide-y divide-slate-100">
+              <div className="min-w-[900px] divide-y divide-slate-100">
                 {isLoading ? (
                   <div className="p-12 text-center text-xs font-bold uppercase tracking-wider text-slate-400">
                     Đang tải danh sách gói đăng ký...
@@ -316,7 +315,7 @@ const SubscriptionPlansPage = () => {
                           className="group grid items-center gap-4 px-6 py-4 transition hover:bg-slate-50"
                           style={{
                             gridTemplateColumns:
-                              "minmax(0,1.5fr) 120px 100px 140px minmax(0,2fr) 180px 180px 140px",
+                              "minmax(0,2fr) 140px 120px 140px 160px 160px 140px",
                           }}
                         >
                           <div>
@@ -343,22 +342,6 @@ const SubscriptionPlansPage = () => {
                               ></span>
                               {statusConfig.label}
                             </span>
-                          </div>
-
-                          <div className="flex flex-wrap gap-1">
-                            {plan.features?.slice(0, 4).map((feature) => (
-                              <span
-                                key={feature}
-                                className="inline-flex items-center rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-medium text-violet-600"
-                              >
-                                {PLAN_FEATURES[feature] || feature}
-                              </span>
-                            ))}
-                            {plan.features?.length > 4 ? (
-                              <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
-                                +{plan.features.length - 4} khác
-                              </span>
-                            ) : null}
                           </div>
 
                           <div className="text-xs text-slate-400">{formatDate(plan.createdAt)}</div>

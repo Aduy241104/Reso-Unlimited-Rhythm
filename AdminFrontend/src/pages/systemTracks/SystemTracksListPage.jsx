@@ -14,15 +14,33 @@ const formatDuration = (seconds) => {
 
 const getStatusBadge = (status, type) => {
     if (type === "approval") {
-        return status === "approved" ? (
-            <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full px-2.5 py-0.5 text-xs font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Đã duyệt
-            </span>
-        ) : (
-            <span className="inline-flex items-center gap-1.5 bg-rose-50 text-rose-600 border border-rose-100 rounded-full px-2.5 py-0.5 text-xs font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Đã từ chối
-            </span>
-        );
+        switch (status) {
+            case "approved":
+                return (
+                    <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full px-2.5 py-0.5 text-xs font-medium">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Đã duyệt
+                    </span>
+                );
+            case "pending":
+                return (
+                    <span className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-600 border border-amber-100 rounded-full px-2.5 py-0.5 text-xs font-medium">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Chờ duyệt
+                    </span>
+                );
+            case "rejected":
+                return (
+                    <span className="inline-flex items-center gap-1.5 bg-rose-50 text-rose-600 border border-rose-100 rounded-full px-2.5 py-0.5 text-xs font-medium">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Đã từ chối
+                    </span>
+                );
+            case "draft":
+            default:
+                return (
+                    <span className="inline-flex items-center gap-1.5 bg-slate-50 text-slate-500 border border-slate-200 rounded-full px-2.5 py-0.5 text-xs font-medium">
+                        Bản nháp
+                    </span>
+                );
+        }
     }
 
     switch (status) {
@@ -47,10 +65,6 @@ const getStatusBadge = (status, type) => {
     }
 };
 
-const getAccentClasses = (approvalStatus) => {
-    return approvalStatus === "approved" ? "bg-emerald-500" : "bg-rose-500";
-};
-
 const HeaderStat = ({ label, value }) => (
     <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4">
         <p className="text-xs font-medium text-slate-500">{label}</p>
@@ -64,23 +78,19 @@ const SystemTracksListPage = () => {
     const [filterApproval, setFilterApproval] = useState("");
     const [filterStatus, setFilterStatus] = useState("");
     
-    const [query, setQuery] = useState({ q: "", approvalStatus: "", activeStatus: "", page: 1, limit: 10 });
+    const [query, setQuery] = useState({ scope: "catalog", q: "", approvalStatus: "", activeStatus: "", page: 1, limit: 10 });
     const [pagination, setPagination] = useState(null);
-    const [isLoading, setIsLoading] = useState(false);
 
     const loadTracks = async (params = query) => {
-        setIsLoading(true);
         try {
             const cleanParams = Object.fromEntries(
-                Object.entries(params).filter(([_, v]) => v !== "")
+                Object.entries(params).filter(([, value]) => value !== "")
             );
             const result = await searchAdminTracksService(cleanParams);
             setTracks(result.tracks ?? []);
             setPagination(result.pagination ?? null);
         } catch (error) {
             console.error(error);
-        } finally {
-            setIsLoading(false);
         }
     };
 
@@ -101,7 +111,7 @@ const SystemTracksListPage = () => {
         setSearchTerm("");
         setFilterApproval("");
         setFilterStatus("");
-        setQuery({ q: "", approvalStatus: "", activeStatus: "", page: 1, limit: 10 });
+        setQuery({ scope: "catalog", q: "", approvalStatus: "", activeStatus: "", page: 1, limit: 10 });
     };
 
     const handlePageChange = ({ selected }) => {
@@ -110,7 +120,9 @@ const SystemTracksListPage = () => {
 
     const total = pagination?.total ?? 0;
     const visibleCount = tracks.length;
-    const pageLabel = pagination ? `${pagination.page}/${pagination.totalPages}` : "1/1";
+    const totalPages = pagination?.totalPages ?? 0;
+    const currentPage = total === 0 ? 0 : (pagination?.page ?? 1);
+    const pageLabel = `${currentPage}/${totalPages}`;
 
     return (
         <section className="space-y-6">
@@ -213,12 +225,12 @@ const SystemTracksListPage = () => {
             {pagination && (
                 <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-sm text-slate-500 font-medium">
-                        Trang {pagination.page} / {pagination.totalPages}
+                        Trang {currentPage} / {totalPages}
                         <span className="mx-2 text-slate-300">|</span>
                         Tổng cộng: {pagination.total} bản ghi
                     </p>
 
-                    <ReactPaginate
+                    {totalPages > 1 && <ReactPaginate
                         breakLabel="..."
                         nextLabel=">"
                         previousLabel="<"
@@ -226,7 +238,7 @@ const SystemTracksListPage = () => {
                         onPageChange={handlePageChange}
                         pageRangeDisplayed={3}
                         marginPagesDisplayed={1}
-                        pageCount={pagination.totalPages}
+                        pageCount={totalPages}
                         renderOnZeroPageCount={null}
                         containerClassName="flex flex-wrap items-center gap-2"
                         pageLinkClassName="flex h-10 min-w-10 items-center justify-center rounded-xl bg-slate-100 px-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-200"
@@ -235,7 +247,7 @@ const SystemTracksListPage = () => {
                         breakLinkClassName="flex h-10 min-w-10 items-center justify-center rounded-xl bg-slate-100 px-3 text-sm font-semibold text-slate-500"
                         activeLinkClassName="bg-blue-600 text-white hover:bg-blue-600"
                         disabledLinkClassName="cursor-not-allowed opacity-40 hover:bg-slate-100"
-                    />
+                    />}
                 </div>
             )}
         </section>
