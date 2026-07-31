@@ -217,6 +217,7 @@ const TrackDetailPage = () => {
     const isHidden = track?.activeStatus === "hidden";
     const isBlocked = track?.activeStatus === "blocked";
     const isPendingUpdateReview = track?.reviewSource === "pending_update";
+    const artistId = track?.artist?.id || track?.artist?._id;
 
     if (isLoading) {
         return <div className="p-8 text-center text-xs font-bold font-mono text-slate-500 uppercase tracking-wider">Đang tải chi tiết bài hát...</div>;
@@ -240,8 +241,8 @@ const TrackDetailPage = () => {
                 icon={Disc3}
                 action={
                     <div className="flex flex-wrap items-center justify-end gap-2">
-                        {track.artist?.id ? (
-                            <Link to={routePaths.artistDetail(track.artist.id)} className="inline-flex h-10 items-center gap-2 border border-sky-200 bg-sky-50 px-4 text-sm font-semibold text-sky-700 transition hover:bg-sky-100">
+                        {artistId ? (
+                            <Link to={routePaths.artistDetail(artistId)} className="inline-flex h-10 items-center gap-2 border border-sky-200 bg-sky-50 px-4 text-sm font-semibold text-sky-700 transition hover:bg-sky-100">
                                 <UserRound className="h-4 w-4" /> Chi tiết nghệ sĩ
                             </Link>
                         ) : null}
@@ -267,7 +268,19 @@ const TrackDetailPage = () => {
                     <div className="space-y-0.5">
                         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">Quản lý bài hát</p>
                         <h1 className="mt-1.5 text-2xl md:text-3xl font-semibold tracking-tight text-slate-950">{track.title}</h1>
-                        <p className="mt-2 text-sm text-slate-600">{track.artist?.name || "Nghệ sĩ không xác định"}{track.artist?.email ? ` • ${track.artist.email}` : ""}</p>
+                        <p className="mt-2 text-sm text-slate-600">
+                            {artistId ? (
+                                <Link
+                                    to={routePaths.artistDetail(artistId)}
+                                    className="font-semibold text-sky-700 transition hover:text-sky-900 hover:underline"
+                                >
+                                    {track.artist?.name || "Nghệ sĩ không xác định"}
+                                </Link>
+                            ) : (
+                                track.artist?.name || "Nghệ sĩ không xác định"
+                            )}
+                            {track.artist?.email ? ` • ${track.artist.email}` : ""}
+                        </p>
                     </div>
                 </div>
                 <div className="flex flex-wrap gap-2"><StatusBadge config={getTrackApprovalStatusBadge(reviewStatus)} /><StatusBadge config={getTrackActiveStatusBadge(track.activeStatus)} /></div>
@@ -541,7 +554,19 @@ const TrackDetailPage = () => {
                         {/* Thẻ bọc tóm tắt bài nhạc */}
                         <div className="bg-slate-50 border border-slate-100 p-4 text-xs font-semibold rounded-xl text-slate-600">
                             Tác phẩm: <span className="text-slate-900 font-bold">{track.title}</span>
-                            <span className="block text-[10px] text-slate-400 mt-1 uppercase">Nghệ sĩ: {track.artist?.name || "Nghệ sĩ không xác định"}</span>
+                            <span className="block text-[10px] text-slate-400 mt-1 uppercase">
+                                Nghệ sĩ:{" "}
+                                {artistId ? (
+                                    <Link
+                                        to={routePaths.artistDetail(artistId)}
+                                        className="font-bold text-sky-700 hover:underline"
+                                    >
+                                        {track.artist?.name || "Nghệ sĩ không xác định"}
+                                    </Link>
+                                ) : (
+                                    track.artist?.name || "Nghệ sĩ không xác định"
+                                )}
+                            </span>
                             {isPendingUpdateReview ? (
                                 <span className="mt-2 block text-sky-700">
                                     Xác nhận này áp dụng cho {track.pendingUpdate?.changedFields?.length || 0} trường thay đổi; bản live chỉ được cập nhật khi admin duyệt.
