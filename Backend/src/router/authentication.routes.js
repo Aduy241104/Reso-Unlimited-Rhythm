@@ -1,7 +1,9 @@
 import express from "express";
 import authenticationController from "../controllers/authentication.controller.js";
+import mobileAuthenticationController from "../controllers/mobile.authentication.controller.js";
 import authenticate from "../middlewares/Authentication/authentication.middleware.js";
 import authenticationValidation from "../middlewares/Authentication/authentication.validation.js";
+import mobileAuthenticationValidation from "../middlewares/Authentication/mobile.authentication.validation.js";
 import validate from "../middlewares/validate.middleware.js";
 
 const router = express.Router();
@@ -34,6 +36,12 @@ router.post(
     "/forgot-password",
     validate(authenticationValidation.forgotPasswordSchema),
     authenticationController.forgotPassword
+);
+
+router.post(
+    "/mobile/forgot-password",
+    validate(mobileAuthenticationValidation.forgotPasswordSchema),
+    mobileAuthenticationController.forgotPassword
 );
 
 router.post(
