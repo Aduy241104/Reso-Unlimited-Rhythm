@@ -111,11 +111,16 @@ const createInitialFormState = () => ({
 const normalizeText = (value) =>
   typeof value === "string" ? value.trim() : "";
 
-const FieldLabel = ({ children, required = false }) => (
-  <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-white/60">
-    {children}
-    {required ? <span className="ml-1 text-rose-300">*</span> : null}
-  </label>
+const FieldLabel = ({ children, required = false, countText }) => (
+  <div className="mb-2 flex items-center justify-between">
+    <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-white/60">
+      {children}
+      {required ? <span className="ml-1 text-rose-300">*</span> : null}
+    </label>
+    {countText ? (
+      <span className="text-[11px] font-medium text-white/40">{countText}</span>
+    ) : null}
+  </div>
 );
 
 const FieldHint = ({ children }) =>
@@ -1190,7 +1195,12 @@ const ArtistRegistrationRequestPage = () => {
                 >
                   <div className="grid gap-5 lg:grid-cols-2">
                     <div>
-                      <FieldLabel required>Tên nghệ sĩ (Stage name)</FieldLabel>
+                      <FieldLabel
+                        required
+                        countText={`${formData.stageName.length}/${USER_INPUT_LIMITS.stageName} ký tự`}
+                      >
+                        Tên nghệ sĩ (Stage name)
+                      </FieldLabel>
                       <TextInput
                         name="stageName"
                         maxLength={USER_INPUT_LIMITS.stageName}
@@ -1203,14 +1213,18 @@ const ArtistRegistrationRequestPage = () => {
                     </div>
 
                     <div className="lg:col-span-2">
-                      <FieldLabel>Tiểu sử</FieldLabel>
+                      <FieldLabel
+                        countText={`${formData.bio.length}/${USER_INPUT_LIMITS.bio} ký tự`}
+                      >
+                        Tiểu sử
+                      </FieldLabel>
                       <TextArea
                         name="bio"
                         maxLength={USER_INPUT_LIMITS.bio}
                         value={formData.bio}
                         onChange={handleChange}
                         rows={3}
-                        placeholder="Mô tả ngắn về bạn với tư cách là nghệ sĩ."
+                        placeholder="Mô tả ngắn về bạn với tư cách là nghệ sĩ (tối đa 1000 ký tự)."
                       />
                     </div>
 
@@ -1233,7 +1247,12 @@ const ArtistRegistrationRequestPage = () => {
                 >
                   <div className="grid gap-5 lg:grid-cols-2">
                     <div>
-                      <FieldLabel required>Họ và tên thật</FieldLabel>
+                      <FieldLabel
+                        required
+                        countText={`${formData.fullName.length}/${USER_INPUT_LIMITS.fullName} ký tự`}
+                      >
+                        Họ và tên thật
+                      </FieldLabel>
                       <TextInput
                         name="fullName"
                         maxLength={USER_INPUT_LIMITS.fullName}
@@ -1246,7 +1265,12 @@ const ArtistRegistrationRequestPage = () => {
                     </div>
 
                     <div>
-                      <FieldLabel required>Số CCCD/CMND</FieldLabel>
+                      <FieldLabel
+                        required
+                        countText={`${formData.idNumber.length}/${USER_INPUT_LIMITS.identityNumber} ký tự`}
+                      >
+                        Số CCCD/CMND
+                      </FieldLabel>
                       <TextInput
                         name="idNumber"
                         maxLength={USER_INPUT_LIMITS.identityNumber}
@@ -1398,14 +1422,18 @@ const ArtistRegistrationRequestPage = () => {
                     />
 
                     <div>
-                      <FieldLabel>Mô tả thêm về hoạt động âm nhạc</FieldLabel>
+                      <FieldLabel
+                        countText={`${formData.portfolioDescription.length}/${USER_INPUT_LIMITS.portfolioDescription} ký tự`}
+                      >
+                        Mô tả thêm về hoạt động âm nhạc
+                      </FieldLabel>
                       <TextArea
                         name="portfolioDescription"
                         maxLength={USER_INPUT_LIMITS.portfolioDescription}
                         value={formData.portfolioDescription}
                         onChange={handleChange}
                         rows={4}
-                        placeholder="Chia sẻ thêm về dự án, thành tích, cộng tác hoặc kinh nghiệm biểu diễn của bạn."
+                        placeholder="Chia sẻ thêm về dự án, thành tích, cộng tác hoặc kinh nghiệm biểu diễn của bạn (tối đa 1000 ký tự)."
                       />
                     </div>
                   </div>
