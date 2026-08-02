@@ -9,12 +9,15 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { createReportService } from "../../services/report/user.report.service";
+import {
+  createReportService,
+  translateReportError,
+} from "../../services/report/user.report.service";
 import { USER_INPUT_LIMITS } from "../../constants/userInputLimits";
-import { getApiErrorFullMessage } from "../../utils/apiError";
 import ReportReasonSelect from "./ReportReasonSelect";
 
 const ANIMATION_DURATION = 300;
+const MAX_REPORT_IMAGES = 5;
 
 const REPORT_REASON_GROUPS = [
   {
@@ -147,10 +150,35 @@ const CreateReportModal = ({
     setSubmitError("");
 
     if (name === "images") {
+      const selectedFiles = Array.from(files || []);
+      const remainingSlots = Math.max(0, MAX_REPORT_IMAGES - formData.images.length);
+
+      if (selectedFiles.length === 0) {
+        event.target.value = "";
+        return;
+      }
+
+      if (remainingSlots === 0) {
+        setErrors((prev) => ({
+          ...prev,
+          images: `Bạn chỉ có thể tải lên tối đa ${MAX_REPORT_IMAGES} ảnh minh chứng.`,
+        }));
+        event.target.value = "";
+        return;
+      }
+
+      if (selectedFiles.length > remainingSlots) {
+        setErrors((prev) => ({
+          ...prev,
+          images: `Bạn chỉ có thể tải lên tối đa ${MAX_REPORT_IMAGES} ảnh minh chứng.`,
+        }));
+      }
+
       setFormData((prev) => ({
         ...prev,
-        images: Array.from(files || []).slice(0, 5),
+        images: [...prev.images, ...selectedFiles].slice(0, MAX_REPORT_IMAGES),
       }));
+      event.target.value = "";
       return;
     }
 
@@ -168,6 +196,7 @@ const CreateReportModal = ({
       ...prev,
       images: prev.images.filter((_, i) => i !== index),
     }));
+    setErrors((prev) => ({ ...prev, images: undefined }));
   };
 
   const validateForm = () => {
@@ -199,7 +228,7 @@ const CreateReportModal = ({
       onSuccess?.();
     } catch (error) {
       setSubmitError(
-        getApiErrorFullMessage(error, "Không thể gửi báo cáo vào lúc này."),
+        translateReportError(error),
       );
     } finally {
       setIsSubmitting(false);
@@ -328,7 +357,7 @@ const CreateReportModal = ({
               <label className="flex min-h-[56px] cursor-pointer items-center justify-between gap-3 rounded-xl border border-dashed border-white/15 bg-white/[0.03] px-4 py-3 transition hover:border-[#f5b66f]/40 hover:bg-white/[0.05]">
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-white/85">
-                    Tải lên tối đa 5 ảnh minh chứng
+                    Tải lên tối đa {MAX_REPORT_IMAGES} ảnh minh chứng
                   </p>
                   <p className="mt-0.5 text-xs text-white/45">
                     PNG, JPG hoặc WEBP
@@ -347,6 +376,9 @@ const CreateReportModal = ({
                   disabled={isSubmitting}
                 />
               </label>
+              {errors.images && (
+                <p className="mt-2 text-xs text-rose-300">{errors.images}</p>
+              )}
               {imageNames.length > 0 && (
                 <div className="mt-2 space-y-1.5">
                   {imageNames.map((name, index) => (

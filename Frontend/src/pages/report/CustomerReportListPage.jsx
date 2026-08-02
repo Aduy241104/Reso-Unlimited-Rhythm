@@ -40,6 +40,11 @@ const TARGET_TYPE_CONFIG = {
     artist: { label: "Nghệ sĩ", icon: Mic2, colorClass: "text-pink-400" },
 };
 
+const getReportTargetTitle = (report) =>
+    report?.targetInfo?.title ||
+    report?.targetInfo?.name ||
+    "Nội dung không còn tồn tại hoặc đã bị ẩn";
+
 const STATUS_CONFIG = {
     reviewing: {
         label: "Đang xem xét",
@@ -300,6 +305,10 @@ const CustomerReportListPage = () => {
                                         </div>
                                         <p className="mt-2 text-sm font-medium text-white/90">
                                             {REPORT_REASON_LABELS[report.reason] || report.reason}
+                                        </p>
+                                        <p className="mt-1 text-sm text-white/65">
+                                            {TARGET_TYPE_CONFIG[report.targetType]?.label || "Nội dung"}:{" "}
+                                            <span className="font-medium text-white/88">{getReportTargetTitle(report)}</span>
                                         </p>
                                         {report.description && (
                                             <p className="mt-1 line-clamp-2 text-xs text-white/45">

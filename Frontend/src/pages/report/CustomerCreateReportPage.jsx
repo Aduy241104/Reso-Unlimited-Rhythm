@@ -2,10 +2,12 @@ import { AlertCircle, CheckCircle, ImagePlus, Loader2, Send } from "lucide-react
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import ReportReasonSelect from "../../components/report/ReportReasonSelect";
-import { createReportService } from "../../services/report/user.report.service";
+import {
+  createReportService,
+  translateReportError,
+} from "../../services/report/user.report.service";
 import { USER_INPUT_LIMITS } from "../../constants/userInputLimits";
 import { routePaths } from "../../routes/routePaths";
-import { getApiErrorFullMessage } from "../../utils/apiError";
 
 const REPORT_REASON_GROUPS = [
   {
@@ -42,6 +44,8 @@ const TARGET_TYPE_OPTIONS = [
   { value: "album", label: "Album" },
   { value: "artist", label: "Nghệ sĩ" },
 ];
+
+const MAX_REPORT_IMAGES = 5;
 
 const initialFormState = {
   targetId: "",
@@ -86,10 +90,35 @@ const CustomerCreateReportPage = () => {
     setSubmitError("");
 
     if (name === "images") {
+      const selectedFiles = Array.from(files || []);
+      const remainingSlots = Math.max(0, MAX_REPORT_IMAGES - formData.images.length);
+
+      if (selectedFiles.length === 0) {
+        event.target.value = "";
+        return;
+      }
+
+      if (remainingSlots === 0) {
+        setErrors((previous) => ({
+          ...previous,
+          images: `Bạn chỉ có thể tải lên tối đa ${MAX_REPORT_IMAGES} ảnh minh chứng.`,
+        }));
+        event.target.value = "";
+        return;
+      }
+
+      if (selectedFiles.length > remainingSlots) {
+        setErrors((previous) => ({
+          ...previous,
+          images: `Bạn chỉ có thể tải lên tối đa ${MAX_REPORT_IMAGES} ảnh minh chứng.`,
+        }));
+      }
+
       setFormData((previous) => ({
         ...previous,
-        images: Array.from(files || []).slice(0, 5),
+        images: [...previous.images, ...selectedFiles].slice(0, MAX_REPORT_IMAGES),
       }));
+      event.target.value = "";
       return;
     }
 
@@ -150,7 +179,7 @@ const CustomerCreateReportPage = () => {
       setIsSubmitted(true);
     } catch (error) {
       setSubmitError(
-        getApiErrorFullMessage(error, "Không thể gửi báo cáo vào lúc này."),
+        translateReportError(error),
       );
     } finally {
       setIsSubmitting(false);
@@ -197,7 +226,7 @@ const CustomerCreateReportPage = () => {
       <section className="mx-auto max-w-3xl space-y-6">
         <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.36)] sm:p-8">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#f5b66f]">
-            Customer&apos;s Report Management
+            Trung tâm báo cáo
           </p>
           <h1 className="mt-3 text-2xl font-semibold text-white sm:text-3xl">
             Gửi báo cáo nội dung hoặc vấn đề
@@ -281,7 +310,7 @@ const CustomerCreateReportPage = () => {
             <label className="flex min-h-[58px] cursor-pointer items-center justify-between gap-3 rounded-xl border border-dashed border-white/15 bg-white/[0.03] px-4 py-3 transition hover:border-[#f5b66f]/40 hover:bg-white/[0.05]">
               <div className="min-w-0">
                 <p className="text-sm font-medium text-white/85">
-                  Tải lên tối đa 5 ảnh minh chứng
+                  Tải lên tối đa {MAX_REPORT_IMAGES} ảnh minh chứng
                 </p>
                 <p className="mt-1 text-xs text-white/45">PNG, JPG hoặc WEBP</p>
               </div>
@@ -297,6 +326,9 @@ const CustomerCreateReportPage = () => {
                 onChange={handleChange}
               />
             </label>
+            {errors.images ? (
+              <p className="mt-2 text-xs text-rose-300">{errors.images}</p>
+            ) : null}
             {imageNames.length > 0 ? (
               <div className="mt-3 space-y-2">
                 {imageNames.map((name) => (
