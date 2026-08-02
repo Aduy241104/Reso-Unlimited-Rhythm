@@ -140,6 +140,20 @@ const resolveComingReleaseImage = (releaseItem) => {
   return releaseItem?.avatar || "";
 };
 
+const normalizeComingReleaseSourceType = (release) => {
+  const normalizedSourceType = String(
+    release?.sourceType ||
+      release?.item?.sourceType ||
+      release?.type ||
+      release?.item?.type ||
+      ""
+  )
+    .trim()
+    .toLowerCase();
+
+  return normalizedSourceType === "album" ? "album" : "track";
+};
+
 const normalizeProfile = (payload) => {
   const profile = resolveProfileSource(payload);
 
@@ -316,27 +330,37 @@ const buildPopularTracksFromApi = (tracks = []) =>
 
 const buildComingReleasesFromApi = (comingReleases = []) =>
   comingReleases
-    .map((release, index) => ({
-      id: release?.id || `coming-release-${index}`,
-      trackId:
-        release?.trackId ||
-        release?.item?.trackId ||
-        release?.item?.id ||
-        "",
-      albumId:
-        release?.albumId ||
-        release?.item?.albumId ||
-        release?.item?.id ||
-        "",
-      type: release?.type === "single" ? "Single" : "Album",
-      sourceType: release?.sourceType || release?.type || "release",
-      scheduledAt: release?.scheduledAt || null,
-      status: release?.status || "scheduled",
-      title: release?.item?.title || "Untitled release",
-      image: resolveComingReleaseImage(release?.item),
-      trackCount: release?.item?.trackCount || 0,
-      duration: release?.item?.duration || 0,
-    }))
+    .map((release, index) => {
+      const sourceType = normalizeComingReleaseSourceType(release);
+
+      return {
+        id: release?.id || `coming-release-${index}`,
+        trackId:
+          sourceType === "album"
+            ? ""
+            : release?.trackId ||
+              release?.item?.trackId ||
+              release?.item?._id ||
+              release?.item?.id ||
+              "",
+        albumId:
+          sourceType === "album"
+            ? release?.albumId ||
+              release?.item?.albumId ||
+              release?.item?._id ||
+              release?.item?.id ||
+              ""
+            : release?.albumId || release?.item?.albumId || "",
+        type: sourceType === "album" ? "Album" : "Single",
+        sourceType,
+        scheduledAt: release?.scheduledAt || null,
+        status: release?.status || "scheduled",
+        title: release?.item?.title || "Untitled release",
+        image: resolveComingReleaseImage(release?.item),
+        trackCount: release?.item?.trackCount || 0,
+        duration: release?.item?.duration || 0,
+      };
+    })
     .filter((release) => release.scheduledAt)
     .sort(
       (releaseA, releaseB) =>
