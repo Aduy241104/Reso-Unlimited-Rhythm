@@ -1,6 +1,8 @@
-export const TITLE_MAX_LENGTH = 150;
-export const DESCRIPTION_MAX_LENGTH = 5000;
-export const LYRICS_STATIC_MAX_LENGTH = 20000;
+import { ARTIST_INPUT_LIMITS } from "../constants/artistInputLimits";
+
+export const TITLE_MAX_LENGTH = ARTIST_INPUT_LIMITS.trackTitle;
+export const DESCRIPTION_MAX_LENGTH = ARTIST_INPUT_LIMITS.trackDescription;
+export const LYRICS_STATIC_MAX_LENGTH = ARTIST_INPUT_LIMITS.trackLyrics;
 export const MAX_GENRE_IDS = 5;
 export const MAX_COVER_IMAGES = 3;
 export const MIN_GENRE_IDS_SUBMIT = 1;

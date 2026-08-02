@@ -12,6 +12,7 @@ import {
   ImageIcon,
   AlertTriangle,
 } from "lucide-react";
+import { ARTIST_INPUT_LIMITS } from "../../constants/artistInputLimits";
 import {
   getMyArtistProfileService,
   patchMyArtistProfileMediaService,
@@ -337,14 +338,14 @@ export default function ArtistProfileEditPage() {
               <FieldLabel
                 htmlFor="edit-artist-name"
                 required
-                countText={`${watchName?.length || 0}/100 ký tự`}
+                countText={`${watchName?.length || 0}/${ARTIST_INPUT_LIMITS.profileName} ký tự`}
               >
                 Tên hiển thị nghệ sĩ
               </FieldLabel>
               <input
                 id="edit-artist-name"
                 type="text"
-                maxLength={100}
+                maxLength={ARTIST_INPUT_LIMITS.profileName}
                 disabled={isBlocked}
                 placeholder="Nhập nghệ danh nghệ sĩ..."
                 className={fieldInputClassName}
@@ -361,14 +362,14 @@ export default function ArtistProfileEditPage() {
             <div>
               <FieldLabel
                 htmlFor="edit-artist-bio"
-                countText={`${watchBio?.length || 0}/1000 ký tự`}
+                countText={`${watchBio?.length || 0}/${ARTIST_INPUT_LIMITS.profileBio} ký tự`}
               >
                 Tiểu sử & Câu chuyện âm nhạc
               </FieldLabel>
               <textarea
                 id="edit-artist-bio"
                 rows={4}
-                maxLength={1000}
+                maxLength={ARTIST_INPUT_LIMITS.profileBio}
                 disabled={isBlocked}
                 placeholder="Viết một đoạn giới thiệu ngắn về phong cách âm nhạc, hành trình và câu chuyện của bạn (tối đa 1000 ký tự)..."
                 className={`${fieldInputClassName} resize-y min-h-[110px]`}
@@ -411,7 +412,7 @@ export default function ArtistProfileEditPage() {
                     className="h-full w-full object-cover"
                   />
                 </div>
-                
+
                 <div className="min-w-0 flex-1 space-y-2">
                   <input
                     key={`avatar-${avatarInputKey}`}
@@ -586,7 +587,8 @@ export default function ArtistProfileEditPage() {
               <input
                 id="edit-artist-social-fb"
                 type="url"
-                maxLength={500}
+                inputMode="url"
+                maxLength={ARTIST_INPUT_LIMITS.url}
                 placeholder="https://facebook.com/..."
                 disabled={isBlocked}
                 className={fieldInputClassName}
@@ -604,7 +606,8 @@ export default function ArtistProfileEditPage() {
               <input
                 id="edit-artist-social-ig"
                 type="url"
-                maxLength={500}
+                inputMode="url"
+                maxLength={ARTIST_INPUT_LIMITS.url}
                 placeholder="https://instagram.com/..."
                 disabled={isBlocked}
                 className={fieldInputClassName}
@@ -622,7 +625,8 @@ export default function ArtistProfileEditPage() {
               <input
                 id="edit-artist-social-yt"
                 type="url"
-                maxLength={500}
+                inputMode="url"
+                maxLength={ARTIST_INPUT_LIMITS.url}
                 placeholder="https://youtube.com/..."
                 disabled={isBlocked}
                 className={fieldInputClassName}
@@ -640,7 +644,8 @@ export default function ArtistProfileEditPage() {
               <input
                 id="edit-artist-social-tiktok"
                 type="url"
-                maxLength={500}
+                inputMode="url"
+                maxLength={ARTIST_INPUT_LIMITS.url}
                 placeholder="https://tiktok.com/@..."
                 disabled={isBlocked}
                 className={fieldInputClassName}
@@ -658,7 +663,8 @@ export default function ArtistProfileEditPage() {
               <input
                 id="edit-artist-social-spotify"
                 type="url"
-                maxLength={500}
+                inputMode="url"
+                maxLength={ARTIST_INPUT_LIMITS.url}
                 placeholder="https://open.spotify.com/..."
                 disabled={isBlocked}
                 className={fieldInputClassName}
@@ -676,7 +682,8 @@ export default function ArtistProfileEditPage() {
               <input
                 id="edit-artist-social-soundcloud"
                 type="url"
-                maxLength={500}
+                inputMode="url"
+                maxLength={ARTIST_INPUT_LIMITS.url}
                 placeholder="https://soundcloud.com/..."
                 disabled={isBlocked}
                 className={fieldInputClassName}
@@ -694,7 +701,8 @@ export default function ArtistProfileEditPage() {
               <input
                 id="edit-artist-social-website"
                 type="url"
-                maxLength={500}
+                inputMode="url"
+                maxLength={ARTIST_INPUT_LIMITS.url}
                 placeholder="https://yourwebsite.com"
                 disabled={isBlocked}
                 className={fieldInputClassName}
@@ -712,7 +720,8 @@ export default function ArtistProfileEditPage() {
               <input
                 id="edit-artist-social-twitter"
                 type="url"
-                maxLength={500}
+                inputMode="url"
+                maxLength={ARTIST_INPUT_LIMITS.url}
                 placeholder="https://x.com/..."
                 disabled={isBlocked}
                 className={fieldInputClassName}
@@ -730,7 +739,8 @@ export default function ArtistProfileEditPage() {
               <input
                 id="edit-artist-social-other"
                 type="url"
-                maxLength={500}
+                inputMode="url"
+                maxLength={ARTIST_INPUT_LIMITS.url}
                 placeholder="https://..."
                 disabled={isBlocked}
                 className={fieldInputClassName}

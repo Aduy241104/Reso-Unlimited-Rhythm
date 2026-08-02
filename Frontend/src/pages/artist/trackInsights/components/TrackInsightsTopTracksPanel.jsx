@@ -1,4 +1,5 @@
 import { ArrowRight, LoaderCircle, Trophy } from "lucide-react";
+import { formatTrackDuration } from "../../../../utils/albumDetail";
 import { formatNumber, getTrackImage } from "../helpers";
 
 const formatPercent = (value) => `${formatNumber(value)}%`;
@@ -112,7 +113,7 @@ const TrackInsightsTopTracksPanel = ({
                             {item?.track?.title || "Chưa có tên bài hát"}
                           </p>
                           <div className="mt-1 flex flex-wrap gap-2 text-[12px] text-[#7c7891]">
-                            <span>{formatNumber(item?.track?.duration || 0)} phút</span>
+                            <span>{formatTrackDuration(item?.track?.duration)}</span>
                             <span>•</span>
                             <span>
                               {formatNumber(item?.track?.stats?.totalPlay || 0)} lượt phát toàn thời gian

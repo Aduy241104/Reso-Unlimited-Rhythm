@@ -14,6 +14,7 @@ import ConfirmActionModal from "../../components/common/ConfirmActionModal";
 import genreService from "../../services/genreService";
 import trackService from "../../services/trackService";
 import { routePaths } from "../../routes/routePaths";
+import { ARTIST_INPUT_LIMITS } from "../../constants/artistInputLimits";
 import { getApiErrorMessage } from "../../utils/apiError";
 import {
   IMAGE_FILE_ACCEPT,
@@ -759,6 +760,7 @@ const ArtistTrackEditPage = () => {
                   name="versionTitle"
                   value={formData.versionTitle}
                   onChange={handleInputChange}
+                  maxLength={ARTIST_INPUT_LIMITS.trackVersionTitle}
                   disabled={!canEdit}
                   className="h-12 w-full rounded-2xl border border-[#e6e0ff] bg-white px-4 text-sm text-[#241b45] outline-none transition focus:border-[#7c6cf2]"
                 />
@@ -771,6 +773,7 @@ const ArtistTrackEditPage = () => {
                   name="description"
                   value={formData.description}
                   onChange={handleInputChange}
+                  maxLength={ARTIST_INPUT_LIMITS.trackDescription}
                   rows="4"
                   disabled={!canEdit}
                   className="w-full rounded-3xl border border-[#e6e0ff] bg-white px-4 py-4 text-sm leading-6 text-[#241b45] outline-none transition focus:border-[#7c6cf2]"
@@ -872,6 +875,7 @@ const ArtistTrackEditPage = () => {
                 name="lyricsStatic"
                 value={formData.lyricsStatic}
                 onChange={handleInputChange}
+                maxLength={LYRICS_STATIC_MAX_LENGTH}
                 rows="8"
                 disabled={!canEdit}
                 className="w-full rounded-3xl border border-[#e6e0ff] bg-white px-4 py-4 text-sm leading-6 text-[#241b45] outline-none transition focus:border-[#7c6cf2]"
