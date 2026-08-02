@@ -487,8 +487,8 @@ const ArtistProfileView = () => {
           comingRelease={ nextComingRelease }
           artistName={ profile?.name }
           overlayBounds={ overlayBounds }
-          trackId={ nextComingRelease?.trackId || nextComingRelease?.id }
-          albumId={ nextComingRelease?.albumId || nextComingRelease?.id }
+          trackId={ nextComingRelease?.trackId }
+          albumId={ nextComingRelease?.albumId }
           onBack={ closeComingSoonExperience }
         />
       ) : null }
