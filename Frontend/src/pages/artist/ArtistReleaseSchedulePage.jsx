@@ -67,7 +67,7 @@ const formatDisplayTime = (value) => {
 const formatDuration = (duration) => {
   const totalSeconds = Number(duration) || 0;
   const minutes = Math.floor(totalSeconds / 60);
-  const seconds = Math.round(totalSeconds % 60)
+  const seconds = Math.floor(totalSeconds % 60)
     .toString()
     .padStart(2, "0");
 

@@ -5,6 +5,17 @@ import GoogleLoginButton from "../../components/auth/GoogleLoginButton";
 import { useAuth } from "../../hooks/useAuth";
 import loginBg from "../../assets/images/ChatGPT Image 10_35_18 29 thg 4, 2026.png";
 import { routePaths } from "../../routes/routePaths";
+import { USER_INPUT_LIMITS } from "../../constants/userInputLimits";
+
+const getLoginErrorMessage = (error) => {
+  const message = error?.response?.data?.message || error?.message;
+
+  if (message?.trim().toLowerCase() === "email or password is incorrect.") {
+    return "Email hoặc mật khẩu không chính xác.";
+  }
+
+  return message || "Đăng nhập thất bại.";
+};
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -49,7 +60,7 @@ const LoginPage = () => {
       await login({ email: email.trim(), password });
       navigate(from, { replace: true });
     } catch (err) {
-      setError(err?.response?.data?.message || err?.message || "Đăng nhập thất bại.");
+      setError(getLoginErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -164,6 +175,7 @@ const LoginPage = () => {
 
                   <input
                     type="email"
+                    maxLength={ USER_INPUT_LIMITS.email }
                     placeholder="Nhập email"
                     value={ email }
                     onChange={ (event) => setEmail(event.target.value) }
@@ -186,6 +198,7 @@ const LoginPage = () => {
 
                   <input
                     type="password"
+                    maxLength={ USER_INPUT_LIMITS.password }
                     placeholder="Nhập mật khẩu"
                     value={ password }
                     onChange={ (event) => setPassword(event.target.value) }

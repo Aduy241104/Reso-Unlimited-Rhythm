@@ -1,4 +1,6 @@
-﻿import Transaction from "../../models/Transaction.js";
+import Transaction from "../../models/Transaction.js";
+
+const PAYMENT_HISTORY_PAGE_SIZE = 10;
 
 const PAYMENT_HISTORY_POPULATE = [
     {
@@ -13,7 +15,7 @@ const PAYMENT_HISTORY_POPULATE = [
 
 const findPaymentHistoryByUserId = async (filter, options = {}) => {
     const skip = Number(options.skip) || 0;
-    const limit = Number(options.limit) || 10;
+    const limit = Number(options.limit) || PAYMENT_HISTORY_PAGE_SIZE;
 
     return await Transaction.find(filter)
         .sort({ createdAt: -1 })
@@ -38,12 +40,14 @@ const findPaymentDetailByUserId = async (userId, paymentId) => {
 };
 
 export {
+    PAYMENT_HISTORY_PAGE_SIZE,
     findPaymentHistoryByUserId,
     countPaymentHistoryByUserId,
     findPaymentDetailByUserId,
 };
 
 export default {
+    PAYMENT_HISTORY_PAGE_SIZE,
     findPaymentHistoryByUserId,
     countPaymentHistoryByUserId,
     findPaymentDetailByUserId,

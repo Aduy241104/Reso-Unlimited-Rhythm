@@ -284,6 +284,7 @@ export default function CreateArtistViolationPage() {
               <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 z-10 pointer-events-none" />
               <input
                 type="text"
+                maxLength={100}
                 value={artistSearchQuery}
                 onFocus={() => setIsDropdownOpen(true)}
                 onChange={(e) => {
@@ -399,12 +400,18 @@ export default function CreateArtistViolationPage() {
         {/* 3. Title & Date */}
         <div className="grid gap-6 sm:grid-cols-3">
           <div className="sm:col-span-2 space-y-2">
-            <label className="block text-sm font-semibold text-slate-700">
-              Tiêu đề vụ vi phạm <span className="text-red-500">*</span>
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-semibold text-slate-700">
+                Tiêu đề vụ vi phạm <span className="text-red-500">*</span>
+              </label>
+              <span className="text-xs font-medium text-slate-400">
+                {formData.title.length}/150 ký tự
+              </span>
+            </div>
             <input
               type="text"
               name="title"
+              maxLength={150}
               value={formData.title}
               onChange={handleChange}
               placeholder="VD: Sử dụng mẫu âm thanh không bản quyền trong Album..."
@@ -434,15 +441,21 @@ export default function CreateArtistViolationPage() {
 
         {/* 4. Detailed Description */}
         <div className="space-y-2">
-          <label className="block text-sm font-semibold text-slate-700">
-            Mô tả chi tiết vi phạm <span className="text-red-500">*</span>
-          </label>
+          <div className="flex items-center justify-between">
+            <label className="block text-sm font-semibold text-slate-700">
+              Mô tả chi tiết vi phạm <span className="text-red-500">*</span>
+            </label>
+            <span className="text-xs font-medium text-slate-400">
+              {formData.description.length}/1000 ký tự
+            </span>
+          </div>
           <textarea
             name="description"
+            maxLength={1000}
             value={formData.description}
             onChange={handleChange}
             rows={4}
-            placeholder="Cung cấp diễn biến chi tiết vụ việc, đường dẫn bài hát liên quan, tỷ lệ trùng lặp hoặc bằng chứng phát hiện..."
+            placeholder="Cung cấp diễn biến chi tiết vụ việc, đường dẫn bài hát liên quan, tỷ lệ trùng lặp hoặc bằng chứng phát hiện (tối đa 1000 ký tự)..."
             className={`w-full resize-none rounded-xl border px-4 py-3 text-sm outline-none transition ${
               errors.description ? "border-red-300 bg-red-50 focus:border-red-500" : "border-slate-200 focus:border-slate-400"
             }`}
@@ -520,15 +533,21 @@ export default function CreateArtistViolationPage() {
 
           {/* Admin notes */}
           <div className="space-y-2">
-            <label className="block text-sm font-semibold text-slate-700">
-              Ghi chú nội bộ Quản trị viên
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-semibold text-slate-700">
+                Ghi chú nội bộ Quản trị viên
+              </label>
+              <span className="text-xs font-medium text-slate-400">
+                {formData.adminNotes.length}/500 ký tự
+              </span>
+            </div>
             <input
               type="text"
               name="adminNotes"
+              maxLength={500}
               value={formData.adminNotes}
               onChange={handleChange}
-              placeholder="Ghi chú nội bộ cho ban quản trị..."
+              placeholder="Ghi chú nội bộ cho ban quản trị (tối đa 500 ký tự)..."
               className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400"
             />
           </div>

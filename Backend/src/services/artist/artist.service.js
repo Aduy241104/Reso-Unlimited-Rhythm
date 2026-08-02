@@ -127,7 +127,7 @@ const updateMyProfileByUserId = async (userId, payload) => {
         const current = artist.socialLinks?.toObject?.() ?? artist.socialLinks ?? {};
         const next = { ...current };
 
-        for (const key of ["facebook", "instagram", "youtube"]) {
+        for (const key of ["facebook", "instagram", "youtube", "tiktok", "spotify", "soundcloud", "website", "twitter", "other"]) {
             if (payload.socialLinks[key] !== undefined) {
                 next[key] = payload.socialLinks[key];
             }

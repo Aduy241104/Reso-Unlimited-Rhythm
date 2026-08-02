@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { ListMusic } from "lucide-react";
 import artistService, { updateAdminArtistStatusService } from "../../services/artistService";
+import ArtistTracksModal from "./components/ArtistTracksModal";
 
 // Danh sách tùy chọn lý do khóa tài khoản nghệ sĩ đồng bộ hệ thống
 const BLOCK_REASON_OPTIONS = [
@@ -39,6 +41,7 @@ const ArtistDetailPage = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
     const [isProcessing, setIsProcessing] = useState(false);
+    const [isTracksModalOpen, setIsTracksModalOpen] = useState(false);
 
     // State phục vụ cho Modal Block
     const [modalOpen, setModalOpen] = useState(false);
@@ -175,7 +178,15 @@ const ArtistDetailPage = () => {
                     </div>
                 </div>
 
-                <div className="flex gap-2.5 self-start sm:self-center">
+                <div className="flex flex-wrap gap-2.5 self-start sm:self-center">
+                    <button
+                        type="button"
+                        onClick={() => setIsTracksModalOpen(true)}
+                        className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-5 py-2.5 text-xs font-bold text-sky-700 shadow-sm transition hover:bg-sky-100"
+                    >
+                        <ListMusic className="h-4 w-4" />
+                        Xem bài hát ({artist.metrics?.totalTracks || artist.totalTracks || 0})
+                    </button>
                     <button
                         type="button"
                         disabled={isProcessing}
@@ -359,6 +370,13 @@ const ArtistDetailPage = () => {
 
                 </div>
             </div>
+
+            <ArtistTracksModal
+                artistId={artist.id || artist._id || id}
+                artistName={artist.name}
+                isOpen={isTracksModalOpen}
+                onClose={() => setIsTracksModalOpen(false)}
+            />
 
             {/* MODAL KHÓA TÀI KHOẢN NGHỆ SĨ CHUẨN ĐỒNG BỘ LAYOUT VỚI USER */}
             {modalOpen && (

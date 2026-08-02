@@ -3,7 +3,10 @@ import { ARTIST_INPUT_LIMITS } from "../../constants/artistInputLimits";
 
 const optionalHttpUrl = z
   .string()
-  .max(ARTIST_INPUT_LIMITS.url)
+  .max(
+    ARTIST_INPUT_LIMITS.url,
+    `Đường dẫn URL tối đa ${ARTIST_INPUT_LIMITS.url} ký tự.`
+  )
   .superRefine((value, ctx) => {
     const trimmed = value.trim();
 
@@ -17,13 +20,13 @@ const optionalHttpUrl = z
       if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "Use an http or https link.",
+          message: "Vui lòng sử dụng đường dẫn bắt đầu bằng http:// hoặc https://",
         });
       }
     } catch {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Enter a valid URL or leave the field blank.",
+        message: "Vui lòng nhập đường dẫn URL hợp lệ hoặc để trống.",
       });
     }
   });
@@ -32,15 +35,24 @@ export const artistProfileEditSchema = z.object({
   name: z
     .string()
     .trim()
-    .min(1, "Display name is required.")
-    .max(ARTIST_INPUT_LIMITS.profileName),
+    .min(1, "Vui lòng nhập tên hiển thị nghệ sĩ.")
+    .max(
+      ARTIST_INPUT_LIMITS.profileName,
+      `Tên nghệ sĩ tối đa ${ARTIST_INPUT_LIMITS.profileName} ký tự.`
+    ),
   bio: z
     .string()
     .max(
       ARTIST_INPUT_LIMITS.profileBio,
-      `Bio must be at most ${ARTIST_INPUT_LIMITS.profileBio} characters.`
+      `Tiểu sử nghệ sĩ tối đa ${ARTIST_INPUT_LIMITS.profileBio} ký tự.`
     ),
   socialFacebook: optionalHttpUrl,
   socialInstagram: optionalHttpUrl,
   socialYoutube: optionalHttpUrl,
+  socialTiktok: optionalHttpUrl,
+  socialSpotify: optionalHttpUrl,
+  socialSoundcloud: optionalHttpUrl,
+  socialWebsite: optionalHttpUrl,
+  socialTwitter: optionalHttpUrl,
+  socialOther: optionalHttpUrl,
 });

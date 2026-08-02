@@ -14,6 +14,7 @@ import {
 } from "../../utils/trackWorkflow";
 import {
   formatTrackDate,
+  getTrackDisplayDuration,
   resolveTrackArtwork,
 } from "../../utils/artistTrackPresentation";
 import AudioQualityDisplay from "./AudioQualityDisplay";
@@ -379,7 +380,7 @@ const CreateTrackForm = () => {
               ) : null}
               {uploadedAudioAnalysis?.duration ? (
                 <p className="mt-2 text-xs text-[#8d87aa]">
-                  Thời lượng nhận diện: {Math.round(uploadedAudioAnalysis.duration)} giây
+                  Thời lượng nhận diện: {getTrackDisplayDuration(uploadedAudioAnalysis.duration)}
                 </p>
               ) : null}
             </FieldShell>
@@ -611,7 +612,7 @@ const CreateTrackForm = () => {
               <span className="text-[#8d87aa]">Thời lượng</span>
               <span className="text-right font-medium text-[#241b45]">
                 {uploadedAudioAnalysis?.duration
-                  ? `${Math.round(uploadedAudioAnalysis.duration)} giây`
+                  ? getTrackDisplayDuration(uploadedAudioAnalysis.duration)
                   : "Đang chờ tải lên"}
               </span>
             </div>

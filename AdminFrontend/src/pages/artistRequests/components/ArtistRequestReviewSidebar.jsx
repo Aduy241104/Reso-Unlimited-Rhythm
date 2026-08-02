@@ -51,8 +51,7 @@ const ArtistRequestReviewSidebar = ({
 
   const totalCriteriaCount = REVIEW_CRITERIA.length;
   const canApprove = !isSubmitting && !isApproved && hasAllCriteriaApproved;
-  const canReject =
-    !isSubmitting && !isApproved && reviewForm.rejectReason.trim();
+  const canReject = !isSubmitting && !isApproved;
 
   return (
     <div className="space-y-4">
@@ -110,7 +109,7 @@ const ArtistRequestReviewSidebar = ({
 
             <div>
               <label className="text-xs font-medium text-slate-500">
-                Lý do từ chối
+                Lý do từ chối (không bắt buộc)
               </label>
 
               <textarea
@@ -118,7 +117,7 @@ const ArtistRequestReviewSidebar = ({
                 onChange={ onFieldChange("rejectReason") }
                 rows={ 3 }
                 disabled={ isSubmitting || isApproved }
-                placeholder="Nhập lý do nếu từ chối hồ sơ..."
+                placeholder="Nhập lý do từ chối nếu cần..."
                 className="mt-2 w-full resize-none rounded-md border border-slate-200 bg-white px-3 py-2.5 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500"
               />
             </div>

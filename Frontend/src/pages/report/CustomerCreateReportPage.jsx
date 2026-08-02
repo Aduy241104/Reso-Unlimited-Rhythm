@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import ReportReasonSelect from "../../components/report/ReportReasonSelect";
 import { createReportService } from "../../services/report/user.report.service";
+import { USER_INPUT_LIMITS } from "../../constants/userInputLimits";
 import { routePaths } from "../../routes/routePaths";
 import { getApiErrorFullMessage } from "../../utils/apiError";
 
@@ -261,6 +262,7 @@ const CustomerCreateReportPage = () => {
             <FieldLabel required>Mô tả chi tiết</FieldLabel>
             <textarea
               name="description"
+              maxLength={USER_INPUT_LIMITS.reportDescription}
               rows={6}
               value={formData.description}
               onChange={handleChange}

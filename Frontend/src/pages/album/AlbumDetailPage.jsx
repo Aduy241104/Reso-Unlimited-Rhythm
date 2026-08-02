@@ -1,10 +1,8 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import {
   Check,
   CirclePlus,
-  Download,
   Loader2,
-  MoreHorizontal,
   ShieldAlert,
   Shuffle,
 } from "lucide-react";
@@ -32,6 +30,7 @@ import {
   resolveTrackAvatar,
 } from "../../utils/albumDetail";
 import { getApiErrorMessage } from "../../utils/apiError";
+import { emitFollowedAlbumChangedEvent } from "../../utils/followedLibraryEvents";
 import { isBlockedTrack } from "../../utils/trackStatus";
 
 const actionButtonClassName = `
@@ -59,6 +58,27 @@ const metaPillClassName = `
 `;
 
 const FOLLOW_LOGIN_NOTICE = "Vui lòng đăng nhập để theo dõi album này.";
+
+const normalizeText = (value) =>
+  typeof value === "string" ? value.trim() : "";
+
+const buildSidebarAlbumItem = (album, fallbackAlbumId) => {
+  const albumId = album?.id || album?.albumId || fallbackAlbumId || "";
+
+  if (!albumId) {
+    return null;
+  }
+
+  return {
+    albumId,
+    title: normalizeText(album?.title) || "Album chưa đặt tên",
+    coverImage: normalizeText(album?.coverImage),
+    artistName:
+      normalizeText(album?.artist?.name) ||
+      normalizeText(album?.artistName) ||
+      "Nghệ sĩ không xác định",
+  };
+};
 
 const AlbumDetailPage = () => {
   const { id } = useParams();
@@ -236,10 +256,6 @@ const AlbumDetailPage = () => {
     });
   };
 
-  const handleLikeTrack = (track) => {
-    console.log("Toggle like track:", track?.title);
-  };
-
   const redirectToLogin = () => {
     navigate(routePaths.login, {
       replace: false,
@@ -269,8 +285,28 @@ const AlbumDetailPage = () => {
       const followState = isFollowing
         ? await unfollowAlbumService({ albumId })
         : await followAlbumService({ albumId });
+      const nextIsFollowing = Boolean(followState?.isFollowing ?? !isFollowing);
 
-      setIsFollowing(Boolean(followState?.isFollowing ?? !isFollowing));
+      setIsFollowing(nextIsFollowing);
+
+      if (isFollowing) {
+        emitFollowedAlbumChangedEvent({
+          type: "removed",
+          albumId: followState?.albumId || albumId,
+        });
+      } else {
+        const sidebarAlbum = buildSidebarAlbumItem(
+          album,
+          followState?.albumId || albumId
+        );
+
+        if (sidebarAlbum) {
+          emitFollowedAlbumChangedEvent({
+            type: "added",
+            album: sidebarAlbum,
+          });
+        }
+      }
     } catch (error) {
       if (error?.response?.status === 401) {
         redirectToLogin();
@@ -408,9 +444,6 @@ const AlbumDetailPage = () => {
               ) }
               <span>{ followButtonLabel }</span>
             </button>
-            <button type="button" className={ actionButtonClassName } aria-label="Tải album">
-              <Download className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
-            </button>
             <button
               type="button"
               className={ actionButtonClassName }
@@ -418,9 +451,6 @@ const AlbumDetailPage = () => {
               onClick={ handleReportAlbum }
             >
               <ShieldAlert className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
-            </button>
-            <button type="button" className={ actionButtonClassName } aria-label="More options">
-              <MoreHorizontal className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </button>
           </div>
 
@@ -431,6 +461,7 @@ const AlbumDetailPage = () => {
           ) : null }
 
           <TrackListSection
+            type="withoutLike"
             isLoading={ isLoading }
             errorMessage={ errorMessage }
             loadingMessage="Đang tải bài hát..."
@@ -459,7 +490,8 @@ const AlbumDetailPage = () => {
                   isPlaybackActive={ currentTrack?.id === track?.id }
                   isPlaying={ isPlaying }
                   onPlaybackAction={ () => handlePlayTrack(track, index) }
-                  onLike={ () => handleLikeTrack(track) }
+                  mobileLayoutClassName="grid-cols-[2rem_minmax(0,1fr)]"
+                  desktopLayoutClassName="sm:grid-cols-[2.5rem_minmax(0,1fr)_3.25rem_2.75rem]"
                 />
               );
             }) }
@@ -478,3 +510,6 @@ const AlbumDetailPage = () => {
 };
 
 export default AlbumDetailPage;
+
+
+

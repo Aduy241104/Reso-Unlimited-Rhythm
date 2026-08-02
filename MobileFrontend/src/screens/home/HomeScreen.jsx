@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -26,6 +26,7 @@ import { formatCompactNumber, formatDateLabel, resolveImageUri } from '../../uti
 const SIDEBAR_CLOSE_DELAY = 180;
 const CARD_WIDTH = 104;
 const CARD_GAP = 16;
+const SHOW_RECOMMENDATION_MIXES = false;
 
 const initialHomeState = {
   dailyTopTracks: [],
@@ -161,7 +162,8 @@ export default function HomeScreen() {
 
     try {
       const data = await homeService.getHomepageData({
-        includeRecommendations: isAuthenticated,
+        includeRecommendations:
+          SHOW_RECOMMENDATION_MIXES && isAuthenticated,
         topTrackLimit: 5,
         topArtistLimit: 5,
         playlistLimit: 10,
@@ -310,36 +312,7 @@ export default function HomeScreen() {
           onPress: () => runAfterSidebarClose(() => navigation.navigate('ReportList')),
         }
         : null,
-      {
-        key: 'add-account',
-        label: 'Thêm tài khoản',
-        icon: 'add-circle-outline',
-        onPress: () => { },
-      },
-      {
-        key: 'listening-stats',
-        label: 'Số liệu hoạt động nghe',
-        icon: 'analytics-outline',
-        onPress: () => { },
-      },
-      {
-        key: 'recent',
-        label: 'Gần đây',
-        icon: 'time-outline',
-        onPress: () => { },
-      },
-      {
-        key: 'updates',
-        label: 'Tin cập nhật',
-        icon: 'megaphone-outline',
-        onPress: () => { },
-      },
-      {
-        key: 'settings-privacy',
-        label: 'Cài đặt và quyền riêng tư',
-        icon: 'settings-outline',
-        onPress: () => { },
-      },
+      
     ].filter(Boolean),
     [navigation, runAfterSidebarClose, user?.role]
   );
@@ -467,7 +440,7 @@ export default function HomeScreen() {
       renderItem: renderPlaylistCard,
       emptyMessage: 'Chưa có playlist hệ thống.',
     },
-    isAuthenticated
+    SHOW_RECOMMENDATION_MIXES && isAuthenticated
       ? {
         sectionKey: 'recommendations',
         title: `Dành cho ${displayName}`,

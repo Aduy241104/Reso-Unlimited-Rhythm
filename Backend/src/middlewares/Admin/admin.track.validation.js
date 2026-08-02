@@ -5,6 +5,9 @@ const listTracksQuerySchema = Joi.object({
     page: Joi.number().integer().min(1).default(1),
     limit: Joi.number().integer().min(1).max(50).default(20),
     scope: Joi.string().valid("catalog").optional(),
+    reviewSource: Joi.string()
+        .valid("track_release", "pending_update")
+        .optional(),
     // BỔ SUNG 2 DÒNG NÀY ĐỂ NHẬN BỘ LỌC TỪ FRONTEND:
     approvalStatus: Joi.string().valid("pending", "approved", "rejected").optional(),
     activeStatus: Joi.string().valid("draft", "active", "hidden", "blocked").optional(),

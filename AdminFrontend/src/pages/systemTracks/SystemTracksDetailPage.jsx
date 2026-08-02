@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useCallback } from "react";
 import { ArrowLeft, Disc3, ShieldAlert, UserRound } from "lucide-react";
 import { Link } from "react-router-dom";
 import { routePaths } from "../../routes/routePaths";
@@ -10,6 +11,7 @@ import {
     updateAdminTrackApprovalStatusService,
     updateAdminTrackVisibilityService
 } from "../../services/trackService";
+import TrackEditReviewComparison from "./TrackEditReviewComparison";
 
 // Cấu hình cờ vi phạm dành cho việc từ chối (Reject) hoặc Ban
 const VIOLATION_OPTIONS = [
@@ -32,10 +34,11 @@ const HIDE_REASON_OPTIONS = [
 ];
 
 const formatDuration = (seconds) => {
-    if (typeof seconds !== "number" || Number.isNaN(seconds)) return "00:00";
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
+    const totalSeconds = Math.floor(Number(seconds));
+    if (!Number.isFinite(totalSeconds) || totalSeconds < 0) return "0:00";
+    const minutes = Math.floor(totalSeconds / 60);
+    const remainingSeconds = totalSeconds % 60;
+    return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
 };
 
 // Cấu hình Badge có chấm tròn chỉ thị màu sắc dịu chuẩn SaaS mới
@@ -103,21 +106,22 @@ const TrackDetailPage = () => {
     const [violationFlags, setViolationFlags] = useState([]);
     const [hideReasons, setHideReasons] = useState([]);
 
-    const fetchTrackDetail = async () => {
+    const fetchTrackDetail = useCallback(async () => {
         setIsLoading(true);
+        setError("");
         try {
             const data = await getAdminTrackDetailService(id);
             setTrack(data);
-        } catch (err) {
+        } catch {
             setError("Không thể tải đầy đủ thông tin bài hát.");
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [id]);
 
     useEffect(() => {
         if (id) fetchTrackDetail();
-    }, [id]);
+    }, [fetchTrackDetail, id]);
 
     const closeModal = () => {
         setModalType(null);
@@ -213,6 +217,8 @@ const TrackDetailPage = () => {
     const isActive = track?.activeStatus === "active";
     const isHidden = track?.activeStatus === "hidden";
     const isBlocked = track?.activeStatus === "blocked";
+    const isPendingUpdateReview = track?.reviewSource === "pending_update";
+    const artistId = track?.artist?.id || track?.artist?._id;
 
     if (isLoading) {
         return <div className="p-8 text-center text-xs font-bold font-mono text-slate-500 uppercase tracking-wider">Đang tải chi tiết bài hát...</div>;
@@ -236,8 +242,8 @@ const TrackDetailPage = () => {
                 icon={Disc3}
                 action={
                     <div className="flex flex-wrap items-center justify-end gap-2">
-                        {track.artist?.id ? (
-                            <Link to={routePaths.artistDetail(track.artist.id)} className="inline-flex h-10 items-center gap-2 border border-sky-200 bg-sky-50 px-4 text-sm font-semibold text-sky-700 transition hover:bg-sky-100">
+                        {artistId ? (
+                            <Link to={routePaths.artistDetail(artistId)} className="inline-flex h-10 items-center gap-2 border border-sky-200 bg-sky-50 px-4 text-sm font-semibold text-sky-700 transition hover:bg-sky-100">
                                 <UserRound className="h-4 w-4" /> Chi tiết nghệ sĩ
                             </Link>
                         ) : null}
@@ -263,7 +269,19 @@ const TrackDetailPage = () => {
                     <div className="space-y-0.5">
                         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">Quản lý bài hát</p>
                         <h1 className="mt-1.5 text-2xl md:text-3xl font-semibold tracking-tight text-slate-950">{track.title}</h1>
-                        <p className="mt-2 text-sm text-slate-600">{track.artist?.name || "Nghệ sĩ không xác định"}{track.artist?.email ? ` • ${track.artist.email}` : ""}</p>
+                        <p className="mt-2 text-sm text-slate-600">
+                            {artistId ? (
+                                <Link
+                                    to={routePaths.artistDetail(artistId)}
+                                    className="font-semibold text-sky-700 transition hover:text-sky-900 hover:underline"
+                                >
+                                    {track.artist?.name || "Nghệ sĩ không xác định"}
+                                </Link>
+                            ) : (
+                                track.artist?.name || "Nghệ sĩ không xác định"
+                            )}
+                            {track.artist?.email ? ` • ${track.artist.email}` : ""}
+                        </p>
                     </div>
                 </div>
                 <div className="flex flex-wrap gap-2"><StatusBadge config={getTrackApprovalStatusBadge(reviewStatus)} /><StatusBadge config={getTrackActiveStatusBadge(track.activeStatus)} /></div>
@@ -284,6 +302,8 @@ const TrackDetailPage = () => {
                 </div>
             )}
 
+            <TrackEditReviewComparison track={track} />
+
             {/* KHUNG 2: Bảng Điều Khiển Kiểm Duyệt Tác Vụ (Bố cục nút bấm thanh lịch, hiện đại) */}
             <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -301,14 +321,14 @@ const TrackDetailPage = () => {
                                     onClick={() => openModerationModal("approve")}
                                     className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 text-xs font-semibold rounded-xl shadow-sm transition"
                                 >
-                                    Duyệt
+                                    {isPendingUpdateReview ? "Duyệt bản chỉnh sửa" : "Duyệt"}
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => openModerationModal("reject")}
                                     className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 text-xs font-semibold rounded-xl shadow-sm transition"
                                 >
-                                    Từ chối
+                                    {isPendingUpdateReview ? "Từ chối bản chỉnh sửa" : "Từ chối"}
                                 </button>
                             </>
                         )}
@@ -515,8 +535,15 @@ const TrackDetailPage = () => {
                             <div>
                                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Kiểm duyệt ấn phẩm hệ thống</p>
                                 <h2 className="mt-1 text-xl font-bold text-slate-900">
-                                    {modalType === "approve" ? "Phê duyệt phát hành tác phẩm" : 
-                                     modalType === "reject" ? "Từ chối hồ sơ & Gắn cờ vi phạm" : 
+                                    {modalType === "approve"
+                                        ? isPendingUpdateReview
+                                            ? "Phê duyệt bản chỉnh sửa"
+                                            : "Phê duyệt phát hành tác phẩm"
+                                        : modalType === "reject"
+                                            ? isPendingUpdateReview
+                                                ? "Từ chối bản chỉnh sửa"
+                                                : "Từ chối hồ sơ & Gắn cờ vi phạm"
+                                            :
                                      modalType === "unblock" ? "Gỡ khóa bài hát" :
                                      modalType === "hide" ? "Tạm ẩn tác phẩm khỏi nền tảng" :
                                      "Khóa bài hát"}
@@ -528,14 +555,34 @@ const TrackDetailPage = () => {
                         {/* Thẻ bọc tóm tắt bài nhạc */}
                         <div className="bg-slate-50 border border-slate-100 p-4 text-xs font-semibold rounded-xl text-slate-600">
                             Tác phẩm: <span className="text-slate-900 font-bold">{track.title}</span>
-                            <span className="block text-[10px] text-slate-400 mt-1 uppercase">Nghệ sĩ: {track.artist?.name || "Nghệ sĩ không xác định"}</span>
+                            <span className="block text-[10px] text-slate-400 mt-1 uppercase">
+                                Nghệ sĩ:{" "}
+                                {artistId ? (
+                                    <Link
+                                        to={routePaths.artistDetail(artistId)}
+                                        className="font-bold text-sky-700 hover:underline"
+                                    >
+                                        {track.artist?.name || "Nghệ sĩ không xác định"}
+                                    </Link>
+                                ) : (
+                                    track.artist?.name || "Nghệ sĩ không xác định"
+                                )}
+                            </span>
+                            {isPendingUpdateReview ? (
+                                <span className="mt-2 block text-sky-700">
+                                    Xác nhận này áp dụng cho {track.pendingUpdate?.changedFields?.length || 0} trường thay đổi; bản live chỉ được cập nhật khi admin duyệt.
+                                </span>
+                            ) : null}
                         </div>
 
                         <div className="space-y-4">
                             {/* KHỐI CHỌN CỜ LÝ DO KHI REJECT / BLOCK */}
                             {(modalType === "reject" || modalType === "block") && (
                                 <div className="space-y-2">
-                                    <label className="text-xs font-semibold text-slate-500">Danh mục cờ vi phạm rà soát</label>
+                                    <label className="text-xs font-semibold text-slate-500">
+                                        Danh mục cờ vi phạm rà soát
+                                        {modalType === "reject" && isPendingUpdateReview ? " (Tùy chọn)" : ""}
+                                    </label>
                                     <div className="grid gap-2 sm:grid-cols-2">
                                         {VIOLATION_OPTIONS.map((flag) => {
                                             const isChecked = violationFlags.includes(flag.value);
@@ -607,7 +654,11 @@ const TrackDetailPage = () => {
                                     rows={3}
                                     className="w-full border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500 focus:bg-white transition rounded-xl leading-relaxed"
                                     placeholder={
-                                        modalType === "reject" ? "Cung cấp giải thích chi tiết về vi phạm để phản hồi cho creator..." : 
+                                        modalType === "reject"
+                                            ? isPendingUpdateReview
+                                                ? "Nêu rõ trường nào chưa phù hợp để artist chỉnh sửa và gửi lại..."
+                                                : "Cung cấp giải thích chi tiết về vi phạm để phản hồi cho creator..."
+                                            :
                                         modalType === "hide" ? "Cung cấp giải thích cụ thể lý do tạm ẩn hành chính..." :
                                         modalType === "block" ? "Cung cấp căn cứ chi tiết để ban/gỡ bỏ vĩnh viễn..." : "Nhập nội dung ghi chú lưu vết hệ thống..."
                                     }
@@ -626,7 +677,10 @@ const TrackDetailPage = () => {
                                 onClick={handleConfirmAction} 
                                 disabled={
                                     isActionLoading || 
-                                    (modalType === "reject" && (!adminNote.trim() || violationFlags.length === 0)) ||
+                                    (modalType === "reject" && (
+                                        !adminNote.trim() ||
+                                        (!isPendingUpdateReview && violationFlags.length === 0)
+                                    )) ||
                                     (modalType === "hide" && (!adminNote.trim() || hideReasons.length === 0)) ||
                                     (modalType === "block" && !adminNote.trim())
                                 } 

@@ -8,7 +8,7 @@ const PAGE_SIZE = 15;
 const MAX_BATCH = 50;
 
 const formatDuration = (seconds) => {
-  const total = Number(seconds);
+  const total = Math.floor(Number(seconds));
   if (!Number.isFinite(total) || total < 0) {
     return "-";
   }

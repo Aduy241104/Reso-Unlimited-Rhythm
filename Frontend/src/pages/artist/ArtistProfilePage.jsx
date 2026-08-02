@@ -1,43 +1,36 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { BadgeCheck, ExternalLink, Loader2, Pencil } from "lucide-react";
 import {
-  getMyArtistProfileService,
-  postArtistVerificationRequestService,
-} from "../../services/artistService";
+  Users,
+  Headphones,
+  Calendar,
+  Clock,
+  Mail,
+  User,
+  Pencil,
+  ExternalLink,
+  Loader2,
+  Globe,
+  AlertTriangle,
+  ShieldCheck,
+} from "lucide-react";
+import { getMyArtistProfileService } from "../../services/artistService";
 import { routePaths } from "../../routes/routePaths";
 import { getApiErrorMessage } from "../../utils/apiError";
 import {
-  showArtistError,
-  showArtistSuccess,
-} from "../../utils/artistNotification";
-import {
-  activeStatusBadgeClass,
   formatCount,
   formatDate,
   getAvatarSrc,
   getCoverSrc,
-  verificationBadgeClass,
 } from "./artistProfileUtils";
 
-const InfoCard = ({ label, children }) => (
-  <div className="rounded-sm border border-neutral-200 bg-[#fcfaf7] p-4">
-    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500">
-      {label}
-    </p>
-    <div className="mt-2 text-sm text-[#2f261f]">{children}</div>
-  </div>
-);
-
-const ArtistProfilePage = () => {
+export default function ArtistProfilePage() {
   const [artist, setArtist] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
-  const [isRequestingVerification, setIsRequestingVerification] = useState(false);
 
   const isBlocked = artist?.activeStatus === "blocked";
   const isVerified = artist?.verificationStatus === "verified";
-  const hasPendingRequest = Boolean(artist?.hasPendingVerificationRequest);
 
   useEffect(() => {
     let isMounted = true;
@@ -48,20 +41,13 @@ const ArtistProfilePage = () => {
 
       try {
         const data = await getMyArtistProfileService();
-        if (!isMounted) {
-          return;
-        }
+        if (!isMounted) return;
         setArtist(data);
       } catch (error) {
-        if (!isMounted) {
-          return;
-        }
+        if (!isMounted) return;
         setArtist(null);
         setErrorMessage(
-          getApiErrorMessage(
-            error,
-            "Không thể tải hồ sơ nghệ sĩ từ máy chủ."
-          )
+          getApiErrorMessage(error, "Không thể tải hồ sơ nghệ sĩ từ máy chủ.")
         );
       } finally {
         if (isMounted) {
@@ -77,272 +63,321 @@ const ArtistProfilePage = () => {
     };
   }, []);
 
-  const handleRequestVerification = async () => {
-    if (isBlocked || isVerified || hasPendingRequest) {
-      return;
-    }
-
-    setIsRequestingVerification(true);
-
-    try {
-      const updated = await postArtistVerificationRequestService({});
-      setArtist(updated);
-      showArtistSuccess(
-        "Đã gửi yêu cầu xác minh nghệ sĩ. Đội ngũ quản trị sẽ sớm xem xét."
-      );
-    } catch {
-      showArtistError("Không thể gửi yêu cầu xác minh nghệ sĩ vào lúc này.");
-    } finally {
-      setIsRequestingVerification(false);
-    }
-  };
-
   const coverSrc = useMemo(() => getCoverSrc(artist), [artist]);
   const avatarSrc = useMemo(() => getAvatarSrc(artist), [artist]);
 
   const socialEntries = useMemo(() => {
     const links = artist?.socialLinks ?? {};
-    return [
+    const ALL_PLATFORMS = [
       { key: "facebook", label: "Facebook", href: links.facebook },
       { key: "instagram", label: "Instagram", href: links.instagram },
       { key: "youtube", label: "YouTube", href: links.youtube },
-    ].filter((item) => item.href && String(item.href).trim());
+      { key: "tiktok", label: "TikTok", href: links.tiktok },
+      { key: "spotify", label: "Spotify", href: links.spotify },
+      { key: "soundcloud", label: "SoundCloud", href: links.soundcloud },
+      { key: "website", label: "Trang web chính thức", href: links.website },
+      { key: "twitter", label: "X (Twitter)", href: links.twitter },
+      { key: "other", label: "Liên kết khác", href: links.other },
+    ];
+    return ALL_PLATFORMS.filter((item) => item.href && String(item.href).trim());
   }, [artist]);
 
   if (isLoading) {
     return (
-      <section className="flex min-h-[320px] flex-col items-center justify-center rounded-md border border-neutral-200 bg-white p-10 text-neutral-600">
-        <Loader2 className="h-8 w-8 animate-spin text-[#8b5e3c]" aria-hidden />
-        <p className="mt-4 text-sm">Loading your artist profile…</p>
+      <section className="flex min-h-[360px] flex-col items-center justify-center rounded-[24px] border border-[#ebe6ff] bg-white p-10 text-[#6b6682] shadow-sm">
+        <Loader2 className="h-8 w-8 animate-spin text-[#7c6cf2]" aria-hidden />
+        <p className="mt-3 text-sm font-medium">Đang tải hồ sơ nghệ sĩ của bạn...</p>
       </section>
     );
   }
 
   if (errorMessage || !artist) {
     return (
-      <section className="rounded-md border border-red-200 bg-red-50/80 p-6 text-red-900">
-        <h2 className="text-lg font-semibold">Could not load profile</h2>
-        <p className="mt-2 text-sm leading-6">{errorMessage}</p>
+      <section className="rounded-[24px] border border-rose-200 bg-rose-50 p-6 text-rose-900 shadow-sm">
+        <h2 className="text-base font-bold">Không thể tải thông tin hồ sơ</h2>
+        <p className="mt-2 text-xs leading-relaxed text-rose-800">{errorMessage}</p>
       </section>
     );
   }
 
   return (
     <section className="space-y-6">
-      <div className="overflow-hidden rounded-md border border-neutral-200 bg-white shadow-sm">
-        <div className="relative h-40 w-full bg-neutral-900 sm:h-48">
+
+      {/* Hero Header Card */}
+      <section className="overflow-hidden rounded-[24px] border border-[#e7e1ff] bg-white shadow-sm transition hover:shadow-md">
+        
+        {/* Cover Photo */}
+        <div className="relative h-44 w-full bg-[#1e1b2e] sm:h-56">
           <img
             src={coverSrc}
-            alt=""
-            className="h-full w-full object-cover opacity-95"
+            alt={artist.name}
+            className="h-full w-full object-cover opacity-90"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/55 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent" />
         </div>
 
-        <div className="relative px-5 pb-6 pt-0 sm:px-8">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        {/* Profile Info & Actions Bar */}
+        <div className="relative px-6 pb-6 pt-2 sm:px-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            
+            {/* Avatar & Title */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-              <div className="-mt-12 h-28 w-28 shrink-0 overflow-hidden rounded-md border-4 border-white bg-white shadow-md sm:h-32 sm:w-32">
+              <div className="-mt-14 sm:-mt-16 h-28 w-28 shrink-0 overflow-hidden rounded-full border-4 border-white bg-white shadow-lg sm:h-32 sm:w-32">
                 <img
                   src={avatarSrc}
-                  alt=""
+                  alt={artist.name}
                   className="h-full w-full object-cover"
                 />
               </div>
-              <div className="sm:pb-1">
-                <p className="text-xs uppercase tracking-[0.3em] text-[#8b5e3c]">
-                  Artist profile
+
+              <div className="pt-3 sm:pt-4">
+                <p className="text-xs uppercase tracking-[0.28em] font-bold text-[#7c6cf2]">
+                  Hồ sơ nghệ sĩ chính thức
                 </p>
-                <h1 className="mt-2 flex items-center gap-2 text-2xl font-semibold tracking-tight text-[#241b15] sm:text-3xl">
-                  {artist.name}
-                  {artist.verificationStatus === "verified" && (
+                <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold tracking-tight text-[#2f2747] sm:text-3xl">
+                  <span>{artist.name}</span>
+
+                  {/* Verified Badge */}
+                  {isVerified && (
                     <span
-                      title="Verified Artist"
-                      className="relative flex items-center justify-center"
-                      style={{ width: 20, height: 20 }}
+                      title="Nghệ sĩ đã xác minh"
+                      className="relative inline-flex items-center justify-center"
                     >
-                      <span className="absolute inset-0 rounded-full opacity-40 blur-[3px]" style={{ background: "#3d91f4" }} />
-                      <span className="relative flex h-5 w-5 items-center justify-center rounded-full" style={{ background: "#3d91f4" }}>
-                        <svg className="h-3 w-3 text-white" viewBox="0 0 12 12" fill="currentColor" aria-hidden>
+                      <span className="h-5 w-5 rounded-full bg-[#3d91f4] flex items-center justify-center shadow-sm">
+                        <svg className="h-3 w-3 text-white" viewBox="0 0 12 12" fill="currentColor">
                           <path fillRule="evenodd" d="M9.92 2.83a.6.6 0 0 1 .08.8L5.28 8.35a.6.6 0 0 1-.87 0l-2-2.3a.6.6 0 1 1 .83-.87l1.5 1.73 4.35-5.02a.6.6 0 0 1 .83-.06Z" clipRule="evenodd" />
                         </svg>
                       </span>
                     </span>
                   )}
                 </h1>
-                <div className="mt-3 flex flex-wrap items-center gap-2">
+
+                {/* Status Pills */}
+                <div className="mt-2.5 flex flex-wrap items-center gap-2">
                   <span
-                    className={[
-                      "inline-flex rounded-sm px-2.5 py-1 text-xs font-medium capitalize",
-                      activeStatusBadgeClass[artist.activeStatus] ??
-                        "bg-neutral-100 text-neutral-600",
-                    ].join(" ")}
+                    className={`inline-flex items-center gap-1 rounded-full border px-3 py-0.5 text-xs font-semibold ${
+                      isBlocked
+                        ? "border-rose-200 bg-rose-50 text-rose-700"
+                        : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    }`}
                   >
-                    {artist.activeStatus}
+                    {isBlocked ? (
+                      <>
+                        <AlertTriangle size={12} />
+                        <span>Tài khoản đã bị khóa</span>
+                      </>
+                    ) : (
+                      <>
+                        <ShieldCheck size={12} />
+                        <span>Đang hoạt động</span>
+                      </>
+                    )}
                   </span>
-                  {artist.verificationStatus !== "verified" && artist.verificationStatus ? (
-                    <span
-                      className={[
-                        "inline-flex rounded-sm px-2.5 py-1 text-xs font-medium capitalize",
-                        verificationBadgeClass[artist.verificationStatus] ??
-                          "bg-neutral-100 text-neutral-600",
-                      ].join(" ")}
-                    >
-                      {artist.verificationStatus}
-                    </span>
-                  ) : null}
                 </div>
               </div>
             </div>
 
-            <div className="shrink-0 sm:pt-2">
+            {/* Edit Profile Action Button */}
+            <div className="shrink-0 sm:pb-1">
               {isBlocked ? (
                 <span
-                  className="inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-sm border border-neutral-200 bg-neutral-100 px-4 py-2.5 text-sm font-medium text-neutral-500"
-                  title="Your profile is blocked and cannot be edited."
+                  className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-xs font-semibold text-slate-400"
+                  title="Hồ sơ đang bị tạm khóa nên không thể chỉnh sửa."
                 >
-                  <Pencil className="h-4 w-4" aria-hidden />
-                  Edit profile
+                  <Pencil size={14} />
+                  <span>Chỉnh sửa hồ sơ</span>
                 </span>
               ) : (
                 <Link
                   to={routePaths.artistProfileEdit}
-                  className="inline-flex items-center justify-center gap-2 rounded-sm border border-[#8b5e3c] bg-[#8b5e3c] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#744a30]"
+                  className="inline-flex items-center gap-2 rounded-xl border border-[#e7e1ff] bg-[#faf9ff] px-4 py-2.5 text-xs font-semibold text-[#2f2747] transition hover:border-[#6f5cf1] hover:bg-[#6f5cf1] hover:text-white shadow-sm"
                 >
-                  <Pencil className="h-4 w-4" aria-hidden />
-                  Edit profile
+                  <Pencil size={14} />
+                  <span>Chỉnh sửa hồ sơ</span>
                 </Link>
               )}
             </div>
           </div>
 
-          {isBlocked ? (
-            <div className="mt-5 rounded-sm border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
-              <p className="font-medium">Profile is blocked</p>
-              <p className="mt-1 text-red-800/90">
-                You can view your profile, but edits are disabled until your account
-                is active again.
+          {/* Blocked Alert Banner */}
+          {isBlocked && (
+            <div className="mt-5 rounded-[16px] border border-rose-200 bg-rose-50/90 p-4 text-xs text-rose-900 shadow-sm space-y-1">
+              <p className="font-bold text-sm flex items-center gap-1.5 text-rose-700">
+                <AlertTriangle size={16} />
+                <span>Tài khoản bị giới hạn quyền</span>
+              </p>
+              <p className="text-rose-800">
+                Bạn vẫn có thể xem lại thông tin hồ sơ của mình, tuy nhiên tính năng chỉnh sửa và cập nhật bài hát đã bị khóa.
               </p>
               {artist.blockedReason ? (
-                <p className="mt-3 border-t border-red-200/80 pt-3 text-red-800/90">
-                  {artist.blockedReason}
+                <p className="pt-2 text-rose-900 font-semibold border-t border-rose-200/80 mt-2">
+                  Lý do từ Ban quản trị: "{artist.blockedReason}"
                 </p>
               ) : null}
             </div>
-          ) : null}
-
-          {artist.bio ? (
-            <p className="mt-6 max-w-3xl text-sm leading-7 text-neutral-700">
-              {artist.bio}
-            </p>
-          ) : (
-            <p className="mt-6 text-sm text-neutral-500">
-              You have not added a biography yet. This is the public story fans
-              see on your artist page when it is enabled.
-            </p>
           )}
-        </div>
-      </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <InfoCard label="Followers">
-          <span className="text-lg font-semibold text-[#241b15]">
-            {formatCount(artist.stats?.followers)}
-          </span>
-        </InfoCard>
-        <InfoCard label="Total streams">
-          <span className="text-lg font-semibold text-[#241b15]">
-            {formatCount(artist.stats?.totalStreams)}
-          </span>
-        </InfoCard>
-        <InfoCard label="Profile created">
-          {formatDate(artist.createdAt)}
-        </InfoCard>
-        <InfoCard label="Last updated">
-          {formatDate(artist.updatedAt)}
-        </InfoCard>
-      </div>
-
-      {!isBlocked && !isVerified ? (
-        <div className="rounded-md border border-neutral-200 bg-white p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-[#241b15]">
-                Artist verification
-              </h2>
-              <p className="mt-1 max-w-2xl text-sm text-neutral-500">
-                Request a verified badge for your artist profile. Our team will review
-                your public profile and linked information.
+          {/* Artist Biography */}
+          <div className="mt-5 border-t border-[#efeaff] pt-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#7c7891]">
+              Tiểu sử nghệ sĩ
+            </h3>
+            {artist.bio ? (
+              <p className="mt-2 text-sm leading-relaxed text-[#2f2747] max-w-4xl">
+                {artist.bio}
               </p>
-              {hasPendingRequest ? (
-                <p className="mt-3 text-sm font-medium text-[#8b5e3c]">
-                  A verification request is already in review. You will be notified
-                  when the status changes.
-                </p>
-              ) : null}
-            </div>
-            <button
-              type="button"
-              onClick={handleRequestVerification}
-              disabled={hasPendingRequest || isRequestingVerification}
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-sm border border-[#8b5e3c] bg-[#8b5e3c] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#744a30] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isRequestingVerification ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                  Sending…
-                </>
-              ) : (
-                <>
-                  <BadgeCheck className="h-4 w-4" aria-hidden />
-                  Request verification
-                </>
-              )}
-            </button>
+            ) : (
+              <p className="mt-2 text-xs italic text-[#8c86ab]">
+                Chưa cập nhật tiểu sử. Bạn có thể bấm "Chỉnh sửa hồ sơ" để giới thiệu câu chuyện nghệ thuật của bạn với người hâm mộ.
+              </p>
+            )}
           </div>
         </div>
-      ) : null}
+      </section>
 
-      <div className="rounded-md border border-neutral-200 bg-white p-6">
-        <h2 className="text-lg font-semibold text-[#241b15]">Account</h2>
-        <p className="mt-1 text-sm text-neutral-500">
-          Details from your Reso Music login, shown for your own reference.
-        </p>
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          <InfoCard label="Email">{artist.account?.email || "—"}</InfoCard>
-          <InfoCard label="Full name (account)">
-            {artist.account?.fullName || "—"}
-          </InfoCard>
+      {/* 4 Summary Stat Cards Grid */}
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        
+        {/* Card 1: Followers */}
+        <div className="rounded-[18px] border border-[#e7e1ff] bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-[#7c7891]">Người theo dõi</p>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#faf9ff] text-[#7c6cf2] border border-[#efeaff]">
+              <Users size={18} />
+            </div>
+          </div>
+          <p className="mt-2 text-2xl font-bold text-[#2f2747]">
+            {formatCount(artist.stats?.followers)} <span className="text-xs font-normal text-[#7c7891]">người</span>
+          </p>
+          <p className="mt-1 text-[11px] text-[#8c86ab]">
+            Số fan hâm mộ đang theo dõi bạn trên hệ thống
+          </p>
         </div>
+
+        {/* Card 2: Total Streams */}
+        <div className="rounded-[18px] border border-[#e7e1ff] bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-[#7c7891]">Tổng lượt nghe</p>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#faf9ff] text-[#7c6cf2] border border-[#efeaff]">
+              <Headphones size={18} />
+            </div>
+          </div>
+          <p className="mt-2 text-2xl font-bold text-[#2f2747]">
+            {formatCount(artist.stats?.totalStreams)} <span className="text-xs font-normal text-[#7c7891]">lượt</span>
+          </p>
+          <p className="mt-1 text-[11px] text-[#8c86ab]">
+            Tổng lượt stream tích lũy toàn thời gian
+          </p>
+        </div>
+
+        {/* Card 3: Profile Created */}
+        <div className="rounded-[18px] border border-[#e7e1ff] bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-[#7c7891]">Ngày tạo hồ sơ</p>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#faf9ff] text-[#7c6cf2] border border-[#efeaff]">
+              <Calendar size={18} />
+            </div>
+          </div>
+          <p className="mt-2 text-base font-bold text-[#2f2747]">
+            {formatDate(artist.createdAt)}
+          </p>
+          <p className="mt-1 text-[11px] text-[#8c86ab]">
+            Thời điểm tài khoản nghệ sĩ được phê duyệt
+          </p>
+        </div>
+
+        {/* Card 4: Last Updated */}
+        <div className="rounded-[18px] border border-[#e7e1ff] bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-[#7c7891]">Cập nhật gần nhất</p>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#faf9ff] text-[#7c6cf2] border border-[#efeaff]">
+              <Clock size={18} />
+            </div>
+          </div>
+          <p className="mt-2 text-base font-bold text-[#2f2747]">
+            {formatDate(artist.updatedAt)}
+          </p>
+          <p className="mt-1 text-[11px] text-[#8c86ab]">
+            Lần cập nhật thông tin gần đây nhất
+          </p>
+        </div>
+
       </div>
 
-      <div className="rounded-md border border-neutral-200 bg-white p-6">
-        <h2 className="text-lg font-semibold text-[#241b15]">Social links</h2>
-        <p className="mt-1 text-sm text-neutral-500">
-          Links you have saved on your artist profile.
-        </p>
+      {/* Account Info Section */}
+      <section className="rounded-[20px] border border-[#e7e1ff] bg-white p-6 shadow-sm space-y-4">
+        <div>
+          <h2 className="text-base font-bold text-[#2f2747]">
+            Thông tin tài khoản hệ thống
+          </h2>
+          <p className="mt-0.5 text-xs text-[#7c7891]">
+            Các thông tin cá nhân liên kết từ tài khoản đăng nhập Reso Music của bạn.
+          </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          {/* Email Item */}
+          <div className="rounded-[14px] border border-[#efeaff] bg-[#faf9ff] p-4 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#7c6cf2] border border-[#e7e1ff] shadow-sm">
+              <Mail size={18} />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-[#7c7891]">Email tài khoản</p>
+              <p className="text-sm font-bold text-[#2f2747] mt-0.5">
+                {artist.account?.email || "—"}
+              </p>
+            </div>
+          </div>
+
+          {/* Full Name Item */}
+          <div className="rounded-[14px] border border-[#efeaff] bg-[#faf9ff] p-4 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#7c6cf2] border border-[#e7e1ff] shadow-sm">
+              <User size={18} />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-[#7c7891]">Họ và tên (Tài khoản)</p>
+              <p className="text-sm font-bold text-[#2f2747] mt-0.5">
+                {artist.account?.fullName || "—"}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Social Links Section */}
+      <section className="rounded-[20px] border border-[#e7e1ff] bg-white p-6 shadow-sm space-y-4">
+        <div>
+          <h2 className="text-base font-bold text-[#2f2747]">
+            Liên kết mạng xã hội
+          </h2>
+          <p className="mt-0.5 text-xs text-[#7c7891]">
+            Các đường dẫn kênh truyền thông chính thức bạn đã kết nối trên hồ sơ.
+          </p>
+        </div>
+
         {socialEntries.length === 0 ? (
-          <p className="mt-4 text-sm text-neutral-500">No social links added.</p>
+          <div className="rounded-[14px] border border-[#efeaff] bg-[#faf9ff] p-5 text-center text-xs text-[#7c7891]">
+            <Globe size={24} className="mx-auto mb-2 text-[#9992bf]" />
+            Chưa thêm liên kết mạng xã hội nào. Bạn có thể cập nhật trong trang "Chỉnh sửa hồ sơ".
+          </div>
         ) : (
-          <ul className="mt-4 space-y-2">
+          <div className="flex flex-wrap gap-3">
             {socialEntries.map((item) => (
-              <li key={item.key}>
-                <a
-                  href={item.href}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 text-sm font-medium text-[#8b5e3c] underline-offset-4 hover:underline"
-                >
-                  {item.label}
-                  <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-                </a>
-              </li>
+              <a
+                key={item.key}
+                href={item.href}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl border border-[#e7e1ff] bg-[#faf9ff] px-4 py-2.5 text-xs font-semibold text-[#2f2747] transition hover:border-[#6f5cf1] hover:bg-[#6f5cf1] hover:text-white shadow-sm"
+              >
+                <span>{item.label}</span>
+                <ExternalLink size={13} />
+              </a>
             ))}
-          </ul>
+          </div>
         )}
-      </div>
+      </section>
+
     </section>
   );
-};
-
-export default ArtistProfilePage;
+}

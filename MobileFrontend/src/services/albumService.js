@@ -4,6 +4,7 @@ import trackService from './trackService';
 import {
   formatDateLabel,
   formatDuration,
+  formatTrackDuration,
   resolveImageUri,
 } from '../utils/media';
 
@@ -67,7 +68,7 @@ const normalizeAlbumTrack = (item, index = 0) => {
     ...normalizedTrack,
     entityType: 'track',
     entityId: pickFirstDefined(normalizedTrack.entityId, normalizedTrack.id, ''),
-    meta: formatDuration(normalizedTrack.duration),
+    meta: formatTrackDuration(normalizedTrack.duration),
   };
 };
 

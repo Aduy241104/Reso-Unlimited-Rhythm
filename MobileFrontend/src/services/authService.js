@@ -22,7 +22,7 @@ export const authService = {
   },
 
   async forgotPassword(email) {
-    return await axiosClient.post(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, { email });
+    return await axiosClient.post(API_ENDPOINTS.AUTH.MOBILE_FORGOT_PASSWORD, { email });
   },
 
   async resetPassword(payload) {

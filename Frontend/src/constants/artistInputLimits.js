@@ -1,9 +1,9 @@
 export const ARTIST_INPUT_LIMITS = Object.freeze({
   search: 200,
   albumTitle: 100,
-  profileName: 120,
-  profileBio: 5000,
-  url: 2000,
+  profileName: 100,
+  profileBio: 1000,
+  url: 500,
   trackTitle: 150,
   trackVersionTitle: 150,
   trackDescription: 5000,

@@ -20,13 +20,14 @@ export const getMySubscriptionService = async () => {
   return getResponseData(response);
 };
 
-export const createVnpayOrderService = async (payload) => {
+export const createVnpayOrderService = async (payload, config = {}) => {
   const response = await axiosClient.post(
     `${SUBSCRIPTION_API_PREFIX}/payments/vnpay/create-order`,
     {
       ...payload,
       clientPlatform: "web",
-    }
+    },
+    config
   );
 
   return getResponseData(response);

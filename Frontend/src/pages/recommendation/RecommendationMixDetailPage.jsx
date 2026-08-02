@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { CirclePlus, Download, MoreHorizontal, Shuffle } from "lucide-react";
 import { useParams } from "react-router-dom";
 import PlayButton from "../../components/common/PlayButton";
 import LoadingState from "../../components/common/LoadingState";
@@ -22,12 +21,6 @@ import {
   getRecommendationTrackImage,
   getRecommendationUserDisplayName,
 } from "../../utils/recommendation";
-
-const actionButtonClassName = `
-  inline-flex h-10 w-10 items-center justify-center rounded-full border border-black/8
-  bg-white/70 text-[#18181b] transition hover:scale-[1.03] hover:bg-white
-  dark:border-white/10 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/[0.12] sm:h-11 sm:w-11
-`;
 
 const metaPillClassName = `
   inline-flex items-center rounded-full border border-white/14 bg-white/10
@@ -151,10 +144,6 @@ const RecommendationMixDetailPage = () => {
     });
   };
 
-  const handleLikeTrack = (track) => {
-    console.log("Toggle like track:", track?.title);
-  };
-
   const metaItems = [
     `D\u00e0nh cho ${userDisplayName}`,
     generatedAt ? `Updated ${generatedAt}` : "",
@@ -264,21 +253,10 @@ const RecommendationMixDetailPage = () => {
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <PlayButton onClick={handlePlayMix} size="compact" />
 
-            <button type="button" className={actionButtonClassName} aria-label="Shuffle mix">
-              <Shuffle className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
-            </button>
-            <button type="button" className={actionButtonClassName} aria-label="Add mix">
-              <CirclePlus className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
-            </button>
-            <button type="button" className={actionButtonClassName} aria-label="Download mix">
-              <Download className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
-            </button>
-            <button type="button" className={actionButtonClassName} aria-label="More options">
-              <MoreHorizontal className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
-            </button>
           </div>
 
           <TrackListSection
+            type="withoutLike"
             isLoading={isLoading}
             errorMessage={errorMessage}
             loadingMessage="Loading tracks..."
@@ -306,7 +284,8 @@ const RecommendationMixDetailPage = () => {
                   isPlaybackActive={currentTrack?.id === trackId}
                   isPlaying={isPlaying}
                   onPlaybackAction={() => handlePlayTrack(track, index)}
-                  onLike={() => handleLikeTrack(track)}
+                  mobileLayoutClassName="grid-cols-[2rem_minmax(0,1fr)]"
+                  desktopLayoutClassName="sm:grid-cols-[2.5rem_minmax(0,1fr)_3.25rem_2.75rem]"
                 />
               );
             })}

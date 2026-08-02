@@ -13,6 +13,7 @@ import {
 import { Link } from "react-router-dom";
 import systemLogo from "../../assets/images/ChatGPT Image 13_16_10 4 thg 5, 2026.png";
 import { routePaths } from "../../routes/routePaths";
+import { USER_INPUT_LIMITS } from "../../constants/userInputLimits";
 import AuthCard from "./AuthCard";
 import AuthField from "./AuthField";
 
@@ -93,6 +94,7 @@ const RegisterDetailsStep = ({
         <div className="space-y-3.5">
           <AuthField
             label="Họ và tên"
+            maxLength={USER_INPUT_LIMITS.fullName}
             labelClassName="text-sm font-medium normal-case tracking-normal text-slate-700"
             placeholder="Nguyễn Văn A"
             autoComplete="name"
@@ -104,6 +106,7 @@ const RegisterDetailsStep = ({
 
           <AuthField
             label="Email"
+            maxLength={USER_INPUT_LIMITS.email}
             labelClassName="text-sm font-medium normal-case tracking-normal text-slate-700"
             type="email"
             placeholder="tenban@example.com"
@@ -147,6 +150,7 @@ const RegisterDetailsStep = ({
 
           <AuthField
             label="Mật khẩu"
+            maxLength={USER_INPUT_LIMITS.registrationPassword}
             labelClassName="text-sm font-medium normal-case tracking-normal text-slate-700"
             type={showPassword ? "text" : "password"}
             placeholder="Tạo mật khẩu"
@@ -172,6 +176,7 @@ const RegisterDetailsStep = ({
 
           <AuthField
             label="Xác nhận mật khẩu"
+            maxLength={USER_INPUT_LIMITS.registrationPassword}
             labelClassName="text-sm font-medium normal-case tracking-normal text-slate-700"
             type={showConfirmPassword ? "text" : "password"}
             placeholder="Nhập lại mật khẩu"
