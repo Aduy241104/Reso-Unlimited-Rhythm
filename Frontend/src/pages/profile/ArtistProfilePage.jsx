@@ -7,6 +7,7 @@ import DiscographySection from "../../components/artist/DiscographySection";
 import PopularTracksSection from "../../components/artist/PopularTracksSection";
 import CreateReportModal from "../../components/report/CreateReportModal";
 import LoadingState from "../../components/common/LoadingState";
+import NotFoundPage from "../error/NotFoundPage";
 import { useAuth } from "../../hooks/useAuth";
 import { routePaths } from "../../routes/routePaths";
 import {
@@ -16,6 +17,7 @@ import {
   unfollowArtistService,
 } from "../../services/artistBrowseService";
 import { getApiErrorMessage } from "../../utils/apiError";
+import { isResourceNotFoundError } from "../../utils/resourceError";
 import { emitFollowedArtistChangedEvent } from "../../utils/followedLibraryEvents";
 
 const getScrollContainer = (element) => {
@@ -81,6 +83,7 @@ const ArtistProfileView = () => {
   const location = useLocation();
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
+  const [isNotFound, setIsNotFound] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [activeFilter, setActiveFilter] = useState("popular");
   const [isFollowing, setIsFollowing] = useState(false);
@@ -138,12 +141,18 @@ const ArtistProfileView = () => {
 
     const loadArtistExperience = async () => {
       setIsLoading(true);
+      setIsNotFound(false);
       setErrorMessage("");
 
       try {
         const payload = await getArtistExperienceService({ artistId: id });
 
         if (!isMounted) {
+          return;
+        }
+
+        if (!payload?.profile) {
+          setIsNotFound(true);
           return;
         }
 
@@ -154,6 +163,11 @@ const ArtistProfileView = () => {
         }
       } catch (error) {
         if (!isMounted) {
+          return;
+        }
+
+        if (isResourceNotFoundError(error)) {
+          setIsNotFound(true);
           return;
         }
 
@@ -169,6 +183,15 @@ const ArtistProfileView = () => {
         }
       }
     };
+
+    if (!id) {
+      setIsNotFound(true);
+      setErrorMessage("");
+      setIsLoading(false);
+      return () => {
+        isMounted = false;
+      };
+    }
 
     loadArtistExperience();
 
@@ -406,6 +429,14 @@ const ArtistProfileView = () => {
         message="Äang táº£i há»“ sÆ¡ nghá»‡ sÄ©..."
         className="min-h-[60vh]"
         spinnerClassName="h-8 w-8"
+      />
+    );
+  }
+
+  if (isNotFound) {
+    return (
+      <NotFoundPage
+        title="Không tìm thấy nghệ sĩ"
       />
     );
   }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Shuffle } from "lucide-react";
 import PlayButton from "../../components/common/PlayButton";
 import LoadingState from "../../components/common/LoadingState";
+import NotFoundPage from "../error/NotFoundPage";
 import { useParams } from "react-router-dom";
 import TrackCard from "../../components/TrackCard";
 import TrackListSection from "../../components/trackList/TrackListSection";
@@ -11,6 +12,7 @@ import { routePaths } from "../../routes/routePaths";
 import { getPlaylistDetailService } from "../../services/playlistService";
 import { formatTrackDuration, resolveTrackAvatar } from "../../utils/albumDetail";
 import { getApiErrorMessage } from "../../utils/apiError";
+import { isResourceNotFoundError } from "../../utils/resourceError";
 import {
   formatPlaylistDate,
   formatPlaylistDuration,
@@ -33,6 +35,7 @@ const PlaylistDetailPage = () => {
   const { id } = useParams();
   const [playlist, setPlaylist] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isNotFound, setIsNotFound] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const {
     currentTrack,
@@ -49,12 +52,19 @@ const PlaylistDetailPage = () => {
 
     const loadPlaylistDetail = async () => {
       setIsLoading(true);
+      setIsNotFound(false);
       setErrorMessage("");
 
       try {
         const playlistDetail = await getPlaylistDetailService(id);
 
         if (!isMounted) {
+          return;
+        }
+
+        if (!playlistDetail) {
+          setPlaylist(null);
+          setIsNotFound(true);
           return;
         }
 
@@ -65,6 +75,11 @@ const PlaylistDetailPage = () => {
         }
 
         setPlaylist(null);
+        if (isResourceNotFoundError(error)) {
+          setIsNotFound(true);
+          return;
+        }
+
         setErrorMessage(
           getApiErrorMessage(
             error,
@@ -80,7 +95,8 @@ const PlaylistDetailPage = () => {
 
     if (!id) {
       setPlaylist(null);
-      setErrorMessage("Playlist id is missing.");
+      setIsNotFound(true);
+      setErrorMessage("");
       setIsLoading(false);
       return () => {
         isMounted = false;
@@ -163,6 +179,14 @@ const PlaylistDetailPage = () => {
         message="Loading playlist detail..."
         className="min-h-[60vh]"
         spinnerClassName="h-8 w-8"
+      />
+    );
+  }
+
+  if (isNotFound) {
+    return (
+      <NotFoundPage
+        title="Không tìm thấy playlist"
       />
     );
   }

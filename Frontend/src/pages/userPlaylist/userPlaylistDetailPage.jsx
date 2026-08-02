@@ -10,6 +10,7 @@ import DeletePlaylistConfirmModal from "../../components/userPlaylist/DeletePlay
 import EditPlaylistModal from "../../components/userPlaylist/EditPlaylistModal";
 import PlayButton from "../../components/common/PlayButton";
 import LoadingState from "../../components/common/LoadingState";
+import NotFoundPage from "../error/NotFoundPage";
 import TrackCard from "../../components/TrackCard";
 import TrackListSection from "../../components/trackList/TrackListSection";
 import TrackTwoLevelMenu from "../../components/trackMenu/TrackTwoLevelMenu";
@@ -25,6 +26,7 @@ import {
 } from "../../services/userPlaylistService";
 import { formatTrackDuration, resolveTrackAvatar } from "../../utils/albumDetail";
 import { getApiErrorMessage } from "../../utils/apiError";
+import { isResourceNotFoundError } from "../../utils/resourceError";
 import {
   formatPlaylistDate,
   formatPlaylistDuration,
@@ -177,6 +179,7 @@ const UserPlaylistDetailPage = () => {
   const [playlist, setPlaylist] = useState(null);
   const [existingPlaylists, setExistingPlaylists] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isNotFound, setIsNotFound] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
@@ -203,6 +206,7 @@ const UserPlaylistDetailPage = () => {
 
     const loadPlaylistDetail = async () => {
       setIsLoading(true);
+      setIsNotFound(false);
       setErrorMessage("");
 
       try {
@@ -225,7 +229,7 @@ const UserPlaylistDetailPage = () => {
 
         if (!playlistDetail) {
           setPlaylist(null);
-          setErrorMessage("Playlist not found.");
+          setIsNotFound(true);
           return;
         }
 
@@ -238,6 +242,11 @@ const UserPlaylistDetailPage = () => {
 
         setPlaylist(null);
         setExistingPlaylists([]);
+        if (isResourceNotFoundError(error)) {
+          setIsNotFound(true);
+          return;
+        }
+
         setErrorMessage(
           getApiErrorMessage(
             error,
@@ -253,7 +262,8 @@ const UserPlaylistDetailPage = () => {
 
     if (!id) {
       setPlaylist(null);
-      setErrorMessage("Playlist id is missing.");
+      setIsNotFound(true);
+      setErrorMessage("");
       setIsLoading(false);
       return () => {
         isMounted = false;
@@ -674,6 +684,14 @@ const UserPlaylistDetailPage = () => {
         message="Loading playlist detail..."
         className="min-h-[60vh]"
         spinnerClassName="h-8 w-8"
+      />
+    );
+  }
+
+  if (isNotFound) {
+    return (
+      <NotFoundPage
+        title="Không tìm thấy playlist"
       />
     );
   }

@@ -184,7 +184,6 @@ const ArtistRequestDetailPage = () => {
               reviewForm={ reviewForm }
               isSubmitting={ isSubmitting }
               isPending={ isPending }
-              isApproved={ isApproved }
               hasCompletedChecklist={ hasCompletedChecklist }
               hasAllCriteriaApproved={ hasAllCriteriaApproved }
               onChecklistChange={ handleChecklistChange }

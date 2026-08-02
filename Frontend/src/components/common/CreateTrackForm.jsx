@@ -6,6 +6,11 @@ import genreService from "../../services/genreService";
 import { routePaths } from "../../routes/routePaths";
 import { showArtistError } from "../../utils/artistNotification";
 import {
+  IMAGE_FILE_ACCEPT,
+  getImageFileValidationError,
+  getImageFilesValidationError,
+} from "../../utils/imageFileValidation";
+import {
   MAX_GENRE_IDS,
   TITLE_MAX_LENGTH,
   mapTrackCopyrightToForm,
@@ -174,12 +179,30 @@ const CreateTrackForm = () => {
 
   const handleCoverImagesChange = (event) => {
     const files = Array.from(event.target.files || []);
+    const validationError = getImageFilesValidationError(files);
+
+    if (validationError) {
+      setFieldErrors((current) => ({ ...current, media: validationError }));
+      event.target.value = "";
+      return;
+    }
+
     setCoverImages((prev) => [...prev, ...files]);
+    setFieldErrors((current) => ({ ...current, media: "" }));
   };
 
   const handleAvatarChange = (event) => {
     const file = event.target.files?.[0] ?? null;
+    const validationError = getImageFileValidationError(file);
+
+    if (validationError) {
+      setFieldErrors((current) => ({ ...current, avatar: validationError }));
+      event.target.value = "";
+      return;
+    }
+
     setAvatarFile(file);
+    setFieldErrors((current) => ({ ...current, avatar: "" }));
   };
 
   const handleLyricsSyncChange = (event) => {
@@ -382,10 +405,10 @@ const CreateTrackForm = () => {
               ) : null}
             </FieldShell>
 
-            <FieldShell label="Ảnh đại diện">
+            <FieldShell label="Ảnh đại diện" error={fieldErrors.avatar}>
               <input
                 type="file"
-                accept="image/*"
+                accept={IMAGE_FILE_ACCEPT}
                 onChange={handleAvatarChange}
                 disabled={loading}
                 className="block h-12 w-full rounded-2xl border border-[#e6e0ff] bg-white px-4 py-3 text-sm text-[#241b45] file:mr-3 file:rounded-xl file:border-0 file:bg-[#f3efff] file:px-3 file:py-2 file:text-xs file:font-semibold file:text-[#5c4fe0]"
@@ -401,7 +424,7 @@ const CreateTrackForm = () => {
               <input
                 type="file"
                 multiple
-                accept="image/*"
+                accept={IMAGE_FILE_ACCEPT}
                 onChange={handleCoverImagesChange}
                 disabled={loading}
                 className="block h-12 w-full rounded-2xl border border-[#e6e0ff] bg-white px-4 py-3 text-sm text-[#241b45] file:mr-3 file:rounded-xl file:border-0 file:bg-[#f3efff] file:px-3 file:py-2 file:text-xs file:font-semibold file:text-[#5c4fe0]"

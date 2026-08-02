@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import PlayButton from "../../components/common/PlayButton";
 import LoadingState from "../../components/common/LoadingState";
+import NotFoundPage from "../error/NotFoundPage";
 import TrackCard from "../../components/TrackCard";
 import TrackListSection from "../../components/trackList/TrackListSection";
 import { useAuth } from "../../hooks/useAuth";
@@ -10,6 +11,7 @@ import { routePaths } from "../../routes/routePaths";
 import { getDailyMixesService } from "../../services/recommendationService";
 import { formatTrackDuration } from "../../utils/albumDetail";
 import { getApiErrorMessage } from "../../utils/apiError";
+import { isResourceNotFoundError } from "../../utils/resourceError";
 import {
   createRecommendationMixCollectionMeta,
   formatRecommendationDateTime,
@@ -32,6 +34,7 @@ const RecommendationMixDetailPage = () => {
   const { user } = useAuth();
   const [mix, setMix] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isNotFound, setIsNotFound] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const {
     currentTrack,
@@ -48,6 +51,7 @@ const RecommendationMixDetailPage = () => {
 
     const loadMixDetail = async () => {
       setIsLoading(true);
+      setIsNotFound(false);
       setErrorMessage("");
 
       try {
@@ -62,7 +66,7 @@ const RecommendationMixDetailPage = () => {
 
         if (!matchedMix) {
           setMix(null);
-          setErrorMessage("Khong tim thay playlist goi y nay.");
+          setIsNotFound(true);
           return;
         }
 
@@ -73,6 +77,11 @@ const RecommendationMixDetailPage = () => {
         }
 
         setMix(null);
+        if (isResourceNotFoundError(error)) {
+          setIsNotFound(true);
+          return;
+        }
+
         setErrorMessage(
           getApiErrorMessage(
             error,
@@ -88,7 +97,8 @@ const RecommendationMixDetailPage = () => {
 
     if (!id) {
       setMix(null);
-      setErrorMessage("Recommendation mix id is missing.");
+      setIsNotFound(true);
+      setErrorMessage("");
       setIsLoading(false);
       return () => {
         isMounted = false;
@@ -157,6 +167,14 @@ const RecommendationMixDetailPage = () => {
         message="Loading recommendation detail..."
         className="min-h-[60vh]"
         spinnerClassName="h-8 w-8"
+      />
+    );
+  }
+
+  if (isNotFound) {
+    return (
+      <NotFoundPage
+        title="Không tìm thấy playlist gợi ý"
       />
     );
   }
