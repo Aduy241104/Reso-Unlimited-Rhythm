@@ -1,4 +1,4 @@
-import { AppError } from "../../utils/AppError.js";
+﻿import { AppError } from "../../utils/AppError.js";
 import mongoose from "mongoose";
 import {
     resolveTrackReleasedAt,
@@ -173,6 +173,7 @@ const getTrackCoverImage = (track) => {
 };
 
 const isBlockedTrack = (track) => track?.activeStatus === "blocked";
+const isActiveTrack = (track) => track?.activeStatus === "active";
 
 const formatPlaylistTrack = (playlistTrack) => {
     const track = playlistTrack.trackId;
@@ -220,31 +221,42 @@ const formatPlaylistTrack = (playlistTrack) => {
     };
 };
 
-export const formatPlaylistDetail = (playlist) => ({
-    id: toId(playlist._id),
-    title: playlist.title,
-    description: playlist.description || "",
-    type: playlist.type,
-    coverImage: playlist.coverImage || "",
-    isPublic: playlist.isPublic,
-    isHidden: playlist.isHidden,
-    trackCount: playlist.trackCount,
-    totalDuration: playlist.totalDuration,
-    aiPrompt: playlist.aiPrompt || "",
-    aiGeneratedAt: playlist.aiGeneratedAt,
-    owner: playlist.userId
-        ? {
-            id: toId(playlist.userId._id),
-            email: playlist.userId.email || "",
-            fullName: playlist.userId.profile?.fullName || "",
-            avatar: playlist.userId.avatar || "",
-            role: playlist.userId.role,
-        }
-        : null,
-    tracks: (playlist.tracks || [])
+export const formatPlaylistDetail = (playlist) => {
+    const visibleTracks = (playlist.tracks || [])
         .sort((firstTrack, secondTrack) => firstTrack.order - secondTrack.order)
+        .filter((playlistTrack) => isActiveTrack(playlistTrack?.trackId))
         .map(formatPlaylistTrack)
-        .filter(Boolean),
-    createdAt: playlist.createdAt,
-    updatedAt: playlist.updatedAt,
-});
+        .filter(Boolean);
+
+    const totalDuration = visibleTracks.reduce(
+        (sum, item) => sum + Number(item?.track?.duration || 0),
+        0
+    );
+
+    return {
+        id: toId(playlist._id),
+        title: playlist.title,
+        description: playlist.description || "",
+        type: playlist.type,
+        coverImage: playlist.coverImage || "",
+        isPublic: playlist.isPublic,
+        isHidden: playlist.isHidden,
+        trackCount: visibleTracks.length,
+        totalDuration,
+        aiPrompt: playlist.aiPrompt || "",
+        aiGeneratedAt: playlist.aiGeneratedAt,
+        owner: playlist.userId
+            ? {
+                id: toId(playlist.userId._id),
+                email: playlist.userId.email || "",
+                fullName: playlist.userId.profile?.fullName || "",
+                avatar: playlist.userId.avatar || "",
+                role: playlist.userId.role,
+            }
+            : null,
+        tracks: visibleTracks,
+        createdAt: playlist.createdAt,
+        updatedAt: playlist.updatedAt,
+    };
+};
+

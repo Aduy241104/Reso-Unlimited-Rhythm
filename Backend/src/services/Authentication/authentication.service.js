@@ -279,12 +279,11 @@ const requestForgotPassword = async ({ email }) => {
     }
 
     const resetToken = crypto.randomBytes(32).toString("hex");
-    const otp = generateOtp();
     const verificationData = {
         userId: user._id,
         email: normalizedEmail,
         token: resetToken,
-        otp,
+        otp: "",
         type: "reset_password",
         expiresAt: getResetPasswordExpireDate(),
         isUsed: false,
@@ -313,7 +312,6 @@ const requestForgotPassword = async ({ email }) => {
     await sendResetPasswordLinkEmail({
         to: normalizedEmail,
         resetLink: buildResetLink({ token: resetToken }),
-        otp,
         ttlMinutes: RESET_PASSWORD_TTL_MINUTES,
     });
 

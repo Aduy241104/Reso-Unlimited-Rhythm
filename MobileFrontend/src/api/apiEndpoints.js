@@ -5,6 +5,7 @@ export const API_ENDPOINTS = {
     REGISTER: '/auth/register',
     REGISTER_SEND_OTP: '/auth/register/send-otp',
     FORGOT_PASSWORD: '/auth/forgot-password',
+    MOBILE_FORGOT_PASSWORD: '/auth/mobile/forgot-password',
     RESET_PASSWORD: '/auth/reset-password',
     REFRESH_TOKEN: '/auth/refresh-token',
     LOGOUT: '/auth/logout',

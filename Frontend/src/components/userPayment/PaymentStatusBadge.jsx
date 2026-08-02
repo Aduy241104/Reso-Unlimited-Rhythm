@@ -14,16 +14,6 @@
     dotClassName: "bg-rose-400",
     badgeClassName: "bg-[#1f1f1f] text-rose-200",
   },
-  refunded: {
-    label: "Đã hoàn tiền",
-    dotClassName: "bg-sky-400",
-    badgeClassName: "bg-[#1f1f1f] text-sky-200",
-  },
-  cancelled: {
-    label: "Đã hủy",
-    dotClassName: "bg-white/35",
-    badgeClassName: "bg-[#1f1f1f] text-white/70",
-  },
   unknown: {
     label: "Không xác định",
     dotClassName: "bg-white/35",

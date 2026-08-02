@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -312,36 +312,7 @@ export default function HomeScreen() {
           onPress: () => runAfterSidebarClose(() => navigation.navigate('ReportList')),
         }
         : null,
-      {
-        key: 'add-account',
-        label: 'Thêm tài khoản',
-        icon: 'add-circle-outline',
-        onPress: () => { },
-      },
-      {
-        key: 'listening-stats',
-        label: 'Số liệu hoạt động nghe',
-        icon: 'analytics-outline',
-        onPress: () => { },
-      },
-      {
-        key: 'recent',
-        label: 'Gần đây',
-        icon: 'time-outline',
-        onPress: () => { },
-      },
-      {
-        key: 'updates',
-        label: 'Tin cập nhật',
-        icon: 'megaphone-outline',
-        onPress: () => { },
-      },
-      {
-        key: 'settings-privacy',
-        label: 'Cài đặt và quyền riêng tư',
-        icon: 'settings-outline',
-        onPress: () => { },
-      },
+      
     ].filter(Boolean),
     [navigation, runAfterSidebarClose, user?.role]
   );
