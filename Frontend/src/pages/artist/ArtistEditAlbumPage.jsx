@@ -18,6 +18,10 @@ import {
   showArtistError,
   showArtistSuccess,
 } from "../../utils/artistNotification";
+import {
+  IMAGE_FILE_ACCEPT_WITH_GIF,
+  getImageFileValidationError,
+} from "../../utils/imageFileValidation";
 
 const MAX_COVER_SIZE = 10 * 1024 * 1024;
 
@@ -101,19 +105,18 @@ const ArtistEditAlbumPage = () => {
       return;
     }
 
-    if (!file.type.startsWith("image/")) {
-      setFormErrors((current) => ({
-        ...current,
-        coverImage: "Vui lòng chọn một tệp ảnh hợp lệ.",
-      }));
-      return;
-    }
+    const validationError = getImageFileValidationError(file, {
+      allowGif: true,
+      maxSizeBytes: MAX_COVER_SIZE,
+      maxSizeLabel: "10 MB",
+    });
 
-    if (file.size > MAX_COVER_SIZE) {
+    if (validationError) {
       setFormErrors((current) => ({
         ...current,
-        coverImage: "Ảnh bìa không được vượt quá 10 MB.",
+        coverImage: validationError,
       }));
+      event.target.value = "";
       return;
     }
 
@@ -275,7 +278,7 @@ const ArtistEditAlbumPage = () => {
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/png,image/jpeg,image/gif,image/webp"
+                    accept={IMAGE_FILE_ACCEPT_WITH_GIF}
                     onChange={handleCoverImageChange}
                     className="sr-only"
                   />
@@ -295,7 +298,7 @@ const ArtistEditAlbumPage = () => {
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/png,image/jpeg,image/gif,image/webp"
+                    accept={IMAGE_FILE_ACCEPT_WITH_GIF}
                     onChange={handleCoverImageChange}
                     className="sr-only"
                   />

@@ -18,6 +18,10 @@ import {
 } from "../../services/userProfileService";
 import { USER_INPUT_LIMITS } from "../../constants/userInputLimits";
 import { getApiErrorMessage } from "../../utils/apiError";
+import {
+  IMAGE_FILE_ACCEPT,
+  getImageFileValidationError,
+} from "../../utils/imageFileValidation";
 import { createUserProfileSnapshot } from "./UserProfileCard";
 
 const GENDER_OPTIONS = [
@@ -312,6 +316,17 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
 
   const handleAvatarChange = (event) => {
     const nextFile = event.target.files?.[0] ?? null;
+    const validationError = getImageFileValidationError(nextFile);
+
+    if (validationError) {
+      setFieldErrors((current) => ({
+        ...current,
+        avatar: validationError,
+      }));
+      event.target.value = "";
+      return;
+    }
+
     setAvatarFile(nextFile);
     setApiError("");
     setFieldErrors((current) => {
@@ -433,7 +448,7 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
                 <input
                   key={`avatar-input-${avatarInputKey}`}
                   type="file"
-                  accept="image/*"
+                  accept={IMAGE_FILE_ACCEPT}
                   className="hidden"
                   onChange={handleAvatarChange}
                   disabled={isSaving}

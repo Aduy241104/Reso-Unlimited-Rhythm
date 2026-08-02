@@ -9,6 +9,7 @@ import {
 import PlayButton from "../../components/common/PlayButton";
 import LoadingState from "../../components/common/LoadingState";
 import CreateReportModal from "../../components/report/CreateReportModal";
+import NotFoundPage from "../error/NotFoundPage";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import TrackCard from "../../components/TrackCard";
 import TrackListSection from "../../components/trackList/TrackListSection";
@@ -30,6 +31,7 @@ import {
   resolveTrackAvatar,
 } from "../../utils/albumDetail";
 import { getApiErrorMessage } from "../../utils/apiError";
+import { isResourceNotFoundError } from "../../utils/resourceError";
 import { isBlockedTrack } from "../../utils/trackStatus";
 
 const actionButtonClassName = `
@@ -65,6 +67,7 @@ const AlbumDetailPage = () => {
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [album, setAlbum] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isNotFound, setIsNotFound] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -86,12 +89,19 @@ const AlbumDetailPage = () => {
 
     const loadAlbumDetail = async () => {
       setIsLoading(true);
+      setIsNotFound(false);
       setErrorMessage("");
 
       try {
         const albumDetail = await getAlbumDetailService(id);
 
         if (!isMounted) {
+          return;
+        }
+
+        if (!albumDetail) {
+          setAlbum(null);
+          setIsNotFound(true);
           return;
         }
 
@@ -102,6 +112,11 @@ const AlbumDetailPage = () => {
         }
 
         setAlbum(null);
+        if (isResourceNotFoundError(error)) {
+          setIsNotFound(true);
+          return;
+        }
+
         setErrorMessage(
           getApiErrorMessage(
             error,
@@ -117,7 +132,8 @@ const AlbumDetailPage = () => {
 
     if (!id) {
       setAlbum(null);
-      setErrorMessage("Thiếu mã album.");
+      setIsNotFound(true);
+      setErrorMessage("");
       setIsLoading(false);
       return () => {
         isMounted = false;
@@ -305,6 +321,14 @@ const AlbumDetailPage = () => {
         message="Đang tải chi tiết album..."
         className="min-h-[60vh]"
         spinnerClassName="h-8 w-8"
+      />
+    );
+  }
+
+  if (isNotFound) {
+    return (
+      <NotFoundPage
+        title="Không tìm thấy album"
       />
     );
   }

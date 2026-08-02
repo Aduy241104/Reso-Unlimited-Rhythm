@@ -1,15 +1,21 @@
 import { z } from "zod";
+import {
+  MINIMUM_REGISTRATION_AGE,
+  REGISTRATION_PASSWORD_REQUIREMENTS,
+} from "../../constants/authValidation";
 
 const genderOptions = ["male", "female", "other", "prefer_not_to_say"];
 
-const passwordSchema = z
-  .string()
-  .min(8, "Mật khẩu phải có ít nhất 8 ký tự.")
-  .max(33, "Mật khẩu không được vượt quá 33 ký tự.")
-  .regex(/[A-Z]/, "Mật khẩu phải có ít nhất một chữ cái in hoa.")
-  .regex(/[a-z]/, "Mật khẩu phải có ít nhất một chữ cái thường.")
-  .regex(/\d/, "Mật khẩu phải có ít nhất một chữ số.")
-  .regex(/[^A-Za-z0-9]/, "Mật khẩu phải có ít nhất một ký tự đặc biệt.");
+const passwordSchema = z.string().refine(
+  (value) =>
+    value.length >= 8 &&
+    value.length <= 33 &&
+    /[A-Z]/.test(value) &&
+    /[a-z]/.test(value) &&
+    /\d/.test(value) &&
+    /[^A-Za-z0-9]/.test(value),
+  REGISTRATION_PASSWORD_REQUIREMENTS
+);
 
 const dateOfBirthSchema = z
   .string()
@@ -20,12 +26,15 @@ const dateOfBirthSchema = z
   })
   .refine((value) => {
     const selectedDate = new Date(`${value}T00:00:00`);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const maximumBirthDate = new Date();
+    maximumBirthDate.setHours(0, 0, 0, 0);
+    maximumBirthDate.setFullYear(
+      maximumBirthDate.getFullYear() - MINIMUM_REGISTRATION_AGE
+    );
 
-    return selectedDate <= today;
+    return selectedDate <= maximumBirthDate;
   }, {
-    message: "Ngày sinh không được ở tương lai.",
+    message: `Bạn phải đủ ${MINIMUM_REGISTRATION_AGE} tuổi để đăng ký tài khoản.`,
   });
 
 export const registerDetailsSchema = z

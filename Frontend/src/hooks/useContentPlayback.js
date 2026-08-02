@@ -15,8 +15,8 @@ import {
 import {
   MONTHLY_TOP_TRACK_LIMIT,
   createMonthlyTopTracksCollectionMeta,
-  getCurrentMonthValue,
   getMonthlyTopTracksHeroImage,
+  getPreviousMonthValue,
 } from "../utils/monthlyTopTracks";
 import {
   createRecommendationMixCollectionMeta,
@@ -143,7 +143,7 @@ export const useContentPlayback = () => {
   };
 
   const playMonthlyTopTracksItem = async (item) => {
-    const selectedMonth = item?.raw?.month || getCurrentMonthValue();
+    const selectedMonth = item?.raw?.month || getPreviousMonthValue();
     const selectedLimit = Number(item?.raw?.limit) || MONTHLY_TOP_TRACK_LIMIT;
 
     try {
