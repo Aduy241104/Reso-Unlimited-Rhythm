@@ -93,27 +93,85 @@ const getFavoriteTracks = async (userId, options = {}) => {
     const skip = (page - 1) * limit;
     const filter = buildFavoriteTracksFilter(userId);
 
-    const totalItems = await Interaction.countDocuments(filter);
+    const [aggregationResult] = await Interaction.aggregate([
+        { $match: filter },
+        { $sort: { createdAt: -1, _id: -1 } },
+        {
+            $lookup: {
+                from: "tracks",
+                localField: "targetId",
+                foreignField: "_id",
+                as: "track",
+            },
+        },
+        { $unwind: "$track" },
+        { $match: { "track.activeStatus": "active" } },
+        {
+            $facet: {
+                interactions: [
+                    { $skip: skip },
+                    { $limit: limit },
+                    {
+                        $lookup: {
+                            from: "artists",
+                            localField: "track.artist_artistId",
+                            foreignField: "_id",
+                            as: "artist",
+                        },
+                    },
+                    {
+                        $unwind: {
+                            path: "$artist",
+                            preserveNullAndEmptyArrays: true,
+                        },
+                    },
+                    {
+                        $lookup: {
+                            from: "albums",
+                            localField: "track.album_albumId",
+                            foreignField: "_id",
+                            as: "album",
+                        },
+                    },
+                    {
+                        $unwind: {
+                            path: "$album",
+                            preserveNullAndEmptyArrays: true,
+                        },
+                    },
+                    {
+                        $project: {
+                            createdAt: 1,
+                            targetId: {
+                                _id: "$track._id",
+                                title: "$track.title",
+                                avatar: "$track.avatar",
+                                coverImage: "$track.coverImage",
+                                duration: "$track.duration",
+                                artist_artistId: {
+                                    _id: "$artist._id",
+                                    artistName: "$artist.artistName",
+                                    name: "$artist.name",
+                                    profile: {
+                                        fullName: "$artist.profile.fullName",
+                                    },
+                                },
+                                album_albumId: {
+                                    _id: "$album._id",
+                                    title: "$album.title",
+                                    coverImage: "$album.coverImage",
+                                },
+                            },
+                        },
+                    },
+                ],
+                totalCount: [{ $count: "total" }],
+            },
+        },
+    ]);
 
-    const interactions = await Interaction.find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .populate({
-            path: "targetId",
-            select: "title avatar coverImage duration artist_artistId album_albumId",
-            populate: [
-                {
-                    path: "artist_artistId",
-                    select: "artistName name profile.fullName avatar",
-                },
-                {
-                    path: "album_albumId",
-                    select: "title coverImage",
-                },
-            ],
-        })
-        .lean();
+    const interactions = aggregationResult?.interactions || [];
+    const totalItems = aggregationResult?.totalCount?.[0]?.total || 0;
 
     const items = interactions
         .map((interaction) => {
@@ -139,7 +197,7 @@ const getFavoriteTracks = async (userId, options = {}) => {
                     id: artist?._id?.toString?.() || "",
                     name: artist?.artistName || artist?.name || artist?.profile?.fullName || "",
                 },
-                album: album
+                album: album?._id
                     ? {
                         id: album._id.toString(),
                         title: album.title || "",
