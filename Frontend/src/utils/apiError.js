@@ -1,12 +1,30 @@
 const getApiErrorPayload = (error) => error?.response?.data ?? null;
 
+const API_ERROR_MESSAGE_TRANSLATIONS = {
+  "email is already in use": "Email này đã được sử dụng.",
+  "track already exists in playlist": "Bài hát đã có trong playlist.",
+};
+
+const translateApiErrorMessage = (message, fallbackMessage = "") => {
+  if (typeof message !== "string" || !message.trim()) {
+    return fallbackMessage;
+  }
+
+  const normalizedMessage = message.trim().toLowerCase().replace(/[.!]+$/, "");
+
+  return API_ERROR_MESSAGE_TRANSLATIONS[normalizedMessage] || message.trim();
+};
+
 export const getApiErrorMessage = (
   error,
   fallbackMessage = "Something went wrong."
 ) => {
   const payload = getApiErrorPayload(error);
 
-  return payload?.message || error?.message || fallbackMessage;
+  return translateApiErrorMessage(
+    payload?.message || error?.message,
+    fallbackMessage
+  );
 };
 
 export const getApiErrorDetailsText = (error) => {
@@ -15,13 +33,15 @@ export const getApiErrorDetailsText = (error) => {
 
   if (Array.isArray(details) && details.length > 0) {
     return details
-      .map((detail) => detail?.message || detail?.field)
+      .map((detail) =>
+        translateApiErrorMessage(detail?.message, detail?.field)
+      )
       .filter(Boolean)
       .join("\n");
   }
 
   if (details?.field && details?.message) {
-    return details.message;
+    return translateApiErrorMessage(details.message);
   }
 
   return "";
@@ -76,7 +96,7 @@ export const applyApiFieldErrors = ({
 
     setError(fieldName, {
       type: errorType,
-      message: detail.message || "Invalid value.",
+      message: translateApiErrorMessage(detail.message, "Giá trị không hợp lệ."),
     });
     hasMappedError = true;
   });

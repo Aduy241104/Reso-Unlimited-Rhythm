@@ -1,5 +1,6 @@
 export const routePaths = {
   home: "/",
+  notFound: "/not-found",
   search: "/search",
   userGenres: "/genres",
   userGenreDetail: (genreId = ":id") => `/genres/${genreId}`,
