@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AudioLines,
   ClipboardList,
@@ -94,15 +94,11 @@ const AccountMenu = ({ user, onLogout }) => {
         : []),
 
       {
-        label: "Nghệ sĩ đang theo dõi",
+        label: "Thư viện của tôi",
         to: routePaths.libraryFollowedArtists,
         icon: UserRoundCheck,
       },
-      {
-        label: "Album đang theo dõi",
-        to: routePaths.libraryFollowedAlbums,
-        icon: Disc3,
-      },
+
       {
         label: "Playlist của tôi",
         to: routePaths.userPlaylist,
@@ -200,7 +196,7 @@ const AccountMenu = ({ user, onLogout }) => {
 
             return (
               <button
-                key={item.to}
+                key={`${item.label}-${item.to}`}
                 type="button"
                 onClick={() => handleNavigate(item.to)}
                 className="group flex w-full items-center gap-3 rounded-md px-2.5 py-2.5 text-left text-sm font-medium text-white transition-all duration-150 hover:bg-white/[0.08]"
@@ -239,3 +235,4 @@ const AccountMenu = ({ user, onLogout }) => {
 };
 
 export default AccountMenu;
+

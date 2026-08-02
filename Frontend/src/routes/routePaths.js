@@ -1,4 +1,4 @@
-export const routePaths = {
+﻿export const routePaths = {
   home: "/",
   notFound: "/not-found",
   search: "/search",
@@ -67,6 +67,6 @@ export const routePaths = {
   userReportDetail: (reportId = ":id") => `/user/reports/${reportId}`,
 
   libraryFollowedArtists: "/library/followed-artists",
-  libraryFollowedAlbums: "/library/followed-albums",
 };
+
 

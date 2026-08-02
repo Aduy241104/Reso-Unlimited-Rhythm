@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import {
   Check,
   CirclePlus,
@@ -32,6 +32,7 @@ import {
 } from "../../utils/albumDetail";
 import { getApiErrorMessage } from "../../utils/apiError";
 import { isResourceNotFoundError } from "../../utils/resourceError";
+import { emitFollowedAlbumChangedEvent } from "../../utils/followedLibraryEvents";
 import { isBlockedTrack } from "../../utils/trackStatus";
 
 const actionButtonClassName = `
@@ -59,6 +60,27 @@ const metaPillClassName = `
 `;
 
 const FOLLOW_LOGIN_NOTICE = "Vui lòng đăng nhập để theo dõi album này.";
+
+const normalizeText = (value) =>
+  typeof value === "string" ? value.trim() : "";
+
+const buildSidebarAlbumItem = (album, fallbackAlbumId) => {
+  const albumId = album?.id || album?.albumId || fallbackAlbumId || "";
+
+  if (!albumId) {
+    return null;
+  }
+
+  return {
+    albumId,
+    title: normalizeText(album?.title) || "Album chưa đặt tên",
+    coverImage: normalizeText(album?.coverImage),
+    artistName:
+      normalizeText(album?.artist?.name) ||
+      normalizeText(album?.artistName) ||
+      "Nghệ sĩ không xác định",
+  };
+};
 
 const AlbumDetailPage = () => {
   const { id } = useParams();
@@ -279,8 +301,28 @@ const AlbumDetailPage = () => {
       const followState = isFollowing
         ? await unfollowAlbumService({ albumId })
         : await followAlbumService({ albumId });
+      const nextIsFollowing = Boolean(followState?.isFollowing ?? !isFollowing);
 
-      setIsFollowing(Boolean(followState?.isFollowing ?? !isFollowing));
+      setIsFollowing(nextIsFollowing);
+
+      if (isFollowing) {
+        emitFollowedAlbumChangedEvent({
+          type: "removed",
+          albumId: followState?.albumId || albumId,
+        });
+      } else {
+        const sidebarAlbum = buildSidebarAlbumItem(
+          album,
+          followState?.albumId || albumId
+        );
+
+        if (sidebarAlbum) {
+          emitFollowedAlbumChangedEvent({
+            type: "added",
+            album: sidebarAlbum,
+          });
+        }
+      }
     } catch (error) {
       if (error?.response?.status === 401) {
         redirectToLogin();
@@ -492,3 +534,6 @@ const AlbumDetailPage = () => {
 };
 
 export default AlbumDetailPage;
+
+
+

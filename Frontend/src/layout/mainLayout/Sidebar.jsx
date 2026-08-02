@@ -4,7 +4,7 @@
   PanelLeftOpen,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import UserFavoriteLibraryItem from "../../components/userFavorite/UserFavoriteLibraryItem";
 import CreatePlaylistButton from "../../components/userPlaylist/CreatePlaylistButton";
@@ -20,6 +20,10 @@ import {
 import { getFavoriteTracks } from "../../services/userFavoriteService";
 import { getUserPlaylists } from "../../services/userPlaylistService";
 import { hasPremiumAccess } from "../../utils/premiumAccess";
+import {
+  FOLLOWED_ALBUMS_CHANGED_EVENT,
+  FOLLOWED_ARTISTS_CHANGED_EVENT,
+} from "../../utils/followedLibraryEvents";
 import GuestLibrarySidebar from "./GuestLibrarySidebar";
 
 const FOLLOWED_ITEMS_LIMIT = 20;
@@ -34,6 +38,128 @@ const getArtistInitial = (name) => {
   const normalizedName = name.trim();
 
   return normalizedName ? normalizedName.charAt(0).toUpperCase() : "?";
+};
+
+const normalizeText = (value) =>
+  typeof value === "string" ? value.trim() : "";
+
+const normalizeIdentityValue = (value) => {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  return String(value).trim().toLowerCase();
+};
+
+const createPendingChangesState = () => ({
+  added: new Map(),
+  removed: new Set(),
+});
+
+const getArtistIdentity = (artist) => {
+  const artistId = normalizeIdentityValue(
+    artist?.artistId || artist?.id || artist?._id
+  );
+
+  if (artistId) {
+    return `artist:${artistId}`;
+  }
+
+  const artistName = normalizeIdentityValue(artist?.name);
+  return artistName ? `artist-name:${artistName}` : "";
+};
+
+const getAlbumIdentity = (album) => {
+  const albumId = normalizeIdentityValue(album?.albumId || album?.id);
+
+  if (albumId) {
+    return `album:${albumId}`;
+  }
+
+  const albumTitle = normalizeIdentityValue(album?.title);
+  const artistName = normalizeIdentityValue(album?.artistName);
+
+  if (!albumTitle) {
+    return "";
+  }
+
+  return `album-title:${albumTitle}:${artistName}`;
+};
+
+const normalizeSidebarArtistItem = (artist) => {
+  if (!artist || !getArtistIdentity(artist)) {
+    return null;
+  }
+
+  return {
+    ...artist,
+    artistId: artist?.artistId || artist?.id || artist?._id || "",
+    name: normalizeText(artist?.name),
+    avatar: normalizeText(artist?.avatar),
+  };
+};
+
+const normalizeSidebarAlbumItem = (album) => {
+  if (!album || !getAlbumIdentity(album)) {
+    return null;
+  }
+
+  return {
+    ...album,
+    albumId: album?.albumId || album?.id || "",
+    title: normalizeText(album?.title),
+    coverImage: normalizeText(album?.coverImage),
+    artistName: normalizeText(album?.artistName),
+  };
+};
+
+const dedupeFollowedItems = (items, getIdentity) => {
+  const seenIdentities = new Set();
+
+  return items.filter((item) => {
+    const identity = getIdentity(item);
+
+    if (!identity || seenIdentities.has(identity)) {
+      return false;
+    }
+
+    seenIdentities.add(identity);
+    return true;
+  });
+};
+
+const upsertFollowedItem = (items, item, getIdentity, limit) => {
+  const identity = getIdentity(item);
+
+  if (!identity) {
+    return items.slice(0, limit);
+  }
+
+  return [
+    item,
+    ...items.filter((existingItem) => getIdentity(existingItem) !== identity),
+  ].slice(0, limit);
+};
+
+const removeFollowedItem = (items, identity, getIdentity) => {
+  if (!identity) {
+    return items;
+  }
+
+  return items.filter((item) => getIdentity(item) !== identity);
+};
+
+const applyPendingFollowedItemChanges = (items, pendingChanges, getIdentity) => {
+  let nextItems = dedupeFollowedItems(items, getIdentity).filter((item) => {
+    const identity = getIdentity(item);
+    return identity && !pendingChanges.removed.has(identity);
+  });
+
+  for (const item of Array.from(pendingChanges.added.values()).reverse()) {
+    nextItems = upsertFollowedItem(nextItems, item, getIdentity, FOLLOWED_ITEMS_LIMIT);
+  }
+
+  return nextItems.slice(0, FOLLOWED_ITEMS_LIMIT);
 };
 
 const getPlaylistTitle = (playlist) => {
@@ -135,6 +261,165 @@ const Sidebar = ({
   const [playlistTotalCount, setPlaylistTotalCount] = useState(0);
   const [isPlaylistLimitModalOpen, setIsPlaylistLimitModalOpen] =
     useState(false);
+  const followedArtistChangesRef = useRef(createPendingChangesState());
+  const followedAlbumChangesRef = useRef(createPendingChangesState());
+
+  const applyPendingArtistChanges = useCallback(
+    (artists = []) =>
+      applyPendingFollowedItemChanges(
+        Array.isArray(artists) ? artists : [],
+        followedArtistChangesRef.current,
+        getArtistIdentity
+      ),
+    []
+  );
+
+  const applyPendingAlbumChanges = useCallback(
+    (albums = []) =>
+      applyPendingFollowedItemChanges(
+        Array.isArray(albums) ? albums : [],
+        followedAlbumChangesRef.current,
+        getAlbumIdentity
+      ),
+    []
+  );
+
+  const handleFollowedArtistAdded = useCallback((artist) => {
+    const nextArtist = normalizeSidebarArtistItem(artist);
+
+    if (!nextArtist) {
+      return;
+    }
+
+    const identity = getArtistIdentity(nextArtist);
+    const pendingChanges = followedArtistChangesRef.current;
+
+    pendingChanges.removed.delete(identity);
+    pendingChanges.added.delete(identity);
+    pendingChanges.added.set(identity, nextArtist);
+    setIsLoadingArtists(false);
+    setFollowedArtists((currentArtists) =>
+      upsertFollowedItem(
+        currentArtists,
+        nextArtist,
+        getArtistIdentity,
+        FOLLOWED_ITEMS_LIMIT
+      )
+    );
+  }, []);
+
+  const handleFollowedArtistRemoved = useCallback((artistOrArtistId) => {
+    const identity = getArtistIdentity(
+      typeof artistOrArtistId === "object"
+        ? artistOrArtistId
+        : { artistId: artistOrArtistId }
+    );
+
+    if (!identity) {
+      return;
+    }
+
+    const pendingChanges = followedArtistChangesRef.current;
+
+    pendingChanges.added.delete(identity);
+    pendingChanges.removed.add(identity);
+    setIsLoadingArtists(false);
+    setFollowedArtists((currentArtists) =>
+      removeFollowedItem(currentArtists, identity, getArtistIdentity)
+    );
+  }, []);
+
+  const handleFollowedAlbumAdded = useCallback((album) => {
+    const nextAlbum = normalizeSidebarAlbumItem(album);
+
+    if (!nextAlbum) {
+      return;
+    }
+
+    const identity = getAlbumIdentity(nextAlbum);
+    const pendingChanges = followedAlbumChangesRef.current;
+
+    pendingChanges.removed.delete(identity);
+    pendingChanges.added.delete(identity);
+    pendingChanges.added.set(identity, nextAlbum);
+    setIsLoadingAlbums(false);
+    setFollowedAlbums((currentAlbums) =>
+      upsertFollowedItem(
+        currentAlbums,
+        nextAlbum,
+        getAlbumIdentity,
+        FOLLOWED_ITEMS_LIMIT
+      )
+    );
+  }, []);
+
+  const handleFollowedAlbumRemoved = useCallback((albumOrAlbumId) => {
+    const identity = getAlbumIdentity(
+      typeof albumOrAlbumId === "object"
+        ? albumOrAlbumId
+        : { albumId: albumOrAlbumId }
+    );
+
+    if (!identity) {
+      return;
+    }
+
+    const pendingChanges = followedAlbumChangesRef.current;
+
+    pendingChanges.added.delete(identity);
+    pendingChanges.removed.add(identity);
+    setIsLoadingAlbums(false);
+    setFollowedAlbums((currentAlbums) =>
+      removeFollowedItem(currentAlbums, identity, getAlbumIdentity)
+    );
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+
+    const handleArtistsChanged = (event) => {
+      if (event?.detail?.type === "removed") {
+        handleFollowedArtistRemoved(event.detail.artist || event.detail.artistId);
+        return;
+      }
+
+      if (event?.detail?.type === "added") {
+        handleFollowedArtistAdded(event.detail.artist);
+      }
+    };
+
+    const handleAlbumsChanged = (event) => {
+      if (event?.detail?.type === "removed") {
+        handleFollowedAlbumRemoved(event.detail.album || event.detail.albumId);
+        return;
+      }
+
+      if (event?.detail?.type === "added") {
+        handleFollowedAlbumAdded(event.detail.album);
+      }
+    };
+
+    window.addEventListener(FOLLOWED_ARTISTS_CHANGED_EVENT, handleArtistsChanged);
+    window.addEventListener(FOLLOWED_ALBUMS_CHANGED_EVENT, handleAlbumsChanged);
+
+    return () => {
+      window.removeEventListener(
+        FOLLOWED_ARTISTS_CHANGED_EVENT,
+        handleArtistsChanged
+      );
+      window.removeEventListener(
+        FOLLOWED_ALBUMS_CHANGED_EVENT,
+        handleAlbumsChanged
+      );
+    };
+  }, [
+    handleFollowedAlbumAdded,
+    handleFollowedAlbumRemoved,
+    handleFollowedArtistAdded,
+    handleFollowedArtistRemoved,
+  ]);
 
   useEffect(() => {
     let isMounted = true;
@@ -144,6 +429,9 @@ const Sidebar = ({
         isMounted = false;
       };
     }
+
+    followedArtistChangesRef.current = createPendingChangesState();
+    followedAlbumChangesRef.current = createPendingChangesState();
 
     if (!isAuthenticated) {
       setFollowedArtists([]);
@@ -174,12 +462,12 @@ const Sidebar = ({
 
         if (isMounted) {
           setFollowedArtists(
-            Array.isArray(response?.artists) ? response.artists : []
+            applyPendingArtistChanges(response?.artists)
           );
         }
       } catch {
         if (isMounted) {
-          setFollowedArtists([]);
+          setFollowedArtists(applyPendingArtistChanges([]));
         }
       } finally {
         if (isMounted) {
@@ -199,12 +487,12 @@ const Sidebar = ({
 
         if (isMounted) {
           setFollowedAlbums(
-            Array.isArray(response?.albums) ? response.albums : []
+            applyPendingAlbumChanges(response?.albums)
           );
         }
       } catch {
         if (isMounted) {
-          setFollowedAlbums([]);
+          setFollowedAlbums(applyPendingAlbumChanges([]));
         }
       } finally {
         if (isMounted) {
@@ -275,7 +563,12 @@ const Sidebar = ({
     return () => {
       isMounted = false;
     };
-  }, [isAuthenticated, isLoading]);
+  }, [
+    applyPendingAlbumChanges,
+    applyPendingArtistChanges,
+    isAuthenticated,
+    isLoading,
+  ]);
 
   const handleGuestAction = (path) => {
     onNavigate?.();
@@ -667,3 +960,8 @@ const Sidebar = ({
 };
 
 export default Sidebar;
+
+
+
+
+
