@@ -27,7 +27,6 @@ const RegisterPage = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState("details");
   const [detailsApiError, setDetailsApiError] = useState("");
-  const [detailsValidationError, setDetailsValidationError] = useState("");
   const [otpApiError, setOtpApiError] = useState("");
   const [isResendingOtp, setIsResendingOtp] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(0);
@@ -74,7 +73,6 @@ const RegisterPage = () => {
 
   const handleSendOtp = async (values) => {
     setDetailsApiError("");
-    setDetailsValidationError("");
     setOtpApiError("");
 
     try {
@@ -256,9 +254,6 @@ const RegisterPage = () => {
     const firstFieldName = Object.keys(formErrors)[0];
 
     setDetailsApiError("");
-    setDetailsValidationError(
-      "Vui lòng điền đầy đủ các trường bắt buộc trước khi tiếp tục."
-    );
 
     if (firstFieldName) {
       detailsForm.setFocus(firstFieldName);
@@ -298,7 +293,6 @@ const RegisterPage = () => {
           {isDetailsStep ? (
             <RegisterDetailsStep
               apiError={detailsApiError}
-              validationError={detailsValidationError}
               form={detailsForm}
               onInvalidSubmit={handleInvalidDetailsSubmit}
               onSubmit={handleSendOtp}

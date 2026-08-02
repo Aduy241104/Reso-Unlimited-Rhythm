@@ -131,14 +131,6 @@ const PaymentHistoryCard = ({ payment, isExpanded, onToggle }) => {
             Xem biên nhận
           </button>
 
-          <button
-            type="button"
-            disabled
-            className="flex w-full items-center rounded-[14px] px-4 py-3 text-left text-sm font-medium text-white/45"
-            role="menuitem"
-          >
-            Yêu cầu hoàn tiền
-          </button>
         </div>
       ) : null}
     </div>

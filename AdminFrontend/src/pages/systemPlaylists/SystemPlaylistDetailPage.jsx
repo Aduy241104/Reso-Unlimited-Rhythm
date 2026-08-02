@@ -24,7 +24,7 @@ import {
 import { routePaths } from "../../routes/routePaths";
 
 const fmtDur = (s) => {
-  const n = Number(s);
+  const n = Math.floor(Number(s));
   if (!Number.isFinite(n) || n < 0) return "-";
   return `${Math.floor(n / 60)}:${String(n % 60).padStart(2, "0")}`;
 };

@@ -13,6 +13,7 @@ import {
   formatDateTime,
   formatDuration,
   formatNumber,
+  formatTrackDuration,
   getAlbumStatusBadge,
   getArtistStatusBadge,
   getInitials,
@@ -288,7 +289,7 @@ const AlbumManagementInfoSections = ({
                         </td>
 
                         <td className="whitespace-nowrap px-4 py-3.5 text-sm text-slate-700">
-                          {formatDuration(track?.duration)}
+                          {formatTrackDuration(track?.duration)}
                         </td>
 
                         <td className="whitespace-nowrap px-4 py-3.5 text-sm text-slate-700">

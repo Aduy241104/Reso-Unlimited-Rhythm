@@ -238,11 +238,6 @@ export const BottomTabNavigator = () => {
         component={PremiumScreen}
         options={{ tabBarLabel: 'Premium' }}
       />
-      <Tab.Screen
-        name="CreateForMe"
-        component={CreateForMeStack}
-        options={{ tabBarLabel: 'Tạo cho tôi' }}
-      />
     </Tab.Navigator>
   );
 };

@@ -1,12 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  CirclePlus,
-  Download,
-  MoreHorizontal,
-  Shuffle,
-} from "lucide-react";
+import { Shuffle } from "lucide-react";
 import PlayButton from "../../components/common/PlayButton";
 import LoadingState from "../../components/common/LoadingState";
+import NotFoundPage from "../error/NotFoundPage";
 import { useParams } from "react-router-dom";
 import TrackCard from "../../components/TrackCard";
 import TrackListSection from "../../components/trackList/TrackListSection";
@@ -16,18 +12,13 @@ import { routePaths } from "../../routes/routePaths";
 import { getPlaylistDetailService } from "../../services/playlistService";
 import { formatTrackDuration, resolveTrackAvatar } from "../../utils/albumDetail";
 import { getApiErrorMessage } from "../../utils/apiError";
+import { isResourceNotFoundError } from "../../utils/resourceError";
 import {
   formatPlaylistDate,
   formatPlaylistDuration,
   getPlaylistOwnerLabel,
 } from "../../utils/playlistDetail";
 import { isBlockedTrack } from "../../utils/trackStatus";
-
-const actionButtonClassName = `
-  inline-flex h-10 w-10 items-center justify-center rounded-full border border-black/8
-  bg-white/70 text-[#18181b] transition hover:scale-[1.03] hover:bg-white
-  dark:border-white/10 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/[0.12] sm:h-11 sm:w-11
-`;
 
 const shufflePlayButtonClassName = `
   inline-flex h-10 items-center gap-2 rounded-full border border-black/8 px-4
@@ -44,6 +35,7 @@ const PlaylistDetailPage = () => {
   const { id } = useParams();
   const [playlist, setPlaylist] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isNotFound, setIsNotFound] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const {
     currentTrack,
@@ -60,12 +52,19 @@ const PlaylistDetailPage = () => {
 
     const loadPlaylistDetail = async () => {
       setIsLoading(true);
+      setIsNotFound(false);
       setErrorMessage("");
 
       try {
         const playlistDetail = await getPlaylistDetailService(id);
 
         if (!isMounted) {
+          return;
+        }
+
+        if (!playlistDetail) {
+          setPlaylist(null);
+          setIsNotFound(true);
           return;
         }
 
@@ -76,6 +75,11 @@ const PlaylistDetailPage = () => {
         }
 
         setPlaylist(null);
+        if (isResourceNotFoundError(error)) {
+          setIsNotFound(true);
+          return;
+        }
+
         setErrorMessage(
           getApiErrorMessage(
             error,
@@ -91,7 +95,8 @@ const PlaylistDetailPage = () => {
 
     if (!id) {
       setPlaylist(null);
-      setErrorMessage("Playlist id is missing.");
+      setIsNotFound(true);
+      setErrorMessage("");
       setIsLoading(false);
       return () => {
         isMounted = false;
@@ -161,10 +166,6 @@ const PlaylistDetailPage = () => {
     });
   };
 
-  const handleLikeTrack = (track) => {
-    console.log("Toggle like track:", track?.title);
-  };
-
   const metaItems = [
     playlistOwnerLabel,
     createdDate,
@@ -178,6 +179,14 @@ const PlaylistDetailPage = () => {
         message="Loading playlist detail..."
         className="min-h-[60vh]"
         spinnerClassName="h-8 w-8"
+      />
+    );
+  }
+
+  if (isNotFound) {
+    return (
+      <NotFoundPage
+        title="Không tìm thấy playlist"
       />
     );
   }
@@ -275,18 +284,10 @@ const PlaylistDetailPage = () => {
               <Shuffle className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
               <span>Shuffle Play</span>
             </button>
-            <button type="button" className={ actionButtonClassName } aria-label="Add playlist">
-              <CirclePlus className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
-            </button>
-            <button type="button" className={ actionButtonClassName } aria-label="Download playlist">
-              <Download className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
-            </button>
-            <button type="button" className={ actionButtonClassName } aria-label="More options">
-              <MoreHorizontal className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
-            </button>
           </div>
 
           <TrackListSection
+            type="withoutLike"
             isLoading={ isLoading }
             errorMessage={ errorMessage }
             loadingMessage="Loading tracks..."
@@ -317,7 +318,8 @@ const PlaylistDetailPage = () => {
                   isPlaybackActive={ currentTrack?.id === track?.id }
                   isPlaying={ isPlaying }
                   onPlaybackAction={ () => handlePlayTrack(track, index) }
-                  onLike={ () => handleLikeTrack(track) }
+                  mobileLayoutClassName="grid-cols-[2rem_minmax(0,1fr)]"
+                  desktopLayoutClassName="sm:grid-cols-[2.5rem_minmax(0,1fr)_3.25rem_2.75rem]"
                 />
               );
             }) }

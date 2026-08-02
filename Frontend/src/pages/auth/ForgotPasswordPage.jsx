@@ -7,6 +7,7 @@ import systemLogo from "../../assets/images/ChatGPT Image 13_16_10 4 thg 5, 2026
 import AuthCard from "../../components/auth/AuthCard";
 import AuthField from "../../components/auth/AuthField";
 import { routePaths } from "../../routes/routePaths";
+import { USER_INPUT_LIMITS } from "../../constants/userInputLimits";
 import { forgotPasswordService } from "../../services/authService";
 import {
   applyApiFieldErrors,
@@ -147,6 +148,7 @@ const ForgotPasswordPage = () => {
               <div className="space-y-3.5">
                 <AuthField
                   label="Email"
+                  maxLength={USER_INPUT_LIMITS.email}
                   labelClassName="text-sm font-medium normal-case tracking-normal text-slate-700"
                   type="email"
                   placeholder="tenban@example.com"

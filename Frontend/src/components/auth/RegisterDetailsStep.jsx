@@ -13,17 +13,15 @@ import {
 import { Link } from "react-router-dom";
 import systemLogo from "../../assets/images/ChatGPT Image 13_16_10 4 thg 5, 2026.png";
 import { routePaths } from "../../routes/routePaths";
+import { USER_INPUT_LIMITS } from "../../constants/userInputLimits";
 import AuthCard from "./AuthCard";
 import AuthField from "./AuthField";
-
-const MAX_BIRTH_DATE = new Date().toISOString().split("T")[0];
 
 const RegisterDetailsStep = ({
   form,
   onSubmit,
   onInvalidSubmit,
   apiError,
-  validationError,
 }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -32,14 +30,9 @@ const RegisterDetailsStep = ({
     handleSubmit,
     formState: { errors, isSubmitting },
   } = form;
-  const validationMessages = Object.values(errors)
-    .map((error) => error?.message)
-    .filter(Boolean);
-
   return (
     <AuthCard
       title="Đăng ký tài khoản"
-      subtitle="Điền những thông tin cơ bản để chúng tôi gửi mã xác thực đến email của bạn."
       className="w-full rounded-[18px] border border-white bg-white px-4 py-4 shadow-[0_24px_80px_rgba(0,0,0,0.22)] sm:px-6 sm:py-5 lg:px-7 lg:py-6"
       headerClassName="mb-5 text-center [&_.auth-card-divider]:mx-auto [&_.auth-card-subtitle]:mx-auto"
       headerContent={
@@ -77,22 +70,10 @@ const RegisterDetailsStep = ({
           </div>
         ) : null}
 
-        {!apiError && validationError ? (
-          <div className="mb-3.5 rounded-[14px] border border-amber-200 bg-white px-4 py-3 text-sm text-amber-700">
-            <p className="font-medium">{validationError}</p>
-            {validationMessages.length > 0 ? (
-              <ul className="mt-2 space-y-1">
-                {validationMessages.map((message) => (
-                  <li key={message}>{message}</li>
-                ))}
-              </ul>
-            ) : null}
-          </div>
-        ) : null}
-
         <div className="space-y-3.5">
           <AuthField
             label="Họ và tên"
+            maxLength={USER_INPUT_LIMITS.fullName}
             labelClassName="text-sm font-medium normal-case tracking-normal text-slate-700"
             placeholder="Nguyễn Văn A"
             autoComplete="name"
@@ -104,6 +85,7 @@ const RegisterDetailsStep = ({
 
           <AuthField
             label="Email"
+            maxLength={USER_INPUT_LIMITS.email}
             labelClassName="text-sm font-medium normal-case tracking-normal text-slate-700"
             type="email"
             placeholder="tenban@example.com"
@@ -138,7 +120,6 @@ const RegisterDetailsStep = ({
               error={errors.dateOfBirth?.message}
               startAdornment={<CalendarDays className="h-4 w-4" />}
               inputClassName="min-h-[46px] rounded-[14px] border-slate-200 bg-white shadow-none"
-              max={MAX_BIRTH_DATE}
               onClick={(event) => event.currentTarget.showPicker?.()}
               onFocus={(event) => event.currentTarget.showPicker?.()}
               {...register("dateOfBirth")}
@@ -147,6 +128,7 @@ const RegisterDetailsStep = ({
 
           <AuthField
             label="Mật khẩu"
+            maxLength={USER_INPUT_LIMITS.registrationPassword}
             labelClassName="text-sm font-medium normal-case tracking-normal text-slate-700"
             type={showPassword ? "text" : "password"}
             placeholder="Tạo mật khẩu"
@@ -172,6 +154,7 @@ const RegisterDetailsStep = ({
 
           <AuthField
             label="Xác nhận mật khẩu"
+            maxLength={USER_INPUT_LIMITS.registrationPassword}
             labelClassName="text-sm font-medium normal-case tracking-normal text-slate-700"
             type={showConfirmPassword ? "text" : "password"}
             placeholder="Nhập lại mật khẩu"

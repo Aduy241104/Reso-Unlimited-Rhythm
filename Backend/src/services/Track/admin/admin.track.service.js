@@ -20,6 +20,15 @@ const toId = (value) => {
     return value.toString();
 };
 
+const formatGenreReferences = (genres = []) =>
+    genres.map((genre) => ({
+        id: toId(genre?._id || genre),
+        name:
+            genre && typeof genre === "object"
+                ? genre.name || ""
+                : "",
+    }));
+
 const cloneTrackMutableData = (source) => ({
     title: source?.title || "",
     versionTitle: source?.versionTitle || "",
@@ -133,6 +142,7 @@ const formatPendingUpdate = (track) => {
 const formatAdminTrackListItem = (track) => {
     const artistRef = track.artist_artistId;
     const displayTrack = getDisplayTrackVersion(track);
+    const reviewSource = getReviewSource(track);
     const isPopulatedArtist =
         artistRef &&
         typeof artistRef === "object" &&
@@ -146,7 +156,19 @@ const formatAdminTrackListItem = (track) => {
         avatar: displayTrack.avatar || "",
         approvalStatus: track.approvalStatus,
         reviewStatus: getReviewStatus(track),
-        reviewSource: getReviewSource(track),
+        reviewSource,
+        reviewSubmittedAt:
+            reviewSource === "pending_update"
+                ? track.pendingUpdate?.submittedAt || null
+                : track.moderation?.submittedAt || null,
+        changedFields:
+            reviewSource === "pending_update"
+                ? track.pendingUpdate?.changedFields || []
+                : [],
+        liveTitle:
+            reviewSource === "pending_update"
+                ? track.title || ""
+                : null,
         pendingUpdateStatus: track.pendingUpdate?.status || "none",
         activeStatus: track.activeStatus,
         releaseStatus: resolveTrackReleaseStatus(track),
@@ -181,10 +203,7 @@ const formatAdminTrackDetailItem = (track) => {
         lyricsStatic: displayTrack.lyricsStatic || "",
         lyricsSyncUrl: displayTrack.lyricsSyncUrl || "",
         audioFiles: displayTrack.audioFiles || [],
-        genres: (displayTrack.genreIds || []).map((genre) => ({
-            id: toId(genre._id),
-            name: genre.name || "",
-        })),
+        genres: formatGenreReferences(displayTrack.genreIds || []),
         stats: track.stats || { totalLike: 0, totalPlay: 0 },
         releaseDate: track.releaseDate || null,
         releaseStatus: resolveTrackReleaseStatus(track),
@@ -241,8 +260,11 @@ const formatAdminTrackDetailItem = (track) => {
                 title: albumRef.title || "",
             }
             : null,
-        liveVersion: getReviewSource(track) === "pending_update"
-            ? cloneTrackMutableData(track)
+        liveVersion: track?.pendingUpdate?.data
+            ? {
+                ...cloneTrackMutableData(track),
+                genres: formatGenreReferences(track.genreIds || []),
+            }
             : null,
         pendingUpdate: formatPendingUpdate(track),
     };
@@ -396,15 +418,31 @@ const listTracksForAdmin = async (query = {}) => {
 
     if (query.approvalStatus) {
         if (query.approvalStatus === "pending") {
-            conditions.push({
-                $or: [
-                    { approvalStatus: "pending" },
-                    { "pendingUpdate.status": "pending" },
-                ],
-            });
+            if (query.reviewSource === "track_release") {
+                conditions.push({
+                    approvalStatus: "pending",
+                    "pendingUpdate.status": { $ne: "pending" },
+                });
+            } else if (query.reviewSource === "pending_update") {
+                conditions.push({ "pendingUpdate.status": "pending" });
+            } else {
+                conditions.push({
+                    $or: [
+                        { approvalStatus: "pending" },
+                        { "pendingUpdate.status": "pending" },
+                    ],
+                });
+            }
         } else {
             conditions.push({ approvalStatus: query.approvalStatus });
         }
+    } else if (query.reviewSource === "track_release") {
+        conditions.push({
+            approvalStatus: "pending",
+            "pendingUpdate.status": { $ne: "pending" },
+        });
+    } else if (query.reviewSource === "pending_update") {
+        conditions.push({ "pendingUpdate.status": "pending" });
     }
 
     if (query.activeStatus) {
@@ -419,7 +457,10 @@ const listTracksForAdmin = async (query = {}) => {
         const titleRegex = new RegExp(escapeRegex(rawSearch), "i");
         const matchingArtists = await Artist.find({ name: titleRegex }).select("_id").lean();
         const artistIds = matchingArtists.map((artist) => artist._id);
-        const orClause = [{ title: titleRegex }];
+        const orClause = [
+            { title: titleRegex },
+            { "pendingUpdate.data.title": titleRegex },
+        ];
 
         if (artistIds.length > 0) {
             orClause.push({ artist_artistId: { $in: artistIds } });
@@ -492,7 +533,16 @@ const updateTrackApprovalStatus = async (
     const flags = payload.violationFlags || [];
     const hasPendingUpdateUnderReview =
         track.pendingUpdate?.status === "pending" && track.pendingUpdate?.data;
+    const hasPendingReleaseUnderReview = track.approvalStatus === "pending";
     const pendingSubmittedAt = track.pendingUpdate?.submittedAt || null;
+
+    if (!hasPendingUpdateUnderReview && !hasPendingReleaseUnderReview) {
+        throw new AppError(
+            "Track does not have a pending moderation request.",
+            409,
+            { field: "status" }
+        );
+    }
 
     if (payload.status === "approved") {
         if (hasPendingUpdateUnderReview) {
@@ -582,10 +632,7 @@ const updateTrackApprovalStatus = async (
         io,
     });
 
-    return {
-        ...formatAdminTrackListItem(track.toObject()),
-        moderation: track.moderation,
-    };
+    return getTrackDetailForAdmin(trackId);
 };
 
 const updateTrackVisibility = async (
@@ -603,27 +650,18 @@ const updateTrackVisibility = async (
 
     if (payload.action === "hide") {
         track.blockedByAlbumId = null;
-        track.previousActiveStatusBeforeAlbumBlock = null;
-        track.previousHiddenReasonBeforeAlbumBlock = "";
-        track.previousHiddenAtBeforeAlbumBlock = null;
         track.activeStatus = "hidden";
         track.hiddenReason = (payload.hiddenReason || payload.adminNote || "Hidden by administrator.").trim();
         track.blockedReason = "";
         track.hiddenAt = new Date();
     } else if (payload.action === "block") {
         track.blockedByAlbumId = null;
-        track.previousActiveStatusBeforeAlbumBlock = null;
-        track.previousHiddenReasonBeforeAlbumBlock = "";
-        track.previousHiddenAtBeforeAlbumBlock = null;
         track.activeStatus = "blocked";
         track.blockedReason = (payload.blockedReason || payload.adminNote || "Blocked by administrator.").trim();
         track.hiddenReason = "";
         track.hiddenAt = null;
     } else if (payload.action === "unhide") {
         track.blockedByAlbumId = null;
-        track.previousActiveStatusBeforeAlbumBlock = null;
-        track.previousHiddenReasonBeforeAlbumBlock = "";
-        track.previousHiddenAtBeforeAlbumBlock = null;
         track.activeStatus = "active";
         track.hiddenReason = "";
         track.blockedReason = "";
@@ -633,9 +671,6 @@ const updateTrackVisibility = async (
             throw new AppError("Only a blocked track can be unblocked.", 400, { field: "action" });
         }
         track.blockedByAlbumId = null;
-        track.previousActiveStatusBeforeAlbumBlock = null;
-        track.previousHiddenReasonBeforeAlbumBlock = "";
-        track.previousHiddenAtBeforeAlbumBlock = null;
         track.activeStatus = "active";
         track.hiddenReason = "";
         track.blockedReason = "";
@@ -666,7 +701,7 @@ const updateTrackVisibility = async (
         io,
     });
 
-    return formatAdminTrackListItem(track.toObject());
+    return getTrackDetailForAdmin(trackId);
 };
 
 export default {

@@ -17,6 +17,17 @@ export const getCurrentMonthValue = () => {
   return `${year}-${month}`;
 };
 
+export const getPreviousMonthValue = () => {
+  const previousMonth = new Date();
+  previousMonth.setDate(1);
+  previousMonth.setMonth(previousMonth.getMonth() - 1);
+
+  const year = previousMonth.getFullYear();
+  const month = String(previousMonth.getMonth() + 1).padStart(2, "0");
+
+  return `${year}-${month}`;
+};
+
 export const formatMonthlyTopTracksDate = (monthValue) => {
   if (!monthValue) {
     return "Tháng không xác định";
@@ -62,7 +73,7 @@ export const getMonthlyTopTracksHeroImage = (topTracks = []) => {
 };
 
 export const createMonthlyTopTracksCollectionMeta = ({
-  month = getCurrentMonthValue(),
+  month = getPreviousMonthValue(),
   image = MONTHLY_TOP_TRACK_PLACEHOLDER_IMAGE,
 } = {}) => ({
   id: `monthly-top-${month}`,
@@ -75,7 +86,7 @@ export const createMonthlyTopTracksCollectionMeta = ({
 export const mapMonthlyTopTracksToContentCards = ({
   topTracks = [],
   meta = {},
-  month = getCurrentMonthValue(),
+  month = getPreviousMonthValue(),
   limit = MONTHLY_TOP_TRACK_LIMIT,
 } = {}) => {
   const resolvedMonth = meta?.date || month;

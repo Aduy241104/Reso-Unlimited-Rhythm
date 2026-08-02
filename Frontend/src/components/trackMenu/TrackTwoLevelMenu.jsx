@@ -14,6 +14,7 @@ import {
     X,
 } from "lucide-react";
 import DeletePlaylistConfirmModal from "../userPlaylist/DeletePlaylistConfirmModal";
+import { USER_INPUT_LIMITS } from "../../constants/userInputLimits";
 import { usePlayer } from "../../hooks/usePlayer";
 import {
     addTrackToFavorite,
@@ -100,6 +101,7 @@ const TrackTwoLevelMenu = ({
     isUserOwnedPlaylist = false,
     onRemoveFromCurrentPlaylist,
     isRemovingFromCurrentPlaylist = false,
+    menuAlign = "end",
 }) => {
     const menuRef = useRef(null);
     const navigate = useNavigate();
@@ -265,6 +267,16 @@ const TrackTwoLevelMenu = ({
         ${submenuPlacement === "left" ? "bottom-0 right-full mr-1.5" : ""}
         ${submenuPlacement === "right" ? "bottom-0 left-full ml-1.5" : ""}
         ${submenuPlacement === "stacked" ? "right-0 top-full mt-2 " : ""}
+    `;
+
+    const menuClassName = `
+        absolute bottom-full z-[9999] mb-1.5
+        w-56 overflow-visible rounded-md
+        border border-[#3d3c3c]
+        bg-[#202020]
+        p-1 text-[12px]
+        shadow-[0_10px_30px_rgba(0,0,0,0.35)]
+        ${menuAlign === "start" ? "left-0" : "right-0"}
     `;
 
     const filteredPlaylists = useMemo(() => {
@@ -451,14 +463,7 @@ const TrackTwoLevelMenu = ({
 
             { isOpen && (
                 <div
-                    className="
-                        absolute bottom-full right-0 z-[9999] mb-1.5
-                        w-56 overflow-visible rounded-md
-                        border border-[#3d3c3c]
-                        bg-[#202020]
-                        p-1 text-[12px]
-                        shadow-[0_10px_30px_rgba(0,0,0,0.35)]
-                    "
+                    className={ menuClassName }
                     onClick={ (event) => event.stopPropagation() }
                 >
                     <button
@@ -560,6 +565,7 @@ const TrackTwoLevelMenu = ({
                                     <input
                                         type="text"
                                         value={ searchValue }
+                                        maxLength={ USER_INPUT_LIMITS.search }
                                         onChange={ (event) =>
                                             setSearchValue(event.target.value)
                                         }

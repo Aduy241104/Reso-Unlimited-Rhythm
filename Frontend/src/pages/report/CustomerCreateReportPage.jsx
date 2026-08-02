@@ -3,8 +3,13 @@ import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import ReportReasonSelect from "../../components/report/ReportReasonSelect";
 import { createReportService } from "../../services/report/user.report.service";
+import { USER_INPUT_LIMITS } from "../../constants/userInputLimits";
 import { routePaths } from "../../routes/routePaths";
 import { getApiErrorFullMessage } from "../../utils/apiError";
+import {
+  IMAGE_FILE_ACCEPT,
+  getImageFilesValidationError,
+} from "../../utils/imageFileValidation";
 
 const REPORT_REASON_GROUPS = [
   {
@@ -85,9 +90,18 @@ const CustomerCreateReportPage = () => {
     setSubmitError("");
 
     if (name === "images") {
+      const selectedImages = Array.from(files || []).slice(0, 5);
+      const validationError = getImageFilesValidationError(selectedImages);
+
+      if (validationError) {
+        setErrors((previous) => ({ ...previous, images: validationError }));
+        event.target.value = "";
+        return;
+      }
+
       setFormData((previous) => ({
         ...previous,
-        images: Array.from(files || []).slice(0, 5),
+        images: selectedImages,
       }));
       return;
     }
@@ -261,6 +275,7 @@ const CustomerCreateReportPage = () => {
             <FieldLabel required>Mô tả chi tiết</FieldLabel>
             <textarea
               name="description"
+              maxLength={USER_INPUT_LIMITS.reportDescription}
               rows={6}
               value={formData.description}
               onChange={handleChange}
@@ -289,12 +304,15 @@ const CustomerCreateReportPage = () => {
               <input
                 type="file"
                 name="images"
-                accept="image/*"
+                accept={IMAGE_FILE_ACCEPT}
                 multiple
                 className="sr-only"
                 onChange={handleChange}
               />
             </label>
+            {errors.images ? (
+              <p className="mt-2 text-xs text-rose-300">{errors.images}</p>
+            ) : null}
             {imageNames.length > 0 ? (
               <div className="mt-3 space-y-2">
                 {imageNames.map((name) => (

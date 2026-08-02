@@ -98,7 +98,7 @@ const ArtistRequestDetailPage = () => {
       return;
     }
 
-    if (!hasCompletedChecklist) {
+    if (status === "approved" && !hasCompletedChecklist) {
       setMessageTone("error");
       setMessage("Hãy đánh giá đầy đủ tất cả tiêu chí trước khi gửi quyết định.");
       return;
@@ -107,12 +107,6 @@ const ArtistRequestDetailPage = () => {
     if (status === "approved" && !hasAllCriteriaApproved) {
       setMessageTone("error");
       setMessage("Chỉ có thể duyệt khi tất cả tiêu chí đều đạt.");
-      return;
-    }
-
-    if (status === "rejected" && !reviewForm.rejectReason.trim()) {
-      setMessageTone("error");
-      setMessage("Vui lòng nhập lý do từ chối.");
       return;
     }
 
@@ -190,7 +184,6 @@ const ArtistRequestDetailPage = () => {
               reviewForm={ reviewForm }
               isSubmitting={ isSubmitting }
               isPending={ isPending }
-              isApproved={ isApproved }
               hasCompletedChecklist={ hasCompletedChecklist }
               hasAllCriteriaApproved={ hasAllCriteriaApproved }
               onChecklistChange={ handleChecklistChange }

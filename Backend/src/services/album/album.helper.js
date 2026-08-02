@@ -17,6 +17,7 @@ const toId = (value) => {
 };
 
 const isBlockedTrack = (track) => track?.activeStatus === "blocked";
+const isHiddenTrack = (track) => track?.activeStatus === "hidden";
 
 const formatAlbumItem = (album) => ({
     id: toId(album._id),
@@ -50,7 +51,6 @@ const formatAlbumTrack = (trackItem) => {
                 duration: track.duration,
                 avatar: track.avatar,
                 coverImage: track.coverImage,
-                audioFiles: track.audioFiles,
                 lyricsStatic: track.lyricsStatic,
                 lyricsSyncUrl: track.lyricsSyncUrl,
                 stats: track.stats,
@@ -58,6 +58,7 @@ const formatAlbumTrack = (trackItem) => {
                 activeStatus: track.activeStatus,
                 approvalStatus: track.approvalStatus,
                 isBlocked: isBlockedTrack(track),
+                isHidden: isHiddenTrack(track),
                 artist: track.artist_artistId
                     ? {
                         id: toId(track.artist_artistId._id),

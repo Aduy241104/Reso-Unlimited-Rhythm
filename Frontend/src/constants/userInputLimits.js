@@ -1,0 +1,15 @@
+export const USER_INPUT_LIMITS = Object.freeze({
+  fullName: 100,
+  stageName: 100,
+  email: 254,
+  registrationPassword: 33,
+  password: 128,
+  search: 100,
+  playlistTitle: 120,
+  playlistDescription: 500,
+  reportDescription: 2000,
+  bio: 1000,
+  identityNumber: 20,
+  url: 500,
+  portfolioDescription: 1000,
+});

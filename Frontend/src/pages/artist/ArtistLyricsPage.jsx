@@ -17,6 +17,7 @@ import {
   UploadCloud,
   X,
 } from "lucide-react";
+import { ARTIST_INPUT_LIMITS } from "../../constants/artistInputLimits";
 import trackService from "../../services/trackService";
 import lyricsService from "../../services/lyricsService";
 import {
@@ -450,6 +451,7 @@ const ArtistLyricsPage = () => {
                 type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
+                maxLength={ARTIST_INPUT_LIMITS.search}
                 placeholder="Tìm theo tên hoặc album..."
                 className="min-w-0 flex-1 bg-transparent text-[#332a52] outline-none placeholder:text-[#aaa4bd]"
               />
@@ -664,6 +666,7 @@ const ArtistLyricsPage = () => {
                             onChange={(event) =>
                               setLyricsStatic(event.target.value)
                             }
+                            maxLength={ARTIST_INPUT_LIMITS.trackLyrics}
                             rows={15}
                             placeholder={"Nhập lời bài hát tại đây...\n\nVí dụ:\nMột ngày mới đang bắt đầu\nGiai điệu vang lên trong lòng"}
                             className="block min-h-[340px] w-full resize-y bg-white px-5 py-4 text-[15px] leading-7 text-[#332a52] outline-none placeholder:text-[#b1abba]"

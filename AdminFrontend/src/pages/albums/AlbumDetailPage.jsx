@@ -38,6 +38,18 @@ const formatDuration = (seconds) => {
   return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
 };
 
+const formatTrackDuration = (seconds) => {
+  const normalizedSeconds = Math.floor(Number(seconds));
+
+  if (!Number.isFinite(normalizedSeconds) || normalizedSeconds < 0) {
+    return "0:00";
+  }
+
+  const minutes = Math.floor(normalizedSeconds / 60);
+  const remainingSeconds = normalizedSeconds % 60;
+  return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
+};
+
 const StatusBadge = ({ value }) => {
   const tone =
     value === "active"
@@ -249,7 +261,7 @@ const AlbumDetailPage = () => {
                             {track?.title || "Bài hát không xác định"}
                           </p>
                           <p className="mt-1 text-xs text-slate-500">
-                            {track?.artist?.name || "Nghệ sĩ không xác định"} • {formatDuration(track?.duration)}
+                            {track?.artist?.name || "Nghệ sĩ không xác định"} • {formatTrackDuration(track?.duration)}
                           </p>
                         </div>
 

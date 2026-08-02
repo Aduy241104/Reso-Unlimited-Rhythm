@@ -9,9 +9,13 @@ const renderDescription = (description) => (
   <span className="whitespace-pre-line">{description}</span>
 );
 
+const getNotificationKey = (type, description) =>
+  `artist-notification:${type}:${String(description ?? "").trim()}`;
+
 export const showArtistSuccess = (description) => {
   notification.success({
     ...DEFAULT_CONFIG,
+    key: getNotificationKey("success", description),
     message: "Thành công",
     description: renderDescription(description),
   });
@@ -20,6 +24,7 @@ export const showArtistSuccess = (description) => {
 export const showArtistError = (description) => {
   notification.error({
     ...DEFAULT_CONFIG,
+    key: getNotificationKey("error", description),
     message: "Không thể thực hiện",
     description: renderDescription(description),
   });
@@ -28,6 +33,7 @@ export const showArtistError = (description) => {
 export const showArtistInfo = (description) => {
   notification.info({
     ...DEFAULT_CONFIG,
+    key: getNotificationKey("info", description),
     message: "Thông báo",
     description: renderDescription(description),
   });
@@ -36,6 +42,7 @@ export const showArtistInfo = (description) => {
 export const showArtistWarning = (description) => {
   notification.warning({
     ...DEFAULT_CONFIG,
+    key: getNotificationKey("warning", description),
     message: "Cần lưu ý",
     description: renderDescription(description),
   });

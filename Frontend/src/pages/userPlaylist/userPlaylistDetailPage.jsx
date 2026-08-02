@@ -1,8 +1,6 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CircleMinus,
-  CirclePlus,
-  Download,
   MoreHorizontal,
   Pencil,
   Shuffle,
@@ -12,6 +10,7 @@ import DeletePlaylistConfirmModal from "../../components/userPlaylist/DeletePlay
 import EditPlaylistModal from "../../components/userPlaylist/EditPlaylistModal";
 import PlayButton from "../../components/common/PlayButton";
 import LoadingState from "../../components/common/LoadingState";
+import NotFoundPage from "../error/NotFoundPage";
 import TrackCard from "../../components/TrackCard";
 import TrackListSection from "../../components/trackList/TrackListSection";
 import TrackTwoLevelMenu from "../../components/trackMenu/TrackTwoLevelMenu";
@@ -27,18 +26,13 @@ import {
 } from "../../services/userPlaylistService";
 import { formatTrackDuration, resolveTrackAvatar } from "../../utils/albumDetail";
 import { getApiErrorMessage } from "../../utils/apiError";
+import { isResourceNotFoundError } from "../../utils/resourceError";
 import {
   formatPlaylistDate,
   formatPlaylistDuration,
 } from "../../utils/playlistDetail";
 import { isBlockedTrack } from "../../utils/trackStatus";
 import { Clock3 } from "lucide-react";
-
-const actionButtonClassName = `
-  inline-flex h-10 w-10 items-center justify-center rounded-full border border-black/8
-  bg-white/70 text-[#18181b] transition hover:scale-[1.03] hover:bg-white
-  dark:border-white/10 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/[0.12] sm:h-11 sm:w-11
-`;
 
 const shufflePlayButtonClassName = `
   inline-flex h-10 items-center gap-2 rounded-full border border-black/8 px-4
@@ -61,7 +55,7 @@ const trackListHeaderColumns = [
     iconClassName: "h-3.5 w-3.5",
   },
   { label: "" },
-];
+].filter((_, index) => index !== 2);
 
 
 const getPlaylistTitle = (playlist) => {
@@ -185,6 +179,7 @@ const UserPlaylistDetailPage = () => {
   const [playlist, setPlaylist] = useState(null);
   const [existingPlaylists, setExistingPlaylists] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isNotFound, setIsNotFound] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
@@ -211,6 +206,7 @@ const UserPlaylistDetailPage = () => {
 
     const loadPlaylistDetail = async () => {
       setIsLoading(true);
+      setIsNotFound(false);
       setErrorMessage("");
 
       try {
@@ -233,7 +229,7 @@ const UserPlaylistDetailPage = () => {
 
         if (!playlistDetail) {
           setPlaylist(null);
-          setErrorMessage("Playlist not found.");
+          setIsNotFound(true);
           return;
         }
 
@@ -246,6 +242,11 @@ const UserPlaylistDetailPage = () => {
 
         setPlaylist(null);
         setExistingPlaylists([]);
+        if (isResourceNotFoundError(error)) {
+          setIsNotFound(true);
+          return;
+        }
+
         setErrorMessage(
           getApiErrorMessage(
             error,
@@ -261,7 +262,8 @@ const UserPlaylistDetailPage = () => {
 
     if (!id) {
       setPlaylist(null);
-      setErrorMessage("Playlist id is missing.");
+      setIsNotFound(true);
+      setErrorMessage("");
       setIsLoading(false);
       return () => {
         isMounted = false;
@@ -457,10 +459,6 @@ const UserPlaylistDetailPage = () => {
       startIndex: index,
       collection: collectionMeta,
     });
-  };
-
-  const handleLikeTrack = (track) => {
-    console.log("Toggle like track:", track?.title || track?.name);
   };
 
   const mergePlaylistSummary = (sourcePlaylist, updatedPlaylist) => {
@@ -690,6 +688,14 @@ const UserPlaylistDetailPage = () => {
     );
   }
 
+  if (isNotFound) {
+    return (
+      <NotFoundPage
+        title="Không tìm thấy playlist"
+      />
+    );
+  }
+
   return (
     <section className="space-y-4 sm:space-y-6">
       <div
@@ -800,12 +806,6 @@ const UserPlaylistDetailPage = () => {
               <Shuffle className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
               <span>Shuffle Play</span>
             </button>
-            <button type="button" className={actionButtonClassName} aria-label="Add playlist">
-              <CirclePlus className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
-            </button>
-            <button type="button" className={actionButtonClassName} aria-label="Download playlist">
-              <Download className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
-            </button>
             <div ref={actionMenuRef} className="relative">
               <button
                 type="button"
@@ -851,6 +851,7 @@ const UserPlaylistDetailPage = () => {
           </div>
 
           <TrackListSection
+            type="withoutLike"
             isLoading={isLoading}
             errorMessage={errorMessage}
             loadingMessage="Loading tracks..."
@@ -881,9 +882,8 @@ const UserPlaylistDetailPage = () => {
                   isPlaybackActive={currentTrack?.id === trackId}
                   isPlaying={isPlaying}
                   onPlaybackAction={() => handlePlayTrack(track, index)}
-                  onLike={() => handleLikeTrack(track)}
-                  mobileLayoutClassName="grid-cols-[2rem_minmax(0,1fr)_auto_auto]"
-                  desktopLayoutClassName="sm:grid-cols-[2.5rem_minmax(0,1fr)_2.75rem_3.25rem_2.75rem]"
+                  mobileLayoutClassName="grid-cols-[2rem_minmax(0,1fr)]"
+                  desktopLayoutClassName="sm:grid-cols-[2.5rem_minmax(0,1fr)_3.25rem_2.75rem]"
                   desktopMetaColumns={[
                     {
                       content: formatTrackDuration(track?.duration),

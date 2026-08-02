@@ -79,6 +79,7 @@ const TrackCard = ({
   const resolvedDesktopMetaColumns = desktopMetaColumns.filter(Boolean);
   const resolvedMobileMetaItems = mobileMetaItems.filter(Boolean);
   const primaryAction = onPlaybackAction || onPlay;
+  const shouldShowLikeButton = showLikeButton && typeof onLike === "function";
   const isTrackBlocked = isBlocked || isBlockedTrack(track);
   const PlaybackIcon = isPlaybackActive && isPlaying ? Pause : Play;
   const playbackLabel = isPlaybackActive && isPlaying ? "Tạm dừng" : "Phát";
@@ -270,7 +271,7 @@ const TrackCard = ({
         </div>
       </div>
 
-      {showLikeButton ? (
+      {shouldShowLikeButton ? (
         <div className="flex items-center justify-end sm:justify-center">
           {isTrackBlocked ? null : liked ? (
             <button

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { ARTIST_INPUT_LIMITS } from "../../constants/artistInputLimits";
 import { isHttpUrl, usesThirdPartyRights } from "../../utils/trackWorkflow";
 
 const COPYRIGHT_POLICY = {
@@ -266,6 +267,7 @@ const TrackCopyrightFields = ({ value, onChange, disabled = false, errors = {} }
               type="text"
               value={copyright.copyrightOwner || ""}
               onChange={(event) => updateField("copyrightOwner", event.target.value)}
+              maxLength={ARTIST_INPUT_LIMITS.copyrightParty}
               disabled={disabled}
               className={`mt-2 w-full rounded-md border px-3 py-2 text-sm ${
                 errors.copyrightOwner ? "border-red-500" : "border-neutral-200"
@@ -283,6 +285,7 @@ const TrackCopyrightFields = ({ value, onChange, disabled = false, errors = {} }
               type="text"
               value={copyright.recordingOwner || ""}
               onChange={(event) => updateField("recordingOwner", event.target.value)}
+              maxLength={ARTIST_INPUT_LIMITS.copyrightParty}
               disabled={disabled}
               className={`mt-2 w-full rounded-md border px-3 py-2 text-sm ${
                 errors.recordingOwner ? "border-red-500" : "border-neutral-200"
@@ -308,6 +311,7 @@ const TrackCopyrightFields = ({ value, onChange, disabled = false, errors = {} }
                 type="text"
                 value={copyright[field] || ""}
                 onChange={(event) => updateField(field, event.target.value)}
+                maxLength={ARTIST_INPUT_LIMITS.copyrightParty}
                 disabled={disabled}
                 className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm"
               />
@@ -350,6 +354,7 @@ const TrackCopyrightFields = ({ value, onChange, disabled = false, errors = {} }
                   type="text"
                   value={copyright.originalTrackTitle || ""}
                   onChange={(event) => updateField("originalTrackTitle", event.target.value)}
+                  maxLength={ARTIST_INPUT_LIMITS.copyrightParty}
                   disabled={disabled}
                   className={`mt-2 w-full rounded-md border px-3 py-2 text-sm ${
                     errors.originalTrackTitle ? "border-red-500" : "border-neutral-200"
@@ -367,6 +372,7 @@ const TrackCopyrightFields = ({ value, onChange, disabled = false, errors = {} }
                   type="text"
                   value={copyright.originalArtistName || ""}
                   onChange={(event) => updateField("originalArtistName", event.target.value)}
+                  maxLength={ARTIST_INPUT_LIMITS.copyrightParty}
                   disabled={disabled}
                   className={`mt-2 w-full rounded-md border px-3 py-2 text-sm ${
                     errors.originalArtistName ? "border-red-500" : "border-neutral-200"
@@ -384,6 +390,7 @@ const TrackCopyrightFields = ({ value, onChange, disabled = false, errors = {} }
               <textarea
                 rows={3}
                 value={licenseText}
+                maxLength={ARTIST_INPUT_LIMITS.copyrightLicenseUrls}
                 onChange={(event) =>
                   updateField(
                     "licenseDocumentUrls",
@@ -427,6 +434,7 @@ const TrackCopyrightFields = ({ value, onChange, disabled = false, errors = {} }
             rows={2}
             value={copyright.copyrightNote || ""}
             onChange={(event) => updateField("copyrightNote", event.target.value)}
+            maxLength={ARTIST_INPUT_LIMITS.copyrightNote}
             disabled={disabled}
             className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm"
           />

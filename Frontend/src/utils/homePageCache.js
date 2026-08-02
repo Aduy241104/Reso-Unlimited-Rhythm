@@ -5,6 +5,7 @@ import {
 import {
   MONTHLY_TOP_TRACK_LIMIT,
   getCurrentMonthValue,
+  getPreviousMonthValue,
 } from "./monthlyTopTracks";
 import { MONTHLY_TOP_ARTISTS_LIMIT } from "./monthlyTopArtists";
 
@@ -20,7 +21,7 @@ const homePageCache = {
 export const DAILY_TOP_ARTISTS_DATE = getPreviousDateValue();
 export const DAILY_TOP_ARTISTS_LIMIT = 9;
 export const DAILY_TOP_TRACKS_DATE = getPreviousDateValue();
-export const MONTHLY_TOP_TRACKS_DATE = getCurrentMonthValue();
+export const MONTHLY_TOP_TRACKS_DATE = getPreviousMonthValue();
 export const MONTHLY_TOP_ARTISTS_DATE = getCurrentMonthValue();
 export const ALBUMS_CACHE_KEY = "albums:10";
 export const SYSTEM_PLAYLISTS_CACHE_KEY = "system-playlists:10";

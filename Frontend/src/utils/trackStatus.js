@@ -18,8 +18,26 @@ export const isBlockedTrack = (item) => {
   );
 };
 
+export const isHiddenTrack = (item) => {
+  const track = getTrackEntity(item);
+
+  return Boolean(
+    item?.isHidden ||
+      item?.hidden ||
+      item?.is_hidden ||
+      track?.isHidden ||
+      track?.hidden ||
+      track?.is_hidden ||
+      normalizeStatus(track?.activeStatus) === "hidden" ||
+      normalizeStatus(item?.activeStatus) === "hidden"
+  );
+};
+
+export const isUnavailableTrack = (item) =>
+  isBlockedTrack(item) || isHiddenTrack(item);
+
 export const isPlayableTrack = (item) => {
   const track = getTrackEntity(item);
 
-  return Boolean(track) && !isBlockedTrack(item);
+  return Boolean(track) && !isUnavailableTrack(item);
 };

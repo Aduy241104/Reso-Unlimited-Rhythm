@@ -89,7 +89,7 @@ const ArtistRequestsListPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [query, setQuery] = useState({
     q: "",
-    status: "",
+    status: "pending",
     page: 1,
     limit: 10,
   });

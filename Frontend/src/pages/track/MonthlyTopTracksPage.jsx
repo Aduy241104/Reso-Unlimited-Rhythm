@@ -13,8 +13,8 @@ import {
   MONTHLY_TOP_TRACK_LIMIT,
   createMonthlyTopTracksCollectionMeta,
   formatMonthlyTopTracksDate,
-  getCurrentMonthValue,
   getMonthlyTopTracksHeroImage,
+  getPreviousMonthValue,
 } from "../../utils/monthlyTopTracks";
 
 const metaPillClassName = `
@@ -51,7 +51,7 @@ const renderMonthlyPlayCount = (playCount, isMobile = false) => (
 );
 
 const MonthlyTopTracksPage = () => {
-  const [selectedMonth] = useState(getCurrentMonthValue);
+  const [selectedMonth] = useState(getPreviousMonthValue);
   const [monthlyTopTracks, setMonthlyTopTracks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");

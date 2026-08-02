@@ -2,7 +2,12 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { createUserPlaylist } from "../../services/userPlaylistService";
+import { USER_INPUT_LIMITS } from "../../constants/userInputLimits";
 import { getApiErrorMessage } from "../../utils/apiError";
+import {
+  IMAGE_FILE_ACCEPT,
+  getImageFileValidationError,
+} from "../../utils/imageFileValidation";
 
 const ANIMATION_DURATION = 300;
 const USER_PLAYLISTS_CHANGED_EVENT = "user-playlists:changed";
@@ -186,8 +191,10 @@ const CreatePlaylistModal = ({
       return;
     }
 
-    if (!file.type.startsWith("image/")) {
-      setErrorMessage("Vui lòng chọn tệp hình hợp lệ.");
+    const validationError = getImageFileValidationError(file);
+
+    if (validationError) {
+      setErrorMessage(validationError);
       event.target.value = "";
       return;
     }
@@ -321,7 +328,7 @@ const CreatePlaylistModal = ({
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept={IMAGE_FILE_ACCEPT}
                 onChange={handleCoverChange}
                 className="hidden"
               />
@@ -377,7 +384,7 @@ const CreatePlaylistModal = ({
                     onChange={handleTitleChange}
                     placeholder="Nhập tên playlist"
                     className="w-full rounded-xl border border-white/8 bg-[#464646] px-4 py-3 text-lg font-semibold text-white placeholder:text-white/45 focus:border-white/20 focus:outline-none sm:px-5 sm:py-4 sm:text-2xl"
-                    maxLength={120}
+                    maxLength={USER_INPUT_LIMITS.playlistTitle}
                     disabled={isSubmitting}
                   />
                   {titleError ? (
@@ -395,7 +402,7 @@ const CreatePlaylistModal = ({
                     onChange={handleDescriptionChange}
                     placeholder="Thêm phần mô tả không bắt buộc"
                     className="min-h-[120px] w-full resize-none rounded-xl border border-white/8 bg-[#464646] px-4 py-3 text-base text-white placeholder:text-white/35 focus:border-white/20 focus:outline-none sm:min-h-[154px] sm:px-5 sm:py-4"
-                    maxLength={500}
+                    maxLength={USER_INPUT_LIMITS.playlistDescription}
                     disabled={isSubmitting}
                   />
                 </div>

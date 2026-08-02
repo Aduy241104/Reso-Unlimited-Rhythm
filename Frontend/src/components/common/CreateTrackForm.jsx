@@ -4,7 +4,13 @@ import { useNavigate } from "react-router-dom";
 import trackService from "../../services/trackService";
 import genreService from "../../services/genreService";
 import { routePaths } from "../../routes/routePaths";
+import { ARTIST_INPUT_LIMITS } from "../../constants/artistInputLimits";
 import { showArtistError } from "../../utils/artistNotification";
+import {
+  IMAGE_FILE_ACCEPT,
+  getImageFileValidationError,
+  getImageFilesValidationError,
+} from "../../utils/imageFileValidation";
 import {
   MAX_GENRE_IDS,
   TITLE_MAX_LENGTH,
@@ -13,6 +19,7 @@ import {
 } from "../../utils/trackWorkflow";
 import {
   formatTrackDate,
+  getTrackDisplayDuration,
   resolveTrackArtwork,
 } from "../../utils/artistTrackPresentation";
 import AudioQualityDisplay from "./AudioQualityDisplay";
@@ -174,12 +181,30 @@ const CreateTrackForm = () => {
 
   const handleCoverImagesChange = (event) => {
     const files = Array.from(event.target.files || []);
+    const validationError = getImageFilesValidationError(files);
+
+    if (validationError) {
+      setFieldErrors((current) => ({ ...current, media: validationError }));
+      event.target.value = "";
+      return;
+    }
+
     setCoverImages((prev) => [...prev, ...files]);
+    setFieldErrors((current) => ({ ...current, media: "" }));
   };
 
   const handleAvatarChange = (event) => {
     const file = event.target.files?.[0] ?? null;
+    const validationError = getImageFileValidationError(file);
+
+    if (validationError) {
+      setFieldErrors((current) => ({ ...current, avatar: validationError }));
+      event.target.value = "";
+      return;
+    }
+
     setAvatarFile(file);
+    setFieldErrors((current) => ({ ...current, avatar: "" }));
   };
 
   const handleLyricsSyncChange = (event) => {
@@ -350,6 +375,7 @@ const CreateTrackForm = () => {
                 name="versionTitle"
                 value={formData.versionTitle}
                 onChange={handleInputChange}
+                maxLength={ARTIST_INPUT_LIMITS.trackVersionTitle}
                 placeholder="Ví dụ: Bản thu trực tiếp, phối lại..."
                 className="h-12 w-full rounded-2xl border border-[#e6e0ff] bg-white px-4 text-sm text-[#241b45] outline-none transition focus:border-[#7c6cf2]"
               />
@@ -377,15 +403,15 @@ const CreateTrackForm = () => {
               ) : null}
               {uploadedAudioAnalysis?.duration ? (
                 <p className="mt-2 text-xs text-[#8d87aa]">
-                  Thời lượng nhận diện: {Math.round(uploadedAudioAnalysis.duration)} giây
+                  Thời lượng nhận diện: {getTrackDisplayDuration(uploadedAudioAnalysis.duration)}
                 </p>
               ) : null}
             </FieldShell>
 
-            <FieldShell label="Ảnh đại diện">
+            <FieldShell label="Ảnh đại diện" error={fieldErrors.avatar}>
               <input
                 type="file"
-                accept="image/*"
+                accept={IMAGE_FILE_ACCEPT}
                 onChange={handleAvatarChange}
                 disabled={loading}
                 className="block h-12 w-full rounded-2xl border border-[#e6e0ff] bg-white px-4 py-3 text-sm text-[#241b45] file:mr-3 file:rounded-xl file:border-0 file:bg-[#f3efff] file:px-3 file:py-2 file:text-xs file:font-semibold file:text-[#5c4fe0]"
@@ -401,7 +427,7 @@ const CreateTrackForm = () => {
               <input
                 type="file"
                 multiple
-                accept="image/*"
+                accept={IMAGE_FILE_ACCEPT}
                 onChange={handleCoverImagesChange}
                 disabled={loading}
                 className="block h-12 w-full rounded-2xl border border-[#e6e0ff] bg-white px-4 py-3 text-sm text-[#241b45] file:mr-3 file:rounded-xl file:border-0 file:bg-[#f3efff] file:px-3 file:py-2 file:text-xs file:font-semibold file:text-[#5c4fe0]"
@@ -470,6 +496,7 @@ const CreateTrackForm = () => {
               name="lyricsStatic"
               value={formData.lyricsStatic}
               onChange={handleInputChange}
+              maxLength={ARTIST_INPUT_LIMITS.trackLyrics}
               rows="7"
               className="w-full rounded-3xl border border-[#e6e0ff] bg-white px-4 py-4 text-sm leading-6 text-[#241b45] outline-none transition focus:border-[#7c6cf2]"
             />
@@ -608,7 +635,7 @@ const CreateTrackForm = () => {
               <span className="text-[#8d87aa]">Thời lượng</span>
               <span className="text-right font-medium text-[#241b45]">
                 {uploadedAudioAnalysis?.duration
-                  ? `${Math.round(uploadedAudioAnalysis.duration)} giây`
+                  ? getTrackDisplayDuration(uploadedAudioAnalysis.duration)
                   : "Đang chờ tải lên"}
               </span>
             </div>
