@@ -15,6 +15,7 @@ import {
   Search,
   RotateCcw,
 } from "lucide-react";
+import { ARTIST_INPUT_LIMITS } from "../../constants/artistInputLimits";
 import ConfirmActionModal from "../../components/common/ConfirmActionModal";
 import { routePaths } from "../../routes/routePaths";
 import {
@@ -431,6 +432,7 @@ const ArtistReleaseSchedulePage = () => {
                 type="search"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
+                maxLength={ARTIST_INPUT_LIMITS.search}
                 placeholder="Tìm theo tên bài hát hoặc album"
                 className="h-12 w-full rounded-2xl border border-[#ebe8f8] bg-[#fcfbff] pl-11 pr-4 text-sm text-[#201931] outline-none transition focus:border-[#7c6cf2]"
               />

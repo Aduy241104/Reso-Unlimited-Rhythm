@@ -14,6 +14,7 @@ import {
   Search,
   X,
 } from "lucide-react";
+import { ARTIST_INPUT_LIMITS } from "../../constants/artistInputLimits";
 import {
   getArtistAlbumsService,
   hideAlbumService,
@@ -248,6 +249,7 @@ const ArtistAlbumPage = () => {
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
+              maxLength={ARTIST_INPUT_LIMITS.search}
               placeholder="Tìm kiếm album..."
               className="min-w-0 flex-1 bg-transparent text-[#332a52] outline-none placeholder:text-[#aaa4bd]"
             />

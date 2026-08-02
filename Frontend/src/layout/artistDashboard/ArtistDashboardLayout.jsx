@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { Bell, Menu, Search, X } from "lucide-react";
+import { ARTIST_INPUT_LIMITS } from "../../constants/artistInputLimits";
 import { useAuth } from "../../hooks/useAuth";
 import { useSocket } from "../../hooks/useSocket";
 import { getMyArtistNotificationsService } from "../../services/artist.notification.service";
@@ -301,6 +302,7 @@ const ArtistDashboardLayout = () => {
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
                   <input
                     type="search"
+                    maxLength={ARTIST_INPUT_LIMITS.search}
                     placeholder="Tìm bản phát hành hoặc bài hát"
                     className="h-10 w-52 rounded-sm border border-[#ece8ff] bg-white pl-9 pr-3 text-sm text-[#2f2747] outline-none transition placeholder:text-[#9a93b8] focus:border-[#7c6cf2] xl:w-56 2xl:w-64"
                   />

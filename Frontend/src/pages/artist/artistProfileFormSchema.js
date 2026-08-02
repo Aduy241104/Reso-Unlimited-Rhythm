@@ -1,8 +1,9 @@
 import { z } from "zod";
+import { ARTIST_INPUT_LIMITS } from "../../constants/artistInputLimits";
 
 const optionalHttpUrl = z
   .string()
-  .max(2000)
+  .max(ARTIST_INPUT_LIMITS.url)
   .superRefine((value, ctx) => {
     const trimmed = value.trim();
 
@@ -28,8 +29,17 @@ const optionalHttpUrl = z
   });
 
 export const artistProfileEditSchema = z.object({
-  name: z.string().trim().min(1, "Display name is required.").max(120),
-  bio: z.string().max(5000, "Bio must be at most 5000 characters."),
+  name: z
+    .string()
+    .trim()
+    .min(1, "Display name is required.")
+    .max(ARTIST_INPUT_LIMITS.profileName),
+  bio: z
+    .string()
+    .max(
+      ARTIST_INPUT_LIMITS.profileBio,
+      `Bio must be at most ${ARTIST_INPUT_LIMITS.profileBio} characters.`
+    ),
   socialFacebook: optionalHttpUrl,
   socialInstagram: optionalHttpUrl,
   socialYoutube: optionalHttpUrl,

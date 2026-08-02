@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { ARTIST_INPUT_LIMITS } from "../../constants/artistInputLimits";
 import {
   getMyArtistProfileService,
   patchMyArtistProfileMediaService,
@@ -319,6 +320,7 @@ const ArtistProfileEditPage = () => {
               <input
                 id="edit-artist-name"
                 type="text"
+                maxLength={ARTIST_INPUT_LIMITS.profileName}
                 disabled={isBlocked}
                 className={fieldClassName}
                 {...register("name")}
@@ -333,6 +335,7 @@ const ArtistProfileEditPage = () => {
               <textarea
                 id="edit-artist-bio"
                 rows={5}
+                maxLength={ARTIST_INPUT_LIMITS.profileBio}
                 disabled={isBlocked}
                 className={`${fieldClassName} resize-y min-h-[120px]`}
                 {...register("bio")}
@@ -348,6 +351,7 @@ const ArtistProfileEditPage = () => {
                 id="edit-artist-social-fb"
                 type="url"
                 inputMode="url"
+                maxLength={ARTIST_INPUT_LIMITS.url}
                 placeholder="https://"
                 disabled={isBlocked}
                 className={fieldClassName}
@@ -366,6 +370,7 @@ const ArtistProfileEditPage = () => {
                 id="edit-artist-social-ig"
                 type="url"
                 inputMode="url"
+                maxLength={ARTIST_INPUT_LIMITS.url}
                 placeholder="https://"
                 disabled={isBlocked}
                 className={fieldClassName}
@@ -384,6 +389,7 @@ const ArtistProfileEditPage = () => {
                 id="edit-artist-social-yt"
                 type="url"
                 inputMode="url"
+                maxLength={ARTIST_INPUT_LIMITS.url}
                 placeholder="https://"
                 disabled={isBlocked}
                 className={fieldClassName}

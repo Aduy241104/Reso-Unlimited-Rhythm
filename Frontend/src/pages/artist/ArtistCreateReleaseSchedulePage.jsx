@@ -12,6 +12,7 @@ import {
   Music2,
   XCircle,
 } from "lucide-react";
+import { ARTIST_INPUT_LIMITS } from "../../constants/artistInputLimits";
 import trackService from "../../services/trackService";
 import { getArtistAlbumsService } from "../../services/artist/artistAlbumService";
 import { createMyReleaseScheduleService } from "../../services/artistReleaseScheduleService";
@@ -618,11 +619,21 @@ const ArtistCreateReleaseSchedulePage = () => {
                 <span className="font-medium text-[#413956]">Ghi chú (không bắt buộc)</span>
                 <textarea
                   value={note}
-                  onChange={(event) => setNote(event.target.value.slice(0, 200))}
+                  onChange={(event) =>
+                    setNote(
+                      event.target.value.slice(
+                        0,
+                        ARTIST_INPUT_LIMITS.releaseNote
+                      )
+                    )
+                  }
+                  maxLength={ARTIST_INPUT_LIMITS.releaseNote}
                   placeholder="Nhập ghi chú cho lịch phát hành này..."
                   className="min-h-[112px] w-full rounded-2xl border border-[#ebe8f8] bg-white px-4 py-3 text-sm text-[#251d38] outline-none transition focus:border-[#7c6cf2]"
                 />
-                <div className="text-right text-xs text-[#8a84a3]">{note.length}/200</div>
+                <div className="text-right text-xs text-[#8a84a3]">
+                  {note.length}/{ARTIST_INPUT_LIMITS.releaseNote}
+                </div>
               </label>
             </section>
 

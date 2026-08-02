@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import trackService from "../../services/trackService";
 import genreService from "../../services/genreService";
 import { routePaths } from "../../routes/routePaths";
+import { ARTIST_INPUT_LIMITS } from "../../constants/artistInputLimits";
 import { showArtistError } from "../../utils/artistNotification";
 import {
   MAX_GENRE_IDS,
@@ -350,6 +351,7 @@ const CreateTrackForm = () => {
                 name="versionTitle"
                 value={formData.versionTitle}
                 onChange={handleInputChange}
+                maxLength={ARTIST_INPUT_LIMITS.trackVersionTitle}
                 placeholder="Ví dụ: Bản thu trực tiếp, phối lại..."
                 className="h-12 w-full rounded-2xl border border-[#e6e0ff] bg-white px-4 text-sm text-[#241b45] outline-none transition focus:border-[#7c6cf2]"
               />
@@ -470,6 +472,7 @@ const CreateTrackForm = () => {
               name="lyricsStatic"
               value={formData.lyricsStatic}
               onChange={handleInputChange}
+              maxLength={ARTIST_INPUT_LIMITS.trackLyrics}
               rows="7"
               className="w-full rounded-3xl border border-[#e6e0ff] bg-white px-4 py-4 text-sm leading-6 text-[#241b45] outline-none transition focus:border-[#7c6cf2]"
             />

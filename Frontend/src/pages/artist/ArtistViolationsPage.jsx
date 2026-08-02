@@ -18,6 +18,7 @@ import {
   Mic2,
   HelpCircle,
 } from "lucide-react";
+import { ARTIST_INPUT_LIMITS } from "../../constants/artistInputLimits";
 import { getMyArtistViolationsService } from "../../services/artistService";
 
 const STATUS_BADGES = {
@@ -259,6 +260,7 @@ export default function ArtistViolationsPage() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            maxLength={ARTIST_INPUT_LIMITS.search}
             placeholder="Tìm kiếm theo tên tác phẩm, bài hát, loại vi phạm..."
             className="w-full bg-transparent text-sm text-[#2f2747] placeholder-[#9992bf] outline-none"
           />
