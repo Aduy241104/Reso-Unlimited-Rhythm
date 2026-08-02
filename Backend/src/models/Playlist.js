@@ -25,8 +25,6 @@ const PlaylistSchema = new Schema(
         coverImage: { type: String, default: "" },
         isPublic: { type: Boolean, default: false, index: true },
         isHidden: { type: Boolean, default: false, index: true },
-        aiPrompt: { type: String, default: "" },
-        aiGeneratedAt: { type: Date },
         trackCount: { type: Number, default: 0, min: 0 },
         totalDuration: { type: Number, default: 0, min: 0 },
         tracks: [PlaylistTrackSchema],
