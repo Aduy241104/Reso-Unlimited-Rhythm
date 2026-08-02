@@ -100,9 +100,12 @@ const ComingSoonCountdownOverlay = ({
     countdown.seconds === 0;
   const releaseSourceType = String(
     comingRelease?.sourceType || comingRelease?.type || ""
-  ).toLowerCase();
-  const shouldOpenAlbum = Boolean(albumId) && releaseSourceType !== "single";
-  const hasListenNowTarget = shouldOpenAlbum ? Boolean(albumId) : Boolean(trackId);
+  )
+    .trim()
+    .toLowerCase();
+  const shouldOpenAlbum = releaseSourceType === "album" && Boolean(albumId);
+  const shouldOpenTrack = releaseSourceType !== "album" && Boolean(trackId);
+  const hasListenNowTarget = shouldOpenAlbum || shouldOpenTrack;
   const backgroundImage = comingRelease?.image || "";
   const description = buildDescription({
     artistName,
@@ -116,16 +119,16 @@ const ComingSoonCountdownOverlay = ({
     : undefined;
 
   const handleListenNow = () => {
-    if (shouldOpenAlbum) {
-      navigate(routePaths.albumDetail(albumId));
+    if (shouldOpenTrack) {
+      navigate(routePaths.trackDetail(trackId));
       return;
     }
 
-    if (!trackId) {
+    if (!shouldOpenAlbum) {
       return;
     }
 
-    navigate(routePaths.trackDetail(trackId));
+    navigate(routePaths.albumDetail(albumId));
   };
 
   return (
