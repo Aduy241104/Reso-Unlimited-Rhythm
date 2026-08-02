@@ -29,6 +29,19 @@ export const formatDuration = (seconds) => {
   return `${remainingSeconds}s`;
 };
 
+export const formatTrackDuration = (seconds) => {
+  const totalSeconds = Math.floor(Number(seconds));
+
+  if (!Number.isFinite(totalSeconds) || totalSeconds < 0) {
+    return '0:00';
+  }
+
+  const minutes = Math.floor(totalSeconds / 60);
+  const remainingSeconds = totalSeconds % 60;
+
+  return `${minutes}:${String(remainingSeconds).padStart(2, '0')}`;
+};
+
 export const formatDateLabel = (value) => {
   if (!value) {
     return '';

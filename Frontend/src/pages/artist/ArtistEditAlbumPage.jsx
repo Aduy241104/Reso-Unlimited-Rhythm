@@ -9,6 +9,7 @@ import {
   Music2,
   Save,
 } from "lucide-react";
+import { ARTIST_INPUT_LIMITS } from "../../constants/artistInputLimits";
 import {
   editAlbumService,
   getArtistAlbumDetailService,
@@ -18,6 +19,10 @@ import {
   showArtistError,
   showArtistSuccess,
 } from "../../utils/artistNotification";
+import {
+  IMAGE_FILE_ACCEPT_WITH_GIF,
+  getImageFileValidationError,
+} from "../../utils/imageFileValidation";
 
 const MAX_COVER_SIZE = 10 * 1024 * 1024;
 
@@ -101,19 +106,18 @@ const ArtistEditAlbumPage = () => {
       return;
     }
 
-    if (!file.type.startsWith("image/")) {
-      setFormErrors((current) => ({
-        ...current,
-        coverImage: "Vui lòng chọn một tệp ảnh hợp lệ.",
-      }));
-      return;
-    }
+    const validationError = getImageFileValidationError(file, {
+      allowGif: true,
+      maxSizeBytes: MAX_COVER_SIZE,
+      maxSizeLabel: "10 MB",
+    });
 
-    if (file.size > MAX_COVER_SIZE) {
+    if (validationError) {
       setFormErrors((current) => ({
         ...current,
-        coverImage: "Ảnh bìa không được vượt quá 10 MB.",
+        coverImage: validationError,
       }));
+      event.target.value = "";
       return;
     }
 
@@ -134,8 +138,10 @@ const ArtistEditAlbumPage = () => {
 
     if (!formData.title.trim()) {
       errors.title = "Vui lòng nhập tên album.";
-    } else if (formData.title.trim().length > 100) {
-      errors.title = "Tên album không được vượt quá 100 ký tự.";
+    } else if (
+      formData.title.trim().length > ARTIST_INPUT_LIMITS.albumTitle
+    ) {
+      errors.title = `Tên album không được vượt quá ${ARTIST_INPUT_LIMITS.albumTitle} ký tự.`;
     }
 
     if (
@@ -275,7 +281,7 @@ const ArtistEditAlbumPage = () => {
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/png,image/jpeg,image/gif,image/webp"
+                    accept={IMAGE_FILE_ACCEPT_WITH_GIF}
                     onChange={handleCoverImageChange}
                     className="sr-only"
                   />
@@ -295,7 +301,7 @@ const ArtistEditAlbumPage = () => {
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/png,image/jpeg,image/gif,image/webp"
+                    accept={IMAGE_FILE_ACCEPT_WITH_GIF}
                     onChange={handleCoverImageChange}
                     className="sr-only"
                   />
@@ -327,7 +333,7 @@ const ArtistEditAlbumPage = () => {
                     name="title"
                     value={formData.title}
                     onChange={handleInputChange}
-                    maxLength={100}
+                    maxLength={ARTIST_INPUT_LIMITS.albumTitle}
                     placeholder="Nhập tên album"
                     className={`h-12 w-full rounded-xl border px-4 pr-16 text-sm text-[#332a52] outline-none transition placeholder:text-[#aaa4bd] focus:ring-4 focus:ring-[#7664ef]/10 ${
                       formErrors.title
@@ -336,7 +342,7 @@ const ArtistEditAlbumPage = () => {
                     }`}
                   />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-[#aaa4bd]">
-                    {formData.title.length}/100
+                    {formData.title.length}/{ARTIST_INPUT_LIMITS.albumTitle}
                   </span>
                 </div>
                 {formErrors.title ? (

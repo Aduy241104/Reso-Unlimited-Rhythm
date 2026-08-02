@@ -14,7 +14,13 @@ import ConfirmActionModal from "../../components/common/ConfirmActionModal";
 import genreService from "../../services/genreService";
 import trackService from "../../services/trackService";
 import { routePaths } from "../../routes/routePaths";
+import { ARTIST_INPUT_LIMITS } from "../../constants/artistInputLimits";
 import { getApiErrorMessage } from "../../utils/apiError";
+import {
+  IMAGE_FILE_ACCEPT,
+  getImageFileValidationError,
+  getImageFilesValidationError,
+} from "../../utils/imageFileValidation";
 import {
   showArtistError,
   showArtistInfo,
@@ -356,7 +362,16 @@ const ArtistTrackEditPage = () => {
 
   const handleAvatarChange = (event) => {
     const file = event.target.files?.[0] || null;
+    const validationError = getImageFileValidationError(file);
+
+    if (validationError) {
+      setFieldErrors((current) => ({ ...current, avatar: validationError }));
+      event.target.value = "";
+      return;
+    }
+
     setAvatarFile(file);
+    setFieldErrors((current) => ({ ...current, avatar: "" }));
 
     if (file) {
       const url = URL.createObjectURL(file);
@@ -370,7 +385,16 @@ const ArtistTrackEditPage = () => {
 
   const handleCoverImageChange = (event) => {
     const files = Array.from(event.target.files || []);
+    const validationError = getImageFilesValidationError(files);
+
+    if (validationError) {
+      setFieldErrors((current) => ({ ...current, media: validationError }));
+      event.target.value = "";
+      return;
+    }
+
     setCoverImageFiles(files);
+    setFieldErrors((current) => ({ ...current, media: "" }));
 
     if (files.length > 0) {
       const previews = files.map((file) => {
@@ -736,6 +760,7 @@ const ArtistTrackEditPage = () => {
                   name="versionTitle"
                   value={formData.versionTitle}
                   onChange={handleInputChange}
+                  maxLength={ARTIST_INPUT_LIMITS.trackVersionTitle}
                   disabled={!canEdit}
                   className="h-12 w-full rounded-2xl border border-[#e6e0ff] bg-white px-4 text-sm text-[#241b45] outline-none transition focus:border-[#7c6cf2]"
                 />
@@ -748,6 +773,7 @@ const ArtistTrackEditPage = () => {
                   name="description"
                   value={formData.description}
                   onChange={handleInputChange}
+                  maxLength={ARTIST_INPUT_LIMITS.trackDescription}
                   rows="4"
                   disabled={!canEdit}
                   className="w-full rounded-3xl border border-[#e6e0ff] bg-white px-4 py-4 text-sm leading-6 text-[#241b45] outline-none transition focus:border-[#7c6cf2]"
@@ -779,10 +805,10 @@ const ArtistTrackEditPage = () => {
                 ) : null}
               </FieldShell>
 
-              <FieldShell label="Ảnh đại diện">
+              <FieldShell label="Ảnh đại diện" error={fieldErrors.avatar}>
                 <input
                   type="file"
-                  accept="image/*"
+                  accept={IMAGE_FILE_ACCEPT}
                   onChange={handleAvatarChange}
                   disabled={!canEdit}
                   className="block h-12 w-full rounded-2xl border border-[#e6e0ff] bg-white px-4 py-3 text-sm text-[#241b45] file:mr-3 file:rounded-xl file:border-0 file:bg-[#f3efff] file:px-3 file:py-2 file:text-xs file:font-semibold file:text-[#5c4fe0]"
@@ -798,10 +824,10 @@ const ArtistTrackEditPage = () => {
             </div>
 
             <div className="mt-5 grid gap-5 md:grid-cols-2">
-              <FieldShell label="Ảnh bìa">
+              <FieldShell label="Ảnh bìa" error={fieldErrors.media}>
                 <input
                   type="file"
-                  accept="image/*"
+                  accept={IMAGE_FILE_ACCEPT}
                   multiple
                   onChange={handleCoverImageChange}
                   disabled={!canEdit}
@@ -849,6 +875,7 @@ const ArtistTrackEditPage = () => {
                 name="lyricsStatic"
                 value={formData.lyricsStatic}
                 onChange={handleInputChange}
+                maxLength={LYRICS_STATIC_MAX_LENGTH}
                 rows="8"
                 disabled={!canEdit}
                 className="w-full rounded-3xl border border-[#e6e0ff] bg-white px-4 py-4 text-sm leading-6 text-[#241b45] outline-none transition focus:border-[#7c6cf2]"

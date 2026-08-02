@@ -14,6 +14,10 @@ import {
   translateReportError,
 } from "../../services/report/user.report.service";
 import { USER_INPUT_LIMITS } from "../../constants/userInputLimits";
+import {
+  IMAGE_FILE_ACCEPT,
+  getImageFilesValidationError,
+} from "../../utils/imageFileValidation";
 import ReportReasonSelect from "./ReportReasonSelect";
 
 const ANIMATION_DURATION = 300;
@@ -63,6 +67,9 @@ const getInitialFormState = (targetId, targetType) => ({
   images: [],
 });
 
+const getMaxImagesErrorMessage = () =>
+  `Bạn chỉ có thể tải lên tối đa ${MAX_REPORT_IMAGES} ảnh minh chứng.`;
+
 const CreateReportModal = ({
   isOpen,
   onClose,
@@ -74,7 +81,7 @@ const CreateReportModal = ({
   const [isVisible, setIsVisible] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [formData, setFormData] = useState(() =>
-    getInitialFormState(targetId, targetType),
+    getInitialFormState(targetId, targetType)
   );
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState("");
@@ -92,21 +99,25 @@ const CreateReportModal = ({
         const mountId = window.requestAnimationFrame(() => {
           setShouldRender(true);
         });
+
         return () => window.cancelAnimationFrame(mountId);
       }
 
       const enterId = window.requestAnimationFrame(() => {
         setIsVisible(true);
       });
+
       return () => window.cancelAnimationFrame(enterId);
     }
 
-    if (!shouldRender) return undefined;
+    if (!shouldRender) {
+      return undefined;
+    }
 
     const exitId = window.requestAnimationFrame(() => setIsVisible(false));
     const timeoutId = window.setTimeout(
       () => setShouldRender(false),
-      ANIMATION_DURATION,
+      ANIMATION_DURATION
     );
 
     return () => {
@@ -116,7 +127,9 @@ const CreateReportModal = ({
   }, [isOpen, shouldRender, targetId, targetType]);
 
   useEffect(() => {
-    if (!shouldRender) return undefined;
+    if (!shouldRender) {
+      return undefined;
+    }
 
     const handleKeyDown = (event) => {
       if (event.key === "Escape" && !isSubmitting) {
@@ -134,55 +147,64 @@ const CreateReportModal = ({
   }, [shouldRender, isSubmitting, onClose]);
 
   const handleClose = () => {
-    if (isSubmitting) return;
+    if (isSubmitting) {
+      return;
+    }
+
     onClose?.();
   };
 
   const imageNames = useMemo(
     () => formData.images.map((file) => file?.name).filter(Boolean),
-    [formData.images],
+    [formData.images]
   );
 
-  const handleChange = (event) => {
-    const { name, value, files } = event.target;
+  const handleTextChange = (event) => {
+    const { name, value } = event.target;
 
     setErrors((prev) => ({ ...prev, [name]: undefined }));
     setSubmitError("");
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
-    if (name === "images") {
-      const selectedFiles = Array.from(files || []);
-      const remainingSlots = Math.max(0, MAX_REPORT_IMAGES - formData.images.length);
+  const handleImagesChange = (event) => {
+    const selectedFiles = Array.from(event.target.files || []);
 
-      if (selectedFiles.length === 0) {
-        event.target.value = "";
-        return;
-      }
+    setErrors((prev) => ({ ...prev, images: undefined }));
+    setSubmitError("");
 
-      if (remainingSlots === 0) {
-        setErrors((prev) => ({
-          ...prev,
-          images: `Bạn chỉ có thể tải lên tối đa ${MAX_REPORT_IMAGES} ảnh minh chứng.`,
-        }));
-        event.target.value = "";
-        return;
-      }
-
-      if (selectedFiles.length > remainingSlots) {
-        setErrors((prev) => ({
-          ...prev,
-          images: `Bạn chỉ có thể tải lên tối đa ${MAX_REPORT_IMAGES} ảnh minh chứng.`,
-        }));
-      }
-
-      setFormData((prev) => ({
-        ...prev,
-        images: [...prev.images, ...selectedFiles].slice(0, MAX_REPORT_IMAGES),
-      }));
+    if (selectedFiles.length === 0) {
       event.target.value = "";
       return;
     }
 
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const validationError = getImageFilesValidationError(selectedFiles);
+    if (validationError) {
+      setErrors((prev) => ({ ...prev, images: validationError }));
+      event.target.value = "";
+      return;
+    }
+
+    const currentCount = formData.images.length;
+    if (currentCount >= MAX_REPORT_IMAGES) {
+      setErrors((prev) => ({ ...prev, images: getMaxImagesErrorMessage() }));
+      event.target.value = "";
+      return;
+    }
+
+    const remainingSlots = MAX_REPORT_IMAGES - currentCount;
+    const filesToAppend = selectedFiles.slice(0, remainingSlots);
+
+    if (selectedFiles.length > remainingSlots) {
+      setErrors((prev) => ({ ...prev, images: getMaxImagesErrorMessage() }));
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      images: [...prev.images, ...filesToAppend],
+    }));
+
+    event.target.value = "";
   };
 
   const handleReasonChange = (reason) => {
@@ -194,7 +216,7 @@ const CreateReportModal = ({
   const handleRemoveImage = (index) => {
     setFormData((prev) => ({
       ...prev,
-      images: prev.images.filter((_, i) => i !== index),
+      images: prev.images.filter((_, imageIndex) => imageIndex !== index),
     }));
     setErrors((prev) => ({ ...prev, images: undefined }));
   };
@@ -202,11 +224,11 @@ const CreateReportModal = ({
   const validateForm = () => {
     const nextErrors = {};
 
-    if (!formData.reason.trim()) {
+    if (!String(formData.reason || "").trim()) {
       nextErrors.reason = "Vui lòng chọn lý do báo cáo.";
     }
 
-    if (!formData.description.trim()) {
+    if (!String(formData.description || "").trim()) {
       nextErrors.description = "Vui lòng mô tả vấn đề bạn gặp phải.";
     }
 
@@ -217,7 +239,9 @@ const CreateReportModal = ({
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      return;
+    }
 
     setIsSubmitting(true);
     setSubmitError("");
@@ -227,9 +251,7 @@ const CreateReportModal = ({
       setIsSubmitted(true);
       onSuccess?.();
     } catch (error) {
-      setSubmitError(
-        translateReportError(error),
-      );
+      setSubmitError(translateReportError(error));
     } finally {
       setIsSubmitting(false);
     }
@@ -277,6 +299,7 @@ const CreateReportModal = ({
               </p>
             </div>
           </div>
+
           <button
             type="button"
             onClick={handleClose}
@@ -324,9 +347,9 @@ const CreateReportModal = ({
                 onChange={handleReasonChange}
                 disabled={isSubmitting}
               />
-              {errors.reason && (
+              {errors.reason ? (
                 <p className="mt-2 text-xs text-rose-300">{errors.reason}</p>
-              )}
+              ) : null}
             </div>
 
             <div>
@@ -338,16 +361,16 @@ const CreateReportModal = ({
                 maxLength={USER_INPUT_LIMITS.reportDescription}
                 rows={5}
                 value={formData.description}
-                onChange={handleChange}
+                onChange={handleTextChange}
                 placeholder="Mô tả cụ thể vấn đề hoặc nội dung bạn muốn báo cáo..."
                 disabled={isSubmitting}
                 className="w-full resize-none rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-white/30 focus:border-[#f5b66f]/50 focus:bg-white/[0.06] disabled:opacity-60"
               />
-              {errors.description && (
+              {errors.description ? (
                 <p className="mt-2 text-xs text-rose-300">
                   {errors.description}
                 </p>
-              )}
+              ) : null}
             </div>
 
             <div>
@@ -369,21 +392,21 @@ const CreateReportModal = ({
                 <input
                   type="file"
                   name="images"
-                  accept="image/*"
+                  accept={IMAGE_FILE_ACCEPT}
                   multiple
                   className="sr-only"
-                  onChange={handleChange}
+                  onChange={handleImagesChange}
                   disabled={isSubmitting}
                 />
               </label>
-              {errors.images && (
+              {errors.images ? (
                 <p className="mt-2 text-xs text-rose-300">{errors.images}</p>
-              )}
-              {imageNames.length > 0 && (
+              ) : null}
+              {imageNames.length > 0 ? (
                 <div className="mt-2 space-y-1.5">
                   {imageNames.map((name, index) => (
                     <div
-                      key={name + index}
+                      key={`${name}-${index}`}
                       className="flex items-center justify-between rounded-xl border border-white/8 bg-white/[0.03] px-4 py-2"
                     >
                       <span className="truncate text-sm text-white/70">
@@ -399,15 +422,15 @@ const CreateReportModal = ({
                     </div>
                   ))}
                 </div>
-              )}
+              ) : null}
             </div>
 
-            {submitError && (
+            {submitError ? (
               <div className="flex items-start gap-3 rounded-xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-200">
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
                 <span className="whitespace-pre-line">{submitError}</span>
               </div>
-            )}
+            ) : null}
 
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <button
@@ -445,7 +468,7 @@ const CreateReportModal = ({
         )}
       </div>
     </div>,
-    document.body,
+    document.body
   );
 };
 

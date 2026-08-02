@@ -12,6 +12,7 @@ import {
   ImageIcon,
   AlertTriangle,
 } from "lucide-react";
+import { ARTIST_INPUT_LIMITS } from "../../constants/artistInputLimits";
 import {
   getMyArtistProfileService,
   patchMyArtistProfileMediaService,
@@ -23,11 +24,17 @@ import {
   showArtistError,
   showArtistSuccess,
 } from "../../utils/artistNotification";
+import {
+  IMAGE_FILE_ACCEPT,
+  getImageFileValidationError,
+} from "../../utils/imageFileValidation";
 import { artistProfileEditSchema } from "./artistProfileFormSchema";
 import {
   getAvatarSrc,
   getCoverSrc,
 } from "./artistProfileUtils";
+
+const MAX_PROFILE_IMAGE_SIZE = 5 * 1024 * 1024;
 
 const fieldInputClassName =
   "w-full rounded-[12px] border border-[#e7e1ff] bg-[#faf9ff] px-4 py-2.5 text-sm text-[#2f2747] outline-none transition placeholder:text-[#a19bb8] focus:border-[#6f5cf1] focus:bg-white focus:shadow-sm disabled:cursor-not-allowed disabled:opacity-60";
@@ -62,6 +69,7 @@ export default function ArtistProfileEditPage() {
   const [removeCover, setRemoveCover] = useState(false);
   const [avatarInputKey, setAvatarInputKey] = useState(0);
   const [coverInputKey, setCoverInputKey] = useState(0);
+  const [mediaErrors, setMediaErrors] = useState({});
 
   const {
     register,
@@ -149,6 +157,7 @@ export default function ArtistProfileEditPage() {
     setCoverFile(null);
     setAvatarPreview(null);
     setCoverPreview(null);
+    setMediaErrors({});
     setAvatarInputKey((key) => key + 1);
     setCoverInputKey((key) => key + 1);
   }, [artist, reset]);
@@ -329,14 +338,14 @@ export default function ArtistProfileEditPage() {
               <FieldLabel
                 htmlFor="edit-artist-name"
                 required
-                countText={`${watchName?.length || 0}/100 ký tự`}
+                countText={`${watchName?.length || 0}/${ARTIST_INPUT_LIMITS.profileName} ký tự`}
               >
                 Tên hiển thị nghệ sĩ
               </FieldLabel>
               <input
                 id="edit-artist-name"
                 type="text"
-                maxLength={100}
+                maxLength={ARTIST_INPUT_LIMITS.profileName}
                 disabled={isBlocked}
                 placeholder="Nhập nghệ danh nghệ sĩ..."
                 className={fieldInputClassName}
@@ -353,14 +362,14 @@ export default function ArtistProfileEditPage() {
             <div>
               <FieldLabel
                 htmlFor="edit-artist-bio"
-                countText={`${watchBio?.length || 0}/1000 ký tự`}
+                countText={`${watchBio?.length || 0}/${ARTIST_INPUT_LIMITS.profileBio} ký tự`}
               >
                 Tiểu sử & Câu chuyện âm nhạc
               </FieldLabel>
               <textarea
                 id="edit-artist-bio"
                 rows={4}
-                maxLength={1000}
+                maxLength={ARTIST_INPUT_LIMITS.profileBio}
                 disabled={isBlocked}
                 placeholder="Viết một đoạn giới thiệu ngắn về phong cách âm nhạc, hành trình và câu chuyện của bạn (tối đa 1000 ký tự)..."
                 className={`${fieldInputClassName} resize-y min-h-[110px]`}
@@ -403,17 +412,32 @@ export default function ArtistProfileEditPage() {
                     className="h-full w-full object-cover"
                   />
                 </div>
-                
+
                 <div className="min-w-0 flex-1 space-y-2">
                   <input
                     key={`avatar-${avatarInputKey}`}
                     id="edit-artist-avatar-file"
                     type="file"
-                    accept="image/*"
+                    accept={IMAGE_FILE_ACCEPT}
                     disabled={isBlocked}
                     className="block w-full text-xs text-[#7c7891] file:mr-3 file:rounded-xl file:border file:border-[#e7e1ff] file:bg-white file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[#2f2747] hover:file:bg-[#faf9ff]"
                     onChange={(e) => {
                       const file = e.target.files?.[0] ?? null;
+                      const validationError = getImageFileValidationError(file, {
+                        maxSizeBytes: MAX_PROFILE_IMAGE_SIZE,
+                        maxSizeLabel: "5 MB",
+                      });
+
+                      if (validationError) {
+                        setMediaErrors((current) => ({
+                          ...current,
+                          avatar: validationError,
+                        }));
+                        e.target.value = "";
+                        return;
+                      }
+
+                      setMediaErrors((current) => ({ ...current, avatar: "" }));
                       setAvatarFile(file);
                       if (file) {
                         setRemoveAvatar(false);
@@ -426,6 +450,12 @@ export default function ArtistProfileEditPage() {
                     }}
                   />
 
+                  {mediaErrors.avatar ? (
+                    <p className="text-[11px] font-medium text-rose-600">
+                      {mediaErrors.avatar}
+                    </p>
+                  ) : null}
+
                   {((hasStoredAvatar || avatarFile) && !removeAvatar) && (
                     <button
                       type="button"
@@ -434,6 +464,7 @@ export default function ArtistProfileEditPage() {
                         setAvatarFile(null);
                         setAvatarPreview(null);
                         setRemoveAvatar(true);
+                        setMediaErrors((current) => ({ ...current, avatar: "" }));
                         setAvatarInputKey((k) => k + 1);
                       }}
                       className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-600 hover:underline"
@@ -471,11 +502,26 @@ export default function ArtistProfileEditPage() {
                     key={`cover-${coverInputKey}`}
                     id="edit-artist-cover-file"
                     type="file"
-                    accept="image/*"
+                    accept={IMAGE_FILE_ACCEPT}
                     disabled={isBlocked}
                     className="block w-full text-xs text-[#7c7891] file:mr-3 file:rounded-xl file:border file:border-[#e7e1ff] file:bg-white file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[#2f2747] hover:file:bg-[#faf9ff]"
                     onChange={(e) => {
                       const file = e.target.files?.[0] ?? null;
+                      const validationError = getImageFileValidationError(file, {
+                        maxSizeBytes: MAX_PROFILE_IMAGE_SIZE,
+                        maxSizeLabel: "5 MB",
+                      });
+
+                      if (validationError) {
+                        setMediaErrors((current) => ({
+                          ...current,
+                          cover: validationError,
+                        }));
+                        e.target.value = "";
+                        return;
+                      }
+
+                      setMediaErrors((current) => ({ ...current, cover: "" }));
                       setCoverFile(file);
                       if (file) {
                         setRemoveCover(false);
@@ -488,6 +534,12 @@ export default function ArtistProfileEditPage() {
                     }}
                   />
 
+                  {mediaErrors.cover ? (
+                    <p className="text-[11px] font-medium text-rose-600">
+                      {mediaErrors.cover}
+                    </p>
+                  ) : null}
+
                   {((hasStoredCover || coverFile) && !removeCover) && (
                     <button
                       type="button"
@@ -496,6 +548,7 @@ export default function ArtistProfileEditPage() {
                         setCoverFile(null);
                         setCoverPreview(null);
                         setRemoveCover(true);
+                        setMediaErrors((current) => ({ ...current, cover: "" }));
                         setCoverInputKey((k) => k + 1);
                       }}
                       className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-600 hover:underline"
@@ -534,7 +587,8 @@ export default function ArtistProfileEditPage() {
               <input
                 id="edit-artist-social-fb"
                 type="url"
-                maxLength={500}
+                inputMode="url"
+                maxLength={ARTIST_INPUT_LIMITS.url}
                 placeholder="https://facebook.com/..."
                 disabled={isBlocked}
                 className={fieldInputClassName}
@@ -552,7 +606,8 @@ export default function ArtistProfileEditPage() {
               <input
                 id="edit-artist-social-ig"
                 type="url"
-                maxLength={500}
+                inputMode="url"
+                maxLength={ARTIST_INPUT_LIMITS.url}
                 placeholder="https://instagram.com/..."
                 disabled={isBlocked}
                 className={fieldInputClassName}
@@ -570,7 +625,8 @@ export default function ArtistProfileEditPage() {
               <input
                 id="edit-artist-social-yt"
                 type="url"
-                maxLength={500}
+                inputMode="url"
+                maxLength={ARTIST_INPUT_LIMITS.url}
                 placeholder="https://youtube.com/..."
                 disabled={isBlocked}
                 className={fieldInputClassName}
@@ -588,7 +644,8 @@ export default function ArtistProfileEditPage() {
               <input
                 id="edit-artist-social-tiktok"
                 type="url"
-                maxLength={500}
+                inputMode="url"
+                maxLength={ARTIST_INPUT_LIMITS.url}
                 placeholder="https://tiktok.com/@..."
                 disabled={isBlocked}
                 className={fieldInputClassName}
@@ -606,7 +663,8 @@ export default function ArtistProfileEditPage() {
               <input
                 id="edit-artist-social-spotify"
                 type="url"
-                maxLength={500}
+                inputMode="url"
+                maxLength={ARTIST_INPUT_LIMITS.url}
                 placeholder="https://open.spotify.com/..."
                 disabled={isBlocked}
                 className={fieldInputClassName}
@@ -624,7 +682,8 @@ export default function ArtistProfileEditPage() {
               <input
                 id="edit-artist-social-soundcloud"
                 type="url"
-                maxLength={500}
+                inputMode="url"
+                maxLength={ARTIST_INPUT_LIMITS.url}
                 placeholder="https://soundcloud.com/..."
                 disabled={isBlocked}
                 className={fieldInputClassName}
@@ -642,7 +701,8 @@ export default function ArtistProfileEditPage() {
               <input
                 id="edit-artist-social-website"
                 type="url"
-                maxLength={500}
+                inputMode="url"
+                maxLength={ARTIST_INPUT_LIMITS.url}
                 placeholder="https://yourwebsite.com"
                 disabled={isBlocked}
                 className={fieldInputClassName}
@@ -660,7 +720,8 @@ export default function ArtistProfileEditPage() {
               <input
                 id="edit-artist-social-twitter"
                 type="url"
-                maxLength={500}
+                inputMode="url"
+                maxLength={ARTIST_INPUT_LIMITS.url}
                 placeholder="https://x.com/..."
                 disabled={isBlocked}
                 className={fieldInputClassName}
@@ -678,7 +739,8 @@ export default function ArtistProfileEditPage() {
               <input
                 id="edit-artist-social-other"
                 type="url"
-                maxLength={500}
+                inputMode="url"
+                maxLength={ARTIST_INPUT_LIMITS.url}
                 placeholder="https://..."
                 disabled={isBlocked}
                 className={fieldInputClassName}

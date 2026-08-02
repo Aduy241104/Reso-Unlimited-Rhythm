@@ -25,7 +25,7 @@ export const formatFullNumber = (value) => {
 };
 
 export const formatDuration = (durationInSeconds) => {
-  const totalSeconds = Number(durationInSeconds);
+  const totalSeconds = Math.floor(Number(durationInSeconds));
 
   if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) {
     return "0:00";

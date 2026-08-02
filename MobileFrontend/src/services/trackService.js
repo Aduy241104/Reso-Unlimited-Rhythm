@@ -3,7 +3,7 @@ import { API_ENDPOINTS } from '../api/apiEndpoints';
 import {
   formatCompactNumber,
   formatDateLabel,
-  formatDuration,
+  formatTrackDuration,
   formatMonthLabel,
   resolveImageUri,
 } from '../utils/media';
@@ -128,7 +128,7 @@ const normalizeTrackItem = (item, index = 0) => {
     duration: pickNumber(rawItem.duration, track.duration),
     audioUri: pickFirstDefined(rawItem.audioUri, audioSource, ''),
     audioSource,
-    meta: pickFirstDefined(rawItem.meta, formatDuration(pickNumber(rawItem.duration, track.duration))),
+    meta: pickFirstDefined(rawItem.meta, formatTrackDuration(pickNumber(rawItem.duration, track.duration))),
   };
 };
 
@@ -190,7 +190,7 @@ const normalizeTrackDetail = (item) => {
     stats: asArray(track.stats).length > 0
       ? track.stats
       : [
-          { label: 'Thời lượng', value: formatDuration(track?.duration) },
+          { label: 'Thời lượng', value: formatTrackDuration(track?.duration) },
           { label: 'Lượt phát', value: formatCompactNumber(track?.stats?.totalPlay) },
           { label: 'Lượt thích', value: formatCompactNumber(track?.stats?.totalLike) },
         ],

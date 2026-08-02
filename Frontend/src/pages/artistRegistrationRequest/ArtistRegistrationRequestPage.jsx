@@ -21,6 +21,10 @@ import {
   getApiErrorDetailsText,
   getApiErrorFullMessage,
 } from "../../utils/apiError";
+import {
+  IMAGE_FILE_ACCEPT,
+  getImageFileValidationError,
+} from "../../utils/imageFileValidation";
 import { createArtistRegistrationRequestService } from "../../services/artist/artistRegistrationRequestService";
 import { getMyArtistRegistrationRequestsService } from "../../services/artist/userArtistRegistrationListService";
 
@@ -200,7 +204,7 @@ const UploadField = ({
   error,
   file,
   onFileSelect,
-  accept = "image/*",
+  accept = IMAGE_FILE_ACCEPT,
   hint,
 }) => {
   const inputId = `artist-registration-${name}`;
@@ -242,7 +246,11 @@ const UploadField = ({
         onChange={(event) => {
           const selectedFile = event.target.files?.[0] || null;
           if (selectedFile) {
-            onFileSelect?.(name, selectedFile);
+            const isAccepted = onFileSelect?.(name, selectedFile);
+
+            if (isAccepted === false) {
+              event.target.value = "";
+            }
           }
         }}
       />
@@ -956,8 +964,16 @@ const ArtistRegistrationRequestPage = () => {
   };
 
   const handleFileSelect = (name, file) => {
+    const validationError = getImageFileValidationError(file);
+
+    if (validationError) {
+      setErrors((previous) => ({ ...previous, [name]: validationError }));
+      return false;
+    }
+
     setErrors((previous) => ({ ...previous, [name]: undefined }));
     setFormData((previous) => ({ ...previous, [name]: file }));
+    return true;
   };
 
   const handleSocialLinkChange = (event) => {

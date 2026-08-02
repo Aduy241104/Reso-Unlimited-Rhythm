@@ -41,20 +41,11 @@ export const formatTrackDuration = (durationInSeconds) => {
     return "--:--";
   }
 
-  const totalSeconds = Math.round(rawSeconds * 100) / 100;
-  let minutes = Math.floor(totalSeconds / 60);
-  let seconds = totalSeconds - minutes * 60;
+  const totalSeconds = Math.floor(rawSeconds);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
 
-  if (seconds >= 60) {
-    minutes += 1;
-    seconds = 0;
-  }
-
-  if (Number.isInteger(seconds)) {
-    return `${minutes}:${String(seconds).padStart(2, "0")}`;
-  }
-
-  return `${minutes}:${seconds.toFixed(2).padStart(5, "0")}`;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
 };
 
 export const resolveAlbumTotalDurationSeconds = (album, tracks = []) => {

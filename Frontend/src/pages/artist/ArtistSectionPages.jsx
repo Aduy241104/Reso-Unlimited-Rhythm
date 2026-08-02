@@ -16,6 +16,7 @@ import {
   Send,
   Trash2,
 } from "lucide-react";
+import { ARTIST_INPUT_LIMITS } from "../../constants/artistInputLimits";
 import ConfirmActionModal from "../../components/common/ConfirmActionModal";
 import ArtistSectionPage from "./ArtistSectionPage";
 import trackService from "../../services/trackService";
@@ -763,6 +764,7 @@ export const MyMusicPage = () => {
               type="search"
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
+              maxLength={ARTIST_INPUT_LIMITS.search}
               placeholder="Tìm bài hát, album, thể loại..."
               className="h-12 w-full rounded-2xl border border-[#e6e0ff] bg-white pl-11 pr-4 text-sm text-[#241b45] outline-none transition placeholder:text-[#a59fbe] focus:border-[#7c6cf2]"
             />

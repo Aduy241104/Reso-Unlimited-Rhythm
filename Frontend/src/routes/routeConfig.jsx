@@ -37,6 +37,7 @@ import ArtistTrackDetailPage from "../pages/artist/ArtistTrackDetailPage";
 import ArtistTrackEditPage from "../pages/artist/ArtistTrackEditPage";
 import ArtistLyricsPage from "../pages/artist/ArtistLyricsPage";
 import HomePage from "../pages/home/HomePage";
+import NotFoundPage from "../pages/error/NotFoundPage";
 import LyricsPage from "../pages/lyrics/LyricsPage";
 import LyricsFullscreenPage from "../pages/lyrics/LyricsFullscreenPage";
 import GenreListPage from "../pages/usergenre/GenreListPage";
@@ -81,6 +82,10 @@ export const appRoutes = [
       {
         path: routePaths.home,
         element: <HomePage />,
+      },
+      {
+        path: routePaths.notFound,
+        element: <NotFoundPage />,
       },
       {
         path: routePaths.search,
@@ -150,6 +155,10 @@ export const appRoutes = [
       {
         path: routePaths.legacyArtistProfile,
         element: <Navigate to={featuredArtistProfilePath} replace />,
+      },
+      {
+        path: "*",
+        element: <NotFoundPage />,
       },
     ],
   },
@@ -378,7 +387,7 @@ export const appRoutes = [
   },
   {
     path: "*",
-    element: <Navigate to={routePaths.home} replace />,
+    element: <Navigate to={routePaths.notFound} replace />,
   },
 ];
 

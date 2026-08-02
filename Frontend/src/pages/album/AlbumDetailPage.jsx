@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import {
   Check,
   CirclePlus,
@@ -9,6 +9,7 @@ import {
 import PlayButton from "../../components/common/PlayButton";
 import LoadingState from "../../components/common/LoadingState";
 import CreateReportModal from "../../components/report/CreateReportModal";
+import NotFoundPage from "../error/NotFoundPage";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import TrackCard from "../../components/TrackCard";
 import TrackListSection from "../../components/trackList/TrackListSection";
@@ -30,6 +31,8 @@ import {
   resolveTrackAvatar,
 } from "../../utils/albumDetail";
 import { getApiErrorMessage } from "../../utils/apiError";
+import { isResourceNotFoundError } from "../../utils/resourceError";
+import { emitFollowedAlbumChangedEvent } from "../../utils/followedLibraryEvents";
 import { isBlockedTrack } from "../../utils/trackStatus";
 
 const actionButtonClassName = `
@@ -58,6 +61,27 @@ const metaPillClassName = `
 
 const FOLLOW_LOGIN_NOTICE = "Vui lòng đăng nhập để theo dõi album này.";
 
+const normalizeText = (value) =>
+  typeof value === "string" ? value.trim() : "";
+
+const buildSidebarAlbumItem = (album, fallbackAlbumId) => {
+  const albumId = album?.id || album?.albumId || fallbackAlbumId || "";
+
+  if (!albumId) {
+    return null;
+  }
+
+  return {
+    albumId,
+    title: normalizeText(album?.title) || "Album chưa đặt tên",
+    coverImage: normalizeText(album?.coverImage),
+    artistName:
+      normalizeText(album?.artist?.name) ||
+      normalizeText(album?.artistName) ||
+      "Nghệ sĩ không xác định",
+  };
+};
+
 const AlbumDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -65,6 +89,7 @@ const AlbumDetailPage = () => {
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [album, setAlbum] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isNotFound, setIsNotFound] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -86,12 +111,19 @@ const AlbumDetailPage = () => {
 
     const loadAlbumDetail = async () => {
       setIsLoading(true);
+      setIsNotFound(false);
       setErrorMessage("");
 
       try {
         const albumDetail = await getAlbumDetailService(id);
 
         if (!isMounted) {
+          return;
+        }
+
+        if (!albumDetail) {
+          setAlbum(null);
+          setIsNotFound(true);
           return;
         }
 
@@ -102,6 +134,11 @@ const AlbumDetailPage = () => {
         }
 
         setAlbum(null);
+        if (isResourceNotFoundError(error)) {
+          setIsNotFound(true);
+          return;
+        }
+
         setErrorMessage(
           getApiErrorMessage(
             error,
@@ -117,7 +154,8 @@ const AlbumDetailPage = () => {
 
     if (!id) {
       setAlbum(null);
-      setErrorMessage("Thiếu mã album.");
+      setIsNotFound(true);
+      setErrorMessage("");
       setIsLoading(false);
       return () => {
         isMounted = false;
@@ -263,8 +301,28 @@ const AlbumDetailPage = () => {
       const followState = isFollowing
         ? await unfollowAlbumService({ albumId })
         : await followAlbumService({ albumId });
+      const nextIsFollowing = Boolean(followState?.isFollowing ?? !isFollowing);
 
-      setIsFollowing(Boolean(followState?.isFollowing ?? !isFollowing));
+      setIsFollowing(nextIsFollowing);
+
+      if (isFollowing) {
+        emitFollowedAlbumChangedEvent({
+          type: "removed",
+          albumId: followState?.albumId || albumId,
+        });
+      } else {
+        const sidebarAlbum = buildSidebarAlbumItem(
+          album,
+          followState?.albumId || albumId
+        );
+
+        if (sidebarAlbum) {
+          emitFollowedAlbumChangedEvent({
+            type: "added",
+            album: sidebarAlbum,
+          });
+        }
+      }
     } catch (error) {
       if (error?.response?.status === 401) {
         redirectToLogin();
@@ -305,6 +363,14 @@ const AlbumDetailPage = () => {
         message="Đang tải chi tiết album..."
         className="min-h-[60vh]"
         spinnerClassName="h-8 w-8"
+      />
+    );
+  }
+
+  if (isNotFound) {
+    return (
+      <NotFoundPage
+        title="Không tìm thấy album"
       />
     );
   }
@@ -468,3 +534,6 @@ const AlbumDetailPage = () => {
 };
 
 export default AlbumDetailPage;
+
+
+

@@ -11,6 +11,10 @@ import { createPortal } from "react-dom";
 import { updateUserPlaylist } from "../../services/userPlaylistService";
 import { USER_INPUT_LIMITS } from "../../constants/userInputLimits";
 import { getApiErrorMessage } from "../../utils/apiError";
+import {
+  IMAGE_FILE_ACCEPT,
+  getImageFileValidationError,
+} from "../../utils/imageFileValidation";
 
 const ANIMATION_DURATION = 300;
 
@@ -201,8 +205,10 @@ const EditPlaylistModal = ({
       return;
     }
 
-    if (!file.type.startsWith("image/")) {
-      setErrorMessage("Vui lòng chọn tệp hình hợp lệ.");
+    const validationError = getImageFileValidationError(file);
+
+    if (validationError) {
+      setErrorMessage(validationError);
       event.target.value = "";
       return;
     }
@@ -328,7 +334,7 @@ const EditPlaylistModal = ({
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept={IMAGE_FILE_ACCEPT}
                 onChange={handleCoverChange}
                 className="hidden"
               />

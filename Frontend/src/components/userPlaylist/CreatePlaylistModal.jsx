@@ -4,6 +4,10 @@ import { createPortal } from "react-dom";
 import { createUserPlaylist } from "../../services/userPlaylistService";
 import { USER_INPUT_LIMITS } from "../../constants/userInputLimits";
 import { getApiErrorMessage } from "../../utils/apiError";
+import {
+  IMAGE_FILE_ACCEPT,
+  getImageFileValidationError,
+} from "../../utils/imageFileValidation";
 
 const ANIMATION_DURATION = 300;
 const USER_PLAYLISTS_CHANGED_EVENT = "user-playlists:changed";
@@ -187,8 +191,10 @@ const CreatePlaylistModal = ({
       return;
     }
 
-    if (!file.type.startsWith("image/")) {
-      setErrorMessage("Vui lòng chọn tệp hình hợp lệ.");
+    const validationError = getImageFileValidationError(file);
+
+    if (validationError) {
+      setErrorMessage(validationError);
       event.target.value = "";
       return;
     }
@@ -322,7 +328,7 @@ const CreatePlaylistModal = ({
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept={IMAGE_FILE_ACCEPT}
                 onChange={handleCoverChange}
                 className="hidden"
               />

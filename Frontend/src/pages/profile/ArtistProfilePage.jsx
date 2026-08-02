@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AboutArtistSection from "../../components/artist/AboutArtistSection";
 import ComingSoonCountdownOverlay from "../../components/artist/ComingSoonCountdownOverlay";
@@ -7,6 +7,7 @@ import DiscographySection from "../../components/artist/DiscographySection";
 import PopularTracksSection from "../../components/artist/PopularTracksSection";
 import CreateReportModal from "../../components/report/CreateReportModal";
 import LoadingState from "../../components/common/LoadingState";
+import NotFoundPage from "../error/NotFoundPage";
 import { useAuth } from "../../hooks/useAuth";
 import { routePaths } from "../../routes/routePaths";
 import {
@@ -16,6 +17,8 @@ import {
   unfollowArtistService,
 } from "../../services/artistBrowseService";
 import { getApiErrorMessage } from "../../utils/apiError";
+import { isResourceNotFoundError } from "../../utils/resourceError";
+import { emitFollowedArtistChangedEvent } from "../../utils/followedLibraryEvents";
 
 const getScrollContainer = (element) => {
   if (!element || typeof window === "undefined") {
@@ -52,9 +55,27 @@ const getOverlayBounds = (container) => {
   };
 };
 
-const FOLLOW_LOGIN_NOTICE = "Vui lòng đăng nhập để theo dõi nghệ sĩ này.";
+const FOLLOW_LOGIN_NOTICE = "Vui lĂ²ng Ä‘Äƒng nháº­p Ä‘á»ƒ theo dĂµi nghá»‡ sÄ© nĂ y.";
 
 const hasResolvedFollowState = (value) => typeof value === "boolean";
+
+const normalizeText = (value) =>
+  typeof value === "string" ? value.trim() : "";
+
+const buildSidebarArtistItem = (profile, fallbackArtistId) => {
+  const artistId =
+    profile?.id || profile?.artistId || profile?._id || fallbackArtistId || "";
+
+  if (!artistId) {
+    return null;
+  }
+
+  return {
+    artistId,
+    name: normalizeText(profile?.name) || "Nghệ sĩ không xác định",
+    avatar: normalizeText(profile?.avatar),
+  };
+};
 
 const ArtistProfileView = () => {
   const { id } = useParams();
@@ -62,6 +83,7 @@ const ArtistProfileView = () => {
   const location = useLocation();
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
+  const [isNotFound, setIsNotFound] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [activeFilter, setActiveFilter] = useState("popular");
   const [isFollowing, setIsFollowing] = useState(false);
@@ -119,12 +141,18 @@ const ArtistProfileView = () => {
 
     const loadArtistExperience = async () => {
       setIsLoading(true);
+      setIsNotFound(false);
       setErrorMessage("");
 
       try {
         const payload = await getArtistExperienceService({ artistId: id });
 
         if (!isMounted) {
+          return;
+        }
+
+        if (!payload?.profile) {
+          setIsNotFound(true);
           return;
         }
 
@@ -138,10 +166,15 @@ const ArtistProfileView = () => {
           return;
         }
 
+        if (isResourceNotFoundError(error)) {
+          setIsNotFound(true);
+          return;
+        }
+
         setErrorMessage(
           getApiErrorMessage(
             error,
-            "Không thể tải hồ sơ nghệ sĩ lúc này."
+            "KhĂ´ng thá»ƒ táº£i há»“ sÆ¡ nghá»‡ sÄ© lĂºc nĂ y."
           )
         );
       } finally {
@@ -150,6 +183,15 @@ const ArtistProfileView = () => {
         }
       }
     };
+
+    if (!id) {
+      setIsNotFound(true);
+      setErrorMessage("");
+      setIsLoading(false);
+      return () => {
+        isMounted = false;
+      };
+    }
 
     loadArtistExperience();
 
@@ -199,7 +241,7 @@ const ArtistProfileView = () => {
         }
 
         setFollowErrorMessage(
-          getApiErrorMessage(error, "Không thể tải trạng thái theo dõi lúc này.")
+          getApiErrorMessage(error, "KhĂ´ng thá»ƒ táº£i tráº¡ng thĂ¡i theo dĂµi lĂºc nĂ y.")
         );
       } finally {
         if (isMounted) {
@@ -327,8 +369,28 @@ const ArtistProfileView = () => {
       const followState = isFollowing
         ? await unfollowArtistService({ artistId })
         : await followArtistService({ artistId });
+      const nextFollowState = followState || fallbackFollowState;
 
-      applyFollowState(followState || fallbackFollowState);
+      applyFollowState(nextFollowState);
+
+      if (isFollowing) {
+        emitFollowedArtistChangedEvent({
+          type: "removed",
+          artistId: nextFollowState.artistId || artistId,
+        });
+      } else {
+        const sidebarArtist = buildSidebarArtistItem(
+          artistData.profile,
+          nextFollowState.artistId || artistId
+        );
+
+        if (sidebarArtist) {
+          emitFollowedArtistChangedEvent({
+            type: "added",
+            artist: sidebarArtist,
+          });
+        }
+      }
     } catch (error) {
       if (error?.response?.status === 401) {
         redirectToLogin();
@@ -339,8 +401,8 @@ const ArtistProfileView = () => {
         getApiErrorMessage(
           error,
           isFollowing
-            ? "Không thể bỏ theo dõi nghệ sĩ lúc này."
-            : "Không thể theo dõi nghệ sĩ lúc này."
+            ? "KhĂ´ng thá»ƒ bá» theo dĂµi nghá»‡ sÄ© lĂºc nĂ y."
+            : "KhĂ´ng thá»ƒ theo dĂµi nghá»‡ sÄ© lĂºc nĂ y."
         )
       );
     } finally {
@@ -364,9 +426,17 @@ const ArtistProfileView = () => {
   if (isLoading) {
     return (
       <LoadingState
-        message="Đang tải hồ sơ nghệ sĩ..."
+        message="Äang táº£i há»“ sÆ¡ nghá»‡ sÄ©..."
         className="min-h-[60vh]"
         spinnerClassName="h-8 w-8"
+      />
+    );
+  }
+
+  if (isNotFound) {
+    return (
+      <NotFoundPage
+        title="Không tìm thấy nghệ sĩ"
       />
     );
   }
@@ -423,7 +493,7 @@ const ArtistProfileView = () => {
             </div>
           </>
         ) : isLoading ? (
-          <LoadingState message="Đang tải hồ sơ nghệ sĩ..." className="min-h-[60vh]" />
+          <LoadingState message="Äang táº£i há»“ sÆ¡ nghá»‡ sÄ©..." className="min-h-[60vh]" />
         ) : (
           <div className="mx-auto max-w-6xl space-y-8 px-1 lg:space-y-10">
             <PopularTracksSection
@@ -448,8 +518,8 @@ const ArtistProfileView = () => {
           comingRelease={ nextComingRelease }
           artistName={ profile?.name }
           overlayBounds={ overlayBounds }
-          trackId={ nextComingRelease?.trackId || nextComingRelease?.id }
-          albumId={ nextComingRelease?.albumId || nextComingRelease?.id }
+          trackId={ nextComingRelease?.trackId }
+          albumId={ nextComingRelease?.albumId }
           onBack={ closeComingSoonExperience }
         />
       ) : null }
@@ -473,3 +543,6 @@ const ArtistProfilePage = () => {
 };
 
 export default ArtistProfilePage;
+
+
+

@@ -1,4 +1,14 @@
-import { ArrowLeft, FileImage, Link2, ShieldCheck, UserRound } from "lucide-react";
+import { useState } from "react";
+import {
+  ArrowLeft,
+  ArrowUpRight,
+  FileImage,
+  Link2,
+  Maximize2,
+  ShieldCheck,
+  UserRound,
+  X,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { routePaths } from "../../../routes/routePaths";
 import {
@@ -22,8 +32,15 @@ const ArtistRequestInfoSections = ({
   demoTrackUrls,
   musicLinks,
 }) => {
+  const [isAvatarPreviewOpen, setIsAvatarPreviewOpen] = useState(false);
+  const registeredUserId =
+    typeof artistRequest.userId === "string"
+      ? artistRequest.userId
+      : artistRequest.userId?._id;
+
   return (
-    <div className="space-y-5">
+    <>
+      <div className="space-y-5">
       <Section title="Tổng quan" icon={ UserRound }>
         <Link
           to={ routePaths.artistRequests }
@@ -35,11 +52,22 @@ const ArtistRequestInfoSections = ({
 
         <div className="mt-5 flex min-w-0 items-center gap-4">
           { artistRequest?.avatar ? (
-            <img
-              src={ artistRequest.avatar }
-              alt={ artistRequest.stageName }
-              className="h-14 w-14 rounded-lg object-cover"
-            />
+            <button
+              type="button"
+              onClick={ () => setIsAvatarPreviewOpen(true) }
+              className="group relative h-14 w-14 shrink-0 overflow-hidden rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+              aria-label="Xem ảnh đại diện đầy đủ"
+              title="Xem ảnh đại diện đầy đủ"
+            >
+              <img
+                src={ artistRequest.avatar }
+                alt={ artistRequest.stageName || "Ảnh đại diện artist" }
+                className="h-full w-full object-cover transition group-hover:scale-105"
+              />
+              <span className="absolute inset-0 flex items-center justify-center bg-slate-950/0 text-white opacity-0 transition group-hover:bg-slate-950/40 group-hover:opacity-100 group-focus-visible:bg-slate-950/40 group-focus-visible:opacity-100">
+                <Maximize2 className="h-4 w-4" aria-hidden="true" />
+              </span>
+            </button>
           ) : (
             <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-slate-900 text-base font-semibold text-white">
               AR
@@ -55,6 +83,16 @@ const ArtistRequestInfoSections = ({
               { artistRequest.userId?.profile?.fullName || "-" } ·{ " " }
               { artistRequest.userId?.email || "-" }
             </p>
+
+            { registeredUserId ? (
+              <Link
+                to={ routePaths.userDetail(registeredUserId) }
+                className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-sky-700 transition hover:text-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+              >
+                Xem chi tiết người dùng
+                <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            ) : null }
           </div>
         </div>
 
@@ -232,7 +270,38 @@ const ArtistRequestInfoSections = ({
           />
         </div>
       </Section>
-    </div>
+      </div>
+
+      { isAvatarPreviewOpen && artistRequest.avatar ? (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Ảnh đại diện đầy đủ"
+          onClick={ () => setIsAvatarPreviewOpen(false) }
+        >
+          <div
+            className="relative flex max-h-[90vh] max-w-5xl items-center justify-center"
+            onClick={ (event) => event.stopPropagation() }
+          >
+            <button
+              type="button"
+              onClick={ () => setIsAvatarPreviewOpen(false) }
+              className="absolute -top-12 right-0 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              aria-label="Đóng ảnh đại diện"
+            >
+              <X className="h-6 w-6" aria-hidden="true" />
+            </button>
+
+            <img
+              src={ artistRequest.avatar }
+              alt={ artistRequest.stageName || "Ảnh đại diện artist" }
+              className="max-h-[85vh] max-w-full rounded-2xl object-contain shadow-2xl"
+            />
+          </div>
+        </div>
+      ) : null }
+    </>
   );
 };
 

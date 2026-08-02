@@ -1,4 +1,11 @@
-import { AlertCircle, CheckCircle, ImagePlus, Loader2, Send } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle,
+  ImagePlus,
+  Loader2,
+  Send,
+  X,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import ReportReasonSelect from "../../components/report/ReportReasonSelect";
@@ -8,6 +15,10 @@ import {
 } from "../../services/report/user.report.service";
 import { USER_INPUT_LIMITS } from "../../constants/userInputLimits";
 import { routePaths } from "../../routes/routePaths";
+import {
+  IMAGE_FILE_ACCEPT,
+  getImageFilesValidationError,
+} from "../../utils/imageFileValidation";
 
 const REPORT_REASON_GROUPS = [
   {
@@ -55,6 +66,9 @@ const initialFormState = {
   images: [],
 };
 
+const getMaxImagesErrorMessage = () =>
+  `Bạn chỉ có thể tải lên tối đa ${MAX_REPORT_IMAGES} ảnh minh chứng.`;
+
 const FieldLabel = ({ children, required = false }) => (
   <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-white/60">
     {children}
@@ -80,83 +94,97 @@ const CustomerCreateReportPage = () => {
 
   const imageNames = useMemo(
     () => formData.images.map((file) => file?.name).filter(Boolean),
-    [formData.images],
+    [formData.images]
   );
 
-  const handleChange = (event) => {
-    const { name, value, files } = event.target;
+  const handleTextChange = (event) => {
+    const { name, value } = event.target;
 
-    setErrors((previous) => ({ ...previous, [name]: undefined }));
+    setErrors((prev) => ({ ...prev, [name]: undefined }));
     setSubmitError("");
-
-    if (name === "images") {
-      const selectedFiles = Array.from(files || []);
-      const remainingSlots = Math.max(0, MAX_REPORT_IMAGES - formData.images.length);
-
-      if (selectedFiles.length === 0) {
-        event.target.value = "";
-        return;
-      }
-
-      if (remainingSlots === 0) {
-        setErrors((previous) => ({
-          ...previous,
-          images: `Bạn chỉ có thể tải lên tối đa ${MAX_REPORT_IMAGES} ảnh minh chứng.`,
-        }));
-        event.target.value = "";
-        return;
-      }
-
-      if (selectedFiles.length > remainingSlots) {
-        setErrors((previous) => ({
-          ...previous,
-          images: `Bạn chỉ có thể tải lên tối đa ${MAX_REPORT_IMAGES} ảnh minh chứng.`,
-        }));
-      }
-
-      setFormData((previous) => ({
-        ...previous,
-        images: [...previous.images, ...selectedFiles].slice(0, MAX_REPORT_IMAGES),
-      }));
-      event.target.value = "";
-      return;
-    }
-
-    setFormData((previous) => ({
-      ...previous,
+    setFormData((prev) => ({
+      ...prev,
       [name]: value,
     }));
   };
 
+  const handleImagesChange = (event) => {
+    const selectedFiles = Array.from(event.target.files || []);
+
+    setErrors((prev) => ({ ...prev, images: undefined }));
+    setSubmitError("");
+
+    if (selectedFiles.length === 0) {
+      event.target.value = "";
+      return;
+    }
+
+    const validationError = getImageFilesValidationError(selectedFiles);
+    if (validationError) {
+      setErrors((prev) => ({ ...prev, images: validationError }));
+      event.target.value = "";
+      return;
+    }
+
+    const currentCount = formData.images.length;
+    if (currentCount >= MAX_REPORT_IMAGES) {
+      setErrors((prev) => ({ ...prev, images: getMaxImagesErrorMessage() }));
+      event.target.value = "";
+      return;
+    }
+
+    const remainingSlots = MAX_REPORT_IMAGES - currentCount;
+    const filesToAppend = selectedFiles.slice(0, remainingSlots);
+
+    if (selectedFiles.length > remainingSlots) {
+      setErrors((prev) => ({ ...prev, images: getMaxImagesErrorMessage() }));
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      images: [...prev.images, ...filesToAppend],
+    }));
+
+    event.target.value = "";
+  };
+
   const handleReasonChange = (reason) => {
-    setFormData((previous) => ({
-      ...previous,
+    setFormData((prev) => ({
+      ...prev,
       reason,
     }));
-    setErrors((previous) => ({
-      ...previous,
+    setErrors((prev) => ({
+      ...prev,
       reason: undefined,
     }));
     setSubmitError("");
   };
 
+  const handleRemoveImage = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      images: prev.images.filter((_, imageIndex) => imageIndex !== index),
+    }));
+    setErrors((prev) => ({ ...prev, images: undefined }));
+  };
+
   const validateForm = () => {
     const nextErrors = {};
 
-    if (!formData.targetId.trim()) {
+    if (!String(formData.targetId || "").trim()) {
       nextErrors.targetId =
         "Không xác định được nội dung cần báo cáo. Vui lòng quay lại và thử lại.";
     }
 
-    if (!formData.targetType.trim()) {
+    if (!String(formData.targetType || "").trim()) {
       nextErrors.targetType = "Vui lòng chọn loại nội dung.";
     }
 
-    if (!formData.reason.trim()) {
+    if (!String(formData.reason || "").trim()) {
       nextErrors.reason = "Vui lòng chọn lý do báo cáo.";
     }
 
-    if (!formData.description.trim()) {
+    if (!String(formData.description || "").trim()) {
       nextErrors.description = "Vui lòng mô tả vấn đề bạn gặp phải.";
     }
 
@@ -178,9 +206,7 @@ const CustomerCreateReportPage = () => {
       await createReportService(formData);
       setIsSubmitted(true);
     } catch (error) {
-      setSubmitError(
-        translateReportError(error),
-      );
+      setSubmitError(translateReportError(error));
     } finally {
       setIsSubmitting(false);
     }
@@ -255,7 +281,7 @@ const CustomerCreateReportPage = () => {
               <select
                 name="targetType"
                 value={formData.targetType}
-                onChange={handleChange}
+                onChange={handleTextChange}
                 className={fieldClassName}
               >
                 {TARGET_TYPE_OPTIONS.map((option) => (
@@ -269,7 +295,9 @@ const CustomerCreateReportPage = () => {
                 ))}
               </select>
               {errors.targetType ? (
-                <p className="mt-2 text-xs text-rose-300">{errors.targetType}</p>
+                <p className="mt-2 text-xs text-rose-300">
+                  {errors.targetType}
+                </p>
               ) : null}
             </div>
           </div>
@@ -294,7 +322,7 @@ const CustomerCreateReportPage = () => {
               maxLength={USER_INPUT_LIMITS.reportDescription}
               rows={6}
               value={formData.description}
-              onChange={handleChange}
+              onChange={handleTextChange}
               placeholder="Mô tả cụ thể vấn đề hoặc nội dung bạn muốn báo cáo..."
               className={`${fieldClassName} resize-none leading-6`}
             />
@@ -320,10 +348,10 @@ const CustomerCreateReportPage = () => {
               <input
                 type="file"
                 name="images"
-                accept="image/*"
+                accept={IMAGE_FILE_ACCEPT}
                 multiple
                 className="sr-only"
-                onChange={handleChange}
+                onChange={handleImagesChange}
               />
             </label>
             {errors.images ? (
@@ -331,13 +359,20 @@ const CustomerCreateReportPage = () => {
             ) : null}
             {imageNames.length > 0 ? (
               <div className="mt-3 space-y-2">
-                {imageNames.map((name) => (
-                  <p
-                    key={name}
-                    className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-2 text-sm text-white/70"
+                {imageNames.map((name, index) => (
+                  <div
+                    key={`${name}-${index}`}
+                    className="flex items-center justify-between rounded-xl border border-white/8 bg-white/[0.03] px-4 py-2 text-sm text-white/70"
                   >
-                    {name}
-                  </p>
+                    <span className="truncate">{name}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(index)}
+                      className="ml-2 shrink-0 text-white/40 transition hover:text-rose-400"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
                 ))}
               </div>
             ) : null}

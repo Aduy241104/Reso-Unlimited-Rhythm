@@ -34,14 +34,13 @@ const ArtistRequestReviewSidebar = ({
   reviewForm,
   isSubmitting,
   isPending,
-  isApproved,
   hasAllCriteriaApproved,
   onChecklistChange,
   onFieldChange,
   onApprove,
   onReject,
 }) => {
-  const showDecisionSection = !isApproved;
+  const showDecisionSection = isPending;
   const showReviewSummarySection = !isPending;
   const showChecklistSection = !isPending;
 
@@ -50,8 +49,8 @@ const ArtistRequestReviewSidebar = ({
   ).length;
 
   const totalCriteriaCount = REVIEW_CRITERIA.length;
-  const canApprove = !isSubmitting && !isApproved && hasAllCriteriaApproved;
-  const canReject = !isSubmitting && !isApproved;
+  const canApprove = !isSubmitting && isPending && hasAllCriteriaApproved;
+  const canReject = !isSubmitting && isPending;
 
   return (
     <div className="space-y-4">
@@ -85,7 +84,7 @@ const ArtistRequestReviewSidebar = ({
                     key={ item.key }
                     label={ item.label }
                     checked={ reviewForm.checklist[item.key] === true }
-                    disabled={ isSubmitting || isApproved }
+                    disabled={ isSubmitting || !isPending }
                     onChange={ (checked) => onChecklistChange(item.key, checked) }
                   />
                 )) }
@@ -101,7 +100,7 @@ const ArtistRequestReviewSidebar = ({
                 value={ reviewForm.adminNote }
                 onChange={ onFieldChange("adminNote") }
                 rows={ 3 }
-                disabled={ isSubmitting || isApproved }
+                disabled={ isSubmitting || !isPending }
                 placeholder="Ghi chú nội bộ cho hồ sơ này..."
                 className="mt-2 w-full resize-none rounded-md border border-slate-200 bg-white px-3 py-2.5 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500"
               />
@@ -116,20 +115,20 @@ const ArtistRequestReviewSidebar = ({
                 value={ reviewForm.rejectReason }
                 onChange={ onFieldChange("rejectReason") }
                 rows={ 3 }
-                disabled={ isSubmitting || isApproved }
+                disabled={ isSubmitting || !isPending }
                 placeholder="Nhập lý do từ chối nếu cần..."
                 className="mt-2 w-full resize-none rounded-md border border-slate-200 bg-white px-3 py-2.5 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500"
               />
             </div>
 
-            { !hasAllCriteriaApproved && !isApproved && (
+            { !hasAllCriteriaApproved && (
               <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm leading-6 text-amber-800">
                 Hồ sơ chưa đạt đủ tiêu chí để duyệt. Bạn vẫn có thể từ chối hồ
                 sơ và ghi rõ lý do.
               </div>
             ) }
 
-            { hasAllCriteriaApproved && !isApproved && (
+            { hasAllCriteriaApproved && (
               <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm leading-6 text-emerald-700">
                 Tất cả tiêu chí đã đạt. Hồ sơ đã sẵn sàng để duyệt.
               </div>

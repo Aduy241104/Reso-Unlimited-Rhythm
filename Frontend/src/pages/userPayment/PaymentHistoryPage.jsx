@@ -1,4 +1,4 @@
-import { ArrowRight, ChevronLeft, SlidersHorizontal } from "lucide-react";
+﻿import { ArrowRight, ChevronLeft, SlidersHorizontal } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import LoadingState from "../../components/common/LoadingState";
@@ -39,16 +39,6 @@ const PAYMENT_STATUS_OPTIONS = [
     value: "failed",
     label: "Th\u1ea5t b\u1ea1i",
     description: "C\u00e1c giao d\u1ecbch thanh to\u00e1n ch\u01b0a th\u00e0nh c\u00f4ng.",
-  },
-  {
-    value: "refunded",
-    label: "\u0110\u00e3 ho\u00e0n ti\u1ec1n",
-    description: "C\u00e1c giao d\u1ecbch \u0111\u00e3 \u0111\u01b0\u1ee3c ho\u00e0n ti\u1ec1n.",
-  },
-  {
-    value: "cancelled",
-    label: "\u0110\u00e3 h\u1ee7y",
-    description: "C\u00e1c giao d\u1ecbch \u0111\u00e3 b\u1ecb h\u1ee7y.",
   },
 ];
 

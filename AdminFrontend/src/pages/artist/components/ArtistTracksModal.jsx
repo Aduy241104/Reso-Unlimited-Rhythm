@@ -14,11 +14,12 @@ import { getAdminArtistTracksService } from "../../../services/trackService";
 const PAGE_SIZE = 5;
 
 const formatDuration = (seconds) => {
-  if (typeof seconds !== "number" || Number.isNaN(seconds)) return "00:00";
+  const totalSeconds = Math.floor(Number(seconds));
+  if (!Number.isFinite(totalSeconds) || totalSeconds < 0) return "0:00";
 
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = Math.floor(seconds % 60);
-  return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
+  const minutes = Math.floor(totalSeconds / 60);
+  const remainingSeconds = totalSeconds % 60;
+  return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
 };
 
 const getStatusLabel = (status) => {

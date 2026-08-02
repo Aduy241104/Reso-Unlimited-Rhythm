@@ -28,7 +28,7 @@ import detailScreenStyles from '../detail/EntityDetailScreen.styles';
 import playlistService from '../../services/playlistService';
 import userFavoriteService from '../../services/userFavoriteService';
 import userPlaylistService from '../../services/userPlaylistService';
-import { formatDateLabel, formatDuration, getErrorMessage, getInitials, resolveImageUri } from '../../utils/media';
+import { formatDateLabel, formatDuration, formatTrackDuration, getErrorMessage, getInitials, resolveImageUri } from '../../utils/media';
 import { buildPlayableQueue } from '../../utils/player';
 
 const accentPalette = ['#111111', '#2f2f2f', '#4a4a4a', '#686868', '#8a8a8a'];
@@ -98,7 +98,7 @@ const TrackRow = ({
   const accentColor = accentPalette[index % accentPalette.length];
   const title = readText(item?.title, 'Bài hát không xác định');
   const subtitle = readText(item?.subtitle, item?.artistName || 'Nghệ sĩ không xác định');
-  const meta = readText(item?.meta, formatDuration(item?.duration));
+  const meta = readText(item?.meta, formatTrackDuration(item?.duration));
 
   return (
     <TouchableOpacity style={styles.trackRow} activeOpacity={0.85} onPress={onPress}>

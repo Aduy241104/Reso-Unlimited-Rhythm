@@ -2,6 +2,7 @@ import { Play } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import LoadingState from "../../components/common/LoadingState";
+import NotFoundPage from "../error/NotFoundPage";
 import TrackTwoLevelMenu from "../../components/trackMenu/TrackTwoLevelMenu";
 import CreateReportModal from "../../components/report/CreateReportModal";
 import TrackDetailArtistCard from "../../components/trackDetail/TrackDetailArtistCard";
@@ -24,6 +25,7 @@ import {
   formatTrackDuration,
 } from "../../utils/albumDetail";
 import { getApiErrorMessage } from "../../utils/apiError";
+import { isResourceNotFoundError } from "../../utils/resourceError";
 
 const formatListenCount = (value) => {
   const listenCount = Number(value);
@@ -74,6 +76,7 @@ const TrackDetailPage = () => {
   const navigate = useNavigate();
   const [track, setTrack] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isNotFound, setIsNotFound] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
@@ -89,6 +92,7 @@ const TrackDetailPage = () => {
 
     const loadTrackDetail = async () => {
       setIsLoading(true);
+      setIsNotFound(false);
       setErrorMessage("");
       setIsLikeLoading(false);
 
@@ -96,6 +100,12 @@ const TrackDetailPage = () => {
         const trackDetail = await getTrackDetailService(id);
 
         if (!isMounted) {
+          return;
+        }
+
+        if (!trackDetail) {
+          setTrack(null);
+          setIsNotFound(true);
           return;
         }
 
@@ -142,6 +152,11 @@ const TrackDetailPage = () => {
         setIsLiked(false);
         setLikeCount(0);
         setIsLikeLoading(false);
+        if (isResourceNotFoundError(error)) {
+          setIsNotFound(true);
+          return;
+        }
+
         setErrorMessage(
           getApiErrorMessage(
             error,
@@ -160,7 +175,8 @@ const TrackDetailPage = () => {
       setIsLiked(false);
       setLikeCount(0);
       setIsLikeLoading(false);
-      setErrorMessage("Thi\u1ebfu m\u00e3 b\u00e0i h\u00e1t.");
+      setIsNotFound(true);
+      setErrorMessage("");
       setIsLoading(false);
       return () => {
         isMounted = false;
@@ -309,6 +325,14 @@ const TrackDetailPage = () => {
     );
   }
 
+  if (isNotFound) {
+    return (
+      <NotFoundPage
+        title="Không tìm thấy bài hát"
+      />
+    );
+  }
+
   if (errorMessage) {
     return (
       <section className="rounded-[10px]">
@@ -353,6 +377,7 @@ const TrackDetailPage = () => {
           <TrackTwoLevelMenu
             trackId={ trackId }
             track={ track }
+            menuAlign="start"
             onViewInfo={ () => setIsInformationModalOpen(true) }
             onReport={ handleReportTrack }
             onTrackAdded={ (updatedPlaylist, playlist) => {
