@@ -1,4 +1,5 @@
 import { jest } from "@jest/globals";
+import createAwaitableQuery from "./helpers/createAwaitableQuery.js";
 
 process.env.JWT_SECRET = "test-secret";
 
@@ -110,7 +111,9 @@ describe("authenticationService.resetPassword", () => {
         };
         const user = createUser();
 
-        mockVerificationTokenModel.findOne.mockResolvedValue(verificationToken);
+        mockVerificationTokenModel.findOne.mockReturnValue(
+            createAwaitableQuery(verificationToken, ["sort"])
+        );
         mockUserModel.findById.mockResolvedValue(user);
         mockBcrypt.compare.mockResolvedValue(false);
         mockBcrypt.hash.mockResolvedValue("new-hashed-password");
@@ -156,7 +159,9 @@ describe("authenticationService.resetPassword", () => {
     });
 
     test("throws 400 when reset token is invalid", async () => {
-        mockVerificationTokenModel.findOne.mockResolvedValue(null);
+        mockVerificationTokenModel.findOne.mockReturnValue(
+            createAwaitableQuery(null, ["sort"])
+        );
 
         await expect(
             authenticationService.resetPassword({
@@ -164,7 +169,7 @@ describe("authenticationService.resetPassword", () => {
                 password: "NewSecret123",
             })
         ).rejects.toMatchObject({
-            message: "Reset password link is invalid.",
+            message: "Reset password verification is invalid.",
             statusCode: 400,
             details: { field: "token" },
         });
@@ -182,7 +187,9 @@ describe("authenticationService.resetPassword", () => {
             save: jest.fn().mockResolvedValue(true),
         };
 
-        mockVerificationTokenModel.findOne.mockResolvedValue(verificationToken);
+        mockVerificationTokenModel.findOne.mockReturnValue(
+            createAwaitableQuery(verificationToken, ["sort"])
+        );
 
         await expect(
             authenticationService.resetPassword({
@@ -190,7 +197,7 @@ describe("authenticationService.resetPassword", () => {
                 password: "NewSecret123",
             })
         ).rejects.toMatchObject({
-            message: "Reset password link has expired.",
+            message: "Reset password verification has expired.",
             statusCode: 400,
             details: { field: "token" },
         });
@@ -217,7 +224,9 @@ describe("authenticationService.resetPassword", () => {
         };
         const user = createUser();
 
-        mockVerificationTokenModel.findOne.mockResolvedValue(verificationToken);
+        mockVerificationTokenModel.findOne.mockReturnValue(
+            createAwaitableQuery(verificationToken, ["sort"])
+        );
         mockUserModel.findById.mockResolvedValue(user);
         mockBcrypt.compare.mockResolvedValue(true);
 

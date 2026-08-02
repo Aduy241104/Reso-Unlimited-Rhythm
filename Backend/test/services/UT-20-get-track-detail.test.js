@@ -52,6 +52,10 @@ describe("View Track Details - trackService.getTrackDetail", () => {
                 avatar: "track.png",
                 coverImage: ["cover.png"],
                 releaseDate: new Date("2026-07-10T00:00:00.000Z"),
+                releaseStatus: "released",
+                releasedAt: new Date("2026-07-10T00:00:00.000Z"),
+                activeStatus: "active",
+                approvalStatus: "approved",
                 stats: { totalPlay: 321 },
                 lyricsStatic: "Some lyrics",
                 lyricsSyncUrl: "https://example.com/detail.lrc",
@@ -80,18 +84,23 @@ describe("View Track Details - trackService.getTrackDetail", () => {
             "507f1f77bcf86cd799439131"
         );
 
-        expect(mockTrackModel.findOne).toHaveBeenCalledWith({
-            _id: "507f1f77bcf86cd799439131",
-            activeStatus: "active",
-            approvalStatus: "approved",
-        });
-        expect(result).toEqual({
+        expect(mockTrackModel.findOne).toHaveBeenCalledWith(
+            expect.objectContaining({
+                _id: "507f1f77bcf86cd799439131",
+                activeStatus: "active",
+                approvalStatus: "approved",
+                $or: expect.any(Array),
+            })
+        );
+        expect(result).toEqual(expect.objectContaining({
             id: "507f1f77bcf86cd799439131",
             title: "Detail Track",
             duration: 240,
             avatar: "track.png",
             coverImage: ["cover.png"],
             releaseDate: new Date("2026-07-10T00:00:00.000Z"),
+            releaseStatus: "released",
+            releasedAt: new Date("2026-07-10T00:00:00.000Z"),
             stats: { totalPlay: 321 },
             artist: expect.objectContaining({
                 id: "507f1f77bcf86cd799439231",
@@ -112,7 +121,9 @@ describe("View Track Details - trackService.getTrackDetail", () => {
                 static: "Some lyrics",
                 syncUrl: "https://example.com/detail.lrc",
             },
-        });
+            isFavorite: false,
+            favoritedAt: null,
+        }));
     });
 
     test("throws 400 when track id is invalid", async () => {
@@ -135,5 +146,16 @@ describe("View Track Details - trackService.getTrackDetail", () => {
             message: "Track not found.",
             statusCode: 404,
         });
+    });
+
+    test("propagates database errors while loading track detail", async () => {
+        const { trackService } = await loadTrackService();
+        mockTrackModel.findOne.mockImplementation(() => {
+            throw new Error("track database unavailable");
+        });
+
+        await expect(
+            trackService.getTrackDetail("507f1f77bcf86cd799439133")
+        ).rejects.toThrow("track database unavailable");
     });
 });

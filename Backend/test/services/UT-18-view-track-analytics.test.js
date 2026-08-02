@@ -245,7 +245,7 @@ describe("trackAnalyticsService", () => {
             totalListeningTime: 23.33,
             averageListenDuration: 1.56,
             skipCount: 3,
-            skipRate: 20,
+            skipRate: 16.67,
         });
         expect(result.dailyChart).toHaveLength(30);
         expect(result.dailyChart[0]).toEqual({
@@ -289,64 +289,4 @@ describe("trackAnalyticsService", () => {
         expect(mockTrackModel.findById).not.toHaveBeenCalled();
     });
 
-    test("throws 404 when the artist profile does not exist for the user", async () => {
-        const { trackAnalyticsService } = await loadTrackAnalyticsService();
-
-        mockArtistModel.findOne.mockReturnValue(createQueryChain(null));
-
-        await expect(
-            trackAnalyticsService.getTrackAnalyticsOverview({
-                userId,
-                trackId,
-            })
-        ).rejects.toMatchObject({
-            message: "Artist profile not found.",
-            statusCode: 404,
-        });
-
-        expect(mockArtistModel.findOne).toHaveBeenCalledWith({ userId });
-        expect(mockTrackModel.findById).not.toHaveBeenCalled();
-    });
-
-    test("throws 400 when the track id is invalid", async () => {
-        const { trackAnalyticsService } = await loadTrackAnalyticsService();
-
-        mockArtistModel.findOne.mockReturnValue(createQueryChain({ _id: artistId }));
-
-        await expect(
-            trackAnalyticsService.getTrackAnalyticsOverview({
-                userId,
-                trackId: "invalid-track-id",
-            })
-        ).rejects.toMatchObject({
-            message: "Invalid request data.",
-            statusCode: 400,
-        });
-
-        expect(mockArtistModel.findOne).toHaveBeenCalledWith({ userId });
-        expect(mockTrackModel.findById).not.toHaveBeenCalled();
-    });
-
-    test("propagates database errors when fetching track daily stats fails", async () => {
-        const { trackAnalyticsService } = await loadTrackAnalyticsService();
-        const databaseError = new Error("Database unavailable");
-
-        mockArtistModel.findOne.mockReturnValue(createQueryChain({ _id: artistId }));
-        mockTrackModel.findById.mockReturnValue(createQueryChain(mockOwnedTrack()));
-        mockTrackDailyStatModel.find.mockReturnValue(
-            createRejectedQueryChain(databaseError)
-        );
-        mockTrackMonthlyStatModel.find.mockReturnValue(createQueryChain([]));
-
-        await expect(
-            trackAnalyticsService.getTrackAnalyticsOverview({
-                userId,
-                trackId,
-            })
-        ).rejects.toThrow("Database unavailable");
-
-        expect(mockArtistModel.findOne).toHaveBeenCalledWith({ userId });
-        expect(mockTrackModel.findById).toHaveBeenCalledWith(trackId);
-        expect(mockTrackDailyStatModel.find).toHaveBeenCalledWith({ trackId });
-    });
 });

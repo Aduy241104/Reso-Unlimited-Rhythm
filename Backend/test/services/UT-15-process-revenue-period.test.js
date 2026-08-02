@@ -433,18 +433,21 @@ describe("Process Revenue Period", () => {
             },
         });
         expect(mockArtistModel.bulkWrite).toHaveBeenCalledTimes(1);
-        expect(mockArtistRevenueSummaryModel.updateMany).toHaveBeenCalledWith(
+        expect(mockArtistRevenueSummaryModel.bulkWrite).toHaveBeenCalledWith([
             {
-                _id: { $in: [summaryId] },
-            },
-            {
-                $set: {
-                    status: "confirmed",
-                    confirmedAt: expect.any(Date),
-                    confirmedBy: adminUserId,
+                updateOne: {
+                    filter: { _id: summaryId },
+                    update: {
+                        $set: {
+                            availableAmount: 600,
+                            status: "confirmed",
+                            confirmedAt: expect.any(Date),
+                            confirmedBy: adminUserId,
+                        },
+                    },
                 },
-            }
-        );
+            },
+        ]);
         expect(mockRevenuePeriodModel.findOneAndUpdate).toHaveBeenCalledWith(
             {
                 _id: periodId,

@@ -157,4 +157,16 @@ describe("View Album Details - albumService.getAlbumDetail", () => {
             statusCode: 404,
         });
     });
+
+    test("propagates database errors while loading album detail", async () => {
+        const { albumService } = await loadAlbumService();
+        mockAlbumModel.findOne.mockImplementation(() => {
+            throw new Error("album database unavailable");
+        });
+
+        await expect(
+            albumService.getAlbumDetail("507f1f77bcf86cd799439163")
+        ).rejects.toThrow("album database unavailable");
+        expect(mockTrackModel.find).not.toHaveBeenCalled();
+    });
 });

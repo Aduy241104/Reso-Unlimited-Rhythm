@@ -13,6 +13,7 @@ const mockArtistRevenueSummaryModel = {
 const mockListenEventModel = {};
 const mockRevenuePeriodModel = {
     findById: jest.fn(),
+    findOne: jest.fn(),
 };
 const mockTrackMonthlyStatModel = {};
 const mockTransactionModel = {};
@@ -45,7 +46,10 @@ const loadService = async () => {
         ARTIST_REVENUE_SHARE_PERCENT: 60,
         ARTIST_REVENUE_SHARE_RATIO: 0.6,
         PLATFORM_REVENUE_SHARE_PERCENT: 40,
-        buildRevenuePeriodRange: jest.fn(),
+        buildRevenuePeriodRange: jest.fn(() => ({
+            periodStart: new Date("2026-06-01T00:00:00.000Z"),
+            periodEnd: new Date("2026-07-01T00:00:00.000Z"),
+        })),
         normalizeRevenueDashboardPeriod: jest.fn(() => ({
             year: 2026,
             month: 6,
@@ -53,7 +57,7 @@ const loadService = async () => {
             currentMonth: 6,
             timezone: "UTC",
         })),
-        resolveRevenuePeriodStatus: jest.fn(),
+        resolveRevenuePeriodStatus: jest.fn(() => "open"),
     }));
 
     const { default: adminRevenueService } = await import(
@@ -67,6 +71,7 @@ describe("View Revenue Period Details", () => {
     beforeEach(() => {
         mockArtistRevenueSummaryModel.find.mockReset();
         mockRevenuePeriodModel.findById.mockReset();
+        mockRevenuePeriodModel.findOne.mockReset();
     });
 
     test("returns revenue period detail for a current or past period", async () => {
@@ -229,6 +234,72 @@ describe("View Revenue Period Details", () => {
             statusCode: 404,
         });
 
+        expect(mockArtistRevenueSummaryModel.find).not.toHaveBeenCalled();
+    });
+
+    test("returns a virtual current period when it has not been persisted", async () => {
+        const adminRevenueService = await loadService();
+        mockRevenuePeriodModel.findOne.mockReturnValue(
+            createAwaitableQuery(null, ["populate", "lean"])
+        );
+
+        const result = await adminRevenueService.getRevenuePeriodDetail("current");
+
+        expect(mockRevenuePeriodModel.findOne).toHaveBeenCalledWith({
+            year: 2026,
+            month: 6,
+        });
+        expect(result.period).toMatchObject({
+            id: null,
+            year: 2026,
+            month: 6,
+            status: "open",
+        });
+        expect(result.distribution).toBeNull();
+    });
+
+    test("returns calculate as the available action for a closed period", async () => {
+        const adminRevenueService = await loadService();
+        mockRevenuePeriodModel.findById.mockReturnValue(
+            createAwaitableQuery(
+                {
+                    _id: periodId,
+                    year: 2026,
+                    month: 5,
+                    status: "closed",
+                    periodStart: new Date("2026-05-01T00:00:00.000Z"),
+                    periodEnd: new Date("2026-06-01T00:00:00.000Z"),
+                },
+                ["populate", "lean"]
+            )
+        );
+
+        const result = await adminRevenueService.getRevenuePeriodDetail(periodId);
+
+        expect(result.availableActions).toEqual(["calculate"]);
+        expect(result.distribution).toBeNull();
+    });
+
+    test("rejects a future revenue period", async () => {
+        const adminRevenueService = await loadService();
+        mockRevenuePeriodModel.findById.mockReturnValue(
+            createAwaitableQuery(
+                {
+                    _id: periodId,
+                    year: 2026,
+                    month: 7,
+                    status: "open",
+                },
+                ["populate", "lean"]
+            )
+        );
+
+        await expect(
+            adminRevenueService.getRevenuePeriodDetail(periodId)
+        ).rejects.toMatchObject({
+            statusCode: 400,
+            message: "This endpoint only supports current or past revenue periods.",
+        });
         expect(mockArtistRevenueSummaryModel.find).not.toHaveBeenCalled();
     });
 });

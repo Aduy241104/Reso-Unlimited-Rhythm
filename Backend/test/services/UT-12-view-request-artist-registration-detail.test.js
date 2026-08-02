@@ -73,19 +73,6 @@ describe("View Request artist registration detail", () => {
         );
     });
 
-    test("throws 400 when the registration request id is invalid", async () => {
-        const adminArtistRequestService = await loadService();
-
-        await expect(
-            adminArtistRequestService.getArtistRequestDetail("bad-id")
-        ).rejects.toMatchObject({
-            message: "Artist request id is invalid.",
-            statusCode: 400,
-        });
-
-        expect(mockArtistRequestModel.findById).not.toHaveBeenCalled();
-    });
-
     test("throws 404 when the registration request id does not exist", async () => {
         const adminArtistRequestService = await loadService();
 

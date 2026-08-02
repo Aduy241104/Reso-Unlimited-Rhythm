@@ -88,4 +88,63 @@ describe("View System Playlist - playlistService.getSystemPlaylists", () => {
             totalPages: 0,
         });
     });
+
+    test("uses page 1 and limit 10 when pagination is omitted", async () => {
+        const { playlistService } = await loadPlaylistService();
+        const playlistQuery = createAwaitableQuery([]);
+        mockPlaylistModel.find.mockReturnValue(playlistQuery);
+        mockPlaylistModel.countDocuments.mockResolvedValue(12);
+
+        const result = await playlistService.getSystemPlaylists();
+
+        expect(playlistQuery.skip).toHaveBeenCalledWith(0);
+        expect(playlistQuery.limit).toHaveBeenCalledWith(10);
+        expect(result.pagination).toEqual({
+            page: 1,
+            limit: 10,
+            total: 12,
+            totalPages: 2,
+        });
+    });
+
+    test("calculates the offset for a later page", async () => {
+        const { playlistService } = await loadPlaylistService();
+        const playlistQuery = createAwaitableQuery([]);
+        mockPlaylistModel.find.mockReturnValue(playlistQuery);
+        mockPlaylistModel.countDocuments.mockResolvedValue(25);
+
+        const result = await playlistService.getSystemPlaylists({
+            page: "3",
+            limit: "5",
+        });
+
+        expect(playlistQuery.skip).toHaveBeenCalledWith(10);
+        expect(result.pagination).toMatchObject({ page: 3, totalPages: 5 });
+    });
+
+    test("falls back to default pagination for non-numeric input", async () => {
+        const { playlistService } = await loadPlaylistService();
+        const playlistQuery = createAwaitableQuery([]);
+        mockPlaylistModel.find.mockReturnValue(playlistQuery);
+        mockPlaylistModel.countDocuments.mockResolvedValue(1);
+
+        const result = await playlistService.getSystemPlaylists({
+            page: "page",
+            limit: "limit",
+        });
+
+        expect(result.pagination).toMatchObject({ page: 1, limit: 10 });
+    });
+
+    test("propagates errors while counting system playlists", async () => {
+        const { playlistService } = await loadPlaylistService();
+        mockPlaylistModel.find.mockReturnValue(createAwaitableQuery([]));
+        mockPlaylistModel.countDocuments.mockRejectedValue(
+            new Error("playlist database unavailable")
+        );
+
+        await expect(
+            playlistService.getSystemPlaylists({ page: 1, limit: 10 })
+        ).rejects.toThrow("playlist database unavailable");
+    });
 });

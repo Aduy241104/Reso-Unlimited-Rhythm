@@ -99,4 +99,33 @@ describe("playlistService.getPlaylistDetail", () => {
             ],
         });
     });
+
+    test("allows admin mode to view a hidden system playlist", async () => {
+        const { playlistService } = await loadPlaylistService();
+        const playlistId = "507f1f77bcf86cd799439123";
+        mockPlaylistModel.findOne.mockReturnValue(
+            createAwaitableQuery({
+                _id: playlistId,
+                title: "Hidden editorial playlist",
+                type: "system",
+                isPublic: false,
+                isHidden: true,
+                tracks: [],
+            })
+        );
+
+        const result = await playlistService.getPlaylistDetail(playlistId, {
+            mode: "adminSystem",
+        });
+
+        expect(mockPlaylistModel.findOne).toHaveBeenCalledWith({
+            _id: playlistId,
+            type: "system",
+        });
+        expect(result).toMatchObject({
+            id: playlistId,
+            type: "system",
+            isHidden: true,
+        });
+    });
 });

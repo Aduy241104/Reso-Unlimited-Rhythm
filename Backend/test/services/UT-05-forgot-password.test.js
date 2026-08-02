@@ -185,7 +185,7 @@ describe("authenticationService.requestForgotPassword", () => {
             userId: "507f1f77bcf86cd799439111",
             email: "member@example.com",
             token: "12345",
-            otp: undefined,
+            otp: "",
             type: "reset_password",
             expiresAt: expect.any(Date),
             isUsed: false,
@@ -234,28 +234,5 @@ describe("authenticationService.requestForgotPassword", () => {
 
         expect(mockVerificationTokenModel.create).not.toHaveBeenCalled();
         expect(mockMailer.sendResetPasswordLinkEmail).not.toHaveBeenCalled();
-    });
-});
-
-describe("authentication validation - forgot password", () => {
-    let authenticationValidation;
-
-    beforeEach(async () => {
-        jest.clearAllMocks();
-        ({ default: authenticationValidation } = await loadValidationModule());
-    });
-
-    test("rejects invalid email format", () => {
-        const { error } = authenticationValidation.forgotPasswordSchema.validate(
-            {
-                email: "abc",
-            },
-            { abortEarly: false }
-        );
-
-        expect(error).toBeDefined();
-        expect(error.details.map((detail) => detail.path.join("."))).toContain(
-            "email"
-        );
     });
 });

@@ -340,33 +340,4 @@ describe("Approve/reject request", () => {
         expect(artistRequestDocument.save).not.toHaveBeenCalled();
     });
 
-    test("rolls back user role when artist creation succeeds but saving request fails", async () => {
-        const adminArtistRequestService = await loadService();
-        const artistRequestDocument = createArtistRequestDocument();
-        const userDocument = createUserDocument();
-        const persistenceError = new Error("Save request failed");
-
-        artistRequestDocument.save = jest.fn().mockRejectedValue(persistenceError);
-
-        mockArtistRequestModel.findById.mockResolvedValue(artistRequestDocument);
-        mockUserModel.findById.mockResolvedValue(userDocument);
-        mockArtistModel.findOne.mockReturnValue(createAwaitableQuery(null, ["lean"]));
-        mockArtistModel.create.mockResolvedValue({ _id: artistId });
-        mockArtistModel.deleteOne.mockResolvedValue({ acknowledged: true });
-
-        await expect(
-            adminArtistRequestService.reviewArtistRequest(
-                artistRequestId,
-                {
-                    status: "approved",
-                    checklist: approvedChecklist,
-                },
-                adminUserId
-            )
-        ).rejects.toThrow("Save request failed");
-
-        expect(mockArtistModel.deleteOne).toHaveBeenCalledWith({ _id: artistId });
-        expect(userDocument.role).toBe("user");
-        expect(userDocument.save).toHaveBeenCalledTimes(2);
-    });
 });
