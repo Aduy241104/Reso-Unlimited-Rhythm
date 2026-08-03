@@ -48,6 +48,23 @@ const TARGET_TYPE_CONFIG = {
     artist: { label: "Nghệ sĩ", icon: Mic2, colorClass: "text-pink-400" },
 };
 
+const getReportTargetTitle = (report) =>
+    report?.targetInfo?.title ||
+    report?.targetInfo?.name ||
+    "Nội dung không còn tồn tại hoặc đã bị ẩn";
+
+const getReportTargetOwnerName = (report) => {
+    if (report?.targetType === "track") {
+        return report?.targetInfo?.artist_artistId?.name || "";
+    }
+
+    if (report?.targetType === "album") {
+        return report?.targetInfo?.artistId?.name || "";
+    }
+
+    return "";
+};
+
 const STATUS_CONFIG = {
     reviewing: {
         label: "Đang xem xét",
@@ -72,9 +89,16 @@ const STATUS_CONFIG = {
 const RESOLUTION_LABELS = {
     remove_content: "Gỡ nội dung vi phạm",
     ignore: "Bỏ qua",
-    warning: "Cảnh cáo",
+    warning: "Cảnh báo",
+    warn: "Cảnh báo",
+    hide: "Ẩn nội dung",
+    block: "Khóa tài khoản nghệ sĩ",
+    reject: "Từ chối báo cáo",
     "": "—",
 };
+
+const getResolutionLabel = (resolution) =>
+    RESOLUTION_LABELS[resolution] || resolution || "—";
 
 const formatDate = (dateString) => {
     if (!dateString) return "-";
@@ -218,6 +242,8 @@ const CustomerReportDetailPage = () => {
     const StatusIcon = statusConfig.icon;
     const targetConfig = TARGET_TYPE_CONFIG[report?.targetType] || TARGET_TYPE_CONFIG.track;
     const TargetIcon = targetConfig.icon;
+    const targetTitle = getReportTargetTitle(report);
+    const targetOwnerName = getReportTargetOwnerName(report);
 
     return (
         <main className="min-h-full bg-[#0e0e12] px-4 py-8 text-white sm:px-6 lg:px-8">
@@ -289,7 +315,7 @@ const CustomerReportDetailPage = () => {
                                     <div className="flex items-center justify-between">
                                         <span className="text-sm text-white/60">Hình thức xử lý</span>
                                         <span className={`text-sm font-semibold ${report.status === "resolved" ? "text-emerald-200" : "text-rose-200"}`}>
-                                            {report.resolution || "—"}
+                                            {getResolutionLabel(report.resolution)}
                                         </span>
                                     </div>
                                     {report.resolutionNote && (
@@ -306,6 +332,30 @@ const CustomerReportDetailPage = () => {
 
                         {/* Report Info */}
                         <SectionCard title="Nội dung báo cáo" icon={AlertCircle}>
+                            <div className="rounded-[24px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-4 sm:p-5">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/36">
+                                    Đối tượng bị báo cáo
+                                </p>
+                                <div className="mt-3 flex items-start gap-3">
+                                    <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]">
+                                        <TargetIcon className={`h-5 w-5 ${targetConfig.colorClass}`} aria-hidden />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-sm text-white/55">
+                                            {targetConfig.label}
+                                        </p>
+                                        <p className="mt-1 break-words text-base font-semibold leading-7 text-white">
+                                            {targetTitle}
+                                        </p>
+                                        {targetOwnerName ? (
+                                            <p className="mt-1 text-sm text-white/55">
+                                                Thuộc nghệ sĩ: <span className="font-medium text-white/80">{targetOwnerName}</span>
+                                            </p>
+                                        ) : null}
+                                    </div>
+                                </div>
+                            </div>
+
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <InfoRow label="Loại nội dung" value={
                                     <span className="inline-flex items-center gap-1.5">
@@ -313,9 +363,23 @@ const CustomerReportDetailPage = () => {
                                         {targetConfig.label}
                                     </span>
                                 } />
+                                <InfoRow label="Tên nội dung bị báo cáo" value={targetTitle} />
+                            </div>
+                            <div className="grid gap-4 sm:grid-cols-2">
                                 <InfoRow label="Lý do báo cáo" value={
                                     REPORT_REASON_LABELS[report.reason] || report.reason
                                 } />
+                                {report.targetType !== "artist" ? (
+                                    <InfoRow
+                                        label="Nghệ sĩ sở hữu"
+                                        value={targetOwnerName || "Không có thông tin"}
+                                    />
+                                ) : (
+                                    <InfoRow
+                                        label="Hồ sơ nghệ sĩ bị báo cáo"
+                                        value={targetTitle}
+                                    />
+                                )}
                             </div>
                             <InfoRow label="Mô tả chi tiết" value={report.description} />
                         </SectionCard>

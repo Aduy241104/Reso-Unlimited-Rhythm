@@ -1,11 +1,20 @@
-import { AlertCircle, CheckCircle, ImagePlus, Loader2, Send } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle,
+  ImagePlus,
+  Loader2,
+  Send,
+  X,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import ReportReasonSelect from "../../components/report/ReportReasonSelect";
-import { createReportService } from "../../services/report/user.report.service";
+import {
+  createReportService,
+  translateReportError,
+} from "../../services/report/user.report.service";
 import { USER_INPUT_LIMITS } from "../../constants/userInputLimits";
 import { routePaths } from "../../routes/routePaths";
-import { getApiErrorFullMessage } from "../../utils/apiError";
 import {
   IMAGE_FILE_ACCEPT,
   getImageFilesValidationError,
@@ -47,6 +56,8 @@ const TARGET_TYPE_OPTIONS = [
   { value: "artist", label: "Nghệ sĩ" },
 ];
 
+const MAX_REPORT_IMAGES = 5;
+
 const initialFormState = {
   targetId: "",
   targetType: "track",
@@ -54,6 +65,9 @@ const initialFormState = {
   description: "",
   images: [],
 };
+
+const getMaxImagesErrorMessage = () =>
+  `Bạn chỉ có thể tải lên tối đa ${MAX_REPORT_IMAGES} ảnh minh chứng.`;
 
 const FieldLabel = ({ children, required = false }) => (
   <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-white/60">
@@ -80,67 +94,97 @@ const CustomerCreateReportPage = () => {
 
   const imageNames = useMemo(
     () => formData.images.map((file) => file?.name).filter(Boolean),
-    [formData.images],
+    [formData.images]
   );
 
-  const handleChange = (event) => {
-    const { name, value, files } = event.target;
+  const handleTextChange = (event) => {
+    const { name, value } = event.target;
 
-    setErrors((previous) => ({ ...previous, [name]: undefined }));
+    setErrors((prev) => ({ ...prev, [name]: undefined }));
     setSubmitError("");
-
-    if (name === "images") {
-      const selectedImages = Array.from(files || []).slice(0, 5);
-      const validationError = getImageFilesValidationError(selectedImages);
-
-      if (validationError) {
-        setErrors((previous) => ({ ...previous, images: validationError }));
-        event.target.value = "";
-        return;
-      }
-
-      setFormData((previous) => ({
-        ...previous,
-        images: selectedImages,
-      }));
-      return;
-    }
-
-    setFormData((previous) => ({
-      ...previous,
+    setFormData((prev) => ({
+      ...prev,
       [name]: value,
     }));
   };
 
+  const handleImagesChange = (event) => {
+    const selectedFiles = Array.from(event.target.files || []);
+
+    setErrors((prev) => ({ ...prev, images: undefined }));
+    setSubmitError("");
+
+    if (selectedFiles.length === 0) {
+      event.target.value = "";
+      return;
+    }
+
+    const validationError = getImageFilesValidationError(selectedFiles);
+    if (validationError) {
+      setErrors((prev) => ({ ...prev, images: validationError }));
+      event.target.value = "";
+      return;
+    }
+
+    const currentCount = formData.images.length;
+    if (currentCount >= MAX_REPORT_IMAGES) {
+      setErrors((prev) => ({ ...prev, images: getMaxImagesErrorMessage() }));
+      event.target.value = "";
+      return;
+    }
+
+    const remainingSlots = MAX_REPORT_IMAGES - currentCount;
+    const filesToAppend = selectedFiles.slice(0, remainingSlots);
+
+    if (selectedFiles.length > remainingSlots) {
+      setErrors((prev) => ({ ...prev, images: getMaxImagesErrorMessage() }));
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      images: [...prev.images, ...filesToAppend],
+    }));
+
+    event.target.value = "";
+  };
+
   const handleReasonChange = (reason) => {
-    setFormData((previous) => ({
-      ...previous,
+    setFormData((prev) => ({
+      ...prev,
       reason,
     }));
-    setErrors((previous) => ({
-      ...previous,
+    setErrors((prev) => ({
+      ...prev,
       reason: undefined,
     }));
     setSubmitError("");
   };
 
+  const handleRemoveImage = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      images: prev.images.filter((_, imageIndex) => imageIndex !== index),
+    }));
+    setErrors((prev) => ({ ...prev, images: undefined }));
+  };
+
   const validateForm = () => {
     const nextErrors = {};
 
-    if (!formData.targetId.trim()) {
+    if (!String(formData.targetId || "").trim()) {
       nextErrors.targetId =
         "Không xác định được nội dung cần báo cáo. Vui lòng quay lại và thử lại.";
     }
 
-    if (!formData.targetType.trim()) {
+    if (!String(formData.targetType || "").trim()) {
       nextErrors.targetType = "Vui lòng chọn loại nội dung.";
     }
 
-    if (!formData.reason.trim()) {
+    if (!String(formData.reason || "").trim()) {
       nextErrors.reason = "Vui lòng chọn lý do báo cáo.";
     }
 
-    if (!formData.description.trim()) {
+    if (!String(formData.description || "").trim()) {
       nextErrors.description = "Vui lòng mô tả vấn đề bạn gặp phải.";
     }
 
@@ -162,9 +206,7 @@ const CustomerCreateReportPage = () => {
       await createReportService(formData);
       setIsSubmitted(true);
     } catch (error) {
-      setSubmitError(
-        getApiErrorFullMessage(error, "Không thể gửi báo cáo vào lúc này."),
-      );
+      setSubmitError(translateReportError(error));
     } finally {
       setIsSubmitting(false);
     }
@@ -210,7 +252,7 @@ const CustomerCreateReportPage = () => {
       <section className="mx-auto max-w-3xl space-y-6">
         <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.36)] sm:p-8">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#f5b66f]">
-            Customer&apos;s Report Management
+            Trung tâm báo cáo
           </p>
           <h1 className="mt-3 text-2xl font-semibold text-white sm:text-3xl">
             Gửi báo cáo nội dung hoặc vấn đề
@@ -239,7 +281,7 @@ const CustomerCreateReportPage = () => {
               <select
                 name="targetType"
                 value={formData.targetType}
-                onChange={handleChange}
+                onChange={handleTextChange}
                 className={fieldClassName}
               >
                 {TARGET_TYPE_OPTIONS.map((option) => (
@@ -253,7 +295,9 @@ const CustomerCreateReportPage = () => {
                 ))}
               </select>
               {errors.targetType ? (
-                <p className="mt-2 text-xs text-rose-300">{errors.targetType}</p>
+                <p className="mt-2 text-xs text-rose-300">
+                  {errors.targetType}
+                </p>
               ) : null}
             </div>
           </div>
@@ -278,7 +322,7 @@ const CustomerCreateReportPage = () => {
               maxLength={USER_INPUT_LIMITS.reportDescription}
               rows={6}
               value={formData.description}
-              onChange={handleChange}
+              onChange={handleTextChange}
               placeholder="Mô tả cụ thể vấn đề hoặc nội dung bạn muốn báo cáo..."
               className={`${fieldClassName} resize-none leading-6`}
             />
@@ -294,7 +338,7 @@ const CustomerCreateReportPage = () => {
             <label className="flex min-h-[58px] cursor-pointer items-center justify-between gap-3 rounded-xl border border-dashed border-white/15 bg-white/[0.03] px-4 py-3 transition hover:border-[#f5b66f]/40 hover:bg-white/[0.05]">
               <div className="min-w-0">
                 <p className="text-sm font-medium text-white/85">
-                  Tải lên tối đa 5 ảnh minh chứng
+                  Tải lên tối đa {MAX_REPORT_IMAGES} ảnh minh chứng
                 </p>
                 <p className="mt-1 text-xs text-white/45">PNG, JPG hoặc WEBP</p>
               </div>
@@ -307,7 +351,7 @@ const CustomerCreateReportPage = () => {
                 accept={IMAGE_FILE_ACCEPT}
                 multiple
                 className="sr-only"
-                onChange={handleChange}
+                onChange={handleImagesChange}
               />
             </label>
             {errors.images ? (
@@ -315,13 +359,20 @@ const CustomerCreateReportPage = () => {
             ) : null}
             {imageNames.length > 0 ? (
               <div className="mt-3 space-y-2">
-                {imageNames.map((name) => (
-                  <p
-                    key={name}
-                    className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-2 text-sm text-white/70"
+                {imageNames.map((name, index) => (
+                  <div
+                    key={`${name}-${index}`}
+                    className="flex items-center justify-between rounded-xl border border-white/8 bg-white/[0.03] px-4 py-2 text-sm text-white/70"
                   >
-                    {name}
-                  </p>
+                    <span className="truncate">{name}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(index)}
+                      className="ml-2 shrink-0 text-white/40 transition hover:text-rose-400"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
                 ))}
               </div>
             ) : null}
