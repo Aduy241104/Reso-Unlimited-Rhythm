@@ -27,6 +27,12 @@ export const API_ENDPOINTS = {
   USER_FAVORITES: {
     TRACKS: '/users/favorites/tracks',
   },
+  USER_ACTIVITY: {
+    RECENT_LISTENING: '/users/me/recent-listening-activity',
+  },
+  LISTEN_EVENTS: {
+    COMPLETE: '/listen-events/complete',
+  },
   ARTISTS: {
     DETAIL: '/browse/artists',
     TOP_DAILY: '/browse/artists/top/daily',

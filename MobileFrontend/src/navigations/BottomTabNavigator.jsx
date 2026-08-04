@@ -17,6 +17,7 @@ import PlaylistDetailScreen from '../screens/playlist/PlaylistDetailScreen';
 import PlayerSheetScreen from '../screens/player/PlayerSheetScreen';
 import NotificationsScreen from '../screens/notifications/NotificationsScreen';
 import RankingListScreen from '../screens/ranking/RankingListScreen';
+import RecentListeningScreen from '../screens/recentListening/RecentListeningScreen';
 
 import PremiumScreen from '../screens/premium/PremiumScreen';
 
@@ -98,6 +99,14 @@ function SharedTabStack({ rootName, component: RootComponent }) {
       <Stack.Screen
         name="FavoriteTracks"
         component={FavoriteTracksScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="RecentListening"
+        component={RecentListeningScreen}
         options={{
           headerShown: false,
           animation: 'slide_from_right',
