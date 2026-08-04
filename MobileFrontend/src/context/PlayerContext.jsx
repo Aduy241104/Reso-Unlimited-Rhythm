@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import listenEventService from '../services/listenEventService';
 import trackService from '../services/trackService';
 import { tokenStorage } from '../storage/tokenStorage';
 import {
@@ -40,6 +41,8 @@ export const PlayerContext = createContext({
 // screens using them are not re-rendered by the 250 ms audio status updates.
 export const PlayerQueueCommandContext = createContext(() => {});
 
+const MAX_SEEK_FREE_PROGRESS_DELTA_SECONDS = 2;
+
 export const PlayerProvider = ({ children }) => {
   const player = useAudioPlayer(null, {
     updateInterval: 250,
@@ -54,6 +57,17 @@ export const PlayerProvider = ({ children }) => {
   const currentIndexRef = useRef(-1);
   const loadRequestRef = useRef(0);
   const didFinishRef = useRef(false);
+  const listenAttemptRef = useRef({
+    trackId: '',
+    duration: 0,
+    source: 'unknown',
+    hasReported: false,
+  });
+  const listenedDurationRef = useRef(0);
+  const lastTrackedAudioTimeRef = useRef(0);
+  const lastTrackedWallTimeRef = useRef(Date.now());
+  const wasPlayingRef = useRef(false);
+  const ignoreNextListenDeltaRef = useRef(true);
 
   const currentTrack = currentIndex >= 0 ? queue[currentIndex] || null : null;
   const currentDuration = Math.max(Number(status?.duration) || 0, getPlayableDuration(currentTrack));
@@ -63,6 +77,92 @@ export const PlayerProvider = ({ children }) => {
   const progressRatio = currentTrack && currentDuration > 0 ? Math.min(progressSeconds / currentDuration, 1) : 0;
   const isPlaying = Boolean(status?.playing);
   const isBuffering = Boolean(status?.isBuffering) || isPreparing;
+
+  const resetListenProgress = useCallback((currentTime = 0) => {
+    listenedDurationRef.current = 0;
+    lastTrackedAudioTimeRef.current = Math.max(0, Number(currentTime) || 0);
+    lastTrackedWallTimeRef.current = Date.now();
+    wasPlayingRef.current = false;
+    ignoreNextListenDeltaRef.current = true;
+  }, []);
+
+  const alignListenProgressAfterSeek = useCallback((currentTime = 0) => {
+    lastTrackedAudioTimeRef.current = Math.max(0, Number(currentTime) || 0);
+    lastTrackedWallTimeRef.current = Date.now();
+    ignoreNextListenDeltaRef.current = true;
+  }, []);
+
+  const trackListenProgress = useCallback((nextTime, nextIsPlaying) => {
+    const normalizedNextTime = Math.max(0, Number(nextTime) || 0);
+    const now = Date.now();
+    const previousTime = Math.max(0, Number(lastTrackedAudioTimeRef.current) || 0);
+    const elapsedWallSeconds = Math.max(
+      0,
+      (now - lastTrackedWallTimeRef.current) / 1000
+    );
+    const delta = normalizedNextTime - previousTime;
+
+    if (ignoreNextListenDeltaRef.current) {
+      ignoreNextListenDeltaRef.current = false;
+      lastTrackedAudioTimeRef.current = normalizedNextTime;
+      lastTrackedWallTimeRef.current = now;
+      wasPlayingRef.current = Boolean(nextIsPlaying);
+      return;
+    }
+
+    const maximumNaturalDelta = Math.max(
+      MAX_SEEK_FREE_PROGRESS_DELTA_SECONDS,
+      elapsedWallSeconds + 1
+    );
+
+    if (
+      (wasPlayingRef.current || nextIsPlaying)
+      && delta > 0
+      && delta <= maximumNaturalDelta
+    ) {
+      listenedDurationRef.current += delta;
+    }
+
+    lastTrackedAudioTimeRef.current = normalizedNextTime;
+    lastTrackedWallTimeRef.current = now;
+    wasPlayingRef.current = Boolean(nextIsPlaying);
+  }, []);
+
+  const flushCurrentListenAttempt = useCallback(() => {
+    const activeAttempt = listenAttemptRef.current;
+
+    if (!activeAttempt?.trackId || activeAttempt.hasReported) {
+      return Promise.resolve(null);
+    }
+
+    const trackDuration = Math.max(0, Number(activeAttempt.duration) || 0);
+    const boundedListenedDuration = trackDuration > 0
+      ? Math.min(listenedDurationRef.current, trackDuration)
+      : listenedDurationRef.current;
+    const listenedDuration = Math.max(0, Math.floor(boundedListenedDuration));
+
+    if (listenedDuration <= 0) {
+      return Promise.resolve(null);
+    }
+
+    activeAttempt.hasReported = true;
+
+    return listenEventService.recordCompletedListenAttempt({
+      trackId: activeAttempt.trackId,
+      listenedDuration,
+      source: activeAttempt.source,
+    });
+  }, []);
+
+  const startListenAttempt = useCallback((track) => {
+    listenAttemptRef.current = {
+      trackId: track?.trackId || track?.entityId || track?.id || '',
+      duration: Math.max(0, Number(track?.duration) || 0),
+      source: track?.listenSource || 'unknown',
+      hasReported: false,
+    };
+    resetListenProgress(0);
+  }, [resetListenProgress]);
 
   const syncQueueTrack = useCallback((index, track) => {
     setQueue((prev) => {
@@ -78,6 +178,7 @@ export const PlayerProvider = ({ children }) => {
   }, []);
 
   const resetQueueState = useCallback(() => {
+    void flushCurrentListenAttempt();
     loadRequestRef.current += 1;
     queueRef.current = [];
     currentIndexRef.current = -1;
@@ -86,11 +187,18 @@ export const PlayerProvider = ({ children }) => {
     setCurrentIndex(-1);
     setCurrentError('');
     setIsPreparing(false);
+    listenAttemptRef.current = {
+      trackId: '',
+      duration: 0,
+      source: 'unknown',
+      hasReported: false,
+    };
+    resetListenProgress(0);
 
     try {
       player.clearLockScreenControls();
     } catch {}
-  }, [player]);
+  }, [flushCurrentListenAttempt, player, resetListenProgress]);
 
   const resolveTrackForPlayback = useCallback(async (track) => {
     const normalizedTrack = normalizePlayerTrack(track);
@@ -167,7 +275,9 @@ export const PlayerProvider = ({ children }) => {
         return false;
       }
 
+      void flushCurrentListenAttempt();
       player.replace(audioSource);
+      startListenAttempt(resolvedTrack);
       try {
         player.setActiveForLockScreen(true, {
           title: resolvedTrack.title,
@@ -192,6 +302,7 @@ export const PlayerProvider = ({ children }) => {
       return true;
     } catch (error) {
       if (loadRequestRef.current === requestId) {
+        void flushCurrentListenAttempt();
         player.pause();
         setCurrentError(error?.message || 'Unable to load this track right now.');
         setIsPreparing(false);
@@ -199,7 +310,13 @@ export const PlayerProvider = ({ children }) => {
 
       return false;
     }
-  }, [player, resolveTrackForPlayback, syncQueueTrack]);
+  }, [
+    flushCurrentListenAttempt,
+    player,
+    resolveTrackForPlayback,
+    startListenAttempt,
+    syncQueueTrack,
+  ]);
 
   const playQueue = useCallback((tracks = [], startIndex = 0, options = {}) => {
     const normalizedQueue = buildPlayableQueue(tracks);
@@ -253,29 +370,67 @@ export const PlayerProvider = ({ children }) => {
     }
 
     if (currentDuration > 0 && progressSeconds >= currentDuration - 0.25) {
+      void flushCurrentListenAttempt();
+      startListenAttempt(currentTrack);
+      alignListenProgressAfterSeek(0);
       void player.seekTo(0).catch(() => {});
     }
 
     player.play();
-  }, [currentDuration, currentError, currentIndex, currentTrack, loadTrackAtIndex, player, progressSeconds, status?.playing]);
+  }, [
+    alignListenProgressAfterSeek,
+    currentDuration,
+    currentError,
+    currentIndex,
+    currentTrack,
+    flushCurrentListenAttempt,
+    loadTrackAtIndex,
+    player,
+    progressSeconds,
+    startListenAttempt,
+    status?.playing,
+  ]);
 
   const playPrevious = useCallback(() => {
     if (!hasPrevious) {
+      void flushCurrentListenAttempt();
+      startListenAttempt(currentTrack);
+      alignListenProgressAfterSeek(0);
       void player.seekTo(0).catch(() => {});
       return;
     }
 
     void loadTrackAtIndex(currentIndex - 1, { autoPlay: true });
-  }, [currentIndex, hasPrevious, loadTrackAtIndex, player]);
+  }, [
+    alignListenProgressAfterSeek,
+    currentIndex,
+    currentTrack,
+    flushCurrentListenAttempt,
+    hasPrevious,
+    loadTrackAtIndex,
+    player,
+    startListenAttempt,
+  ]);
 
   const playNext = useCallback(() => {
     if (!hasNext) {
       player.pause();
+      trackListenProgress(progressSeconds, Boolean(status?.playing));
+      void flushCurrentListenAttempt();
       return;
     }
 
     void loadTrackAtIndex(currentIndex + 1, { autoPlay: true });
-  }, [currentIndex, hasNext, loadTrackAtIndex, player]);
+  }, [
+    currentIndex,
+    flushCurrentListenAttempt,
+    hasNext,
+    loadTrackAtIndex,
+    player,
+    progressSeconds,
+    status?.playing,
+    trackListenProgress,
+  ]);
 
   const seekTo = useCallback((value) => {
     if (!currentTrack) {
@@ -284,8 +439,9 @@ export const PlayerProvider = ({ children }) => {
 
     const nextValue = Math.min(Math.max(0, Number(value) || 0), currentDuration);
 
+    alignListenProgressAfterSeek(nextValue);
     void player.seekTo(nextValue).catch(() => {});
-  }, [currentDuration, currentTrack, player]);
+  }, [alignListenProgressAfterSeek, currentDuration, currentTrack, player]);
 
   const moveQueueItem = useCallback((fromIndex, toIndex) => {
     const sourceQueue = queueRef.current;
@@ -398,28 +554,47 @@ export const PlayerProvider = ({ children }) => {
     }).catch(() => {});
 
     return () => {
+      void flushCurrentListenAttempt();
       try {
         player.clearLockScreenControls();
       } catch {}
     };
-  }, [player]);
+  }, [flushCurrentListenAttempt, player]);
+
+  useEffect(() => {
+    trackListenProgress(status?.currentTime, Boolean(status?.playing));
+  }, [status?.currentTime, status?.playing, trackListenProgress]);
 
   useEffect(() => {
     const didJustFinish = Boolean(status?.didJustFinish);
 
     if (didJustFinish && !didFinishRef.current) {
+      trackListenProgress(status?.currentTime, Boolean(status?.playing));
+      void flushCurrentListenAttempt();
+
       if (hasNext) {
         void loadTrackAtIndex(currentIndex + 1, { autoPlay: true });
       }
     }
 
     didFinishRef.current = didJustFinish;
-  }, [currentIndex, hasNext, loadTrackAtIndex, status?.didJustFinish]);
+  }, [
+    currentIndex,
+    flushCurrentListenAttempt,
+    hasNext,
+    loadTrackAtIndex,
+    status?.currentTime,
+    status?.didJustFinish,
+    status?.playing,
+    trackListenProgress,
+  ]);
 
   useEffect(() => {
     if (!currentTrack || !status?.duration || status.duration <= 0) {
       return;
     }
+
+    listenAttemptRef.current.duration = status.duration;
 
     if (Math.abs((currentTrack.duration || 0) - status.duration) < 0.5) {
       return;

@@ -284,6 +284,12 @@ export default function HomeScreen() {
         onPress: () => runAfterSidebarClose(() => navigation.navigate('UserProfile')),
       },
       {
+        key: 'recent-listening',
+        label: 'Nghe gần đây',
+        icon: 'time-outline',
+        onPress: () => runAfterSidebarClose(() => navigation.navigate('RecentListening')),
+      },
+      {
         key: 'subscription-status',
         label: 'Trạng thái đăng ký',
         icon: 'diamond-outline',
