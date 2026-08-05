@@ -80,6 +80,7 @@ const getPlaylistDetail = async (playlistId, options = {}) => {
             path: "tracks.trackId",
             select: [
                 "title",
+                "versionTitle",
                 "duration",
                 "avatar",
                 "coverImage",

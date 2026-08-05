@@ -3,6 +3,7 @@ import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 import Artist from "../models/Artist.js";
 import ArtistDailyStat from "../models/ArtistDailyStat.js";
+import ArtistMonthlyStat from "../models/ArtistMonthlyStat.js";
 import ArtistRanking, {
     buildDailyArtistRankingFilter,
     buildMonthlyArtistRankingFilter,
@@ -17,6 +18,7 @@ import { runDailyArtistOverviewStatAggregation } from "./dailyArtistOverviewStat
 import { runDailyTrackStatAggregation } from "./dailyTrackStat.cron.js";
 import { runDailyTopTrackAggregation } from "./dailyTopTrack.cron.js";
 import { runMonthlyTopArtistAggregation } from "./monthlyTopArtist.cron.js";
+import { runMonthlyArtistStatAggregation } from "./monthlyArtistStat.cron.js";
 import { runMonthlyTrackStatAggregation } from "./monthlyTrackStat.cron.js";
 import { runMonthlyTopTrackAggregation } from "./monthlyTopTrack.cron.js";
 import { getAnalyticsTimezone } from "../services/analytics/trackStatAggregation.service.js";
@@ -52,10 +54,13 @@ const runStartupAnalyticsCatchup = async () => {
     const nextDay = targetDay.add(1, "day");
     const artistMonthlyTarget = targetDay.startOf("month");
     const nextArtistMonthlyTarget = artistMonthlyTarget.add(1, "month");
+    const completedArtistStatMonth = now.startOf("month").subtract(1, "month");
     const completedTrackMonth = now.startOf("month").subtract(1, "month");
     const nextCompletedTrackMonth = completedTrackMonth.add(1, "month");
     const trackMonthlyYear = completedTrackMonth.year();
     const trackMonthlyMonth = completedTrackMonth.month() + 1;
+    const artistStatYear = completedArtistStatMonth.year();
+    const artistStatMonth = completedArtistStatMonth.month() + 1;
     const completedTrackMonthKey = completedTrackMonth.format("YYYY-MM-01");
     const targetDayDate = targetDay.toDate();
     const nextDayDate = nextDay.toDate();
@@ -63,11 +68,14 @@ const runStartupAnalyticsCatchup = async () => {
     const nextCompletedTrackMonthDate = nextCompletedTrackMonth.toDate();
 
     const shouldRunArtistDailyStatisticCatchup = hasPassedMinuteOfDay(now, 0, 3);
+    const shouldRunArtistMonthlyStatCatchup =
+        now.date() > 1 || hasPassedMinuteOfDay(now, 0, 30);
     const shouldRunStatisticCatchup = hasPassedMinuteOfDay(now, 0, 0);
     const shouldRunRankingCatchup = hasPassedMinuteOfDay(now, 0, 5);
 
     const [
         hasArtistDailyStats,
+        hasArtistMonthlyStats,
         hasTrackDailyStats,
         hasTrackDailyRanking,
         hasTrackMonthlyStats,
@@ -82,6 +90,10 @@ const runStartupAnalyticsCatchup = async () => {
     ] = await Promise.all([
         ArtistDailyStat.exists({
             date: { $gte: targetDayDate, $lt: nextDayDate },
+        }),
+        ArtistMonthlyStat.exists({
+            year: artistStatYear,
+            month: artistStatMonth,
         }),
         TrackDailyStat.exists({
             date: { $gte: targetDayDate, $lt: nextDayDate },
@@ -125,6 +137,20 @@ const runStartupAnalyticsCatchup = async () => {
         );
         summary.push("dailyArtistOverviewStat");
         await runDailyArtistOverviewStatAggregation();
+    }
+
+    if (
+        shouldRunArtistMonthlyStatCatchup &&
+        hasActiveArtists &&
+        !hasArtistMonthlyStats
+    ) {
+        console.log(
+            `[Startup Catch-up] Missing artist monthly stats for ${completedArtistStatMonth.format("YYYY-MM")}, running catch-up.`
+        );
+        summary.push("monthlyArtistStat");
+        await runMonthlyArtistStatAggregation(
+            completedArtistStatMonth.format("YYYY-MM-01")
+        );
     }
 
     if (shouldRunStatisticCatchup && hasTrackDailySourceData && !hasTrackDailyStats) {

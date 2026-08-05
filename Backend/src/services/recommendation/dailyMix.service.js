@@ -59,7 +59,7 @@ const fetchValidTracksByIds = async (trackIds) => {
         ...buildReleasedTrackFilter(),
     })
         .select(
-            "_id title duration avatar coverImage artist_artistId genreIds stats releaseDate"
+            "_id title versionTitle duration avatar coverImage artist_artistId genreIds stats releaseDate"
         )
         .populate(TRACK_POPULATE)
         .lean();
@@ -839,6 +839,7 @@ const formatMixDocument = (mixDocument) => ({
         .map((entry) => ({
             _id: entry.trackId._id,
             title: entry.trackId.title,
+            versionTitle: entry.trackId.versionTitle || "",
             duration: entry.trackId.duration || 0,
             avatar: entry.trackId.avatar || "",
             coverImage: entry.trackId.coverImage || [],
@@ -869,7 +870,7 @@ const loadStoredDailyMixes = async (userId, dateKey) => {
                 ...buildReleasedTrackFilter(),
             },
             select:
-                "_id title duration avatar coverImage artist_artistId genreIds activeStatus approvalStatus",
+                "_id title versionTitle duration avatar coverImage artist_artistId genreIds activeStatus approvalStatus",
             populate: TRACK_POPULATE,
         })
         .lean();
@@ -890,6 +891,15 @@ const hasExpectedMixCount = (mixes) => mixes.length === DAILY_MIX_COUNT;
 const hasCompleteStoredMixes = (mixes) =>
     hasExpectedMixCount(mixes) &&
     mixes.every((mix) => Array.isArray(mix.tracks) && mix.tracks.length >= TRACKS_PER_MIX);
+
+const hasVersionTitleInMixes = (mixes) =>
+    Array.isArray(mixes) &&
+    mixes.every((mix) =>
+        Array.isArray(mix.tracks) &&
+        mix.tracks.every((track) =>
+            track && Object.prototype.hasOwnProperty.call(track, "versionTitle")
+        )
+    );
 
 const trackMatchesCluster = (track, cluster) => {
     const artistId = track.artist_artistId?._id
@@ -1077,7 +1087,7 @@ const buildSimilarCandidates = async ({
         ],
     })
         .select(
-            "_id title duration avatar coverImage artist_artistId genreIds stats releaseDate"
+            "_id title versionTitle duration avatar coverImage artist_artistId genreIds stats releaseDate"
         )
         .sort({ "stats.totalPlay": -1, createdAt: -1 })
         .limit(160)
@@ -1486,7 +1496,10 @@ export const getDailyMixesForUser = async (userId, options = {}) => {
     if (!options.forceRebuild) {
         const cachedPayload = await getDailyMixCache(userId, dateContext.dateKey);
 
-        if (cachedPayload?.mixes?.length) {
+        if (
+            cachedPayload?.mixes?.length &&
+            hasVersionTitleInMixes(cachedPayload.mixes)
+        ) {
             return {
                 ...cachedPayload,
                 source: "redis",

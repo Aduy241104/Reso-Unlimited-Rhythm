@@ -62,10 +62,12 @@ export const resolveAlbumTotalDurationSeconds = (album, tracks = []) => {
 };
 
 export const formatAlbumDuration = (tracks = []) => {
-  const totalSeconds = tracks.reduce((sum, item) => {
+  const rawTotalSeconds = tracks.reduce((sum, item) => {
     const value = Number(item?.track?.duration);
     return Number.isFinite(value) ? sum + value : sum;
   }, 0);
+
+  const totalSeconds = Math.floor(rawTotalSeconds);
 
   if (totalSeconds <= 0) {
     return "Chưa rõ thời lượng";

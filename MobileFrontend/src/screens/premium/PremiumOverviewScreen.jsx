@@ -20,6 +20,7 @@ import {
   formatPremiumPrice,
   getPremiumFeatureLabel,
   isSamePlan,
+  PREMIUM_BENEFITS,
   resolveCurrentPlanId,
 } from '../../utils/premium';
 
@@ -38,7 +39,7 @@ const SectionHeader = ({ title, subtitle }) => (
 );
 
 const PremiumPlanCard = ({ plan, isActive, onPress }) => {
-  const featurePreview = Array.isArray(plan?.features) ? plan.features.slice(0, 3) : [];
+  const featurePreview = PREMIUM_BENEFITS;
 
   return (
     <TouchableOpacity
@@ -63,10 +64,10 @@ const PremiumPlanCard = ({ plan, isActive, onPress }) => {
       </Text>
 
       <View style={styles.priceBlock}>
-        <Text style={styles.priceCaption}>Tổng thanh toán</Text>
-        <Text style={styles.planPrice}>{formatPremiumPrice(plan?.totalPrice)}</Text>
+        <Text style={styles.priceCaption}>Giá gói</Text>
+        <Text style={styles.planPrice}>{formatPremiumPrice(plan?.price)}</Text>
         <Text style={styles.priceMeta}>
-          Giá gói {formatPremiumPrice(plan?.price)} • VAT {formatPremiumPrice(plan?.taxAmount)}
+          {formatDurationDays(plan?.durationDays)} • VAT 10%
         </Text>
       </View>
 

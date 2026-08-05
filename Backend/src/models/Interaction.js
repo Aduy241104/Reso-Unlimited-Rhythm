@@ -34,6 +34,7 @@ InteractionSchema.index(
     { userId: 1, targetType: 1, targetId: 1, action: 1 },
     { unique: true }
 );
+InteractionSchema.index({ targetType: 1, action: 1, targetId: 1, createdAt: 1 });
 
 const Interaction = model("Interaction", InteractionSchema);
 export default Interaction;

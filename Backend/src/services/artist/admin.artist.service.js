@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import Track from "../../models/Track.js";
 import Artist from "../../models/Artist.js";
 import Album from "../../models/Album.js";
-import ArtistStat from "../../models/ArtistStat.js";
+import ArtistMonthlyStat from "../../models/ArtistMonthlyStat.js";
 import ArtistRevenueSummary from "../../models/ArtistRevenueSummary.js";
 import Notification from "../../models/Notification.js";
 import { normalizePositiveInteger } from "../Playlist/playlist.helper.js";
@@ -36,13 +36,16 @@ const formatAdminArtistDetailItem = (
     artist,
     trackCount,
     albumCount,
-    advancedStats,
+    latestMonthlyStat,
     revenueSummary
 ) => {
     const hasActiveTracks = trackCount > 0;
+    const totalFollowers =
+        latestMonthlyStat?.totalFollowers ?? artist.stats?.followers ?? 0;
+    const totalStreams =
+        latestMonthlyStat?.totalStreams ?? artist.stats?.totalStreams ?? 0;
     const isPopular =
-        (artist.stats?.followers || 0) > 100 ||
-        (artist.stats?.totalStreams || 0) > 1000;
+        totalFollowers > 100 || totalStreams > 1000;
     const hasLinkedSocials = Boolean(
         artist.socialLinks?.facebook ||
             artist.socialLinks?.instagram ||
@@ -60,13 +63,13 @@ const formatAdminArtistDetailItem = (
         updatedAt: artist.updatedAt,
         blockedReason: artist.blockedReason || "",
         metrics: {
-            followers: artist.stats?.followers || 0,
-            totalStreams: artist.stats?.totalStreams || 0,
-            monthlyListeners: advancedStats?.monthlyListeners || 0,
+            followers: totalFollowers,
+            totalStreams,
+            monthlyListeners: latestMonthlyStat?.totalStreams ?? 0,
             totalTracks: trackCount,
             totalAlbums: albumCount,
         },
-        demographics: advancedStats?.demographics?.countries || {},
+        demographics: {},
         finance: revenueSummary
             ? {
                 availableAmount: artist.revenue?.availableAmount || 0,
@@ -104,11 +107,13 @@ const getArtistDetailForAdmin = async (artistId) => {
         throw new AppError("Artist not found.", 404, { field: "id" });
     }
 
-    const [trackCount, albumCount, advancedStats, revenueSummary] =
+    const [trackCount, albumCount, latestMonthlyStat, revenueSummary] =
         await Promise.all([
             Track.countDocuments({ artist_artistId: artistId }),
             Album.countDocuments({ artistId }),
-            ArtistStat.findOne({ artistId }).lean(),
+            ArtistMonthlyStat.findOne({ artistId })
+                .sort({ year: -1, month: -1 })
+                .lean(),
             ArtistRevenueSummary.findOne({ artistId })
                 .sort({ year: -1, month: -1 })
                 .lean(),
@@ -118,7 +123,7 @@ const getArtistDetailForAdmin = async (artistId) => {
         artist,
         trackCount,
         albumCount,
-        advancedStats,
+        latestMonthlyStat,
         revenueSummary
     );
 };

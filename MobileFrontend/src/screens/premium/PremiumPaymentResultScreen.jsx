@@ -45,7 +45,7 @@ export default function PremiumPaymentResultScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const insets = useSafeAreaInsets();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, updateUser } = useAuth();
   const [subscription, setSubscription] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -67,12 +67,16 @@ export default function PremiumPaymentResultScreen() {
     try {
       const latestSubscription = await premiumService.getMySubscription();
       setSubscription(latestSubscription);
+      await updateUser({
+        isPremium: Boolean(latestSubscription?.isPremium),
+        premiumEndDate: latestSubscription?.premiumEndDate || null,
+      });
     } catch (error) {
       setErrorMessage(error?.message || 'Không thể tải trạng thái Premium lúc này.');
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, updateUser]);
 
   useEffect(() => {
     loadSubscription();

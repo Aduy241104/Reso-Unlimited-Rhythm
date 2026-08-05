@@ -2,16 +2,17 @@ import { CheckCircle2, Pause, Play } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import TrackTwoLevelMenu from "./trackMenu/TrackTwoLevelMenu";
 import { isBlockedTrack } from "../utils/trackStatus";
+import { formatTrackTitle } from "../utils/trackTitle";
 
 const sizeClassNames = {
   default: {
     container:
       "gap-3 px-0 py-2 sm:px-3 sm:py-2.5",
     image:
-      "h-11 w-11 rounded-[10px] object-cover shadow-[0_8px_24px_rgba(15,23,42,0.14)]",
+      "h-11 w-11 shrink-0 rounded-[10px] object-cover shadow-[0_8px_24px_rgba(15,23,42,0.14)]",
     fallback:
       `
-        flex h-11 w-11 items-center justify-center rounded-[10px] bg-[#ececec] text-[11px]
+        flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-[#ececec] text-[11px]
         font-semibold uppercase tracking-[0.08em] text-[#52525b]
         dark:bg-[#282828] dark:text-[#a1a1aa]
       `,
@@ -27,10 +28,10 @@ const sizeClassNames = {
     container:
       "gap-2 px-0 py-2 sm:px-2 sm:py-2",
     image:
-      "h-10 w-10 rounded-[10px] object-cover shadow-[0_10px_20px_rgba(15,23,42,0.16)]",
+      "h-10 w-10 shrink-0 rounded-[10px] object-cover shadow-[0_10px_20px_rgba(15,23,42,0.16)]",
     fallback:
       `
-        flex h-10 w-10 items-center justify-center rounded-[10px] bg-[#ececec] text-[10px]
+        flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-[#ececec] text-[10px]
         font-semibold uppercase tracking-[0.08em] text-[#52525b]
         dark:bg-[#282828] dark:text-[#a1a1aa]
       `,
@@ -81,6 +82,7 @@ const TrackCard = ({
   const primaryAction = onPlaybackAction || onPlay;
   const shouldShowLikeButton = showLikeButton && typeof onLike === "function";
   const isTrackBlocked = isBlocked || isBlockedTrack(track);
+  const displayTitle = formatTrackTitle(title, track?.versionTitle);
   const PlaybackIcon = isPlaybackActive && isPlaying ? Pause : Play;
   const playbackLabel = isPlaybackActive && isPlaying ? "Tạm dừng" : "Phát";
 
@@ -166,7 +168,7 @@ const TrackCard = ({
           <button
             type="button"
             onClick={handlePlay}
-            aria-label={`${playbackLabel} ${title}`}
+            aria-label={`${playbackLabel} ${displayTitle}`}
             className="
               hidden h-8 w-8 items-center justify-center rounded-full text-[#111111]
               sm:group-hover:inline-flex dark:text-white
@@ -181,7 +183,7 @@ const TrackCard = ({
         {image ? (
           <img
             src={image}
-            alt={title}
+            alt={displayTitle}
             className={resolvedClasses.image}
           />
         ) : (
@@ -190,22 +192,22 @@ const TrackCard = ({
           </div>
         )}
 
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           {href && !isTrackBlocked ? (
             <Link to={href} onClick={handleMobileLinkClick} className="hidden min-w-0 sm:block">
               <p className={`${resolvedClasses.title} hover:underline`}>
-                {title}
+                {displayTitle}
               </p>
             </Link>
           ) : (
             null
           )}
           <p className={`${resolvedClasses.title} sm:hidden`}>
-            {title}
+            {displayTitle}
           </p>
           {!href || isTrackBlocked ? (
             <p className={`hidden sm:block ${resolvedClasses.title}`}>
-              {title}
+              {displayTitle}
             </p>
           ) : null}
           <div className={resolvedClasses.meta}>
@@ -260,7 +262,7 @@ const TrackCard = ({
 
               return (
                 <span
-                  key={`${title}-mobile-meta-${indexValue}`}
+                  key={`${displayTitle}-mobile-meta-${indexValue}`}
                   className={itemClassName}
                 >
                   {content}
@@ -277,7 +279,7 @@ const TrackCard = ({
             <button
               type="button"
               onClick={handleLike}
-              aria-label={`Bỏ lưu ${title}`}
+              aria-label={`Bỏ lưu ${displayTitle}`}
               className="hidden h-8 w-8 items-center justify-center text-[#1ed760] sm:inline-flex"
             >
               <CheckCircle2 className="h-4.5 w-4.5 fill-current" />
@@ -286,7 +288,7 @@ const TrackCard = ({
             <button
               type="button"
               onClick={handleLike}
-              aria-label={`Lưu ${title}`}
+              aria-label={`Lưu ${displayTitle}`}
               className="
                 hidden h-8 w-8 items-center justify-center text-[#71717a]
                 transition sm:inline-flex sm:opacity-0 sm:group-hover:opacity-100 dark:text-[#a1a1aa]
@@ -307,7 +309,7 @@ const TrackCard = ({
 
           return (
             <div
-              key={`${title}-desktop-meta-${indexValue}`}
+              key={`${displayTitle}-desktop-meta-${indexValue}`}
               className={itemClassName}
             >
               {content}

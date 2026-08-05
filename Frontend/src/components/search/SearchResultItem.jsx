@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import TrackTwoLevelMenu from "../trackMenu/TrackTwoLevelMenu";
 import { routePaths } from "../../routes/routePaths";
 import { createPlaceholderImage } from "../../utils/albumDetail";
+import { getTrackDisplayTitle } from "../../utils/trackTitle";
 
 export const SEARCH_RESULT_TYPES = {
   song: "song",
@@ -75,7 +76,7 @@ export const resolveSearchItemPrimaryText = (item, type) => {
     return item?.title || item?.name || item?.albumName || "Album chưa đặt tên";
   }
 
-  return item?.title || item?.name || item?.trackName || "Bài hát chưa đặt tên";
+  return getTrackDisplayTitle(item, "Bài hát chưa đặt tên");
 };
 
 export const resolveSearchItemTypeLabel = (type) => {

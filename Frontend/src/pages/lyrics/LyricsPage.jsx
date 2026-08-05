@@ -5,10 +5,11 @@ import { usePlayer } from "../../hooks/usePlayer";
 import { routePaths } from "../../routes/routePaths";
 import { getLyricsThemeByIndex } from "../../utils/lyricsTheme";
 import defaultImage from "../../assets/images/default-image.svg";
+import { getTrackDisplayTitle } from "../../utils/trackTitle";
 
 const LyricsPage = () => {
   const { currentTrack, isPlaying } = usePlayer();
-  const trackTitle = currentTrack?.title || "Chưa chọn bài hát";
+  const trackTitle = getTrackDisplayTitle(currentTrack, "Chưa chọn bài hát");
   const trackArtistName = currentTrack?.artistName || "Nghệ sĩ chưa xác định";
   const lyricTheme = getLyricsThemeByIndex(currentTrack?.lyricsThemeIndex);
 

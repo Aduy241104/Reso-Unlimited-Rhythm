@@ -1,9 +1,52 @@
 import mongoose from "mongoose";
 import Plan from "../../models/Plan.js";
 import Subscription from "../../models/Subscription.js";
+import Transaction from "../../models/Transaction.js";
 import { AppError } from "../../utils/AppError.js";
 
 const VALID_STATUSES = ["active", "inactive"];
+const ADMIN_DISABLED_PLAN_REASON =
+    "Payment order cancelled because the subscription plan was disabled by an administrator.";
+const ADMIN_DELETED_PLAN_REASON =
+    "Payment order cancelled because the subscription plan was deleted by an administrator.";
+
+const cancelPendingOrdersForPlan = async (planId, reason) => {
+    const now = new Date();
+
+    const [transactionResult, subscriptionResult] = await Promise.all([
+        Transaction.updateMany(
+            {
+                planId,
+                status: "pending",
+            },
+            {
+                $set: {
+                    status: "failed",
+                    failedAt: now,
+                    failureReason: reason,
+                    paymentExpiresAt: now,
+                    paymentUrl: "",
+                },
+            }
+        ),
+        Subscription.updateMany(
+            {
+                planId,
+                status: "pending",
+            },
+            {
+                $set: {
+                    status: "cancelled",
+                },
+            }
+        ),
+    ]);
+
+    return {
+        cancelledTransactions: transactionResult.modifiedCount || 0,
+        cancelledSubscriptions: subscriptionResult.modifiedCount || 0,
+    };
+};
 
 const getPlans = async (query) => {
     const page = Math.max(1, parseInt(query.page) || 1);
@@ -123,6 +166,10 @@ const updatePlan = async (id, data) => {
         throw new AppError("Plan not found", 404);
     }
 
+    if (updates.status === "inactive") {
+        await cancelPendingOrdersForPlan(plan._id, ADMIN_DISABLED_PLAN_REASON);
+    }
+
     return plan;
 };
 
@@ -131,11 +178,18 @@ const deletePlan = async (id) => {
         throw new AppError("Invalid plan ID", 400);
     }
 
-    const plan = await Plan.findByIdAndDelete(id);
+    const plan = await Plan.findByIdAndUpdate(
+        id,
+        { status: "inactive" },
+        { new: true }
+    );
 
     if (!plan) {
         throw new AppError("Plan not found", 404);
     }
+
+    await cancelPendingOrdersForPlan(plan._id, ADMIN_DELETED_PLAN_REASON);
+    await Plan.deleteOne({ _id: plan._id });
 
     return plan;
 };

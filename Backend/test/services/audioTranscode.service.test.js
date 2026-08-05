@@ -1,6 +1,9 @@
+import { spawnSync } from "child_process";
+import ffmpegStatic from "ffmpeg-static";
 import {
     buildTranscodePlan,
     parseAudioProbeOutput,
+    transcodeAudioToSpecificBitrate,
     validateSourceAudioProfile,
 } from "../../src/services/audioTranscode.service.js";
 
@@ -25,16 +28,47 @@ Input #0, mp3, from 'demo.mp3':
         expect(profile.duration).toBeCloseTo(192.45, 2);
     });
 
+    test("recognizes an MP4 source with an audio stream as M4A audio", () => {
+        const probeOutput = `
+Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'demo.mp4':
+  Duration: 00:03:12.45, start: 0.000000, bitrate: 256 kb/s
+  Stream #0:0: Audio: aac, 44100 Hz, stereo, fltp, 256 kb/s
+`;
+
+        const profile = parseAudioProbeOutput(probeOutput, "demo.mp4");
+
+        expect(profile).toMatchObject({
+            format: "m4a",
+            codec: "aac",
+            bitrate: 256,
+            sampleRate: 44100,
+            channels: 2,
+            isLossless: false,
+        });
+    });
+
     test("rejects lossy source files below the ingest bitrate threshold", () => {
         expect(() =>
             validateSourceAudioProfile({
                 format: "mp3",
                 codec: "mp3",
-                bitrate: 192,
+                bitrate: 96,
                 sampleRate: 44100,
                 isLossless: false,
             })
-        ).toThrow("Lossy source audio must be at least 256 kbps.");
+        ).toThrow("Lossy source audio must be at least 128 kbps.");
+    });
+
+    test("keeps a 128 kbps lossy source without creating lower tiers", () => {
+        const profile = validateSourceAudioProfile({
+            format: "mp3",
+            codec: "mp3",
+            bitrate: 128,
+            sampleRate: 44100,
+            isLossless: false,
+        });
+
+        expect(buildTranscodePlan(profile)).toEqual([]);
     });
 
     test("keeps every transcode tier for lossless sources", () => {
@@ -66,5 +100,40 @@ Input #0, mp3, from 'demo.mp3':
             "low",
             "lowest",
         ]);
+    });
+
+    test("creates a clean MP3 stream without a broken ID3 header", async () => {
+        const sourceResult = spawnSync(
+            ffmpegStatic,
+            [
+                "-v", "error",
+                "-f", "lavfi",
+                "-i", "sine=frequency=1000:duration=0.25",
+                "-ar", "44100",
+                "-ac", "2",
+                "-f", "wav",
+                "pipe:1",
+            ],
+            { encoding: null }
+        );
+
+        expect(sourceResult.status).toBe(0);
+
+        const transcodedBuffer = await transcodeAudioToSpecificBitrate(
+            sourceResult.stdout,
+            "128k"
+        );
+        const decodeResult = spawnSync(
+            ffmpegStatic,
+            ["-v", "error", "-i", "pipe:0", "-f", "null", "-"],
+            {
+                encoding: "utf8",
+                input: transcodedBuffer,
+            }
+        );
+
+        expect(transcodedBuffer.subarray(0, 3).toString("ascii")).not.toBe("ID3");
+        expect(decodeResult.status).toBe(0);
+        expect(decodeResult.stderr).toBe("");
     });
 });

@@ -41,6 +41,7 @@ const formatPlaylistTrack = (playlistTrack) => {
             ? {
                 id: toId(trackDoc._id),
                 title: trackDoc.title,
+                versionTitle: trackDoc.versionTitle || "",
                 duration: trackDoc.duration,
                 avatar: trackDoc.avatar,
                 coverImage: trackDoc.coverImage,

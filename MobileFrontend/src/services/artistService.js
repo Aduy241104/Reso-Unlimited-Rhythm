@@ -3,6 +3,23 @@ import { API_ENDPOINTS } from '../api/apiEndpoints';
 import { formatCompactNumber, resolveImageUri } from '../utils/media';
 import { resolveTrackAudioUri } from '../utils/player';
 
+const TOP_ARTIST_LIMIT = 20;
+
+const normalizeTopArtistLimit = (limit) => {
+  const numericLimit = Number(limit);
+
+  if (!Number.isFinite(numericLimit)) {
+    return 10;
+  }
+
+  return Math.min(Math.max(Math.trunc(numericLimit), 1), TOP_ARTIST_LIMIT);
+};
+
+const normalizeTopArtistParams = (params = {}) => ({
+  ...params,
+  limit: normalizeTopArtistLimit(params?.limit),
+});
+
 const normalizeArtistRanking = (item) => {
   const artist = item?.artist || {};
 
@@ -75,7 +92,9 @@ const normalizeArtistDetail = (payload, tracks = []) => {
 
 export const artistService = {
   async getDailyTopArtists(params) {
-    const response = await axiosClient.get(API_ENDPOINTS.ARTISTS.TOP_DAILY, { params });
+    const response = await axiosClient.get(API_ENDPOINTS.ARTISTS.TOP_DAILY, {
+      params: normalizeTopArtistParams(params),
+    });
     const payload = getPayload(response);
 
     return {
@@ -85,7 +104,9 @@ export const artistService = {
   },
 
   async getMonthlyTopArtists(params) {
-    const response = await axiosClient.get(API_ENDPOINTS.ARTISTS.TOP_MONTHLY, { params });
+    const response = await axiosClient.get(API_ENDPOINTS.ARTISTS.TOP_MONTHLY, {
+      params: normalizeTopArtistParams(params),
+    });
     const payload = getPayload(response);
 
     return {
