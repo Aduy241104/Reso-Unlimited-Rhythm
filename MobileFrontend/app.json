@@ -5,9 +5,12 @@
     "slug": "MobileFrontend",
     "scheme": "resounlimitedrhythm",
     "version": "1.0.0",
+    "newArchEnabled": false,
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "ios": {
+      "bundleIdentifier": "com.thaiv.resounlimitedrhythm",
+      "buildNumber": "1",
       "supportsTablet": true,
       "infoPlist": {
         "NSAppTransportSecurity": {
@@ -17,6 +20,8 @@
       }
     },
     "android": {
+      "package": "com.thaiv.resounlimitedrhythm",
+      "versionCode": 1,
       "usesCleartextTraffic": true
     },
     "plugins": [
