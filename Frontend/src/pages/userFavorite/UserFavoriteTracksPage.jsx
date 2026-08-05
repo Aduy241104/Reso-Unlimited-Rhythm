@@ -6,6 +6,7 @@ import UserFavoriteTrackRow from "../../components/userFavorite/UserFavoriteTrac
 import { usePlayer } from "../../hooks/usePlayer";
 import { getFavoriteTracks } from "../../services/userFavoriteService";
 import { getApiErrorMessage } from "../../utils/apiError";
+import { getTrackDisplayTitle } from "../../utils/trackTitle";
 
 const PAGE_LIMIT = 20;
 
@@ -31,7 +32,7 @@ const getFavoriteItemKey = (item, index = 0) => {
   );
 };
 
-const getTrackTitle = (track) => track?.title || track?.name || "";
+const getTrackTitle = (track) => getTrackDisplayTitle(track);
 
 const getTrackArtistName = (track, item) => {
   if (typeof track?.artist?.name === "string" && track.artist.name.trim()) {

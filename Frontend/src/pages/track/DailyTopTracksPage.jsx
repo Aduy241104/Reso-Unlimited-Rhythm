@@ -20,6 +20,7 @@ import {
 import { getApiErrorMessage } from "../../utils/apiError";
 import TrackTwoLevelMenu from "../../components/trackMenu/TrackTwoLevelMenu";
 import defaultImage from "../../assets/images/default-image.svg";
+import { getTrackDisplayTitle } from "../../utils/trackTitle";
 
 const DAILY_TOP_TRACK_LIMIT = 30;
 
@@ -308,6 +309,7 @@ const DailyTopTracksPage = () => {
     const image = track?.coverImage || track?.avatar || track?.artist?.avatar || heroImage;
     const isPlaybackActive = currentTrack?.id === track?.id;
     const PlaybackIcon = isPlaybackActive && isPlaying ? Pause : Play;
+    const displayTitle = getTrackDisplayTitle(track, "Bài hát chưa có tên");
 
     return (
       <div
@@ -325,13 +327,13 @@ const DailyTopTracksPage = () => {
         <button
           type="button"
           onClick={ () => handlePlayTrack(track, index) }
-          aria-label={ `${isPlaybackActive && isPlaying ? "Tạm dừng" : "Phát"} ${track?.title || "bài hát"}` }
+          aria-label={ `${isPlaybackActive && isPlaying ? "Tạm dừng" : "Phát"} ${displayTitle}` }
           className="relative hidden h-10 w-10 shrink-0 overflow-hidden rounded-[10px] bg-white/6 shadow-[0_10px_20px_rgba(0,0,0,0.24)] sm:block"
         >
           { image ? (
             <img
               src={ image }
-              alt={ track?.title || "Ảnh bìa bài hát" }
+              alt={ displayTitle }
               className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04] group-hover:brightness-[0.4]"
             />
           ) : (
@@ -374,7 +376,7 @@ const DailyTopTracksPage = () => {
                   isPlaybackActive ? "text-emerald-300" : "text-white",
                 ].join(" ") }
               >
-                { track?.title || "Bài hát chưa có tên" }
+                { displayTitle }
               </Link>
             ) : (
               <p
@@ -383,7 +385,7 @@ const DailyTopTracksPage = () => {
                   isPlaybackActive ? "text-emerald-300" : "text-white",
                 ].join(" ") }
               >
-                { track?.title || "Bài hát chưa có tên" }
+                { displayTitle }
               </p>
             ) }
 

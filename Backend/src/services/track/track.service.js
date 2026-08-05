@@ -35,6 +35,9 @@ const getTrackIdentity = (track) => {
     return track.id || track._id || null;
 };
 
+const hasVersionTitleField = (item) =>
+    item?.track && Object.prototype.hasOwnProperty.call(item.track, "versionTitle");
+
 const getValidTrackIds = async (trackIds) => {
     if (trackIds.length === 0) {
         return new Set();
@@ -363,7 +366,7 @@ const getDailyTopTracks = async ({ date, limit }) => {
                 const hasCachedTopTracks =
                     Array.isArray(parsedTopTracks) && parsedTopTracks.length > 0;
 
-                if (hasCachedTopTracks) {
+                if (hasCachedTopTracks && parsedTopTracks.every(hasVersionTitleField)) {
                     const topTracks = await normalizeTopTracks(parsedTopTracks, limit);
 
                     if (topTracks.length === limit || parsedTopTracks.length < limit) {
@@ -394,7 +397,7 @@ const getDailyTopTracks = async ({ date, limit }) => {
                 approvalStatus: "approved",
                 ...buildReleasedTrackFilter(),
             },
-            select: "_id title duration avatar stats releaseDate releaseStatus releasedAt activeStatus approvalStatus artist_artistId",
+            select: "_id title versionTitle duration avatar stats releaseDate releaseStatus releasedAt activeStatus approvalStatus artist_artistId",
             populate: {
                 path: "artist_artistId",
                 select: "_id name avatar",
@@ -445,18 +448,23 @@ const getMonthlyTopTracks = async ({ month, limit }) => {
             const cachedData = await redisClient.get(cacheKey);
             if (cachedData) {
                 const parsedTopTracks = JSON.parse(cachedData);
-                const topTracks = await normalizeTopTracks(parsedTopTracks, limit);
+                const hasCachedTopTracks =
+                    Array.isArray(parsedTopTracks) && parsedTopTracks.length > 0;
 
-                if (topTracks.length === limit || parsedTopTracks.length < limit) {
-                    return {
-                        topTracks,
-                        meta: {
-                            month: monthKey,
-                            limit,
-                            cacheKey,
-                            cacheHit: true,
-                        },
-                    };
+                if (hasCachedTopTracks && parsedTopTracks.every(hasVersionTitleField)) {
+                    const topTracks = await normalizeTopTracks(parsedTopTracks, limit);
+
+                    if (topTracks.length === limit || parsedTopTracks.length < limit) {
+                        return {
+                            topTracks,
+                            meta: {
+                                month: monthKey,
+                                limit,
+                                cacheKey,
+                                cacheHit: true,
+                            },
+                        };
+                    }
                 }
             }
         } catch (error) {

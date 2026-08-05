@@ -48,6 +48,7 @@ const formatAlbumTrack = (trackItem) => {
             ? {
                 id: toId(track._id),
                 title: track.title,
+                versionTitle: track.versionTitle || "",
                 duration: track.duration,
                 avatar: track.avatar,
                 coverImage: track.coverImage,

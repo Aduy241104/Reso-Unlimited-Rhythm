@@ -34,6 +34,7 @@ const formatArtistAlbum = (album) => ({
 const formatArtistTrack = (track) => ({
     id: toId(track._id),
     title: track.title,
+    versionTitle: track.versionTitle || "",
     duration: track.duration,
     avatar: track.avatar,
     coverImage: track.coverImage,
@@ -65,6 +66,7 @@ const formatArtistComingRelease = ({ schedule, target }) => {
             ? {
                 id: toId(target?._id),
                 title: target?.title || "",
+                versionTitle: target?.versionTitle || "",
                 duration: target?.duration || 0,
                 avatar: target?.avatar || "",
                 coverImage: Array.isArray(target?.coverImage)

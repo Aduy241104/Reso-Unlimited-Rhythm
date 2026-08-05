@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import LoadingState from "../common/LoadingState";
 import TrackChartCard from "./TrackChartCard";
+import { getTrackDisplayTitle } from "../../utils/trackTitle";
 
 const TrackChartSection = ({
   label = "Bảng xếp hạng",
@@ -16,7 +17,8 @@ const TrackChartSection = ({
   isArtistSection = false,
 }) => {
   const getLeadLabel = (item) => {
-    const topTrackTitle = item?.raw?.topTracks?.[0]?.track?.title;
+    const topTrack = item?.raw?.topTracks?.[0]?.track;
+    const topTrackTitle = getTrackDisplayTitle(topTrack);
     const topArtistName = item?.raw?.topArtists?.[0]?.artist?.name;
 
     return topTrackTitle || topArtistName || item?.title || "";

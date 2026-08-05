@@ -5,6 +5,7 @@ import {
   formatDuration,
   getMetricValue,
 } from "../utils/artistProfile";
+import { formatTrackTitle } from "../utils/trackTitle";
 
 const resolveArtistName = (profile) =>
   profile?.stageName ||
@@ -301,6 +302,7 @@ const buildPopularTracksFromApi = (tracks = []) =>
         _id: resolvedTrackId,
         id: resolvedTrackId,
         title: track?.title || "Untitled track",
+        versionTitle: track?.versionTitle || "",
         image: track?.avatar || track?.artist?.avatar || track?.coverImage || track?.album?.coverImage || "",
         artist: track?.artist || null,
         artistName:
@@ -320,6 +322,7 @@ const buildPopularTracksFromApi = (tracks = []) =>
       _id: track._id,
       id: track.id,
       title: track.title,
+      versionTitle: track.versionTitle,
       image: track.image,
       artist: track.artist,
       artistName: track.artistName,
@@ -355,7 +358,15 @@ const buildComingReleasesFromApi = (comingReleases = []) =>
         sourceType,
         scheduledAt: release?.scheduledAt || null,
         status: release?.status || "scheduled",
-        title: release?.item?.title || "Untitled release",
+        title:
+          sourceType === "track"
+            ? formatTrackTitle(
+                release?.item?.title || "Untitled release",
+                release?.item?.versionTitle
+              )
+            : release?.item?.title || "Untitled release",
+        versionTitle:
+          sourceType === "track" ? release?.item?.versionTitle || "" : "",
         image: resolveComingReleaseImage(release?.item),
         trackCount: release?.item?.trackCount || 0,
         duration: release?.item?.duration || 0,

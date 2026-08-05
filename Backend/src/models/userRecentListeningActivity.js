@@ -38,6 +38,7 @@ const UserRecentListeningActivitySchema = new Schema(
             index: true,
         },
         trackTitle: { type: String, required: true, trim: true },
+        trackVersionTitle: { type: String, default: "", trim: true },
         trackImage: { type: String, default: "" },
         artistName: { type: String, default: "" },
         artistAvatar: { type: String, default: "" },

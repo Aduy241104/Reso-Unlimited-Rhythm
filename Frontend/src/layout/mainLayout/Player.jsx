@@ -23,6 +23,7 @@ import PlayerQueueMenu from "../../components/player/PlayerQueueMenu";
 import { usePlayer } from "../../hooks/usePlayer";
 import { routePaths } from "../../routes/routePaths";
 import { formatTrackDuration } from "../../utils/albumDetail";
+import { getTrackDisplayTitle } from "../../utils/trackTitle";
 
 const controlButtonClassName =
   "inline-flex h-9 w-9 items-center justify-center rounded-full text-[#fff7ef] transition hover:bg-[#2b252f] disabled:cursor-not-allowed disabled:opacity-40";
@@ -161,6 +162,10 @@ const Player = ({
     : queue.length > 0
       ? `Hàng chờ: ${queuePositionLabel}`
       : "Chọn bài hát để bắt đầu phát";
+  const currentTrackDisplayTitle = getTrackDisplayTitle(
+    currentTrack,
+    "Chưa chọn bài hát"
+  );
 
   const progressMax = duration > 0 ? duration : 0;
   const progressValue = duration > 0 ? Math.min(currentTime, duration) : 0;
@@ -476,19 +481,19 @@ const Player = ({
           { currentTrack?.image ? (
             <img
               src={ currentTrack.image }
-              alt={ currentTrack.title }
+              alt={ currentTrackDisplayTitle }
               className="h-8 w-8 shrink-0 rounded-md object-cover shadow-[0_8px_16px_rgba(0,0,0,0.2)]"
             />
           ) : (
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-white/8 text-xs font-semibold text-white/80">
-              { currentTrack?.title?.charAt(0)?.toUpperCase() || "M" }
+              { currentTrackDisplayTitle.charAt(0).toUpperCase() || "M" }
             </div>
           ) }
         </div>
 
         <div className="min-w-0 flex-1">
           <p className="truncate text-[13px] font-medium leading-4 text-[#fff7ef]">
-            { currentTrack?.title || "Chưa chọn bài hát" }
+            { currentTrackDisplayTitle }
           </p>
           <p className="truncate text-[10px] leading-4 text-[#d7c9bc]">
             { currentTrack?.artistName || queueLabel }
@@ -673,18 +678,18 @@ const Player = ({
           { currentTrack?.image ? (
             <img
               src={ currentTrack.image }
-              alt={ currentTrack.title }
+              alt={ currentTrackDisplayTitle }
               className="h-10 w-10 rounded-lg object-cover shadow-[0_12px_22px_rgba(0,0,0,0.22)]"
             />
           ) : (
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/8 text-sm font-semibold text-white/80">
-              { currentTrack?.title?.charAt(0)?.toUpperCase() || "M" }
+              { currentTrackDisplayTitle.charAt(0).toUpperCase() || "M" }
             </div>
           ) }
 
           <div className="min-w-0 flex-1 text-left">
             <p className="truncate text-[13px] font-semibold leading-4 text-[#fff7ef]">
-              { currentTrack?.title || "Chưa chọn bài hát" }
+              { currentTrackDisplayTitle }
             </p>
             <p className="truncate text-[11px] leading-4 text-[#d7c9bc]">
               { currentTrack?.artistName || queueLabel }
