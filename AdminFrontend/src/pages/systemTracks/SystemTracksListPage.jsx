@@ -57,6 +57,12 @@ const getStatusBadge = (status, type) => {
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Tạm ẩn
                 </span>
             );
+        case "blocked":
+            return (
+                <span className="inline-flex items-center gap-1.5 bg-rose-50 text-rose-600 border border-rose-100 rounded-full px-2.5 py-0.5 text-xs font-medium">
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Đã khóa ban
+                </span>
+            );
         default:
             return (
                 <span className="inline-flex items-center gap-1.5 bg-slate-50 text-slate-500 border border-slate-200 rounded-full px-2.5 py-0.5 text-xs font-medium">
@@ -164,6 +170,7 @@ const SystemTracksListPage = () => {
                     <option value="">Tất cả hiển thị</option>
                     <option value="active">Đang hoạt động</option>
                     <option value="hidden">Đang tạm ẩn</option>
+                    <option value="blocked">Đã khóa ban</option>
                 </select>
 
                 <button type="button" onClick={handleResetFilters} className="rounded-lg border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition py-3">
