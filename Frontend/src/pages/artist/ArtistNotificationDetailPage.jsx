@@ -62,14 +62,6 @@ const formatDateTime = (value) => {
   }).format(date);
 };
 
-const formatIdentifier = (value) => {
-  if (!value) {
-    return "--";
-  }
-
-  return String(value);
-};
-
 const normalizeErrorMessage = (error) =>
   error?.response?.data?.message ||
   error?.message ||
@@ -274,70 +266,6 @@ const ArtistNotificationDetailPage = () => {
           value={formatDateTime(notification?.updatedAt)}
           helper="Thời gian bản ghi thông báo được cập nhật lần cuối."
         />
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_360px]">
-        <section className="rounded-[28px] border border-[#e7e1ff] bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-[#2f2747]">
-            Thông tin kỹ thuật
-          </h2>
-
-          <div className="mt-5 divide-y divide-[#f0ecff]">
-            <div className="grid gap-2 py-3 sm:grid-cols-[180px_minmax(0,1fr)]">
-              <p className="text-sm text-[#847e98]">Mã thông báo</p>
-              <p className="break-all text-sm font-medium text-[#2f2747]">
-                {formatIdentifier(notification?._id)}
-              </p>
-            </div>
-
-            <div className="grid gap-2 py-3 sm:grid-cols-[180px_minmax(0,1fr)]">
-              <p className="text-sm text-[#847e98]">Kiểu người nhận</p>
-              <p className="text-sm font-medium text-[#2f2747]">
-                {RECEIVER_LABELS[notification?.receiverType] || "Không xác định"}
-              </p>
-            </div>
-
-            <div className="grid gap-2 py-3 sm:grid-cols-[180px_minmax(0,1fr)]">
-              <p className="text-sm text-[#847e98]">Đối tượng liên quan</p>
-              <p className="text-sm font-medium text-[#2f2747]">
-                {TARGET_LABELS[notification?.targetType] || "Không có"}
-              </p>
-            </div>
-
-            <div className="grid gap-2 py-3 sm:grid-cols-[180px_minmax(0,1fr)]">
-              <p className="text-sm text-[#847e98]">Mã đối tượng</p>
-              <p className="break-all text-sm font-medium text-[#2f2747]">
-                {formatIdentifier(notification?.targetId)}
-              </p>
-            </div>
-
-            <div className="grid gap-2 py-3 sm:grid-cols-[180px_minmax(0,1fr)]">
-              <p className="text-sm text-[#847e98]">Mã người tạo</p>
-              <p className="break-all text-sm font-medium text-[#2f2747]">
-                {formatIdentifier(notification?.actorId)}
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <aside className="space-y-4">
-          <MetaCard
-            icon={<Globe className="h-5 w-5" />}
-            label="Phạm vi gửi"
-            value={
-              notification?.isGlobal
-                ? "Thông báo toàn hệ thống"
-                : "Thông báo cá nhân"
-            }
-            helper="Dùng để phân biệt thông báo broadcast và thông báo gắn với riêng artist."
-          />
-          <MetaCard
-            icon={<Fingerprint className="h-5 w-5" />}
-            label="Mã người nhận"
-            value={formatIdentifier(notification?.userId)}
-            helper="ID user nhận thông báo này trên hệ thống."
-          />
-        </aside>
       </div>
     </section>
   );

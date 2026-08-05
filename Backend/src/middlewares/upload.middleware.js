@@ -7,6 +7,7 @@ const ALLOWED_AUDIO_MIME_TYPES = new Set([
   "audio/mpeg",
   "audio/mp3",
   "audio/mp4",
+  "video/mp4",
   "audio/x-m4a",
   "audio/aac",
   "audio/x-aac",
@@ -24,6 +25,7 @@ const ALLOWED_AUDIO_EXTENSIONS = new Set([
   ".aac",
   ".wav",
   ".flac",
+  ".mp4",
 ]);
 
 const fileFilter = (req, file, cb) => {

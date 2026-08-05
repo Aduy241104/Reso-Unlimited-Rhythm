@@ -22,7 +22,7 @@ const QUALITY_PRESETS = [
 const SUPPORTED_SOURCE_AUDIO_FORMATS = new Set(["mp3", "wav", "flac", "aac", "m4a"]);
 const LOSSLESS_AUDIO_FORMATS = new Set(["wav", "flac"]);
 const MIN_SOURCE_SAMPLE_RATE = 44100;
-const MIN_LOSSY_SOURCE_BITRATE = 256;
+const MIN_LOSSY_SOURCE_BITRATE = 128;
 
 const parseDurationToSeconds = (durationText) => {
     if (!durationText || typeof durationText !== "string") {
@@ -221,7 +221,7 @@ const probeAudioSource = async (fileBuffer, fileName = "upload-audio") => {
 const validateSourceAudioProfile = (audioProfile = {}) => {
     if (!SUPPORTED_SOURCE_AUDIO_FORMATS.has(audioProfile.format)) {
         throw new AppError(
-            "Only MP3, WAV, FLAC, AAC, or M4A source files are accepted for track uploads.",
+            "Only MP3, WAV, FLAC, AAC, M4A, or MP4 source files are accepted for track uploads.",
             StatusCodes.BAD_REQUEST,
             { field: "audioFiles" }
         );
@@ -244,7 +244,7 @@ const validateSourceAudioProfile = (audioProfile = {}) => {
             audioProfile.bitrate < MIN_LOSSY_SOURCE_BITRATE)
     ) {
         throw new AppError(
-            "Lossy source audio must be at least 256 kbps. Upload WAV/FLAC or a high-bitrate master file.",
+            "Lossy source audio must be at least 128 kbps. Upload WAV/FLAC or a higher-bitrate source file.",
             StatusCodes.BAD_REQUEST,
             { field: "audioFiles" }
         );
@@ -274,6 +274,14 @@ const resolveOriginalAudioBitrate = (audioProfile = {}) => {
 
 const buildTranscodePlan = (audioProfile = {}) => {
     const sourceBitrate = Number(audioProfile.bitrate || 0);
+
+    if (
+        !audioProfile.isLossless &&
+        Number.isFinite(sourceBitrate) &&
+        sourceBitrate === MIN_LOSSY_SOURCE_BITRATE
+    ) {
+        return [];
+    }
 
     return QUALITY_PRESETS.filter((preset) => {
         const presetBitrate = Number.parseInt(preset.bitrate, 10);

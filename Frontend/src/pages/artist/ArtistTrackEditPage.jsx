@@ -792,7 +792,7 @@ const ArtistTrackEditPage = () => {
               <FieldShell label="File âm thanh gốc">
                 <input
                   type="file"
-                  accept=".mp3,.wav,.flac,.aac,.m4a,audio/mpeg,audio/wav,audio/flac,audio/aac,audio/mp4"
+                  accept=".mp3,.wav,.flac,.aac,.m4a,.mp4,audio/mpeg,audio/wav,audio/flac,audio/aac,audio/mp4,video/mp4"
                   onChange={handleAudioChange}
                   disabled={!canEdit}
                   className="block h-12 w-full rounded-2xl border border-[#e6e0ff] bg-white px-4 py-3 text-sm text-[#241b45] file:mr-3 file:rounded-xl file:border-0 file:bg-[#f3efff] file:px-3 file:py-2 file:text-xs file:font-semibold file:text-[#5c4fe0]"

@@ -18,7 +18,6 @@ import AppButton from '../../components/common/AppButton';
 import AppLoader from '../../components/common/AppLoader';
 import ErrorState from '../../components/common/ErrorState';
 import { useAuth } from '../../hooks/useAuth';
-import playlistService from '../../services/playlistService';
 import userPlaylistService from '../../services/userPlaylistService';
 import {
   formatDuration,
@@ -156,18 +155,15 @@ export default function LibraryScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { isAuthenticated, user } = useAuth();
-  const [systemPlaylists, setSystemPlaylists] = useState([]);
+  const [activeLibraryFilter, setActiveLibraryFilter] = useState('all');
   const [myPlaylists, setMyPlaylists] = useState([]);
-  const [isSystemLoading, setIsSystemLoading] = useState(true);
   const [isMyLoading, setIsMyLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [systemErrorMessage, setSystemErrorMessage] = useState('');
   const [myErrorMessage, setMyErrorMessage] = useState('');
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
   const [isCreatingPlaylist, setIsCreatingPlaylist] = useState(false);
   const [createPlaylistError, setCreatePlaylistError] = useState('');
   const [visibleMyPlaylistsCount, setVisibleMyPlaylistsCount] = useState(LOAD_MORE_STEP);
-  const [visibleSystemPlaylistsCount, setVisibleSystemPlaylistsCount] = useState(LOAD_MORE_STEP);
   const skipNextFocusRefreshRef = useRef(true);
 
   const displayName = useMemo(
@@ -179,31 +175,6 @@ export default function LibraryScreen() {
       'tài khoản của bạn',
     [user]
   );
-
-  const loadSystemPlaylists = useCallback(async ({ refresh = false } = {}) => {
-    if (!refresh) {
-      setIsSystemLoading(true);
-    }
-
-    try {
-      const result = await playlistService.getSystemPlaylists({
-        page: 1,
-        limit: 24,
-      });
-
-      setSystemPlaylists(Array.isArray(result?.items) ? result.items : []);
-      setVisibleSystemPlaylistsCount(LOAD_MORE_STEP);
-      setSystemErrorMessage('');
-    } catch (error) {
-      setSystemPlaylists([]);
-      setVisibleSystemPlaylistsCount(LOAD_MORE_STEP);
-      setSystemErrorMessage(getErrorMessage(error, 'Không thể tải playlist lúc này.'));
-    } finally {
-      if (!refresh) {
-        setIsSystemLoading(false);
-      }
-    }
-  }, []);
 
   const loadMyPlaylists = useCallback(async ({ refresh = false } = {}) => {
     if (!isAuthenticated) {
@@ -244,16 +215,13 @@ export default function LibraryScreen() {
     }
 
     try {
-      await Promise.allSettled([
-        loadSystemPlaylists({ refresh }),
-        loadMyPlaylists({ refresh }),
-      ]);
+      await loadMyPlaylists({ refresh });
     } finally {
       if (refresh) {
         setIsRefreshing(false);
       }
     }
-  }, [loadMyPlaylists, loadSystemPlaylists]);
+  }, [loadMyPlaylists]);
 
   useEffect(() => {
     void loadLibraryData();
@@ -357,12 +325,9 @@ export default function LibraryScreen() {
     }
   }, [navigation]);
 
-  const showInitialLoader = isSystemLoading && !isRefreshing && systemPlaylists.length === 0;
-  const recentLibraryItems = isAuthenticated ? myPlaylists.slice(0, 4) : systemPlaylists.slice(0, 4);
+  const showInitialLoader = isAuthenticated && isMyLoading && !isRefreshing && myPlaylists.length === 0;
   const visibleMyPlaylists = myPlaylists.slice(0, visibleMyPlaylistsCount);
-  const visibleSystemPlaylists = systemPlaylists.slice(0, visibleSystemPlaylistsCount);
   const canLoadMoreMyPlaylists = visibleMyPlaylists.length < myPlaylists.length;
-  const canLoadMoreSystemPlaylists = visibleSystemPlaylists.length < systemPlaylists.length;
 
   return (
     <View style={styles.container}>
@@ -406,178 +371,137 @@ export default function LibraryScreen() {
           </View>
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-            <FilterChip label="Tất cả" active />
-            <FilterChip label="Playlist" onPress={handleOpenCreateModal} />
+            <FilterChip
+              label="Tất cả"
+              active={activeLibraryFilter === 'all'}
+              onPress={() => setActiveLibraryFilter('all')}
+            />
+            <FilterChip
+              label="Playlist"
+              active={activeLibraryFilter === 'playlist'}
+              onPress={() => setActiveLibraryFilter('playlist')}
+            />
             <FilterChip label="Nghệ sĩ" onPress={handleOpenFollowedArtists} />
             <FilterChip label="Album" onPress={handleOpenFollowedAlbums} />
           </ScrollView>
 
-          <LinearGradient colors={['#1b302f', '#11161f', '#0c0e12']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.heroCard}>
-            <Text style={styles.heroEyebrow}>Mobile Library</Text>
-            <Text style={styles.heroTitle}>Mọi thứ bạn lưu trong một nơi</Text>
-            <Text style={styles.heroText}>
-              Mở nhanh bài hát đã thích, nghệ sĩ theo dõi, album theo dõi và playlist của riêng bạn theo đúng flow điện thoại.
-            </Text>
-
-            <View style={styles.heroMetrics}>
-              <View style={styles.metricPill}>
-                <Text style={styles.metricPillText}>
-                  {isAuthenticated ? `${myPlaylists.length} playlist của bạn` : 'Đăng nhập để đồng bộ'}
+          {activeLibraryFilter === 'all' ? (
+            <>
+              <LinearGradient colors={['#1b302f', '#11161f', '#0c0e12']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.heroCard}>
+                <Text style={styles.heroEyebrow}>Mobile Library</Text>
+                <Text style={styles.heroTitle}>Mọi thứ bạn lưu trong một nơi</Text>
+                <Text style={styles.heroText}>
+                  Mở nhanh bài hát đã thích, nghệ sĩ theo dõi, album theo dõi và playlist của riêng bạn theo đúng flow điện thoại.
                 </Text>
-              </View>
-              <View style={styles.metricPill}>
-                <Text style={styles.metricPillText}>{systemPlaylists.length} playlist gợi ý</Text>
-              </View>
-            </View>
 
-            {isAuthenticated ? (
-              <TouchableOpacity activeOpacity={0.86} onPress={handleOpenCreateModal} style={styles.heroAction}>
-                <Ionicons name="add-circle" size={18} color="#08110a" />
-                <Text style={styles.heroActionText}>Tạo playlist mới</Text>
-              </TouchableOpacity>
-            ) : null}
-          </LinearGradient>
+                <View style={styles.heroMetrics}>
+                  <View style={styles.metricPill}>
+                    <Text style={styles.metricPillText}>
+                      {isAuthenticated ? `${myPlaylists.length} playlist của bạn` : 'Đăng nhập để đồng bộ'}
+                    </Text>
+                  </View>
+                </View>
 
-          {!isAuthenticated ? (
+                {isAuthenticated ? (
+                  <TouchableOpacity activeOpacity={0.86} onPress={handleOpenCreateModal} style={styles.heroAction}>
+                    <Ionicons name="add-circle" size={18} color="#08110a" />
+                    <Text style={styles.heroActionText}>Tạo playlist mới</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </LinearGradient>
+
+              {!isAuthenticated ? (
+                <View style={styles.loginPanel}>
+                  <Text style={styles.loginPanelTitle}>Đăng nhập để mở thư viện cá nhân</Text>
+                  <Text style={styles.loginPanelText}>
+                    Sau khi đăng nhập, bạn sẽ thấy playlist, bài hát yêu thích, nghệ sĩ và album đã lưu ngay tại đây.
+                  </Text>
+                  <AppButton title="Đi đến đăng nhập" onPress={handleOpenLogin} style={styles.loginPanelButton} />
+                </View>
+              ) : (
+                <View style={styles.quickSection}>
+                  <QuickActionCard
+                    title="Bài hát đã thích"
+                    subtitle="Phát lại danh sách yêu thích của bạn."
+                    icon="heart"
+                    colors={['#6d28d9', '#db2777']}
+                    onPress={handleOpenFavoriteTracks}
+                  />
+                  <QuickActionCard
+                    title="Nghệ sĩ theo dõi"
+                    subtitle="Quay lại các nghệ sĩ bạn quan tâm."
+                    icon="people"
+                    colors={['#0f766e', '#1d4ed8']}
+                    onPress={handleOpenFollowedArtists}
+                  />
+                  <QuickActionCard
+                    title="Album theo dõi"
+                    subtitle="Mở nhanh bộ sưu tập album bạn đã lưu."
+                    icon="albums"
+                    colors={['#365314', '#166534']}
+                    onPress={handleOpenFollowedAlbums}
+                  />
+                </View>
+              )}
+            </>
+          ) : null}
+
+          {activeLibraryFilter === 'playlist' && !isAuthenticated ? (
             <View style={styles.loginPanel}>
-              <Text style={styles.loginPanelTitle}>Đăng nhập để mở thư viện cá nhân</Text>
+              <Text style={styles.loginPanelTitle}>Đăng nhập để mở playlist của bạn</Text>
               <Text style={styles.loginPanelText}>
-                Sau khi đăng nhập, bạn sẽ thấy playlist, bài hát yêu thích, nghệ sĩ và album đã lưu ngay tại đây.
+                Sau khi đăng nhập, các playlist bạn đã tạo sẽ xuất hiện tại đây.
               </Text>
               <AppButton title="Đi đến đăng nhập" onPress={handleOpenLogin} style={styles.loginPanelButton} />
             </View>
-          ) : (
-            <>
-              <View style={styles.quickSection}>
-                <QuickActionCard
-                  title="Bài hát đã thích"
-                  subtitle="Phát lại danh sách yêu thích của bạn."
-                  icon="heart"
-                  colors={['#6d28d9', '#db2777']}
-                  onPress={handleOpenFavoriteTracks}
-                />
-                <QuickActionCard
-                  title="Nghệ sĩ theo dõi"
-                  subtitle="Quay lại các nghệ sĩ bạn quan tâm."
-                  icon="people"
-                  colors={['#0f766e', '#1d4ed8']}
-                  onPress={handleOpenFollowedArtists}
-                />
-                <QuickActionCard
-                  title="Album theo dõi"
-                  subtitle="Mở nhanh bộ sưu tập album bạn đã lưu."
-                  icon="albums"
-                  colors={['#365314', '#166534']}
-                  onPress={handleOpenFollowedAlbums}
-                />
-              </View>
+          ) : null}
 
-              {recentLibraryItems.length > 0 ? (
-                <View style={styles.section}>
-                  <SectionHeader title="Đã nghe gần đây" />
+          {isAuthenticated ? (
+            <View style={styles.section}>
+              <SectionHeader title="Playlist của bạn" actionLabel="Tạo" onActionPress={handleOpenCreateModal} />
+
+              {isMyLoading ? (
+                <View style={styles.feedbackPanel}>
+                  <AppLoader size="small" />
+                </View>
+              ) : myErrorMessage ? (
+                <View style={styles.feedbackPanel}>
+                  <ErrorState message={myErrorMessage} />
+                  <AppButton title="Thử lại" onPress={() => loadMyPlaylists()} style={styles.retryCompactButton} />
+                </View>
+              ) : myPlaylists.length === 0 ? (
+                <View style={styles.feedbackPanel}>
+                  <Text style={styles.feedbackTitle}>Bạn chưa tạo playlist nào</Text>
+                  <Text style={styles.feedbackText}>
+                    Bắt đầu với playlist đầu tiên để nó xuất hiện ngay trong thư viện này.
+                  </Text>
+                  <AppButton title="Tạo playlist đầu tiên" onPress={handleOpenCreateModal} style={styles.createFirstButton} />
+                </View>
+              ) : (
+                <>
                   <View style={styles.sectionPanel}>
-                    {recentLibraryItems.map((item, index) => (
+                    {visibleMyPlaylists.map((item, index) => (
                       <PlaylistRow
-                        key={item.id || `recent-library-${index}`}
+                        key={item.id || `my-playlist-${index}`}
                         item={item}
                         index={index}
                         onPress={() => handleOpenPlaylist(item)}
                       />
                     ))}
                   </View>
-                </View>
-              ) : null}
-
-              <View style={styles.section}>
-                <SectionHeader title="Playlist của bạn" actionLabel="Tạo" onActionPress={handleOpenCreateModal} />
-
-                {isMyLoading ? (
-                  <View style={styles.feedbackPanel}>
-                    <AppLoader size="small" />
-                  </View>
-                ) : myErrorMessage ? (
-                  <View style={styles.feedbackPanel}>
-                    <ErrorState message={myErrorMessage} />
-                    <AppButton title="Thử lại" onPress={() => loadMyPlaylists()} style={styles.retryCompactButton} />
-                  </View>
-                ) : myPlaylists.length === 0 ? (
-                  <View style={styles.feedbackPanel}>
-                    <Text style={styles.feedbackTitle}>Bạn chưa tạo playlist nào</Text>
-                    <Text style={styles.feedbackText}>
-                      Bắt đầu với playlist đầu tiên để nó xuất hiện ngay trong thư viện này.
-                    </Text>
-                    <AppButton title="Tạo playlist đầu tiên" onPress={handleOpenCreateModal} style={styles.createFirstButton} />
-                  </View>
-                ) : (
-                  <>
-                    <View style={styles.sectionPanel}>
-                      {visibleMyPlaylists.map((item, index) => (
-                        <PlaylistRow
-                          key={item.id || `my-playlist-${index}`}
-                          item={item}
-                          index={index}
-                          onPress={() => handleOpenPlaylist(item)}
-                        />
-                      ))}
-                    </View>
-                    {canLoadMoreMyPlaylists ? (
-                      <TouchableOpacity
-                        activeOpacity={0.85}
-                        onPress={() => setVisibleMyPlaylistsCount((current) => current + LOAD_MORE_STEP)}
-                        style={styles.loadMoreButton}
-                      >
-                        <Text style={styles.loadMoreButtonText}>Hiện thêm 10 playlist</Text>
-                      </TouchableOpacity>
-                    ) : null}
-                  </>
-                )}
-              </View>
-            </>
-          )}
-
-          <View style={styles.section}>
-            <SectionHeader
-              title="Playlist gợi ý"
-              actionLabel={systemPlaylists.length > 0 ? 'Làm mới' : ''}
-              onActionPress={() => loadSystemPlaylists()}
-            />
-
-            {systemErrorMessage ? (
-              <View style={styles.feedbackPanel}>
-                <ErrorState message={systemErrorMessage} />
-                <AppButton title="Thử lại" onPress={() => loadSystemPlaylists()} style={styles.retryCompactButton} />
-              </View>
-            ) : systemPlaylists.length === 0 ? (
-              <View style={styles.feedbackPanel}>
-                <Text style={styles.feedbackTitle}>Chưa có playlist nào</Text>
-                <Text style={styles.feedbackText}>
-                  Hãy kéo để làm mới hoặc quay lại sau khi hệ thống có gợi ý mới.
-                </Text>
-              </View>
-            ) : (
-              <>
-                <View style={styles.sectionPanel}>
-                  {visibleSystemPlaylists.map((item, index) => (
-                    <PlaylistRow
-                      key={item.id || `system-playlist-${index}`}
-                      item={item}
-                      index={index}
-                      onPress={() => handleOpenPlaylist(item)}
-                    />
-                  ))}
-                </View>
-                {canLoadMoreSystemPlaylists ? (
-                  <TouchableOpacity
-                    activeOpacity={0.85}
-                    onPress={() => setVisibleSystemPlaylistsCount((current) => current + LOAD_MORE_STEP)}
-                    style={styles.loadMoreButton}
-                  >
-                    <Text style={styles.loadMoreButtonText}>Hiện thêm 10 playlist</Text>
-                  </TouchableOpacity>
-                ) : null}
-              </>
-            )}
-          </View>
+                  {canLoadMoreMyPlaylists ? (
+                    <TouchableOpacity
+                      activeOpacity={0.85}
+                      onPress={() => setVisibleMyPlaylistsCount((current) => current + LOAD_MORE_STEP)}
+                      style={styles.loadMoreButton}
+                    >
+                      <Text style={styles.loadMoreButtonText}>Hiện thêm 10 playlist</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </>
+              )}
+            </View>
+          ) : null}
         </ScrollView>
       )}
 

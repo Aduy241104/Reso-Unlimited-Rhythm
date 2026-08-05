@@ -25,16 +25,47 @@ Input #0, mp3, from 'demo.mp3':
         expect(profile.duration).toBeCloseTo(192.45, 2);
     });
 
+    test("recognizes an MP4 source with an audio stream as M4A audio", () => {
+        const probeOutput = `
+Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'demo.mp4':
+  Duration: 00:03:12.45, start: 0.000000, bitrate: 256 kb/s
+  Stream #0:0: Audio: aac, 44100 Hz, stereo, fltp, 256 kb/s
+`;
+
+        const profile = parseAudioProbeOutput(probeOutput, "demo.mp4");
+
+        expect(profile).toMatchObject({
+            format: "m4a",
+            codec: "aac",
+            bitrate: 256,
+            sampleRate: 44100,
+            channels: 2,
+            isLossless: false,
+        });
+    });
+
     test("rejects lossy source files below the ingest bitrate threshold", () => {
         expect(() =>
             validateSourceAudioProfile({
                 format: "mp3",
                 codec: "mp3",
-                bitrate: 192,
+                bitrate: 96,
                 sampleRate: 44100,
                 isLossless: false,
             })
-        ).toThrow("Lossy source audio must be at least 256 kbps.");
+        ).toThrow("Lossy source audio must be at least 128 kbps.");
+    });
+
+    test("keeps a 128 kbps lossy source without creating lower tiers", () => {
+        const profile = validateSourceAudioProfile({
+            format: "mp3",
+            codec: "mp3",
+            bitrate: 128,
+            sampleRate: 44100,
+            isLossless: false,
+        });
+
+        expect(buildTranscodePlan(profile)).toEqual([]);
     });
 
     test("keeps every transcode tier for lossless sources", () => {
