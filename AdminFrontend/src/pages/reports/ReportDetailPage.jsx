@@ -20,6 +20,8 @@ import {
   X,
   XCircle,
   XSquare,
+  CheckCheck,
+  Tag,
 } from "lucide-react";
 import {
   getGroupedReportDetailService,
@@ -194,6 +196,26 @@ const ReportDetailPage = () => {
     }));
   };
 
+  const handleSetAllEvaluations = (isValid) => {
+    setEvaluations((prev) => {
+      const updated = { ...prev };
+      pendingReportsForDecision.forEach((r) => {
+        updated[r._id] = isValid;
+      });
+      return updated;
+    });
+  };
+
+  const handleSetGroupEvaluations = (groupReports, isValid) => {
+    setEvaluations((prev) => {
+      const updated = { ...prev };
+      groupReports.forEach((r) => {
+        updated[r._id] = isValid;
+      });
+      return updated;
+    });
+  };
+
   const toggleProcessedReportDetails = (reportId) => {
     setExpandedProcessedReportIds((prev) =>
       prev.includes(reportId)
@@ -330,6 +352,16 @@ const ReportDetailPage = () => {
   const processedReports = (detail.reports || []).filter(
     (r) => r.status === "resolved" || r.status === "rejected"
   );
+
+  // Group pending reports by violation reason
+  const groupedPendingReports = pendingReports.reduce((acc, report) => {
+    const reasonKey = report.reason || "other";
+    if (!acc[reasonKey]) {
+      acc[reasonKey] = [];
+    }
+    acc[reasonKey].push(report);
+    return acc;
+  }, {});
   const selectedActionLabel =
     (selectedAction === "hide"
       ? getHideActionLabel(detail.targetType)
@@ -459,14 +491,40 @@ const ReportDetailPage = () => {
         <div className="space-y-6">
           {/* SECTION 1: Pending/New Reports */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between px-1 border-b border-slate-200 pb-2">
-              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <FileText size={18} className="text-blue-600" />
-                <span>Báo cáo mới cần xử lý ({pendingReports.length})</span>
-              </h2>
-              <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-100 shadow-sm">
-                Đợt xử lý hiện tại
-              </span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1 border-b border-slate-200 pb-3">
+              <div>
+                <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <FileText size={18} className="text-blue-600" />
+                  <span>Báo cáo mới cần xử lý ({pendingReports.length})</span>
+                </h2>
+                {pendingReports.length > 0 && (
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Đã gom thành {Object.keys(groupedPendingReports).length} nhóm theo loại vi phạm
+                  </p>
+                )}
+              </div>
+
+              {pendingReports.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+                  <span className="text-xs font-semibold text-slate-600 pl-1">Thao tác tất cả:</span>
+                  <button
+                    type="button"
+                    onClick={() => handleSetAllEvaluations(true)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 rounded-lg transition"
+                    title="Đánh giá tất cả báo cáo mới là vi phạm hợp lệ"
+                  >
+                    <CheckCheck size={14} /> Tất cả Hợp lệ (Vi phạm)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSetAllEvaluations(false)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-rose-700 bg-rose-100 hover:bg-rose-200 rounded-lg transition"
+                    title="Đánh giá tất cả báo cáo mới là không hợp lệ"
+                  >
+                    <XSquare size={14} /> Tất cả Không hợp lệ
+                  </button>
+                </div>
+              )}
             </div>
 
             {pendingReports.length === 0 ? (
@@ -474,123 +532,190 @@ const ReportDetailPage = () => {
                 Không có báo cáo mới nào đang chờ duyệt.
               </div>
             ) : (
-              <div className="space-y-4">
-                {pendingReports.map((report, idx) => {
-                  const reporterName =
-                    report.userId?.profile?.fullName || report.userId?.email || "Người dùng ẩn danh";
-                  const reporterEmail = report.userId?.email || "";
-                  const reportDate = report.createdAt
-                    ? new Date(report.createdAt).toLocaleString("vi-VN", {
-                        year: "numeric",
-                        month: "2-digit",
-                        day: "2-digit",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
-                    : "—";
-
-                  const isEvalValid = evaluations[report._id] === true;
+              <div className="space-y-6">
+                {Object.entries(groupedPendingReports).map(([reason, groupReports]) => {
+                  const reasonLabel = reasonLabels[reason] || reason;
+                  const validCountInGroup = groupReports.filter((r) => evaluations[r._id] === true).length;
+                  const allValid = validCountInGroup === groupReports.length;
+                  const allInvalid = validCountInGroup === 0;
 
                   return (
                     <div
-                      key={report._id}
-                      className={`rounded-2xl bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.04)] border transition ${
-                        isEvalValid ? "border-amber-300 bg-amber-50/20" : "border-blue-200 bg-blue-50/10"
-                      }`}
+                      key={reason}
+                      className="rounded-2xl bg-white shadow-sm border border-slate-200/90 overflow-hidden"
                     >
-                      {/* Header */}
-                      <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-3">
+                      {/* Group Header Bar */}
+                      <div className="bg-slate-50/90 px-5 py-3.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
                         <div className="flex items-center gap-3">
-                          <div className="h-9 w-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">
-                            <User size={18} />
-                          </div>
+                          <span className="inline-flex items-center justify-center p-2 rounded-xl bg-red-50 text-red-600 border border-red-100 font-bold">
+                            <Tag size={16} />
+                          </span>
                           <div>
                             <div className="flex items-center gap-2">
-                              <p className="text-sm font-bold text-slate-900">{reporterName}</p>
-                              <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-[10px] font-bold text-blue-700 border border-blue-200">
-                                <span className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-pulse"></span>
-                                Mới gửi (Chưa xử lý)
+                              <h3 className="text-sm font-bold text-slate-900">{reasonLabel}</h3>
+                              <span className="rounded-full bg-slate-200/80 px-2.5 py-0.5 text-xs font-bold text-slate-700">
+                                {groupReports.length} báo cáo
                               </span>
                             </div>
-                            <p className="text-xs text-slate-400">{reporterEmail}</p>
-                          </div>
-                        </div>
-
-                        <div className="text-right">
-                          <span className="inline-flex items-center rounded-lg bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-600 border border-red-100">
-                            {reasonLabels[report.reason] || report.reason}
-                          </span>
-                          <p className="mt-1 text-[11px] text-slate-400 flex items-center justify-end gap-1">
-                            <Clock size={12} />
-                            {reportDate}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Content */}
-                      <div className="py-3 space-y-2">
-                        <p className="text-sm text-slate-700 leading-relaxed">
-                          {report.description || "Người dùng không ghi thêm mô tả chi tiết."}
-                        </p>
-
-                        {report.images && report.images.length > 0 && (
-                          <div className="pt-2">
-                            <p className="text-xs font-semibold text-slate-400 mb-2 flex items-center gap-1">
-                              <ImageIcon size={14} /> Hình ảnh đính kèm ({report.images.length})
+                            <p className="text-[11px] text-slate-500 mt-0.5">
+                              Đã chọn vi phạm: <strong className="text-emerald-700">{validCountInGroup}</strong> / {groupReports.length}
                             </p>
-                            <div className="flex flex-wrap gap-2">
-                              {report.images.map((imgUrl, imgIdx) => (
-                                <button
-                                  key={imgIdx}
-                                  type="button"
-                                  onClick={() => setPreviewImage(imgUrl)}
-                                  className="group relative overflow-hidden rounded-xl border border-slate-200 hover:border-blue-500 transition"
-                                >
-                                  <img
-                                    src={imgUrl}
-                                    alt="Ảnh minh chứng báo cáo"
-                                    className="h-16 w-16 object-cover transition group-hover:scale-105"
-                                  />
-                                </button>
-                              ))}
-                            </div>
                           </div>
-                        )}
-                      </div>
+                        </div>
 
-                      {/* Evaluation Toggle */}
-                      <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between bg-slate-50/80 -mx-5 -mb-5 px-5 py-3 rounded-b-2xl">
-                        <span className="text-xs font-bold text-slate-600">
-                          Đánh giá lý do báo cáo #{idx + 1}:
-                        </span>
-
-                        <div className="inline-flex rounded-xl bg-white p-1 shadow-sm border border-slate-200">
+                        {/* Group Quick Action Buttons */}
+                        <div className="flex flex-wrap items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => handleToggleEvaluation(report._id, true)}
-                            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
-                              isEvalValid
-                                ? "bg-emerald-600 text-white shadow-sm"
-                                : "text-slate-600 hover:bg-slate-100"
+                            onClick={() => handleSetGroupEvaluations(groupReports, true)}
+                            className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition border ${
+                              allValid
+                                ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                                : "bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50"
                             }`}
+                            title="Chọn tất cả báo cáo trong nhóm này là vi phạm"
                           >
-                            <CheckSquare size={14} />
-                            Hợp lệ (Vi phạm)
+                            <CheckCheck size={14} />
+                            Duyệt nhóm: Tất cả Vi phạm
                           </button>
-
                           <button
                             type="button"
-                            onClick={() => handleToggleEvaluation(report._id, false)}
-                            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
-                              !isEvalValid
-                                ? "bg-rose-600 text-white shadow-sm"
-                                : "text-slate-600 hover:bg-slate-100"
+                            onClick={() => handleSetGroupEvaluations(groupReports, false)}
+                            className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition border ${
+                              allInvalid
+                                ? "bg-rose-600 text-white border-rose-600 shadow-sm"
+                                : "bg-white text-rose-700 border-rose-200 hover:bg-rose-50"
                             }`}
+                            title="Chọn tất cả báo cáo trong nhóm này là không hợp lệ"
                           >
                             <XSquare size={14} />
-                            Không hợp lệ
+                            Duyệt nhóm: Tất cả Không hợp lệ
                           </button>
                         </div>
+                      </div>
+
+                      {/* Group Reports Cards */}
+                      <div className="p-4 space-y-4 bg-slate-50/30">
+                        {groupReports.map((report, idx) => {
+                          const reporterName =
+                            report.userId?.profile?.fullName || report.userId?.email || "Người dùng ẩn danh";
+                          const reporterEmail = report.userId?.email || "";
+                          const reportDate = report.createdAt
+                            ? new Date(report.createdAt).toLocaleString("vi-VN", {
+                                year: "numeric",
+                                month: "2-digit",
+                                day: "2-digit",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
+                            : "—";
+
+                          const isEvalValid = evaluations[report._id] === true;
+
+                          return (
+                            <div
+                              key={report._id}
+                              className={`rounded-2xl bg-white p-5 shadow-[0_4px_16px_rgba(15,23,42,0.03)] border transition ${
+                                isEvalValid ? "border-amber-300 bg-amber-50/20" : "border-slate-200 bg-white"
+                              }`}
+                            >
+                              {/* Card Header */}
+                              <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-3">
+                                <div className="flex items-center gap-3">
+                                  <div className="h-9 w-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">
+                                    <User size={18} />
+                                  </div>
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <p className="text-sm font-bold text-slate-900">{reporterName}</p>
+                                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-[10px] font-bold text-blue-700 border border-blue-200">
+                                        <span className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-pulse"></span>
+                                        Mới gửi
+                                      </span>
+                                    </div>
+                                    <p className="text-xs text-slate-400">{reporterEmail}</p>
+                                  </div>
+                                </div>
+
+                                <div className="text-right">
+                                  <p className="text-[11px] font-bold text-slate-500">
+                                    Báo cáo #{idx + 1}
+                                  </p>
+                                  <p className="mt-0.5 text-[11px] text-slate-400 flex items-center justify-end gap-1">
+                                    <Clock size={12} />
+                                    {reportDate}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Card Content */}
+                              <div className="py-3 space-y-2">
+                                <p className="text-sm text-slate-700 leading-relaxed">
+                                  {report.description || "Người dùng không ghi thêm mô tả chi tiết."}
+                                </p>
+
+                                {report.images && report.images.length > 0 && (
+                                  <div className="pt-2">
+                                    <p className="text-xs font-semibold text-slate-400 mb-2 flex items-center gap-1">
+                                      <ImageIcon size={14} /> Hình ảnh đính kèm ({report.images.length})
+                                    </p>
+                                    <div className="flex flex-wrap gap-2">
+                                      {report.images.map((imgUrl, imgIdx) => (
+                                        <button
+                                          key={imgIdx}
+                                          type="button"
+                                          onClick={() => setPreviewImage(imgUrl)}
+                                          className="group relative overflow-hidden rounded-xl border border-slate-200 hover:border-blue-500 transition"
+                                        >
+                                          <img
+                                            src={imgUrl}
+                                            alt="Ảnh minh chứng báo cáo"
+                                            className="h-16 w-16 object-cover transition group-hover:scale-105"
+                                          />
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Evaluation Toggle */}
+                              <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between bg-slate-50/80 -mx-5 -mb-5 px-5 py-3 rounded-b-2xl">
+                                <span className="text-xs font-bold text-slate-600">
+                                  Đánh giá cá nhân báo cáo #{idx + 1}:
+                                </span>
+
+                                <div className="inline-flex rounded-xl bg-white p-1 shadow-sm border border-slate-200">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleEvaluation(report._id, true)}
+                                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                                      isEvalValid
+                                        ? "bg-emerald-600 text-white shadow-sm"
+                                        : "text-slate-600 hover:bg-slate-100"
+                                    }`}
+                                  >
+                                    <CheckSquare size={14} />
+                                    Hợp lệ (Vi phạm)
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleEvaluation(report._id, false)}
+                                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                                      !isEvalValid
+                                        ? "bg-rose-600 text-white shadow-sm"
+                                        : "text-slate-600 hover:bg-slate-100"
+                                    }`}
+                                  >
+                                    <XSquare size={14} />
+                                    Không hợp lệ
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   );
