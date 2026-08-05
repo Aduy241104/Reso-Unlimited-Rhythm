@@ -378,6 +378,7 @@ const getAlbumDetail = async (albumId) => {
             path: "trackList.trackId",
             select: [
                 "title",
+                "versionTitle",
                 "duration",
                 "avatar",
                 "coverImage",
@@ -402,6 +403,7 @@ const getAlbumDetail = async (albumId) => {
 
     const trackSelect = [
         "title",
+        "versionTitle",
         "duration",
         "avatar",
         "coverImage",

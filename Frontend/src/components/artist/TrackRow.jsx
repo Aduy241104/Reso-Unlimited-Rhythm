@@ -1,6 +1,7 @@
 ﻿import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { routePaths } from "../../routes/routePaths";
+import { formatTrackTitle } from "../../utils/trackTitle";
 
 const TrackRow = ({
   index,
@@ -18,6 +19,7 @@ const TrackRow = ({
     () => track?._id || track?.id || trackId || "",
     [track?._id, track?.id, trackId]
   );
+  const displayTitle = formatTrackTitle(title, track?.versionTitle);
 
   const handleTrackClick = () => {
     if (!resolvedTrackId) {
@@ -42,7 +44,7 @@ const TrackRow = ({
           { image ? (
             <img
               src={ image }
-              alt={ title }
+              alt={ displayTitle }
               className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.08]"
             />
           ) : (
@@ -57,7 +59,7 @@ const TrackRow = ({
             disabled={ !resolvedTrackId }
             className="truncate text-left text-sm font-semibold text-white transition-colors duration-200 hover:text-[#1DB954] disabled:cursor-default disabled:hover:text-white sm:text-[15px]"
           >
-            { title }
+            { displayTitle }
           </button>
         </div>
       </div>

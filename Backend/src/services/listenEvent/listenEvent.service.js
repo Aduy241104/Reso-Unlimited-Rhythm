@@ -285,7 +285,7 @@ export const recordCompletedListenAttempt = async ({
     }
 
     const track = await Track.findById(trackId)
-        .select("title artist_artistId album_albumId duration avatar coverImage activeStatus approvalStatus")
+        .select("title versionTitle artist_artistId album_albumId duration avatar coverImage activeStatus approvalStatus")
         .populate({ path: "artist_artistId", select: "name avatar" })
         .populate({ path: "album_albumId", select: "title coverImage" })
         .lean();

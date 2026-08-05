@@ -22,6 +22,7 @@ import { routePaths } from "../../routes/routePaths";
 import { getCurrentUserRecentListeningActivity } from "../../services/user.recentListening.service";
 import { getApiErrorMessage } from "../../utils/apiError";
 import { hasPremiumAccess } from "../../utils/premiumAccess";
+import { getTrackDisplayTitle } from "../../utils/trackTitle";
 
 const pageShellClassName =
   "min-h-screen bg-[#020202] px-4 py-8 text-white sm:px-6 lg:px-8";
@@ -539,7 +540,7 @@ const UserInsightSection = ({ activity }) => {
                     {track.image ? (
                       <img
                         src={track.image}
-                        alt={track.title}
+                        alt={getTrackDisplayTitle(track, track.title)}
                         className="h-14 w-14 shrink-0 rounded-2xl object-cover"
                       />
                     ) : (
@@ -550,7 +551,7 @@ const UserInsightSection = ({ activity }) => {
 
                     <div className="min-w-0">
                       <p className="truncate text-base font-semibold text-white">
-                        {track.title}
+                        {getTrackDisplayTitle(track, track.title)}
                       </p>
                       <p className="mt-1 text-sm text-white/48">
                         {track.genres.length > 0

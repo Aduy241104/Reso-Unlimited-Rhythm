@@ -12,6 +12,7 @@ import { connectRedis } from "./config/redisConfig.js";
 import { startDailyTopArtistCron } from "./jobs/dailyTopArtist.cron.js";
 import { startPersonalizedDailyMixCron } from "./jobs/personalizedDailyMix.cron.js";
 import { startMonthlyTopArtistCron } from "./jobs/monthlyTopArtist.cron.js";
+import { startMonthlyArtistStatCron } from "./jobs/monthlyArtistStat.cron.js";
 import { startDailyArtistOverviewStatCron } from "./jobs/dailyArtistOverviewStat.cron.js";
 import { startDailyTrackStatCron } from "./jobs/dailyTrackStat.cron.js";
 import { startDailyTopTrackCron } from "./jobs/dailyTopTrack.cron.js";
@@ -77,6 +78,7 @@ const startServer = async () => {
         startDailyArtistOverviewStatCron();
         startDailyTopArtistCron();
         startMonthlyTopArtistCron();
+        startMonthlyArtistStatCron();
         startDailyTrackStatCron();
         startDailyTopTrackCron();
         startMonthlyTrackStatCron();

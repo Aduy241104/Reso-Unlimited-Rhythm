@@ -18,6 +18,7 @@ import { routePaths } from "../../routes/routePaths";
 import { formatTrackDuration } from "../../utils/albumDetail";
 import { getLyricsThemeByIndex } from "../../utils/lyricsTheme";
 import defaultImage from "../../assets/images/default-image.svg";
+import { getTrackDisplayTitle } from "../../utils/trackTitle";
 
 const iconButtonClassName =
   "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-black/20 text-white backdrop-blur-md transition hover:scale-105 hover:bg-black/35 disabled:cursor-not-allowed disabled:opacity-35";
@@ -45,7 +46,7 @@ const LyricsFullscreenPage = () => {
   } = usePlayer();
 
   const lyricTheme = getLyricsThemeByIndex(currentTrack?.lyricsThemeIndex);
-  const trackTitle = currentTrack?.title || "Chưa chọn bài hát";
+  const trackTitle = getTrackDisplayTitle(currentTrack, "Chưa chọn bài hát");
   const trackArtistName = currentTrack?.artistName || "Nghệ sĩ chưa xác định";
   const progressMax = duration > 0 ? duration : 0;
   const progressValue = duration > 0 ? Math.min(currentTime, duration) : 0;

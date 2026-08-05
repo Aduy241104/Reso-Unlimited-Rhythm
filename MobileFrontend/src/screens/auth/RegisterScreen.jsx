@@ -12,16 +12,50 @@ import {
   Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { Controller, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import AppButton from '../../components/common/AppButton';
 import AppInput from '../../components/common/AppInput';
 import authService from '../../services/authService';
+import {
+  buildDateDisplayValue,
+  parseAnyDateValue,
+  toApiDateValue,
+} from '../../utils/artistRegistrationDate';
 import { registerOtpSchema, registerSchema } from '../../validations/authValidation';
 import appLogo from '../../../assets/reso-logo.png';
 import authBg from '../../../assets/auth-bg.png';
 
 const getPayloadData = (response) => response?.data || response || {};
+
+const GENDER_OPTIONS = [
+  { label: 'Không muốn tiết lộ', value: 'prefer_not_to_say' },
+  { label: 'Nam', value: 'male' },
+  { label: 'Nữ', value: 'female' },
+  { label: 'Khác', value: 'other' },
+];
+
+const MINIMUM_BIRTH_DATE = new Date(1900, 0, 1);
+
+const getDatePickerValue = (value) => {
+  const parsed = parseAnyDateValue(value);
+
+  if (parsed) {
+    return new Date(Number(parsed.year), Number(parsed.month) - 1, Number(parsed.day));
+  }
+
+  const defaultDate = new Date();
+  defaultDate.setFullYear(defaultDate.getFullYear() - 18);
+  defaultDate.setHours(0, 0, 0, 0);
+  return defaultDate;
+};
+
+const getDateDisplayValue = (date) => buildDateDisplayValue({
+  day: date.getDate(),
+  month: date.getMonth() + 1,
+  year: date.getFullYear(),
+});
 
 const getFieldErrorMessage = (error, fieldName) => {
   if (Array.isArray(error?.errors)) {
@@ -35,21 +69,36 @@ const getFieldErrorMessage = (error, fieldName) => {
   return '';
 };
 
+const getResendAfterSeconds = (error) => {
+  const value = Number(error?.errors?.resendAfterSeconds);
+
+  return Number.isFinite(value) && value > 0 ? value : 0;
+};
+
 export const RegisterScreen = () => {
   const navigation = useNavigation();
   const [step, setStep] = useState('details');
   const [pendingEmail, setPendingEmail] = useState('');
   const [pendingPassword, setPendingPassword] = useState('');
+  const [pendingProfile, setPendingProfile] = useState({
+    fullName: '',
+    gender: 'prefer_not_to_say',
+    dateOfBirth: '',
+  });
   const [apiError, setApiError] = useState('');
   const [remainingSeconds, setRemainingSeconds] = useState(0);
   const [isResendingOtp, setIsResendingOtp] = useState(false);
   const [expiresInMinutes, setExpiresInMinutes] = useState(5);
   const [otpValue, setOtpValue] = useState('');
+  const [isBirthDatePickerVisible, setIsBirthDatePickerVisible] = useState(false);
 
   const detailsForm = useForm({
     resolver: yupResolver(registerSchema),
     defaultValues: {
+      fullName: '',
       email: '',
+      gender: 'prefer_not_to_say',
+      dateOfBirth: '',
       password: '',
       confirmPassword: '',
     },
@@ -82,8 +131,43 @@ export const RegisterScreen = () => {
     setRemainingSeconds(seconds > 0 ? seconds : 0);
   };
 
-  const handleSendOtp = async ({ email, password }) => {
+  const handleBirthDateChange = (event, selectedDate) => {
+    if (Platform.OS === 'android') {
+      setIsBirthDatePickerVisible(false);
+    }
+
+    if (event?.type === 'dismissed' || !selectedDate) {
+      return;
+    }
+
+    detailsForm.setValue('dateOfBirth', getDateDisplayValue(selectedDate), {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
+  };
+
+  const handleOpenBirthDatePicker = () => {
+    const pickerValue = getDatePickerValue(detailsForm.getValues('dateOfBirth'));
+
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: pickerValue,
+        mode: 'date',
+        display: 'default',
+        minimumDate: MINIMUM_BIRTH_DATE,
+        maximumDate: new Date(),
+        onChange: handleBirthDateChange,
+      });
+      return;
+    }
+
+    setIsBirthDatePickerVisible(true);
+  };
+
+  const handleSendOtp = async ({ fullName, email, gender, dateOfBirth, password }) => {
     const normalizedEmail = email.trim().toLowerCase();
+    const normalizedDateOfBirth = toApiDateValue(dateOfBirth);
 
     try {
       setApiError('');
@@ -92,6 +176,11 @@ export const RegisterScreen = () => {
 
       setPendingEmail(payload.email || normalizedEmail);
       setPendingPassword(password);
+      setPendingProfile({
+        fullName: fullName.trim(),
+        gender,
+        dateOfBirth: normalizedDateOfBirth,
+      });
       setExpiresInMinutes(payload.expiresInMinutes || 5);
       startCooldown(payload.resendAfterSeconds || 0);
       setOtpValue('');
@@ -101,10 +190,11 @@ export const RegisterScreen = () => {
       const emailError = getFieldErrorMessage(error, 'email');
       if (emailError) {
         detailsForm.setError('email', { type: 'server', message: emailError });
+      } else {
+        setApiError(error?.message || 'Không gửi được OTP. Vui lòng thử lại.');
       }
 
-      setApiError(error?.message || 'Không gửi được OTP. Vui lòng thử lại.');
-      startCooldown(error?.errors?.resendAfterSeconds || 0);
+      startCooldown(getResendAfterSeconds(error));
     }
   };
 
@@ -120,10 +210,19 @@ export const RegisterScreen = () => {
         email: normalizedPendingEmail,
         otp: otp.trim(),
         password: pendingPassword,
+        fullName: pendingProfile.fullName,
+        gender: pendingProfile.gender,
+        dateOfBirth: pendingProfile.dateOfBirth,
       });
 
-      navigation.navigate('Login', {
-        notice: `Tài khoản ${normalizedPendingEmail} đã được tạo. Đăng nhập ngay nhé.`,
+      navigation.reset({
+        index: 0,
+        routes: [{
+          name: 'Login',
+          params: {
+            notice: `Tài khoản ${normalizedPendingEmail} đã được tạo thành công. Bạn có thể đăng nhập ngay.`,
+          },
+        }],
       });
     } catch (error) {
       const otpError = getFieldErrorMessage(error, 'otp');
@@ -131,7 +230,41 @@ export const RegisterScreen = () => {
         otpForm.setError('otp', { type: 'server', message: otpError });
       }
 
-      setApiError(error?.message || 'Không tạo được tài khoản. Vui lòng thử lại.');
+      const emailError = getFieldErrorMessage(error, 'email');
+      const passwordError = getFieldErrorMessage(error, 'password');
+      const fullNameError = getFieldErrorMessage(error, 'fullName');
+      const genderError = getFieldErrorMessage(error, 'gender');
+      const dateOfBirthError = getFieldErrorMessage(error, 'dateOfBirth');
+
+      if (emailError) {
+        detailsForm.setError('email', { type: 'server', message: emailError });
+      }
+
+      if (passwordError) {
+        detailsForm.setError('password', { type: 'server', message: passwordError });
+      }
+
+      if (fullNameError) {
+        detailsForm.setError('fullName', { type: 'server', message: fullNameError });
+      }
+
+      if (genderError) {
+        detailsForm.setError('gender', { type: 'server', message: genderError });
+      }
+
+      if (dateOfBirthError) {
+        detailsForm.setError('dateOfBirth', { type: 'server', message: dateOfBirthError });
+      }
+
+      if (emailError || passwordError || fullNameError || genderError || dateOfBirthError) {
+        setApiError(error?.message || 'Thông tin đăng ký không còn hợp lệ. Vui lòng kiểm tra lại.');
+        setStep('details');
+        return;
+      }
+
+      if (!otpError) {
+        setApiError(error?.message || 'Không tạo được tài khoản. Vui lòng thử lại.');
+      }
     }
   };
 
@@ -150,8 +283,17 @@ export const RegisterScreen = () => {
       setExpiresInMinutes(payload.expiresInMinutes || expiresInMinutes);
       startCooldown(payload.resendAfterSeconds || 0);
     } catch (error) {
-      setApiError(error?.message || 'Không gửi lại được OTP. Vui lòng thử lại.');
-      startCooldown(error?.errors?.resendAfterSeconds || 0);
+      const emailError = getFieldErrorMessage(error, 'email');
+
+      if (emailError) {
+        detailsForm.setError('email', { type: 'server', message: emailError });
+        setApiError(error?.message || 'Thông tin đăng ký không còn hợp lệ. Vui lòng kiểm tra lại.');
+        setStep('details');
+      } else {
+        setApiError(error?.message || 'Không gửi lại được OTP. Vui lòng thử lại.');
+      }
+
+      startCooldown(getResendAfterSeconds(error));
     } finally {
       setIsResendingOtp(false);
     }
@@ -160,13 +302,34 @@ export const RegisterScreen = () => {
   const renderDetailsForm = () => (
     <>
       <Text style={styles.title}>Tạo tài khoản</Text>
-      <Text style={styles.subtitle}>Chỉ cần email và mật khẩu, rồi mình gửi OTP xác nhận.</Text>
+      <Text style={styles.subtitle}>Điền thông tin của bạn, rồi mình gửi OTP xác nhận email.</Text>
 
       {apiError ? (
         <View style={styles.errorBox}>
           <Text style={styles.errorText}>{apiError}</Text>
         </View>
       ) : null}
+
+      <Controller
+        control={detailsForm.control}
+        name="fullName"
+        render={({ field: { onChange, onBlur, value } }) => (
+          <AppInput
+            label="Họ và tên"
+            placeholder="Nguyễn Văn A"
+            autoCapitalize="words"
+            autoComplete="name"
+            maxLength={100}
+            onBlur={onBlur}
+            onChangeText={onChange}
+            value={value}
+            error={detailsErrors.fullName?.message}
+            inputStyle={styles.input}
+            labelStyle={styles.label}
+            wrapperStyle={styles.inputWrapper}
+          />
+        )}
+      />
 
       <Controller
         control={detailsForm.control}
@@ -190,13 +353,87 @@ export const RegisterScreen = () => {
 
       <Controller
         control={detailsForm.control}
+        name="gender"
+        render={({ field: { onChange, value } }) => (
+          <View style={styles.choiceFieldContainer}>
+            <Text style={styles.label}>Giới tính</Text>
+            <View style={styles.genderOptions}>
+              {GENDER_OPTIONS.map((option) => {
+                const isSelected = value === option.value;
+
+                return (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[styles.genderOption, isSelected && styles.genderOptionSelected]}
+                    onPress={() => onChange(option.value)}
+                    activeOpacity={0.82}
+                  >
+                    <Text style={[styles.genderOptionText, isSelected && styles.genderOptionTextSelected]}>
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            {detailsErrors.gender?.message ? (
+              <Text style={styles.fieldErrorText}>{detailsErrors.gender.message}</Text>
+            ) : null}
+          </View>
+        )}
+      />
+
+      <Controller
+        control={detailsForm.control}
+        name="dateOfBirth"
+        render={({ field: { value } }) => (
+          <View style={styles.choiceFieldContainer}>
+            <Text style={styles.label}>Ngày sinh</Text>
+            <TouchableOpacity
+              style={[styles.dateFieldButton, detailsErrors.dateOfBirth && styles.inputErrorBorder]}
+              onPress={handleOpenBirthDatePicker}
+              activeOpacity={0.82}
+            >
+              <Text style={[styles.dateFieldText, !value && styles.dateFieldPlaceholder]}>
+                {value || 'Chọn ngày sinh'}
+              </Text>
+            </TouchableOpacity>
+            {Platform.OS === 'ios' && isBirthDatePickerVisible ? (
+              <View style={styles.iosDatePickerContainer}>
+                <DateTimePicker
+                  value={getDatePickerValue(value)}
+                  mode="date"
+                  display="default"
+                  minimumDate={MINIMUM_BIRTH_DATE}
+                  maximumDate={new Date()}
+                  onChange={handleBirthDateChange}
+                  themeVariant="dark"
+                />
+                <TouchableOpacity
+                  style={styles.iosDatePickerDoneButton}
+                  onPress={() => setIsBirthDatePickerVisible(false)}
+                  activeOpacity={0.82}
+                >
+                  <Text style={styles.iosDatePickerDoneText}>Xong</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
+            {detailsErrors.dateOfBirth?.message ? (
+              <Text style={styles.fieldErrorText}>{detailsErrors.dateOfBirth.message}</Text>
+            ) : null}
+          </View>
+        )}
+      />
+
+      <Controller
+        control={detailsForm.control}
         name="password"
         render={({ field: { onChange, onBlur, value } }) => (
           <AppInput
             label="Mật khẩu"
-            placeholder="Tối thiểu 6 ký tự"
+            placeholder="Mật khẩu"
             secureTextEntry
             autoCapitalize="none"
+            maxLength={33}
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
@@ -217,6 +454,7 @@ export const RegisterScreen = () => {
             placeholder="Nhập lại mật khẩu"
             secureTextEntry
             autoCapitalize="none"
+            maxLength={33}
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
@@ -325,7 +563,6 @@ export const RegisterScreen = () => {
           </View>
 
           <View style={styles.card}>
-            <View style={styles.cardHandle} />
             {step === 'details' ? renderDetailsForm() : renderOtpForm()}
 
             <View style={styles.footer}>
@@ -418,14 +655,6 @@ const styles = StyleSheet.create({
     shadowRadius: 24,
     elevation: 12,
   },
-  cardHandle: {
-    alignSelf: 'center',
-    width: 46,
-    height: 5,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255, 184, 107, 0.5)',
-    marginBottom: 18,
-  },
   title: {
     color: '#fffaf5',
     fontSize: 26,
@@ -452,6 +681,78 @@ const styles = StyleSheet.create({
   input: {
     color: '#fffaf5',
     fontSize: 15,
+  },
+  choiceFieldContainer: {
+    marginBottom: 16,
+    width: '100%',
+  },
+  genderOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 7,
+  },
+  genderOption: {
+    minHeight: 42,
+    justifyContent: 'center',
+    paddingHorizontal: 13,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 218, 185, 0.24)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  genderOptionSelected: {
+    borderColor: '#ff9f43',
+    backgroundColor: 'rgba(255, 138, 42, 0.2)',
+  },
+  genderOptionText: {
+    color: '#d7c8bd',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  genderOptionTextSelected: {
+    color: '#fffaf5',
+  },
+  dateFieldButton: {
+    height: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 7,
+    paddingHorizontal: 14,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(255, 218, 185, 0.24)',
+    borderRadius: 18,
+    borderWidth: 1,
+  },
+  dateFieldText: {
+    flex: 1,
+    color: '#fffaf5',
+    fontSize: 15,
+  },
+  dateFieldPlaceholder: {
+    color: '#9ca3af',
+  },
+  iosDatePickerContainer: {
+    marginTop: 8,
+    padding: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 218, 185, 0.24)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  iosDatePickerDoneButton: {
+    alignSelf: 'flex-end',
+    minHeight: 38,
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: '#ff8a2a',
+  },
+  iosDatePickerDoneText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '800',
   },
   otpInput: {
     width: '100%',

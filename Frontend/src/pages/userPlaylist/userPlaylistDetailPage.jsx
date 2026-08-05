@@ -32,6 +32,7 @@ import {
   formatPlaylistDuration,
 } from "../../utils/playlistDetail";
 import { isBlockedTrack } from "../../utils/trackStatus";
+import { getTrackDisplayTitle } from "../../utils/trackTitle";
 import { Clock3 } from "lucide-react";
 
 const shufflePlayButtonClassName = `
@@ -510,7 +511,7 @@ const UserPlaylistDetailPage = () => {
     updatePlaylistSummaryInList(targetPlaylistId, updatedPlaylist);
     setTrackActionFeedback({
       tone: "success",
-      message: `Đã thêm "${track?.title || track?.name || "bài hát"}" vào ${getPlaylistTitle(
+      message: `Đã thêm "${getTrackDisplayTitle(track, "bài hát")}" vào ${getPlaylistTitle(
         targetPlaylist
       )}.`,
       image: getTrackImage(track, playlistCoverImage),
@@ -525,8 +526,8 @@ const UserPlaylistDetailPage = () => {
     setTrackActionFeedback({
       tone: "success",
       message: isQueued
-        ? `Đã thêm "${track?.title || track?.name || "bài hát"}" vào danh sách chờ.`
-        : `Đã xóa "${track?.title || track?.name || "bài hát"}" khỏi danh sách chờ.`,
+        ? `Đã thêm "${getTrackDisplayTitle(track, "bài hát")}" vào danh sách chờ.`
+        : `Đã xóa "${getTrackDisplayTitle(track, "bài hát")}" khỏi danh sách chờ.`,
       image: getTrackImage(track, playlistCoverImage),
     });
   };
@@ -541,7 +542,7 @@ const UserPlaylistDetailPage = () => {
     setRemoveTrackErrorMessage("");
     setPendingTrackRemoval({
       id: trackId,
-      title: track?.title || track?.name || "bài hát này",
+      title: getTrackDisplayTitle(track, "bài hát này"),
     });
   };
 

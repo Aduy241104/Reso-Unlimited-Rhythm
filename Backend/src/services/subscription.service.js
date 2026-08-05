@@ -16,6 +16,8 @@ const VNPAY_SUCCESS_CODE = "00";
 const PREMIUM_TAX_RATE = 0.1;
 const DEFAULT_PAYMENT_CLIENT_PLATFORM = "web";
 const PAYMENT_CLIENT_PLATFORMS = ["web", "mobile"];
+const PLAN_UNAVAILABLE_PAYMENT_REASON =
+    "Payment order cancelled because the subscription plan is inactive or no longer available.";
 
 const roundVndAmount = (value) => Math.round(Number(value) || 0);
 
@@ -127,6 +129,16 @@ const buildFailureReason = (paymentResult) => {
     }
 
     return `VNPAY payment failed with response code ${paymentResult.responseCode}.`;
+};
+
+const isPlanActiveForSettlement = async (planSnapshot) => {
+    const planId = planSnapshot?.originalPlanId;
+
+    if (!planId || !mongoose.Types.ObjectId.isValid(planId)) {
+        return false;
+    }
+
+    return Boolean(await Plan.exists({ _id: planId, status: "active" }));
 };
 
 const normalizePaymentClientPlatform = (value) =>
@@ -311,11 +323,65 @@ const markTransactionSuccessful = async ({
         currentPremiumEndDate && currentPremiumEndDate > now ? currentPremiumEndDate : now;
     const endDate = addDays(baseDate, planSnapshot.durationDays);
 
+    const activatedSubscription = await Subscription.findOneAndUpdate(
+        {
+            _id: subscription._id,
+            status: "pending",
+        },
+        {
+            $set: {
+                status: "active",
+                startDate: now,
+                endDate,
+                planSnapshot: subscription.planSnapshot || planSnapshot,
+            },
+        },
+        { new: true }
+    );
+
+    if (!activatedSubscription) {
+        return {
+            transaction,
+            subscription,
+            user,
+            cancelled: true,
+        };
+    }
+
+    if (!(await isPlanActiveForSettlement(planSnapshot))) {
+        await Subscription.updateOne(
+            {
+                _id: activatedSubscription._id,
+                status: "active",
+            },
+            {
+                $set: {
+                    status: "cancelled",
+                    startDate: null,
+                    endDate: null,
+                },
+            }
+        );
+
+        subscription.status = "cancelled";
+        await markTransactionFailed({
+            transaction,
+            subscription,
+            reason: PLAN_UNAVAILABLE_PAYMENT_REASON,
+        });
+
+        return {
+            transaction,
+            subscription,
+            user,
+            cancelled: true,
+        };
+    }
+
     subscription.status = "active";
     subscription.startDate = now;
     subscription.endDate = endDate;
     subscription.planSnapshot = subscription.planSnapshot || planSnapshot;
-    await subscription.save();
 
     user.subscription.isPremium = true;
     user.subscription.currentPlanId =
@@ -600,6 +666,17 @@ const settleVnpayPayment = async (paymentResult) => {
         };
     }
 
+    if (
+        transaction.status !== "pending" ||
+        ["cancelled", "expired"].includes(subscription.status)
+    ) {
+        return {
+            code: "01",
+            message: "Payment order was cancelled",
+            clientPlatform,
+        };
+    }
+
     if (Number(transaction.totalAmount) !== Number(paymentResult.amount)) {
         return {
             code: "04",
@@ -609,12 +686,37 @@ const settleVnpayPayment = async (paymentResult) => {
     }
 
     if (paymentResult.responseCode === VNPAY_SUCCESS_CODE) {
+        if (
+            subscription.status === "pending" &&
+            !(await isPlanActiveForSettlement(planSnapshot))
+        ) {
+            await markTransactionFailed({
+                transaction,
+                subscription,
+                reason: PLAN_UNAVAILABLE_PAYMENT_REASON,
+            });
+
+            return {
+                code: "01",
+                message: "Subscription plan is inactive or unavailable",
+                clientPlatform,
+            };
+        }
+
         const successfulPayment = await markTransactionSuccessful({
             transaction,
             subscription,
             planSnapshot,
             paymentResult,
         });
+
+        if (successfulPayment.cancelled) {
+            return {
+                code: "01",
+                message: "Payment order was cancelled",
+                clientPlatform,
+            };
+        }
 
         await paymentConfirmationEmailService.sendPremiumPaymentConfirmationEmail({
             transaction: successfulPayment.transaction,

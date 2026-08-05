@@ -1,9 +1,11 @@
 export const formatPlaylistDuration = (durationInSeconds) => {
-  const totalSeconds = Number(durationInSeconds);
+  const rawTotalSeconds = Number(durationInSeconds);
 
-  if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) {
+  if (!Number.isFinite(rawTotalSeconds) || rawTotalSeconds <= 0) {
     return "";
   }
+
+  const totalSeconds = Math.floor(rawTotalSeconds);
 
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);

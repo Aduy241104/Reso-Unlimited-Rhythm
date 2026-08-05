@@ -4,6 +4,7 @@ import GenreTrackCard from "../../components/usergenre/GenreTrackCard";
 import LoadingState from "../../components/common/LoadingState";
 import { getUserGenreTracks } from "../../services/userGenreService";
 import { getApiErrorMessage } from "../../utils/apiError";
+import { getTrackDisplayTitle } from "../../utils/trackTitle";
 
 const PAGE_LIMIT = 20;
 
@@ -228,7 +229,10 @@ const GenreDetailPage = () => {
               {tracks.map((track, index) => (
                 <GenreTrackCard
                   key={track?._id || track?.id || `${genreId}-track-${index}`}
-                  track={track}
+                  track={{
+                    ...track,
+                    title: getTrackDisplayTitle(track),
+                  }}
                 />
               ))}
             </section>

@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { normalizeAuthPayload, setSessionExpiredHandler } from '../api/authSession';
 import { tokenStorage } from '../storage/tokenStorage';
 import { userStorage } from '../storage/userStorage';
@@ -56,10 +56,12 @@ export const AuthProvider = ({ children }) => {
     isLoading: true,
     user: null,
   });
+  const authUserRef = useRef(null);
 
   const clearSession = useCallback(async () => {
     await tokenStorage.clearTokens().catch(() => {});
     await userStorage.clearUserProfile().catch(() => {});
+    authUserRef.current = null;
     setAuthState(emptyAuthState);
   }, []);
 
@@ -86,6 +88,7 @@ export const AuthProvider = ({ children }) => {
 
     if (mergedUser) {
       await userStorage.setUserProfile(mergedUser);
+      authUserRef.current = mergedUser;
       setAuthState({
         isAuthenticated: true,
         isLoading: false,
@@ -94,6 +97,7 @@ export const AuthProvider = ({ children }) => {
       return mergedUser;
     }
 
+    authUserRef.current = fallbackUser;
     setAuthState({
       isAuthenticated: true,
       isLoading: false,
@@ -123,6 +127,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       if (storedUser) {
+        authUserRef.current = storedUser;
         setAuthState({
           isAuthenticated: true,
           isLoading: false,
@@ -179,6 +184,7 @@ export const AuthProvider = ({ children }) => {
           user: sessionUser,
         });
 
+        authUserRef.current = sessionUser;
         setAuthState({
           isAuthenticated: true,
           isLoading: false,
@@ -195,6 +201,7 @@ export const AuthProvider = ({ children }) => {
       } catch (error) {
         await tokenStorage.clearTokens().catch(() => {});
         await userStorage.clearUserProfile().catch(() => {});
+        authUserRef.current = null;
         setAuthState(emptyAuthState);
         console.log('Auth error:', error?.message || error);
         throw error;
@@ -225,6 +232,7 @@ export const AuthProvider = ({ children }) => {
           user: authPayload.user,
         });
 
+        authUserRef.current = sessionUser;
         setAuthState({
           isAuthenticated: true,
           isLoading: false,
@@ -241,6 +249,7 @@ export const AuthProvider = ({ children }) => {
       } catch (error) {
         await tokenStorage.clearTokens().catch(() => {});
         await userStorage.clearUserProfile().catch(() => {});
+        authUserRef.current = null;
         setAuthState(emptyAuthState);
         console.log('Google auth error:', error?.message || error);
         throw error;
@@ -261,13 +270,14 @@ export const AuthProvider = ({ children }) => {
 
   const updateUser = useCallback(
     async (nextUser) => {
-      const mergedUser = mergeAuthUsers(nextUser, authState.user);
+      const mergedUser = mergeAuthUsers(nextUser, authUserRef.current);
 
       if (!mergedUser) {
         return null;
       }
 
       await userStorage.setUserProfile(mergedUser).catch(() => {});
+      authUserRef.current = mergedUser;
       setAuthState((prev) => ({
         ...prev,
         isAuthenticated: true,
@@ -277,7 +287,7 @@ export const AuthProvider = ({ children }) => {
 
       return mergedUser;
     },
-    [authState.user]
+    []
   );
 
   const contextValue = useMemo(

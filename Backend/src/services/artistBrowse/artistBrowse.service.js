@@ -10,7 +10,7 @@ import ArtistRanking, {
 } from "../../models/ArtistRanking.js";
 import Interaction from "../../models/Interaction.js";
 import ReleaseSchedule from "../../models/ReleaseSchedule.js";
-import ArtistStat from "../../models/ArtistStat.js";
+import ArtistMonthlyStat from "../../models/ArtistMonthlyStat.js";
 import Track from "../../models/Track.js";
 import redisClient from "../../config/redisConfig.js";
 import { AppError } from "../../utils/AppError.js";
@@ -200,10 +200,12 @@ const buildArtistFollowFilter = (userId, artistId) => ({
 const getArtistProfile = async (artistId) => {
     const artist = await validateAndGetArtist(artistId);
 
-    const [artistStat, albums, tracks] = await Promise.all([
-        ArtistStat.findOne({
+    const [artistMonthlyStat, albums, tracks] = await Promise.all([
+        ArtistMonthlyStat.findOne({
             artistId,
-        }).lean(),
+        })
+            .sort({ year: -1, month: -1 })
+            .lean(),
         Album.find({
             artistId,
             status: "active",
@@ -229,7 +231,7 @@ const getArtistProfile = async (artistId) => {
 
     return formatArtistProfile({
         artist,
-        artistStat,
+        artistMonthlyStat,
         albums,
         tracks,
     });

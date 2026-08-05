@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import PlayButton from "../../components/common/PlayButton";
 import LoadingState from "../../components/common/LoadingState";
 import TrackCard from "../../components/TrackCard";
+import TrackTwoLevelMenu from "../../components/trackMenu/TrackTwoLevelMenu";
 import TrackListSection from "../../components/trackList/TrackListSection";
 import { usePlayer } from "../../hooks/usePlayer";
 import { routePaths } from "../../routes/routePaths";
@@ -27,10 +28,11 @@ const monthlyChartHeaderColumns = [
   { label: "Tiêu đề" },
   { label: "Lượt phát", className: "text-right" },
   { label: "Thời lượng", className: "text-right" },
+  { label: "" },
 ];
 
 const monthlyChartHeaderGridClassName = `
-  mb-2 hidden grid-cols-[2.5rem_minmax(0,1fr)_8rem_3rem] items-center gap-3
+  mb-2 hidden grid-cols-[2.5rem_minmax(0,1fr)_8rem_3rem_2rem] items-center gap-3
   border-b border-black/6 px-3 pb-3 text-xs font-medium uppercase tracking-[0.24em]
   text-[#71717a] dark:border-white/10 dark:text-[#a1a1aa] sm:grid
 `;
@@ -270,6 +272,7 @@ const MonthlyTopTracksPage = () => {
               <TrackCard
                 key={ item?.track?.id || `${resolvedMonth}-${index}` }
                 index={ item?.rank || index + 1 }
+                trackId={ item?.track?.id || "" }
                 track={ item?.track }
                 indexClassName="!text-sm sm:!text-base"
                 image={
@@ -286,7 +289,7 @@ const MonthlyTopTracksPage = () => {
                 size="compact"
                 showLikeButton={ false }
                 mobileLayoutClassName="grid-cols-[2rem_minmax(0,1fr)_auto]"
-                desktopLayoutClassName="sm:grid-cols-[2.5rem_minmax(0,1fr)_8rem_3rem]"
+                desktopLayoutClassName="sm:grid-cols-[2.5rem_minmax(0,1fr)_8rem_3rem_2rem]"
                 mobileMetaItems={ [
                   {
                     content: renderMonthlyPlayCount(item?.playCount, true),
@@ -301,6 +304,15 @@ const MonthlyTopTracksPage = () => {
                     content: formatTrackDuration(item?.track?.duration),
                     className:
                       "hidden items-center justify-end text-xs text-[#52525b] dark:text-[#a1a1aa] sm:flex",
+                  },
+                  {
+                    content: item?.track?.id ? (
+                      <TrackTwoLevelMenu
+                        trackId={ item.track.id }
+                        track={ item.track }
+                      />
+                    ) : null,
+                    className: "hidden items-center justify-end sm:flex",
                   },
                 ] }
                 isPlaybackActive={ currentTrack?.id === item?.track?.id }

@@ -145,6 +145,7 @@ const getFavoriteTracks = async (userId, options = {}) => {
                             targetId: {
                                 _id: "$track._id",
                                 title: "$track.title",
+                                versionTitle: "$track.versionTitle",
                                 avatar: "$track.avatar",
                                 coverImage: "$track.coverImage",
                                 duration: "$track.duration",
@@ -190,6 +191,7 @@ const getFavoriteTracks = async (userId, options = {}) => {
             return {
                 id: track._id.toString(),
                 title: track.title,
+                versionTitle: track.versionTitle || "",
                 avatar,
                 duration: track.duration,
                 favoritedAt: interaction.createdAt,

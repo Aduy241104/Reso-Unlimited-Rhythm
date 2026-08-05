@@ -6,6 +6,8 @@ import UserFavoriteTrackRow from "../../components/userFavorite/UserFavoriteTrac
 import { usePlayer } from "../../hooks/usePlayer";
 import { getFavoriteTracks } from "../../services/userFavoriteService";
 import { getApiErrorMessage } from "../../utils/apiError";
+import { formatPlaylistDuration } from "../../utils/playlistDetail";
+import { getTrackDisplayTitle } from "../../utils/trackTitle";
 
 const PAGE_LIMIT = 20;
 
@@ -31,7 +33,7 @@ const getFavoriteItemKey = (item, index = 0) => {
   );
 };
 
-const getTrackTitle = (track) => track?.title || track?.name || "";
+const getTrackTitle = (track) => getTrackDisplayTitle(track);
 
 const getTrackArtistName = (track, item) => {
   if (typeof track?.artist?.name === "string" && track.artist.name.trim()) {
@@ -177,26 +179,6 @@ const getFavoriteDurationSeconds = (items) =>
     return duration !== null ? sum + duration : sum;
   }, 0);
 
-const formatDurationSummary = (totalSeconds) => {
-  if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) {
-    return "";
-  }
-
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  if (hours > 0) {
-    return `${hours} giờ ${minutes} phút`;
-  }
-
-  if (minutes > 0) {
-    return `${minutes} phút ${seconds} giây`;
-  }
-
-  return `${seconds} giây`;
-};
-
 const UserFavoriteTracksPage = () => {
   const [favoriteItems, setFavoriteItems] = useState([]);
   const [pagination, setPagination] = useState({
@@ -270,7 +252,7 @@ const UserFavoriteTracksPage = () => {
 
   const totalItems = pagination?.totalItems || favoriteItems.length;
   const totalDurationSeconds = getFavoriteDurationSeconds(favoriteItems);
-  const totalDurationLabel = formatDurationSummary(totalDurationSeconds);
+  const totalDurationLabel = formatPlaylistDuration(totalDurationSeconds);
   const shouldRenderTrackList = isLoading || favoriteItems.length > 0 || !errorMessage;
   const collectionMeta = {
     id: "favorite-tracks",
