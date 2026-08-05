@@ -445,18 +445,23 @@ const getMonthlyTopTracks = async ({ month, limit }) => {
             const cachedData = await redisClient.get(cacheKey);
             if (cachedData) {
                 const parsedTopTracks = JSON.parse(cachedData);
-                const topTracks = await normalizeTopTracks(parsedTopTracks, limit);
+                const hasCachedTopTracks =
+                    Array.isArray(parsedTopTracks) && parsedTopTracks.length > 0;
 
-                if (topTracks.length === limit || parsedTopTracks.length < limit) {
-                    return {
-                        topTracks,
-                        meta: {
-                            month: monthKey,
-                            limit,
-                            cacheKey,
-                            cacheHit: true,
-                        },
-                    };
+                if (hasCachedTopTracks) {
+                    const topTracks = await normalizeTopTracks(parsedTopTracks, limit);
+
+                    if (topTracks.length === limit || parsedTopTracks.length < limit) {
+                        return {
+                            topTracks,
+                            meta: {
+                                month: monthKey,
+                                limit,
+                                cacheKey,
+                                cacheHit: true,
+                            },
+                        };
+                    }
                 }
             }
         } catch (error) {
