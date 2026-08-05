@@ -1,4 +1,4 @@
-import axiosClient from "../axios/axiosClient";
+﻿import axiosClient from "../axios/axiosClient";
 import { getFollowedArtists } from "./libaryService";
 import {
   formatCompactNumber,
@@ -97,6 +97,21 @@ const getArtistIdentityCandidates = (artist) =>
     artist?._id,
     artist?.slug,
     artist?.artistSlug,
+    artist?.artist?.artistId,
+    artist?.artist?.id,
+    artist?.artist?._id,
+    artist?.artist?.slug,
+    artist?.artist?.artistSlug,
+    artist?.profile?.artistId,
+    artist?.profile?.id,
+    artist?.profile?._id,
+    artist?.profile?.slug,
+    artist?.profile?.artistSlug,
+    artist?.user?.artistId,
+    artist?.user?.id,
+    artist?.user?._id,
+    artist?.user?.slug,
+    artist?.user?.artistSlug,
   ]
     .filter((value) => value !== null && value !== undefined && String(value).trim())
     .map((value) => String(value).trim().toLowerCase());
@@ -461,36 +476,6 @@ const getArtistFollowStateFromLibraryService = async ({ artistId } = {}) => {
 };
 
 export const getArtistFollowStatusService = async ({ artistId } = {}) => {
-  const encodedArtistId = encodeURIComponent(artistId);
-  const endpoints = [
-    `/api/browse/artists/${encodedArtistId}/follow`,
-    `/api/browse/artists/${encodedArtistId}/follow/status`,
-    `/api/browse/artists/${encodedArtistId}/follow-state`,
-  ];
-
-  for (const endpoint of endpoints) {
-    try {
-      const response = await axiosClient.get(endpoint);
-      const followState = normalizeFollowState(extractFollowPayload(response), {
-        artistId,
-      });
-
-      if (typeof followState.isFollowing === "boolean") {
-        return followState;
-      }
-    } catch (error) {
-      const status = error?.response?.status;
-
-      if (status === 401) {
-        throw error;
-      }
-
-      if (status !== 404 && status !== 405) {
-        throw error;
-      }
-    }
-  }
-
   return getArtistFollowStateFromLibraryService({ artistId });
 };
 
@@ -617,4 +602,5 @@ export const getMonthlyTopArtistsService = async ({ month, limit = 9 }) => {
     meta: response.data.meta,
   };
 };
+
 
