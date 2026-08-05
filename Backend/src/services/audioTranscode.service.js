@@ -1,15 +1,10 @@
-import ffmpeg from "fluent-ffmpeg";
 import ffmpegStatic from "ffmpeg-static";
 import { spawn } from "child_process";
 import { promises as fs } from "fs";
 import os from "os";
 import path from "path";
-import { Readable, PassThrough } from "stream";
 import { AppError } from "../utils/AppError.js";
 import { StatusCodes } from "http-status-codes";
-
-// Set ffmpeg path to use static binary
-ffmpeg.setFfmpegPath(ffmpegStatic);
 
 // Quality presets for different bitrates
 const QUALITY_PRESETS = [
@@ -319,6 +314,7 @@ export {
     buildTranscodePlan,
     normalizeSourceFormat,
     parseAudioProbeOutput,
+    transcodeAudioToSpecificBitrate,
     validateSourceAudioProfile,
 };
 
@@ -397,40 +393,84 @@ const transcodeAudioToMultipleQualities = async (
 const transcodeAudioToSpecificBitrate = async (fileBuffer, bitrate) => {
     try {
         return new Promise((resolve, reject) => {
-            const inputStream = Readable.from([fileBuffer]);
-            const outputStream = new PassThrough();
-            let outputBuffer = Buffer.alloc(0);
+            const outputChunks = [];
+            let stderr = "";
+            const ffmpegProcess = spawn(
+                ffmpegStatic,
+                [
+                    "-hide_banner",
+                    "-loglevel",
+                    "error",
+                    "-i",
+                    "pipe:0",
+                    "-map",
+                    "0:a:0",
+                    "-vn",
+                    "-map_metadata",
+                    "-1",
+                    "-codec:a",
+                    "libmp3lame",
+                    "-b:a",
+                    String(bitrate),
+                    "-ac",
+                    "2",
+                    "-ar",
+                    "44100",
+                    "-id3v2_version",
+                    "0",
+                    "-write_xing",
+                    "0",
+                    "-f",
+                    "mp3",
+                    "pipe:1",
+                ],
+                { windowsHide: true }
+            );
 
-            // Collect output data
-            outputStream.on("data", (chunk) => {
-                outputBuffer = Buffer.concat([outputBuffer, chunk]);
+            ffmpegProcess.stdout.on("data", (chunk) => {
+                outputChunks.push(chunk);
             });
 
-            outputStream.on("end", () => {
-                resolve(outputBuffer);
+            ffmpegProcess.stderr.on("data", (chunk) => {
+                stderr += chunk.toString();
             });
 
-            outputStream.on("error", (error) => {
-                reject(error);
+            ffmpegProcess.on("error", (error) => {
+                reject(
+                    new AppError(
+                        `FFmpeg error: ${error.message}`,
+                        StatusCodes.INTERNAL_SERVER_ERROR
+                    )
+                );
             });
 
-            // Transcode
-            ffmpeg(inputStream)
-                .audioBitrate(bitrate)
-                .audioCodec("libmp3lame")
-                .audioChannels(2)
-                .audioFrequency(44100)
-                .format("mp3")
-                .on("error", (error) => {
-                    console.error("FFmpeg error:", error);
+            ffmpegProcess.on("close", (code) => {
+                if (code !== 0) {
                     reject(
                         new AppError(
-                            `FFmpeg error: ${error.message}`,
+                            `FFmpeg exited with code ${code}: ${stderr.trim() || "Unknown transcoding error"}`,
                             StatusCodes.INTERNAL_SERVER_ERROR
                         )
                     );
-                })
-                .pipe(outputStream, { end: true });
+                    return;
+                }
+
+                const outputBuffer = Buffer.concat(outputChunks);
+
+                if (!outputBuffer.length) {
+                    reject(
+                        new AppError(
+                            "FFmpeg produced an empty audio file.",
+                            StatusCodes.INTERNAL_SERVER_ERROR
+                        )
+                    );
+                    return;
+                }
+
+                resolve(outputBuffer);
+            });
+
+            ffmpegProcess.stdin.end(fileBuffer);
         });
     } catch (error) {
         console.error("Audio transcoding error:", error);

@@ -1,6 +1,9 @@
+import { spawnSync } from "child_process";
+import ffmpegStatic from "ffmpeg-static";
 import {
     buildTranscodePlan,
     parseAudioProbeOutput,
+    transcodeAudioToSpecificBitrate,
     validateSourceAudioProfile,
 } from "../../src/services/audioTranscode.service.js";
 
@@ -97,5 +100,40 @@ Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'demo.mp4':
             "low",
             "lowest",
         ]);
+    });
+
+    test("creates a clean MP3 stream without a broken ID3 header", async () => {
+        const sourceResult = spawnSync(
+            ffmpegStatic,
+            [
+                "-v", "error",
+                "-f", "lavfi",
+                "-i", "sine=frequency=1000:duration=0.25",
+                "-ar", "44100",
+                "-ac", "2",
+                "-f", "wav",
+                "pipe:1",
+            ],
+            { encoding: null }
+        );
+
+        expect(sourceResult.status).toBe(0);
+
+        const transcodedBuffer = await transcodeAudioToSpecificBitrate(
+            sourceResult.stdout,
+            "128k"
+        );
+        const decodeResult = spawnSync(
+            ffmpegStatic,
+            ["-v", "error", "-i", "pipe:0", "-f", "null", "-"],
+            {
+                encoding: "utf8",
+                input: transcodedBuffer,
+            }
+        );
+
+        expect(transcodedBuffer.subarray(0, 3).toString("ascii")).not.toBe("ID3");
+        expect(decodeResult.status).toBe(0);
+        expect(decodeResult.stderr).toBe("");
     });
 });
