@@ -26,6 +26,7 @@ import {
 } from "../../utils/albumDetail";
 import { getApiErrorMessage } from "../../utils/apiError";
 import { isResourceNotFoundError } from "../../utils/resourceError";
+import { getTrackDisplayTitle } from "../../utils/trackTitle";
 
 const formatListenCount = (value) => {
   const listenCount = Number(value);
@@ -255,7 +256,8 @@ const TrackDetailPage = () => {
       collection: {
         id: track?.album?.id || track?.id,
         type: track?.album?.id ? "album" : "track",
-        title: track?.album?.title || track?.title || "B\u00e0i h\u00e1t",
+        title:
+          track?.album?.title || getTrackDisplayTitle(track, "B\u00e0i h\u00e1t"),
         image: trackImage,
         artistName,
         listenSource: "track_detail",
@@ -349,7 +351,7 @@ const TrackDetailPage = () => {
         <TrackDetailHero
           image={ trackImage }
           coverImage={ trackCoverImage }
-          title={ track?.title || "B\u00e0i h\u00e1t ch\u01b0a c\u00f3 t\u00ean" }
+          title={ getTrackDisplayTitle(track, "B\u00e0i h\u00e1t ch\u01b0a c\u00f3 t\u00ean") }
           artistName={ artistName }
           artistAvatar={ artistAvatar }
           artistHref={ artistHref }
@@ -404,7 +406,7 @@ const TrackDetailPage = () => {
         <TrackDetailLyrics lyrics={ lyrics } />
 
         <TrackDetailLikeSection
-          title={ track?.title || "B\u00e0i h\u00e1t ch\u01b0a c\u00f3 t\u00ean" }
+          title={ getTrackDisplayTitle(track, "B\u00e0i h\u00e1t ch\u01b0a c\u00f3 t\u00ean") }
           artistName={ artistName }
           image={ trackImage }
           isLiked={ isLiked }

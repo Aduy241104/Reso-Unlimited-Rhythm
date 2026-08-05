@@ -26,6 +26,12 @@ const formatLocalMonth = (date) => {
   return `${year}-${month}`;
 };
 
+const getPreviousLocalMonth = (date) => {
+  const previousMonth = new Date(date.getFullYear(), date.getMonth() - 1, 1);
+
+  return formatLocalMonth(previousMonth);
+};
+
 const getErrorMessage = (error, fallback) => error?.message || fallback;
 const getItems = (result) => (result.status === 'fulfilled' ? result.value.items : []);
 
@@ -34,6 +40,7 @@ export const homeService = {
     const now = new Date();
     const date = options.date || getPreviousLocalDate(now);
     const month = options.month || formatLocalMonth(now);
+    const monthlyTrackMonth = options.monthlyTrackMonth || options.month || getPreviousLocalMonth(now);
     const includeRecommendations = Boolean(options.includeRecommendations);
     const topTrackLimit = options.topTrackLimit || 5;
     const topArtistLimit = options.topArtistLimit || 5;
@@ -50,7 +57,7 @@ export const homeService = {
       recommendedPlaylists,
     ] = await Promise.allSettled([
       trackService.getDailyTopTracks({ date, limit: topTrackLimit }),
-      trackService.getMonthlyTopTracks({ month, limit: topTrackLimit }),
+      trackService.getMonthlyTopTracks({ month: monthlyTrackMonth, limit: topTrackLimit }),
       artistService.getDailyTopArtists({ date, limit: topArtistLimit }),
       artistService.getMonthlyTopArtists({ month, limit: topArtistLimit }),
       playlistService.getSystemPlaylists({ page: 1, limit: playlistLimit }),
@@ -70,7 +77,7 @@ export const homeService = {
       recentAlbums: getItems(recentAlbums),
       recommendedPlaylists: getItems(recommendedPlaylists),
       sectionErrors,
-      query: { date, month },
+      query: { date, month, monthlyTrackMonth },
     };
 
     if (dailyTopTracks.status === 'rejected') {

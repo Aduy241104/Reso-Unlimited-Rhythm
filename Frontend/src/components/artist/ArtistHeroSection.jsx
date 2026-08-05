@@ -9,6 +9,7 @@ const ArtistHeroSection = ({
   followErrorMessage = "",
   onToggleFollow,
   onReport,
+  onShowInformation,
 }) => {
   const followButtonLabel = isFollowLoading
     ? "\u0110ang x\u1eed l\u00fd..."
@@ -90,8 +91,10 @@ const ArtistHeroSection = ({
 
                 <button
                   type="button"
+                  onClick={ onShowInformation }
                   className="inline-flex h-12 w-12 items-center justify-center rounded-full text-white/72 transition duration-300 hover:bg-white/[0.08] hover:text-white"
-                  aria-label="Tùy chọn khác"
+                  aria-label="Xem thông tin chi tiết nghệ sĩ"
+                  title="Thông tin nghệ sĩ"
                 >
                   <MoreHorizontal className="h-5 w-5" />
                 </button>

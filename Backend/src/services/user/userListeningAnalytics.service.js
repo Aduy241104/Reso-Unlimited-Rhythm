@@ -147,6 +147,7 @@ const normalizeTopTracks = (tracks = []) =>
     tracks.map((track) => ({
         id: normalizeId(track?.trackId),
         title: sanitizeText(track?.title, "Untitled track"),
+        versionTitle: sanitizeText(track?.versionTitle),
         image: sanitizeText(track?.image),
         listenCount: Number(track?.listenCount || 0),
         listenedMinutes: Number(track?.listenedMinutes || 0),
@@ -175,6 +176,7 @@ export const storeRecentListeningActivity = async ({
         artistId: normalizeId(artistId || artist?._id || artist?.id) || null,
         albumId: normalizeId(albumId || album?._id || album?.id) || null,
         trackTitle: sanitizeText(track?.title, "Untitled track"),
+        trackVersionTitle: sanitizeText(track?.versionTitle),
         trackImage: resolveTrackImage(track),
         artistName: sanitizeText(artist?.name, "Unknown artist"),
         artistAvatar: sanitizeText(artist?.avatar),
@@ -230,7 +232,7 @@ export const buildRecentListeningInsightsPayloadForUser = async (userId) => {
     const listenedTracks =
         groupedTrackIds.length > 0
             ? await Track.find({ _id: { $in: groupedTrackIds } })
-                .select("_id title avatar coverImage genreIds")
+                .select("_id title versionTitle avatar coverImage genreIds")
                 .lean()
             : [];
 
@@ -279,6 +281,7 @@ export const buildRecentListeningInsightsPayloadForUser = async (userId) => {
                     matchedTrack?.title || item?.trackTitle,
                     "Untitled track"
                 ),
+                versionTitle: sanitizeText(matchedTrack?.versionTitle),
                 image: resolveTopTrackImage(item, matchedTrack),
                 listenCount: Number(item?.listenCount || 0),
                 listenedMinutes: resolveMinutes(item?.totalListenedDuration || 0),
@@ -454,6 +457,18 @@ export const getRecentListeningActivityByUserId = async (userId) => {
         buildRecentListeningInsightsPayloadForUser(userId),
     ]);
 
+    const recentTrackIds = recentItems
+        .map((item) => item?.trackId)
+        .filter(Boolean);
+    const recentTrackVersions = recentTrackIds.length > 0
+        ? await Track.find({ _id: { $in: recentTrackIds } })
+            .select("_id versionTitle")
+            .lean()
+        : [];
+    const recentTrackVersionById = new Map(
+        recentTrackVersions.map((track) => [String(track._id), track.versionTitle || ""])
+    );
+
     const statByDate = new Map(dailyStats.map((stat) => [stat._id, stat]));
 
     const chart = Array.from({ length: RECENT_ACTIVITY_CHART_DAYS }, (_, index) => {
@@ -537,6 +552,10 @@ export const getRecentListeningActivityByUserId = async (userId) => {
             track: {
                 id: normalizeId(item?.trackId),
                 title: sanitizeText(item?.trackTitle, "Untitled track"),
+                versionTitle: sanitizeText(
+                    recentTrackVersionById.get(normalizeId(item?.trackId)) ||
+                    item?.trackVersionTitle
+                ),
                 image: sanitizeText(item?.trackImage),
                 duration: Number(item?.trackDuration || 0),
             },

@@ -23,6 +23,110 @@ const VALID_STATUSES = new Set(["scheduled", "released", "cancelled"]);
 const VALID_TYPES = new Set(["track", "album"]);
 const MIN_TRACKS_TO_PUBLISH_ALBUM = 2;
 
+const getAlbumTrackIds = (album) => {
+    const trackIds = new Map();
+
+    for (const item of album?.trackList || []) {
+        const trackId = item?.trackId?._id || item?.trackId;
+
+        if (trackId) {
+            trackIds.set(trackId.toString(), trackId);
+        }
+    }
+
+    return Array.from(trackIds.values());
+};
+
+const syncAlbumTracksForSchedule = async ({ album, scheduledAt }) => {
+    const trackIds = getAlbumTrackIds(album);
+
+    if (trackIds.length === 0) {
+        return;
+    }
+
+    await Track.updateMany(
+        {
+            _id: { $in: trackIds },
+            releaseStatus: { $ne: TRACK_RELEASE_STATUS.RELEASED },
+            activeStatus: { $ne: "blocked" },
+        },
+        {
+            $set: {
+                releaseDate: scheduledAt,
+                releaseStatus: TRACK_RELEASE_STATUS.SCHEDULED,
+                releasedAt: null,
+                activeStatus: "hidden",
+            },
+        }
+    );
+};
+
+const buildAlbumTrackReleaseOperation = ({ album, releasedAt }) => {
+    const trackIds = getAlbumTrackIds(album);
+
+    if (trackIds.length === 0) {
+        return null;
+    }
+
+    return {
+        updateMany: {
+            filter: {
+                _id: { $in: trackIds },
+                approvalStatus: "approved",
+                activeStatus: { $ne: "blocked" },
+                releaseStatus: { $ne: TRACK_RELEASE_STATUS.RELEASED },
+            },
+            update: {
+                $set: {
+                    activeStatus: "active",
+                    releaseDate: releasedAt,
+                    releaseStatus: TRACK_RELEASE_STATUS.RELEASED,
+                    releasedAt,
+                    hiddenReason: "",
+                    hiddenAt: null,
+                },
+            },
+        },
+    };
+};
+
+const syncAlbumTracksAfterCancellation = async ({
+    album,
+    cancelledScheduledAt,
+    nextScheduledAt = null,
+}) => {
+    const trackIds = getAlbumTrackIds(album);
+
+    if (trackIds.length === 0) {
+        return;
+    }
+
+    const filter = {
+        _id: { $in: trackIds },
+        releaseStatus: TRACK_RELEASE_STATUS.SCHEDULED,
+        releaseDate: cancelledScheduledAt,
+    };
+
+    if (nextScheduledAt) {
+        await Track.updateMany(filter, {
+            $set: {
+                releaseDate: nextScheduledAt,
+                releaseStatus: TRACK_RELEASE_STATUS.SCHEDULED,
+                releasedAt: null,
+            },
+        });
+        return;
+    }
+
+    await Track.updateMany(filter, {
+        $set: {
+            releaseStatus: TRACK_RELEASE_STATUS.UNRELEASED,
+            releasedAt: null,
+        },
+        $unset: { releaseDate: 1 },
+    });
+};
+
 const normalizeScope = (scope) => {
     const normalizedScope = String(scope || "").trim().toLowerCase();
 
@@ -154,12 +258,17 @@ const ensureNoConflictingScheduledRelease = async ({ artistId, type, targetId })
     }
 };
 
-const syncTargetReleaseDate = async ({ type, targetId, scheduledAt }) => {
+const syncTargetReleaseDate = async ({ type, target, targetId, scheduledAt }) => {
     if (type === "album") {
         await Album.updateOne(
             { _id: targetId },
             { $set: { releaseDate: scheduledAt } }
         );
+
+        await syncAlbumTracksForSchedule({
+            album: target,
+            scheduledAt,
+        });
         return;
     }
 
@@ -176,7 +285,12 @@ const syncTargetReleaseDate = async ({ type, targetId, scheduledAt }) => {
     );
 };
 
-const syncTargetVisibilityForRelease = async ({ type, targetId, releasedAt = new Date() }) => {
+const syncTargetVisibilityForRelease = async ({
+    type,
+    target,
+    targetId,
+    releasedAt = new Date(),
+}) => {
     if (type === "album") {
         await Album.updateOne(
             {
@@ -187,6 +301,15 @@ const syncTargetVisibilityForRelease = async ({ type, targetId, releasedAt = new
                 $set: { status: "active" },
             }
         );
+
+        const trackReleaseOperation = buildAlbumTrackReleaseOperation({
+            album: target,
+            releasedAt,
+        });
+
+        if (trackReleaseOperation) {
+            await Track.bulkWrite([trackReleaseOperation]);
+        }
         return;
     }
 
@@ -239,6 +362,7 @@ const syncTargetReleaseDateAfterCancellation = async ({
     targetId,
     cancelledScheduledAt,
     currentReleaseDate,
+    target,
 }) => {
     const nextScheduledRelease = await ReleaseSchedule.findOne({
         artistId,
@@ -270,6 +394,12 @@ const syncTargetReleaseDateAfterCancellation = async ({
                 { _id: targetId, artistId },
                 { $set: { releaseDate: nextScheduledRelease.scheduledAt } }
             );
+
+            await syncAlbumTracksAfterCancellation({
+                album: target,
+                cancelledScheduledAt,
+                nextScheduledAt: nextScheduledRelease.scheduledAt,
+            });
             return nextScheduledRelease.scheduledAt;
         }
 
@@ -277,6 +407,11 @@ const syncTargetReleaseDateAfterCancellation = async ({
             { _id: targetId, artistId },
             { $unset: { releaseDate: 1 } }
         );
+
+        await syncAlbumTracksAfterCancellation({
+            album: target,
+            cancelledScheduledAt,
+        });
         return null;
     }
 
@@ -338,7 +473,7 @@ const publishDueReleaseSchedules = async (extraFilter = {}, io = null) => {
         .filter((schedule) => schedule.targetId)
         .map((schedule) => schedule.targetId);
 
-    let releasableAlbumScheduleIds = [];
+    let releasableAlbumSchedules = [];
 
     if (dueAlbumIds.length > 0) {
         const dueAlbums = await Album.find({
@@ -357,11 +492,14 @@ const publishDueReleaseSchedules = async (extraFilter = {}, io = null) => {
                 .map((album) => album._id.toString())
         );
 
-        releasableAlbumScheduleIds = dueAlbumSchedules
+        releasableAlbumSchedules = dueAlbumSchedules
             .filter((schedule) =>
                 releasableAlbumIdSet.has(schedule.targetId.toString())
-            )
-            .map((schedule) => schedule._id);
+            );
+
+        const dueAlbumMap = new Map(
+            dueAlbums.map((album) => [album._id.toString(), album])
+        );
 
         const albumIdsToActivate = dueAlbums
             .filter(
@@ -380,6 +518,19 @@ const publishDueReleaseSchedules = async (extraFilter = {}, io = null) => {
                     $set: { status: "active" },
                 }
             );
+        }
+
+        const albumTrackReleaseOperations = releasableAlbumSchedules
+            .map((schedule) =>
+                buildAlbumTrackReleaseOperation({
+                    album: dueAlbumMap.get(schedule.targetId.toString()),
+                    releasedAt: schedule.scheduledAt,
+                })
+            )
+            .filter(Boolean);
+
+        if (albumTrackReleaseOperations.length > 0) {
+            await Track.bulkWrite(albumTrackReleaseOperations);
         }
     }
 
@@ -431,7 +582,7 @@ const publishDueReleaseSchedules = async (extraFilter = {}, io = null) => {
 
     const releasableScheduleIds = [
         ...releasableTrackSchedules.map((schedule) => schedule._id),
-        ...releasableAlbumScheduleIds,
+        ...releasableAlbumSchedules.map((schedule) => schedule._id),
     ];
 
     if (releasableScheduleIds.length === 0) {
@@ -682,6 +833,7 @@ const cancelMyReleaseSchedule = async (userId, scheduleId) => {
         targetId: schedule.targetId,
         cancelledScheduledAt: schedule.scheduledAt,
         currentReleaseDate: target?.releaseDate || null,
+        target,
     });
 
     return {
@@ -754,6 +906,7 @@ const createMyReleaseSchedule = async (userId, payload, io = null) => {
 
     await syncTargetReleaseDate({
         type: payload.type,
+        target,
         targetId: payload.targetId,
         scheduledAt,
     });
@@ -761,6 +914,7 @@ const createMyReleaseSchedule = async (userId, payload, io = null) => {
     if (isImmediateRelease) {
         await syncTargetVisibilityForRelease({
             type: payload.type,
+            target,
             targetId: payload.targetId,
             releasedAt: scheduledAt,
         });
@@ -842,6 +996,7 @@ const updateMyReleaseSchedule = async (userId, scheduleId, payload) => {
 
     await syncTargetReleaseDate({
         type: schedule.type,
+        target,
         targetId: schedule.targetId,
         scheduledAt,
     });

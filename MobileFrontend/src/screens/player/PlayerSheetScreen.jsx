@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import axiosClient from '../../api/axiosClient';
 import { API_ENDPOINTS } from '../../api/apiEndpoints';
@@ -22,10 +22,16 @@ export default function PlayerSheetScreen() {
   const {
     currentTrack,
     currentError,
+    duration,
     isBuffering,
+    isPremium,
+    isShuffleEnabled,
     queue,
     currentIndex,
     isPlaying,
+    repeatMode,
+    availableAudioQualities,
+    selectedAudioQuality,
     progressSeconds,
     progressRatio,
     hasNext,
@@ -33,6 +39,10 @@ export default function PlayerSheetScreen() {
     togglePlayback,
     playNext,
     playPrevious,
+    seekTo,
+    toggleShuffle,
+    cycleRepeatMode,
+    changeAudioQuality,
   } = usePlayer();
   const trackId = currentTrack?.entityId || currentTrack?.id || '';
   const hasTimedLyrics = hasSyncedLrc(currentTrack);
@@ -118,16 +128,73 @@ export default function PlayerSheetScreen() {
     setIsLyricsVisible(true);
   }, [currentTrack, hasTimedLyrics]);
 
+  const handlePremiumRequired = useCallback((feature = 'Tính năng này') => {
+    Alert.alert(
+      'Dành cho tài khoản Premium',
+      `${feature} chỉ khả dụng khi tài khoản đang có Premium.`,
+      [
+        { text: 'Để sau', style: 'cancel' },
+        {
+          text: 'Xem gói Premium',
+          onPress: () => navigation.navigate('PremiumOverview'),
+        },
+      ]
+    );
+  }, [navigation]);
+
+  const handleSeek = useCallback((nextPosition) => {
+    if (!isPremium) {
+      handlePremiumRequired('Tua bài hát');
+      return;
+    }
+
+    seekTo(nextPosition);
+  }, [handlePremiumRequired, isPremium, seekTo]);
+
+  const handleToggleShuffle = useCallback(() => {
+    if (!isPremium) {
+      handlePremiumRequired('Tắt chế độ phát ngẫu nhiên');
+      return;
+    }
+
+    toggleShuffle();
+  }, [handlePremiumRequired, isPremium, toggleShuffle]);
+
+  const handleCycleRepeat = useCallback(() => {
+    if (!isPremium) {
+      handlePremiumRequired('Chế độ lặp');
+      return;
+    }
+
+    cycleRepeatMode();
+  }, [cycleRepeatMode, handlePremiumRequired, isPremium]);
+
+  const handleSelectQuality = useCallback(async (quality) => {
+    if (!isPremium) {
+      handlePremiumRequired('Chọn chất lượng âm thanh');
+      return;
+    }
+
+    const didChange = await changeAudioQuality(quality);
+
+    if (!didChange) {
+      Alert.alert('Không thể đổi chất lượng', 'Vui lòng thử lại sau khi bài hát tải xong.');
+    }
+  }, [changeAudioQuality, handlePremiumRequired, isPremium]);
+
   return (
     <View style={styles.container}>
       <PlayerDetailSheet
         currentError={currentError}
         currentIndex={currentIndex}
         currentTrack={currentTrack}
+        duration={duration}
         hasNext={hasNext}
         hasPrevious={hasPrevious}
         hasSyncedLyrics={hasTimedLyrics}
         isBuffering={isBuffering}
+        isPremium={isPremium}
+        isShuffleEnabled={isShuffleEnabled}
         isPlaying={isPlaying}
         artistProfileResponse={artistProfileResponse}
         detailErrorMessage={detailErrorMessage}
@@ -137,11 +204,19 @@ export default function PlayerSheetScreen() {
         onOpenQueue={() => setIsQueueVisible(true)}
         onPlayNext={playNext}
         onPlayPrevious={playPrevious}
+        onPremiumRequired={handlePremiumRequired}
         onRetryDetail={loadPlayerDetail}
+        onSeek={handleSeek}
+        onSelectQuality={handleSelectQuality}
+        onToggleShuffle={handleToggleShuffle}
+        onCycleRepeat={handleCycleRepeat}
         onTogglePlayback={togglePlayback}
         progressRatio={progressRatio}
         progressSeconds={progressSeconds}
         queueLength={queue.length}
+        repeatMode={repeatMode}
+        availableAudioQualities={availableAudioQualities}
+        selectedAudioQuality={selectedAudioQuality}
         trackDetailResponse={trackDetailResponse}
       />
 

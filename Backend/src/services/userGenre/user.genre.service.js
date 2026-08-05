@@ -67,7 +67,10 @@ const getGenreTracksByGenreId = async (genreId, query = {}) => {
 
     return {
         genre,
-        tracks,
+        tracks: tracks.map((track) => ({
+            ...track,
+            versionTitle: track.versionTitle || "",
+        })),
         pagination: {
             page,
             limit,

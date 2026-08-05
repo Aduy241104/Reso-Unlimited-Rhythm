@@ -3,12 +3,15 @@ import { jest } from "@jest/globals";
 const mockPlanModel = {
     findOne: jest.fn(),
     findById: jest.fn(),
+    exists: jest.fn(),
 };
 
 const mockSubscriptionModel = {
     create: jest.fn(),
     findById: jest.fn(),
     findByIdAndUpdate: jest.fn(),
+    findOneAndUpdate: jest.fn(),
+    updateOne: jest.fn(),
 };
 
 const mockTransactionModel = {
@@ -153,8 +156,9 @@ describe("subscriptionService premium purchase snapshot flow", () => {
         );
     });
 
-    test("settles a successful payment from the stored snapshot without reloading the plan", async () => {
+    test("uses the stored terms while requiring the plan to remain active", async () => {
         const subscriptionService = await loadSubscriptionService();
+        const planId = "507f1f77bcf86cd799439012";
         const transaction = {
             _id: "transaction-1",
             userId: "user-1",
@@ -163,7 +167,7 @@ describe("subscriptionService premium purchase snapshot flow", () => {
             status: "pending",
             gatewayTransactionId: "",
             planSnapshot: {
-                originalPlanId: "plan-premium-1",
+                originalPlanId: planId,
                 name: "Premium 30 Days",
                 price: 99000,
                 durationDays: 45,
@@ -174,8 +178,9 @@ describe("subscriptionService premium purchase snapshot flow", () => {
             save: jest.fn().mockResolvedValue(undefined),
         };
         const subscription = {
+            planSnapshot: transaction.planSnapshot,
             _id: "subscription-1",
-            planId: "plan-premium-1",
+            planId,
             status: "pending",
             startDate: null,
             endDate: null,
@@ -200,6 +205,13 @@ describe("subscriptionService premium purchase snapshot flow", () => {
         });
         mockTransactionModel.findOne.mockResolvedValue(transaction);
         mockSubscriptionModel.findById.mockResolvedValue(subscription);
+        mockSubscriptionModel.findOneAndUpdate.mockImplementation(
+            async (_filter, update) => {
+                Object.assign(subscription, update.$set);
+                return subscription;
+            }
+        );
+        mockPlanModel.exists.mockResolvedValue({ _id: planId });
         mockUserModel.findById.mockResolvedValue(user);
 
         const result = await subscriptionService.processVnpayIpn({
@@ -207,12 +219,13 @@ describe("subscriptionService premium purchase snapshot flow", () => {
         });
 
         expect(mockPlanModel.findById).not.toHaveBeenCalled();
+        expect(mockPlanModel.exists).toHaveBeenCalledTimes(2);
         expect(subscription.status).toBe("active");
         expect(subscription.startDate).toEqual(new Date("2026-06-29T01:02:03.000Z"));
         expect(subscription.endDate).toEqual(new Date("2026-08-13T01:02:03.000Z"));
         expect(user.subscription).toEqual({
             isPremium: true,
-            currentPlanId: "plan-premium-1",
+            currentPlanId: planId,
             premiumEndDate: new Date("2026-08-13T01:02:03.000Z"),
         });
         expect(transaction.status).toBe("success");
@@ -220,13 +233,122 @@ describe("subscriptionService premium purchase snapshot flow", () => {
         expect(transaction.paidAt).toEqual(new Date("2026-06-29T01:02:03.000Z"));
         expect(transaction.planSnapshot).toEqual(
             expect.objectContaining({
-                originalPlanId: "plan-premium-1",
+                originalPlanId: planId,
                 durationDays: 45,
             })
         );
         expect(result).toEqual({
             RspCode: "00",
             Message: "Confirm success",
+        });
+    });
+
+    test("cancels a pending payment when its plan has been disabled", async () => {
+        const subscriptionService = await loadSubscriptionService();
+        const planId = "507f1f77bcf86cd799439012";
+        const transaction = {
+            _id: "transaction-1",
+            userId: "user-1",
+            subscriptionId: "subscription-1",
+            totalAmount: 108900,
+            status: "pending",
+            gatewayTransactionId: "",
+            planSnapshot: {
+                originalPlanId: planId,
+                name: "Premium 30 Days",
+                price: 99000,
+                durationDays: 30,
+                description: "Premium package",
+                features: ["NO_ADS"],
+                status: "active",
+            },
+            save: jest.fn().mockResolvedValue(undefined),
+        };
+        const subscription = {
+            planSnapshot: transaction.planSnapshot,
+            _id: "subscription-1",
+            planId,
+            status: "pending",
+            startDate: null,
+            endDate: null,
+            save: jest.fn().mockResolvedValue(undefined),
+        };
+
+        mockVnpayService.verifyCallback.mockReturnValue({
+            isValid: true,
+            invoiceNumber: "INV-0002",
+            amount: 108900,
+            responseCode: "00",
+            gatewayTransactionId: "VNPAY-456",
+        });
+        mockTransactionModel.findOne.mockResolvedValue(transaction);
+        mockSubscriptionModel.findById.mockResolvedValue(subscription);
+        mockPlanModel.exists.mockResolvedValue(null);
+
+        const result = await subscriptionService.processVnpayIpn({
+            vnp_TxnRef: "INV-0002",
+        });
+
+        expect(transaction.status).toBe("failed");
+        expect(transaction.failureReason).toContain("inactive or no longer available");
+        expect(subscription.status).toBe("cancelled");
+        expect(mockUserModel.findById).not.toHaveBeenCalled();
+        expect(result).toEqual({
+            RspCode: "01",
+            Message: "Subscription plan is inactive or unavailable",
+        });
+    });
+
+    test("does not reactivate an order already cancelled by an administrator", async () => {
+        const subscriptionService = await loadSubscriptionService();
+        const planId = "507f1f77bcf86cd799439012";
+        const planSnapshot = {
+            originalPlanId: planId,
+            name: "Premium 30 Days",
+            price: 99000,
+            durationDays: 30,
+            description: "Premium package",
+            features: ["NO_ADS"],
+            status: "active",
+        };
+        const transaction = {
+            _id: "transaction-1",
+            userId: "user-1",
+            subscriptionId: "subscription-1",
+            totalAmount: 108900,
+            status: "failed",
+            failureReason: "Cancelled by admin",
+            planSnapshot,
+            save: jest.fn().mockResolvedValue(undefined),
+        };
+        const subscription = {
+            _id: "subscription-1",
+            planId,
+            planSnapshot,
+            status: "cancelled",
+            save: jest.fn().mockResolvedValue(undefined),
+        };
+
+        mockVnpayService.verifyCallback.mockReturnValue({
+            isValid: true,
+            invoiceNumber: "INV-0003",
+            amount: 108900,
+            responseCode: "00",
+            gatewayTransactionId: "VNPAY-789",
+        });
+        mockTransactionModel.findOne.mockResolvedValue(transaction);
+        mockSubscriptionModel.findById.mockResolvedValue(subscription);
+
+        const result = await subscriptionService.processVnpayIpn({
+            vnp_TxnRef: "INV-0003",
+        });
+
+        expect(mockPlanModel.exists).not.toHaveBeenCalled();
+        expect(mockSubscriptionModel.findOneAndUpdate).not.toHaveBeenCalled();
+        expect(mockUserModel.findById).not.toHaveBeenCalled();
+        expect(result).toEqual({
+            RspCode: "01",
+            Message: "Payment order was cancelled",
         });
     });
 });

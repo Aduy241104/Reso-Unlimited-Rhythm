@@ -29,6 +29,7 @@ import playlistService from '../../services/playlistService';
 import userFavoriteService from '../../services/userFavoriteService';
 import userPlaylistService from '../../services/userPlaylistService';
 import { formatDateLabel, formatDuration, formatTrackDuration, getErrorMessage, getInitials, resolveImageUri } from '../../utils/media';
+import { hasPremiumAccess } from '../../utils/premium';
 import { buildPlayableQueue } from '../../utils/player';
 
 const accentPalette = ['#111111', '#2f2f2f', '#4a4a4a', '#686868', '#8a8a8a'];
@@ -44,17 +45,6 @@ const readText = (value, fallback = '') => {
 };
 
 const getTrackId = (item) => String(item?.entityId || item?.id || '');
-
-const shuffleItems = (items = []) => {
-  const nextItems = [...items];
-
-  for (let index = nextItems.length - 1; index > 0; index -= 1) {
-    const randomIndex = Math.floor(Math.random() * (index + 1));
-    [nextItems[index], nextItems[randomIndex]] = [nextItems[randomIndex], nextItems[index]];
-  }
-
-  return nextItems;
-};
 
 const Artwork = ({ uri, label, style, textStyle }) => {
   const imageUri = resolveImageUri(uri);
@@ -152,9 +142,12 @@ export default function PlaylistDetailScreen() {
   const insets = useSafeAreaInsets();
   const { isAuthenticated, user } = useAuth();
   const {
+    addTrackToQueue,
     currentTrack,
+    isShuffleEnabled,
     isPlaying,
     playQueue,
+    toggleShuffle,
     togglePlayback,
   } = usePlayer();
   const playlistId = route.params?.playlistId || route.params?.entityId || '';
@@ -177,6 +170,7 @@ export default function PlaylistDetailScreen() {
   const [favoriteStatusMap, setFavoriteStatusMap] = useState({});
   const [favoriteUpdatingMap, setFavoriteUpdatingMap] = useState({});
   const [visibleTrackCount, setVisibleTrackCount] = useState(LOAD_MORE_STEP);
+  const isPremium = hasPremiumAccess(user);
 
   const loadPlaylistDetail = useCallback(async () => {
     if (!playlistId) {
@@ -269,16 +263,24 @@ export default function PlaylistDetailScreen() {
       return;
     }
 
-    playQueue(playableQueue, 0);
+    playQueue(playableQueue, 0, { collectionType: 'playlist' });
   }, [playQueue, playableQueue]);
 
-  const handleShuffleAll = useCallback(() => {
-    if (playableQueue.length === 0) {
+  const handleToggleShuffle = useCallback(() => {
+    if (!isPremium) {
+      Alert.alert(
+        'Phát ngẫu nhiên đang được bật',
+        'Playlist mặc định phát ngẫu nhiên. Chỉ tài khoản Premium mới có thể tắt chế độ này.',
+        [
+          { text: 'Để sau', style: 'cancel' },
+          { text: 'Xem gói Premium', onPress: () => navigation.navigate('PremiumOverview') },
+        ]
+      );
       return;
     }
 
-    playQueue(shuffleItems(playableQueue), 0);
-  }, [playQueue, playableQueue]);
+    toggleShuffle();
+  }, [isPremium, navigation, toggleShuffle]);
 
   const handleTrackPress = useCallback((track, index) => {
     const trackId = String(track?.entityId || track?.id || '');
@@ -288,7 +290,10 @@ export default function PlaylistDetailScreen() {
       return;
     }
 
-    playQueue(playableQueue, index);
+    playQueue(playableQueue, index, {
+      collectionType: 'playlist',
+      preserveStartTrack: true,
+    });
   }, [activeTrackId, playQueue, playableQueue, togglePlayback]);
 
   const handleOpenNestedDetail = useCallback((nextType, nextId, nextTitle) => {
@@ -329,12 +334,23 @@ export default function PlaylistDetailScreen() {
       : -1;
 
     if (startIndex >= 0 && startIndex < playableQueue.length) {
-      playQueue(playableQueue, startIndex);
+      playQueue(playableQueue, startIndex, {
+        collectionType: 'playlist',
+        preserveStartTrack: true,
+      });
       return;
     }
 
     playQueue(buildPlayableQueue([track]), 0);
   }, [playQueue, playableQueue, selectedTrackAction.index]);
+
+  const handleAddTrackToQueue = useCallback((track) => {
+    const didAdd = addTrackToQueue(track);
+
+    if (didAdd) {
+      Alert.alert('Đã thêm vào hàng chờ', `"${readText(track?.title, 'Bài hát')}" sẽ được phát trong hàng chờ hiện tại.`);
+    }
+  }, [addTrackToQueue]);
 
   const handleTrackActionOpenTrackDetail = useCallback((track) => {
     handleOpenNestedDetail('track', track?.entityId || track?.id, track?.title);
@@ -596,6 +612,13 @@ export default function PlaylistDetailScreen() {
         description: 'Bắt đầu phát từ bài hát này.',
         onPress: handleTrackActionPlayNow,
       },
+      {
+        key: 'add-to-queue',
+        label: 'Thêm vào hàng chờ',
+        icon: 'list-outline',
+        description: 'Thêm bài hát này vào sau các bài đã được xếp thủ công.',
+        onPress: handleAddTrackToQueue,
+      },
       !isCurrentSelectedTrack && selectedTrackId
         ? {
             key: 'open-track-detail',
@@ -637,6 +660,7 @@ export default function PlaylistDetailScreen() {
     ].filter(Boolean),
     [
       canEditPlaylist,
+      handleAddTrackToQueue,
       handleRemoveTrackFromPlaylist,
       handleTrackActionOpenAlbumDetail,
       handleTrackActionOpenArtistDetail,
@@ -713,10 +737,14 @@ export default function PlaylistDetailScreen() {
                   playableQueue.length === 0 ? styles.systemActionDisabled : null,
                 ]}
                 activeOpacity={0.75}
-                onPress={handleShuffleAll}
+                onPress={handleToggleShuffle}
                 disabled={playableQueue.length === 0}
               >
-                <Ionicons name="shuffle" size={26} color="#1ed760" />
+                <Ionicons
+                  name={isPremium ? 'shuffle' : 'lock-closed'}
+                  size={26}
+                  color={isShuffleEnabled ? '#1ed760' : '#737373'}
+                />
               </TouchableOpacity>
 
               {playableQueue.length > 0 ? (
@@ -800,6 +828,20 @@ export default function PlaylistDetailScreen() {
                 <Ionicons name="play" size={16} color="#000000" />
                 <Text style={styles.playButtonText}>
                   {playableQueue.length > 0 ? `Phát ${playableQueue.length} bài hát` : 'Không có bài hát có thể phát'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.secondaryAction}
+                onPress={handleToggleShuffle}
+                activeOpacity={0.85}
+              >
+                <Ionicons
+                  name={isPremium ? 'shuffle' : 'lock-closed'}
+                  size={15}
+                  color={isShuffleEnabled ? '#1ed760' : '#a3a3a3'}
+                />
+                <Text style={styles.secondaryActionText}>
+                  {isShuffleEnabled ? 'Ngẫu nhiên đang bật' : 'Phát theo thứ tự'}
                 </Text>
               </TouchableOpacity>
               {canEditPlaylist ? (

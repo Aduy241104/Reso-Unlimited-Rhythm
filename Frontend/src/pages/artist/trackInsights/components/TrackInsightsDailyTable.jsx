@@ -1,4 +1,4 @@
-import { displayRawValue, formatDateLabel, formatNumber } from "../helpers";
+import { formatDateLabel, formatListenDuration, formatNumber } from "../helpers";
 
 const TrackInsightsDailyTable = ({ dailyChart }) => (
   <section className="rounded-[18px] border border-[#e7e1ff] bg-white p-4 shadow-sm">
@@ -42,7 +42,7 @@ const TrackInsightsDailyTable = ({ dailyChart }) => (
                 <td className="px-4 py-4">{formatNumber(item.playCount)}</td>
                 <td className="px-4 py-4">{formatNumber(item.uniqueListeners)}</td>
                 <td className="px-4 py-4">
-                  {displayRawValue(item.averageListenDuration)}
+                  {formatListenDuration(item.averageListenDuration)}
                 </td>
                 <td className="px-4 py-4">{formatNumber(item.skipCount)}</td>
               </tr>

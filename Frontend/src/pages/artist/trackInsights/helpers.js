@@ -36,18 +36,38 @@ export const displayRawValue = (value, fallback = "0") => {
   return String(value);
 };
 
-export const appendUnit = (value, unit, fallback = `0 ${unit}`) => {
-  const resolvedValue = displayRawValue(value, "");
-
-  if (!resolvedValue) {
-    return fallback;
+const parseDecimalMinuteValue = (value) => {
+  if (value === null || value === undefined || value === "") {
+    return null;
   }
 
-  if (/[A-Za-zÀ-ỹ%]/u.test(resolvedValue)) {
-    return resolvedValue;
+  if (typeof value === "string" && value.includes(":")) {
+    return null;
   }
 
-  return `${resolvedValue} ${unit}`;
+  const numericValue = Number.parseFloat(String(value).trim().replace(",", "."));
+
+  return Number.isFinite(numericValue) ? Math.max(numericValue, 0) : null;
+};
+
+export const formatListenDuration = (value, fallback = "0:00") => {
+  const minuteValue = parseDecimalMinuteValue(value);
+
+  if (minuteValue === null) {
+    return displayRawValue(value, fallback);
+  }
+
+  const totalSeconds = Math.round(minuteValue * 60);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const paddedSeconds = String(seconds).padStart(2, "0");
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${paddedSeconds}`;
+  }
+
+  return `${minutes}:${paddedSeconds}`;
 };
 
 export const CHART_METRICS = {
@@ -184,13 +204,13 @@ export const buildSummaryCards = (summary) => [
   },
   {
     label: "Tổng thời gian nghe",
-    value: appendUnit(summary?.totalListeningTime, "phút"),
+    value: formatListenDuration(summary?.totalListeningTime),
     helper: "Tổng thời lượng nghe mà khán giả đã dành cho bài hát.",
     icon: Clock3,
   },
   {
     label: "Nghe trung bình",
-    value: appendUnit(summary?.averageListenDuration, "phút"),
+    value: formatListenDuration(summary?.averageListenDuration),
     helper: "Thời lượng nghe trung bình trước khi người nghe dừng hoặc chuyển bài.",
     icon: Waves,
   },

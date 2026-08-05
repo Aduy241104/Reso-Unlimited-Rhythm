@@ -56,6 +56,7 @@ const TrackListSection = ({
   loadingMessage = "Đang tải bài hát...",
   mobileLabel = "Danh sách bài hát",
   headerColumns,
+  headerGridClassName: headerGridClassNameOverride = "",
   emptyMessage = "Chưa có bài hát nào.",
   hasItems = false,
   loadingClassName = "",
@@ -71,7 +72,7 @@ const TrackListSection = ({
   const resolvedHeaderColumns =
     headerColumns || headerColumnsByType[type] || headerColumnsByType.default;
 
-  const headerGridClassName = [
+  const defaultHeaderGridClassName = [
     "mb-1 hidden",
     gridClassName,
     "items-center gap-3",
@@ -83,6 +84,9 @@ const TrackListSection = ({
   ]
     .join(" ")
     .trim();
+
+  const resolvedHeaderGridClassName =
+    headerGridClassNameOverride || defaultHeaderGridClassName;
 
   if (isLoading) {
     return (
@@ -124,7 +128,7 @@ const TrackListSection = ({
         </p>
       </div>
 
-      <div className={ headerGridClassName }>
+      <div className={ resolvedHeaderGridClassName }>
         { resolvedHeaderColumns.map((column, index) => {
           const Icon = column?.icon;
 
@@ -175,5 +179,4 @@ const TrackListSection = ({
   );
 };
 
-export { trackGridClassNameByType, headerColumnsByType };
 export default TrackListSection;

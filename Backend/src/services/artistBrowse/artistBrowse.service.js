@@ -10,7 +10,7 @@ import ArtistRanking, {
 } from "../../models/ArtistRanking.js";
 import Interaction from "../../models/Interaction.js";
 import ReleaseSchedule from "../../models/ReleaseSchedule.js";
-import ArtistStat from "../../models/ArtistStat.js";
+import ArtistMonthlyStat from "../../models/ArtistMonthlyStat.js";
 import Track from "../../models/Track.js";
 import redisClient from "../../config/redisConfig.js";
 import { AppError } from "../../utils/AppError.js";
@@ -200,10 +200,12 @@ const buildArtistFollowFilter = (userId, artistId) => ({
 const getArtistProfile = async (artistId) => {
     const artist = await validateAndGetArtist(artistId);
 
-    const [artistStat, albums, tracks] = await Promise.all([
-        ArtistStat.findOne({
+    const [artistMonthlyStat, albums, tracks] = await Promise.all([
+        ArtistMonthlyStat.findOne({
             artistId,
-        }).lean(),
+        })
+            .sort({ year: -1, month: -1 })
+            .lean(),
         Album.find({
             artistId,
             status: "active",
@@ -229,7 +231,7 @@ const getArtistProfile = async (artistId) => {
 
     return formatArtistProfile({
         artist,
-        artistStat,
+        artistMonthlyStat,
         albums,
         tracks,
     });
@@ -468,18 +470,23 @@ const getMonthlyTopArtists = async (query = {}) => {
             const cachedData = await redisClient.get(cacheKey);
             if (cachedData) {
                 const parsedTopArtists = JSON.parse(cachedData);
-                const topArtists = await normalizeTopArtists(parsedTopArtists, limit);
+                const hasCachedTopArtists =
+                    Array.isArray(parsedTopArtists) && parsedTopArtists.length > 0;
 
-                if (topArtists.length === limit || parsedTopArtists.length < limit) {
-                    return {
-                        topArtists,
-                        meta: {
-                            month: monthKey,
-                            limit,
-                            cacheKey,
-                            cacheHit: true,
-                        },
-                    };
+                if (hasCachedTopArtists) {
+                    const topArtists = await normalizeTopArtists(parsedTopArtists, limit);
+
+                    if (topArtists.length === limit || parsedTopArtists.length < limit) {
+                        return {
+                            topArtists,
+                            meta: {
+                                month: monthKey,
+                                limit,
+                                cacheKey,
+                                cacheHit: true,
+                            },
+                        };
+                    }
                 }
             }
         } catch (error) {
