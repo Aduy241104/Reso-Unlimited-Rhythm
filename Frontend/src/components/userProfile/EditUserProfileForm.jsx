@@ -1,10 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import {
+  CalendarDays,
   Camera,
   ChevronDown,
   Loader2,
-  MapPin,
-  RefreshCw,
   Save,
   Upload,
   UserRound,
@@ -12,7 +11,6 @@ import {
   X,
 } from "lucide-react";
 import {
-  getCountryOptions,
   getCurrentUserProfile,
   updateCurrentUserProfile,
 } from "../../services/userProfileService";
@@ -47,13 +45,49 @@ const normalizeText = (value) => {
   return value.trim();
 };
 
+const normalizeDateInputValue = (value) => {
+  const normalizedValue = normalizeText(value);
+
+  if (!normalizedValue) {
+    return "";
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalizedValue)) {
+    return normalizedValue;
+  }
+
+  const parsedDate = new Date(normalizedValue);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "";
+  }
+
+  return parsedDate.toISOString().split("T")[0];
+};
+
+const getMaximumDateOfBirth = () => {
+  const currentDate = new Date();
+  currentDate.setHours(0, 0, 0, 0);
+  currentDate.setFullYear(currentDate.getFullYear() - 13);
+
+  const year = currentDate.getFullYear();
+  const month = String(currentDate.getMonth() + 1).padStart(2, "0");
+  const day = String(currentDate.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+const MAXIMUM_DATE_OF_BIRTH = getMaximumDateOfBirth();
+
 const createFormState = (profile) => {
   const snapshot = createUserProfileSnapshot(profile);
 
   return {
     fullName: snapshot.fullName,
     gender: snapshot.gender,
-    country: snapshot.country,
+    dateOfBirth: normalizeDateInputValue(
+      profile?.dateOfBirth ?? profile?.profile?.dateOfBirth
+    ),
   };
 };
 
@@ -70,7 +104,10 @@ const getFieldErrorsFromApi = (error) => {
     fullName: "fullName",
     fullname: "fullName",
     gender: "gender",
-    country: "country",
+    dateOfBirth: "dateOfBirth",
+    date_of_birth: "dateOfBirth",
+    dob: "dateOfBirth",
+    birthDate: "dateOfBirth",
   };
 
   return normalizedErrors.reduce((nextErrors, detail) => {
@@ -85,36 +122,6 @@ const getFieldErrorsFromApi = (error) => {
       [fieldName]: detail?.message || "Giá trị không hợp lệ.",
     };
   }, {});
-};
-
-const findCountryOption = (countries, value) => {
-  const normalizedValue = normalizeText(value).toLowerCase();
-
-  if (!normalizedValue) {
-    return null;
-  }
-
-  return (
-    countries.find((country) => {
-      const candidates = [
-        country.name,
-        country.officialName,
-        country.code,
-      ];
-
-      return candidates.some(
-        (candidate) => normalizeText(candidate).toLowerCase() === normalizedValue
-      );
-    }) ?? null
-  );
-};
-
-const getCountryLabel = (country, fallbackValue = "") => {
-  if (country?.name) {
-    return country.name;
-  }
-
-  return normalizeText(fallbackValue);
 };
 
 const useDismissibleDropdown = (isOpen, onClose) => {
@@ -139,75 +146,6 @@ const useDismissibleDropdown = (isOpen, onClose) => {
   }, [isOpen, onClose]);
 
   return containerRef;
-};
-
-const useCountryDropdown = () => {
-  const [countries, setCountries] = useState([]);
-  const [status, setStatus] = useState("idle");
-  const [errorMessage, setErrorMessage] = useState("");
-
-  useEffect(() => {
-    const controller = new AbortController();
-    let isMounted = true;
-
-    const loadCountries = async () => {
-      setStatus("loading");
-      setErrorMessage("");
-
-      try {
-        const nextCountries = await getCountryOptions(controller.signal);
-
-        if (!isMounted) {
-          return;
-        }
-
-        setCountries(nextCountries);
-        setStatus("success");
-      } catch (error) {
-        if (!isMounted || controller.signal.aborted) {
-          return;
-        }
-
-        setCountries([]);
-        setStatus("error");
-        setErrorMessage(
-          getApiErrorMessage(error, "Không thể tải danh sách quốc gia.")
-        );
-      }
-    };
-
-    loadCountries();
-
-    return () => {
-      isMounted = false;
-      controller.abort();
-    };
-  }, []);
-
-  const reload = async () => {
-    setStatus("loading");
-    setErrorMessage("");
-
-    try {
-      const nextCountries = await getCountryOptions();
-      setCountries(nextCountries);
-      setStatus("success");
-    } catch (error) {
-      setCountries([]);
-      setStatus("error");
-      setErrorMessage(
-        getApiErrorMessage(error, "Không thể tải danh sách quốc gia.")
-      );
-    }
-  };
-
-  return {
-    countries,
-    isLoading: status === "loading",
-    hasError: status === "error",
-    errorMessage,
-    reload,
-  };
 };
 
 const FormField = ({ children, errorMessage, label, icon }) => {
@@ -235,19 +173,12 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarInputKey, setAvatarInputKey] = useState(0);
   const [isGenderOpen, setIsGenderOpen] = useState(false);
-  const [isCountryOpen, setIsCountryOpen] = useState(false);
-  const { countries, isLoading, hasError, errorMessage, reload } =
-    useCountryDropdown();
 
   const genderDropdownRef = useDismissibleDropdown(isGenderOpen, () =>
     setIsGenderOpen(false)
   );
-  const countryDropdownRef = useDismissibleDropdown(isCountryOpen, () =>
-    setIsCountryOpen(false)
-  );
 
   const snapshot = createUserProfileSnapshot(profile);
-  const selectedCountry = findCountryOption(countries, formValues.country);
   const selectedGender =
     GENDER_OPTIONS.find((option) => option.value === formValues.gender) ?? null;
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState(snapshot.avatar);
@@ -255,7 +186,7 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
   useEffect(() => {
     const nextSnapshot = createUserProfileSnapshot(profile);
 
-    setFormValues(createFormState(nextSnapshot));
+    setFormValues(createFormState(profile));
     setFieldErrors({});
     setApiError("");
     setAvatarFile(null);
@@ -305,8 +236,14 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
       nextErrors.gender = "Vui lòng chọn giới tính.";
     }
 
-    if (!normalizeText(formValues.country)) {
-      nextErrors.country = "Vui lòng chọn quốc gia.";
+    if (normalizeText(formValues.dateOfBirth)) {
+      const parsedDate = new Date(formValues.dateOfBirth);
+
+      if (Number.isNaN(parsedDate.getTime())) {
+        nextErrors.dateOfBirth = "Vui lòng chọn ngày sinh hợp lệ.";
+      } else if (formValues.dateOfBirth > MAXIMUM_DATE_OF_BIRTH) {
+        nextErrors.dateOfBirth = "Người dùng phải từ 13 tuổi trở lên.";
+      }
     }
 
     setFieldErrors(nextErrors);
@@ -355,7 +292,7 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
         avatar: avatarFile,
         fullName: formValues.fullName,
         gender: formValues.gender,
-        country: formValues.country,
+        dateOfBirth: formValues.dateOfBirth,
       });
 
       let refreshedUser = updatedUser;
@@ -369,16 +306,16 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
       }
 
       if (!refreshedUser) {
-        throw new Error("Đã cập nhật hồ sơ nhưng không thể tải dữ liệu mới nhất.");
+        throw new Error(
+          "Đã cập nhật hồ sơ nhưng không thể tải dữ liệu mới nhất."
+        );
       }
 
       onSaved(refreshedUser);
     } catch (error) {
       const nextErrors = getFieldErrorsFromApi(error);
       setFieldErrors(nextErrors);
-      setApiError(
-        getApiErrorMessage(error, "Không thể lưu thay đổi hồ sơ.")
-      );
+      setApiError(getApiErrorMessage(error, "Không thể lưu thay đổi hồ sơ."));
     } finally {
       setIsSaving(false);
     }
@@ -400,7 +337,8 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
             Chỉnh sửa thông tin tài khoản
           </h3>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-400">
-            Cập nhật ảnh đại diện, tên hiển thị và đồng bộ thông tin hồ sơ với hệ thống.
+            Cập nhật ảnh đại diện, tên hiển thị và đồng bộ thông tin hồ sơ với
+            hệ thống.
           </p>
         </div>
 
@@ -438,7 +376,8 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
               Xem trước ảnh đại diện
             </div>
             <p className="mt-2 text-sm leading-6 text-gray-400">
-              Tải ảnh mới để thay thế ảnh đại diện hiện tại. Hệ thống sẽ lưu trữ và xử lý ảnh ở phía máy chủ.
+              Tải ảnh mới để thay thế ảnh đại diện hiện tại. Hệ thống sẽ lưu trữ
+              và xử lý ảnh ở phía máy chủ.
             </p>
 
             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -465,7 +404,9 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
             </div>
 
             {fieldErrors.avatar ? (
-              <p className="mt-3 text-sm text-red-200/90">{fieldErrors.avatar}</p>
+              <p className="mt-3 text-sm text-red-200/90">
+                {fieldErrors.avatar}
+              </p>
             ) : null}
           </div>
         </div>
@@ -546,110 +487,30 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
         </FormField>
 
         <FormField
-          label="Quốc gia"
-          icon={MapPin}
-          errorMessage={fieldErrors.country}
+          label="Ngày sinh"
+          icon={CalendarDays}
+          errorMessage={fieldErrors.dateOfBirth}
         >
-          <div ref={countryDropdownRef} className="relative">
-            <button
-              type="button"
-              onClick={() => setIsCountryOpen((current) => !current)}
-              disabled={isSaving}
-              className={`${inputClassName} flex items-center justify-between gap-3 text-left`}
-            >
-              <span className="flex min-w-0 items-center gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-lg">
-                  {selectedCountry?.flag || (
-                    <MapPin className="h-4 w-4 text-[#ffb46a]" aria-hidden />
-                  )}
-                </span>
+          <input
+            type="date"
+            value={formValues.dateOfBirth}
+            max={MAXIMUM_DATE_OF_BIRTH}
+            onChange={(event) => {
+              const nextValue = event.target.value;
 
-                <span className="truncate text-sm text-white">
-                  {getCountryLabel(selectedCountry, formValues.country) ||
-                    (isLoading ? "Đang tải quốc gia..." : "Chọn quốc gia")}
-                </span>
-              </span>
+              if (nextValue && nextValue > MAXIMUM_DATE_OF_BIRTH) {
+                setFieldErrors((current) => ({
+                  ...current,
+                  dateOfBirth: "Người dùng phải từ 13 tuổi trở lên.",
+                }));
+                return;
+              }
 
-              <ChevronDown
-                className={[
-                  "h-4 w-4 shrink-0 text-[#ffb46a] transition-transform duration-300",
-                  isCountryOpen ? "rotate-180" : "",
-                ].join(" ")}
-                aria-hidden
-              />
-            </button>
-
-            <div
-              className={[
-                "absolute bottom-[calc(100%+0.75rem)] left-0 right-0 z-30 origin-bottom rounded-2xl border border-white/10 bg-[#101013]/95 p-2 shadow-[0_22px_60px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-all duration-200",
-                isCountryOpen
-                  ? "visible translate-y-0 opacity-100"
-                  : "pointer-events-none invisible translate-y-2 opacity-0",
-              ].join(" ")}
-            >
-              {isLoading ? (
-                <div className="flex items-center justify-center gap-3 px-3 py-4 text-center text-sm text-white">
-                  <Loader2
-                    className="h-4 w-4 animate-spin text-white"
-                    aria-hidden
-                  />
-                  Đang tải danh sách quốc gia...
-                </div>
-              ) : null}
-
-              {hasError ? (
-                <div className="space-y-3 px-3 py-3">
-                  <p className="text-sm leading-6 text-red-200/90">
-                    {errorMessage}
-                  </p>
-
-                  <button
-                    type="button"
-                    onClick={reload}
-                    className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white transition-all duration-300 hover:border-white/20 hover:bg-white/[0.08]"
-                  >
-                    <RefreshCw className="h-4 w-4" aria-hidden />
-                    Thử lại
-                  </button>
-                </div>
-              ) : null}
-
-              {!isLoading && !hasError ? (
-                <div className="max-h-72 overflow-y-auto pr-1">
-                  {countries.map((country) => (
-                    <button
-                      key={country.code || country.name}
-                      type="button"
-                      onClick={() => {
-                        updateField("country", country.name);
-                        setIsCountryOpen(false);
-                      }}
-                      className={[
-                        "flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm transition-all duration-200",
-                        normalizeText(formValues.country).toLowerCase() ===
-                          normalizeText(country.name).toLowerCase()
-                          ? "bg-[#ff9f43]/15 text-white"
-                          : "text-gray-300 hover:bg-white/[0.06] hover:text-white",
-                      ].join(" ")}
-                    >
-                      <span className="flex h-6 w-6 items-center justify-center text-lg">
-                        {country.flag || (
-                          <MapPin
-                            className="h-4 w-4 text-[#ffb46a]"
-                            aria-hidden
-                          />
-                        )}
-                      </span>
-
-                      <span className="min-w-0 truncate">
-                        {country.name}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          </div>
+              updateField("dateOfBirth", nextValue);
+            }}
+            className={inputClassName}
+            disabled={isSaving}
+          />
         </FormField>
       </div>
 
@@ -669,7 +530,11 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
           Hủy
         </button>
 
-        <button type="submit" disabled={isSaving} className={primaryButtonClassName}>
+        <button
+          type="submit"
+          disabled={isSaving}
+          className={primaryButtonClassName}
+        >
           {isSaving ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
