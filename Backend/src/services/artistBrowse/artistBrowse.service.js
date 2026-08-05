@@ -470,18 +470,23 @@ const getMonthlyTopArtists = async (query = {}) => {
             const cachedData = await redisClient.get(cacheKey);
             if (cachedData) {
                 const parsedTopArtists = JSON.parse(cachedData);
-                const topArtists = await normalizeTopArtists(parsedTopArtists, limit);
+                const hasCachedTopArtists =
+                    Array.isArray(parsedTopArtists) && parsedTopArtists.length > 0;
 
-                if (topArtists.length === limit || parsedTopArtists.length < limit) {
-                    return {
-                        topArtists,
-                        meta: {
-                            month: monthKey,
-                            limit,
-                            cacheKey,
-                            cacheHit: true,
-                        },
-                    };
+                if (hasCachedTopArtists) {
+                    const topArtists = await normalizeTopArtists(parsedTopArtists, limit);
+
+                    if (topArtists.length === limit || parsedTopArtists.length < limit) {
+                        return {
+                            topArtists,
+                            meta: {
+                                month: monthKey,
+                                limit,
+                                cacheKey,
+                                cacheHit: true,
+                            },
+                        };
+                    }
                 }
             }
         } catch (error) {
