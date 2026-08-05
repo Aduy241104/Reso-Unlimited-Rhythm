@@ -1,8 +1,12 @@
 import { z } from "zod";
+import { ARTIST_INPUT_LIMITS } from "../../constants/artistInputLimits";
 
 const optionalHttpUrl = z
   .string()
-  .max(500, "Đường dẫn URL tối đa 500 ký tự.")
+  .max(
+    ARTIST_INPUT_LIMITS.url,
+    `Đường dẫn URL tối đa ${ARTIST_INPUT_LIMITS.url} ký tự.`
+  )
   .superRefine((value, ctx) => {
     const trimmed = value.trim();
 
@@ -32,8 +36,16 @@ export const artistProfileEditSchema = z.object({
     .string()
     .trim()
     .min(1, "Vui lòng nhập tên hiển thị nghệ sĩ.")
-    .max(100, "Tên nghệ sĩ tối đa 100 ký tự."),
-  bio: z.string().max(1000, "Tiểu sử nghệ sĩ tối đa 1000 ký tự."),
+    .max(
+      ARTIST_INPUT_LIMITS.profileName,
+      `Tên nghệ sĩ tối đa ${ARTIST_INPUT_LIMITS.profileName} ký tự.`
+    ),
+  bio: z
+    .string()
+    .max(
+      ARTIST_INPUT_LIMITS.profileBio,
+      `Tiểu sử nghệ sĩ tối đa ${ARTIST_INPUT_LIMITS.profileBio} ký tự.`
+    ),
   socialFacebook: optionalHttpUrl,
   socialInstagram: optionalHttpUrl,
   socialYoutube: optionalHttpUrl,

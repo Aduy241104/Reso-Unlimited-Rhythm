@@ -781,17 +781,17 @@ export default function EntityDetailScreen() {
     const previousValue = isAlbumFollowing;
 
     Alert.alert(
-      previousValue ? 'Bỏ lưu album' : 'Lưu album',
+      previousValue ? 'Bỏ theo dõi album' : 'Theo dõi album',
       previousValue
-        ? 'Bạn có muốn bỏ lưu album này không?'
-        : 'Bạn có muốn lưu album này vào thư viện không?',
+        ? 'Bạn có muốn bỏ theo dõi album này không?'
+        : 'Bạn có muốn theo dõi album này không?',
       [
         {
           text: 'Hủy',
           style: 'cancel',
         },
         {
-          text: previousValue ? 'Bỏ lưu' : 'Lưu',
+          text: previousValue ? 'Bỏ theo dõi' : 'Theo dõi',
           onPress: async () => {
             setIsAlbumFollowing(!previousValue);
             setIsAlbumFollowUpdating(true);
@@ -801,7 +801,10 @@ export default function EntityDetailScreen() {
               setIsAlbumFollowing(Boolean(followState?.isFollowing));
             } catch (error) {
               setIsAlbumFollowing(previousValue);
-              Alert.alert('Lưu album thất bại', getErrorMessage(error, 'Không thể cập nhật album đã lưu lúc này.'));
+              Alert.alert(
+                previousValue ? 'Bỏ theo dõi thất bại' : 'Theo dõi thất bại',
+                getErrorMessage(error, 'Không thể cập nhật trạng thái theo dõi album lúc này.')
+              );
             } finally {
               setIsAlbumFollowUpdating(false);
             }
@@ -1046,7 +1049,7 @@ export default function EntityDetailScreen() {
                 />
               ) : null}
 
-              {!isArtist ? (
+              {!isArtist && !isAlbum ? (
                 <TouchableOpacity style={styles.iconActionButton} activeOpacity={0.75}>
                   <Ionicons name="arrow-down-circle-outline" size={25} color="#b3b3b3" />
                 </TouchableOpacity>
@@ -1072,19 +1075,21 @@ export default function EntityDetailScreen() {
                 />
               ) : null}
 
-              <TouchableOpacity
-                style={styles.iconActionButton}
-                activeOpacity={0.75}
-                onPress={
-                  isArtist
-                    ? openArtistActions
-                    : canOpenHeroTrackActions
-                      ? () => openTrackActions(detail, 0)
-                      : undefined
-                }
-              >
-                <Ionicons name="ellipsis-horizontal" size={24} color="#b3b3b3" />
-              </TouchableOpacity>
+              {!isAlbum ? (
+                <TouchableOpacity
+                  style={styles.iconActionButton}
+                  activeOpacity={0.75}
+                  onPress={
+                    isArtist
+                      ? openArtistActions
+                      : canOpenHeroTrackActions
+                        ? () => openTrackActions(detail, 0)
+                        : undefined
+                  }
+                >
+                  <Ionicons name="ellipsis-horizontal" size={24} color="#b3b3b3" />
+                </TouchableOpacity>
+              ) : null}
 
               <View style={styles.actionSpacer} />
 

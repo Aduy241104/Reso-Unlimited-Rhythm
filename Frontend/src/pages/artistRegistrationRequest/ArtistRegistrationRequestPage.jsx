@@ -84,6 +84,8 @@ const SOCIAL_PLATFORM_FIELDS = [
 const sectionCardClassName =
   "rounded-[20px] border border-white/10 bg-white/[0.03] p-5 sm:p-6";
 
+const MAX_PORTFOLIO_LINKS = 4;
+
 const createInitialFormState = () => ({
   stageName: "",
   bio: "",
@@ -310,9 +312,11 @@ const UrlListEditor = ({
   onRemove,
   placeholder,
   helper,
+  countText,
+  disabled = false,
 }) => (
   <div>
-    <FieldLabel>{label}</FieldLabel>
+    <FieldLabel countText={countText}>{label}</FieldLabel>
     <div className="flex flex-col gap-3 sm:flex-row">
       <TextInput
         type="url"
@@ -330,7 +334,8 @@ const UrlListEditor = ({
       <button
         type="button"
         onClick={onAdd}
-        className="inline-flex min-h-[52px] shrink-0 items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-5 text-sm font-bold text-amber-900 transition hover:bg-amber-100 shadow-sm"
+        disabled={disabled}
+        className="inline-flex min-h-[52px] shrink-0 items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-5 text-sm font-bold text-amber-900 transition hover:bg-amber-100 shadow-sm disabled:cursor-not-allowed disabled:border-amber-200 disabled:bg-slate-100 disabled:text-slate-400"
       >
         <Plus className="h-4 w-4" aria-hidden />
         Thêm
@@ -878,6 +883,11 @@ const ArtistRegistrationRequestPage = () => {
     truthfulInformationCommitment: false,
   });
 
+  const hasReachedDemoLinkLimit =
+    formData.demoTrackUrls.length >= MAX_PORTFOLIO_LINKS;
+  const hasReachedMusicLinkLimit =
+    formData.musicLinks.length >= MAX_PORTFOLIO_LINKS;
+
   useEffect(() => {
     if (
       !authLoading &&
@@ -990,10 +1000,19 @@ const ArtistRegistrationRequestPage = () => {
   const addDemoUrl = () => {
     const normalized = normalizeText(newDemoUrl);
 
+    if (hasReachedDemoLinkLimit) {
+      setErrors((previous) => ({
+        ...previous,
+        demoTrackUrls: `Bạn chỉ có thể thêm tối đa ${MAX_PORTFOLIO_LINKS} link demo.`,
+      }));
+      return;
+    }
+
     if (!normalized || formData.demoTrackUrls.includes(normalized)) {
       return;
     }
 
+    setErrors((previous) => ({ ...previous, demoTrackUrls: undefined }));
     setFormData((previous) => ({
       ...previous,
       demoTrackUrls: [...previous.demoTrackUrls, normalized],
@@ -1004,15 +1023,32 @@ const ArtistRegistrationRequestPage = () => {
   const addMusicLink = () => {
     const normalized = normalizeText(newMusicLink);
 
+    if (hasReachedMusicLinkLimit) {
+      setErrors((previous) => ({
+        ...previous,
+        musicLinks: `Bạn chỉ có thể thêm tối đa ${MAX_PORTFOLIO_LINKS} link sản phẩm âm nhạc.`,
+      }));
+      return;
+    }
+
     if (!normalized || formData.musicLinks.includes(normalized)) {
       return;
     }
 
+    setErrors((previous) => ({ ...previous, musicLinks: undefined }));
     setFormData((previous) => ({
       ...previous,
       musicLinks: [...previous.musicLinks, normalized],
     }));
     setNewMusicLink("");
+  };
+
+  const removePortfolioLink = (fieldName, item) => {
+    setFormData((previous) => ({
+      ...previous,
+      [fieldName]: previous[fieldName].filter((url) => url !== item),
+    }));
+    setErrors((previous) => ({ ...previous, [fieldName]: undefined }));
   };
 
   const validateForm = () => {
@@ -1059,6 +1095,14 @@ const ArtistRegistrationRequestPage = () => {
     if (!formData.truthfulInformationCommitment) {
       nextErrors.truthfulInformationCommitment =
         "Bạn cần xác nhận thông tin là chính xác.";
+    }
+
+    if (formData.demoTrackUrls.length > MAX_PORTFOLIO_LINKS) {
+      nextErrors.demoTrackUrls = `Bạn chỉ có thể thêm tối đa ${MAX_PORTFOLIO_LINKS} link demo.`;
+    }
+
+    if (formData.musicLinks.length > MAX_PORTFOLIO_LINKS) {
+      nextErrors.musicLinks = `Bạn chỉ có thể thêm tối đa ${MAX_PORTFOLIO_LINKS} link sản phẩm âm nhạc.`;
     }
 
     setErrors(nextErrors);
@@ -1407,17 +1451,14 @@ const ArtistRegistrationRequestPage = () => {
                       inputValue={newDemoUrl}
                       onInputChange={setNewDemoUrl}
                       onAdd={addDemoUrl}
-                      onRemove={(item) =>
-                        setFormData((previous) => ({
-                          ...previous,
-                          demoTrackUrls: previous.demoTrackUrls.filter(
-                            (url) => url !== item
-                          ),
-                        }))
-                      }
+                      onRemove={(item) => removePortfolioLink("demoTrackUrls", item)}
+                      countText={`${formData.demoTrackUrls.length}/${MAX_PORTFOLIO_LINKS} link`}
+                      disabled={hasReachedDemoLinkLimit}
                       placeholder="https://..."
                       helper="Có thể thêm link demo riêng tư hoặc bản nháp để đội ngũ tham khảo."
                     />
+
+                    <FieldError>{errors.demoTrackUrls}</FieldError>
 
                     <UrlListEditor
                       label="Link sản phẩm âm nhạc đã phát hành"
@@ -1425,17 +1466,14 @@ const ArtistRegistrationRequestPage = () => {
                       inputValue={newMusicLink}
                       onInputChange={setNewMusicLink}
                       onAdd={addMusicLink}
-                      onRemove={(item) =>
-                        setFormData((previous) => ({
-                          ...previous,
-                          musicLinks: previous.musicLinks.filter(
-                            (url) => url !== item
-                          ),
-                        }))
-                      }
+                      onRemove={(item) => removePortfolioLink("musicLinks", item)}
+                      countText={`${formData.musicLinks.length}/${MAX_PORTFOLIO_LINKS} link`}
+                      disabled={hasReachedMusicLinkLimit}
                       placeholder="https://..."
                       helper="Thêm link bài hát, MV, album hoặc trang nghệ sĩ đang hoạt động công khai."
                     />
+
+                    <FieldError>{errors.musicLinks}</FieldError>
 
                     <div>
                       <FieldLabel

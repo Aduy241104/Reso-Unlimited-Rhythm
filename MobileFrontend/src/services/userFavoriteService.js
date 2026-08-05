@@ -1,6 +1,6 @@
 import axiosClient from '../api/axiosClient';
 import { API_ENDPOINTS } from '../api/apiEndpoints';
-import { formatDateLabel, formatDuration, resolveImageUri } from '../utils/media';
+import { formatDateLabel, formatTrackDuration, resolveImageUri } from '../utils/media';
 import { resolveTrackAudioUri } from '../utils/player';
 
 const getPayload = (response) => response?.data || response || {};
@@ -29,7 +29,7 @@ const normalizeFavoriteTrack = (item, index = 0) => ({
   ),
   duration: Number(item?.duration) || 0,
   audioUri: pickFirstDefined(item?.audioUri, resolveTrackAudioUri(item), ''),
-  meta: Number(item?.duration) > 0 ? formatDuration(item.duration) : '',
+  meta: Number(item?.duration) > 0 ? formatTrackDuration(item.duration) : '',
   favoritedAtLabel: formatDateLabel(item?.favoritedAt),
 });
 

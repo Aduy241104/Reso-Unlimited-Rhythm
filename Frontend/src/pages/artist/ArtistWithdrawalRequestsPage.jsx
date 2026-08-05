@@ -8,6 +8,7 @@ import {
   ReceiptText,
   Wallet,
 } from "lucide-react";
+import { ARTIST_INPUT_LIMITS } from "../../constants/artistInputLimits";
 import {
   createMyArtistPayoutAccountService,
   createMyArtistWithdrawalRequestService,
@@ -489,6 +490,7 @@ const ArtistWithdrawalRequestsPage = () => {
                 onChange={(event) =>
                   handlePayoutAccountFormChange("accountNumber", event.target.value)
                 }
+                maxLength={ARTIST_INPUT_LIMITS.payoutAccountNumber}
                 className="h-12 w-full rounded-2xl border border-[#e7e1ff] bg-white px-4 text-sm text-[#241b15] outline-none transition focus:border-[#7c6cf2]"
                 placeholder="Ví dụ: 123456789"
                 required
@@ -503,6 +505,7 @@ const ArtistWithdrawalRequestsPage = () => {
                 onChange={(event) =>
                   handlePayoutAccountFormChange("accountHolderName", event.target.value)
                 }
+                maxLength={ARTIST_INPUT_LIMITS.payoutAccountHolderName}
                 className="h-12 w-full rounded-2xl border border-[#e7e1ff] bg-white px-4 text-sm text-[#241b15] outline-none transition focus:border-[#7c6cf2]"
                 placeholder="Nhập đúng tên người nhận tiền"
                 required
@@ -522,6 +525,7 @@ const ArtistWithdrawalRequestsPage = () => {
                         event.target.value
                       )
                     }
+                    maxLength={ARTIST_INPUT_LIMITS.withdrawalPassword}
                     className="h-12 w-full rounded-2xl border border-[#e7e1ff] bg-white px-4 text-sm text-[#241b15] outline-none transition focus:border-[#7c6cf2]"
                     placeholder="Ít nhất 6 ký tự"
                     required
@@ -539,6 +543,7 @@ const ArtistWithdrawalRequestsPage = () => {
                         event.target.value
                       )
                     }
+                    maxLength={ARTIST_INPUT_LIMITS.withdrawalPassword}
                     className="h-12 w-full rounded-2xl border border-[#e7e1ff] bg-white px-4 text-sm text-[#241b15] outline-none transition focus:border-[#7c6cf2]"
                     placeholder="Nhập lại mật khẩu rút tiền"
                     required
@@ -613,6 +618,7 @@ const ArtistWithdrawalRequestsPage = () => {
                 onChange={(event) =>
                   handleWithdrawalFormChange("amount", event.target.value)
                 }
+                maxLength={ARTIST_INPUT_LIMITS.withdrawalAmount}
                 className="h-12 w-full rounded-2xl border border-[#e7e1ff] bg-white px-4 text-sm text-[#241b15] outline-none transition focus:border-[#7c6cf2]"
                 placeholder="Ví dụ: 500000"
                 required
@@ -636,6 +642,7 @@ const ArtistWithdrawalRequestsPage = () => {
                     event.target.value
                   )
                 }
+                maxLength={ARTIST_INPUT_LIMITS.withdrawalPassword}
                 className="h-12 w-full rounded-2xl border border-[#e7e1ff] bg-white px-4 text-sm text-[#241b15] outline-none transition focus:border-[#7c6cf2]"
                 placeholder="Nhập mật khẩu rút tiền"
                 required

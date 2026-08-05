@@ -14,10 +14,18 @@ const statusFilters = [
 
 const targetTypeFilters = [
     { value: "", label: "Tất cả loại" },
-    { value: "track", label: "Track" },
+    { value: "track", label: "Bài hát" },
     { value: "album", label: "Album" },
-    { value: "artist", label: "Artist" },
+    { value: "artist", label: "Nghệ sĩ" },
 ];
+
+const TARGET_TYPE_LABELS = {
+    track: "Bài hát",
+    album: "Album",
+    artist: "Nghệ sĩ",
+};
+
+const getTargetTypeLabel = (type) => TARGET_TYPE_LABELS[type] || "Nội dung";
 
 const reasonLabels = {
     copyright_infringement: "Bản quyền",
@@ -29,6 +37,11 @@ const reasonLabels = {
     impersonation: "Mạo danh",
     other: "Khác",
 };
+
+reasonLabels.fake_artist = "Nghệ sĩ giả mạo";
+reasonLabels.wrong_metadata = "Thông tin bài hát không chính xác";
+reasonLabels.lyrics_issue = "Lời bài hát không phù hợp";
+reasonLabels.audio_quality = "Chất lượng âm thanh kém";
 
 const getStatusConfig = (status) => {
     switch (status) {
@@ -80,7 +93,7 @@ const getTargetTypeBadge = (type) => {
     };
     return (
         <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize ${colors[type] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
-            {type}
+            {getTargetTypeLabel(type)}
         </span>
     );
 };

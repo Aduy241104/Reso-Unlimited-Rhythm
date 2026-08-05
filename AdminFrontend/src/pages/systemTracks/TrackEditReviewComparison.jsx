@@ -39,12 +39,12 @@ const EmptyValue = () => (
 );
 
 const formatDuration = (seconds) => {
-  const normalized = Number(seconds);
-  if (!Number.isFinite(normalized) || normalized <= 0) return "00:00";
+  const normalized = Math.floor(Number(seconds));
+  if (!Number.isFinite(normalized) || normalized < 0) return "0:00";
 
   const minutes = Math.floor(normalized / 60);
-  const remainingSeconds = Math.floor(normalized % 60);
-  return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
+  const remainingSeconds = normalized % 60;
+  return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
 };
 
 const formatDateTime = (value) => {

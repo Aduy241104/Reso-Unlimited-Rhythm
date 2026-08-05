@@ -9,6 +9,7 @@ import {
   Music2,
   Save,
 } from "lucide-react";
+import { ARTIST_INPUT_LIMITS } from "../../constants/artistInputLimits";
 import {
   editAlbumService,
   getArtistAlbumDetailService,
@@ -137,8 +138,10 @@ const ArtistEditAlbumPage = () => {
 
     if (!formData.title.trim()) {
       errors.title = "Vui lòng nhập tên album.";
-    } else if (formData.title.trim().length > 100) {
-      errors.title = "Tên album không được vượt quá 100 ký tự.";
+    } else if (
+      formData.title.trim().length > ARTIST_INPUT_LIMITS.albumTitle
+    ) {
+      errors.title = `Tên album không được vượt quá ${ARTIST_INPUT_LIMITS.albumTitle} ký tự.`;
     }
 
     if (
@@ -330,7 +333,7 @@ const ArtistEditAlbumPage = () => {
                     name="title"
                     value={formData.title}
                     onChange={handleInputChange}
-                    maxLength={100}
+                    maxLength={ARTIST_INPUT_LIMITS.albumTitle}
                     placeholder="Nhập tên album"
                     className={`h-12 w-full rounded-xl border px-4 pr-16 text-sm text-[#332a52] outline-none transition placeholder:text-[#aaa4bd] focus:ring-4 focus:ring-[#7664ef]/10 ${
                       formErrors.title
@@ -339,7 +342,7 @@ const ArtistEditAlbumPage = () => {
                     }`}
                   />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-[#aaa4bd]">
-                    {formData.title.length}/100
+                    {formData.title.length}/{ARTIST_INPUT_LIMITS.albumTitle}
                   </span>
                 </div>
                 {formErrors.title ? (

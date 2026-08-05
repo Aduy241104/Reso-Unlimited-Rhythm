@@ -23,6 +23,7 @@ import usePlayer from '../../hooks/usePlayer';
 import userFavoriteService from '../../services/userFavoriteService';
 import {
   formatDuration,
+  formatTrackDuration,
   getErrorMessage,
   getInitials,
   resolveImageUri,
@@ -70,7 +71,7 @@ const FavoriteTrackRow = ({
   const accentColor = accentPalette[index % accentPalette.length];
   const title = readText(item?.title, 'Bài hát không xác định');
   const subtitle = readText(item?.subtitle, 'Nghệ sĩ không xác định');
-  const meta = readText(item?.meta, formatDuration(item?.duration));
+  const meta = readText(item?.meta, formatTrackDuration(item?.duration));
 
   return (
     <View style={styles.trackRow}>

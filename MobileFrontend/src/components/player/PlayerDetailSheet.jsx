@@ -14,7 +14,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppLoader from '../common/AppLoader';
-import { formatCompactNumber, formatDateLabel, formatDuration, getInitials, resolveImageUri } from '../../utils/media';
+import { formatCompactNumber, formatDateLabel, formatTrackDuration, getInitials, resolveImageUri } from '../../utils/media';
 import { formatPlayerTime, getPlayableDuration, resolveTrackStaticLyrics } from '../../utils/player';
 
 const CLOSE_THRESHOLD = 120;
@@ -71,7 +71,7 @@ const buildSongInfoRows = (trackPayload) => {
   return [
     { label: 'Nghệ sĩ', value: trackPayload?.artist?.name || 'Nghệ sĩ không xác định' },
     { label: 'Album', value: trackPayload?.album?.title || 'Đĩa đơn' },
-    { label: 'Thời lượng', value: formatDuration(trackPayload?.duration) || '0s' },
+    { label: 'Thời lượng', value: formatTrackDuration(trackPayload?.duration) },
     { label: 'Phát hành', value: formatDateLabel(trackPayload?.releaseDate) || 'Không xác định' },
     { label: 'Lượt phát', value: formatCompactNumber(trackPayload?.stats?.totalPlay) },
     { label: 'Lượt thích', value: formatCompactNumber(trackPayload?.stats?.totalLike) },

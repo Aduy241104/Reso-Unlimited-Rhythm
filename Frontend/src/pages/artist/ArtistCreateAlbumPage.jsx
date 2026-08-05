@@ -9,6 +9,7 @@ import {
   Plus,
   X,
 } from "lucide-react";
+import { ARTIST_INPUT_LIMITS } from "../../constants/artistInputLimits";
 import { createAlbumService } from "../../services/artist/artistAlbumService";
 import { routePaths } from "../../routes/routePaths";
 import {
@@ -101,8 +102,10 @@ const ArtistCreateAlbumPage = () => {
 
     if (!formData.title.trim()) {
       errors.title = "Vui lòng nhập tên album.";
-    } else if (formData.title.trim().length > 100) {
-      errors.title = "Tên album không được vượt quá 100 ký tự.";
+    } else if (
+      formData.title.trim().length > ARTIST_INPUT_LIMITS.albumTitle
+    ) {
+      errors.title = `Tên album không được vượt quá ${ARTIST_INPUT_LIMITS.albumTitle} ký tự.`;
     }
 
     setFormErrors(errors);
@@ -275,7 +278,7 @@ const ArtistCreateAlbumPage = () => {
                     value={formData.title}
                     onChange={handleInputChange}
                     placeholder="Nhập tên album"
-                    maxLength={100}
+                    maxLength={ARTIST_INPUT_LIMITS.albumTitle}
                     className={`h-12 w-full rounded-xl border bg-white px-4 pr-16 text-sm text-[#332a52] outline-none transition placeholder:text-[#aaa4bd] focus:ring-4 focus:ring-[#7664ef]/10 ${
                       formErrors.title
                         ? "border-rose-300 focus:border-rose-400"
@@ -283,7 +286,7 @@ const ArtistCreateAlbumPage = () => {
                     }`}
                   />
                   <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs text-[#aaa4bd]">
-                    {formData.title.length}/100
+                    {formData.title.length}/{ARTIST_INPUT_LIMITS.albumTitle}
                   </span>
                 </div>
                 {formErrors.title ? (

@@ -290,6 +290,11 @@ const resolveGroupedReport = async (targetType, targetId, body, adminId) => {
                 other: "Vi phạm quy định",
             };
 
+            REASON_MAP.fake_artist = "Nghệ sĩ giả mạo";
+            REASON_MAP.wrong_metadata = "Thông tin bài hát không chính xác";
+            REASON_MAP.lyrics_issue = "Lời bài hát không phù hợp";
+            REASON_MAP.audio_quality = "Chất lượng âm thanh kém";
+
             const validReasons = evaluations
                 .filter((e) => e.isValid)
                 .map((e) => {

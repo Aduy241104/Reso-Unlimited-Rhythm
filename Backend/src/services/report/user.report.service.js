@@ -1,11 +1,15 @@
 import { StatusCodes } from "http-status-codes";
 import mongoose from "mongoose";
 import Report from "../../models/Report.js";
+import Track from "../../models/Track.js";
+import Album from "../../models/Album.js";
+import Artist from "../../models/Artist.js";
 import { AppError } from "../../utils/AppError.js";
 import { uploadImageBuffer } from "../cloudinaryService.js";
 
 const CLOUDINARY_REPORTS_FOLDER = "reso/reports";
 const ALLOWED_TARGET_TYPES = ["track", "album", "artist"];
+const OPEN_REPORT_STATUSES = ["pending", "reviewing"];
 const ALLOWED_REPORT_REASONS = [
   "copyright_infringement",
   "harassment_or_hate",
@@ -14,6 +18,10 @@ const ALLOWED_REPORT_REASONS = [
   "spam_or_scam",
   "misleading_information",
   "impersonation",
+  "fake_artist",
+  "wrong_metadata",
+  "lyrics_issue",
+  "audio_quality",
   "other",
 ];
 
@@ -33,6 +41,42 @@ const normalizeImageFiles = (files) => {
   }
 
   return files.filter((file) => file?.buffer);
+};
+
+const populateReportTargetInfo = async (targetType, targetId) => {
+  if (!targetId || !mongoose.Types.ObjectId.isValid(targetId)) {
+    return null;
+  }
+
+  switch (targetType) {
+    case "track":
+      return Track.findById(targetId)
+        .select("title avatar coverImage artist_artistId")
+        .populate("artist_artistId", "name avatar")
+        .lean();
+    case "album":
+      return Album.findById(targetId)
+        .select("title coverImage artistId")
+        .populate("artistId", "name avatar")
+        .lean();
+    case "artist":
+      return Artist.findById(targetId).select("name avatar").lean();
+    default:
+      return null;
+  }
+};
+
+const enrichReportWithTargetInfo = async (report) => {
+  if (!report) {
+    return report;
+  }
+
+  const targetInfo = await populateReportTargetInfo(report.targetType, report.targetId);
+
+  return {
+    ...report,
+    targetInfo,
+  };
 };
 
 const validateCreateReportPayload = (payload = {}) => {
@@ -83,6 +127,29 @@ const validateCreateReportPayload = (payload = {}) => {
   };
 };
 
+const ensureNoOpenDuplicateReport = async (userId, targetId, targetType) => {
+  const existingOpenReport = await Report.findOne({
+    userId,
+    targetId,
+    targetType,
+    status: { $in: OPEN_REPORT_STATUSES },
+  })
+    .select("_id status")
+    .lean();
+
+  if (existingOpenReport) {
+    throw new AppError(
+      "You already have an open report for this content. Please wait until it is processed before reporting it again.",
+      StatusCodes.CONFLICT,
+      {
+        field: "targetId",
+        message:
+          "You already have an open report for this content. Please wait until it is processed before reporting it again.",
+      }
+    );
+  }
+};
+
 const uploadReportImage = async (userId, file, index) => {
   try {
     const uploaded = await uploadImageBuffer({
@@ -109,6 +176,11 @@ const createReportByUserId = async (userId, payload = {}, files = []) => {
   }
 
   const validated = validateCreateReportPayload(payload);
+  await ensureNoOpenDuplicateReport(
+    userId,
+    validated.targetId,
+    validated.targetType
+  );
   const imageFiles = normalizeImageFiles(files);
   const imageUrls = await Promise.all(
     imageFiles.map((file, index) => uploadReportImage(userId, file, index))
@@ -158,9 +230,12 @@ const getReportsByUserId = async (userId, params = {}) => {
       .lean(),
     Report.countDocuments(filter),
   ]);
+  const reportsWithTargetInfo = await Promise.all(
+    reports.map((report) => enrichReportWithTargetInfo(report))
+  );
 
   return {
-    reports,
+    reports: reportsWithTargetInfo,
     pagination: {
       page,
       limit,
@@ -189,7 +264,7 @@ const getReportById = async (userId, reportId) => {
     throw new AppError("Report not found.", StatusCodes.NOT_FOUND);
   }
 
-  return report;
+  return enrichReportWithTargetInfo(report);
 };
 
 export default {
