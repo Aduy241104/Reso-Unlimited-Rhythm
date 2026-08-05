@@ -10,7 +10,11 @@ import {
 } from "chart.js";
 import { LoaderCircle } from "lucide-react";
 import { Line } from "react-chartjs-2";
-import { displayRawValue, formatNumber, getVisibleDateStep } from "../helpers";
+import {
+  formatListenDuration,
+  formatNumber,
+  getVisibleDateStep,
+} from "../helpers";
 
 const GRID_LINE_COUNT = 4;
 const MIN_POINT_GAP = 46;
@@ -228,7 +232,7 @@ const TrackInsightsChartPanel = ({
             },
             callback: (value) =>
               chartMetric === "averageListenDuration"
-                ? displayRawValue(Math.round(Number(value) || 0))
+                ? formatListenDuration(value)
                 : chartMeta?.formatter(value),
           },
           grid: {
@@ -321,7 +325,7 @@ const TrackInsightsChartPanel = ({
               <p className="text-[#7c7891]">Mốc gần nhất</p>
               <p className="mt-1 font-semibold text-[#2f2747]">
                 {chartMetric === "averageListenDuration"
-                  ? displayRawValue(latestMetricValue)
+                  ? formatListenDuration(latestMetricValue)
                   : chartMeta.formatter(latestMetricValue)}
               </p>
             </div>
@@ -368,7 +372,7 @@ const TrackInsightsChartPanel = ({
                   <p className="mt-1 text-xs text-[#7c7891]">
                     {chartMeta.label}:{" "}
                     {chartMetric === "averageListenDuration"
-                      ? displayRawValue(hoveredPoint.metricValue)
+                      ? formatListenDuration(hoveredPoint.metricValue)
                       : chartMeta.formatter(hoveredPoint.metricValue)}
                   </p>
                 </div>

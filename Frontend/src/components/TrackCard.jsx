@@ -9,10 +9,10 @@ const sizeClassNames = {
     container:
       "gap-3 px-0 py-2 sm:px-3 sm:py-2.5",
     image:
-      "h-11 w-11 rounded-[10px] object-cover shadow-[0_8px_24px_rgba(15,23,42,0.14)]",
+      "h-11 w-11 shrink-0 rounded-[10px] object-cover shadow-[0_8px_24px_rgba(15,23,42,0.14)]",
     fallback:
       `
-        flex h-11 w-11 items-center justify-center rounded-[10px] bg-[#ececec] text-[11px]
+        flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-[#ececec] text-[11px]
         font-semibold uppercase tracking-[0.08em] text-[#52525b]
         dark:bg-[#282828] dark:text-[#a1a1aa]
       `,
@@ -28,10 +28,10 @@ const sizeClassNames = {
     container:
       "gap-2 px-0 py-2 sm:px-2 sm:py-2",
     image:
-      "h-10 w-10 rounded-[10px] object-cover shadow-[0_10px_20px_rgba(15,23,42,0.16)]",
+      "h-10 w-10 shrink-0 rounded-[10px] object-cover shadow-[0_10px_20px_rgba(15,23,42,0.16)]",
     fallback:
       `
-        flex h-10 w-10 items-center justify-center rounded-[10px] bg-[#ececec] text-[10px]
+        flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-[#ececec] text-[10px]
         font-semibold uppercase tracking-[0.08em] text-[#52525b]
         dark:bg-[#282828] dark:text-[#a1a1aa]
       `,
@@ -192,7 +192,7 @@ const TrackCard = ({
           </div>
         )}
 
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           {href && !isTrackBlocked ? (
             <Link to={href} onClick={handleMobileLinkClick} className="hidden min-w-0 sm:block">
               <p className={`${resolvedClasses.title} hover:underline`}>

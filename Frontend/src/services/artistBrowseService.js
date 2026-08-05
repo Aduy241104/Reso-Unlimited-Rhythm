@@ -214,6 +214,25 @@ const normalizeProfile = (payload) => {
     bio: profile?.bio || profile?.about || profile?.description || "",
     role: profile?.role || "artist",
     location: profile?.location || profile?.country || profile?.city || "",
+    socialLinks: profile?.socialLinks || {},
+    totalStreams: getMetricValue(
+      profile?.totalStreams ??
+        profile?.metrics?.totalStreams ??
+        profile?.stats?.totalStreams,
+      0
+    ),
+    albumCount: getMetricValue(
+      profile?.albumCount ??
+        profile?.stats?.albumCount ??
+        (Array.isArray(payload?.albums) ? payload.albums.length : undefined),
+      0
+    ),
+    trackCount: getMetricValue(
+      profile?.trackCount ??
+        profile?.stats?.trackCount ??
+        (Array.isArray(payload?.tracks) ? payload.tracks.length : undefined),
+      0
+    ),
     isFollowing:
       resolveIsFollowingValue(
         payload?.isFollowing,
