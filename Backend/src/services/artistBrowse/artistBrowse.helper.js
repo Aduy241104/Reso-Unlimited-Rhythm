@@ -88,7 +88,7 @@ const formatArtistComingRelease = ({ schedule, target }) => {
     };
 };
 
-const formatArtistProfile = ({ artist, artistStat, albums, tracks }) => ({
+const formatArtistProfile = ({ artist, artistMonthlyStat, albums, tracks }) => ({
     artist: {
         id: toId(artist._id),
         userId: toId(artist.userId),
@@ -99,9 +99,11 @@ const formatArtistProfile = ({ artist, artistStat, albums, tracks }) => ({
         socialLinks: artist.socialLinks,
         stats: {
             followers: artist.stats?.followers || 0,
-            totalStreams: artist.stats?.totalStreams || 0,
-            totalFollowers: artistStat?.totalFollowers || artist.stats?.followers || 0,
-            monthlyListeners: artistStat?.monthlyListeners || 0,
+            totalStreams:
+                artistMonthlyStat?.totalStreams ?? artist.stats?.totalStreams ?? 0,
+            totalFollowers:
+                artistMonthlyStat?.totalFollowers ?? artist.stats?.followers ?? 0,
+            monthlyListeners: artistMonthlyStat?.totalStreams ?? 0,
         },
         albumCount: albums.length,
         trackCount: tracks.length,
