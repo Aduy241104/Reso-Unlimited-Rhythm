@@ -1,8 +1,10 @@
-import React, { createContext, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { AuthContext } from './AuthContext';
 import listenEventService from '../services/listenEventService';
 import trackService from '../services/trackService';
 import { tokenStorage } from '../storage/tokenStorage';
+import { hasPremiumAccess } from '../utils/premium';
 import {
   buildExpoAudioSource,
   buildPlayableQueue,
@@ -10,8 +12,68 @@ import {
   getPlayableDuration,
   hasSyncedLrc,
   normalizePlayerTrack,
+  resolveTrackAudioQualityOptions,
+  resolveTrackAudioUri,
   resolveTrackLyricsSyncUrl,
 } from '../utils/player';
+
+const REPEAT_MODE_SEQUENCE = ['off', 'all', 'one'];
+const SHUFFLE_COLLECTION_TYPES = new Set(['album', 'playlist']);
+
+const shuffleTracks = (tracks = []) => {
+  const nextTracks = [...tracks];
+
+  for (let index = nextTracks.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [nextTracks[index], nextTracks[randomIndex]] = [nextTracks[randomIndex], nextTracks[index]];
+  }
+
+  return nextTracks;
+};
+
+const buildShuffledQueue = (tracks, startIndex, preserveStartTrack = false) => {
+  if (!Array.isArray(tracks) || tracks.length < 2) {
+    return { queue: tracks, startIndex };
+  }
+
+  if (!preserveStartTrack) {
+    return { queue: shuffleTracks(tracks), startIndex: 0 };
+  }
+
+  const activeTrack = tracks[startIndex];
+  const remainingTracks = tracks.filter((_, index) => index !== startIndex);
+
+  return {
+    queue: [activeTrack, ...shuffleTracks(remainingTracks)],
+    startIndex: 0,
+  };
+};
+
+const findSelectedQuality = (qualityOptions, track, preferredQuality = null) => {
+  if (!Array.isArray(qualityOptions) || qualityOptions.length === 0) {
+    return null;
+  }
+
+  const preferredBitrate = Math.max(0, Number(preferredQuality?.bitrate) || 0);
+  const preferredUrl = preferredQuality?.url || '';
+  const preferredLabel = String(preferredQuality?.label || '').trim().toLowerCase();
+  const defaultAudioUri = resolveTrackAudioUri(track);
+
+  return (
+    qualityOptions.find(
+      (quality) => preferredBitrate > 0 && quality.bitrate === preferredBitrate
+    ) ||
+    qualityOptions.find((quality) => preferredUrl && quality.url === preferredUrl) ||
+    qualityOptions.find((quality) => preferredLabel && quality.label === preferredLabel) ||
+    qualityOptions.find((quality) => quality.isDefault) ||
+    qualityOptions.find((quality) => quality.url === defaultAudioUri) ||
+    qualityOptions[0]
+  );
+};
+
+const getQueueIdentity = (track) => String(
+  track?.queueItemId || track?.entityId || track?.id || ''
+);
 
 export const PlayerContext = createContext({
   currentTrack: null,
@@ -23,8 +85,14 @@ export const PlayerContext = createContext({
   currentError: '',
   progressSeconds: 0,
   progressRatio: 0,
+  duration: 0,
   hasNext: false,
   hasPrevious: false,
+  isPremium: false,
+  isShuffleEnabled: true,
+  repeatMode: 'off',
+  availableAudioQualities: [],
+  selectedAudioQuality: null,
   playTrack: () => {},
   playQueue: () => {},
   playAtIndex: () => {},
@@ -32,6 +100,10 @@ export const PlayerContext = createContext({
   playNext: () => {},
   playPrevious: () => {},
   seekTo: () => {},
+  addTrackToQueue: () => {},
+  toggleShuffle: () => {},
+  cycleRepeatMode: () => {},
+  changeAudioQuality: async () => false,
   moveQueueItem: () => {},
   removeFromQueue: () => {},
   clearUpcoming: () => {},
@@ -44,6 +116,8 @@ export const PlayerQueueCommandContext = createContext(() => {});
 const MAX_SEEK_FREE_PROGRESS_DELTA_SECONDS = 2;
 
 export const PlayerProvider = ({ children }) => {
+  const { user } = useContext(AuthContext);
+  const isPremium = hasPremiumAccess(user);
   const player = useAudioPlayer(null, {
     updateInterval: 250,
     keepAudioSessionActive: true,
@@ -53,8 +127,16 @@ export const PlayerProvider = ({ children }) => {
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [currentError, setCurrentError] = useState('');
   const [isPreparing, setIsPreparing] = useState(false);
+  const [isShuffleEnabled, setIsShuffleEnabled] = useState(true);
+  const [repeatMode, setRepeatMode] = useState('off');
+  const [availableAudioQualities, setAvailableAudioQualities] = useState([]);
+  const [selectedAudioQuality, setSelectedAudioQuality] = useState(null);
   const queueRef = useRef([]);
+  const orderedQueueRef = useRef([]);
   const currentIndexRef = useRef(-1);
+  const activeCollectionTypeRef = useRef('');
+  const isShuffleEnabledRef = useRef(true);
+  const repeatModeRef = useRef('off');
   const loadRequestRef = useRef(0);
   const didFinishRef = useRef(false);
   const listenAttemptRef = useRef({
@@ -71,8 +153,10 @@ export const PlayerProvider = ({ children }) => {
 
   const currentTrack = currentIndex >= 0 ? queue[currentIndex] || null : null;
   const currentDuration = Math.max(Number(status?.duration) || 0, getPlayableDuration(currentTrack));
-  const hasPrevious = currentIndex > 0;
-  const hasNext = currentIndex >= 0 && currentIndex < queue.length - 1;
+  const hasPreviousTrack = currentIndex > 0;
+  const hasNextTrack = currentIndex >= 0 && currentIndex < queue.length - 1;
+  const hasPrevious = hasPreviousTrack || (repeatMode === 'all' && queue.length > 0);
+  const hasNext = hasNextTrack || (repeatMode === 'all' && queue.length > 0);
   const progressSeconds = Number(status?.currentTime) || 0;
   const progressRatio = currentTrack && currentDuration > 0 ? Math.min(progressSeconds / currentDuration, 1) : 0;
   const isPlaying = Boolean(status?.playing);
@@ -170,9 +254,23 @@ export const PlayerProvider = ({ children }) => {
         return prev;
       }
 
+      const previousIdentity = getQueueIdentity(prev[index]);
       const nextQueue = [...prev];
       nextQueue[index] = track;
       queueRef.current = nextQueue;
+
+      if (previousIdentity) {
+        let didReplaceOrderedTrack = false;
+        orderedQueueRef.current = orderedQueueRef.current.map((orderedTrack) => {
+          if (!didReplaceOrderedTrack && getQueueIdentity(orderedTrack) === previousIdentity) {
+            didReplaceOrderedTrack = true;
+            return track;
+          }
+
+          return orderedTrack;
+        });
+      }
+
       return nextQueue;
     });
   }, []);
@@ -181,12 +279,16 @@ export const PlayerProvider = ({ children }) => {
     void flushCurrentListenAttempt();
     loadRequestRef.current += 1;
     queueRef.current = [];
+    orderedQueueRef.current = [];
     currentIndexRef.current = -1;
+    activeCollectionTypeRef.current = '';
     player.pause();
     setQueue([]);
     setCurrentIndex(-1);
     setCurrentError('');
     setIsPreparing(false);
+    setAvailableAudioQualities([]);
+    setSelectedAudioQuality(null);
     listenAttemptRef.current = {
       trackId: '',
       duration: 0,
@@ -265,8 +367,15 @@ export const PlayerProvider = ({ children }) => {
 
       syncQueueTrack(safeIndex, resolvedTrack);
 
+      const qualityOptions = resolveTrackAudioQualityOptions(resolvedTrack);
+      const preferredQuality = isPremium ? options.preferredQuality || null : null;
+      const nextSelectedQuality = findSelectedQuality(
+        qualityOptions,
+        resolvedTrack,
+        preferredQuality
+      );
       const accessToken = await tokenStorage.getAccessToken().catch(() => null);
-      const audioSource = buildExpoAudioSource(resolvedTrack, accessToken);
+      const audioSource = buildExpoAudioSource(resolvedTrack, accessToken, preferredQuality);
 
       if (!audioSource) {
         player.pause();
@@ -275,9 +384,16 @@ export const PlayerProvider = ({ children }) => {
         return false;
       }
 
-      void flushCurrentListenAttempt();
+      setAvailableAudioQualities(qualityOptions);
+      setSelectedAudioQuality(nextSelectedQuality);
+
+      if (!options.preserveListenAttempt) {
+        void flushCurrentListenAttempt();
+      }
       player.replace(audioSource);
-      startListenAttempt(resolvedTrack);
+      if (!options.preserveListenAttempt) {
+        startListenAttempt(resolvedTrack);
+      }
       try {
         player.setActiveForLockScreen(true, {
           title: resolvedTrack.title,
@@ -286,7 +402,17 @@ export const PlayerProvider = ({ children }) => {
         });
       } catch {}
 
-      if (options.resetPosition !== false) {
+      if (Number.isFinite(Number(options.resumePosition))) {
+        const resumePosition = Math.min(
+          Math.max(0, Number(options.resumePosition) || 0),
+          Math.max(0, Number(resolvedTrack.duration) || Number(currentDuration) || 0)
+        );
+
+        alignListenProgressAfterSeek(resumePosition);
+        try {
+          await player.seekTo(resumePosition);
+        } catch {}
+      } else if (options.resetPosition !== false) {
         try {
           await player.seekTo(0);
         } catch {}
@@ -311,7 +437,10 @@ export const PlayerProvider = ({ children }) => {
       return false;
     }
   }, [
+    alignListenProgressAfterSeek,
+    currentDuration,
     flushCurrentListenAttempt,
+    isPremium,
     player,
     resolveTrackForPlayback,
     startListenAttempt,
@@ -319,16 +448,33 @@ export const PlayerProvider = ({ children }) => {
   ]);
 
   const playQueue = useCallback((tracks = [], startIndex = 0, options = {}) => {
-    const normalizedQueue = buildPlayableQueue(tracks);
+    const orderedQueue = buildPlayableQueue(tracks);
+    let normalizedQueue = orderedQueue;
 
     if (normalizedQueue.length === 0) {
       return;
     }
 
-    const safeIndex = Math.min(Math.max(0, startIndex), normalizedQueue.length - 1);
+    let safeIndex = Math.min(Math.max(0, startIndex), normalizedQueue.length - 1);
+    const shouldShuffle =
+      SHUFFLE_COLLECTION_TYPES.has(options.collectionType) &&
+      (typeof options.shuffle === 'boolean' ? options.shuffle : isShuffleEnabledRef.current);
+
+    if (shouldShuffle) {
+      const shuffledResult = buildShuffledQueue(
+        normalizedQueue,
+        safeIndex,
+        Boolean(options.preserveStartTrack)
+      );
+
+      normalizedQueue = shuffledResult.queue;
+      safeIndex = shuffledResult.startIndex;
+    }
 
     queueRef.current = normalizedQueue;
+    orderedQueueRef.current = orderedQueue;
     currentIndexRef.current = safeIndex;
+    activeCollectionTypeRef.current = options.collectionType || '';
     setQueue(normalizedQueue);
     setCurrentIndex(safeIndex);
     void loadTrackAtIndex(safeIndex, options, normalizedQueue);
@@ -392,7 +538,12 @@ export const PlayerProvider = ({ children }) => {
   ]);
 
   const playPrevious = useCallback(() => {
-    if (!hasPrevious) {
+    if (!hasPreviousTrack) {
+      if (repeatModeRef.current === 'all' && queueRef.current.length > 0) {
+        void loadTrackAtIndex(queueRef.current.length - 1, { autoPlay: true });
+        return;
+      }
+
       void flushCurrentListenAttempt();
       startListenAttempt(currentTrack);
       alignListenProgressAfterSeek(0);
@@ -406,14 +557,19 @@ export const PlayerProvider = ({ children }) => {
     currentIndex,
     currentTrack,
     flushCurrentListenAttempt,
-    hasPrevious,
+    hasPreviousTrack,
     loadTrackAtIndex,
     player,
     startListenAttempt,
   ]);
 
   const playNext = useCallback(() => {
-    if (!hasNext) {
+    if (!hasNextTrack) {
+      if (repeatModeRef.current === 'all' && queueRef.current.length > 0) {
+        void loadTrackAtIndex(0, { autoPlay: true });
+        return;
+      }
+
       player.pause();
       trackListenProgress(progressSeconds, Boolean(status?.playing));
       void flushCurrentListenAttempt();
@@ -424,7 +580,7 @@ export const PlayerProvider = ({ children }) => {
   }, [
     currentIndex,
     flushCurrentListenAttempt,
-    hasNext,
+    hasNextTrack,
     loadTrackAtIndex,
     player,
     progressSeconds,
@@ -433,15 +589,148 @@ export const PlayerProvider = ({ children }) => {
   ]);
 
   const seekTo = useCallback((value) => {
-    if (!currentTrack) {
-      return;
+    if (!currentTrack || !isPremium) {
+      return false;
     }
 
     const nextValue = Math.min(Math.max(0, Number(value) || 0), currentDuration);
 
     alignListenProgressAfterSeek(nextValue);
     void player.seekTo(nextValue).catch(() => {});
-  }, [alignListenProgressAfterSeek, currentDuration, currentTrack, player]);
+    return true;
+  }, [alignListenProgressAfterSeek, currentDuration, currentTrack, isPremium, player]);
+
+  const addTrackToQueue = useCallback((track) => {
+    if (!track) {
+      return false;
+    }
+
+    const normalizedTrack = normalizePlayerTrack({
+      ...track,
+      queueItemId: `manual-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      queueSource: 'manual',
+    });
+    const sourceQueue = queueRef.current;
+    const activeIndex = currentIndexRef.current;
+
+    if (!normalizedTrack.id) {
+      return false;
+    }
+
+    let insertIndex = sourceQueue.length;
+
+    if (activeIndex >= 0 && activeIndex < sourceQueue.length) {
+      insertIndex = activeIndex + 1;
+
+      while (
+        insertIndex < sourceQueue.length &&
+        sourceQueue[insertIndex]?.queueSource === 'manual'
+      ) {
+        insertIndex += 1;
+      }
+    }
+
+    const nextQueue = [...sourceQueue];
+    nextQueue.splice(insertIndex, 0, normalizedTrack);
+    queueRef.current = nextQueue;
+    setQueue(nextQueue);
+    setCurrentError('');
+
+    const orderedQueue = orderedQueueRef.current;
+    const activeIdentity = getQueueIdentity(sourceQueue[activeIndex]);
+    const orderedActiveIndex = activeIdentity
+      ? orderedQueue.findIndex((item) => getQueueIdentity(item) === activeIdentity)
+      : -1;
+    const orderedInsertIndex = orderedActiveIndex >= 0 ? orderedActiveIndex + 1 : orderedQueue.length;
+    const nextOrderedQueue = [...orderedQueue];
+    nextOrderedQueue.splice(orderedInsertIndex, 0, normalizedTrack);
+    orderedQueueRef.current = nextOrderedQueue;
+
+    if (sourceQueue.length === 0) {
+      currentIndexRef.current = 0;
+      setCurrentIndex(0);
+      void loadTrackAtIndex(0, { autoPlay: true }, nextQueue);
+    }
+
+    return true;
+  }, [loadTrackAtIndex]);
+
+  const toggleShuffle = useCallback(() => {
+    if (!isPremium && isShuffleEnabledRef.current) {
+      return false;
+    }
+
+    const nextValue = !isShuffleEnabledRef.current;
+    isShuffleEnabledRef.current = nextValue;
+    setIsShuffleEnabled(nextValue);
+
+    if (
+      SHUFFLE_COLLECTION_TYPES.has(activeCollectionTypeRef.current) &&
+      orderedQueueRef.current.length > 1 &&
+      queueRef.current.length > 0
+    ) {
+      const activeTrack = queueRef.current[currentIndexRef.current];
+      const activeIdentity = getQueueIdentity(activeTrack);
+      const orderedActiveIndex = orderedQueueRef.current.findIndex(
+        (track) => getQueueIdentity(track) === activeIdentity
+      );
+      const nextQueueState = nextValue
+        ? buildShuffledQueue(
+            orderedQueueRef.current,
+            Math.max(0, orderedActiveIndex),
+            Boolean(activeTrack)
+          )
+        : {
+            queue: [...orderedQueueRef.current],
+            startIndex: Math.max(0, orderedActiveIndex),
+          };
+
+      queueRef.current = nextQueueState.queue;
+      currentIndexRef.current = nextQueueState.startIndex;
+      setQueue(nextQueueState.queue);
+      setCurrentIndex(nextQueueState.startIndex);
+    }
+
+    return true;
+  }, [isPremium]);
+
+  const cycleRepeatMode = useCallback(() => {
+    if (!isPremium) {
+      return false;
+    }
+
+    const currentModeIndex = REPEAT_MODE_SEQUENCE.indexOf(repeatModeRef.current);
+    const nextMode = REPEAT_MODE_SEQUENCE[
+      (currentModeIndex + 1) % REPEAT_MODE_SEQUENCE.length
+    ];
+
+    repeatModeRef.current = nextMode;
+    setRepeatMode(nextMode);
+
+    return true;
+  }, [isPremium]);
+
+  const changeAudioQuality = useCallback(async (nextQuality) => {
+    if (!isPremium || !currentTrack || !nextQuality?.url) {
+      return false;
+    }
+
+    const wasPlaying = Boolean(status?.playing);
+    const resumePosition = Math.max(0, Number(status?.currentTime) || 0);
+    const didLoad = await loadTrackAtIndex(
+      currentIndexRef.current,
+      {
+        autoPlay: wasPlaying,
+        preferredQuality: nextQuality,
+        preserveListenAttempt: true,
+        resetPosition: false,
+        resumePosition,
+      },
+      queueRef.current
+    );
+
+    return Boolean(didLoad);
+  }, [currentTrack, isPremium, loadTrackAtIndex, status?.currentTime, status?.playing]);
 
   const moveQueueItem = useCallback((fromIndex, toIndex) => {
     const sourceQueue = queueRef.current;
@@ -545,6 +834,25 @@ export const PlayerProvider = ({ children }) => {
   }, [currentIndex]);
 
   useEffect(() => {
+    isShuffleEnabledRef.current = isShuffleEnabled;
+  }, [isShuffleEnabled]);
+
+  useEffect(() => {
+    repeatModeRef.current = repeatMode;
+  }, [repeatMode]);
+
+  useEffect(() => {
+    if (isPremium) {
+      return;
+    }
+
+    repeatModeRef.current = 'off';
+    isShuffleEnabledRef.current = true;
+    setRepeatMode('off');
+    setIsShuffleEnabled(true);
+  }, [isPremium]);
+
+  useEffect(() => {
     void setAudioModeAsync({
       playsInSilentMode: true,
       shouldPlayInBackground: true,
@@ -572,8 +880,12 @@ export const PlayerProvider = ({ children }) => {
       trackListenProgress(status?.currentTime, Boolean(status?.playing));
       void flushCurrentListenAttempt();
 
-      if (hasNext) {
+      if (repeatModeRef.current === 'one') {
+        void loadTrackAtIndex(currentIndex, { autoPlay: true, resetPosition: true });
+      } else if (hasNextTrack) {
         void loadTrackAtIndex(currentIndex + 1, { autoPlay: true });
+      } else if (repeatModeRef.current === 'all' && queueRef.current.length > 0) {
+        void loadTrackAtIndex(0, { autoPlay: true });
       }
     }
 
@@ -581,7 +893,7 @@ export const PlayerProvider = ({ children }) => {
   }, [
     currentIndex,
     flushCurrentListenAttempt,
-    hasNext,
+    hasNextTrack,
     loadTrackAtIndex,
     status?.currentTime,
     status?.didJustFinish,
@@ -617,8 +929,14 @@ export const PlayerProvider = ({ children }) => {
     currentError,
     progressSeconds,
     progressRatio,
+    duration: currentDuration,
     hasNext,
     hasPrevious,
+    isPremium,
+    isShuffleEnabled,
+    repeatMode,
+    availableAudioQualities,
+    selectedAudioQuality,
     playTrack,
     playQueue,
     playAtIndex,
@@ -626,19 +944,30 @@ export const PlayerProvider = ({ children }) => {
     playNext,
     playPrevious,
     seekTo,
+    addTrackToQueue,
+    toggleShuffle,
+    cycleRepeatMode,
+    changeAudioQuality,
     moveQueueItem,
     removeFromQueue,
     clearUpcoming,
   }), [
+    addTrackToQueue,
+    availableAudioQualities,
+    changeAudioQuality,
     clearUpcoming,
+    cycleRepeatMode,
     currentIndex,
     currentTrack,
+    currentDuration,
     currentError,
     hasNext,
     hasPrevious,
     isBuffering,
     isPlaying,
     isPreparing,
+    isPremium,
+    isShuffleEnabled,
     moveQueueItem,
     playNext,
     playPrevious,
@@ -648,8 +977,11 @@ export const PlayerProvider = ({ children }) => {
     progressRatio,
     progressSeconds,
     queue,
+    repeatMode,
     removeFromQueue,
+    selectedAudioQuality,
     seekTo,
+    toggleShuffle,
     togglePlayback,
   ]);
 

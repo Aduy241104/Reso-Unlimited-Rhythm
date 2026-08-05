@@ -40,6 +40,7 @@ const initialHomeState = {
   query: {
     date: '',
     month: '',
+    monthlyTrackMonth: '',
   },
 };
 
@@ -235,16 +236,23 @@ export default function HomeScreen() {
       contentType,
       period,
       date: homeData.query.date,
-      month: homeData.query.month,
+      month: contentType === 'track'
+        ? homeData.query.monthlyTrackMonth
+        : homeData.query.month,
     });
-  }, [homeData.query.date, homeData.query.month, navigation]);
+  }, [
+    homeData.query.date,
+    homeData.query.month,
+    homeData.query.monthlyTrackMonth,
+    navigation,
+  ]);
 
   const handlePlayRecommendation = useCallback((mix) => {
     if (!Array.isArray(mix?.tracks) || mix.tracks.length === 0) {
       return;
     }
 
-    playQueue(mix.tracks, 0);
+    playQueue(mix.tracks, 0, { collectionType: 'playlist' });
     navigation.navigate('PlayerSheet');
   }, [navigation, playQueue]);
 

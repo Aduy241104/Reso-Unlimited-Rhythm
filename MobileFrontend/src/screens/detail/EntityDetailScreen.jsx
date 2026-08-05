@@ -27,6 +27,7 @@ import trackService from '../../services/trackService';
 import userFavoriteService from '../../services/userFavoriteService';
 import userPlaylistService from '../../services/userPlaylistService';
 import { formatCompactNumber, formatDuration, getErrorMessage, getInitials } from '../../utils/media';
+import { hasPremiumAccess } from '../../utils/premium';
 import { buildPlayableQueue, normalizePlayerTrack } from '../../utils/player';
 import { Artwork, TrackListItem } from './EntityDetailComponents';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -91,8 +92,13 @@ export default function EntityDetailScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const insets = useSafeAreaInsets();
-  const { isAuthenticated } = useAuth();
-  const { playQueue } = usePlayer();
+  const { isAuthenticated, user } = useAuth();
+  const {
+    addTrackToQueue,
+    isShuffleEnabled,
+    playQueue,
+    toggleShuffle,
+  } = usePlayer();
 
   const { entityId, entityType, initialTitle, period, date, month, limit } = route.params || {};
   const navigationState = navigation.getState?.();
@@ -120,6 +126,7 @@ export default function EntityDetailScreen() {
   const [submittingPlaylistId, setSubmittingPlaylistId] = useState('');
   const [favoriteStatusMap, setFavoriteStatusMap] = useState({});
   const [favoriteUpdatingMap, setFavoriteUpdatingMap] = useState({});
+  const isPremium = hasPremiumAccess(user);
 
   const applyArtistFollowSnapshot = useCallback((nextIsFollowing, nextFollowers) => {
     setDetail((previousDetail) => {
@@ -244,6 +251,14 @@ export default function EntityDetailScreen() {
 
     return buildPlayableQueue(detail.items);
   }, [detail]);
+  const isAlbum = detail?.type === 'album' || entityType === 'album';
+  const isArtist = detail?.type === 'artist' || entityType === 'artist';
+  const isTrackDetail = detail?.type === 'track' || entityType === 'track';
+  const collectionType = isAlbum
+    ? 'album'
+    : detail?.type === 'playlist' || entityType === 'playlist'
+      ? 'playlist'
+      : '';
 
   const detailStats = useMemo(() => normalizeInfoEntries(detail?.stats), [detail?.stats]);
   const detailMeta = useMemo(() => normalizeInfoEntries(detail?.meta), [detail?.meta]);
@@ -300,15 +315,34 @@ export default function EntityDetailScreen() {
   );
 
   const handlePlayAll = useCallback(
-    (startIndex = 0) => {
+    (startIndex = 0, preserveStartTrack = false) => {
       if (playableQueue.length === 0) {
         return;
       }
 
-      playQueue(playableQueue, startIndex);
+      playQueue(playableQueue, startIndex, {
+        collectionType,
+        preserveStartTrack,
+      });
     },
-    [playQueue, playableQueue]
+    [collectionType, playQueue, playableQueue]
   );
+
+  const handleToggleShuffle = useCallback(() => {
+    if (!isPremium) {
+      Alert.alert(
+        'Phát ngẫu nhiên đang được bật',
+        'Album và playlist mặc định phát ngẫu nhiên. Chỉ tài khoản Premium mới có thể tắt chế độ này.',
+        [
+          { text: 'Để sau', style: 'cancel' },
+          { text: 'Xem gói Premium', onPress: () => navigation.navigate('PremiumOverview') },
+        ]
+      );
+      return;
+    }
+
+    toggleShuffle();
+  }, [isPremium, navigation, toggleShuffle]);
 
   const openTrackActions = useCallback((track, index = 0) => {
     if (!track) {
@@ -406,7 +440,7 @@ export default function EntityDetailScreen() {
   const handleListItemPress = useCallback(
     (item, index) => {
       if (item?.entityType === 'track') {
-        handlePlayAll(index);
+        handlePlayAll(index, true);
         return;
       }
 
@@ -426,7 +460,7 @@ export default function EntityDetailScreen() {
         : -1;
 
       if (startIndex >= 0 && startIndex < playableQueue.length) {
-        handlePlayAll(startIndex);
+        handlePlayAll(startIndex, true);
         return;
       }
 
@@ -434,6 +468,17 @@ export default function EntityDetailScreen() {
     },
     [handlePlayAll, playableQueue.length, playQueue, selectedTrackAction.index]
   );
+
+  const handleAddTrackToQueue = useCallback((track) => {
+    const didAdd = addTrackToQueue(track);
+
+    if (didAdd) {
+      Alert.alert(
+        'Đã thêm vào hàng chờ',
+        `"${getDisplayText(track?.title, 'Bài hát')}" sẽ được phát trong hàng chờ hiện tại.`
+      );
+    }
+  }, [addTrackToQueue]);
 
   const handleTrackActionOpenTrackDetail = useCallback(
     (track) => {
@@ -641,6 +686,13 @@ export default function EntityDetailScreen() {
         onPress: handleTrackActionPlayNow,
       },
       {
+        key: 'add-to-queue',
+        label: 'Thêm vào hàng chờ',
+        icon: 'list-outline',
+        description: 'Thêm bài hát này vào sau các bài đã được xếp thủ công.',
+        onPress: handleAddTrackToQueue,
+      },
+      {
         key: 'add-to-playlist',
         label: isAuthenticated ? 'Thêm vào playlist' : 'Đăng nhập để thêm vào playlist',
         icon: 'add-circle-outline',
@@ -679,6 +731,7 @@ export default function EntityDetailScreen() {
     ].filter(Boolean),
     [
       handleTrackActionOpenAlbumDetail,
+      handleAddTrackToQueue,
       handleTrackActionOpenArtistDetail,
       handleTrackActionOpenTrackDetail,
       handleOpenAddToPlaylist,
@@ -703,9 +756,6 @@ export default function EntityDetailScreen() {
             ? 'BXH'
             : 'Bài hát');
 
-  const isAlbum = detail?.type === 'album' || entityType === 'album';
-  const isArtist = detail?.type === 'artist' || entityType === 'artist';
-  const isTrackDetail = detail?.type === 'track' || entityType === 'track';
   const isReportableDetail = isAlbum || isArtist || isTrackDetail;
 
   const handleOpenCreateReport = useCallback(() => {
@@ -1049,12 +1099,6 @@ export default function EntityDetailScreen() {
                 />
               ) : null}
 
-              {!isArtist && !isAlbum ? (
-                <TouchableOpacity style={styles.iconActionButton} activeOpacity={0.75}>
-                  <Ionicons name="arrow-down-circle-outline" size={25} color="#b3b3b3" />
-                </TouchableOpacity>
-              ) : null}
-
               {isReportableDetail && !isArtist ? (
                 <TouchableOpacity
                   style={styles.iconActionButton}
@@ -1075,17 +1119,11 @@ export default function EntityDetailScreen() {
                 />
               ) : null}
 
-              {!isAlbum ? (
+              {isArtist || canOpenHeroTrackActions ? (
                 <TouchableOpacity
                   style={styles.iconActionButton}
                   activeOpacity={0.75}
-                  onPress={
-                    isArtist
-                      ? openArtistActions
-                      : canOpenHeroTrackActions
-                        ? () => openTrackActions(detail, 0)
-                        : undefined
-                  }
+                  onPress={isArtist ? openArtistActions : () => openTrackActions(detail, 0)}
                 >
                   <Ionicons name="ellipsis-horizontal" size={24} color="#b3b3b3" />
                 </TouchableOpacity>
@@ -1093,9 +1131,17 @@ export default function EntityDetailScreen() {
 
               <View style={styles.actionSpacer} />
 
-              {!isArtist ? (
-                <TouchableOpacity style={styles.shuffleButton} activeOpacity={0.75}>
-                  <Ionicons name="shuffle" size={26} color="#1ed760" />
+              {isAlbum ? (
+                <TouchableOpacity
+                  style={styles.shuffleButton}
+                  activeOpacity={0.75}
+                  onPress={handleToggleShuffle}
+                >
+                  <Ionicons
+                    name={isPremium ? 'shuffle' : 'lock-closed'}
+                    size={26}
+                    color={isShuffleEnabled ? '#1ed760' : '#737373'}
+                  />
                 </TouchableOpacity>
               ) : null}
 
