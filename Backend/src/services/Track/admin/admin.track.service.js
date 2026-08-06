@@ -299,12 +299,12 @@ const createTrackModerationNotification = async ({
     const normalizedStatus = status === "approved" ? "approved" : "rejected";
     const title =
         normalizedStatus === "approved"
-            ? `Track "${track.title}" da duoc phe duyet`
-            : `Track "${track.title}" da bi tu choi`;
+            ? `Track "${track.title}" đã được phê duyệt`
+            : `Track "${track.title}" đã bị từ chối`;
     const content =
         normalizedStatus === "approved"
-            ? "Admin da phe duyet track cua ban."
-            : `Admin da tu choi track cua ban.${note ? ` Ly do: ${note}` : ""}`;
+            ? "Admin đã phê duyệt track của bạn."
+            : `Admin đã từ chối track của bạn.${note ? ` Lý do: ${note}` : ""}`;
 
     const notification = await Notification.create({
         userId: artist.userId,
@@ -354,17 +354,17 @@ const createTrackVisibilityNotification = async ({
     let content = "";
 
     if (action === "hide") {
-        title = `Track "${track.title}" da bi an`;
-        content = `Admin da tam an track cua ban khoi nen tang.${reason ? ` Ly do: ${reason}` : ""}`;
+        title = `Track "${track.title}" đã bị ẩn`;
+        content = `Admin đã tạm ẩn track của bạn khỏi nền tảng.${reason ? ` Lý do: ${reason}` : ""}`;
     } else if (action === "block") {
-        title = `Track "${track.title}" da bi khoa`;
-        content = `Admin da khoa track cua ban.${reason ? ` Ly do: ${reason}` : ""}`;
+        title = `Track "${track.title}" đã bị khóa`;
+        content = `Admin đã khóa track của bạn.${reason ? ` Lý do: ${reason}` : ""}`;
     } else if (action === "unhide") {
-        title = `Track "${track.title}" da duoc hien thi lai`;
-        content = "Admin da mo lai hien thi cho track cua ban tren nen tang.";
+        title = `Track "${track.title}" đã được hiển thị lại`;
+        content = "Admin đã mở lại hiển thị cho track của bạn trên nền tảng.";
     } else if (action === "unblock") {
-        title = `Track "${track.title}" da duoc go khoa`;
-        content = "Admin da go khoa track cua ban tren he thong.";
+        title = `Track "${track.title}" đã được gỡ khóa`;
+        content = "Admin đã gỡ khóa track của bạn trên hệ thống.";
     } else {
         return null;
     }

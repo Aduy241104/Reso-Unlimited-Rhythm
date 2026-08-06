@@ -7,27 +7,18 @@ import { routePaths } from "../../routes/routePaths";
 
 const getStatusBadge = (status) => {
     switch (status) {
-        case "verified":
         case "active":
             return (
                 <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full px-2.5 py-0.5 text-xs font-medium capitalize">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    {status === "verified" ? "Đã xác minh" : "Hoạt động"}
+                    Hoạt động
                 </span>
             );
-        case "pending":
-            return (
-                <span className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-600 border border-amber-100 rounded-full px-2.5 py-0.5 text-xs font-medium capitalize">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                    Chờ duyệt
-                </span>
-            );
-        case "rejected":
         case "inactive":
             return (
                 <span className="inline-flex items-center gap-1.5 bg-slate-50 text-slate-500 border border-slate-200 rounded-full px-2.5 py-0.5 text-xs font-medium capitalize">
                     <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                    {status === "rejected" ? "Từ chối" : "Tạm ngưng"}
+                    Tạm ngưng
                 </span>
             );
         case "blocked":
@@ -66,11 +57,10 @@ const HeaderStat = ({ label, value }) => (
 const SystemArtistsListPage = () => {
     const [artists, setArtists] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
-    const [filterVerify, setFilterVerify] = useState("");
     const [filterActive, setFilterActive] = useState("");
 
     // Bộ Query chuẩn cấu hình phân trang gửi lên máy chủ
-    const [query, setQuery] = useState({ q: "", verificationStatus: "", activeStatus: "", page: 1, limit: 10 });
+    const [query, setQuery] = useState({ q: "", activeStatus: "", page: 1, limit: 10 });
     const [pagination, setPagination] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState("");
@@ -104,7 +94,6 @@ const SystemArtistsListPage = () => {
         setQuery((prev) => ({ 
             ...prev, 
             q: searchTerm.trim(), 
-            verificationStatus: filterVerify,
             activeStatus: filterActive,
             page: 1 
         }));
@@ -112,9 +101,8 @@ const SystemArtistsListPage = () => {
 
     const handleResetFilters = () => {
         setSearchTerm("");
-        setFilterVerify("");
         setFilterActive("");
-        setQuery({ q: "", verificationStatus: "", activeStatus: "", page: 1, limit: 10 });
+        setQuery({ q: "", activeStatus: "", page: 1, limit: 10 });
     };
 
     const handlePageChange = ({ selected }) => {
@@ -148,7 +136,7 @@ const SystemArtistsListPage = () => {
             </div>
 
             {/* Khung 2: Thanh Tìm kiếm & Bộ lọc phối hợp đồng bộ */}
-            <form onSubmit={handleSearchSubmit} className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-[1.5fr_1fr_1fr_100px_100px]">
+            <form onSubmit={handleSearchSubmit} className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-[1.5fr_1fr_100px_100px]">
                 <label className="relative block">
                     <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input 
@@ -159,13 +147,6 @@ const SystemArtistsListPage = () => {
                         className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-900 outline-none transition focus:border-slate-400"
                     />
                 </label>
-
-                <select value={filterVerify} onChange={(e) => setFilterVerify(e.target.value)} className="rounded-lg bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition focus:bg-sky-50 cursor-pointer">
-                    <option value="">Tất cả xác minh</option>
-                    <option value="pending">Chờ duyệt</option>
-                    <option value="verified">Đã xác minh</option>
-                    <option value="rejected">Đã từ chối</option>
-                </select>
 
                 <select value={filterActive} onChange={(e) => setFilterActive(e.target.value)} className="rounded-lg bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition focus:bg-sky-50 cursor-pointer">
                     <option value="">Tất cả hiển thị</option>
@@ -197,19 +178,18 @@ const SystemArtistsListPage = () => {
                 </div>
             ) : (
                 <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                    <div className="grid min-w-[1020px] grid-cols-[minmax(0,1.5fr)_minmax(0,1.2fr)_120px_160px_160px_120px] gap-4 border-b border-slate-200 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+                    <div className="grid min-w-[900px] grid-cols-[minmax(0,1.5fr)_minmax(0,1.2fr)_120px_160px_120px] gap-4 border-b border-slate-200 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
                         <span>Nghệ sĩ</span>
                         <span>Email liên kết</span>
                         <span>Tổng tác phẩm</span>
-                        <span>Xác minh danh tính</span>
                         <span>Trạng thái hoạt động</span>
                         <span className="text-right pr-4">Hành động</span>
                     </div>
 
                     <div className="overflow-x-auto">
-                        <div className="min-w-[1020px] divide-y divide-slate-100">
+                        <div className="min-w-[900px] divide-y divide-slate-100">
                             {artists.map((artist) => (
-                                <article key={artist.id} className="relative grid grid-cols-[minmax(0,1.5fr)_minmax(0,1.2fr)_120px_160px_160px_120px] gap-4 px-6 py-4 transition hover:bg-slate-50/60 items-center">
+                                <article key={artist.id} className="relative grid grid-cols-[minmax(0,1.5fr)_minmax(0,1.2fr)_120px_160px_120px] gap-4 px-6 py-4 transition hover:bg-slate-50/60 items-center">
                                     
                                     {/* Thanh vạch chỉ thị màu bên rìa trái hàng */}
                                     
@@ -225,7 +205,6 @@ const SystemArtistsListPage = () => {
                                     <p className="truncate text-sm text-slate-600 font-mono font-medium">{artist.email}</p>
                                     <p className="text-sm font-bold text-slate-900">{artist.totalTracks} bài hát</p>
                                     
-                                    <div>{getStatusBadge(artist.verificationStatus)}</div>
                                     <div>{getStatusBadge(artist.activeStatus)}</div>
 
                                     <div className="flex justify-end pr-2">
