@@ -22,6 +22,7 @@ import {
   formatPremiumPrice,
   getPremiumFeatureLabel,
   isSamePlan,
+  PREMIUM_BENEFITS,
   resolveCurrentPlanId,
 } from '../../utils/premium';
 
@@ -36,7 +37,7 @@ export default function PremiumCheckoutScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const insets = useSafeAreaInsets();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, updateUser } = useAuth();
   const { planId, initialPlan } = route.params || {};
   const [plan, setPlan] = useState(initialPlan || null);
   const [subscription, setSubscription] = useState(null);
@@ -84,6 +85,12 @@ export default function PremiumCheckoutScreen() {
 
         setPlan(planDetail);
         setSubscription(mySubscription);
+        if (mySubscription) {
+          await updateUser({
+            isPremium: Boolean(mySubscription?.isPremium),
+            premiumEndDate: mySubscription?.premiumEndDate || null,
+          });
+        }
         setErrorMessage('');
         setWarningMessage(
           subscriptionResult.status === 'rejected'
@@ -99,7 +106,7 @@ export default function PremiumCheckoutScreen() {
         setIsRefreshing(false);
       }
     },
-    [isAuthenticated, planId]
+    [isAuthenticated, planId, updateUser]
   );
 
   useFocusEffect(
@@ -115,11 +122,19 @@ export default function PremiumCheckoutScreen() {
       }
 
       try {
-        const latestSubscription = await premiumService.getMySubscription();
         const previousEndDate = lastKnownPremiumEndDateRef.current;
+        const latestSubscription = await premiumService.getMySubscription({
+          attempts: previousEndDate ? 1 : 4,
+          delayMs: 1500,
+          requirePremium: !previousEndDate,
+        });
         const latestEndDate = latestSubscription?.premiumEndDate || '';
 
         setSubscription(latestSubscription);
+        await updateUser({
+          isPremium: Boolean(latestSubscription?.isPremium),
+          premiumEndDate: latestSubscription?.premiumEndDate || null,
+        });
         lastKnownPremiumEndDateRef.current = latestEndDate;
 
         if (latestSubscription?.isPremium && latestEndDate && latestEndDate !== previousEndDate) {
@@ -137,7 +152,7 @@ export default function PremiumCheckoutScreen() {
     return () => {
       subscriptionListener.remove();
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, updateUser]);
 
   const handleOpenLogin = useCallback(() => {
     navigation.navigate('Login');
@@ -225,9 +240,9 @@ export default function PremiumCheckoutScreen() {
 
             <View style={styles.pricePanel}>
               <Text style={styles.priceCaption}>Tổng thanh toán</Text>
-              <Text style={styles.priceValue}>{formatPremiumPrice(plan?.totalPrice)}</Text>
+              <Text style={styles.priceValue}>{formatPremiumPrice(plan?.price)}</Text>
               <Text style={styles.priceMeta}>
-                {formatDurationDays(plan?.durationDays)} • Giá gói {formatPremiumPrice(plan?.price)} • VAT {formatPremiumPrice(plan?.taxAmount)}
+                {formatDurationDays(plan?.durationDays)} • VAT 10%
               </Text>
             </View>
           </View>
@@ -249,16 +264,15 @@ export default function PremiumCheckoutScreen() {
             <View style={styles.panel}>
               <CheckoutRow label="Tên gói" value={plan?.name || 'Premium'} />
               <CheckoutRow label="Thời hạn" value={formatDurationDays(plan?.durationDays)} />
-              <CheckoutRow label="Giá gói" value={formatPremiumPrice(plan?.price)} />
-              <CheckoutRow label="VAT" value={formatPremiumPrice(plan?.taxAmount)} />
-              <CheckoutRow label="Tổng thanh toán" value={formatPremiumPrice(plan?.totalPrice)} emphasize />
+              <CheckoutRow label="VAT" value="10%" />
+              <CheckoutRow label="Tổng thanh toán" value={formatPremiumPrice(plan?.price)} emphasize />
             </View>
           </View>
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Quyền lợi sẽ kích hoạt</Text>
             <View style={styles.panel}>
-              {(Array.isArray(plan?.features) ? plan.features : []).map((featureCode) => (
+              {PREMIUM_BENEFITS.map((featureCode) => (
                 <View key={featureCode} style={styles.featureRow}>
                   <View style={styles.featureDot} />
                   <Text style={styles.featureText}>{getPremiumFeatureLabel(featureCode)}</Text>

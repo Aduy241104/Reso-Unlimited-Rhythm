@@ -14,11 +14,21 @@ export const authService = {
   },
 
   async requestRegisterOtp(email) {
-    return await axiosClient.post(API_ENDPOINTS.AUTH.REGISTER_SEND_OTP, { email });
+    return await axiosClient.post(API_ENDPOINTS.AUTH.REGISTER_SEND_OTP, {
+      email: String(email || '').trim().toLowerCase(),
+    });
   },
 
   async register(payload) {
-    return await axiosClient.post(API_ENDPOINTS.AUTH.REGISTER, payload);
+    return await axiosClient.post(API_ENDPOINTS.AUTH.REGISTER, {
+      ...payload,
+      email: String(payload?.email || '').trim().toLowerCase(),
+      otp: String(payload?.otp || '').trim(),
+      password: String(payload?.password || ''),
+      ...(typeof payload?.fullName === 'string'
+        ? { fullName: payload.fullName.trim() }
+        : {}),
+    });
   },
 
   async forgotPassword(email) {

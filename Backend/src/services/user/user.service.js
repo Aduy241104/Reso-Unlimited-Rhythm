@@ -29,7 +29,10 @@ const updateMyProfileByUserId = async (userId, payload, avatarFile) => {
     const previousAvatar = user.avatar || "";
 
     if (avatarFile) {
-        updates.avatar = await userServiceHelper.uploadUserAvatar(userId, avatarFile);
+        updates.avatar = await userServiceHelper.uploadUserAvatar(
+            userId,
+            avatarFile
+        );
     }
 
     if (Object.keys(updates).length === 0) {
@@ -51,8 +54,8 @@ const updateMyProfileByUserId = async (userId, payload, avatarFile) => {
         user.profile.gender = updates["profile.gender"];
     }
 
-    if (typeof updates["profile.country"] !== "undefined") {
-        user.profile.country = updates["profile.country"];
+    if (typeof updates["profile.dateOfBirth"] !== "undefined") {
+        user.profile.dateOfBirth = updates["profile.dateOfBirth"];
     }
 
     await user.save();

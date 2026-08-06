@@ -37,6 +37,9 @@ export const getCurrentUserProfile = async () => {
 export const updateCurrentUserProfile = async (payload = {}) => {
   const formData = new FormData();
   const normalizedFullName = normalizeText(payload.fullName);
+  const normalizedGender = normalizeText(payload.gender).toLowerCase();
+  const normalizedCountry = normalizeText(payload.country);
+  const normalizedDateOfBirth = normalizeText(payload.dateOfBirth);
 
   if (payload.avatar instanceof File) {
     formData.append("avatar", payload.avatar);
@@ -44,8 +47,12 @@ export const updateCurrentUserProfile = async (payload = {}) => {
 
   formData.append("fullName", normalizedFullName);
   formData.append("fullname", normalizedFullName);
-  formData.append("gender", normalizeText(payload.gender).toLowerCase());
-  formData.append("country", normalizeText(payload.country));
+  formData.append("gender", normalizedGender);
+  formData.append("country", normalizedCountry);
+  formData.append("dateOfBirth", normalizedDateOfBirth);
+  formData.append("date_of_birth", normalizedDateOfBirth);
+  formData.append("dob", normalizedDateOfBirth);
+  formData.append("birthDate", normalizedDateOfBirth);
 
   const response = await axiosClient.patch(`${USER_API_PREFIX}/me`, formData, {
     headers: {

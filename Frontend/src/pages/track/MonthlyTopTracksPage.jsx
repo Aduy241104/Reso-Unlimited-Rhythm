@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import PlayButton from "../../components/common/PlayButton";
 import LoadingState from "../../components/common/LoadingState";
 import TrackCard from "../../components/TrackCard";
+import TrackTwoLevelMenu from "../../components/trackMenu/TrackTwoLevelMenu";
 import TrackListSection from "../../components/trackList/TrackListSection";
 import { usePlayer } from "../../hooks/usePlayer";
 import { routePaths } from "../../routes/routePaths";
@@ -9,6 +10,7 @@ import { getMonthlyTopTracksService } from "../../services/trackService";
 import { formatTrackDuration } from "../../utils/albumDetail";
 import { getApiErrorMessage } from "../../utils/apiError";
 import defaultImage from "../../assets/images/default-image.svg";
+import { filterPlayableTracks } from "../../utils/trackStatus";
 import {
   MONTHLY_TOP_TRACK_LIMIT,
   createMonthlyTopTracksCollectionMeta,
@@ -27,10 +29,11 @@ const monthlyChartHeaderColumns = [
   { label: "Tiêu đề" },
   { label: "Lượt phát", className: "text-right" },
   { label: "Thời lượng", className: "text-right" },
+  { label: "" },
 ];
 
 const monthlyChartHeaderGridClassName = `
-  mb-2 hidden grid-cols-[2.5rem_minmax(0,1fr)_8rem_3rem] items-center gap-3
+  mb-2 hidden grid-cols-[2.5rem_minmax(0,1fr)_8rem_3rem_2rem] items-center gap-3
   border-b border-black/6 px-3 pb-3 text-xs font-medium uppercase tracking-[0.24em]
   text-[#71717a] dark:border-white/10 dark:text-[#a1a1aa] sm:grid
 `;
@@ -63,6 +66,7 @@ const MonthlyTopTracksPage = () => {
     playTrack,
     togglePlayPause,
   } = usePlayer();
+  const visibleMonthlyTopTracks = filterPlayableTracks(monthlyTopTracks);
 
   useEffect(() => {
     let isMounted = true;
@@ -111,14 +115,14 @@ const MonthlyTopTracksPage = () => {
   }, [selectedMonth]);
 
   const heroImage = useMemo(() => {
-    return getMonthlyTopTracksHeroImage(monthlyTopTracks);
-  }, [monthlyTopTracks]);
+    return getMonthlyTopTracksHeroImage(visibleMonthlyTopTracks);
+  }, [visibleMonthlyTopTracks]);
 
-  const totalPlayCount = monthlyTopTracks.reduce(
+  const totalPlayCount = visibleMonthlyTopTracks.reduce(
     (sum, item) => sum + (Number(item?.playCount) || 0),
     0
   );
-  const totalListeners = monthlyTopTracks.reduce(
+  const totalListeners = visibleMonthlyTopTracks.reduce(
     (sum, item) => sum + (Number(item?.uniqueListeners) || 0),
     0
   );
@@ -131,11 +135,11 @@ const MonthlyTopTracksPage = () => {
   });
 
   const handlePlayChart = async () => {
-    if (monthlyTopTracks.length === 0) {
+    if (visibleMonthlyTopTracks.length === 0) {
       return;
     }
 
-    await playCollection(monthlyTopTracks, {
+    await playCollection(visibleMonthlyTopTracks, {
       startIndex: 0,
       collection: collectionMeta,
     });
@@ -152,7 +156,7 @@ const MonthlyTopTracksPage = () => {
     }
 
     await playTrack(track, {
-      queue: monthlyTopTracks,
+      queue: visibleMonthlyTopTracks,
       startIndex: index,
       collection: collectionMeta,
     });
@@ -252,7 +256,7 @@ const MonthlyTopTracksPage = () => {
             <PlayButton
               onClick={ handlePlayChart }
               size="compact"
-              disabled={ isLoading || monthlyTopTracks.length === 0 }
+              disabled={ isLoading || visibleMonthlyTopTracks.length === 0 }
             />
           </div>
 
@@ -264,12 +268,13 @@ const MonthlyTopTracksPage = () => {
             headerColumns={ monthlyChartHeaderColumns }
             headerGridClassName={ monthlyChartHeaderGridClassName }
             emptyMessage="Chưa có dữ liệu top bài hát cho tháng này."
-            hasItems={ monthlyTopTracks.length > 0 }
+            hasItems={ visibleMonthlyTopTracks.length > 0 }
           >
-            { monthlyTopTracks.map((item, index) => (
+            { visibleMonthlyTopTracks.map((item, index) => (
               <TrackCard
                 key={ item?.track?.id || `${resolvedMonth}-${index}` }
                 index={ item?.rank || index + 1 }
+                trackId={ item?.track?.id || "" }
                 track={ item?.track }
                 indexClassName="!text-sm sm:!text-base"
                 image={
@@ -286,7 +291,7 @@ const MonthlyTopTracksPage = () => {
                 size="compact"
                 showLikeButton={ false }
                 mobileLayoutClassName="grid-cols-[2rem_minmax(0,1fr)_auto]"
-                desktopLayoutClassName="sm:grid-cols-[2.5rem_minmax(0,1fr)_8rem_3rem]"
+                desktopLayoutClassName="sm:grid-cols-[2.5rem_minmax(0,1fr)_8rem_3rem_2rem]"
                 mobileMetaItems={ [
                   {
                     content: renderMonthlyPlayCount(item?.playCount, true),
@@ -301,6 +306,15 @@ const MonthlyTopTracksPage = () => {
                     content: formatTrackDuration(item?.track?.duration),
                     className:
                       "hidden items-center justify-end text-xs text-[#52525b] dark:text-[#a1a1aa] sm:flex",
+                  },
+                  {
+                    content: item?.track?.id ? (
+                      <TrackTwoLevelMenu
+                        trackId={ item.track.id }
+                        track={ item.track }
+                      />
+                    ) : null,
+                    className: "hidden items-center justify-end sm:flex",
                   },
                 ] }
                 isPlaybackActive={ currentTrack?.id === item?.track?.id }

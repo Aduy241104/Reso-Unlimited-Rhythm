@@ -1,6 +1,6 @@
 import { ArrowRight, LoaderCircle, Trophy } from "lucide-react";
 import { formatTrackDuration } from "../../../../utils/albumDetail";
-import { formatNumber, getTrackImage } from "../helpers";
+import { formatListenDuration, formatNumber, getTrackImage } from "../helpers";
 
 const formatPercent = (value) => `${formatNumber(value)}%`;
 
@@ -130,7 +130,7 @@ const TrackInsightsTopTracksPanel = ({
                       {formatNumber(item?.uniqueListeners)}
                     </td>
                     <td className="px-4 py-4 text-[#2f2747]">
-                      {formatNumber(item?.averageListenDuration)} phút
+                      {formatListenDuration(item?.averageListenDuration)}
                     </td>
                     <td className="px-4 py-4 text-[#2f2747]">
                       {formatPercent(item?.skipRate)}

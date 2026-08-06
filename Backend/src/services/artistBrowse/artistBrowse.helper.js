@@ -34,6 +34,7 @@ const formatArtistAlbum = (album) => ({
 const formatArtistTrack = (track) => ({
     id: toId(track._id),
     title: track.title,
+    versionTitle: track.versionTitle || "",
     duration: track.duration,
     avatar: track.avatar,
     coverImage: track.coverImage,
@@ -65,6 +66,7 @@ const formatArtistComingRelease = ({ schedule, target }) => {
             ? {
                 id: toId(target?._id),
                 title: target?.title || "",
+                versionTitle: target?.versionTitle || "",
                 duration: target?.duration || 0,
                 avatar: target?.avatar || "",
                 coverImage: Array.isArray(target?.coverImage)
@@ -86,7 +88,7 @@ const formatArtistComingRelease = ({ schedule, target }) => {
     };
 };
 
-const formatArtistProfile = ({ artist, artistStat, albums, tracks }) => ({
+const formatArtistProfile = ({ artist, artistMonthlyStat, albums, tracks }) => ({
     artist: {
         id: toId(artist._id),
         userId: toId(artist.userId),
@@ -97,9 +99,11 @@ const formatArtistProfile = ({ artist, artistStat, albums, tracks }) => ({
         socialLinks: artist.socialLinks,
         stats: {
             followers: artist.stats?.followers || 0,
-            totalStreams: artist.stats?.totalStreams || 0,
-            totalFollowers: artistStat?.totalFollowers || artist.stats?.followers || 0,
-            monthlyListeners: artistStat?.monthlyListeners || 0,
+            totalStreams:
+                artistMonthlyStat?.totalStreams ?? artist.stats?.totalStreams ?? 0,
+            totalFollowers:
+                artistMonthlyStat?.totalFollowers ?? artist.stats?.followers ?? 0,
+            monthlyListeners: artistMonthlyStat?.totalStreams ?? 0,
         },
         albumCount: albums.length,
         trackCount: tracks.length,

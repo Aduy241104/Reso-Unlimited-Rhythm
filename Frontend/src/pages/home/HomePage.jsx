@@ -18,6 +18,7 @@ import {
   getRecommendationUserDisplayName,
   mapRecommendationMixesToContentCards,
 } from "../../utils/recommendation";
+import { filterPlayableTracks } from "../../utils/trackStatus";
 
 const SHOW_RECOMMENDATION_MIXES = false;
 
@@ -59,6 +60,8 @@ const HomePage = () => {
     playTrackItem,
   } = useContentPlayback();
   const recommendationUserName = getRecommendationUserDisplayName(user);
+  const visibleDailyTopTracks = filterPlayableTracks(dailyTopTracks);
+  const visibleMonthlyTopTracks = filterPlayableTracks(monthlyTopTracks);
   const shouldShowRecommendationSection =
     SHOW_RECOMMENDATION_MIXES && isAuthenticated && !isAuthLoading;
   const isPageLoading =
@@ -163,19 +166,19 @@ const HomePage = () => {
       <TrackChartSection
         label="Bảng xếp hạng ngày"
         title="Top bài hát theo ngày"
-        items={ mapTopTracksToRankingCards(dailyTopTracks, { period: "daily" }) }
+        items={ mapTopTracksToRankingCards(visibleDailyTopTracks, { period: "daily" }) }
         emptyMessage="Hiện chưa có dữ liệu bảng xếp hạng bài hát theo ngày."
-        onPlay={ (item) => playTrackItem(item, dailyTopTracks) }
+        onPlay={ (item) => playTrackItem(item, visibleDailyTopTracks) }
         actionLabel="Xem thêm"
-        actionHref={routePaths.dailyTopTracks}
+        actionHref={ routePaths.dailyTopTracks }
       />
 
       <TrackChartSection
         label="Bảng xếp hạng tháng"
         title="Top bài hát theo tháng"
-        items={ mapTopTracksToRankingCards(monthlyTopTracks, { period: "monthly" }) }
+        items={ mapTopTracksToRankingCards(visibleMonthlyTopTracks, { period: "monthly" }) }
         emptyMessage="Hiện chưa có dữ liệu bảng xếp hạng bài hát theo tháng."
-        onPlay={ (item) => playTrackItem(item, monthlyTopTracks) }
+        onPlay={ (item) => playTrackItem(item, visibleMonthlyTopTracks) }
         actionLabel="Xem thêm"
         actionHref={ routePaths.monthlyTopTracks }
       />
@@ -204,30 +207,30 @@ const HomePage = () => {
 
       <ContentCardSection
         title="Playlist hệ thống"
-        items={mapSystemPlaylistsToContentCards(systemPlaylists)}
+        items={ mapSystemPlaylistsToContentCards(systemPlaylists) }
         emptyMessage="Hiện chưa có dữ liệu playlist hệ thống."
-        onPlay={playPlaylistItem}
+        onPlay={ playPlaylistItem }
       />
 
       {shouldShowRecommendationSection ? (
         <ContentCardSection
           label="Daily Mix"
-          title={`Dành cho ${recommendationUserName}`}
-          items={mapRecommendationMixesToContentCards(
+          title={ `Dành cho ${recommendationUserName}` }
+          items={ mapRecommendationMixesToContentCards(
             recommendationMixes,
             recommendationUserName
-          )}
+          ) }
           emptyMessage="Hôm nay chưa có playlist gợi ý cá nhân nào sẵn sàng."
-          onPlay={(item) => playRecommendationMixItem(item, user)}
+          onPlay={ (item) => playRecommendationMixItem(item, user) }
         />
       ) : null}
 
       <ContentCardSection
         label="Album"
         title="Album nổi bật"
-        items={mapAlbumsToContentCards(albums)}
+        items={ mapAlbumsToContentCards(albums) }
         emptyMessage="Hiện chưa có dữ liệu album."
-        onPlay={playAlbumItem}
+        onPlay={ playAlbumItem }
       />
 
       {playbackError ? (

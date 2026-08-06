@@ -33,7 +33,7 @@ import {
 import { getApiErrorMessage } from "../../utils/apiError";
 import { isResourceNotFoundError } from "../../utils/resourceError";
 import { emitFollowedAlbumChangedEvent } from "../../utils/followedLibraryEvents";
-import { isBlockedTrack } from "../../utils/trackStatus";
+import { filterPlayableTracks } from "../../utils/trackStatus";
 
 const actionButtonClassName = `
   inline-flex h-10 w-10 items-center justify-center rounded-full border border-black/8
@@ -230,10 +230,11 @@ const AlbumDetailPage = () => {
   const headerGradient = useDominantColorGradient(albumCoverImage);
 
   const trackItems = album?.tracks ?? [];
+  const visibleTrackItems = filterPlayableTracks(trackItems);
   const albumArtistName = album?.artist?.name || "Nghệ sĩ không xác định";
   const releaseYear = formatReleaseYear(album?.releaseDate);
-  const totalTracks = album?.trackCount ?? trackItems.length;
-  const totalDuration = formatAlbumDuration(trackItems);
+  const totalTracks = visibleTrackItems.length;
+  const totalDuration = formatAlbumDuration(visibleTrackItems);
 
   const collectionMeta = {
     id: album?.id,
@@ -248,11 +249,11 @@ const AlbumDetailPage = () => {
     String(activeCollection?.id || "") === String(collectionMeta.id || "");
 
   const handlePlayAlbum = async () => {
-    await playAlbum(album, trackItems);
+    await playAlbum(album, visibleTrackItems);
   };
 
   const handleShuffleAlbum = async () => {
-    await playAlbum(album, trackItems, { shuffle: true });
+    await playAlbum(album, visibleTrackItems, { shuffle: true });
   };
 
   const handlePlayTrack = async (track, index) => {
@@ -266,7 +267,7 @@ const AlbumDetailPage = () => {
     }
 
     await playTrack(track, {
-      queue: trackItems,
+      queue: visibleTrackItems,
       startIndex: index,
       collection: collectionMeta,
     });
@@ -491,11 +492,10 @@ const AlbumDetailPage = () => {
             loadingMessage="Đang tải bài hát..."
             mobileLabel="Danh sách bài hát"
             emptyMessage="Album này chưa có bài hát nào."
-            hasItems={ trackItems.length > 0 }
+            hasItems={ visibleTrackItems.length > 0 }
           >
-            { trackItems.map((trackItem, index) => {
+            { visibleTrackItems.map((trackItem, index) => {
               const track = trackItem?.track;
-              const isTrackBlocked = isBlockedTrack(trackItem);
 
               return (
                 <TrackCard
@@ -509,7 +509,6 @@ const AlbumDetailPage = () => {
                   duration={ formatTrackDuration(track?.duration) }
                   explicit={ false }
                   liked={ false }
-                  isBlocked={ isTrackBlocked }
                   href={ track?.id ? routePaths.trackDetail(track.id) : undefined }
                   isPlaybackActive={ currentTrack?.id === track?.id }
                   isPlaying={ isPlaying }

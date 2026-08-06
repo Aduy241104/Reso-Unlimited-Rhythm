@@ -9,8 +9,9 @@ import ArtistRanking, {
     buildMonthlyArtistRankingFilter,
 } from "../../models/ArtistRanking.js";
 import Interaction from "../../models/Interaction.js";
+import ListenEvent from "../../models/ListenEvent.js";
 import ReleaseSchedule from "../../models/ReleaseSchedule.js";
-import ArtistStat from "../../models/ArtistStat.js";
+import ArtistMonthlyStat from "../../models/ArtistMonthlyStat.js";
 import Track from "../../models/Track.js";
 import redisClient from "../../config/redisConfig.js";
 import { AppError } from "../../utils/AppError.js";
@@ -25,6 +26,11 @@ import {
     normalizePositiveInteger,
 } from "./artistBrowse.helper.js";
 import { enrichAlbumsWithTotalDuration } from "../album/album.sync.js";
+import {
+    buildArtistAggregationPipeline,
+    buildTopArtistRankings,
+    fillMissingArtistRankings,
+} from "../analytics/artistRanking.shared.js";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -91,6 +97,15 @@ const normalizeTopArtists = async (topArtists, limit) => {
             rank: index + 1,
         }));
 };
+
+const finalizeTopArtists = (topArtists, limit) =>
+    (Array.isArray(topArtists) ? topArtists : [])
+        .filter((item) => Boolean(item?.artist?.id))
+        .slice(0, limit)
+        .map((item, index) => ({
+            ...item,
+            rank: index + 1,
+        }));
 
 const validateAndGetArtist = async (artistId, options = {}) => {
     const { lean = true } = options;
@@ -171,6 +186,8 @@ const parseMonthlyTopArtistsMonth = (monthInput) => {
         year: startMonth.year(),
         month: startMonth.month() + 1,
         monthKey: startMonth.format("YYYY-MM"),
+        startDate: startMonth.toDate(),
+        endDate: startMonth.add(1, "month").toDate(),
     };
 };
 
@@ -190,6 +207,127 @@ const formatDailyTopArtistStat = ({ stat, date }) => ({
     completedPlayCount: stat.completedPlayCount,
 });
 
+const formatMonthlyTopArtistStat = ({ stat, monthKey }) => ({
+    artist: stat.artistId
+        ? {
+            id: stat.artistId._id.toString(),
+            name: stat.artistId.name,
+            avatar: stat.artistId.avatar,
+        }
+        : null,
+    rank: stat.rank,
+    month: monthKey,
+    score: stat.score,
+    uniqueListeners: stat.uniqueListeners,
+    playCount: stat.playCount,
+    completedPlayCount: stat.completedPlayCount,
+});
+
+const hydrateArtistRankingEntries = async (rankings) => {
+    const normalizedRankings = Array.isArray(rankings) ? rankings : [];
+    const artistIds = normalizedRankings
+        .map((ranking) => {
+            if (!ranking?.artistId) {
+                return null;
+            }
+
+            if (typeof ranking.artistId === "object" && ranking.artistId._id) {
+                return ranking.artistId._id;
+            }
+
+            return ranking.artistId;
+        })
+        .filter(Boolean);
+
+    if (artistIds.length === 0) {
+        return [];
+    }
+
+    const artists = await Artist.find({
+        _id: { $in: artistIds },
+        activeStatus: "active",
+    })
+        .select("_id name avatar activeStatus")
+        .lean();
+
+    const artistMap = new Map(artists.map((artist) => [artist._id.toString(), artist]));
+
+    return normalizedRankings.map((ranking) => {
+        const artistId =
+            typeof ranking?.artistId === "object" && ranking.artistId?._id
+                ? ranking.artistId._id
+                : ranking?.artistId;
+
+        return {
+            ...ranking,
+            artistId: artistId ? artistMap.get(artistId.toString()) || null : null,
+        };
+    });
+};
+
+const buildTopArtistRankingsFromListenEvents = async ({ startDate, endDate }) => {
+    const artistStats = await ListenEvent.aggregate(
+        buildArtistAggregationPipeline({ startDate, endDate })
+    );
+    const baseRankings = buildTopArtistRankings(artistStats);
+
+    return fillMissingArtistRankings(baseRankings);
+};
+
+const resolveDailyRankingEntries = async ({ dateKey, startDate, endDate }) => {
+    const rankingDocument = await ArtistRanking.findOne(
+        buildDailyArtistRankingFilter({ dateKey, startDate, endDate })
+    )
+        .populate({
+            path: "rankings.artistId",
+            select: "_id name avatar activeStatus",
+            match: { activeStatus: "active" },
+        })
+        .lean();
+
+    const storedRankings = Array.isArray(rankingDocument?.rankings)
+        ? rankingDocument.rankings
+        : [];
+
+    if (storedRankings.length > 0) {
+        return storedRankings;
+    }
+
+    const fallbackRankings = await buildTopArtistRankingsFromListenEvents({
+        startDate,
+        endDate,
+    });
+
+    return hydrateArtistRankingEntries(fallbackRankings);
+};
+
+const resolveMonthlyRankingEntries = async ({ year, month, startDate, endDate }) => {
+    const rankingDocument = await ArtistRanking.findOne(
+        buildMonthlyArtistRankingFilter({ year, month })
+    )
+        .populate({
+            path: "rankings.artistId",
+            select: "_id name avatar activeStatus",
+            match: { activeStatus: "active" },
+        })
+        .lean();
+
+    const storedRankings = Array.isArray(rankingDocument?.rankings)
+        ? rankingDocument.rankings
+        : [];
+
+    if (storedRankings.length > 0) {
+        return storedRankings;
+    }
+
+    const fallbackRankings = await buildTopArtistRankingsFromListenEvents({
+        startDate,
+        endDate,
+    });
+
+    return hydrateArtistRankingEntries(fallbackRankings);
+};
+
 const buildArtistFollowFilter = (userId, artistId) => ({
     userId,
     targetType: "Artist",
@@ -200,10 +338,12 @@ const buildArtistFollowFilter = (userId, artistId) => ({
 const getArtistProfile = async (artistId) => {
     const artist = await validateAndGetArtist(artistId);
 
-    const [artistStat, albums, tracks] = await Promise.all([
-        ArtistStat.findOne({
+    const [artistMonthlyStat, albums, tracks] = await Promise.all([
+        ArtistMonthlyStat.findOne({
             artistId,
-        }).lean(),
+        })
+            .sort({ year: -1, month: -1 })
+            .lean(),
         Album.find({
             artistId,
             status: "active",
@@ -229,7 +369,7 @@ const getArtistProfile = async (artistId) => {
 
     return formatArtistProfile({
         artist,
-        artistStat,
+        artistMonthlyStat,
         albums,
         tracks,
     });
@@ -394,18 +534,23 @@ const getDailyTopArtists = async (query = {}) => {
             const cachedData = await redisClient.get(cacheKey);
             if (cachedData) {
                 const parsedTopArtists = JSON.parse(cachedData);
-                const topArtists = await normalizeTopArtists(parsedTopArtists, limit);
+                const hasCachedTopArtists =
+                    Array.isArray(parsedTopArtists) && parsedTopArtists.length > 0;
 
-                if (topArtists.length === limit || parsedTopArtists.length < limit) {
-                    return {
-                        topArtists,
-                        meta: {
-                            date: dateKey,
-                            limit,
-                            cacheKey,
-                            cacheHit: true,
-                        },
-                    };
+                if (hasCachedTopArtists) {
+                    const topArtists = await normalizeTopArtists(parsedTopArtists, limit);
+
+                    if (topArtists.length === limit || parsedTopArtists.length < limit) {
+                        return {
+                            topArtists,
+                            meta: {
+                                date: dateKey,
+                                limit,
+                                cacheKey,
+                                cacheHit: true,
+                            },
+                        };
+                    }
                 }
             }
         } catch (error) {
@@ -413,29 +558,20 @@ const getDailyTopArtists = async (query = {}) => {
         }
     }
 
-    const rankingDocument = await ArtistRanking.findOne(
-        buildDailyArtistRankingFilter({ dateKey, startDate, endDate })
-    )
-        .populate({
-            path: "rankings.artistId",
-            select: "_id name avatar activeStatus",
-            match: { activeStatus: "active" },
-        })
-        .lean();
-
-    const rankings = Array.isArray(rankingDocument?.rankings)
-        ? rankingDocument.rankings
-        : [];
-
+    const rankings = await resolveDailyRankingEntries({
+        dateKey,
+        startDate,
+        endDate,
+    });
     const topArtists = rankings
         .filter((stat) => Boolean(stat.artistId))
         .map((stat) =>
             formatDailyTopArtistStat({
                 stat,
-                date: rankingDocument?.dateKey || dateKey,
+                date: dateKey,
             })
         );
-    const normalizedTopArtists = await normalizeTopArtists(topArtists, limit);
+    const normalizedTopArtists = finalizeTopArtists(topArtists, limit);
 
     if (redisClient.isOpen) {
         try {
@@ -458,7 +594,13 @@ const getDailyTopArtists = async (query = {}) => {
 };
 
 const getMonthlyTopArtists = async (query = {}) => {
-    const { year, month, monthKey } = parseMonthlyTopArtistsMonth(query.month);
+    const {
+        year,
+        month,
+        monthKey,
+        startDate,
+        endDate,
+    } = parseMonthlyTopArtistsMonth(query.month);
     const requestedLimit = normalizePositiveInteger(query.limit, DEFAULT_LIMIT);
     const limit = Math.min(requestedLimit, 20);
     const cacheKey = buildMonthlyTopArtistsCacheKey({ monthKey, limit });
@@ -492,36 +634,21 @@ const getMonthlyTopArtists = async (query = {}) => {
         }
     }
 
-    const rankingDocument = await ArtistRanking.findOne(
-        buildMonthlyArtistRankingFilter({ year, month })
-    )
-        .populate({
-            path: "rankings.artistId",
-            select: "_id name avatar activeStatus",
-            match: { activeStatus: "active" },
-        })
-        .lean();
-
-    const rankings = Array.isArray(rankingDocument?.rankings)
-        ? rankingDocument.rankings
-        : [];
-
+    const rankings = await resolveMonthlyRankingEntries({
+        year,
+        month,
+        startDate,
+        endDate,
+    });
     const topArtists = rankings
         .filter((stat) => Boolean(stat.artistId))
-        .map((stat) => ({
-            artist: {
-                id: stat.artistId._id.toString(),
-                name: stat.artistId.name,
-                avatar: stat.artistId.avatar,
-            },
-            rank: stat.rank,
-            month: monthKey,
-            score: stat.score,
-            uniqueListeners: stat.uniqueListeners,
-            playCount: stat.playCount,
-            completedPlayCount: stat.completedPlayCount,
-        }));
-    const normalizedTopArtists = await normalizeTopArtists(topArtists, limit);
+        .map((stat) =>
+            formatMonthlyTopArtistStat({
+                stat,
+                monthKey,
+            })
+        );
+    const normalizedTopArtists = finalizeTopArtists(topArtists, limit);
 
     if (redisClient.isOpen) {
         try {

@@ -118,6 +118,24 @@ const formatSubscriptionDate = (value) => {
   return new Intl.DateTimeFormat("vi-VN").format(parsedDate);
 };
 
+const formatDateOfBirth = (value) => {
+  if (!value) {
+    return DEFAULT_EMPTY_TEXT;
+  }
+
+  const parsedDate = new Date(value);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return DEFAULT_EMPTY_TEXT;
+  }
+
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(parsedDate);
+};
+
 const getSubscriptionStatusMeta = (status) => {
   const statusMap = {
     active: {
@@ -478,7 +496,13 @@ const UserProfilePage = () => {
     };
   }, []);
 
-  const profileDetail = useMemo(() => getUserProfileDetail(user), [user]);
+  const profileDetail = useMemo(
+    () => ({
+      ...getUserProfileDetail(user),
+      dateOfBirth: normalizeText(user?.profile?.dateOfBirth),
+    }),
+    [user]
+  );
   const subscriptionDetail = useMemo(
     () => normalizeSubscriptionStatus(subscriptionStatus),
     [subscriptionStatus]
@@ -550,7 +574,7 @@ const UserProfilePage = () => {
                 fullName={profileDetail.fullName}
                 email={profileDetail.email}
                 gender={profileDetail.gender}
-                country={profileDetail.country}
+                country={formatDateOfBirth(profileDetail.dateOfBirth)}
               />
             </div>
           </UserProfileCard>

@@ -11,6 +11,11 @@ import {
     normalizeSearchKeyword,
 } from "./search.service.helper.js";
 
+const formatSongSearchItem = (song) => ({
+    ...song,
+    versionTitle: song.versionTitle || "",
+});
+
 const searchSongs = async (query = {}) => {
     const keyword = normalizeSearchKeyword(query.q);
     const filter = buildSongsSearchFilter(keyword);
@@ -24,7 +29,7 @@ const searchSongs = async (query = {}) => {
     }
 
     const songs = await Track.find(filter)
-        .select("_id title avatar coverImage createdAt")
+        .select("_id title versionTitle avatar coverImage createdAt")
         .sort({ createdAt: -1 })
         .lean();
 
@@ -33,7 +38,7 @@ const searchSongs = async (query = {}) => {
     );
 
     return {
-        items: matchedSongs.slice(skip, skip + limit),
+        items: matchedSongs.slice(skip, skip + limit).map(formatSongSearchItem),
         pagination: buildPaginationMeta(page, limit, matchedSongs.length),
     };
 };
@@ -109,7 +114,7 @@ const searchAll = async (query = {}) => {
 
     const [songs, artists, albums] = await Promise.all([
         Track.find(songsFilter)
-            .select("_id title avatar coverImage createdAt")
+            .select("_id title versionTitle avatar coverImage createdAt")
             .sort({ createdAt: -1 })
             .lean(),
         Artist.find(artistsFilter)
@@ -125,7 +130,8 @@ const searchAll = async (query = {}) => {
     return {
         songs: songs
             .filter((song) => isSearchTextMatched(song.title, keyword))
-            .slice(0, 6),
+            .slice(0, 6)
+            .map(formatSongSearchItem),
         artists: artists
             .filter((artist) => isSearchTextMatched(artist.name, keyword))
             .slice(0, 6),

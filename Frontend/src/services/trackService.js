@@ -22,6 +22,7 @@ const normalizeTopTrackItem = (item, index) => {
   const normalizedTrack = {
     id: rawTrack?.id || rawTrack?._id || "",
     title: rawTrack?.title || "Untitled track",
+    versionTitle: rawTrack?.versionTitle || "",
     duration: Number(rawTrack?.duration) || 0,
     avatar: rawTrack?.avatar || "",
     coverImage: rawTrack?.coverImage || rawTrack?.avatar || "",

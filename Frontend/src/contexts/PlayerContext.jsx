@@ -233,6 +233,7 @@ const normalizeQueueTrack = (item, options = {}) => {
     queueSource,
     id: normalizedTrackId,
     title: track?.title || item?.title || "Untitled track",
+    versionTitle: track?.versionTitle || item?.versionTitle || "",
     artist: track?.artist || null,
     artistName: track?.artistName || getArtistName(track, options.artistName),
     duration: Number(track?.duration) || Number(item?.duration) || 0,
@@ -278,6 +279,7 @@ const createPersistedQueueTrack = (
       id: trackId,
       playbackTrackId: playbackTrackId || trackId,
       title: storedTrack?.title || "Untitled track",
+      versionTitle: storedTrack?.versionTitle || "",
       artistName: storedTrack?.artistName || "Unknown artist",
       duration: storedTrack?.duration,
       image: storedTrack?.image,
@@ -302,6 +304,7 @@ const createStoredQueueTrack = (track) => ({
     track?.playbackTrackId || track?.id || ""
   ).trim(),
   title: String(track?.title || "Untitled track"),
+  versionTitle: String(track?.versionTitle || ""),
   artistName: String(track?.artistName || getArtistName(track)),
   duration: Math.max(Number(track?.duration) || 0, 0),
   image: String(track?.image || getTrackImage(track) || ""),
@@ -1148,6 +1151,8 @@ export const PlayerProvider = ({ children }) => {
           ...restoredCurrentTrack,
           id: getExplicitTrackId(playbackSource.track) || restoredCurrentTrack.id,
           title: playbackSource.track?.title || restoredCurrentTrack.title,
+          versionTitle:
+            playbackSource.track?.versionTitle || restoredCurrentTrack.versionTitle || "",
           artist: playbackSource.track?.artist || restoredCurrentTrack.artist,
           artistName: getArtistName(playbackSource.track, restoredCurrentTrack.artistName),
           duration:
@@ -1396,6 +1401,7 @@ export const PlayerProvider = ({ children }) => {
         id: getExplicitTrackId(source.track) || nextTrack.id,
         lyricsThemeIndex,
         title: source.track?.title || nextTrack.title,
+        versionTitle: source.track?.versionTitle || nextTrack.versionTitle || "",
         artist: source.track?.artist || nextTrack.artist,
         artistName: getArtistName(source.track, nextTrack.artistName),
         duration: Number(source.track?.duration) || nextTrack.duration,

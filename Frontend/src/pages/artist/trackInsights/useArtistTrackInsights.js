@@ -6,8 +6,8 @@ import {
   buildSummaryCards,
   CHART_METRICS,
   DEFAULT_RANGE,
-  displayRawValue,
   EMPTY_ARRAY,
+  formatListenDuration,
   MONTHLY_CHART_METRICS,
   resolveRange,
   resolveTrackId,
@@ -242,7 +242,7 @@ export const useArtistTrackInsights = () => {
     () => [
       {
         label: "Nghe trung bình",
-        value: displayRawValue(summary?.averageListenDuration),
+        value: formatListenDuration(summary?.averageListenDuration),
         helper: "Thời lượng nghe trung bình mà mỗi lượt phát ghi nhận được.",
         accentClassName: "bg-[#34caa5]",
       },

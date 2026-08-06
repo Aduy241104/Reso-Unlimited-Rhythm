@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
+import { getTrackDisplayTitle } from "../../utils/trackTitle";
 import { Link } from "react-router-dom";
 import { formatTrackDuration } from "../../utils/albumDetail";
 
@@ -105,7 +106,7 @@ const TrackInformationModal = ({ isOpen, onClose, track, image, artistHref }) =>
 
   if (!isOpen || !track || typeof document === "undefined") return null;
 
-  const title = track?.title || "Bài hát chưa có tên";
+  const title = getTrackDisplayTitle(track, "Bài hát chưa có tên");
   const artistName = track?.artist?.name || "Nghệ sĩ chưa xác định";
   const albumTitle = track?.album?.title || "Không thuộc album";
   const copyright = track?.copyright || {};
@@ -170,9 +171,6 @@ const TrackInformationModal = ({ isOpen, onClose, track, image, artistHref }) =>
                 ) : null }
               </div>
               <h3 className="break-words text-2xl font-semibold text-white">{ title }</h3>
-              { track?.versionTitle ? (
-                <p className="mt-1 text-sm text-[#b1b1b1]">{ track.versionTitle }</p>
-              ) : null }
               { artistHref ? (
                 <Link
                   to={ artistHref }

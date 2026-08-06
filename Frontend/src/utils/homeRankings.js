@@ -1,4 +1,5 @@
 import { routePaths } from "../routes/routePaths.js";
+import { getTrackDisplayTitle } from "./trackTitle.js";
 
 export const HOME_RANKING_PREVIEW_LIMIT = 5;
 
@@ -24,7 +25,7 @@ export const mapTopTracksToRankingCards = (
         track?.artist?.avatar ||
         track?.artist?.coverImage ||
         "",
-      title: track?.title || "Bài hát chưa có tên",
+      title: getTrackDisplayTitle(track, "Bài hát chưa có tên"),
       subtitle: `${artistName} · ${formatNumber(item?.playCount)} lượt phát`,
       href: trackId ? routePaths.trackDetail(trackId) : undefined,
       rank,
@@ -50,9 +51,7 @@ export const mapTopArtistsToRankingCards = (
       type: "Nghệ sĩ",
       image: artist?.avatar || artist?.coverImage || "",
       title: artist?.name || "Nghệ sĩ không xác định",
-      subtitle: `${formatNumber(item?.playCount)} lượt phát · ${formatNumber(
-        item?.uniqueListeners
-      )} người nghe`,
+      subtitle: "",
       href: artistId ? routePaths.artistBrowseProfile(artistId) : undefined,
       rank,
       raw: {

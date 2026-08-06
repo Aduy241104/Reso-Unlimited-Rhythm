@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AboutArtistSection from "../../components/artist/AboutArtistSection";
 import ComingSoonCountdownOverlay from "../../components/artist/ComingSoonCountdownOverlay";
 import ArtistHeroSection from "../../components/artist/ArtistHeroSection";
+import ArtistInformationModal from "../../components/artist/ArtistInformationModal";
 import DiscographySection from "../../components/artist/DiscographySection";
 import PopularTracksSection from "../../components/artist/PopularTracksSection";
 import CreateReportModal from "../../components/report/CreateReportModal";
@@ -98,6 +99,7 @@ const ArtistProfileView = () => {
   const savedOverflowRef = useRef("");
   const [overlayBounds, setOverlayBounds] = useState(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isInformationModalOpen, setIsInformationModalOpen] = useState(false);
   const [artistData, setArtistData] = useState({
     profile: null,
     popularTracks: [],
@@ -202,6 +204,8 @@ const ArtistProfileView = () => {
 
   useEffect(() => {
     setFollowErrorMessage("");
+    setIsInformationModalOpen(false);
+    setIsReportModalOpen(false);
   }, [id]);
 
   useEffect(() => {
@@ -426,7 +430,7 @@ const ArtistProfileView = () => {
   if (isLoading) {
     return (
       <LoadingState
-        message="Äang táº£i há»“ sÆ¡ nghá»‡ sÄ©..."
+        message="Đang tải hồ sơ nghệ sĩ..."
         className="min-h-[60vh]"
         spinnerClassName="h-8 w-8"
       />
@@ -472,6 +476,7 @@ const ArtistProfileView = () => {
                 followErrorMessage={ followErrorMessage }
                 onToggleFollow={ handleToggleFollow }
                 onReport={ handleReportArtist }
+                onShowInformation={ () => setIsInformationModalOpen(true) }
               />
             </div>
 
@@ -493,7 +498,7 @@ const ArtistProfileView = () => {
             </div>
           </>
         ) : isLoading ? (
-          <LoadingState message="Äang táº£i há»“ sÆ¡ nghá»‡ sÄ©..." className="min-h-[60vh]" />
+          <LoadingState message="Đang tải hồ sơ nghệ sĩ..." className="min-h-[60vh]" />
         ) : (
           <div className="mx-auto max-w-6xl space-y-8 px-1 lg:space-y-10">
             <PopularTracksSection
@@ -529,6 +534,11 @@ const ArtistProfileView = () => {
         onClose={() => setIsReportModalOpen(false)}
         targetId={artistData.profile?.id || id}
         targetType="artist"
+      />
+      <ArtistInformationModal
+        isOpen={isInformationModalOpen}
+        onClose={() => setIsInformationModalOpen(false)}
+        profile={profile}
       />
     </section>
   );

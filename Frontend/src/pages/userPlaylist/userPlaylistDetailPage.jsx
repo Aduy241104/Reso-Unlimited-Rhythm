@@ -31,7 +31,8 @@ import {
   formatPlaylistDate,
   formatPlaylistDuration,
 } from "../../utils/playlistDetail";
-import { isBlockedTrack } from "../../utils/trackStatus";
+import { filterPlayableTracks, isBlockedTrack } from "../../utils/trackStatus";
+import { getTrackDisplayTitle } from "../../utils/trackTitle";
 import { Clock3 } from "lucide-react";
 
 const shufflePlayButtonClassName = `
@@ -320,11 +321,12 @@ const UserPlaylistDetailPage = () => {
   }, [trackActionFeedback]);
 
   const trackItems = normalizeTrackItems(playlist);
+  const visibleTrackItems = filterPlayableTracks(trackItems);
   const playlistOwnerLabel = getPlaylistOwnerLabel(playlist);
-  const totalTracks = playlist?.trackCount ?? trackItems.length;
+  const totalTracks = visibleTrackItems.length;
   const totalDuration =
     formatPlaylistDuration(playlist?.totalDuration) ||
-    formatPlaylistDuration(getTotalDurationSeconds(trackItems));
+    formatPlaylistDuration(getTotalDurationSeconds(visibleTrackItems));
   const createdDate = formatPlaylistDate(playlist?.createdAt);
   const playlistCoverImage = playlist?.coverImage ?? "";
   const headerGradient = useDominantColorGradient(playlistCoverImage);
@@ -418,7 +420,7 @@ const UserPlaylistDetailPage = () => {
           name: playlistOwnerLabel,
         },
       },
-      trackItems
+      visibleTrackItems
     );
   };
 
@@ -437,7 +439,7 @@ const UserPlaylistDetailPage = () => {
           name: playlistOwnerLabel,
         },
       },
-      trackItems,
+      visibleTrackItems,
       { shuffle: true }
     );
   };
@@ -455,7 +457,7 @@ const UserPlaylistDetailPage = () => {
     }
 
     await playTrack(track, {
-      queue: trackItems,
+      queue: visibleTrackItems,
       startIndex: index,
       collection: collectionMeta,
     });
@@ -510,7 +512,7 @@ const UserPlaylistDetailPage = () => {
     updatePlaylistSummaryInList(targetPlaylistId, updatedPlaylist);
     setTrackActionFeedback({
       tone: "success",
-      message: `Đã thêm "${track?.title || track?.name || "bài hát"}" vào ${getPlaylistTitle(
+      message: `Đã thêm "${getTrackDisplayTitle(track, "bài hát")}" vào ${getPlaylistTitle(
         targetPlaylist
       )}.`,
       image: getTrackImage(track, playlistCoverImage),
@@ -525,8 +527,8 @@ const UserPlaylistDetailPage = () => {
     setTrackActionFeedback({
       tone: "success",
       message: isQueued
-        ? `Đã thêm "${track?.title || track?.name || "bài hát"}" vào danh sách chờ.`
-        : `Đã xóa "${track?.title || track?.name || "bài hát"}" khỏi danh sách chờ.`,
+        ? `Đã thêm "${getTrackDisplayTitle(track, "bài hát")}" vào danh sách chờ.`
+        : `Đã xóa "${getTrackDisplayTitle(track, "bài hát")}" khỏi danh sách chờ.`,
       image: getTrackImage(track, playlistCoverImage),
     });
   };
@@ -541,7 +543,7 @@ const UserPlaylistDetailPage = () => {
     setRemoveTrackErrorMessage("");
     setPendingTrackRemoval({
       id: trackId,
-      title: track?.title || track?.name || "bài hát này",
+      title: getTrackDisplayTitle(track, "bài hát này"),
     });
   };
 
@@ -858,12 +860,11 @@ const UserPlaylistDetailPage = () => {
             mobileLabel="Track list"
             headerColumns={trackListHeaderColumns}
             emptyMessage="No tracks available for this playlist yet."
-            hasItems={trackItems.length > 0}
+            hasItems={visibleTrackItems.length > 0}
           >
-            {trackItems.map((trackItem, index) => {
+            {visibleTrackItems.map((trackItem, index) => {
               const track = getTrackEntity(trackItem);
               const trackId = getTrackId(track);
-              const isTrackBlocked = isBlockedTrack(trackItem);
 
               return (
                 <TrackCard
@@ -877,7 +878,6 @@ const UserPlaylistDetailPage = () => {
                   duration={formatTrackDuration(track?.duration)}
                   explicit={false}
                   liked={false}
-                  isBlocked={isTrackBlocked}
                   href={trackId ? routePaths.trackDetail(trackId) : undefined}
                   isPlaybackActive={currentTrack?.id === trackId}
                   isPlaying={isPlaying}
@@ -889,7 +889,7 @@ const UserPlaylistDetailPage = () => {
                       content: formatTrackDuration(track?.duration),
                     },
                     {
-                      content: isTrackBlocked ? null : (
+                      content: (
                         <TrackTwoLevelMenu
                           trackId={trackId}
                           track={track}

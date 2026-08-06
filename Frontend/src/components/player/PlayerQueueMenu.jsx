@@ -1,5 +1,6 @@
 ﻿import { useMemo } from "react";
 import { Music2, X } from "lucide-react";
+import { getTrackDisplayTitle } from "../../utils/trackTitle";
 
 const MANUAL_QUEUE_SOURCE = "manual";
 
@@ -130,6 +131,7 @@ const PlayerQueueMenu = ({
   const renderQueueTrack = ({ track, index }) => {
     const isCurrentTrack = index === currentIndex;
     const isRemovingTrack = removingTrackIndex === index;
+    const displayTitle = getTrackDisplayTitle(track, "Bài hát chưa có tên");
 
     const isExplicit =
       track?.raw?.explicit === true || track?.raw?.isExplicit === true;
@@ -169,14 +171,13 @@ const PlayerQueueMenu = ({
                 "hover:bg-white/[0.05]",
               ].join(" "),
           ].join(" ") }
-          aria-label={ `Phát ${track?.title || "bài hát"
-            } từ danh sách chờ` }
+          aria-label={ `Phát ${displayTitle} từ danh sách chờ` }
         >
           <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md bg-[#242424]">
             { track?.image ? (
               <img
                 src={ track.image }
-                alt={ track.title || "Track cover" }
+                alt={ displayTitle }
                 className="h-full w-full object-cover"
               />
             ) : (
@@ -206,7 +207,7 @@ const PlayerQueueMenu = ({
                 isCurrentTrack ? "text-white" : "text-[#eeeeee]",
               ].join(" ") }
             >
-              { track?.title || "Bài hát chưa có tên" }
+              { displayTitle }
             </p>
 
             <div className="mt-0.5 flex min-w-0 items-center gap-1.5">
@@ -241,8 +242,7 @@ const PlayerQueueMenu = ({
               "disabled:cursor-not-allowed disabled:opacity-30",
               "group-hover:opacity-100 group-focus-within:opacity-100",
             ].join(" ") }
-            aria-label={ `Xóa ${track?.title || "bài hát"
-              } khỏi danh sách chờ` }
+            aria-label={ `Xóa ${displayTitle} khỏi danh sách chờ` }
             title="Xóa khỏi danh sách chờ"
           >
             <X className="h-4 w-4" />

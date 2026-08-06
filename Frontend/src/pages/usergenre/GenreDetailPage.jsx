@@ -4,6 +4,8 @@ import GenreTrackCard from "../../components/usergenre/GenreTrackCard";
 import LoadingState from "../../components/common/LoadingState";
 import { getUserGenreTracks } from "../../services/userGenreService";
 import { getApiErrorMessage } from "../../utils/apiError";
+import { filterPlayableTracks } from "../../utils/trackStatus";
+import { getTrackDisplayTitle } from "../../utils/trackTitle";
 
 const PAGE_LIMIT = 20;
 
@@ -163,6 +165,7 @@ const GenreDetailPage = () => {
     typeof genre?.image === "string" && genre.image.trim()
       ? genre.image.trim()
       : "";
+  const visibleTracks = filterPlayableTracks(tracks);
   const totalPages = Math.max(1, pagination?.totalPages || 1);
   const pageNumbers = Array.from({ length: totalPages }, (_, index) => index + 1);
   const basePaginationButtonClassName = "flex h-[42px] w-[42px] items-center justify-center rounded-md border font-semibold transition-all";
@@ -216,7 +219,7 @@ const GenreDetailPage = () => {
               <p className="text-sm text-white/60">{error}</p>
             </div>
           </section>
-        ) : tracks.length === 0 ? (
+        ) : visibleTracks.length === 0 ? (
           <section className="flex min-h-[220px] items-center justify-center rounded-3xl bg-[#121212] px-6 text-center">
             <div className="space-y-2">
               <h3 className="text-xl font-bold text-white">Chưa có bài hát nào trong thể loại này</h3>
@@ -225,10 +228,13 @@ const GenreDetailPage = () => {
         ) : (
           <>
             <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6">
-              {tracks.map((track, index) => (
+              {visibleTracks.map((track, index) => (
                 <GenreTrackCard
                   key={track?._id || track?.id || `${genreId}-track-${index}`}
-                  track={track}
+                  track={{
+                    ...track,
+                    title: getTrackDisplayTitle(track),
+                  }}
                 />
               ))}
             </section>

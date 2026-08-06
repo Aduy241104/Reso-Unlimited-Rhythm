@@ -48,6 +48,23 @@ const readNestedUri = (value) => {
   );
 };
 
+const normalizeAudioQualityLabel = (value) => {
+  const normalizedValue = typeof value === 'string' ? value.trim().toLowerCase() : '';
+
+  return normalizedValue || 'original';
+};
+
+const getTrackAudioFiles = (track) => {
+  const candidates = [
+    track?.playback?.audioFiles,
+    track?.audioFiles,
+    track?.raw?.playback?.audioFiles,
+    track?.raw?.audioFiles,
+  ];
+
+  return candidates.flatMap((value) => (Array.isArray(value) ? value : []));
+};
+
 const toAbsoluteAudioUri = (value) => {
   const candidate = readNestedUri(value);
 
@@ -206,6 +223,76 @@ export const resolveTrackAudioUri = (item) => {
   return '';
 };
 
+export const resolveTrackAudioQualityOptions = (track) => {
+  const qualityOptions = [];
+  const seenKeys = new Set();
+  const defaultAudioUri = toAbsoluteAudioUri(
+    track?.playback?.defaultAudio?.url ||
+    track?.defaultAudio?.url ||
+    track?.raw?.playback?.defaultAudio?.url ||
+    track?.raw?.defaultAudio?.url
+  );
+
+  getTrackAudioFiles(track).forEach((audioFile, index) => {
+    const url = toAbsoluteAudioUri(audioFile?.url || audioFile?.uri || audioFile);
+
+    if (!url) {
+      return;
+    }
+
+    const label = normalizeAudioQualityLabel(audioFile?.label || audioFile?.quality);
+    const bitrate = Math.max(0, Number(audioFile?.bitrate) || 0);
+    const key = `${label}:${bitrate}:${url}`;
+
+    if (seenKeys.has(key)) {
+      return;
+    }
+
+    seenKeys.add(key);
+    qualityOptions.push({
+      label,
+      bitrate,
+      priority: Number(audioFile?.priority) || 0,
+      url,
+      isDefault: Boolean(defaultAudioUri && defaultAudioUri === url),
+      index,
+    });
+  });
+
+  return qualityOptions.sort((left, right) => {
+    if (right.priority !== left.priority) {
+      return right.priority - left.priority;
+    }
+
+    if (right.bitrate !== left.bitrate) {
+      return right.bitrate - left.bitrate;
+    }
+
+    return left.index - right.index;
+  });
+};
+
+export const resolveTrackAudioUriForQuality = (track, preferredQuality = null) => {
+  const qualityOptions = resolveTrackAudioQualityOptions(track);
+  const preferredLabel = normalizeAudioQualityLabel(
+    typeof preferredQuality === 'string' ? preferredQuality : preferredQuality?.label
+  );
+  const preferredUrl = typeof preferredQuality === 'object' && preferredQuality
+    ? toAbsoluteAudioUri(preferredQuality.url)
+    : '';
+  const preferredBitrate = typeof preferredQuality === 'object' && preferredQuality
+    ? Math.max(0, Number(preferredQuality.bitrate) || 0)
+    : 0;
+  const matchedQuality =
+    qualityOptions.find(
+      (quality) => preferredBitrate > 0 && quality.bitrate === preferredBitrate
+    ) ||
+    qualityOptions.find((quality) => preferredUrl && quality.url === preferredUrl) ||
+    qualityOptions.find((quality) => quality.label === preferredLabel);
+
+  return matchedQuality?.url || resolveTrackAudioUri(track);
+};
+
 export const resolveTrackStaticLyrics = (item) => {
   if (!item) {
     return '';
@@ -270,8 +357,10 @@ export const hasSyncedLrc = (value) => {
   return timedLrcPattern.test(lrc);
 };
 
-export const buildExpoAudioSource = (track, accessToken) => {
-  const uri = resolveTrackAudioUri(track);
+export const buildExpoAudioSource = (track, accessToken, preferredQuality = null) => {
+  const uri = preferredQuality
+    ? resolveTrackAudioUriForQuality(track, preferredQuality)
+    : resolveTrackAudioUri(track);
 
   if (!uri) {
     return null;

@@ -134,6 +134,7 @@ const formatTrackItem = (track) => {
     return {
         _id: track._id,
         title: track.title,
+        versionTitle: track.versionTitle || "",
         description: track.description || "",
         tags: track.tags || [],
         artist: track.artist_artistId

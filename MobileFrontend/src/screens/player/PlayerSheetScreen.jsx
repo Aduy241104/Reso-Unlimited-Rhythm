@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import axiosClient from '../../api/axiosClient';
 import { API_ENDPOINTS } from '../../api/apiEndpoints';
+import AudioQualityBottomSheet from '../../components/player/AudioQualityBottomSheet';
 import PlayerDetailSheet from '../../components/player/PlayerDetailSheet';
 import TrackLyricsBottomSheet from '../../components/player/TrackLyricsBottomSheet';
 import TrackQueueBottomSheet from '../../components/player/TrackQueueBottomSheet';
@@ -14,6 +15,7 @@ export default function PlayerSheetScreen() {
   const navigation = useNavigation();
   const [isQueueVisible, setIsQueueVisible] = useState(false);
   const [isLyricsVisible, setIsLyricsVisible] = useState(false);
+  const [isQualityMenuVisible, setIsQualityMenuVisible] = useState(false);
   const [trackDetailResponse, setTrackDetailResponse] = useState(null);
   const [artistProfileResponse, setArtistProfileResponse] = useState(null);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
@@ -22,10 +24,16 @@ export default function PlayerSheetScreen() {
   const {
     currentTrack,
     currentError,
+    duration,
     isBuffering,
+    isPremium,
+    isShuffleEnabled,
     queue,
     currentIndex,
     isPlaying,
+    repeatMode,
+    availableAudioQualities,
+    selectedAudioQuality,
     progressSeconds,
     progressRatio,
     hasNext,
@@ -33,6 +41,10 @@ export default function PlayerSheetScreen() {
     togglePlayback,
     playNext,
     playPrevious,
+    seekTo,
+    toggleShuffle,
+    cycleRepeatMode,
+    changeAudioQuality,
   } = usePlayer();
   const trackId = currentTrack?.entityId || currentTrack?.id || '';
   const hasTimedLyrics = hasSyncedLrc(currentTrack);
@@ -110,6 +122,14 @@ export default function PlayerSheetScreen() {
     setIsLyricsVisible(false);
   }, [currentTrack, hasTimedLyrics]);
 
+  useEffect(() => {
+    if (currentTrack) {
+      return;
+    }
+
+    setIsQualityMenuVisible(false);
+  }, [currentTrack]);
+
   const handleOpenLyrics = useCallback(() => {
     if (!currentTrack || !hasTimedLyrics) {
       return;
@@ -118,16 +138,73 @@ export default function PlayerSheetScreen() {
     setIsLyricsVisible(true);
   }, [currentTrack, hasTimedLyrics]);
 
+  const handlePremiumRequired = useCallback((feature = 'Tính năng này') => {
+    Alert.alert(
+      'Dành cho tài khoản Premium',
+      `${feature} chỉ khả dụng khi tài khoản đang có Premium.`,
+      [
+        { text: 'Để sau', style: 'cancel' },
+        {
+          text: 'Xem gói Premium',
+          onPress: () => navigation.navigate('PremiumOverview'),
+        },
+      ]
+    );
+  }, [navigation]);
+
+  const handleSeek = useCallback((nextPosition) => {
+    if (!isPremium) {
+      handlePremiumRequired('Tua bài hát');
+      return;
+    }
+
+    seekTo(nextPosition);
+  }, [handlePremiumRequired, isPremium, seekTo]);
+
+  const handleToggleShuffle = useCallback(() => {
+    if (!isPremium) {
+      handlePremiumRequired('Tắt chế độ phát ngẫu nhiên');
+      return;
+    }
+
+    toggleShuffle();
+  }, [handlePremiumRequired, isPremium, toggleShuffle]);
+
+  const handleCycleRepeat = useCallback(() => {
+    if (!isPremium) {
+      handlePremiumRequired('Chế độ lặp');
+      return;
+    }
+
+    cycleRepeatMode();
+  }, [cycleRepeatMode, handlePremiumRequired, isPremium]);
+
+  const handleSelectQuality = useCallback(async (quality) => {
+    if (!isPremium) {
+      handlePremiumRequired('Chọn chất lượng âm thanh');
+      return;
+    }
+
+    const didChange = await changeAudioQuality(quality);
+
+    if (!didChange) {
+      Alert.alert('Không thể đổi chất lượng', 'Vui lòng thử lại sau khi bài hát tải xong.');
+    }
+  }, [changeAudioQuality, handlePremiumRequired, isPremium]);
+
   return (
     <View style={styles.container}>
       <PlayerDetailSheet
         currentError={currentError}
         currentIndex={currentIndex}
         currentTrack={currentTrack}
+        duration={duration}
         hasNext={hasNext}
         hasPrevious={hasPrevious}
         hasSyncedLyrics={hasTimedLyrics}
         isBuffering={isBuffering}
+        isPremium={isPremium}
+        isShuffleEnabled={isShuffleEnabled}
         isPlaying={isPlaying}
         artistProfileResponse={artistProfileResponse}
         detailErrorMessage={detailErrorMessage}
@@ -137,11 +214,19 @@ export default function PlayerSheetScreen() {
         onOpenQueue={() => setIsQueueVisible(true)}
         onPlayNext={playNext}
         onPlayPrevious={playPrevious}
+        onPremiumRequired={handlePremiumRequired}
+        onOpenQualityMenu={() => setIsQualityMenuVisible(true)}
         onRetryDetail={loadPlayerDetail}
+        onSeek={handleSeek}
+        onToggleShuffle={handleToggleShuffle}
+        onCycleRepeat={handleCycleRepeat}
         onTogglePlayback={togglePlayback}
         progressRatio={progressRatio}
         progressSeconds={progressSeconds}
         queueLength={queue.length}
+        repeatMode={repeatMode}
+        availableAudioQualities={availableAudioQualities}
+        selectedAudioQuality={selectedAudioQuality}
         trackDetailResponse={trackDetailResponse}
       />
 
@@ -155,6 +240,15 @@ export default function PlayerSheetScreen() {
         onClose={() => setIsQueueVisible(false)}
         title="Hàng chờ phát"
         subtitle={`${queue.length} bài hát trong phiên này`}
+      />
+      <AudioQualityBottomSheet
+        visible={isQualityMenuVisible}
+        onClose={() => setIsQualityMenuVisible(false)}
+        availableAudioQualities={availableAudioQualities}
+        selectedAudioQuality={selectedAudioQuality}
+        isPremium={isPremium}
+        onPremiumRequired={handlePremiumRequired}
+        onSelectQuality={handleSelectQuality}
       />
     </View>
   );
