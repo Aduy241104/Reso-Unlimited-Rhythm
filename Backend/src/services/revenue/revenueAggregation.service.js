@@ -119,6 +119,9 @@ const aggregateEligibleStreamCount = async ({ periodStart, periodEnd }) => {
     return Number(summary[0]?.totalEligibleStreams || 0);
 };
 
+const shouldPreserveCalculatedAt = (status) =>
+    ["calculated", "confirmed"].includes(status);
+
 const syncRevenuePeriod = async ({
     year,
     month,
@@ -132,6 +135,11 @@ const syncRevenuePeriod = async ({
     dailyStats,
     now,
 }) => {
+    const existingRevenuePeriod = await RevenuePeriod.findOne({ year, month })
+        .select("status")
+        .lean();
+    const nextStatus = existingRevenuePeriod?.status || "open";
+
     const revenuePeriod = await RevenuePeriod.findOneAndUpdate(
         { year, month },
         {
@@ -144,8 +152,10 @@ const syncRevenuePeriod = async ({
                 totalEligibleStreams,
                 successfulTransactions,
                 dailyStats,
-                calculatedAt: now,
                 lastAggregatedAt: now,
+                ...(shouldPreserveCalculatedAt(nextStatus)
+                    ? {}
+                    : { calculatedAt: null }),
             },
             $setOnInsert: {
                 status: "open",

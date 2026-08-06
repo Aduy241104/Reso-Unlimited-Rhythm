@@ -40,6 +40,20 @@ const getQualityLabel = (quality) => {
   return quality?.bitrate ? `${label} · ${quality.bitrate} kbps` : label;
 };
 
+const getDisplayQualityLabel = (quality) => {
+  const label = (
+    {
+      original: 'Gốc',
+      lossless: 'Lossless',
+      high: 'Cao',
+      medium: 'Trung bình',
+      low: 'Tiết kiệm',
+    }[quality?.label]
+  ) || quality?.label || 'Mặc định';
+
+  return quality?.bitrate ? `${label} · ${quality.bitrate} kbps` : label;
+};
+
 const PremiumSeekBar = ({
   duration,
   isPremium,
@@ -191,6 +205,7 @@ export default function PlayerDetailSheet({
   onPlayNext,
   onPlayPrevious,
   onPremiumRequired,
+  onOpenQualityMenu,
   onRetryDetail,
   onSeek,
   onSelectQuality,
@@ -219,6 +234,13 @@ export default function PlayerDetailSheet({
   const queueStatusLabel = currentIndex >= 0
     ? `Open playing queue. ${queueLength} tracks queued. Current track ${currentIndex + 1}.`
     : `Open playing queue. ${queueLength} tracks queued.`;
+  const selectedQualityLabel = getDisplayQualityLabel(selectedAudioQuality || availableAudioQualities[0]);
+  const qualityAvailabilityLabel = availableAudioQualities.length > 1
+    ? `${availableAudioQualities.length} tùy chọn`
+    : 'Mặc định';
+  const qualityMetaLabel = availableAudioQualities.length > 1
+    ? `${selectedQualityLabel} · ${qualityAvailabilityLabel}`
+    : selectedQualityLabel;
   const canOpenSyncedLyrics = hasSyncedLyrics && typeof onOpenLyrics === 'function';
   const translateY = useRef(new Animated.Value(screenHeight)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
@@ -458,6 +480,82 @@ export default function PlayerDetailSheet({
                   disabled={!hasNext}
                 >
                   <Ionicons name="play-skip-forward" size={25} color={hasNext ? '#ffffff' : '#625D69'} />
+                </Pressable>
+              </View>
+
+              <View style={styles.modeControlSection}>
+                <View style={styles.modeControlRow}>
+                  <Pressable
+                    style={[
+                      styles.modeControlButton,
+                      isShuffleEnabled && styles.modeControlButtonActive,
+                      !isPremium && styles.premiumControlLocked,
+                    ]}
+                    onPress={onToggleShuffle}
+                  >
+                    <View style={[styles.modeControlIcon, isShuffleEnabled && styles.modeControlIconActive]}>
+                      <Ionicons
+                        name={isPremium ? 'shuffle' : 'lock-closed'}
+                        size={18}
+                        color={isShuffleEnabled ? '#ffffff' : '#8F8994'}
+                      />
+                    </View>
+                    <Text style={styles.modeControlLabel}>Ngẫu nhiên</Text>
+                    <Text style={[styles.modeControlValue, isShuffleEnabled && styles.modeControlValueActive]}>
+                      {isShuffleEnabled ? 'Bật' : 'Tắt'}
+                    </Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={[
+                      styles.modeControlButton,
+                      repeatMode !== 'off' && styles.modeControlButtonActive,
+                      !isPremium && styles.premiumControlLocked,
+                    ]}
+                    onPress={onCycleRepeat}
+                  >
+                    <View style={[styles.modeControlIcon, repeatMode !== 'off' && styles.modeControlIconActive]}>
+                      <Ionicons
+                        name={isPremium ? 'repeat' : 'lock-closed'}
+                        size={18}
+                        color={repeatMode !== 'off' ? '#ffffff' : '#8F8994'}
+                      />
+                      {isPremium && repeatMode === 'one' ? (
+                        <View style={styles.modeControlBadge}>
+                          <Text style={styles.modeControlBadgeText}>1</Text>
+                        </View>
+                      ) : null}
+                    </View>
+                    <Text style={styles.modeControlLabel}>Lặp lại</Text>
+                    <Text style={[styles.modeControlValue, repeatMode !== 'off' && styles.modeControlValueActive]}>
+                      {repeatMode === 'one' ? 'Một bài' : repeatMode === 'all' ? 'Danh sách' : 'Tắt'}
+                    </Text>
+                  </Pressable>
+                </View>
+
+                <Pressable
+                  style={[styles.qualityMenuButton, !isPremium && styles.premiumControlLocked]}
+                  onPress={onOpenQualityMenu}
+                >
+                  <View style={styles.qualityMenuIcon}>
+                    <Ionicons
+                      name={isPremium ? 'options-outline' : 'lock-closed'}
+                      size={18}
+                      color="#F5F3FF"
+                    />
+                  </View>
+
+                  <View style={styles.qualityMenuCopy}>
+                    <Text style={styles.qualityMenuTitle}>Chất lượng âm thanh</Text>
+                    <Text style={styles.qualityMenuSubtitle}>
+                      {qualityMetaLabel}
+                    </Text>
+                  </View>
+
+                  <View style={styles.qualityMenuMeta}>
+                    {!isPremium ? <Ionicons name="diamond-outline" size={16} color="#FDE68A" /> : null}
+                    <Ionicons name="chevron-forward" size={18} color="#8F8994" />
+                  </View>
                 </Pressable>
               </View>
 
@@ -942,7 +1040,119 @@ const styles = StyleSheet.create({
   secondaryButtonDisabled: {
     opacity: 0.48,
   },
+  modeControlSection: {
+    marginTop: 18,
+  },
+  modeControlRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modeControlButton: {
+    flex: 1,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.045)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  modeControlButtonActive: {
+    backgroundColor: 'rgba(139, 92, 246, 0.16)',
+    borderColor: 'rgba(167, 139, 250, 0.34)',
+  },
+  modeControlIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    position: 'relative',
+  },
+  modeControlIconActive: {
+    backgroundColor: '#8B5CF6',
+    borderColor: '#A78BFA',
+  },
+  modeControlBadge: {
+    position: 'absolute',
+    right: -3,
+    top: -3,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F5F3FF',
+  },
+  modeControlBadgeText: {
+    color: '#5B21B6',
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  modeControlLabel: {
+    color: '#CFC8D8',
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 10,
+  },
+  modeControlValue: {
+    color: '#8F8994',
+    fontSize: 11,
+    fontWeight: '800',
+    marginTop: 3,
+  },
+  modeControlValueActive: {
+    color: '#F5F3FF',
+  },
+  qualityMenuButton: {
+    marginTop: 12,
+    minHeight: 68,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.045)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  qualityMenuIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    backgroundColor: 'rgba(139, 92, 246, 0.22)',
+    borderWidth: 1,
+    borderColor: 'rgba(167, 139, 250, 0.28)',
+  },
+  qualityMenuCopy: {
+    flex: 1,
+    marginRight: 12,
+  },
+  qualityMenuTitle: {
+    color: '#F5F3FF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  qualityMenuSubtitle: {
+    color: '#9B95A5',
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 3,
+  },
+  qualityMenuMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   playbackModesRow: {
+    display: 'none',
     marginTop: 18,
     flexDirection: 'row',
     gap: 10,
@@ -976,6 +1186,7 @@ const styles = StyleSheet.create({
     opacity: 0.68,
   },
   qualityPanel: {
+    display: 'none',
     marginTop: 12,
     borderRadius: 18,
     paddingHorizontal: 15,

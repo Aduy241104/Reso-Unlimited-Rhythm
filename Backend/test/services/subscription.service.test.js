@@ -123,8 +123,8 @@ describe("subscriptionService premium purchase snapshot flow", () => {
                     status: "active",
                 },
                 amount: 99000,
-                tax: 9900,
-                totalAmount: 108900,
+                tax: 7920,
+                totalAmount: 106920,
                 currency: "VND",
                 paymentMethod: "vnpay",
                 paymentGateway: "vnpay",
@@ -137,9 +137,9 @@ describe("subscriptionService premium purchase snapshot flow", () => {
                 transactionId: "transaction-1",
                 subscriptionId: "subscription-1",
                 amount: 99000,
-                tax: 9900,
-                taxRate: 0.1,
-                totalAmount: 108900,
+                tax: 7920,
+                taxRate: 0.08,
+                totalAmount: 106920,
                 plan: {
                     originalPlanId: "plan-premium-1",
                     name: "Premium 30 Days",
@@ -148,9 +148,9 @@ describe("subscriptionService premium purchase snapshot flow", () => {
                     description: "Premium package",
                     features: ["NO_ADS", "BACKGROUND_PLAY"],
                     status: "active",
-                    taxRate: 0.1,
-                    taxAmount: 9900,
-                    totalPrice: 108900,
+                    taxRate: 0.08,
+                    taxAmount: 7920,
+                    totalPrice: 106920,
                 },
             })
         );
@@ -163,7 +163,7 @@ describe("subscriptionService premium purchase snapshot flow", () => {
             _id: "transaction-1",
             userId: "user-1",
             subscriptionId: "subscription-1",
-            totalAmount: 108900,
+            totalAmount: 106920,
             status: "pending",
             gatewayTransactionId: "",
             planSnapshot: {
@@ -199,7 +199,7 @@ describe("subscriptionService premium purchase snapshot flow", () => {
         mockVnpayService.verifyCallback.mockReturnValue({
             isValid: true,
             invoiceNumber: "INV-0001",
-            amount: 108900,
+            amount: 106920,
             responseCode: "00",
             gatewayTransactionId: "VNPAY-123",
         });
@@ -250,7 +250,7 @@ describe("subscriptionService premium purchase snapshot flow", () => {
             _id: "transaction-1",
             userId: "user-1",
             subscriptionId: "subscription-1",
-            totalAmount: 108900,
+            totalAmount: 106920,
             status: "pending",
             gatewayTransactionId: "",
             planSnapshot: {
@@ -277,7 +277,7 @@ describe("subscriptionService premium purchase snapshot flow", () => {
         mockVnpayService.verifyCallback.mockReturnValue({
             isValid: true,
             invoiceNumber: "INV-0002",
-            amount: 108900,
+            amount: 106920,
             responseCode: "00",
             gatewayTransactionId: "VNPAY-456",
         });
@@ -315,7 +315,7 @@ describe("subscriptionService premium purchase snapshot flow", () => {
             _id: "transaction-1",
             userId: "user-1",
             subscriptionId: "subscription-1",
-            totalAmount: 108900,
+            totalAmount: 106920,
             status: "failed",
             failureReason: "Cancelled by admin",
             planSnapshot,
@@ -332,7 +332,7 @@ describe("subscriptionService premium purchase snapshot flow", () => {
         mockVnpayService.verifyCallback.mockReturnValue({
             isValid: true,
             invoiceNumber: "INV-0003",
-            amount: 108900,
+            amount: 106920,
             responseCode: "00",
             gatewayTransactionId: "VNPAY-789",
         });

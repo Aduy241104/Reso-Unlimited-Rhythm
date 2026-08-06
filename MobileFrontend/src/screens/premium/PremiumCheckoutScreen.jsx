@@ -122,8 +122,12 @@ export default function PremiumCheckoutScreen() {
       }
 
       try {
-        const latestSubscription = await premiumService.getMySubscription();
         const previousEndDate = lastKnownPremiumEndDateRef.current;
+        const latestSubscription = await premiumService.getMySubscription({
+          attempts: previousEndDate ? 1 : 4,
+          delayMs: 1500,
+          requirePremium: !previousEndDate,
+        });
         const latestEndDate = latestSubscription?.premiumEndDate || '';
 
         setSubscription(latestSubscription);

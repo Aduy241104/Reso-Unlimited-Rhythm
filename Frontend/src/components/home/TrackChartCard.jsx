@@ -62,25 +62,27 @@ const TrackChartCard = ({
         className={ [
           "relative bg-[#ececec] dark:bg-[#282828]",
           isArtist
-            ? "mx-auto aspect-square w-[76%] rounded-full sm:w-[78%]"
+            ? "mx-auto aspect-square w-[76%] overflow-hidden rounded-full sm:w-[78%]"
             : "overflow-hidden rounded-[9px] sm:rounded-[8px]",
         ].join(" ") }
       >
-        <div
-          className={
-            isArtist
-              ? "h-full w-full overflow-hidden rounded-full"
-              : "aspect-square overflow-hidden"
-          }
-        >
+        <div className={ isArtist ? "h-full w-full" : "aspect-square overflow-hidden" }>
           { image ? (
             <img
               src={ image }
               alt={ title }
-              className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.05]"
+              className={ [
+                "h-full w-full object-cover object-center transition duration-500 group-hover:scale-[1.05]",
+                isArtist ? "rounded-full" : "",
+              ].join(" ") }
             />
           ) : (
-            <div className="h-full w-full bg-gradient-to-br from-[#d4d4d4] via-[#e5e5e5] to-[#f5f5f5] dark:from-[#242424] dark:via-[#1f1f1f] dark:to-[#121212]" />
+            <div
+              className={ [
+                "h-full w-full bg-gradient-to-br from-[#d4d4d4] via-[#e5e5e5] to-[#f5f5f5] dark:from-[#242424] dark:via-[#1f1f1f] dark:to-[#121212]",
+                isArtist ? "rounded-full" : "",
+              ].join(" ") }
+            />
           ) }
         </div>
 
@@ -88,17 +90,19 @@ const TrackChartCard = ({
           <div className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-t from-black/18 via-transparent to-black/5" />
         ) : null }
 
-        <div className="absolute left-2.5 top-2.5 flex items-center gap-2">
-          <span
-            className={ [
-              "inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-[0.14em] backdrop-blur-md sm:px-2 sm:py-1 sm:text-[9px] sm:tracking-[0.18em]",
-              resolvedStyles.badge,
-            ].join(" ") }
-          >
-            <BadgeIcon className="h-2 w-2 sm:h-2.5 sm:w-2.5" />
-            { type }
-          </span>
-        </div>
+        { isArtist ? null : (
+          <div className="absolute left-2.5 top-2.5 flex items-center gap-2">
+            <span
+              className={ [
+                "inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-[0.14em] backdrop-blur-md sm:px-2 sm:py-1 sm:text-[9px] sm:tracking-[0.18em]",
+                resolvedStyles.badge,
+              ].join(" ") }
+            >
+              <BadgeIcon className="h-2 w-2 sm:h-2.5 sm:w-2.5" />
+              { type }
+            </span>
+          </div>
+        ) }
 
         { showPlayButton ? (
           <button
@@ -133,9 +137,11 @@ const TrackChartCard = ({
             <h3 className="truncate text-[13px] font-semibold text-[#18181b] dark:text-white sm:text-base">
               { title }
             </h3>
-            <p className="mt-0.5 truncate text-[11px] text-[#52525b] dark:text-[#a1a1aa] sm:mt-1 sm:text-sm">
-              { subtitle }
-            </p>
+            { subtitle ? (
+              <p className="mt-0.5 truncate text-[11px] text-[#52525b] dark:text-[#a1a1aa] sm:mt-1 sm:text-sm">
+                { subtitle }
+              </p>
+            ) : null }
           </div>
           { isArtist ? (
             <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-black/[0.045] text-[#52525b] transition group-hover:translate-x-0.5 group-hover:text-[#18181b] dark:bg-white/[0.06] dark:text-white/58 dark:group-hover:text-white sm:h-6 sm:w-6">

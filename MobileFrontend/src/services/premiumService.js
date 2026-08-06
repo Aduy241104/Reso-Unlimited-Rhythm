@@ -1,7 +1,9 @@
 import axiosClient from '../api/axiosClient';
 import { API_ENDPOINTS } from '../api/apiEndpoints';
+import subscriptionService from './subscriptionService';
 
 const getPayload = (response) => response?.data || response || {};
+const wait = (durationMs = 0) => new Promise((resolve) => setTimeout(resolve, durationMs));
 
 const toNumber = (value, fallback = 0) => {
   const parsedValue = Number(value);
@@ -29,22 +31,6 @@ const normalizePlan = (plan = {}) => {
   };
 };
 
-const normalizeSubscription = (subscription = {}) => ({
-  isPremium: Boolean(subscription?.isPremium),
-  premiumEndDate: subscription?.premiumEndDate || null,
-  currentPlan: subscription?.currentPlan ? normalizePlan(subscription.currentPlan) : null,
-  activeSubscription: subscription?.activeSubscription
-    ? {
-        _id: subscription.activeSubscription._id || '',
-        status: subscription.activeSubscription.status || '',
-        startDate: subscription.activeSubscription.startDate || null,
-        endDate: subscription.activeSubscription.endDate || null,
-        planId: subscription.activeSubscription.planId || '',
-        plan: subscription.activeSubscription.plan ? normalizePlan(subscription.activeSubscription.plan) : null,
-      }
-    : null,
-});
-
 export const premiumService = {
   async getPremiumPlans() {
     const response = await axiosClient.get(API_ENDPOINTS.PREMIUM.PLANS);
@@ -61,11 +47,25 @@ export const premiumService = {
     return normalizePlan(payload?.plan || payload);
   },
 
-  async getMySubscription() {
-    const response = await axiosClient.get(API_ENDPOINTS.PREMIUM.MY_SUBSCRIPTION);
-    const payload = getPayload(response);
+  async getMySubscription(options = {}) {
+    const attempts = Math.max(1, Number(options?.attempts) || 1);
+    const delayMs = Math.max(0, Number(options?.delayMs) || 0);
+    const requirePremium = Boolean(options?.requirePremium);
+    let latestSubscription = null;
 
-    return normalizeSubscription(payload?.subscription || payload);
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      latestSubscription = await subscriptionService.getMySubscription();
+
+      if (!requirePremium || latestSubscription?.isPremium) {
+        return latestSubscription;
+      }
+
+      if (attempt < attempts - 1 && delayMs > 0) {
+        await wait(delayMs);
+      }
+    }
+
+    return latestSubscription;
   },
 
   async createVnpayOrder(planId) {
