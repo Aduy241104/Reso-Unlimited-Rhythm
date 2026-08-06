@@ -172,9 +172,6 @@ const Player = ({
   const progressPercent =
     progressMax > 0 ? Math.min((progressValue / progressMax) * 100, 100) : 0;
   const volumePercent = Math.round(volume * 100);
-  const canPlayNext =
-    queue.length > 0 &&
-    (currentIndex < queue.length - 1 || repeatMode === "all" || currentIndex < 0);
   const hasQualitySelector = isPremium && availableAudioQualities.length > 1;
   const progressDisabled = progressMax === 0 || !canSeek;
   const selectedQuality =
@@ -530,7 +527,6 @@ const Player = ({
           <button
             type="button"
             onClick={ playNext }
-            disabled={ !canPlayNext }
             className={ `${controlButtonClassName} h-6 w-6` }
             aria-label="Bài tiếp theo"
           >
@@ -751,7 +747,6 @@ const Player = ({
           <button
             type="button"
             onClick={ playNext }
-            disabled={ !canPlayNext }
             className={ `${controlButtonClassName} h-7 w-7 sm:h-8 sm:w-8` }
             aria-label="Bài tiếp theo"
           >

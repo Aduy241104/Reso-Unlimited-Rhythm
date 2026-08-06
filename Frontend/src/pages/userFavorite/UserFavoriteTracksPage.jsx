@@ -7,6 +7,7 @@ import { usePlayer } from "../../hooks/usePlayer";
 import { getFavoriteTracks } from "../../services/userFavoriteService";
 import { getApiErrorMessage } from "../../utils/apiError";
 import { formatPlaylistDuration } from "../../utils/playlistDetail";
+import { filterPlayableTracks } from "../../utils/trackStatus";
 import { getTrackDisplayTitle } from "../../utils/trackTitle";
 
 const PAGE_LIMIT = 20;
@@ -250,8 +251,9 @@ const UserFavoriteTracksPage = () => {
     };
   }, []);
 
-  const totalItems = pagination?.totalItems || favoriteItems.length;
-  const totalDurationSeconds = getFavoriteDurationSeconds(favoriteItems);
+  const visibleFavoriteItems = filterPlayableTracks(favoriteItems);
+  const totalItems = visibleFavoriteItems.length;
+  const totalDurationSeconds = getFavoriteDurationSeconds(visibleFavoriteItems);
   const totalDurationLabel = formatPlaylistDuration(totalDurationSeconds);
   const shouldRenderTrackList = isLoading || favoriteItems.length > 0 || !errorMessage;
   const collectionMeta = {
@@ -264,11 +266,11 @@ const UserFavoriteTracksPage = () => {
   };
 
   const handlePlayCollection = async () => {
-    if (favoriteItems.length === 0) {
+    if (visibleFavoriteItems.length === 0) {
       return;
     }
 
-    await playCollection(favoriteItems, {
+    await playCollection(visibleFavoriteItems, {
       startIndex: 0,
       collection: collectionMeta,
     });
@@ -288,7 +290,7 @@ const UserFavoriteTracksPage = () => {
     }
 
     await playTrack(track, {
-      queue: favoriteItems,
+      queue: visibleFavoriteItems,
       startIndex: index,
       collection: collectionMeta,
     });
@@ -395,11 +397,11 @@ const UserFavoriteTracksPage = () => {
 
         <div className="space-y-4 px-0 pb-4 pt-4 sm:space-y-5 sm:px-8 sm:pb-8 sm:pt-5">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <PlayButton
-              onClick={ handlePlayCollection }
-              size="compact"
-              disabled={ isLoading || favoriteItems.length === 0 }
-            />
+              <PlayButton
+                onClick={ handlePlayCollection }
+                size="compact"
+                disabled={ isLoading || visibleFavoriteItems.length === 0 }
+              />
           </div>
 
           { errorMessage ? (
@@ -414,9 +416,9 @@ const UserFavoriteTracksPage = () => {
               loadingMessage="Đang tải bài hát yêu thích..."
               mobileLabel="Bài hát đã thích"
               emptyMessage="Chưa có bài hát yêu thích."
-              hasItems={ favoriteItems.length > 0 }
+              hasItems={ visibleFavoriteItems.length > 0 }
             >
-              { favoriteItems.map((item, index) => {
+              { visibleFavoriteItems.map((item, index) => {
                 const track = getTrackFromFavoriteItem(item);
                 const trackId = getTrackId(track);
 

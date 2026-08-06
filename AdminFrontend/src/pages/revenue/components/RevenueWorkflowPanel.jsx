@@ -2,39 +2,16 @@ import React from "react";
 import { REVENUE_ACTIONS } from "../revenueOverviewModel";
 
 const RevenueWorkflowPanel = ({ workflowCards = [], onActionClick }) => {
-    const completedCount = workflowCards.filter(
-        (step) => step.state === "completed"
-    ).length;
-
-    const progressPercent =
-        workflowCards.length > 0
-            ? Math.round((completedCount / workflowCards.length) * 100)
-            : 0;
-
     return (
         <div className="border-b border-slate-200 bg-white px-5 py-4">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
                 <div>
                     <h2 className="text-base font-semibold text-slate-950">
-                        Quy trình doanh thu
+                        {"Quy tr\u00ECnh doanh thu"}
                     </h2>
                     <p className="mt-1 text-sm text-slate-500">
-                        Chốt kỳ, tính phân bổ và xác nhận doanh thu cho nghệ sĩ.
+                        {"Ch\u1ED1t k\u1EF3, t\u00EDnh ph\u00E2n b\u1ED5 v\u00E0 x\u00E1c nh\u1EADn doanh thu cho ngh\u1EC7 s\u0129."}
                     </p>
-                </div>
-
-                <div className="w-full lg:w-56">
-                    <div className="mb-1.5 flex items-center justify-between text-xs font-semibold text-slate-500">
-                        <span>Tiến độ</span>
-                        <span>{ progressPercent }%</span>
-                    </div>
-
-                    <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
-                        <div
-                            className="h-full rounded-full bg-indigo-500 transition-all duration-500"
-                            style={ { width: `${progressPercent}%` } }
-                        />
-                    </div>
                 </div>
             </div>
 

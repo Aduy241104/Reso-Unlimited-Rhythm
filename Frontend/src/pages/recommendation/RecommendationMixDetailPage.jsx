@@ -12,6 +12,7 @@ import { getDailyMixesService } from "../../services/recommendationService";
 import { formatTrackDuration } from "../../utils/albumDetail";
 import { getApiErrorMessage } from "../../utils/apiError";
 import { isResourceNotFoundError } from "../../utils/resourceError";
+import { filterPlayableTracks } from "../../utils/trackStatus";
 import {
   createRecommendationMixCollectionMeta,
   formatRecommendationDateTime,
@@ -113,6 +114,7 @@ const RecommendationMixDetailPage = () => {
   }, [id]);
 
   const trackItems = mix?.tracks ?? [];
+  const visibleTrackItems = filterPlayableTracks(trackItems);
   const mixCoverImage = getRecommendationMixCoverImage(mix);
   const generatedAt = formatRecommendationDateTime(mix?.generatedAt);
   const expiresAt = formatRecommendationDateTime(mix?.expiresAt);
@@ -125,11 +127,11 @@ const RecommendationMixDetailPage = () => {
   );
 
   const handlePlayMix = async () => {
-    if (!mix || trackItems.length === 0) {
+    if (!mix || visibleTrackItems.length === 0) {
       return;
     }
 
-    await playCollection(trackItems, {
+    await playCollection(visibleTrackItems, {
       startIndex: 0,
       collection: collectionMeta,
     });
@@ -148,7 +150,7 @@ const RecommendationMixDetailPage = () => {
     }
 
     await playTrack(track, {
-      queue: trackItems,
+      queue: visibleTrackItems,
       startIndex: index,
       collection: collectionMeta,
     });
@@ -280,9 +282,9 @@ const RecommendationMixDetailPage = () => {
             loadingMessage="Loading tracks..."
             mobileLabel="Track list"
             emptyMessage="Playlist goi y nay chua co bai hat."
-            hasItems={trackItems.length > 0}
+            hasItems={visibleTrackItems.length > 0}
           >
-            {trackItems.map((track, index) => {
+            {visibleTrackItems.map((track, index) => {
               const trackId = track?.id || track?._id || "";
               const trackImage = getRecommendationTrackImage(track);
 

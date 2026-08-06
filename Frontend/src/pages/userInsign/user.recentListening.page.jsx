@@ -22,6 +22,7 @@ import { routePaths } from "../../routes/routePaths";
 import { getCurrentUserRecentListeningActivity } from "../../services/user.recentListening.service";
 import { getApiErrorMessage } from "../../utils/apiError";
 import { hasPremiumAccess } from "../../utils/premiumAccess";
+import { filterPlayableTracks } from "../../utils/trackStatus";
 import { getTrackDisplayTitle } from "../../utils/trackTitle";
 
 const pageShellClassName =
@@ -427,7 +428,7 @@ const InsightBadge = ({ icon, label, value, hint }) => (
 
 const UserInsightSection = ({ activity }) => {
   const topGenres = activity?.topGenres || [];
-  const topTracks = activity?.topTracks || [];
+  const topTracks = filterPlayableTracks(activity?.topTracks || []);
 
   return (
     <section className={`${panelClassName} overflow-hidden p-6 sm:p-7 lg:p-8`}>

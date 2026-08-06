@@ -65,7 +65,11 @@ export default function PremiumPaymentResultScreen() {
     setErrorMessage('');
 
     try {
-      const latestSubscription = await premiumService.getMySubscription();
+      const latestSubscription = await premiumService.getMySubscription({
+        attempts: isSuccess ? 5 : 1,
+        delayMs: 1500,
+        requirePremium: isSuccess,
+      });
       setSubscription(latestSubscription);
       await updateUser({
         isPremium: Boolean(latestSubscription?.isPremium),
@@ -76,7 +80,7 @@ export default function PremiumPaymentResultScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, updateUser]);
+  }, [isAuthenticated, isSuccess, updateUser]);
 
   useEffect(() => {
     loadSubscription();

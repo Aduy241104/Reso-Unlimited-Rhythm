@@ -187,8 +187,12 @@ const formatRevenuePeriodSummary = (revenuePeriod) => ({
 const formatRevenuePeriodTimestamps = (revenuePeriod) => ({
     lastAggregatedAt: revenuePeriod.lastAggregatedAt || null,
     closedAt: revenuePeriod.closedAt || null,
-    calculatedAt: revenuePeriod.calculatedAt || null,
-    confirmedAt: revenuePeriod.confirmedAt || null,
+    calculatedAt: ["calculated", "confirmed"].includes(revenuePeriod.status)
+        ? revenuePeriod.calculatedAt || null
+        : null,
+    confirmedAt: revenuePeriod.status === "confirmed"
+        ? revenuePeriod.confirmedAt || null
+        : null,
     createdAt: revenuePeriod.createdAt || null,
     updatedAt: revenuePeriod.updatedAt || null,
 });

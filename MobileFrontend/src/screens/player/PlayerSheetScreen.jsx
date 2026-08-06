@@ -3,6 +3,7 @@ import { Alert, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import axiosClient from '../../api/axiosClient';
 import { API_ENDPOINTS } from '../../api/apiEndpoints';
+import AudioQualityBottomSheet from '../../components/player/AudioQualityBottomSheet';
 import PlayerDetailSheet from '../../components/player/PlayerDetailSheet';
 import TrackLyricsBottomSheet from '../../components/player/TrackLyricsBottomSheet';
 import TrackQueueBottomSheet from '../../components/player/TrackQueueBottomSheet';
@@ -14,6 +15,7 @@ export default function PlayerSheetScreen() {
   const navigation = useNavigation();
   const [isQueueVisible, setIsQueueVisible] = useState(false);
   const [isLyricsVisible, setIsLyricsVisible] = useState(false);
+  const [isQualityMenuVisible, setIsQualityMenuVisible] = useState(false);
   const [trackDetailResponse, setTrackDetailResponse] = useState(null);
   const [artistProfileResponse, setArtistProfileResponse] = useState(null);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
@@ -120,6 +122,14 @@ export default function PlayerSheetScreen() {
     setIsLyricsVisible(false);
   }, [currentTrack, hasTimedLyrics]);
 
+  useEffect(() => {
+    if (currentTrack) {
+      return;
+    }
+
+    setIsQualityMenuVisible(false);
+  }, [currentTrack]);
+
   const handleOpenLyrics = useCallback(() => {
     if (!currentTrack || !hasTimedLyrics) {
       return;
@@ -205,9 +215,9 @@ export default function PlayerSheetScreen() {
         onPlayNext={playNext}
         onPlayPrevious={playPrevious}
         onPremiumRequired={handlePremiumRequired}
+        onOpenQualityMenu={() => setIsQualityMenuVisible(true)}
         onRetryDetail={loadPlayerDetail}
         onSeek={handleSeek}
-        onSelectQuality={handleSelectQuality}
         onToggleShuffle={handleToggleShuffle}
         onCycleRepeat={handleCycleRepeat}
         onTogglePlayback={togglePlayback}
@@ -230,6 +240,15 @@ export default function PlayerSheetScreen() {
         onClose={() => setIsQueueVisible(false)}
         title="Hàng chờ phát"
         subtitle={`${queue.length} bài hát trong phiên này`}
+      />
+      <AudioQualityBottomSheet
+        visible={isQualityMenuVisible}
+        onClose={() => setIsQualityMenuVisible(false)}
+        availableAudioQualities={availableAudioQualities}
+        selectedAudioQuality={selectedAudioQuality}
+        isPremium={isPremium}
+        onPremiumRequired={handlePremiumRequired}
+        onSelectQuality={handleSelectQuality}
       />
     </View>
   );

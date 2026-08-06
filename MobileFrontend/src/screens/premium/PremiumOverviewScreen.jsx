@@ -90,7 +90,7 @@ const PremiumPlanCard = ({ plan, isActive, onPress }) => {
 export default function PremiumOverviewScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, updateUser } = useAuth();
   const [plans, setPlans] = useState([]);
   const [subscription, setSubscription] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -125,6 +125,12 @@ export default function PremiumOverviewScreen() {
 
         setPlans(planList);
         setSubscription(mySubscription);
+        if (mySubscription) {
+          await updateUser({
+            isPremium: Boolean(mySubscription?.isPremium),
+            premiumEndDate: mySubscription?.premiumEndDate || null,
+          });
+        }
         setErrorMessage('');
         setWarningMessage(
           subscriptionResult.status === 'rejected'
@@ -139,7 +145,7 @@ export default function PremiumOverviewScreen() {
         setIsRefreshing(false);
       }
     },
-    [isAuthenticated]
+    [isAuthenticated, updateUser]
   );
 
   useFocusEffect(

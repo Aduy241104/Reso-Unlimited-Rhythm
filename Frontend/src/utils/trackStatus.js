@@ -41,3 +41,6 @@ export const isPlayableTrack = (item) => {
 
   return Boolean(track) && !isUnavailableTrack(item);
 };
+
+export const filterPlayableTracks = (items = []) =>
+  (Array.isArray(items) ? items : []).filter(isPlayableTrack);

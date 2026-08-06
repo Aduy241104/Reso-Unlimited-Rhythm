@@ -51,9 +51,7 @@ export const mapTopArtistsToRankingCards = (
       type: "Nghệ sĩ",
       image: artist?.avatar || artist?.coverImage || "",
       title: artist?.name || "Nghệ sĩ không xác định",
-      subtitle: `${formatNumber(item?.playCount)} lượt phát · ${formatNumber(
-        item?.uniqueListeners
-      )} người nghe`,
+      subtitle: "",
       href: artistId ? routePaths.artistBrowseProfile(artistId) : undefined,
       rank,
       raw: {

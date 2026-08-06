@@ -26,7 +26,7 @@ const currencyFormatter = new Intl.NumberFormat("vi-VN", {
   maximumFractionDigits: 0,
 });
 
-const VAT_RATE = 0.1;
+const VAT_RATE = 0.08;
 
 const PREMIUM_FEATURES = [
   "UNLIMITED_PLAYLISTS",
@@ -79,10 +79,10 @@ const getPlanPriceCaption = (durationDays) => {
   const baseCaption = getPlanPeriodText(durationDays);
 
   if (baseCaption.includes("VAT")) {
-    return baseCaption.replace(/\([^)]*VAT\)/, "(+ VAT 10%)");
+    return baseCaption.replace(/\([^)]*VAT\)/, "(+ VAT 8%)");
   }
 
-  return `${baseCaption} (+ VAT 10%)`;
+  return `${baseCaption} (+ VAT 8%)`;
 };
 
 const MODAL_OPEN_DELAY_MS = 260;
@@ -341,7 +341,7 @@ const PurchaseConfirmationModal = ({
         </div>
 
         <p className="mt-3 text-xs text-white/58">
-          Tong thanh toan da bao gom VAT 10%.
+          Tong thanh toan da bao gom VAT 8%.
         </p>
 
         <div className="mt-6 h-px bg-white/10" />
