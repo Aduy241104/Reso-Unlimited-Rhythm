@@ -250,7 +250,7 @@ export default function ArtistProfilePage() {
             {formatCount(artist.stats?.followers)} <span className="text-xs font-normal text-[#7c7891]">người</span>
           </p>
           <p className="mt-1 text-[11px] text-[#8c86ab]">
-            Số fan hâm mộ đang theo dõi bạn trên hệ thống
+            Số người hâm mộ đang theo dõi bạn trên hệ thống
           </p>
         </div>
 
@@ -266,7 +266,7 @@ export default function ArtistProfilePage() {
             {formatCount(artist.stats?.totalStreams)} <span className="text-xs font-normal text-[#7c7891]">lượt</span>
           </p>
           <p className="mt-1 text-[11px] text-[#8c86ab]">
-            Tổng lượt stream tích lũy toàn thời gian
+            Tổng lượt nghe tích lũy toàn thời gian
           </p>
         </div>
 
@@ -322,7 +322,7 @@ export default function ArtistProfilePage() {
               <Mail size={18} />
             </div>
             <div>
-              <p className="text-xs font-semibold text-[#7c7891]">Email tài khoản</p>
+              <p className="text-xs font-semibold text-[#7c7891]">Thư điện tử của tài khoản</p>
               <p className="text-sm font-bold text-[#2f2747] mt-0.5">
                 {artist.account?.email || "—"}
               </p>

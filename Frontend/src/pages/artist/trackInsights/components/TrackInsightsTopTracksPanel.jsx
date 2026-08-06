@@ -28,7 +28,7 @@ const TrackInsightsTopTracksPanel = ({
 
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-[14px] border border-[#ece8ff] bg-[#faf9ff] px-4 py-3">
-          <p className="text-[12px] text-[#7c7891]">Bài có phát sinh stream</p>
+          <p className="text-[12px] text-[#7c7891]">Bài có phát sinh lượt nghe</p>
           <p className="mt-1 text-lg font-semibold text-[#2f2747]">
             {formatNumber(topTracksSummary?.rankedTracks || 0)}
           </p>

@@ -3,8 +3,6 @@ import {
   Bell,
   CalendarDays,
   CircleAlert,
-  Fingerprint,
-  Globe,
   ShieldCheck,
   UserRound,
 } from "lucide-react";
@@ -28,21 +26,6 @@ const ACTOR_LABELS = {
   artist: "Nghệ sĩ",
   system: "Hệ thống",
   user: "Người dùng",
-};
-
-const TARGET_LABELS = {
-  track: "Bài hát",
-  album: "Album",
-  plan: "Gói dịch vụ",
-  payment: "Thanh toán",
-  report: "Báo cáo",
-  artist: "Nghệ sĩ",
-};
-
-const RECEIVER_LABELS = {
-  single: "Cá nhân",
-  all: "Toàn hệ thống",
-  group: "Nhóm người nhận",
 };
 
 const formatDateTime = (value) => {
@@ -246,7 +229,7 @@ const ArtistNotificationDetailPage = () => {
           icon={<CircleAlert className="h-5 w-5" />}
           label="Loại thông báo"
           value={TYPE_LABELS[notification?.type] || "Thông báo"}
-          helper="Nhóm thông báo để artist dễ lọc và theo dõi."
+          helper="Nhóm thông báo để nghệ sĩ dễ lọc và theo dõi."
         />
         <MetaCard
           icon={<ShieldCheck className="h-5 w-5" />}

@@ -248,7 +248,7 @@ const getVisibleDateStep = (totalItems) => {
 const FOLLOWER_CHART_META = {
   label: "Ng\u01b0\u1eddi theo d\u00f5i m\u1edbi",
   color: "#6f5cf1",
-  description: "S\u1ed1 follower m\u1edbi theo t\u1eebng ng\u00e0y",
+  description: "S\u1ed1 ng\u01b0\u1eddi theo d\u00f5i m\u1edbi theo t\u1eebng ng\u00e0y",
   formatter: formatMetricValue,
 };
 
@@ -481,11 +481,11 @@ const DailyGrowthChart = ({ data = [] }) => {
             {"Xu h\u01b0\u1edbng theo ng\u00e0y"}
           </p>
           <h3 className="mt-2 text-xl font-semibold text-[#2f2747] dark:text-white">
-            {"Bi\u1ec3u \u0111\u1ed3 t\u0103ng tr\u01b0\u1edfng follower"}
+            {"Bi\u1ec3u \u0111\u1ed3 t\u0103ng tr\u01b0\u1edfng ng\u01b0\u1eddi theo d\u00f5i"}
           </h3>
           <p className="mt-2 text-[13px] leading-5 text-[#7c7891] dark:text-[#a1a1aa]">
             {
-              "Theo d\u00f5i s\u1ed1 follower m\u1edbi trong 7 ng\u00e0y g\u1ea7n nh\u1ea5t, bao g\u1ed3m c\u1ea3 nh\u1eefng ng\u00e0y ch\u01b0a ph\u00e1t sinh t\u0103ng tr\u01b0\u1edfng."
+              "Theo d\u00f5i s\u1ed1 ng\u01b0\u1eddi theo d\u00f5i m\u1edbi trong 7 ng\u00e0y g\u1ea7n nh\u1ea5t, bao g\u1ed3m c\u1ea3 nh\u1eefng ng\u00e0y ch\u01b0a ph\u00e1t sinh t\u0103ng tr\u01b0\u1edfng."
             }
           </p>
         </div>
@@ -578,7 +578,7 @@ const DailyGrowthChart = ({ data = [] }) => {
                 aria-labelledby="chart-title-follower-growth"
               >
                 <p id="chart-title-follower-growth" className="sr-only">
-                  {"Bi\u1ec3u \u0111\u1ed3 t\u0103ng tr\u01b0\u1edfng follower"}
+                  {"Bi\u1ec3u \u0111\u1ed3 t\u0103ng tr\u01b0\u1edfng ng\u01b0\u1eddi theo d\u00f5i"}
                 </p>
                 <div className="h-[320px] w-full min-w-0">
                   <Line data={lineChartData} options={chartOptions} />
@@ -733,7 +733,7 @@ const ArtistFollowerPage = () => {
               <p className="mt-3 max-w-2xl text-sm leading-6 text-[#6a647d] dark:text-[#a1a1aa]">
                 {artist?.name
                   ? `Ngh\u1ec7 s\u0129: ${artist.name}`
-                  : "Theo d\u00f5i danh s\u00e1ch follower m\u1edbi nh\u1ea5t c\u1ee7a ngh\u1ec7 s\u0129 c\u1ee7a b\u1ea1n."}
+                  : "Theo d\u00f5i danh s\u00e1ch ng\u01b0\u1eddi theo d\u00f5i m\u1edbi nh\u1ea5t c\u1ee7a ngh\u1ec7 s\u0129 c\u1ee7a b\u1ea1n."}
               </p>
             </div>
 
@@ -760,14 +760,14 @@ const ArtistFollowerPage = () => {
               icon={TrendingUp}
               label={"T\u0103ng h\u00f4m nay"}
               value={latestDailyGrowth}
-              helper={"S\u1ed1 follower m\u1edbi ghi nh\u1eadn \u1edf m\u1ed1c ng\u00e0y g\u1ea7n nh\u1ea5t."}
+              helper={"S\u1ed1 ng\u01b0\u1eddi theo d\u00f5i m\u1edbi ghi nh\u1eadn \u1edf m\u1ed1c ng\u00e0y g\u1ea7n nh\u1ea5t."}
               isLoading={isLoading}
             />
             <SummaryCard
               icon={CalendarDays}
               label={"T\u0103ng th\u00e1ng n\u00e0y"}
               value={latestMonthlyGrowth}
-              helper={"S\u1ed1 follower m\u1edbi ghi nh\u1eadn \u1edf m\u1ed1c th\u00e1ng g\u1ea7n nh\u1ea5t."}
+              helper={"S\u1ed1 ng\u01b0\u1eddi theo d\u00f5i m\u1edbi ghi nh\u1eadn \u1edf m\u1ed1c th\u00e1ng g\u1ea7n nh\u1ea5t."}
               isLoading={isLoading}
             />
           </div>
@@ -808,7 +808,7 @@ const ArtistFollowerPage = () => {
           <div>
             <div className="inline-flex items-center gap-2 text-sm font-medium text-[#6f5cf1] dark:text-[#c4bbff]">
               <Users className="h-4 w-4" />
-              {"Danh s\u00e1ch follower"}
+              {"Danh s\u00e1ch ng\u01b0\u1eddi theo d\u00f5i"}
             </div>
             <p className="mt-2 text-sm text-[#7b7494] dark:text-[#a1a1aa]">
               {`Hi\u1ec3n th\u1ecb t\u1ed1i \u0111a ${limit} ng\u01b0\u1eddi theo d\u00f5i tr\u00ean m\u1ed7i trang.`}

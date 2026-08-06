@@ -181,11 +181,11 @@ const createAlbumStatusNotification = async ({
 
     const isBlockAction = action === "block";
     const title = isBlockAction
-        ? `Album "${album.title}" da bi khoa`
-        : `Album "${album.title}" da duoc mo khoa`;
+        ? `Album "${album.title}" đã bị khóa`
+        : `Album "${album.title}" đã được mở khóa`;
     const content = isBlockAction
-        ? `Admin da khoa album cua ban.${reason ? ` Ly do: ${reason}` : ""}`
-        : "Admin da mo khoa album cua ban tren he thong.";
+        ? `Quản trị viên đã khóa album của bạn.${reason ? ` Lý do: ${reason}` : ""}`
+        : "Quản trị viên đã mở khóa album của bạn trên hệ thống.";
 
     const notification = await Notification.create({
         userId: artist.userId,
@@ -390,7 +390,7 @@ const  updateAlbumStatusForAdmin = async (
         const reason = (
             payload.blockedReason ||
             payload.adminNote ||
-            "Blocked by administrator."
+            "Bị quản trị viên khóa."
         ).trim();
 
         if (album.status !== "blocked") {

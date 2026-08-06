@@ -4,95 +4,98 @@ import Artist from "../../models/Artist.js";
 import Track from "../../models/Track.js";
 import User from "../../models/User.js";
 import { AppError } from "../../utils/AppError.js";
-import { formatTrackManagementDetail } from "../Track/track.helper.js";
+import artistTrackService from "../Track/artist/artist.track.service.js";
+import { assertArtistCanCreateTrack } from "../Track/track.draft.validation.js";
+import { assertTrackEditableByArtist } from "../Track/track.submit.validation.js";
 import { uploadToCloudinary } from "../../utils/uploadCloud.js";
 import fs from "fs/promises";
 import path from "path";
 
-const populateManagementTrack = (trackId) =>
-    Track.findById(trackId)
-        .populate({ path: "artist_artistId", select: "name avatar coverImage" })
-        .populate({ path: "album_albumId", select: "title avatar" })
-        .populate({ path: "genreIds", select: "name" });
+const updateLyricsThroughTrackWorkflow = async (userId, track, payload) => {
+    const updatedTrack = await artistTrackService.updateArtistTrack(
+        userId,
+        track._id,
+        payload
+    );
+
+    if (track.approvalStatus === "rejected") {
+        return artistTrackService.submitArtistTrack(userId, track._id);
+    }
+
+    return updatedTrack;
+};
 
 const addStaticLyrics = async (userId, trackId, lyricsStatic) => {
     const user = await User.findById(userId);
 
     if (!user) {
-        throw new AppError("User not found.", StatusCodes.NOT_FOUND);
+        throw new AppError("Không tìm thấy người dùng.", StatusCodes.NOT_FOUND);
     }
 
     if (user.role !== "artist") {
-        throw new AppError("Only artists can update lyrics.", StatusCodes.FORBIDDEN);
+        throw new AppError("Chỉ nghệ sĩ mới có thể cập nhật lời bài hát.", StatusCodes.FORBIDDEN);
     }
 
     const artist = await Artist.findOne({ userId });
 
     if (!artist) {
-        throw new AppError("Artist profile not found.", StatusCodes.NOT_FOUND);
+        throw new AppError("Không tìm thấy hồ sơ nghệ sĩ.", StatusCodes.NOT_FOUND);
     }
 
     if (!mongoose.Types.ObjectId.isValid(trackId)) {
-        throw new AppError("Track id is invalid.", StatusCodes.BAD_REQUEST, { field: "id" });
+        throw new AppError("Mã bài hát không hợp lệ.", StatusCodes.BAD_REQUEST, { field: "id" });
     }
 
     const track = await Track.findOne({ _id: trackId, artist_artistId: artist._id });
 
     if (!track) {
-        throw new AppError("Track not found or you do not have permission to update it.", StatusCodes.NOT_FOUND);
+        throw new AppError("Không tìm thấy bài hát hoặc bạn không có quyền cập nhật bài hát này.", StatusCodes.NOT_FOUND);
     }
 
-    track.lyricsStatic = lyricsStatic || "";
-
-    if (track.approvalStatus === "approved" || track.approvalStatus === "rejected") {
-        track.approvalStatus = "pending";
-    }
-
-    await track.save();
-
-    const populatedTrack = await populateManagementTrack(track._id);
-
-    return formatTrackManagementDetail(populatedTrack);
+    return updateLyricsThroughTrackWorkflow(userId, track, {
+        lyricsStatic: lyricsStatic || "",
+    });
 };
 
 const updateSyncLyrics = async (userId, trackId, lyricsFile) => {
     const user = await User.findById(userId);
 
     if (!user) {
-        throw new AppError("User not found.", StatusCodes.NOT_FOUND);
+        throw new AppError("Không tìm thấy người dùng.", StatusCodes.NOT_FOUND);
     }
 
     if (user.role !== "artist") {
-        throw new AppError("Only artists can update lyrics.", StatusCodes.FORBIDDEN);
+        throw new AppError("Chỉ nghệ sĩ mới có thể cập nhật lời bài hát.", StatusCodes.FORBIDDEN);
     }
 
     const artist = await Artist.findOne({ userId });
 
     if (!artist) {
-        throw new AppError("Artist profile not found.", StatusCodes.NOT_FOUND);
+        throw new AppError("Không tìm thấy hồ sơ nghệ sĩ.", StatusCodes.NOT_FOUND);
     }
 
     if (!mongoose.Types.ObjectId.isValid(trackId)) {
-        throw new AppError("Track id is invalid.", StatusCodes.BAD_REQUEST, { field: "id" });
+        throw new AppError("Mã bài hát không hợp lệ.", StatusCodes.BAD_REQUEST, { field: "id" });
     }
 
     const track = await Track.findOne({ _id: trackId, artist_artistId: artist._id });
 
     if (!track) {
-        throw new AppError("Track not found or you do not have permission to update it.", StatusCodes.NOT_FOUND);
+        throw new AppError("Không tìm thấy bài hát hoặc bạn không có quyền cập nhật bài hát này.", StatusCodes.NOT_FOUND);
     }
 
     if (!lyricsFile || !lyricsFile.buffer) {
-        throw new AppError("No lyrics file provided.", StatusCodes.BAD_REQUEST);
+        throw new AppError("Chưa cung cấp tệp lời bài hát.", StatusCodes.BAD_REQUEST);
     }
+
+    assertArtistCanCreateTrack(artist);
+    assertTrackEditableByArtist(track);
 
     const uploadResult = await uploadToCloudinary(
         lyricsFile.buffer,
         "tracks/lyrics/sync",
         "raw"
     );
-
-    track.lyricsSyncUrl = uploadResult.secure_url || "";
 
     // Also save a local copy into Backend/public/lyrics for quick access
     try {
@@ -116,15 +119,9 @@ const updateSyncLyrics = async (userId, trackId, lyricsFile) => {
         console.error("Failed to save synced lyrics to public folder:", err.message || err);
     }
 
-    if (track.approvalStatus === "approved" || track.approvalStatus === "rejected") {
-        track.approvalStatus = "pending";
-    }
-
-    await track.save();
-
-    const populatedTrack = await populateManagementTrack(track._id);
-
-    return formatTrackManagementDetail(populatedTrack);
+    return updateLyricsThroughTrackWorkflow(userId, track, {
+        lyricsSyncUrl: uploadResult.secure_url || "",
+    });
 };
 
 export default {

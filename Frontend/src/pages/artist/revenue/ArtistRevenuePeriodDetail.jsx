@@ -172,7 +172,7 @@ const TrackAvatar = ({ src, title }) => {
     return (
         <img
             src={ src }
-            alt={ title || "Track" }
+            alt={ title || "Bài hát" }
             onError={ () => setHasError(true) }
             className="h-11 w-11 shrink-0 rounded-xl object-cover"
         />
@@ -322,7 +322,7 @@ const ArtistRevenuePeriodDetail = () => {
 
                     <StatCard
                         icon={ Headphones }
-                        label="Tổng số lượt stream"
+                        label="Tổng số lượt nghe"
                         value={ formatNumber(totals.totalEligibleStreams || summary.totalEligibleStreams) }
                     />
 
@@ -343,11 +343,11 @@ const ArtistRevenuePeriodDetail = () => {
                     <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
                         <div className="flex items-center justify-between gap-4 border-b border-zinc-200 px-5 py-4">
                             <h2 className="text-sm font-semibold text-zinc-950">
-                                Doanh thu theo track
+                                Doanh thu theo bài hát
                             </h2>
 
                             <p className="text-xs text-zinc-500">
-                                { formatNumber(trackRevenues.length) } track
+                                { formatNumber(trackRevenues.length) } bài hát
                             </p>
                         </div>
 
@@ -358,11 +358,11 @@ const ArtistRevenuePeriodDetail = () => {
                                 </div>
 
                                 <h3 className="mt-4 text-sm font-semibold text-zinc-950">
-                                    Chưa có track phát sinh doanh thu
+                                    Chưa có bài hát phát sinh doanh thu
                                 </h3>
 
                                 <p className="mt-1 max-w-md text-sm text-zinc-500">
-                                    Track có stream hợp lệ trong kỳ sẽ được hiển thị tại đây.
+                                    Bài hát có lượt nghe hợp lệ trong kỳ sẽ được hiển thị tại đây.
                                 </p>
                             </div>
                         ) : (
@@ -371,7 +371,7 @@ const ArtistRevenuePeriodDetail = () => {
                                     <thead className="border-b border-zinc-200 bg-zinc-50 text-[11px] uppercase tracking-[0.12em] text-zinc-500">
                                         <tr>
                                             <th className="whitespace-nowrap px-5 py-3 font-semibold">
-                                                Track
+                                                Bài hát
                                             </th>
 
                                             <th className="whitespace-nowrap px-5 py-3 text-right font-semibold">
@@ -379,7 +379,7 @@ const ArtistRevenuePeriodDetail = () => {
                                             </th>
 
                                             <th className="whitespace-nowrap px-5 py-3 text-right font-semibold">
-                                                Stream hợp lệ
+                                                Lượt nghe hợp lệ
                                             </th>
 
                                             <th className="whitespace-nowrap px-5 py-3 text-right font-semibold">
@@ -528,14 +528,14 @@ const ArtistRevenuePeriodDetail = () => {
 
                         <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
                             <h2 className="text-sm font-semibold text-zinc-950">
-                                Tổng hợp track
+                                Tổng hợp bài hát
                             </h2>
 
                             <div className="mt-5 space-y-4">
                                 <div className="flex items-center justify-between gap-3">
                                     <div className="flex items-center gap-2 text-sm text-zinc-500">
                                         <Wallet className="h-4 w-4" />
-                                        Tổng doanh thu track
+                                        Tổng doanh thu bài hát
                                     </div>
 
                                     <p className="text-sm font-semibold text-zinc-950">
@@ -546,7 +546,7 @@ const ArtistRevenuePeriodDetail = () => {
                                 <div className="flex items-center justify-between gap-3 border-t border-zinc-100 pt-4">
                                     <div className="flex items-center gap-2 text-sm text-zinc-500">
                                         <Headphones className="h-4 w-4" />
-                                        Stream hợp lệ
+                                        Lượt nghe hợp lệ
                                     </div>
 
                                     <p className="text-sm font-semibold text-zinc-950">
@@ -557,7 +557,7 @@ const ArtistRevenuePeriodDetail = () => {
                                 <div className="flex items-center justify-between gap-3 border-t border-zinc-100 pt-4">
                                     <div className="flex items-center gap-2 text-sm text-zinc-500">
                                         <Disc3 className="h-4 w-4" />
-                                        Số track
+                                        Số bài hát
                                     </div>
 
                                     <p className="text-sm font-semibold text-zinc-950">

@@ -61,8 +61,9 @@ const formatDateTime = (value) => {
 };
 
 const getTrackLyricsState = (track) => {
-  const hasStaticLyrics = Boolean(String(track?.lyricsStatic || "").trim());
-  const hasSyncedLyrics = Boolean(track?.lyricsSyncUrl);
+  const editableTrack = track?.pendingUpdate?.data || track;
+  const hasStaticLyrics = Boolean(String(editableTrack?.lyricsStatic || "").trim());
+  const hasSyncedLyrics = Boolean(editableTrack?.lyricsSyncUrl);
 
   return {
     hasStaticLyrics,
@@ -70,6 +71,10 @@ const getTrackLyricsState = (track) => {
     hasAnyLyrics: hasStaticLyrics || hasSyncedLyrics,
   };
 };
+
+const getTrackId = (track) => String(track?._id || track?.id || "");
+
+const getEditableTrack = (track) => track?.pendingUpdate?.data || track || null;
 
 const StatCard = ({ label, value, tone = "violet" }) => {
   const tones = {
@@ -190,17 +195,13 @@ const ArtistLyricsPage = () => {
         const resolvedTrackId =
           currentTrackId &&
           nextTracks.some(
-            (track) => String(track._id) === String(currentTrackId)
+            (track) => getTrackId(track) === String(currentTrackId)
           )
             ? String(currentTrackId)
-            : nextTracks[0]?._id || "";
+            : getTrackId(nextTracks[0]);
 
         if (resolvedTrackId) {
           setSelectedTrackId(String(resolvedTrackId));
-          setSearchParams(
-            { trackId: String(resolvedTrackId) },
-            { replace: true }
-          );
         }
       } catch {
         if (!isMounted) {
@@ -221,7 +222,25 @@ const ArtistLyricsPage = () => {
     return () => {
       isMounted = false;
     };
-  }, [requestedTrackId, setSearchParams]);
+  }, [requestedTrackId]);
+
+  useEffect(() => {
+    if (
+      !selectedTrackId ||
+      searchParams.get("trackId") === String(selectedTrackId)
+    ) {
+      return;
+    }
+
+    setSearchParams(
+      (currentParams) => {
+        const nextParams = new URLSearchParams(currentParams);
+        nextParams.set("trackId", String(selectedTrackId));
+        return nextParams;
+      },
+      { replace: true }
+    );
+  }, [searchParams, selectedTrackId, setSearchParams]);
 
   useEffect(() => {
     let isMounted = true;
@@ -244,9 +263,11 @@ const ArtistLyricsPage = () => {
           return;
         }
 
+        const editableTrack = getEditableTrack(detail);
+
         setSelectedTrack(detail);
-        setLyricsStatic(detail?.lyricsStatic || "");
-        setInitialLyrics(detail?.lyricsStatic || "");
+        setLyricsStatic(editableTrack?.lyricsStatic || "");
+        setInitialLyrics(editableTrack?.lyricsStatic || "");
         setLyricsFile(null);
       } catch {
         if (!isMounted) {
@@ -300,15 +321,24 @@ const ArtistLyricsPage = () => {
   }, [tracks]);
 
   const selectedLyricsState = getTrackLyricsState(selectedTrack);
+  const selectedEditableTrack = getEditableTrack(selectedTrack);
+  const isLyricsUpdatePending =
+    selectedTrack?.pendingUpdate?.status === "pending";
+  const selectedReviewStatus = isLyricsUpdatePending
+    ? "pending"
+    : selectedTrack?.approvalStatus;
   const hasUnsavedChanges = lyricsStatic !== initialLyrics;
   const lyricsCharacterCount = lyricsStatic.length;
   const syncedFileName =
-    selectedTrack?.lyricsSyncUrl?.split("/").filter(Boolean).pop() ||
+    selectedEditableTrack?.lyricsSyncUrl?.split("/").filter(Boolean).pop() ||
     "Tệp lời đồng bộ";
 
   const handleSelectTrack = (trackId) => {
+    if (!trackId) {
+      return;
+    }
+
     setSelectedTrackId(String(trackId));
-    setSearchParams({ trackId: String(trackId) }, { replace: true });
     setErrorMessage("");
     setActiveMode("static");
   };
@@ -329,17 +359,24 @@ const ArtistLyricsPage = () => {
         lyricsStatic
       );
 
+      const editableTrack = getEditableTrack(updatedTrack);
+
       setSelectedTrack(updatedTrack);
-      setLyricsStatic(updatedTrack?.lyricsStatic || "");
-      setInitialLyrics(updatedTrack?.lyricsStatic || "");
+      setLyricsStatic(editableTrack?.lyricsStatic || "");
+      setInitialLyrics(editableTrack?.lyricsStatic || "");
       setTracks((current) =>
         current.map((track) =>
-          String(track._id) === String(updatedTrack?._id)
+          getTrackId(track) === getTrackId(updatedTrack)
             ? updatedTrack
             : track
         )
       );
-      showArtistSuccess("Đã lưu lời bài hát thành công.");
+      showArtistSuccess(
+        updatedTrack?.pendingUpdate?.status === "pending" ||
+          updatedTrack?.approvalStatus === "pending"
+          ? "Đã gửi cập nhật lời bài hát để quản trị viên duyệt."
+          : "Đã lưu lời bài hát thành công."
+      );
     } catch {
       showArtistError("Không thể lưu lời bài hát vào lúc này.");
     } finally {
@@ -364,12 +401,17 @@ const ArtistLyricsPage = () => {
       setSelectedTrack(updatedTrack);
       setTracks((current) =>
         current.map((track) =>
-          String(track._id) === String(updatedTrack?._id)
+          getTrackId(track) === getTrackId(updatedTrack)
             ? updatedTrack
             : track
         )
       );
-      showArtistSuccess("Đã cập nhật lời bài hát đồng bộ thành công.");
+      showArtistSuccess(
+        updatedTrack?.pendingUpdate?.status === "pending" ||
+          updatedTrack?.approvalStatus === "pending"
+          ? "Đã gửi cập nhật lời đồng bộ để quản trị viên duyệt."
+          : "Đã cập nhật lời bài hát đồng bộ thành công."
+      );
       setLyricsFile(null);
 
       if (fileInputRef.current) {
@@ -469,17 +511,18 @@ const ArtistLyricsPage = () => {
                 </div>
               ) : (
                 filteredTracks.map((track) => {
-                  const isActive =
-                    String(track._id) === String(selectedTrackId);
+                  const trackId = getTrackId(track);
+                  const isActive = trackId === String(selectedTrackId);
                   const lyricsState = getTrackLyricsState(track);
 
                   return (
                     <button
-                      key={track._id}
+                      key={trackId}
                       type="button"
-                      onClick={() => handleSelectTrack(track._id)}
+                      disabled={!trackId}
+                      onClick={() => handleSelectTrack(trackId)}
                       className={[
-                        "group w-full rounded-2xl border px-3.5 py-3 text-left transition",
+                        "group w-full rounded-2xl border px-3.5 py-3 text-left transition disabled:cursor-not-allowed disabled:opacity-50",
                         isActive
                           ? "border-[#9d8ff8] bg-[#f6f3ff] shadow-[0_8px_20px_rgba(101,82,220,0.10)]"
                           : "border-transparent bg-white hover:border-[#ece8ff] hover:bg-[#faf9ff]",
@@ -606,7 +649,7 @@ const ArtistLyricsPage = () => {
                             Trạng thái
                           </p>
                           <p className="mt-1 truncate text-sm font-semibold text-emerald-700">
-                            {APPROVAL_LABELS[selectedTrack.approvalStatus] ||
+                            {APPROVAL_LABELS[selectedReviewStatus] ||
                               "Bản nháp"}
                           </p>
                         </div>
@@ -644,6 +687,13 @@ const ArtistLyricsPage = () => {
                       </button>
                     </div>
 
+                    {isLyricsUpdatePending ? (
+                      <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">
+                        Bản cập nhật bài hát đang chờ quản trị viên duyệt. Bạn chưa
+                        thể chỉnh sửa lời bài hát cho đến khi quá trình duyệt hoàn tất.
+                      </div>
+                    ) : null}
+
                     {activeMode === "static" ? (
                       <form onSubmit={handleSave} className="mt-5">
                         <div className="overflow-hidden rounded-2xl border border-[#e8e3f5] focus-within:border-[#9484f5] focus-within:ring-4 focus-within:ring-[#7664ef]/10">
@@ -667,6 +717,7 @@ const ArtistLyricsPage = () => {
                               setLyricsStatic(event.target.value)
                             }
                             maxLength={ARTIST_INPUT_LIMITS.trackLyrics}
+                            disabled={isLyricsUpdatePending}
                             rows={15}
                             placeholder={"Nhập lời bài hát tại đây...\n\nVí dụ:\nMột ngày mới đang bắt đầu\nGiai điệu vang lên trong lòng"}
                             className="block min-h-[340px] w-full resize-y bg-white px-5 py-4 text-[15px] leading-7 text-[#332a52] outline-none placeholder:text-[#b1abba]"
@@ -678,6 +729,7 @@ const ArtistLyricsPage = () => {
                             type="submit"
                             disabled={
                               saving ||
+                              isLyricsUpdatePending ||
                               !selectedTrackId ||
                               !hasUnsavedChanges
                             }
@@ -694,7 +746,9 @@ const ArtistLyricsPage = () => {
                           <button
                             type="button"
                             onClick={() => setLyricsStatic(initialLyrics)}
-                            disabled={saving || !hasUnsavedChanges}
+                            disabled={
+                              saving || isLyricsUpdatePending || !hasUnsavedChanges
+                            }
                             className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#e1dced] px-5 text-sm font-semibold text-[#514969] transition hover:bg-[#faf9ff] disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             <RotateCcw className="h-4 w-4" />
@@ -757,7 +811,7 @@ const ArtistLyricsPage = () => {
                                 </p>
                               </div>
                               <a
-                                href={selectedTrack.lyricsSyncUrl}
+                                href={selectedEditableTrack?.lyricsSyncUrl}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg border border-[#ddd7ff] px-3 text-xs font-semibold text-[#6552df] transition hover:bg-[#f7f4ff]"
@@ -775,6 +829,7 @@ const ArtistLyricsPage = () => {
                               onChange={(event) =>
                                 setLyricsFile(event.target.files?.[0] || null)
                               }
+                              disabled={isLyricsUpdatePending}
                               className="sr-only"
                               id="lyricsSyncFile"
                             />
@@ -789,7 +844,12 @@ const ArtistLyricsPage = () => {
                             </p>
                             <label
                               htmlFor="lyricsSyncFile"
-                              className="mt-4 inline-flex h-10 cursor-pointer items-center justify-center rounded-xl border border-[#ddd7ff] bg-[#f7f4ff] px-4 text-sm font-semibold text-[#6552df] transition hover:bg-[#eeeaff]"
+                              className={[
+                                "mt-4 inline-flex h-10 items-center justify-center rounded-xl border border-[#ddd7ff] bg-[#f7f4ff] px-4 text-sm font-semibold text-[#6552df] transition",
+                                isLyricsUpdatePending
+                                  ? "cursor-not-allowed opacity-50"
+                                  : "cursor-pointer hover:bg-[#eeeaff]",
+                              ].join(" ")}
                             >
                               {lyricsFile ? "Chọn tệp khác" : "Chọn tệp"}
                             </label>
@@ -804,7 +864,9 @@ const ArtistLyricsPage = () => {
                             <button
                               type="button"
                               onClick={handleUploadSync}
-                              disabled={!lyricsFile || uploadingSync}
+                              disabled={
+                                isLyricsUpdatePending || !lyricsFile || uploadingSync
+                              }
                               className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#6f5cf1] px-5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(99,78,225,0.25)] transition hover:bg-[#5e4bdd] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
                             >
                               {uploadingSync ? (

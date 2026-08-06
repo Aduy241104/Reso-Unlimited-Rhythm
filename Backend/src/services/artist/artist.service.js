@@ -13,14 +13,14 @@ const findOwnedArtistDocumentOrThrow = async (userId) => {
 
     if (!artist) {
         throw new AppError(
-            "Artist profile not found for this account.",
+            "Không tìm thấy hồ sơ nghệ sĩ của tài khoản này.",
             StatusCodes.NOT_FOUND
         );
     }
 
     if (artist.activeStatus === "blocked") {
         throw new AppError(
-            "Your artist profile cannot be updated while it is blocked.",
+            "Không thể cập nhật hồ sơ nghệ sĩ khi tài khoản đang bị khóa.",
             StatusCodes.FORBIDDEN
         );
     }
@@ -51,7 +51,7 @@ const getMyProfileByUserId = async (userId) => {
 
     if (!artist) {
         throw new AppError(
-            "Artist profile not found for this account.",
+            "Không tìm thấy hồ sơ nghệ sĩ của tài khoản này.",
             StatusCodes.NOT_FOUND
         );
     }
@@ -66,7 +66,7 @@ const getMyBlockStatusByUserId = async (userId) => {
 
     if (!artist) {
         throw new AppError(
-            "Artist profile not found for this account.",
+            "Không tìm thấy hồ sơ nghệ sĩ của tài khoản này.",
             StatusCodes.NOT_FOUND
         );
     }
@@ -145,7 +145,7 @@ const updateMyProfileByUserId = async (userId, payload) => {
 const updateMyProfileMediaByUserId = async (userId, { avatarFile, coverFile }) => {
     if (!avatarFile && !coverFile) {
         throw new AppError(
-            "Provide at least one image field: avatar or coverImage.",
+            "Vui lòng cung cấp ít nhất một ảnh đại diện hoặc ảnh bìa.",
             StatusCodes.BAD_REQUEST
         );
     }
@@ -163,7 +163,7 @@ const updateMyProfileMediaByUserId = async (userId, { avatarFile, coverFile }) =
             artist.avatar = uploaded.secure_url;
         } catch {
             throw new AppError(
-                "Could not upload avatar image. Check storage configuration and try again.",
+                "Không thể tải ảnh đại diện lên. Vui lòng kiểm tra cấu hình lưu trữ và thử lại.",
                 StatusCodes.BAD_GATEWAY
             );
         }
@@ -180,7 +180,7 @@ const updateMyProfileMediaByUserId = async (userId, { avatarFile, coverFile }) =
             artist.coverImage = uploaded.secure_url;
         } catch {
             throw new AppError(
-                "Could not upload cover image. Check storage configuration and try again.",
+                "Không thể tải ảnh bìa lên. Vui lòng kiểm tra cấu hình lưu trữ và thử lại.",
                 StatusCodes.BAD_GATEWAY
             );
         }
@@ -201,7 +201,7 @@ const requestVerificationByUserId = async (userId, payload = {}) => {
 
     if (existing) {
         throw new AppError(
-            "A verification request is already being reviewed. Please wait for the team to respond.",
+            "Một yêu cầu xác minh đang được xem xét. Vui lòng chờ đội ngũ phản hồi.",
             StatusCodes.CONFLICT
         );
     }
@@ -219,7 +219,7 @@ const getMyViolationsByUserId = async (userId) => {
     const artist = await Artist.findOne({ userId }).lean();
     if (!artist) {
         throw new AppError(
-            "Artist profile not found for this account.",
+            "Không tìm thấy hồ sơ nghệ sĩ của tài khoản này.",
             StatusCodes.NOT_FOUND
         );
     }

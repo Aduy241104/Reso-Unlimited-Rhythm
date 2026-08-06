@@ -15,7 +15,7 @@ const COPYRIGHT_POLICY = {
     {
       heading: "2. Nội dung của bên thứ ba",
       body:
-        "Nếu bài nhạc của bạn có chứa bản cover, remix, sample từ tác phẩm khác, beat được cấp phép, hoặc giọng hát, nhạc cụ hay nội dung do bên thứ ba cung cấp, bạn phải có đầy đủ quyền sử dụng và chịu hoàn toàn trách nhiệm về tính hợp pháp của các nội dung đó.",
+        "Nếu bài nhạc của bạn có chứa bản hát lại, bản phối lại, đoạn nhạc mẫu từ tác phẩm khác, phần nhạc nền được cấp phép, hoặc giọng hát, nhạc cụ hay nội dung do bên thứ ba cung cấp, bạn phải có đầy đủ quyền sử dụng và chịu hoàn toàn trách nhiệm về tính hợp pháp của các nội dung đó.",
     },
     {
       heading: "3. Thông tin bản quyền chính xác",
@@ -322,10 +322,10 @@ const TrackCopyrightFields = ({ value, onChange, disabled = false, errors = {} }
         <div className="flex flex-wrap gap-4 text-sm text-neutral-700">
           {[
             ["isOriginal", "Tác phẩm gốc"],
-            ["isCover", "Bản cover"],
-            ["isRemix", "Bản remix"],
-            ["usesSample", "Có sử dụng sample"],
-            ["usesLicensedBeat", "Beat được cấp phép"],
+            ["isCover", "Bản hát lại"],
+            ["isRemix", "Bản phối lại"],
+            ["usesSample", "Có sử dụng đoạn nhạc mẫu"],
+            ["usesLicensedBeat", "Phần nhạc nền được cấp phép"],
           ].map(([field, label]) => (
             <label key={field} className="inline-flex items-center gap-2">
               <input
@@ -414,12 +414,13 @@ const TrackCopyrightFields = ({ value, onChange, disabled = false, errors = {} }
                 <p className="mt-1 text-xs text-red-500">{errors.licenseDocumentUrls}</p>
               ) : invalidLicenseUrls.length > 0 ? (
                 <p className="mt-1 text-xs text-amber-700">
-                  Each line must be a full URL starting with `http://` or `https://`.
-                  Values like `aaa` will be ignored when the track is submitted.
+                  Mỗi dòng phải là một địa chỉ đầy đủ bắt đầu bằng `http://` hoặc
+                  `https://`. Các giá trị như `aaa` sẽ bị bỏ qua khi gửi bài hát.
                 </p>
               ) : (
                 <p className="mt-1 text-xs text-neutral-500">
-                  Example: `https://drive.google.com/...` or a public Dropbox/Cloudinary link.
+                  Ví dụ: `https://drive.google.com/...` hoặc đường dẫn Dropbox/Cloudinary
+                  công khai.
                 </p>
               )}
             </div>

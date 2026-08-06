@@ -201,9 +201,9 @@ const ArtistNotificationsPage = () => {
           Thông báo của bạn
         </h2>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-[#7c7891]">
-          Artist sẽ thấy thông báo hệ thống, thông báo gửi riêng và các cập nhật
-          nhắm tới vai trò nghệ sĩ ngay tại đây, kể cả khi có thông báo mới qua
-          websocket.
+          Nghệ sĩ sẽ thấy thông báo hệ thống, thông báo gửi riêng và các cập nhật
+          dành cho vai trò nghệ sĩ ngay tại đây, kể cả khi có thông báo mới qua
+          kết nối thời gian thực.
         </p>
 
         <div className="mt-5 grid gap-4 md:grid-cols-3">

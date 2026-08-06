@@ -27,7 +27,7 @@ const resolveArtistProfile = async (userId) => {
     const artist = await Artist.findOne({ userId }).select("_id").lean();
 
     if (!artist) {
-        throw new AppError("Artist profile not found.", StatusCodes.NOT_FOUND);
+        throw new AppError("Không tìm thấy hồ sơ nghệ sĩ.", StatusCodes.NOT_FOUND);
     }
 
     return artist;
@@ -64,7 +64,7 @@ const fetchTrackMonthlyStats = async ({ trackId, year }) => {
 
 export const validateTrackOwnership = async ({ artistId, trackId }) => {
     if (!mongoose.Types.ObjectId.isValid(trackId)) {
-        throw new AppError("Invalid request data.", StatusCodes.BAD_REQUEST);
+        throw new AppError("Dữ liệu yêu cầu không hợp lệ.", StatusCodes.BAD_REQUEST);
     }
 
     const track = await Track.findById(trackId)
@@ -72,12 +72,12 @@ export const validateTrackOwnership = async ({ artistId, trackId }) => {
         .lean();
 
     if (!track) {
-        throw new AppError("Track not found", StatusCodes.NOT_FOUND);
+        throw new AppError("Không tìm thấy bài hát.", StatusCodes.NOT_FOUND);
     }
 
     if (String(track.artist_artistId) !== String(artistId)) {
         throw new AppError(
-            "You are not allowed to view analytics for this track",
+            "Bạn không có quyền xem dữ liệu phân tích của bài hát này.",
             StatusCodes.FORBIDDEN
         );
     }

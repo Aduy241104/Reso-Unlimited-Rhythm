@@ -25,7 +25,7 @@ const CreateTrackPage = () => {
           Tạo bản nháp bài hát mới
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-[#8d87aa]">
-          Tải lên file âm thanh gốc, thêm ảnh đại diện hoặc ảnh bìa, hoàn thiện
+          Tải lên tệp âm thanh gốc, thêm ảnh đại diện hoặc ảnh bìa, hoàn thiện
           thông tin bản quyền và lưu thành bản nháp trước khi gửi duyệt.
         </p>
 

@@ -7,6 +7,40 @@ const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
 
+const LEGACY_ARTIST_NOTIFICATION_REPLACEMENTS = [
+    ["Admin da phe duyet track cua ban.", "Quản trị viên đã phê duyệt bài hát của bạn."],
+    ["Admin da tu choi track cua ban.", "Quản trị viên đã từ chối bài hát của bạn."],
+    ["Admin da tam an track cua ban khoi nen tang.", "Quản trị viên đã tạm ẩn bài hát của bạn khỏi nền tảng."],
+    ["Admin da khoa track cua ban.", "Quản trị viên đã khóa bài hát của bạn."],
+    ["Admin da mo lai hien thi cho track cua ban tren nen tang.", "Quản trị viên đã hiển thị lại bài hát của bạn trên nền tảng."],
+    ["Admin da go khoa track cua ban tren he thong.", "Quản trị viên đã gỡ khóa bài hát của bạn trên hệ thống."],
+    ["Admin da khoa album cua ban.", "Quản trị viên đã khóa album của bạn."],
+    ["Admin da mo khoa album cua ban tren he thong.", "Quản trị viên đã mở khóa album của bạn trên hệ thống."],
+    ["Tài khoản nghệ sĩ của bạn đã được Admin mở khóa", "Tài khoản nghệ sĩ của bạn đã được quản trị viên mở khóa"],
+    ["Vi pham dieu khoan he thong.", "Vi phạm điều khoản hệ thống."],
+    ["Upcoming Release", "bản phát hành sắp tới"],
+    [" Ly do: ", " Lý do: "],
+    ["Track ", "Bài hát "],
+    [" da duoc phe duyet", " đã được phê duyệt"],
+    [" da bi tu choi", " đã bị từ chối"],
+    [" da bi an", " đã bị ẩn"],
+    [" da bi khoa", " đã bị khóa"],
+    [" da duoc hien thi lai", " đã được hiển thị lại"],
+    [" da duoc go khoa", " đã được gỡ khóa"],
+    [" da duoc mo khoa", " đã được mở khóa"],
+];
+
+const localizeLegacyArtistNotificationText = (value) => {
+    if (typeof value !== "string" || !value) {
+        return value;
+    }
+
+    return LEGACY_ARTIST_NOTIFICATION_REPLACEMENTS.reduce(
+        (text, [source, replacement]) => text.split(source).join(replacement),
+        value
+    );
+};
+
 const normalizePositiveInteger = (value, fallback) => {
     const parsed = Number.parseInt(value, 10);
 
@@ -113,6 +147,8 @@ const sanitizeArtistNotification = (notification, userId) => {
 
     const sanitizedNotification = {
         ...notification,
+        title: localizeLegacyArtistNotificationText(notification.title),
+        content: localizeLegacyArtistNotificationText(notification.content),
         isRead,
     };
 
@@ -128,7 +164,7 @@ const sanitizeArtistNotification = (notification, userId) => {
 
 const ensureNotificationId = (notificationId) => {
     if (!mongoose.Types.ObjectId.isValid(notificationId)) {
-        throw new AppError("Invalid request data.", StatusCodes.BAD_REQUEST);
+        throw new AppError("Dữ liệu yêu cầu không hợp lệ.", StatusCodes.BAD_REQUEST);
     }
 
     return notificationId;
@@ -179,7 +215,7 @@ const getMyArtistNotificationDetail = async (userId, userRole, notificationId) =
     const notification = await Notification.findOne(filter).lean();
 
     if (!notification) {
-        throw new AppError("Notification not found.", StatusCodes.NOT_FOUND);
+        throw new AppError("Không tìm thấy thông báo.", StatusCodes.NOT_FOUND);
     }
 
     const isSingleReceiver = notification.receiverType === "single";

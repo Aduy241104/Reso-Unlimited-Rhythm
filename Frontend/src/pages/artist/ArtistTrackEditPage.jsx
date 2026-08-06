@@ -297,7 +297,7 @@ const ArtistTrackEditPage = () => {
       ready: Boolean(formData.title.trim() && formData.genreIds.length > 0),
     },
     {
-      label: "Đã có file âm thanh",
+      label: "Đã có tệp âm thanh",
       ready: Boolean(audioFile || audioPreviewUrl),
     },
     {
@@ -602,7 +602,7 @@ const ArtistTrackEditPage = () => {
         const submittedTrack = await trackService.submitForApproval(id);
         setTrack(submittedTrack);
         navigate(routePaths.artistTrackDetail(id), {
-          state: { message: "Đã gửi bài hát để admin duyệt." },
+          state: { message: "Đã gửi bài hát để quản trị viên duyệt." },
         });
         return;
       }
@@ -697,7 +697,7 @@ const ArtistTrackEditPage = () => {
 
       {track?.pendingUpdate?.status === "pending" ? (
         <div className="rounded-[22px] border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
-          Bản chỉnh sửa của bài hát đã được gửi admin duyệt. Người nghe vẫn tiếp tục nghe phiên bản đang phát hành.
+          Bản chỉnh sửa của bài hát đã được gửi quản trị viên duyệt. Người nghe vẫn tiếp tục nghe phiên bản đang phát hành.
         </div>
       ) : null}
 
@@ -731,7 +731,7 @@ const ArtistTrackEditPage = () => {
             icon={Music4}
             eyebrow="Chỉnh sửa"
             title="Thông tin bài hát"
-            description="Cập nhật phần nhận diện chính của bài hát. Khi thay đổi tên bài hát, tên phiên bản, file âm thanh hoặc thông tin bản quyền, bài hát có thể quay lại trạng thái chờ duyệt."
+            description="Cập nhật phần nhận diện chính của bài hát. Khi thay đổi tên bài hát, tên phiên bản, tệp âm thanh hoặc thông tin bản quyền, bài hát có thể quay lại trạng thái chờ duyệt."
           >
             <div className="grid gap-5 md:grid-cols-2">
               <FieldShell
@@ -786,10 +786,10 @@ const ArtistTrackEditPage = () => {
             icon={FileAudio}
             eyebrow="Tệp"
             title="Âm thanh và hình ảnh"
-            description="Thay thế file âm thanh gốc, ảnh đại diện, ảnh bìa hoặc file lời đồng bộ mà không làm thay đổi logic backend hiện tại."
+            description="Thay thế tệp âm thanh gốc, ảnh đại diện, ảnh bìa hoặc tệp lời đồng bộ mà không làm thay đổi quy trình xử lý hiện tại."
           >
             <div className="grid gap-5 md:grid-cols-2">
-              <FieldShell label="File âm thanh gốc">
+              <FieldShell label="Tệp âm thanh gốc">
                 <input
                   type="file"
                   accept=".mp3,.wav,.flac,.aac,.m4a,.mp4,audio/mpeg,audio/wav,audio/flac,audio/aac,audio/mp4,video/mp4"
@@ -942,7 +942,7 @@ const ArtistTrackEditPage = () => {
             icon={ShieldCheck}
             eyebrow="Bản quyền"
             title="Thông tin quyền sở hữu"
-            description="Cập nhật metadata bản quyền mà không thay đổi cách backend kiểm tra và lưu bài hát."
+            description="Cập nhật siêu dữ liệu bản quyền mà không thay đổi cách hệ thống kiểm tra và lưu bài hát."
           >
             <TrackCopyrightFields
               value={copyrightForm}

@@ -354,7 +354,7 @@ const ArtistEditReleaseSchedulePage = () => {
         </div>
         <p className="text-sm text-[#7f7a8f]">
           Cập nhật ngày giờ phát hành cho
-          {artistName ? ` ${artistName}` : ""} mà không cần sửa nội dung track hoặc album.
+          {artistName ? ` ${artistName}` : ""} mà không cần sửa nội dung bài hát hoặc album.
         </p>
       </div>
 
@@ -401,7 +401,7 @@ const ArtistEditReleaseSchedulePage = () => {
               </div>
 
               <div className="rounded-2xl border border-[#ece9ff] bg-[#f7f5ff] px-4 py-4 text-sm text-[#665f7a]">
-                Bạn đang chỉnh sửa lịch của bản phát hành hiện có. Nếu muốn đổi track hoặc
+                Bạn đang chỉnh sửa lịch của bản phát hành hiện có. Nếu muốn đổi bài hát hoặc
                 album, hãy tạo một lịch phát hành mới cho nội dung khác.
               </div>
             </section>
@@ -548,7 +548,7 @@ const ArtistEditReleaseSchedulePage = () => {
                 </p>
                 <p className="mt-2 leading-6">
                   Sau khi lưu, lịch phát hành sẽ dùng ngày giờ mới và hệ thống sẽ cập nhật lại
-                  mốc phát hành cho track hoặc album tương ứng.
+                  mốc phát hành cho bài hát hoặc album tương ứng.
                 </p>
               </div>
             </div>

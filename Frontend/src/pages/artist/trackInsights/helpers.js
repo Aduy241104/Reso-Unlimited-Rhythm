@@ -105,9 +105,9 @@ export const MONTHLY_CHART_METRICS = {
     formatter: (value) => formatNumber(value),
   },
   eligibleStreams: {
-    label: "Stream hợp lệ",
+    label: "Lượt nghe hợp lệ",
     color: "#34caa5",
-    description: "Số stream hợp lệ trong từng tháng",
+    description: "Số lượt nghe hợp lệ trong từng tháng",
     formatter: (value) => formatNumber(value),
   },
 };

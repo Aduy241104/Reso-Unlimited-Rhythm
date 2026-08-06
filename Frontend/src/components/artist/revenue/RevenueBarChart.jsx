@@ -42,7 +42,7 @@ const RevenueBarChart = ({ data = [] }) => {
                     afterLabel: (context) => {
                         const item = data[context.dataIndex];
 
-                        return `Stream hợp lệ: ${formatNumber(item?.totalEligibleStreams || 0)}`;
+                        return `Lượt nghe hợp lệ: ${formatNumber(item?.totalEligibleStreams || 0)}`;
                     },
                 },
             },

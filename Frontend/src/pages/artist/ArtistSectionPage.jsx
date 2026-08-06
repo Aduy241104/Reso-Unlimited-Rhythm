@@ -2,7 +2,7 @@ const ArtistSectionPage = ({ title, description }) => {
   return (
     <section className="rounded-md border border-neutral-200 bg-white p-6">
       <p className="text-xs uppercase tracking-[0.3em] text-[#8b5e3c]">
-        Artist Dashboard
+        Bảng điều khiển nghệ sĩ
       </p>
       <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[#241b15]">
         {title}
@@ -18,10 +18,10 @@ const ArtistSectionPage = ({ title, description }) => {
             className="rounded-sm border border-neutral-200 bg-[#fcfaf7] p-4"
           >
             <p className="text-sm font-medium text-[#241b15]">
-              Module {item}
+              Mô-đun {item}
             </p>
             <p className="mt-2 text-sm text-neutral-500">
-              This area is ready for deeper artist-specific tools and content.
+              Khu vực này đã sẵn sàng cho các công cụ và nội dung chuyên sâu dành cho nghệ sĩ.
             </p>
           </div>
         ))}
