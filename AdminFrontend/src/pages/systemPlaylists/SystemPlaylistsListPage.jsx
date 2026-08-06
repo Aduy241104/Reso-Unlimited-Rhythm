@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import ReactPaginate from "react-paginate";
 import toast from "react-hot-toast";
 import {
   Disc,
@@ -15,6 +16,7 @@ import {
   Lock,
   ArrowUpRight,
 } from "lucide-react";
+import ConfirmModal from "./ConfirmModal";
 import {
   deleteAdminSystemPlaylistService,
   getAdminSystemPlaylistsService,
@@ -32,31 +34,29 @@ const fmtDate = (value) => {
   });
 };
 
-const VisibilityBadge = ({ isPublic }) => (
-  <span
-    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium border ${
-      isPublic
-        ? "bg-emerald-50 border-emerald-100 text-emerald-600"
-        : "bg-slate-50 border-slate-200 text-slate-500"
-    }`}
-  >
-    {isPublic ? <Globe className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
-    {isPublic ? "Công khai" : "Riêng tư"}
-  </span>
-);
+const PlaylistStatusBadge = ({ item }) => {
+  if (item?.isHidden) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700">
+        <EyeOff className="h-3 w-3" /> Đã ẩn
+      </span>
+    );
+  }
 
-const HiddenStatusBadge = ({ hidden }) => (
-  <span
-    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium border ${
-      hidden
-        ? "bg-amber-50 border-amber-100 text-amber-600"
-        : "bg-emerald-50 border-emerald-100 text-emerald-600"
-    }`}
-  >
-    {hidden ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-    {hidden ? "Ẩn" : "Hiển thị"}
-  </span>
-);
+  if (item?.isPublic) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+        <Globe className="h-3 w-3" /> Công khai
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
+      <Lock className="h-3 w-3" /> Riêng tư
+    </span>
+  );
+};
 
 const getAccentClasses = (item) => {
   if (item.isHidden) return "bg-amber-500";
@@ -106,22 +106,25 @@ const SystemPlaylistsListPage = () => {
     };
   }, []);
 
-  const handleDelete = async (playlist, event) => {
+  const [deleteTarget, setDeleteTarget] = useState(null);
+
+  const handleDeleteClick = (playlist, event) => {
     event.preventDefault();
     event.stopPropagation();
-    const id = playlistRowId(playlist);
+    setDeleteTarget(playlist);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    const id = playlistRowId(deleteTarget);
     if (!id) return;
-    if (
-      !window.confirm(
-        `Xóa "${playlist.title}"? Hành động này không thể hoàn tác.`
-      )
-    )
-      return;
+
     setDeletingId(id);
     try {
       await deleteAdminSystemPlaylistService(id);
       setPlaylists((prev) => prev.filter((p) => playlistRowId(p) !== id));
-      toast.success("Đã xóa playlist.");
+      toast.success("Đã xóa playlist thành công.");
+      setDeleteTarget(null);
     } catch (error) {
       toast.error(
         error?.response?.data?.message ||
@@ -153,26 +156,44 @@ const SystemPlaylistsListPage = () => {
     );
   };
 
-  const filteredPlaylists = playlists
-    .filter((p) => {
-      if (!searchQuery) return true;
-      const q = searchQuery.toLowerCase();
-      return (
-        p.title?.toLowerCase().includes(q) ||
-        p.description?.toLowerCase().includes(q)
-      );
-    })
-    .sort((a, b) => {
-      let aVal = a[sortField];
-      let bVal = b[sortField];
-      if (sortField === "title") {
-        aVal = (aVal || "").toLowerCase();
-        bVal = (bVal || "").toLowerCase();
-      }
-      if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
-      if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
-      return 0;
-    });
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+
+  const filteredPlaylists = useMemo(() => {
+    return playlists
+      .filter((p) => {
+        if (!searchQuery) return true;
+        const q = searchQuery.toLowerCase();
+        return (
+          p.title?.toLowerCase().includes(q) ||
+          p.description?.toLowerCase().includes(q)
+        );
+      })
+      .sort((a, b) => {
+        let aVal = a[sortField];
+        let bVal = b[sortField];
+        if (sortField === "title") {
+          aVal = (aVal || "").toLowerCase();
+          bVal = (bVal || "").toLowerCase();
+        }
+        if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
+        if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
+        return 0;
+      });
+  }, [playlists, searchQuery, sortField, sortOrder]);
+
+  const totalPages = Math.ceil(filteredPlaylists.length / ITEMS_PER_PAGE) || 1;
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(Math.max(1, totalPages));
+    }
+  }, [filteredPlaylists.length, totalPages, currentPage]);
+
+  const paginatedPlaylists = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredPlaylists.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredPlaylists, currentPage]);
 
   return (
     <section className="space-y-6">
@@ -248,20 +269,19 @@ const SystemPlaylistsListPage = () => {
       )}
 
       {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-        <div className="grid min-w-[900px] grid-cols-[40px_80px_minmax(0,1.5fr)_100px_140px_140px_140px_120px] gap-4 border-b border-slate-200 px-5 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-          <span>#</span>
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="grid min-w-[850px] grid-cols-[50px_80px_minmax(0,1.8fr)_100px_160px_140px_120px] gap-4 border-b border-slate-200 px-5 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+          <span>STT</span>
           <span>Ảnh bìa</span>
           <span>Tiêu đề</span>
           <span>Bài hát</span>
-          <span>Quyền riêng tư</span>
           <span>Trạng thái</span>
           <span>Ngày tạo</span>
           <span className="text-right">Thao tác</span>
         </div>
 
         <div className="overflow-x-auto">
-          <div className="min-w-[900px] divide-y divide-slate-100">
+          <div className="min-w-[850px] divide-y divide-slate-100">
             {isLoading ? (
               <div className="p-12 text-center text-xs font-bold text-slate-400 uppercase tracking-wider">
                 Đang tải...
@@ -275,17 +295,16 @@ const SystemPlaylistsListPage = () => {
                 )}
               </div>
             ) : (
-              filteredPlaylists.map((item, index) => {
+              paginatedPlaylists.map((item, index) => {
                 const id = playlistRowId(item);
                 const isDeleting = deletingId === id;
+                const indexNum = (currentPage - 1) * ITEMS_PER_PAGE + index + 1;
                 return (
                   <article
                     key={id || item.title}
-                    className="relative grid grid-cols-[40px_80px_minmax(0,1.5fr)_100px_140px_140px_140px_120px] gap-4 px-5 py-4 transition hover:bg-slate-50/60 items-center"
+                    className="relative grid grid-cols-[50px_80px_minmax(0,1.8fr)_100px_160px_140px_120px] gap-4 px-5 py-4 transition hover:bg-slate-50/60 items-center"
                   >
-                    {/* Accent bar */}
-
-                    <span className="text-sm text-slate-400 font-medium pl-2">{index + 1}</span>
+                    <span className="text-sm text-slate-400 font-medium pl-2">{indexNum}</span>
 
                     <div className="pl-2">
                       <Link to={routePaths.systemPlaylistDetail(id)}>
@@ -324,11 +343,7 @@ const SystemPlaylistsListPage = () => {
                     </span>
 
                     <div className="pl-2">
-                      <VisibilityBadge isPublic={item.isPublic} />
-                    </div>
-
-                    <div className="pl-2">
-                      <HiddenStatusBadge hidden={item.isHidden} />
+                      <PlaylistStatusBadge item={item} />
                     </div>
 
                     <span className="text-xs font-medium text-slate-400 pl-2">
@@ -344,7 +359,7 @@ const SystemPlaylistsListPage = () => {
                       </Link>
                       <button
                         type="button"
-                        onClick={(e) => handleDelete(item, e)}
+                        onClick={(e) => handleDeleteClick(item, e)}
                         disabled={isDeleting}
                         className="rounded-xl px-3.5 py-2 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 transition border border-red-100 disabled:opacity-30"
                       >
@@ -358,6 +373,42 @@ const SystemPlaylistsListPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Pagination Bar */}
+      {totalPages >= 1 && (
+        <div className="flex justify-center pt-2">
+          <ReactPaginate
+            previousLabel="Trở lại"
+            nextLabel="Tiếp"
+            onPageChange={({ selected }) => setCurrentPage(selected + 1)}
+            pageCount={totalPages}
+            forcePage={Math.max(0, Math.min(currentPage - 1, totalPages - 1))}
+            containerClassName="flex items-center gap-1 text-sm font-medium text-slate-600"
+            pageClassName="rounded-lg border border-slate-200 bg-white px-3 py-1.5 hover:bg-slate-50 transition cursor-pointer"
+            activeClassName="!bg-blue-600 !border-blue-600 !text-white"
+            previousClassName="rounded-lg border border-slate-200 bg-white px-3 py-1.5 hover:bg-slate-50 transition cursor-pointer"
+            nextClassName="rounded-lg border border-slate-200 bg-white px-3 py-1.5 hover:bg-slate-50 transition cursor-pointer"
+            disabledClassName="opacity-40 cursor-not-allowed"
+          />
+        </div>
+      )}
+
+      {/* Modal xác nhận xóa playlist */}
+      <ConfirmModal
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
+        title="Xóa vĩnh viễn playlist"
+        description={
+          <span>
+            Bạn có chắc chắn muốn xóa playlist <strong className="font-bold text-slate-900">"{deleteTarget?.title}"</strong>? Hành động này không thể hoàn tác.
+          </span>
+        }
+        confirmText="Xóa playlist"
+        cancelText="Hủy"
+        type="danger"
+        isLoading={Boolean(deletingId)}
+      />
     </section>
   );
 };

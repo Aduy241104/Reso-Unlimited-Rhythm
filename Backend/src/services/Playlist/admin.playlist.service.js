@@ -243,7 +243,10 @@ const addTracksToSystemPlaylistBatch = async (playlistId, trackIds) => {
     }
 
     const objectIds = uniqueOrdered.map((id) => new mongoose.Types.ObjectId(id));
-    const foundDocs = await Track.find({ _id: { $in: objectIds } }).select("_id").lean();
+    const foundDocs = await Track.find({
+        _id: { $in: objectIds },
+        activeStatus: { $nin: ["blocked", "hidden"] },
+    }).select("_id").lean();
     const foundSet = new Set(foundDocs.map((doc) => doc._id.toString()));
 
     const playlist = await findSystemPlaylist(playlistId);
