@@ -4,7 +4,7 @@ import {
   ChevronRight,
   Loader2,
   Mail,
-  MapPin,
+  CalendarDays,
   PencilLine,
   ShieldCheck,
   UserRound,
@@ -184,9 +184,9 @@ const UserProfileInfo = ({ fullName, email, gender, country }) => {
       icon: VenusAndMars,
     },
     {
-      label: "Quốc gia",
+      label: "Ngày sinh",
       value: getPreferredText(profileSnapshot.country, country),
-      icon: MapPin,
+      icon: CalendarDays,
     },
   ];
 
@@ -237,9 +237,9 @@ const UserProfileInfo = ({ fullName, email, gender, country }) => {
 
   const authProvider = normalizeText(
     profileSnapshot?.authProvider ||
-      profileSnapshot?.provider ||
-      profile?.authProvider ||
-      profile?.provider
+    profileSnapshot?.provider ||
+    profile?.authProvider ||
+    profile?.provider
   ).toLowerCase();
 
   const avatarUrl = normalizeText(profileSnapshot?.avatar || profile?.avatar).toLowerCase();
