@@ -13,7 +13,7 @@ import paymentConfirmationEmailService from "./paymentConfirmationEmail.service.
 const PENDING_PAYMENT_TIMEOUT_MINUTES =
     Number(process.env.PAYMENT_PENDING_TIMEOUT_MINUTES || 15) || 15;
 const VNPAY_SUCCESS_CODE = "00";
-const PREMIUM_TAX_RATE = 0.1;
+const PREMIUM_TAX_RATE = 0.08;
 const DEFAULT_PAYMENT_CLIENT_PLATFORM = "web";
 const PAYMENT_CLIENT_PLATFORMS = ["web", "mobile"];
 const PLAN_UNAVAILABLE_PAYMENT_REASON =

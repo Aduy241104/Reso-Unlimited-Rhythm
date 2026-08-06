@@ -20,6 +20,8 @@ import {
   X,
   XCircle,
   XSquare,
+  CheckCheck,
+  Tag,
 } from "lucide-react";
 import {
   getGroupedReportDetailService,
@@ -43,6 +45,17 @@ reasonLabels.fake_artist = "Nghệ sĩ giả mạo";
 reasonLabels.wrong_metadata = "Thông tin bài hát không chính xác";
 reasonLabels.lyrics_issue = "Lời bài hát không phù hợp";
 reasonLabels.audio_quality = "Chất lượng âm thanh kém";
+
+const VIOLATION_TYPES = [
+  { value: "copyright_infringement", label: "Vi phạm bản quyền" },
+  { value: "harassment_or_hate", label: "Quấy rối / Phát ngôn thù ghét" },
+  { value: "nudity_or_sexual_content", label: "Nội dung đồi trụy / Nhạy cảm" },
+  { value: "violence_or_dangerous_content", label: "Bạo lực / Hành vi nguy hiểm" },
+  { value: "spam_or_scam", label: "Spam / Gian lận lượt nghe" },
+  { value: "misleading_information", label: "Thông tin sai lệch" },
+  { value: "impersonation", label: "Giả mạo nghệ sĩ / Thương hiệu" },
+  { value: "other", label: "Khác" },
+];
 
 const TARGET_TYPE_LABELS = {
   track: "Bài hát",
@@ -91,9 +104,8 @@ const getTargetTypeBadge = (type) => {
 
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold capitalize ${
-        colors[type] || "bg-slate-100 text-slate-700 border-slate-200"
-      }`}
+      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold capitalize ${colors[type] || "bg-slate-100 text-slate-700 border-slate-200"
+        }`}
     >
       {getTargetTypeLabel(type)}
     </span>
@@ -114,6 +126,12 @@ const ReportDetailPage = () => {
   const [evaluations, setEvaluations] = useState({}); // { [reportId]: boolean }
   const [selectedAction, setSelectedAction] = useState("warn");
   const [resolutionNote, setResolutionNote] = useState("");
+
+  // Modal form states
+  const [modalViolationType, setModalViolationType] = useState("copyright_infringement");
+  const [modalTitle, setModalTitle] = useState("");
+  const [modalDate, setModalDate] = useState(new Date().toISOString().slice(0, 16));
+  const [modalDescription, setModalDescription] = useState("");
 
   // Preview Image Modal state
   const [previewImage, setPreviewImage] = useState(null);
@@ -180,18 +198,44 @@ const ReportDetailPage = () => {
     (report) => evaluations[report._id] === true
   );
 
-  // Auto switch away from "reject" if any report is marked as Valid (Vi phạm)
+  // Auto switch action depending on evaluation status:
   useEffect(() => {
-    if (hasAnyValidPendingEvaluation && selectedAction === "reject") {
-      setSelectedAction("warn");
+    if (hasAnyValidPendingEvaluation) {
+      if (selectedAction === "reject") {
+        setSelectedAction("warn");
+      }
+    } else if (pendingReportsForDecision.length > 0) {
+      if (selectedAction !== "reject") {
+        setSelectedAction("reject");
+      }
     }
-  }, [hasAnyValidPendingEvaluation, selectedAction]);
+  }, [hasAnyValidPendingEvaluation, selectedAction, pendingReportsForDecision.length]);
 
   const handleToggleEvaluation = (reportId, isValid) => {
     setEvaluations((prev) => ({
       ...prev,
       [reportId]: isValid,
     }));
+  };
+
+  const handleSetAllEvaluations = (isValid) => {
+    setEvaluations((prev) => {
+      const updated = { ...prev };
+      pendingReportsForDecision.forEach((r) => {
+        updated[r._id] = isValid;
+      });
+      return updated;
+    });
+  };
+
+  const handleSetGroupEvaluations = (groupReports, isValid) => {
+    setEvaluations((prev) => {
+      const updated = { ...prev };
+      groupReports.forEach((r) => {
+        updated[r._id] = isValid;
+      });
+      return updated;
+    });
   };
 
   const toggleProcessedReportDetails = (reportId) => {
@@ -228,6 +272,14 @@ const ReportDetailPage = () => {
       return;
     }
 
+    const firstReason = pendingReportsForDecision[0]?.reason || "copyright_infringement";
+    setModalViolationType(reasonLabels[firstReason] ? firstReason : "copyright_infringement");
+
+    const contentTitle = detail?.targetInfo?.title || detail?.targetInfo?.name || "Nội dung";
+    setModalTitle(`Báo cáo vi phạm đối với ${contentTitle}`);
+    setModalDate(new Date().toISOString().slice(0, 16));
+    setModalDescription(resolutionNote.trim() || pendingReportsForDecision[0]?.description || "");
+
     setIsConfirmModalOpen(true);
   };
 
@@ -244,13 +296,17 @@ const ReportDetailPage = () => {
     try {
       setIsConfirmModalOpen(false);
 
+      const finalResolutionNote = modalTitle.trim()
+        ? `${modalTitle.trim()}: ${modalDescription.trim() || resolutionNote.trim()}`
+        : resolutionNote.trim();
+
       const payload = {
         evaluations: pendingReportsForDecision.map((report) => ({
           reportId: report._id,
           isValid: evaluations[report._id] === true,
         })),
         action: selectedAction,
-        resolutionNote: resolutionNote.trim(),
+        resolutionNote: finalResolutionNote,
       };
 
       const res = await resolveGroupedReportService(
@@ -262,7 +318,7 @@ const ReportDetailPage = () => {
       const penaltyMsg = res.penaltyAppliedMessage
         ? ` (${res.penaltyAppliedMessage})`
         : "";
-      setSuccessMessage(`Đã xử lý báo cáo thành công!${penaltyMsg}`);
+      setSuccessMessage(`Đã ghi nhận vi phạm & xử lý báo cáo thành công!${penaltyMsg}`);
 
       setTimeout(() => {
         void loadData();
@@ -327,9 +383,23 @@ const ReportDetailPage = () => {
   const pendingReports = (detail.reports || []).filter(
     (r) => r.status === "pending" || r.status === "reviewing"
   );
-  const processedReports = (detail.reports || []).filter(
-    (r) => r.status === "resolved" || r.status === "rejected"
-  );
+  const processedReports = (detail.reports || [])
+    .filter((r) => r.status === "resolved" || r.status === "rejected")
+    .sort((a, b) => {
+      const timeA = new Date(a.handledAt || a.updatedAt || a.createdAt || 0).getTime();
+      const timeB = new Date(b.handledAt || b.updatedAt || b.createdAt || 0).getTime();
+      return timeB - timeA;
+    });
+
+  // Group pending reports by violation reason
+  const groupedPendingReports = pendingReports.reduce((acc, report) => {
+    const reasonKey = report.reason || "other";
+    if (!acc[reasonKey]) {
+      acc[reasonKey] = [];
+    }
+    acc[reasonKey].push(report);
+    return acc;
+  }, {});
   const selectedActionLabel =
     (selectedAction === "hide"
       ? getHideActionLabel(detail.targetType)
@@ -394,11 +464,10 @@ const ReportDetailPage = () => {
               </p>
             </div>
             <span
-              className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
-                artistStatus === "blocked"
+              className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${artistStatus === "blocked"
                   ? "bg-red-100 text-red-700"
                   : "bg-emerald-100 text-emerald-700"
-              }`}
+                }`}
             >
               {artistStatus === "blocked" ? "Đã khóa" : "Hoạt động"}
             </span>
@@ -459,14 +528,40 @@ const ReportDetailPage = () => {
         <div className="space-y-6">
           {/* SECTION 1: Pending/New Reports */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between px-1 border-b border-slate-200 pb-2">
-              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <FileText size={18} className="text-blue-600" />
-                <span>Báo cáo mới cần xử lý ({pendingReports.length})</span>
-              </h2>
-              <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-100 shadow-sm">
-                Đợt xử lý hiện tại
-              </span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1 border-b border-slate-200 pb-3">
+              <div>
+                <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <FileText size={18} className="text-blue-600" />
+                  <span>Báo cáo mới cần xử lý ({pendingReports.length})</span>
+                </h2>
+                {pendingReports.length > 0 && (
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Đã gom thành {Object.keys(groupedPendingReports).length} nhóm theo loại vi phạm
+                  </p>
+                )}
+              </div>
+
+              {pendingReports.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+                  <span className="text-xs font-semibold text-slate-600 pl-1">Thao tác tất cả:</span>
+                  <button
+                    type="button"
+                    onClick={() => handleSetAllEvaluations(true)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 rounded-lg transition"
+                    title="Đánh giá tất cả báo cáo mới là vi phạm hợp lệ"
+                  >
+                    <CheckCheck size={14} /> Tất cả Hợp lệ (Vi phạm)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSetAllEvaluations(false)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-rose-700 bg-rose-100 hover:bg-rose-200 rounded-lg transition"
+                    title="Đánh giá tất cả báo cáo mới là không hợp lệ"
+                  >
+                    <XSquare size={14} /> Tất cả Không hợp lệ
+                  </button>
+                </div>
+              )}
             </div>
 
             {pendingReports.length === 0 ? (
@@ -474,123 +569,185 @@ const ReportDetailPage = () => {
                 Không có báo cáo mới nào đang chờ duyệt.
               </div>
             ) : (
-              <div className="space-y-4">
-                {pendingReports.map((report, idx) => {
-                  const reporterName =
-                    report.userId?.profile?.fullName || report.userId?.email || "Người dùng ẩn danh";
-                  const reporterEmail = report.userId?.email || "";
-                  const reportDate = report.createdAt
-                    ? new Date(report.createdAt).toLocaleString("vi-VN", {
-                        year: "numeric",
-                        month: "2-digit",
-                        day: "2-digit",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
-                    : "—";
-
-                  const isEvalValid = evaluations[report._id] === true;
+              <div className="space-y-6">
+                {Object.entries(groupedPendingReports).map(([reason, groupReports]) => {
+                  const reasonLabel = reasonLabels[reason] || reason;
+                  const validCountInGroup = groupReports.filter((r) => evaluations[r._id] === true).length;
+                  const allValid = validCountInGroup === groupReports.length;
+                  const allInvalid = validCountInGroup === 0;
 
                   return (
                     <div
-                      key={report._id}
-                      className={`rounded-2xl bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.04)] border transition ${
-                        isEvalValid ? "border-amber-300 bg-amber-50/20" : "border-blue-200 bg-blue-50/10"
-                      }`}
+                      key={reason}
+                      className="rounded-2xl bg-white shadow-sm border border-slate-200/90 overflow-hidden"
                     >
-                      {/* Header */}
-                      <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-3">
+                      {/* Group Header Bar */}
+                      <div className="bg-slate-50/90 px-5 py-3.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
                         <div className="flex items-center gap-3">
-                          <div className="h-9 w-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">
-                            <User size={18} />
-                          </div>
+                          <span className="inline-flex items-center justify-center p-2 rounded-xl bg-red-50 text-red-600 border border-red-100 font-bold">
+                            <Tag size={16} />
+                          </span>
                           <div>
                             <div className="flex items-center gap-2">
-                              <p className="text-sm font-bold text-slate-900">{reporterName}</p>
-                              <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-[10px] font-bold text-blue-700 border border-blue-200">
-                                <span className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-pulse"></span>
-                                Mới gửi (Chưa xử lý)
+                              <h3 className="text-sm font-bold text-slate-900">{reasonLabel}</h3>
+                              <span className="rounded-full bg-slate-200/80 px-2.5 py-0.5 text-xs font-bold text-slate-700">
+                                {groupReports.length} báo cáo
                               </span>
                             </div>
-                            <p className="text-xs text-slate-400">{reporterEmail}</p>
-                          </div>
-                        </div>
-
-                        <div className="text-right">
-                          <span className="inline-flex items-center rounded-lg bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-600 border border-red-100">
-                            {reasonLabels[report.reason] || report.reason}
-                          </span>
-                          <p className="mt-1 text-[11px] text-slate-400 flex items-center justify-end gap-1">
-                            <Clock size={12} />
-                            {reportDate}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Content */}
-                      <div className="py-3 space-y-2">
-                        <p className="text-sm text-slate-700 leading-relaxed">
-                          {report.description || "Người dùng không ghi thêm mô tả chi tiết."}
-                        </p>
-
-                        {report.images && report.images.length > 0 && (
-                          <div className="pt-2">
-                            <p className="text-xs font-semibold text-slate-400 mb-2 flex items-center gap-1">
-                              <ImageIcon size={14} /> Hình ảnh đính kèm ({report.images.length})
+                            <p className="text-[11px] text-slate-500 mt-0.5">
+                              Đã chọn vi phạm: <strong className="text-emerald-700">{validCountInGroup}</strong> / {groupReports.length}
                             </p>
-                            <div className="flex flex-wrap gap-2">
-                              {report.images.map((imgUrl, imgIdx) => (
-                                <button
-                                  key={imgIdx}
-                                  type="button"
-                                  onClick={() => setPreviewImage(imgUrl)}
-                                  className="group relative overflow-hidden rounded-xl border border-slate-200 hover:border-blue-500 transition"
-                                >
-                                  <img
-                                    src={imgUrl}
-                                    alt="Ảnh minh chứng báo cáo"
-                                    className="h-16 w-16 object-cover transition group-hover:scale-105"
-                                  />
-                                </button>
-                              ))}
-                            </div>
                           </div>
-                        )}
-                      </div>
+                        </div>
 
-                      {/* Evaluation Toggle */}
-                      <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between bg-slate-50/80 -mx-5 -mb-5 px-5 py-3 rounded-b-2xl">
-                        <span className="text-xs font-bold text-slate-600">
-                          Đánh giá lý do báo cáo #{idx + 1}:
-                        </span>
-
-                        <div className="inline-flex rounded-xl bg-white p-1 shadow-sm border border-slate-200">
+                        {/* Group Quick Action Buttons */}
+                        <div className="flex flex-wrap items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => handleToggleEvaluation(report._id, true)}
-                            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
-                              isEvalValid
-                                ? "bg-emerald-600 text-white shadow-sm"
-                                : "text-slate-600 hover:bg-slate-100"
-                            }`}
+                            onClick={() => handleSetGroupEvaluations(groupReports, true)}
+                            className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition border ${allValid
+                                ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                                : "bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50"
+                              }`}
+                            title="Chọn tất cả báo cáo trong nhóm này là vi phạm"
                           >
-                            <CheckSquare size={14} />
-                            Hợp lệ (Vi phạm)
+                            <CheckCheck size={14} />
+                            Duyệt nhóm: Tất cả Vi phạm
                           </button>
-
                           <button
                             type="button"
-                            onClick={() => handleToggleEvaluation(report._id, false)}
-                            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
-                              !isEvalValid
-                                ? "bg-rose-600 text-white shadow-sm"
-                                : "text-slate-600 hover:bg-slate-100"
-                            }`}
+                            onClick={() => handleSetGroupEvaluations(groupReports, false)}
+                            className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition border ${allInvalid
+                                ? "bg-rose-600 text-white border-rose-600 shadow-sm"
+                                : "bg-white text-rose-700 border-rose-200 hover:bg-rose-50"
+                              }`}
+                            title="Chọn tất cả báo cáo trong nhóm này là không hợp lệ"
                           >
                             <XSquare size={14} />
-                            Không hợp lệ
+                            Duyệt nhóm: Tất cả Không hợp lệ
                           </button>
                         </div>
+                      </div>
+
+                      {/* Group Reports Cards */}
+                      <div className="p-4 space-y-4 bg-slate-50/30">
+                        {groupReports.map((report, idx) => {
+                          const reporterName =
+                            report.userId?.profile?.fullName || report.userId?.email || "Người dùng ẩn danh";
+                          const reporterEmail = report.userId?.email || "";
+                          const reportDate = report.createdAt
+                            ? new Date(report.createdAt).toLocaleString("vi-VN", {
+                              year: "numeric",
+                              month: "2-digit",
+                              day: "2-digit",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                            : "—";
+
+                          const isEvalValid = evaluations[report._id] === true;
+
+                          return (
+                            <div
+                              key={report._id}
+                              className={`rounded-2xl bg-white p-5 shadow-[0_4px_16px_rgba(15,23,42,0.03)] border transition ${isEvalValid ? "border-amber-300 bg-amber-50/20" : "border-slate-200 bg-white"
+                                }`}
+                            >
+                              {/* Card Header */}
+                              <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-3">
+                                <div className="flex items-center gap-3">
+                                  <div className="h-9 w-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">
+                                    <User size={18} />
+                                  </div>
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <p className="text-sm font-bold text-slate-900">{reporterName}</p>
+                                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-[10px] font-bold text-blue-700 border border-blue-200">
+                                        <span className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-pulse"></span>
+                                        Mới gửi
+                                      </span>
+                                    </div>
+                                    <p className="text-xs text-slate-400">{reporterEmail}</p>
+                                  </div>
+                                </div>
+
+                                <div className="text-right">
+                                  <p className="text-[11px] font-bold text-slate-500">
+                                    Báo cáo #{idx + 1}
+                                  </p>
+                                  <p className="mt-0.5 text-[11px] text-slate-400 flex items-center justify-end gap-1">
+                                    <Clock size={12} />
+                                    {reportDate}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Card Content */}
+                              <div className="py-3 space-y-2">
+                                <p className="text-sm text-slate-700 leading-relaxed">
+                                  {report.description || "Người dùng không ghi thêm mô tả chi tiết."}
+                                </p>
+
+                                {report.images && report.images.length > 0 && (
+                                  <div className="pt-2">
+                                    <p className="text-xs font-semibold text-slate-400 mb-2 flex items-center gap-1">
+                                      <ImageIcon size={14} /> Hình ảnh đính kèm ({report.images.length})
+                                    </p>
+                                    <div className="flex flex-wrap gap-2">
+                                      {report.images.map((imgUrl, imgIdx) => (
+                                        <button
+                                          key={imgIdx}
+                                          type="button"
+                                          onClick={() => setPreviewImage(imgUrl)}
+                                          className="group relative overflow-hidden rounded-xl border border-slate-200 hover:border-blue-500 transition"
+                                        >
+                                          <img
+                                            src={imgUrl}
+                                            alt="Ảnh minh chứng báo cáo"
+                                            className="h-16 w-16 object-cover transition group-hover:scale-105"
+                                          />
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Evaluation Toggle */}
+                              <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between bg-slate-50/80 -mx-5 -mb-5 px-5 py-3 rounded-b-2xl">
+                                <span className="text-xs font-bold text-slate-600">
+                                  Đánh giá cá nhân báo cáo #{idx + 1}:
+                                </span>
+
+                                <div className="inline-flex rounded-xl bg-white p-1 shadow-sm border border-slate-200">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleEvaluation(report._id, true)}
+                                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${isEvalValid
+                                        ? "bg-emerald-600 text-white shadow-sm"
+                                        : "text-slate-600 hover:bg-slate-100"
+                                      }`}
+                                  >
+                                    <CheckSquare size={14} />
+                                    Hợp lệ (Vi phạm)
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleEvaluation(report._id, false)}
+                                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${!isEvalValid
+                                        ? "bg-rose-600 text-white shadow-sm"
+                                        : "text-slate-600 hover:bg-slate-100"
+                                      }`}
+                                  >
+                                    <XSquare size={14} />
+                                    Không hợp lệ
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   );
@@ -619,21 +776,21 @@ const ReportDetailPage = () => {
                   const reporterEmail = report.userId?.email || "";
                   const reportDate = report.createdAt
                     ? new Date(report.createdAt).toLocaleString("vi-VN", {
-                        year: "numeric",
-                        month: "2-digit",
-                        day: "2-digit",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
+                      year: "numeric",
+                      month: "2-digit",
+                      day: "2-digit",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
                     : "—";
                   const handledDate = report.handledAt
                     ? new Date(report.handledAt).toLocaleString("vi-VN", {
-                        year: "numeric",
-                        month: "2-digit",
-                        day: "2-digit",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
+                      year: "numeric",
+                      month: "2-digit",
+                      day: "2-digit",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
                     : "—";
                   const wasValid = report.isValidReason === true;
                   const isExpanded = expandedProcessedReportIds.includes(report._id);
@@ -786,11 +943,10 @@ const ReportDetailPage = () => {
               <>
                 {/* Impact Notification Warning */}
                 <div
-                  className={`rounded-xl p-4 border text-xs space-y-1.5 transition ${
-                    selectedAction === "reject"
+                  className={`rounded-xl p-4 border text-xs space-y-1.5 transition ${selectedAction === "reject"
                       ? "bg-slate-100 border-slate-300 text-slate-700"
                       : "bg-amber-50 border-amber-200 text-amber-800"
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-1.5 font-bold">
                     <AlertTriangle size={15} />
@@ -803,9 +959,8 @@ const ReportDetailPage = () => {
                   <p className="leading-relaxed">
                     {selectedAction === "reject"
                       ? "Báo cáo sẽ bị từ chối. Hệ thống không tăng số lần vi phạm và không gửi cảnh báo tới nghệ sĩ."
-                      : `Số lần vi phạm của nghệ sĩ (${artistName}) sẽ tăng thêm 1 (hiện tại: ${artistViolations} -> ${
-                          artistViolations + 1
-                        }) và tự động gửi 1 thông báo cảnh báo hoặc xử phạt tới nghệ sĩ.`}
+                      : `Số lần vi phạm của nghệ sĩ (${artistName}) sẽ tăng thêm 1 (hiện tại: ${artistViolations} -> ${artistViolations + 1
+                      }) và tự động gửi 1 thông báo cảnh báo hoặc xử phạt tới nghệ sĩ.`}
                   </p>
 
                   <div className="text-[11px] opacity-90 pt-1 border-t border-amber-200/60 space-y-0.5">
@@ -829,17 +984,19 @@ const ReportDetailPage = () => {
 
                     <div className="space-y-2">
                       <label
-                        className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition ${
-                          selectedAction === "warn"
+                        className={`flex items-start gap-3 rounded-xl border p-3 transition ${selectedAction === "warn"
                             ? "border-blue-500 bg-blue-50/50"
-                            : "border-slate-200 hover:border-slate-300"
-                        }`}
+                            : !hasAnyValidPendingEvaluation
+                              ? "border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed"
+                              : "border-slate-200 hover:border-slate-300 cursor-pointer"
+                          }`}
                       >
                         <input
                           type="radio"
                           name="action"
                           value="warn"
                           checked={selectedAction === "warn"}
+                          disabled={!hasAnyValidPendingEvaluation}
                           onChange={(e) => setSelectedAction(e.target.value)}
                           className="mt-0.5 h-4 w-4 text-blue-600 focus:ring-blue-500 cursor-pointer"
                         />
@@ -852,17 +1009,19 @@ const ReportDetailPage = () => {
                       </label>
 
                       <label
-                        className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition ${
-                          selectedAction === "hide"
+                        className={`flex items-start gap-3 rounded-xl border p-3 transition ${selectedAction === "hide"
                             ? "border-amber-500 bg-amber-50/50"
-                            : "border-slate-200 hover:border-slate-300"
-                        }`}
+                            : !hasAnyValidPendingEvaluation
+                              ? "border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed"
+                              : "border-slate-200 hover:border-slate-300 cursor-pointer"
+                          }`}
                       >
                         <input
                           type="radio"
                           name="action"
                           value="hide"
                           checked={selectedAction === "hide"}
+                          disabled={!hasAnyValidPendingEvaluation}
                           onChange={(e) => setSelectedAction(e.target.value)}
                           className="mt-0.5 h-4 w-4 text-amber-600 focus:ring-amber-500 cursor-pointer"
                         />
@@ -875,17 +1034,19 @@ const ReportDetailPage = () => {
                       </label>
 
                       <label
-                        className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition ${
-                          selectedAction === "block"
+                        className={`flex items-start gap-3 rounded-xl border p-3 transition ${selectedAction === "block"
                             ? "border-red-500 bg-red-50/50"
-                            : "border-slate-200 hover:border-slate-300"
-                        }`}
+                            : !hasAnyValidPendingEvaluation
+                              ? "border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed"
+                              : "border-slate-200 hover:border-slate-300 cursor-pointer"
+                          }`}
                       >
                         <input
                           type="radio"
                           name="action"
                           value="block"
                           checked={selectedAction === "block"}
+                          disabled={!hasAnyValidPendingEvaluation}
                           onChange={(e) => setSelectedAction(e.target.value)}
                           className="mt-0.5 h-4 w-4 text-red-600 focus:ring-red-500 cursor-pointer"
                         />
@@ -897,15 +1058,20 @@ const ReportDetailPage = () => {
                         </div>
                       </label>
 
+                      {!hasAnyValidPendingEvaluation ? (
+                        <p className="text-xs font-medium text-amber-700">
+                          Tất cả báo cáo mới trong đợt này đều được đánh giá là không hợp lệ. Hệ thống sẽ tự động áp dụng hình thức Từ chối báo cáo.
+                        </p>
+                      ) : null}
+
                       {/* Reject option */}
                       <label
-                        className={`flex items-start gap-3 rounded-xl border p-3 transition cursor-pointer ${
-                          selectedAction === "reject"
+                        className={`flex items-start gap-3 rounded-xl border p-3 transition cursor-pointer ${selectedAction === "reject"
                             ? "border-slate-400 bg-slate-100"
                             : hasAnyValidPendingEvaluation
                               ? "border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed"
                               : "border-slate-200 hover:border-slate-300"
-                        }`}
+                          }`}
                       >
                         <input
                           type="radio"
@@ -970,46 +1136,60 @@ const ReportDetailPage = () => {
         </div>
       </div>
 
-      {isConfirmModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/65 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,0.28)]">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h3 className="text-lg font-bold text-slate-950">Xác nhận gửi xử lý</h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                  Bạn có chắc muốn <strong>{selectedActionLabel.toLowerCase()}</strong> cho{" "}
-                  <strong>{getTargetTypeLabel(detail.targetType).toLowerCase()}</strong>{" "}
-                  <strong>{title}</strong> không?
-                </p>
+      {/* 1. Rejection Confirmation Modal (When selectedAction === "reject") */}
+      {isConfirmModalOpen && selectedAction === "reject" ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm animate-in fade-in">
+          <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl space-y-5">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
+                  <XCircle size={22} className="text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-950">Xác nhận từ chối báo cáo</h3>
+                  <p className="text-xs text-slate-500">Từ chối xử lý đợt báo cáo không hợp lệ này.</p>
+                </div>
               </div>
-
               <button
                 type="button"
                 onClick={() => setIsConfirmModalOpen(false)}
                 disabled={isSubmitting}
-                className="rounded-full border border-slate-200 p-2 text-slate-500 transition hover:border-slate-300 hover:text-slate-700 disabled:opacity-50"
+                className="rounded-full border border-slate-200 p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
 
-            <div className="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
-              <p>
-                Hình thức xử lý: <strong className="text-slate-900">{selectedActionLabel}</strong>
+            {/* Target info card */}
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 space-y-2 text-xs text-slate-700">
+              <p><strong>Nghệ sĩ / Đối tượng:</strong> <span className="font-bold text-slate-900">{artistName}</span> ({getTargetTypeLabel(detail.targetType)}: {title})</p>
+              <p className="text-slate-500 leading-relaxed">
+                Đợt báo cáo này được xác nhận là <strong>Không hợp lệ / Không có vi phạm thực tế</strong>. Hệ thống sẽ <strong>KHÔNG</strong> tăng số lần vi phạm và <strong>KHÔNG</strong> gửi cảnh báo tới nghệ sĩ.
               </p>
-              {resolutionNote.trim() ? (
-                <p className="mt-1">
-                  Ghi chú: <strong className="text-slate-900">{resolutionNote.trim()}</strong>
-                </p>
-              ) : null}
             </div>
 
-            <div className="mt-5 flex justify-end gap-3">
+            {/* Optional Rejection Note */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+                Ghi chú lý do từ chối (Không bắt buộc)
+              </label>
+              <textarea
+                value={resolutionNote}
+                onChange={(e) => setResolutionNote(e.target.value)}
+                rows={2}
+                placeholder="Nhập lý do từ chối báo cáo (ví dụ: Báo cáo không đúng thực tế)..."
+                className="w-full resize-none rounded-xl border border-slate-200 p-3 text-xs outline-none transition focus:border-slate-400"
+              />
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-3">
               <button
                 type="button"
                 onClick={() => setIsConfirmModalOpen(false)}
                 disabled={isSubmitting}
-                className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:opacity-50"
+                className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 transition disabled:opacity-50"
               >
                 Quay lại
               </button>
@@ -1018,7 +1198,165 @@ const ReportDetailPage = () => {
                 type="button"
                 onClick={() => void handleSubmitResolution()}
                 disabled={isSubmitting}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700 disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-blue-700 transition disabled:opacity-50"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 size={15} className="animate-spin" />
+                    <span>Đang xử lý...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={15} />
+                    <span>Xác nhận từ chối báo cáo</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* 2. Violation Recording & Handling Modal (When selectedAction !== "reject") */}
+      {isConfirmModalOpen && selectedAction !== "reject" ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm animate-in fade-in">
+          <div className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl space-y-5">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+                  <ShieldAlert size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-950">Ghi nhận vi phạm & Xác nhận xử lý</h3>
+                  <p className="text-xs text-slate-500">Kiểm tra thông tin hồ sơ vi phạm trước khi gửi quyết định.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsConfirmModalOpen(false)}
+                disabled={isSubmitting}
+                className="rounded-full border border-slate-200 p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Form Body */}
+            <div className="space-y-4">
+              {/* 1. Artist Info */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Nghệ sĩ bị báo cáo
+                </label>
+                <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <img
+                    src={
+                      detail.artistInfo?.avatar ||
+                      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"
+                    }
+                    alt={artistName}
+                    className="h-10 w-10 rounded-full object-cover border border-slate-200"
+                  />
+                  <div>
+                    <p className="font-bold text-slate-900 text-sm">{artistName}</p>
+                    <p className="text-xs text-slate-500">
+                      Nội dung: <strong className="text-slate-700">{title}</strong> ({getTargetTypeLabel(detail.targetType)})
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Violation Type */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Loại vi phạm
+                </label>
+                <select
+                  value={modalViolationType}
+                  onChange={(e) => setModalViolationType(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-900 outline-none transition focus:border-slate-400 cursor-pointer"
+                >
+                  {VIOLATION_TYPES.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 3. Title & Date */}
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="sm:col-span-2 space-y-1.5">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
+                    Tiêu đề vụ vi phạm
+                  </label>
+                  <input
+                    type="text"
+                    value={modalTitle}
+                    onChange={(e) => setModalTitle(e.target.value)}
+                    placeholder="VD: Vi phạm quy định nội dung trên tác phẩm..."
+                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-semibold outline-none transition focus:border-slate-400"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
+                    Thời gian
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={modalDate}
+                    onChange={(e) => setModalDate(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none transition focus:border-slate-400"
+                  />
+                </div>
+              </div>
+
+              {/* 4. Description */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Mô tả chi tiết vi phạm
+                </label>
+                <textarea
+                  value={modalDescription}
+                  onChange={(e) => setModalDescription(e.target.value)}
+                  rows={3}
+                  placeholder="Mô tả chi tiết diễn biến vụ việc..."
+                  className="w-full resize-none rounded-xl border border-slate-200 p-3 text-sm outline-none transition focus:border-slate-400"
+                />
+              </div>
+
+              {/* 5. Penalty / Action */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Hình thức xử lý / Áp phạt
+                </label>
+                <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3.5 text-xs text-amber-900 font-medium">
+                  Hình thức đã chọn: <strong className="text-amber-950 font-bold uppercase">{selectedActionLabel}</strong>
+                  {selectedAction === "warn" && " — Gửi cảnh báo chính thức (+1 Lượt vi phạm của Nghệ sĩ)"}
+                  {selectedAction === "hide" && ` — Gỡ/Tạm ẩn ${getTargetTypeLabel(detail.targetType)} khỏi hệ thống`}
+                  {selectedAction === "block" && " — Khóa/Đình chỉ trực tiếp tài khoản Nghệ sĩ"}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
+              <button
+                type="button"
+                onClick={() => setIsConfirmModalOpen(false)}
+                disabled={isSubmitting}
+                className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-100 transition disabled:opacity-50"
+              >
+                Quay lại
+              </button>
+
+              <button
+                type="button"
+                onClick={() => void handleSubmitResolution()}
+                disabled={isSubmitting}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-blue-700 transition disabled:opacity-50"
               >
                 {isSubmitting ? (
                   <>
@@ -1028,14 +1366,14 @@ const ReportDetailPage = () => {
                 ) : (
                   <>
                     <CheckCircle2 size={16} />
-                    <span>Xác nhận và gửi</span>
+                    <span>Xác nhận và Ghi nhận vi phạm</span>
                   </>
                 )}
               </button>
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Image Preview Modal */}
       {previewImage && (

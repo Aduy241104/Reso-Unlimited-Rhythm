@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { Loader2, Music, Search, X } from "lucide-react";
+import { Ban, EyeOff, Loader2, Music, Search, X } from "lucide-react";
 import { addTracksBatchToSystemPlaylistService } from "../../services/playlistService";
 import { searchAdminTracksService } from "../../services/trackService";
 
@@ -41,6 +41,32 @@ const AddTracksModal = ({
     () => new Set((existingTrackIds || []).map(String)),
     [existingTrackIds]
   );
+
+  const sortedTracks = useMemo(() => {
+    if (!Array.isArray(tracks)) return [];
+    return [...tracks].sort((a, b) => {
+      const getPriority = (t) => {
+        const isBlockedOrHidden =
+          t.activeStatus === "blocked" ||
+          t.isBlocked === true ||
+          t.activeStatus === "hidden" ||
+          t.isHidden === true ||
+          t.isHide === true;
+
+        if (isBlockedOrHidden) return 3; // Nấc 3: Bài bị ẩn hoặc khóa (dưới cùng)
+        if (existingSet.has(t.id)) return 2; // Nấc 2: Bài đã thêm trong playlist (ở giữa)
+        return 1; // Nấc 1: Bài chưa thêm (trên cùng)
+      };
+
+      const pA = getPriority(a);
+      const pB = getPriority(b);
+
+      if (pA !== pB) {
+        return pA - pB;
+      }
+      return 0;
+    });
+  }, [tracks, existingSet]);
 
   useEffect(() => {
     if (isOpen) {
@@ -137,8 +163,8 @@ const AddTracksModal = ({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [isOpen, onClose]);
 
-  const toggleSelect = (trackId) => {
-    if (existingSet.has(trackId)) return;
+  const toggleSelect = (trackId, isUnselectable = false) => {
+    if (isUnselectable || existingSet.has(trackId)) return;
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(trackId)) {
@@ -279,11 +305,15 @@ const AddTracksModal = ({
             </div>
           ) : (
             <ul className="space-y-1">
-              {tracks.map((track) => {
+              {sortedTracks.map((track) => {
                 const inPlaylist = existingSet.has(track.id);
                 const isSelected = selectedIds.has(track.id);
+                const isBlocked = track.activeStatus === "blocked" || track.isBlocked === true;
+                const isHidden = track.activeStatus === "hidden" || track.isHidden === true || track.isHide === true;
                 const atCap = selectedIds.size >= MAX_BATCH && !isSelected;
-                const disabled = inPlaylist || (atCap && !isSelected);
+
+                const disabled = inPlaylist || isBlocked || isHidden || (atCap && !isSelected);
+
                 return (
                   <li key={track.id}>
                     <label
@@ -298,7 +328,7 @@ const AddTracksModal = ({
                         style={{ accentColor: "#1e40af" }}
                         checked={isSelected}
                         disabled={disabled}
-                        onChange={() => toggleSelect(track.id)}
+                        onChange={() => toggleSelect(track.id, isBlocked || isHidden)}
                       />
                       <span className="min-w-0 flex-1">
                         <span
@@ -310,18 +340,30 @@ const AddTracksModal = ({
                         <span className="mt-0.5 block text-xs text-slate-400">
                           {track.artist?.name || "-"} · {formatDuration(track.duration)}
                         </span>
-                        {inPlaylist && (
-                          <span
-                            className="mt-1 inline-block rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-                            style={{
-                              borderColor: "#bfdbfe",
-                              backgroundColor: "#eff6ff",
-                              color: "#1d4ed8",
-                            }}
-                          >
-                            Đã có trong playlist
-                          </span>
-                        )}
+                        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                          {inPlaylist && (
+                            <span
+                              className="inline-block rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+                              style={{
+                                borderColor: "#bfdbfe",
+                                backgroundColor: "#eff6ff",
+                                color: "#1d4ed8",
+                              }}
+                            >
+                              Đã có trong playlist
+                            </span>
+                          )}
+                          {isBlocked && (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-700">
+                              <Ban className="h-3 w-3" /> Đã khóa
+                            </span>
+                          )}
+                          {isHidden && (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                              <EyeOff className="h-3 w-3" /> Tạm ẩn
+                            </span>
+                          )}
+                        </div>
                       </span>
                     </label>
                   </li>

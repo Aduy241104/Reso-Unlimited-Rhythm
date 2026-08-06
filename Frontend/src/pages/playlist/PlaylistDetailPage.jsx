@@ -18,7 +18,7 @@ import {
   formatPlaylistDuration,
   getPlaylistOwnerLabel,
 } from "../../utils/playlistDetail";
-import { isBlockedTrack } from "../../utils/trackStatus";
+import { filterPlayableTracks } from "../../utils/trackStatus";
 
 const shufflePlayButtonClassName = `
   inline-flex h-10 items-center gap-2 rounded-full border border-black/8 px-4
@@ -111,8 +111,9 @@ const PlaylistDetailPage = () => {
   }, [id]);
 
   const trackItems = playlist?.tracks ?? [];
+  const visibleTrackItems = filterPlayableTracks(trackItems);
   const playlistOwnerLabel = getPlaylistOwnerLabel(playlist);
-  const totalTracks = playlist?.trackCount ?? trackItems.length;
+  const totalTracks = visibleTrackItems.length;
   const totalDuration = formatPlaylistDuration(playlist?.totalDuration);
   const createdDate = formatPlaylistDate(playlist?.createdAt);
   const playlistCoverImage = playlist?.coverImage ?? "";
@@ -138,7 +139,7 @@ const PlaylistDetailPage = () => {
       return;
     }
 
-    await playPlaylist(playlist, trackItems);
+    await playPlaylist(playlist, visibleTrackItems);
   };
 
   const handleShufflePlaylist = async () => {
@@ -146,7 +147,7 @@ const PlaylistDetailPage = () => {
       return;
     }
 
-    await playPlaylist(playlist, trackItems, { shuffle: true });
+    await playPlaylist(playlist, visibleTrackItems, { shuffle: true });
   };
 
   const handlePlayTrack = async (track, index) => {
@@ -160,7 +161,7 @@ const PlaylistDetailPage = () => {
     }
 
     await playTrack(track, {
-      queue: trackItems,
+      queue: visibleTrackItems,
       startIndex: index,
       collection: collectionMeta,
     });
@@ -293,11 +294,10 @@ const PlaylistDetailPage = () => {
             loadingMessage="Loading tracks..."
             mobileLabel="Track list"
             emptyMessage="No tracks available for this playlist yet."
-            hasItems={ trackItems.length > 0 }
+            hasItems={ visibleTrackItems.length > 0 }
           >
-            { trackItems.map((trackItem, index) => {
+            { visibleTrackItems.map((trackItem, index) => {
               const track = trackItem?.track;
-              const isTrackBlocked = isBlockedTrack(trackItem);
               const trackImage = resolveTrackAvatar(track);
 
               return (
@@ -313,7 +313,6 @@ const PlaylistDetailPage = () => {
                   duration={ formatTrackDuration(track?.duration) }
                   explicit={ false }
                   liked={ false }
-                  isBlocked={ isTrackBlocked }
                   href={ track?.id ? routePaths.trackDetail(track.id) : undefined }
                   isPlaybackActive={ currentTrack?.id === track?.id }
                   isPlaying={ isPlaying }

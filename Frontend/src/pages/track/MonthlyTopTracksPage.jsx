@@ -10,6 +10,7 @@ import { getMonthlyTopTracksService } from "../../services/trackService";
 import { formatTrackDuration } from "../../utils/albumDetail";
 import { getApiErrorMessage } from "../../utils/apiError";
 import defaultImage from "../../assets/images/default-image.svg";
+import { filterPlayableTracks } from "../../utils/trackStatus";
 import {
   MONTHLY_TOP_TRACK_LIMIT,
   createMonthlyTopTracksCollectionMeta,
@@ -65,6 +66,7 @@ const MonthlyTopTracksPage = () => {
     playTrack,
     togglePlayPause,
   } = usePlayer();
+  const visibleMonthlyTopTracks = filterPlayableTracks(monthlyTopTracks);
 
   useEffect(() => {
     let isMounted = true;
@@ -113,14 +115,14 @@ const MonthlyTopTracksPage = () => {
   }, [selectedMonth]);
 
   const heroImage = useMemo(() => {
-    return getMonthlyTopTracksHeroImage(monthlyTopTracks);
-  }, [monthlyTopTracks]);
+    return getMonthlyTopTracksHeroImage(visibleMonthlyTopTracks);
+  }, [visibleMonthlyTopTracks]);
 
-  const totalPlayCount = monthlyTopTracks.reduce(
+  const totalPlayCount = visibleMonthlyTopTracks.reduce(
     (sum, item) => sum + (Number(item?.playCount) || 0),
     0
   );
-  const totalListeners = monthlyTopTracks.reduce(
+  const totalListeners = visibleMonthlyTopTracks.reduce(
     (sum, item) => sum + (Number(item?.uniqueListeners) || 0),
     0
   );
@@ -133,11 +135,11 @@ const MonthlyTopTracksPage = () => {
   });
 
   const handlePlayChart = async () => {
-    if (monthlyTopTracks.length === 0) {
+    if (visibleMonthlyTopTracks.length === 0) {
       return;
     }
 
-    await playCollection(monthlyTopTracks, {
+    await playCollection(visibleMonthlyTopTracks, {
       startIndex: 0,
       collection: collectionMeta,
     });
@@ -154,7 +156,7 @@ const MonthlyTopTracksPage = () => {
     }
 
     await playTrack(track, {
-      queue: monthlyTopTracks,
+      queue: visibleMonthlyTopTracks,
       startIndex: index,
       collection: collectionMeta,
     });
@@ -254,7 +256,7 @@ const MonthlyTopTracksPage = () => {
             <PlayButton
               onClick={ handlePlayChart }
               size="compact"
-              disabled={ isLoading || monthlyTopTracks.length === 0 }
+              disabled={ isLoading || visibleMonthlyTopTracks.length === 0 }
             />
           </div>
 
@@ -266,9 +268,9 @@ const MonthlyTopTracksPage = () => {
             headerColumns={ monthlyChartHeaderColumns }
             headerGridClassName={ monthlyChartHeaderGridClassName }
             emptyMessage="Chưa có dữ liệu top bài hát cho tháng này."
-            hasItems={ monthlyTopTracks.length > 0 }
+            hasItems={ visibleMonthlyTopTracks.length > 0 }
           >
-            { monthlyTopTracks.map((item, index) => (
+            { visibleMonthlyTopTracks.map((item, index) => (
               <TrackCard
                 key={ item?.track?.id || `${resolvedMonth}-${index}` }
                 index={ item?.rank || index + 1 }

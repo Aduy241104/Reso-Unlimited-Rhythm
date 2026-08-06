@@ -11,6 +11,12 @@ const ALLOWED_GENDERS = new Set([
 ]);
 const CLOUDINARY_USER_FOLDER = "reso/users";
 
+const normalizeProfile = (profile = {}) => ({
+    fullName: profile.fullName ?? "",
+    gender: profile.gender ?? "prefer_not_to_say",
+    dateOfBirth: profile.dateOfBirth ?? null,
+});
+
 const normalizeId = (user = {}) => {
     if (user.id) {
         return user.id.toString();
@@ -31,6 +37,7 @@ export const formatCurrentUserProfile = async (user = {}) => ({
     role: user.role ?? "",
     activeStatus: user.activeStatus ?? "",
     isPremium: await resolveUserPremiumState(user),
+    profile: normalizeProfile(user.profile),
 });
 
 const assertObjectPayload = (
@@ -145,7 +152,7 @@ export const buildMyProfileUpdates = (payload = {}) => {
     const updates = {};
     const fullName = getPayloadValue(payload, "fullName");
     const gender = getPayloadValue(payload, "gender");
-    const country = getPayloadValue(payload, "country");
+    const dateOfBirth = getPayloadValue(payload, "dateOfBirth");
 
     if (typeof fullName !== "undefined") {
         updates["profile.fullName"] = sanitizeFullName(fullName);
@@ -155,8 +162,36 @@ export const buildMyProfileUpdates = (payload = {}) => {
         updates["profile.gender"] = sanitizeGender(gender);
     }
 
-    if (typeof country !== "undefined") {
-        updates["profile.country"] = sanitizeString(country, "country");
+    if (typeof dateOfBirth !== "undefined") {
+        const parsedDate = new Date(dateOfBirth);
+
+        if (Number.isNaN(parsedDate.getTime())) {
+            throw new AppError(
+                "dateOfBirth must be a valid date.",
+                StatusCodes.BAD_REQUEST,
+                { field: "dateOfBirth" }
+            );
+        }
+
+        const today = new Date();
+        const maximumDateOfBirth = new Date(
+            today.getFullYear() - 13,
+            today.getMonth(),
+            today.getDate()
+        );
+
+        parsedDate.setHours(0, 0, 0, 0);
+        maximumDateOfBirth.setHours(0, 0, 0, 0);
+
+        if (parsedDate > maximumDateOfBirth) {
+            throw new AppError(
+                "User must be at least 13 years old.",
+                StatusCodes.BAD_REQUEST,
+                { field: "dateOfBirth" }
+            );
+        }
+
+        updates["profile.dateOfBirth"] = parsedDate;
     }
 
     return updates;

@@ -20,6 +20,7 @@ import {
 import { getApiErrorMessage } from "../../utils/apiError";
 import TrackTwoLevelMenu from "../../components/trackMenu/TrackTwoLevelMenu";
 import defaultImage from "../../assets/images/default-image.svg";
+import { filterPlayableTracks } from "../../utils/trackStatus";
 import { getTrackDisplayTitle } from "../../utils/trackTitle";
 
 const DAILY_TOP_TRACK_LIMIT = 30;
@@ -197,6 +198,7 @@ const DailyTopTracksPage = () => {
     playTrack,
     togglePlayPause,
   } = usePlayer();
+  const visibleDailyTopTracks = filterPlayableTracks(dailyTopTracks);
 
   useEffect(() => {
     let isMounted = true;
@@ -245,7 +247,7 @@ const DailyTopTracksPage = () => {
   }, [selectedDate]);
 
   const heroImage = useMemo(() => {
-    const topTrack = dailyTopTracks[0]?.track;
+    const topTrack = visibleDailyTopTracks[0]?.track;
 
     return (
       topTrack?.coverImage ||
@@ -254,13 +256,13 @@ const DailyTopTracksPage = () => {
       topTrack?.artist?.avatar ||
       createPlaceholderImage("Top 30", "#f59e0b", "#7c2d12")
     );
-  }, [dailyTopTracks]);
+  }, [visibleDailyTopTracks]);
 
-  const totalPlayCount = dailyTopTracks.reduce(
+  const totalPlayCount = visibleDailyTopTracks.reduce(
     (sum, item) => sum + (Number(item?.playCount) || 0),
     0
   );
-  const totalListeners = dailyTopTracks.reduce(
+  const totalListeners = visibleDailyTopTracks.reduce(
     (sum, item) => sum + (Number(item?.uniqueListeners) || 0),
     0
   );
@@ -275,11 +277,11 @@ const DailyTopTracksPage = () => {
   };
 
   const handlePlayChart = async () => {
-    if (dailyTopTracks.length === 0) {
+    if (visibleDailyTopTracks.length === 0) {
       return;
     }
 
-    await playCollection(dailyTopTracks, {
+    await playCollection(visibleDailyTopTracks, {
       startIndex: 0,
       collection: collectionMeta,
     });
@@ -296,7 +298,7 @@ const DailyTopTracksPage = () => {
     }
 
     await playTrack(track, {
-      queue: dailyTopTracks,
+      queue: visibleDailyTopTracks,
       startIndex: index,
       collection: collectionMeta,
     });
@@ -520,7 +522,7 @@ const DailyTopTracksPage = () => {
             <PlayButton
               onClick={ handlePlayChart }
               size="compact"
-              disabled={ isLoading || dailyTopTracks.length === 0 }
+              disabled={ isLoading || visibleDailyTopTracks.length === 0 }
             />
           </div>
 
@@ -532,13 +534,13 @@ const DailyTopTracksPage = () => {
             type="rank"
             headerGridClassName={ dailyChartHeaderGridClassName }
             emptyMessage="Chưa có dữ liệu top bài hát cho ngày này."
-            hasItems={ dailyTopTracks.length > 0 }
+            hasItems={ visibleDailyTopTracks.length > 0 }
             loadingClassName="rounded-[24px] border-white/[0.06] bg-transparent text-white/58"
             containerClassName="overflow-visible rounded-[24px] border-white/[0.06] bg-transparent !p-0 shadow-none sm:!p-0"
             mobileLabelClassName="px-4 pt-4 text-white/36"
             emptyMessageClassName="px-4 py-6 text-white/52"
           >
-            { dailyTopTracks.map(renderDailyTrackRow) }
+            { visibleDailyTopTracks.map(renderDailyTrackRow) }
           </TrackListSection>
         </div>
       </div>

@@ -430,7 +430,7 @@ const ArtistProfileView = () => {
   if (isLoading) {
     return (
       <LoadingState
-        message="Äang táº£i há»“ sÆ¡ nghá»‡ sÄ©..."
+        message="Đang tải hồ sơ nghệ sĩ..."
         className="min-h-[60vh]"
         spinnerClassName="h-8 w-8"
       />
@@ -498,7 +498,7 @@ const ArtistProfileView = () => {
             </div>
           </>
         ) : isLoading ? (
-          <LoadingState message="Äang táº£i há»“ sÆ¡ nghá»‡ sÄ©..." className="min-h-[60vh]" />
+          <LoadingState message="Đang tải hồ sơ nghệ sĩ..." className="min-h-[60vh]" />
         ) : (
           <div className="mx-auto max-w-6xl space-y-8 px-1 lg:space-y-10">
             <PopularTracksSection

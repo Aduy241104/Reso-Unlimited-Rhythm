@@ -1,7 +1,8 @@
-﻿import TrackTwoLevelMenu from "../trackMenu/TrackTwoLevelMenu";
+import TrackTwoLevelMenu from "../trackMenu/TrackTwoLevelMenu";
+import LoadingState from "../common/LoadingState";
+import { filterPlayableTracks } from "../../utils/trackStatus";
 import SectionHeader from "./SectionHeader";
 import TrackRow from "./TrackRow";
-import LoadingState from "../common/LoadingState";
 
 const getArtistName = (track) =>
   track?.artist?.name ||
@@ -22,6 +23,8 @@ const PopularTracksSection = ({
   isLoading = false,
   onComingSoonClick,
 }) => {
+  const visibleTracks = filterPlayableTracks(tracks);
+
   return (
     <section className="space-y-5">
       <SectionHeader
@@ -56,9 +59,9 @@ const PopularTracksSection = ({
 
         { isLoading ? (
           <LoadingState message="Đang tải bài hát..." className="min-h-[14rem]" />
-        ) : tracks.length > 0 ? (
+        ) : visibleTracks.length > 0 ? (
           <div>
-            { tracks.map((track, index) => (
+            { visibleTracks.map((track, index) => (
               <TrackRow
                 key={ track?._id || track?.id || track?.title || index }
                 index={ String(index + 1).padStart(2, "0") }

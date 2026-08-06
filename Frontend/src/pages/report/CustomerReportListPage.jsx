@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import LoadingState from "../../components/common/LoadingState";
 import {
     AlertCircle,
-    AlertTriangle,
     ArrowLeft,
     CheckCircle,
     Clock,
@@ -67,18 +66,6 @@ const STATUS_CONFIG = {
 };
 
 const EMPTY_STATES = {
-    reviewing: {
-        title: "Chưa có báo cáo đang xem xét",
-        description: "Không có báo cáo nào đang được xem xét.",
-    },
-    resolved: {
-        title: "Chưa có báo cáo đã xử lý",
-        description: "Không có báo cáo nào đã được xử lý.",
-    },
-    rejected: {
-        title: "Chưa có báo cáo bị từ chối",
-        description: "Không có báo cáo nào bị từ chối.",
-    },
     all: {
         title: "Chưa có báo cáo nào",
         description: "Bạn chưa gửi báo cáo nào. Nếu phát hiện nội dung vi phạm, hãy báo cáo ngay!",
@@ -124,16 +111,16 @@ const TargetTypeBadge = ({ targetType }) => {
     );
 };
 
-const EmptyState = ({ statusFilter }) => (
+const EmptyState = () => (
     <div className="flex flex-col items-center justify-center py-20 text-center">
         <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/30">
             <Search className="h-7 w-7" aria-hidden />
         </div>
         <h3 className="text-lg font-semibold text-white/80">
-            {EMPTY_STATES[statusFilter]?.title || EMPTY_STATES.all.title}
+            {EMPTY_STATES.all.title}
         </h3>
         <p className="mt-2 max-w-sm text-sm text-white/45">
-            {EMPTY_STATES[statusFilter]?.description || EMPTY_STATES.all.description}
+            {EMPTY_STATES.all.description}
         </p>
     </div>
 );
@@ -144,7 +131,6 @@ const CustomerReportListPage = () => {
     const [reports, setReports] = useState([]);
     const [loading, setLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState("");
-    const [statusFilter, setStatusFilter] = useState("");
     const [meta, setMeta] = useState({
         page: 1,
         limit: 10,
@@ -161,7 +147,6 @@ const CustomerReportListPage = () => {
                 {
                     page: meta.page,
                     limit: 10,
-                    ...(statusFilter ? { status: statusFilter } : {}),
                 },
                 { signal }
             );
@@ -187,18 +172,11 @@ const CustomerReportListPage = () => {
         const controller = new AbortController();
         fetchReports(controller.signal);
         return () => controller.abort();
-    }, [statusFilter]);
+    }, [meta.page]);
 
     const handlePageChange = (newPage) => {
         setMeta((prev) => ({ ...prev, page: newPage }));
     };
-
-    useEffect(() => {
-        if (meta.page === 1) return;
-        const controller = new AbortController();
-        fetchReports(controller.signal);
-        return () => controller.abort();
-    }, [meta.page]);
 
     const handleViewDetail = (reportId) => {
         navigate(routePaths.userReportDetail(reportId));
@@ -230,36 +208,6 @@ const CustomerReportListPage = () => {
                     </div>
                 </div>
 
-                {/* Filter Tabs */}
-                <div className="flex flex-wrap gap-2">
-                    {[
-                        { value: "", label: "Tất cả" },
-                        { value: "reviewing", label: "Đang xem xét" },
-                        { value: "resolved", label: "Đã xử lý" },
-                        { value: "rejected", label: "Bị từ chối" },
-                    ].map((tab) => (
-                        <button
-                            key={tab.value}
-                            onClick={() => {
-                                setStatusFilter(tab.value);
-                                setMeta((prev) => ({ ...prev, page: 1 }));
-                            }}
-                            className={`inline-flex min-h-[40px] items-center gap-2 rounded-2xl px-4 text-sm font-medium transition ${
-                                statusFilter === tab.value
-                                    ? "border border-[#f5b66f]/40 bg-[#f5b66f]/12 text-[#f5b66f]"
-                                    : "border border-white/10 bg-white/[0.04] text-white/65 hover:border-white/20 hover:bg-white/[0.07] hover:text-white/90"
-                            }`}
-                        >
-                            {tab.label}
-                            {tab.value === "" && meta.total > 0 && (
-                                <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs">
-                                    {meta.total}
-                                </span>
-                            )}
-                        </button>
-                    ))}
-                </div>
-
                 {/* Content */}
                 <div className="rounded-3xl border border-white/10 bg-white/[0.03] shadow-xl">
                     {/* Loading */}
@@ -285,9 +233,7 @@ const CustomerReportListPage = () => {
 
                     {/* Empty */}
                     {!loading && !errorMessage && reports.length === 0 && (
-                        <EmptyState
-                            statusFilter={statusFilter}
-                        />
+                        <EmptyState />
                     )}
 
                     {/* List */}

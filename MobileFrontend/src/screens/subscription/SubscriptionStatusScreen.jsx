@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppButton from '../../components/common/AppButton';
 import AppLoader from '../../components/common/AppLoader';
 import ErrorState from '../../components/common/ErrorState';
+import { useAuth } from '../../hooks/useAuth';
 import subscriptionService from '../../services/subscriptionService';
 
 const STATUS_LABELS = {
@@ -107,6 +108,7 @@ const InfoRow = ({ label, value, isLast = false }) => (
 export default function SubscriptionStatusScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { updateUser } = useAuth();
   const isMountedRef = useRef(true);
   const [subscription, setSubscription] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -128,6 +130,10 @@ export default function SubscriptionStatusScreen() {
       }
 
       setSubscription(result);
+      await updateUser({
+        isPremium: Boolean(result?.isPremium),
+        premiumEndDate: result?.premiumEndDate || null,
+      });
       setErrorMessage('');
     } catch (error) {
       if (!isMountedRef.current) {
@@ -146,7 +152,7 @@ export default function SubscriptionStatusScreen() {
         setIsRefreshing(false);
       }
     }
-  }, []);
+  }, [updateUser]);
 
   useFocusEffect(
     useCallback(() => {

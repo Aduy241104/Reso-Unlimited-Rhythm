@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
   ShieldAlert,
-  Search,
   AlertTriangle,
   FileText,
   Clock,
@@ -18,7 +17,6 @@ import {
   Mic2,
   HelpCircle,
 } from "lucide-react";
-import { ARTIST_INPUT_LIMITS } from "../../constants/artistInputLimits";
 import { getMyArtistViolationsService } from "../../services/artistService";
 
 const STATUS_BADGES = {
@@ -77,8 +75,7 @@ export default function ArtistViolationsPage() {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
 
-  // Filters & Search
-  const [searchQuery, setSearchQuery] = useState("");
+  // Filters
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedViolation, setSelectedViolation] = useState(null);
 
@@ -106,17 +103,10 @@ export default function ArtistViolationsPage() {
   // Filtered & Sorted List (Newest first)
   const filteredViolations = useMemo(() => {
     const list = violationsList.filter((item) => {
-      const matchesSearch =
-        searchQuery.trim() === "" ||
-        item.violationType?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.adminNotes?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.targetTitle?.toLowerCase().includes(searchQuery.toLowerCase());
-
       const matchesStatus =
         statusFilter === "all" || item.status === statusFilter;
 
-      return matchesSearch && matchesStatus;
+      return matchesStatus;
     });
 
     // Sort strictly newest to oldest
@@ -125,7 +115,7 @@ export default function ArtistViolationsPage() {
       const timeB = new Date(b.violationDate || b.createdAt || 0).getTime();
       return timeB - timeA;
     });
-  }, [violationsList, searchQuery, statusFilter]);
+  }, [violationsList, statusFilter]);
 
   const formatDate = (dateStr) => {
     if (!dateStr) return "--";
@@ -251,45 +241,29 @@ export default function ArtistViolationsPage() {
         </div>
       ) : null}
 
-      {/* Filter and Search Bar Section */}
-      <section className="flex flex-col gap-4 rounded-[18px] border border-[#e7e1ff] bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
-        {/* Search Input */}
-        <div className="flex flex-1 items-center gap-2.5 rounded-xl border border-[#e7e1ff] bg-[#faf9ff] px-3.5 py-2.5">
-          <Search size={18} className="text-[#9992bf]" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            maxLength={ARTIST_INPUT_LIMITS.search}
-            placeholder="Tìm kiếm theo tên tác phẩm, bài hát, loại vi phạm..."
-            className="w-full bg-transparent text-sm text-[#2f2747] placeholder-[#9992bf] outline-none"
-          />
-        </div>
-
-        {/* Status Filter Buttons */}
-        <div className="flex flex-wrap gap-2">
-          {[
-            { key: "all", label: "Tất cả" },
-            { key: "pending", label: "Đang chờ" },
-            { key: "reviewing", label: "Đang xem xét" },
-            { key: "resolved", label: "Đã xử lý" },
-            { key: "rejected", label: "Bị từ chối" },
-          ].map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setStatusFilter(tab.key)}
-              className={[
-                "rounded-full border px-3.5 py-2 text-sm font-medium transition",
-                statusFilter === tab.key
-                  ? "border-[#6f5cf1] bg-[#6f5cf1] text-white"
-                  : "border-[#e7e1ff] bg-[#f8f6ff] text-[#645d86] hover:border-[#b7abff] hover:text-[#2f2747]",
-              ].join(" ")}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      {/* Status Filter Bar Section */}
+      <section className="flex flex-wrap items-center gap-2 rounded-[18px] border border-[#e7e1ff] bg-white p-4 shadow-sm">
+        {[
+          { key: "all", label: "Tất cả" },
+          { key: "pending", label: "Đang chờ" },
+          { key: "reviewing", label: "Đang xem xét" },
+          { key: "resolved", label: "Đã xử lý" },
+          { key: "rejected", label: "Bị từ chối" },
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => setStatusFilter(tab.key)}
+            className={[
+              "rounded-full border px-3.5 py-2 text-sm font-medium transition",
+              statusFilter === tab.key
+                ? "border-[#6f5cf1] bg-[#6f5cf1] text-white"
+                : "border-[#e7e1ff] bg-[#f8f6ff] text-[#645d86] hover:border-[#b7abff] hover:text-[#2f2747]",
+            ].join(" ")}
+          >
+            {tab.label}
+          </button>
+        ))}
       </section>
 
       {/* Violations List Container */}
@@ -301,8 +275,8 @@ export default function ArtistViolationsPage() {
             </div>
             <h3 className="text-base font-semibold text-[#2f2747]">Không có vi phạm nào</h3>
             <p className="mt-1 text-xs text-[#7c7891] max-w-md">
-              {searchQuery || statusFilter !== "all"
-                ? "Không có hồ sơ nào khớp với điều kiện tìm kiếm hoặc bộ lọc."
+              {statusFilter !== "all"
+                ? "Không có hồ sơ nào khớp với bộ lọc trạng thái được chọn."
                 : "Chúc mừng! Bạn hiện tại không có vi phạm hoặc báo cáo nào được ghi nhận."}
             </p>
           </div>

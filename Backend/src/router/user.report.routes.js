@@ -1,10 +1,22 @@
 import express from "express";
 import multer from "multer";
-import { authorizeRoles } from "../middlewares/Authentication/authentication.middleware.js";
+import authenticate from "../middlewares/Authentication/authentication.middleware.js";
 import userReportController from "../controllers/user.report.controller.js";
 import { AppError } from "../utils/AppError.js";
 
 const router = express.Router();
+
+const allowUserOrArtist = (req, res, next) => {
+  const authMiddleware = authenticate();
+  return authMiddleware(req, res, (err) => {
+    if (err) return next(err);
+    const role = String(req.user?.role || "").toLowerCase();
+    if (role === "user" || role === "artist" || role === "admin") {
+      return next();
+    }
+    return next(new AppError("You do not have permission to access this resource.", 403));
+  });
+};
 
 const reportStorage = multer.memoryStorage();
 
@@ -55,17 +67,17 @@ const runReportUpload = (req, res, next) => {
 
 router.get(
   "/reports",
-  authorizeRoles("user", "artist"),
+  allowUserOrArtist,
   userReportController.getMyReports
 );
 router.get(
   "/reports/:id",
-  authorizeRoles("user", "artist"),
+  allowUserOrArtist,
   userReportController.getMyReportDetail
 );
 router.post(
   "/reports",
-  authorizeRoles("user", "artist"),
+  allowUserOrArtist,
   runReportUpload,
   userReportController.createReport
 );
