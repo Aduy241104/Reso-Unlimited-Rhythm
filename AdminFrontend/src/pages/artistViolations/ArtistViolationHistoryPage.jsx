@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import {
   Search,
   ArrowUpRight,
+  ExternalLink,
   Eye,
   ShieldAlert,
   Clock,
@@ -97,80 +98,44 @@ const HeaderStat = ({ label, value }) => (
   </div>
 );
 
+const normalizeText = (str) => {
+  if (!str) return "";
+  return String(str)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase()
+    .trim();
+};
+
 const FALLBACK_GROUPS = [
-  {
-    targetType: "artist",
-    targetId: "art_65d0a1b2",
-    targetInfo: {
-      _id: "art_65d0a1b2",
-      name: "Sơn Tùng M-TP",
-      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-      activeStatus: "active",
-      violationsCount: 2,
-    },
-    totalReports: 4,
-    pendingReports: 2,
-    resolvedReports: 2,
-    rejectedReports: 0,
-    latestReport: {
-      _id: "rep_9042",
-      reason: "copyright_infringement",
-      description: "Sử dụng trái phép sample âm thanh giai điệu từ tác phẩm quốc tế.",
-      createdAt: "2026-07-27T14:32:00Z",
-      status: "pending",
-      reporter: "Copyright Protection Sentinel",
-    },
-  },
-  {
-    targetType: "track",
-    targetId: "trk_88201a",
-    targetInfo: {
-      _id: "trk_88201a",
-      title: "Chạy Ngay Đi (Remix)",
-      artist_artistId: {
-        _id: "art_65d0a1b2",
-        name: "Sơn Tùng M-TP",
-        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-      },
-      activeStatus: "active",
-    },
-    totalReports: 3,
-    pendingReports: 0,
-    resolvedReports: 3,
-    rejectedReports: 0,
-    latestReport: {
-      _id: "rep_9038",
-      reason: "copyright_infringement",
-      description: "Bản remix chứa đoạn audio không có bản quyền ủy quyền hợp pháp.",
-      createdAt: "2026-07-26T09:15:00Z",
-      status: "resolved",
-      resolution: "warning",
-      reporter: "Sony Music Publishing",
-    },
-  },
-  {
-    targetType: "artist",
-    targetId: "art_77192f",
-    targetInfo: {
-      _id: "art_77192f",
-      name: "Vũ Thanh Vân",
-      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
-      activeStatus: "blocked",
-      violationsCount: 3,
-    },
-    totalReports: 7,
-    pendingReports: 1,
-    resolvedReports: 6,
-    rejectedReports: 0,
-    latestReport: {
-      _id: "rep_9035",
-      reason: "spam_or_scam",
-      description: "Phát hiện lượt nghe bất thường từ dải IP botnet nhằm gian lận doanh thu.",
-      createdAt: "2026-07-25T21:04:00Z",
-      status: "pending",
-      reporter: "Anti-Fraud Algorithm v4",
-    },
-  },
+  { targetType: "artist", targetId: "art_01", targetInfo: { _id: "art_01", name: "Kai Đỗ", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80", violationsCount: 1, activeStatus: "active" }, totalReports: 2, pendingReports: 0, resolvedReports: 2, rejectedReports: 0, latestReport: { _id: "rep_01", reason: "harassment_or_hate", description: "Báo cáo vi phạm quy chuẩn ca từ.", createdAt: "2026-08-05T20:00:00Z", status: "resolved", resolution: "warning" } },
+  { targetType: "artist", targetId: "art_02", targetInfo: { _id: "art_02", name: "Sơn Tùng M-TP", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80", violationsCount: 3, activeStatus: "active" }, totalReports: 4, pendingReports: 1, resolvedReports: 3, rejectedReports: 0, latestReport: { _id: "rep_02", reason: "copyright_infringement", description: "Bản quyền âm thanh mẫu phối khí.", createdAt: "2026-08-05T19:00:00Z", status: "resolved", resolution: "warning" } },
+  { targetType: "artist", targetId: "art_03", targetInfo: { _id: "art_03", name: "Vũ Thanh Vân", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80", violationsCount: 5, activeStatus: "blocked" }, totalReports: 7, pendingReports: 0, resolvedReports: 7, rejectedReports: 0, latestReport: { _id: "rep_03", reason: "spam_or_scam", description: "Lượt nghe botnet gian lận doanh thu.", createdAt: "2026-08-05T18:00:00Z", status: "resolved", resolution: "block_artist" } },
+  { targetType: "artist", targetId: "art_04", targetInfo: { _id: "art_04", name: "Hoàng Dũng", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80", violationsCount: 2, activeStatus: "active" }, totalReports: 3, pendingReports: 0, resolvedReports: 3, rejectedReports: 0, latestReport: { _id: "rep_04", reason: "copyright_infringement", description: "Trùng hợp giai điệu tác phẩm.", createdAt: "2026-08-05T17:00:00Z", status: "resolved", resolution: "warning" } },
+  { targetType: "artist", targetId: "art_05", targetInfo: { _id: "art_05", name: "Chillies", avatar: "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=150&auto=format&fit=crop&q=80", violationsCount: 3, activeStatus: "active" }, totalReports: 4, pendingReports: 0, resolvedReports: 4, rejectedReports: 0, latestReport: { _id: "rep_05", reason: "copyright_infringement", description: "Vi phạm bản quyền phối khí.", createdAt: "2026-08-05T16:00:00Z", status: "resolved", resolution: "warning" } },
+  { targetType: "artist", targetId: "art_06", targetInfo: { _id: "art_06", name: "Ngọt Band", avatar: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=150&auto=format&fit=crop&q=80", violationsCount: 4, activeStatus: "active" }, totalReports: 5, pendingReports: 0, resolvedReports: 5, rejectedReports: 0, latestReport: { _id: "rep_06", reason: "copyright_infringement", description: "Vi phạm bản quyền tác phẩm.", createdAt: "2026-08-05T15:00:00Z", status: "resolved", resolution: "warning" } },
+  { targetType: "artist", targetId: "art_07", targetInfo: { _id: "art_07", name: "Mỹ Anh", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80", violationsCount: 1, activeStatus: "active" }, totalReports: 1, pendingReports: 0, resolvedReports: 1, rejectedReports: 0, latestReport: { _id: "rep_07", reason: "copyright_infringement", description: "Khiếu nại tác quyền lời bài hát.", createdAt: "2026-08-05T14:00:00Z", status: "resolved", resolution: "warning" } },
+  { targetType: "artist", targetId: "art_08", targetInfo: { _id: "art_08", name: "Min", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80", violationsCount: 2, activeStatus: "active" }, totalReports: 3, pendingReports: 0, resolvedReports: 3, rejectedReports: 0, latestReport: { _id: "rep_08", reason: "copyright_infringement", description: "Báo cáo bản quyền nhạc beat.", createdAt: "2026-08-05T13:00:00Z", status: "resolved", resolution: "warning" } },
+  { targetType: "artist", targetId: "art_09", targetInfo: { _id: "art_09", name: "Amee", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80", violationsCount: 2, activeStatus: "active" }, totalReports: 2, pendingReports: 0, resolvedReports: 2, rejectedReports: 0, latestReport: { _id: "rep_09", reason: "copyright_infringement", description: "Vi phạm bản quyền video MV.", createdAt: "2026-08-05T12:00:00Z", status: "resolved", resolution: "warning" } },
+  { targetType: "artist", targetId: "art_10", targetInfo: { _id: "art_10", name: "JustaTee", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80", violationsCount: 1, activeStatus: "active" }, totalReports: 1, pendingReports: 0, resolvedReports: 1, rejectedReports: 0, latestReport: { _id: "rep_10", reason: "copyright_infringement", description: "Khiếu nại giai điệu điệp khúc.", createdAt: "2026-08-05T11:00:00Z", status: "resolved", resolution: "warning" } },
+  { targetType: "artist", targetId: "art_11", targetInfo: { _id: "art_11", name: "Phương Ly", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80", violationsCount: 4, activeStatus: "active" }, totalReports: 4, pendingReports: 0, resolvedReports: 4, rejectedReports: 0, latestReport: { _id: "rep_11", reason: "copyright_infringement", description: "Báo cáo bản quyền nhạc thu âm.", createdAt: "2026-08-05T10:00:00Z", status: "resolved", resolution: "warning" } },
+  { targetType: "artist", targetId: "art_12", targetInfo: { _id: "art_12", name: "Bích Phương", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80", violationsCount: 2, activeStatus: "active" }, totalReports: 2, pendingReports: 0, resolvedReports: 2, rejectedReports: 0, latestReport: { _id: "rep_12", reason: "copyright_infringement", description: "Khiếu nại bản quyền hình ảnh.", createdAt: "2026-08-05T09:00:00Z", status: "resolved", resolution: "warning" } },
+  { targetType: "artist", targetId: "art_13", targetInfo: { _id: "art_13", name: "Đen Vâu", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80", violationsCount: 1, activeStatus: "active" }, totalReports: 2, pendingReports: 0, resolvedReports: 2, rejectedReports: 0, latestReport: { _id: "rep_13", reason: "copyright_infringement", description: "Khiếu nại tác quyền lời bài hát.", createdAt: "2026-08-05T08:00:00Z", status: "resolved", resolution: "warning" } },
+  { targetType: "artist", targetId: "art_14", targetInfo: { _id: "art_14", name: "Vũ", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80", violationsCount: 3, activeStatus: "active" }, totalReports: 3, pendingReports: 0, resolvedReports: 3, rejectedReports: 0, latestReport: { _id: "rep_14", reason: "copyright_infringement", description: "Trùng lặp giai điệu phối khí.", createdAt: "2026-08-05T07:00:00Z", status: "resolved", resolution: "warning" } },
+  { targetType: "artist", targetId: "art_15", targetInfo: { _id: "art_15", name: "MCK", avatar: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&auto=format&fit=crop&q=80", violationsCount: 5, activeStatus: "blocked" }, totalReports: 6, pendingReports: 0, resolvedReports: 6, rejectedReports: 0, latestReport: { _id: "rep_15", reason: "harassment_or_hate", description: "Phát ngôn và ca từ vi phạm chuẩn mực.", createdAt: "2026-08-05T06:00:00Z", status: "resolved", resolution: "block_artist" } },
+  { targetType: "artist", targetId: "art_16", targetInfo: { _id: "art_16", name: "tlinh", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80", violationsCount: 1, activeStatus: "active" }, totalReports: 2, pendingReports: 0, resolvedReports: 2, rejectedReports: 0, latestReport: { _id: "rep_16", reason: "copyright_infringement", description: "Bản quyền trang phục MV.", createdAt: "2026-08-05T05:00:00Z", status: "resolved", resolution: "warning" } },
+  { targetType: "artist", targetId: "art_17", targetInfo: { _id: "art_17", name: "Karik", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80", violationsCount: 2, activeStatus: "active" }, totalReports: 3, pendingReports: 0, resolvedReports: 3, rejectedReports: 0, latestReport: { _id: "rep_17", reason: "copyright_infringement", description: "Vi phạm bản quyền mẫu câu thoại.", createdAt: "2026-08-05T04:00:00Z", status: "resolved", resolution: "warning" } },
+  { targetType: "artist", targetId: "art_18", targetInfo: { _id: "art_18", name: "Suboi", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80", violationsCount: 1, activeStatus: "active" }, totalReports: 1, pendingReports: 0, resolvedReports: 1, rejectedReports: 0, latestReport: { _id: "rep_18", reason: "copyright_infringement", description: "Trùng hợp hòa âm nhạc cụ.", createdAt: "2026-08-05T03:00:00Z", status: "resolved", resolution: "warning" } },
+  { targetType: "artist", targetId: "art_19", targetInfo: { _id: "art_19", name: "Rhymastic", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80", violationsCount: 2, activeStatus: "active" }, totalReports: 2, pendingReports: 0, resolvedReports: 2, rejectedReports: 0, latestReport: { _id: "rep_19", reason: "copyright_infringement", description: "Khiếu nại bản quyền bản phối.", createdAt: "2026-08-05T02:00:00Z", status: "resolved", resolution: "warning" } },
+  { targetType: "artist", targetId: "art_20", targetInfo: { _id: "art_20", name: "Binz", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80", violationsCount: 3, activeStatus: "active" }, totalReports: 3, pendingReports: 0, resolvedReports: 3, rejectedReports: 0, latestReport: { _id: "rep_20", reason: "copyright_infringement", description: "Vi phạm bản quyền mẫu vocal.", createdAt: "2026-08-05T01:00:00Z", status: "resolved", resolution: "warning" } },
+  { targetType: "artist", targetId: "art_21", targetInfo: { _id: "art_21", name: "SOOBIN", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80", violationsCount: 2, activeStatus: "active" }, totalReports: 2, pendingReports: 0, resolvedReports: 2, rejectedReports: 0, latestReport: { _id: "rep_21", reason: "copyright_infringement", description: "Báo cáo bản quyền bài hát.", createdAt: "2026-08-04T23:00:00Z", status: "resolved", resolution: "warning" } },
+  { targetType: "artist", targetId: "art_22", targetInfo: { _id: "art_22", name: "HIEUTHUHAI", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80", violationsCount: 2, activeStatus: "active" }, totalReports: 3, pendingReports: 0, resolvedReports: 3, rejectedReports: 0, latestReport: { _id: "rep_22", reason: "copyright_infringement", description: "Bản quyền đoạn nhạc Intro.", createdAt: "2026-08-04T22:00:00Z", status: "resolved", resolution: "warning" } },
+  { targetType: "artist", targetId: "art_23", targetInfo: { _id: "art_23", name: "MONO", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80", violationsCount: 1, activeStatus: "active" }, totalReports: 2, pendingReports: 0, resolvedReports: 2, rejectedReports: 0, latestReport: { _id: "rep_23", reason: "copyright_infringement", description: "Vi phạm bản quyền nhạc nhảy.", createdAt: "2026-08-04T21:00:00Z", status: "resolved", resolution: "warning" } },
+  { targetType: "artist", targetId: "art_24", targetInfo: { _id: "art_24", name: "Grey D", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80", violationsCount: 1, activeStatus: "active" }, totalReports: 1, pendingReports: 0, resolvedReports: 1, rejectedReports: 0, latestReport: { _id: "rep_24", reason: "copyright_infringement", description: "Báo cáo bản quyền acoustic.", createdAt: "2026-08-04T20:00:00Z", status: "resolved", resolution: "warning" } },
+  { targetType: "artist", targetId: "art_25", targetInfo: { _id: "art_25", name: "Wren Evans", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80", violationsCount: 2, activeStatus: "active" }, totalReports: 2, pendingReports: 0, resolvedReports: 2, rejectedReports: 0, latestReport: { _id: "rep_25", reason: "copyright_infringement", description: "Vi phạm tác quyền đoạn beat.", createdAt: "2026-08-04T19:00:00Z", status: "resolved", resolution: "warning" } },
+  { targetType: "artist", targetId: "art_26", targetInfo: { _id: "art_26", name: "Đức Phúc", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80", violationsCount: 1, activeStatus: "active" }, totalReports: 1, pendingReports: 0, resolvedReports: 1, rejectedReports: 0, latestReport: { _id: "rep_26", reason: "copyright_infringement", description: "Khiếu nại bản quyền lời ca.", createdAt: "2026-08-04T18:00:00Z", status: "resolved", resolution: "warning" } },
 ];
 
 export default function ArtistViolationHistoryPage() {
@@ -179,7 +144,6 @@ export default function ArtistViolationHistoryPage() {
   const [filterStatus, setFilterStatus] = useState("");
   const [filterTargetType, setFilterTargetType] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [pagination, setPagination] = useState(null);
   const [query, setQuery] = useState({ search: "", status: "", targetType: "", page: 1, limit: 10 });
 
   // Modal State
@@ -188,53 +152,177 @@ export default function ArtistViolationHistoryPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
 
-  const loadReportData = async (params = query) => {
+  const groupUniqueArtists = (rawGroups) => {
+    const map = new Map();
+
+    for (const g of rawGroups) {
+      let name = "";
+      let avatar = "";
+      let artistId = "";
+      let violationsCount = 1;
+      let activeStatus = "active";
+
+      if (g.targetType === "artist" && g.targetInfo?.name) {
+        name = g.targetInfo.name;
+        avatar = g.targetInfo.avatar;
+        artistId = g.targetId || g.targetInfo._id || name;
+        violationsCount = g.targetInfo.violationsCount ?? (Array.isArray(g.targetInfo.violations) ? g.targetInfo.violations.length : 1);
+        activeStatus = g.targetInfo.activeStatus || "active";
+      } else if (g.targetInfo?.artist_artistId?.name) {
+        const a = g.targetInfo.artist_artistId;
+        name = a.name;
+        avatar = a.avatar;
+        artistId = a._id || a.id || name;
+        violationsCount = a.violationsCount ?? (Array.isArray(a.violations) ? a.violations.length : 1);
+        activeStatus = a.activeStatus || "active";
+      } else if (g.targetInfo?.artistId?.name) {
+        const a = g.targetInfo.artistId;
+        name = a.name;
+        avatar = a.avatar;
+        artistId = a._id || a.id || name;
+        violationsCount = a.violationsCount ?? (Array.isArray(a.violations) ? a.violations.length : 1);
+        activeStatus = a.activeStatus || "active";
+      } else if (g.targetInfo?.name) {
+        name = g.targetInfo.name;
+        avatar = g.targetInfo.avatar;
+        artistId = g.targetId || g.targetInfo._id || name;
+        violationsCount = g.violationsCount || g.targetInfo?.violationsCount || 1;
+        activeStatus = g.targetInfo?.activeStatus || "active";
+      } else {
+        name = "Nghệ sĩ";
+        artistId = g.targetId || "art_unknown";
+      }
+
+      const key = String(name || artistId).trim().toLowerCase();
+
+      if (!map.has(key)) {
+        map.set(key, {
+          targetType: "artist",
+          targetId: String(artistId || key),
+          targetInfo: {
+            _id: String(artistId || key),
+            name,
+            avatar: avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+            activeStatus,
+            violationsCount,
+          },
+          violationsCount,
+          totalReports: 0,
+          pendingReports: 0,
+          resolvedReports: 0,
+          rejectedReports: 0,
+          latestReport: g.latestReport,
+          latestReportAt: g.latestReportAt || g.latestReport?.createdAt || new Date().toISOString(),
+          groupStatus: g.groupStatus || "resolved",
+        });
+      }
+
+      const item = map.get(key);
+      item.totalReports += (g.totalReports || 1);
+      item.pendingReports += (g.pendingReports || 0);
+      item.resolvedReports += (g.resolvedReports || 0);
+      item.rejectedReports += (g.rejectedReports || 0);
+
+      const newTime = new Date(g.latestReportAt || g.latestReport?.createdAt || 0).getTime();
+      const existingTime = new Date(item.latestReportAt || 0).getTime();
+
+      if (newTime > existingTime) {
+        item.latestReportAt = g.latestReportAt || g.latestReport?.createdAt;
+        item.latestReport = g.latestReport || item.latestReport;
+        item.groupStatus = g.groupStatus || item.groupStatus;
+      } else if (newTime === existingTime && g.latestReport) {
+        if (String(g.latestReport._id || g.latestReport.description) > String(item.latestReport?._id || item.latestReport?.description || "")) {
+          item.latestReport = g.latestReport;
+          item.groupStatus = g.groupStatus || item.groupStatus;
+        }
+      }
+    }
+
+    return Array.from(map.values())
+      .filter((item) => {
+        const v = item.violationsCount ?? (Array.isArray(item.targetInfo?.violations) ? item.targetInfo.violations.length : 0);
+        const isBlocked = item.targetInfo?.activeStatus === "blocked";
+        return v >= 1 || isBlocked;
+      })
+      .sort((a, b) => {
+        const timeA = new Date(a.latestReportAt || 0).getTime();
+        const timeB = new Date(b.latestReportAt || 0).getTime();
+        if (timeB !== timeA) return timeB - timeA;
+        const nameA = String(a.targetInfo?.name || "");
+        const nameB = String(b.targetInfo?.name || "");
+        return nameA.localeCompare(nameB);
+      });
+  };
+
+  const loadReportData = async () => {
     setIsLoading(true);
     try {
-      const cleanParams = Object.fromEntries(
-        Object.entries(params).filter(([_, v]) => v !== "")
-      );
-      const res = await getGroupedReportsService(cleanParams);
-      if (res?.groups && res.groups.length > 0) {
-        setReportGroups(res.groups);
-        setPagination(res.meta || null);
-      } else {
-        setReportGroups(FALLBACK_GROUPS);
-        setPagination({ page: 1, totalPages: 1, total: FALLBACK_GROUPS.length });
-      }
+      const res = await getGroupedReportsService({ onlyViolations: true, limit: 1000 });
+      let rawList = res?.groups && res.groups.length > 0 ? res.groups : FALLBACK_GROUPS;
+      const deduplicated = groupUniqueArtists(rawList);
+      setReportGroups(deduplicated);
     } catch (err) {
       console.warn("Using fallback dataset for violation history:", err);
-      setReportGroups(FALLBACK_GROUPS);
-      setPagination({ page: 1, totalPages: 1, total: FALLBACK_GROUPS.length });
+      const deduplicated = groupUniqueArtists(FALLBACK_GROUPS);
+      setReportGroups(deduplicated);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    loadReportData(query);
-  }, [query]);
+    loadReportData();
+  }, []);
 
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    setQuery((prev) => ({
-      ...prev,
-      search: searchTerm.trim(),
-      status: filterStatus,
-      targetType: filterTargetType,
-      page: 1,
-    }));
-  };
+  // Reactive search, status filter AND page slicing (10 artists per page)
+  const { paginatedArtists, paginationMeta } = useMemo(() => {
+    let list = reportGroups;
+
+    if (searchTerm && searchTerm.trim() !== "") {
+      const q = normalizeText(searchTerm);
+      list = list.filter((artist) => {
+        const name = normalizeText(artist.targetInfo?.name);
+        const targetId = normalizeText(artist.targetId);
+        const reasonKey = artist.latestReport?.reason || "";
+        const reasonLabel = normalizeText(reasonLabels[reasonKey] || reasonKey);
+        return name.includes(q) || targetId.includes(q) || reasonLabel.includes(q);
+      });
+    }
+
+    if (filterStatus) {
+      list = list.filter((artist) => {
+        if (filterStatus === "blocked") return artist.targetInfo?.activeStatus === "blocked";
+        return artist.groupStatus === filterStatus || artist.latestReport?.status === filterStatus;
+      });
+    }
+
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const total = list.length;
+    const totalPages = Math.ceil(total / limit) || 1;
+    const startIndex = (page - 1) * limit;
+    const paginated = list.slice(startIndex, startIndex + limit);
+
+    return {
+      paginatedArtists: paginated,
+      paginationMeta: { page, limit, total, totalPages },
+    };
+  }, [reportGroups, searchTerm, filterStatus, query.page, query.limit]);
+
+  useEffect(() => {
+    setQuery((prev) => ({ ...prev, page: 1 }));
+  }, [searchTerm, filterStatus]);
 
   const handleResetFilters = () => {
     setSearchTerm("");
     setFilterStatus("");
-    setFilterTargetType("");
     setQuery({ search: "", status: "", targetType: "", page: 1, limit: 10 });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handlePageChange = ({ selected }) => {
     setQuery((prev) => ({ ...prev, page: selected + 1 }));
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleAction = async (actionType) => {
@@ -266,7 +354,7 @@ export default function ArtistViolationHistoryPage() {
       setTimeout(() => setToastMsg(""), 3500);
       setSelectedGroup(null);
       setAdminNote("");
-      loadReportData(query);
+      loadReportData();
     } catch (err) {
       alert(err?.response?.data?.message || err?.message || "Không thể xử lý vi phạm.");
     } finally {
@@ -274,7 +362,6 @@ export default function ArtistViolationHistoryPage() {
     }
   };
 
-  // Open Modal and fetch live group details including exact artistViolationsCount
   const handleOpenDetail = async (group) => {
     setSelectedGroup(group);
     try {
@@ -293,26 +380,11 @@ export default function ArtistViolationHistoryPage() {
     }
   };
 
-  // Filter reportGroups to ONLY include confirmed artist violations with at least 1 warning/violation
-  const confirmedViolations = useMemo(() => {
-    return reportGroups.filter((group) => {
-      const violationsCount =
-        group.targetInfo?.violationsCount ||
-        (Array.isArray(group.targetInfo?.violations) ? group.targetInfo.violations.length : 0) ||
-        group.resolvedReports ||
-        (group.latestReport?.status === "resolved" ? 1 : 0);
-
-      const isBlocked = group.targetInfo?.activeStatus === "blocked";
-      const hasWarningPenalty = group.latestReport?.resolution === "warning" || group.latestReport?.resolution === "block_artist";
-
-      // Only show if artist has at least 1 confirmed warning / violation
-      return violationsCount >= 1 || isBlocked || hasWarningPenalty;
-    });
-  }, [reportGroups]);
-
-  const total = pagination?.total ?? confirmedViolations.length;
+  const confirmedViolations = paginatedArtists;
+  const total = paginationMeta.total;
   const visibleCount = confirmedViolations.length;
-  const pageLabel = pagination ? `${pagination.page}/${pagination.totalPages}` : "1/1";
+  const pageLabel = `${paginationMeta.page}/${paginationMeta.totalPages}`;
+  const pagination = paginationMeta;
 
   return (
     <section className="space-y-6">
@@ -332,9 +404,8 @@ export default function ArtistViolationHistoryPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-4">
-          <div className="grid gap-3 grid-cols-3">
+          <div className="grid gap-3 grid-cols-2">
             <HeaderStat label="Tổng hồ sơ" value={total} />
-            <HeaderStat label="Hiển thị" value={visibleCount} />
             <HeaderStat label="Trang" value={pageLabel} />
           </div>
           <Link
@@ -346,17 +417,14 @@ export default function ArtistViolationHistoryPage() {
         </div>
       </div>
 
-      {/* Filter Form Bar */}
-      <form
-        onSubmit={handleSearchSubmit}
-        className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-[1.5fr_1fr_1fr_100px_100px]"
-      >
+      {/* Filter Bar */}
+      <div className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 grid-cols-1 sm:grid-cols-[1fr_220px_100px]">
         <label className="relative block">
           <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Tìm theo tên nghệ sĩ, mã vi phạm, mô tả..."
+            placeholder="Tìm theo tên nghệ sĩ, lý do vi phạm, mô tả..."
             className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-900 outline-none transition focus:border-slate-400"
           />
         </label>
@@ -373,18 +441,6 @@ export default function ArtistViolationHistoryPage() {
           ))}
         </select>
 
-        <select
-          value={filterTargetType}
-          onChange={(e) => setFilterTargetType(e.target.value)}
-          className="rounded-lg bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition focus:bg-sky-50 cursor-pointer"
-        >
-          {targetTypeOptions.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-
         <button
           type="button"
           onClick={handleResetFilters}
@@ -392,14 +448,7 @@ export default function ArtistViolationHistoryPage() {
         >
           Đặt lại
         </button>
-
-        <button
-          type="submit"
-          className="rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
-        >
-          Tìm kiếm
-        </button>
-      </form>
+      </div>
 
       {/* Main Table View */}
       {confirmedViolations.length === 0 ? (
@@ -409,72 +458,83 @@ export default function ArtistViolationHistoryPage() {
         </div>
       ) : (
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-          <div className="grid min-w-[1020px] grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_120px_140px_140px_120px] gap-4 border-b border-slate-200 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-            <span>Đối tượng</span>
-            <span>Lý do vi phạm</span>
-            <span>Loại</span>
-            <span>Báo cáo</span>
-            <span>Trạng thái</span>
+          <div className="grid min-w-[900px] grid-cols-[minmax(0,1.8fr)_minmax(0,1.5fr)_150px_140px_120px] gap-4 border-b border-slate-200 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+            <span>Nghệ sĩ</span>
+            <span>Lý do vi phạm gần nhất</span>
+            <span>Số lần vi phạm</span>
+            <span>Trạng thái tài khoản</span>
             <span className="text-right pr-4">Hành động</span>
           </div>
 
           <div className="overflow-x-auto">
-            <div className="min-w-[1020px] divide-y divide-slate-100">
+            <div className="min-w-[900px] divide-y divide-slate-100">
               {confirmedViolations.map((group, idx) => {
-                const targetName =
-                  group.targetInfo?.name ||
-                  group.targetInfo?.title ||
-                  group.targetInfo?.artist_artistId?.name ||
-                  "Nghệ sĩ / Tác phẩm";
+                const artistName =
+                  group.targetType === "artist"
+                    ? (group.targetInfo?.name || "Nghệ sĩ vi phạm")
+                    : (group.targetInfo?.artist_artistId?.name || group.targetInfo?.artistId?.name || group.targetInfo?.name || "Nghệ sĩ vi phạm");
 
                 const avatar =
-                  group.targetInfo?.avatar ||
-                  group.targetInfo?.artist_artistId?.avatar ||
-                  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80";
+                  group.targetType === "artist"
+                    ? (group.targetInfo?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80")
+                    : (group.targetInfo?.artist_artistId?.avatar || group.targetInfo?.artistId?.avatar || group.targetInfo?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80");
 
-                const latestStatus = group.latestReport?.status || (group.pendingReports > 0 ? "pending" : "resolved");
+                const vCount = group.violationsCount ?? (Array.isArray(group.targetInfo?.violations) ? group.targetInfo.violations.length : 1);
+                const isBlocked = group.targetInfo?.activeStatus === "blocked";
                 const reasonText = reasonLabels[group.latestReport?.reason] || group.latestReport?.reason || "Vi phạm quy chuẩn";
 
                 return (
                   <article
                     key={group.targetId || idx}
-                    className="relative grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_120px_140px_140px_120px] gap-4 px-6 py-4 transition hover:bg-slate-50/60 items-center"
+                    className="relative grid grid-cols-[minmax(0,1.8fr)_minmax(0,1.5fr)_150px_140px_120px] gap-4 px-6 py-4 transition hover:bg-slate-50/60 items-center"
                   >
-                    <span className={`absolute left-0 top-3 bottom-3 w-1 rounded-r-full ${getAccentClasses(latestStatus)}`} />
+                    <span className={`absolute left-0 top-3 bottom-3 w-1 rounded-r-full ${isBlocked ? "bg-rose-500" : vCount >= 3 ? "bg-amber-500" : "bg-blue-500"}`} />
 
-                    {/* Target info */}
+                    {/* Artist info */}
                     <div className="flex min-w-0 items-center gap-3 pl-2">
                       <img
                         src={avatar}
-                        alt={targetName}
+                        alt={artistName}
                         className="h-10 w-10 rounded-xl object-cover border border-slate-100 shadow-sm"
                       />
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-slate-950">{targetName}</p>
+                        <p className="truncate text-sm font-semibold text-slate-950">{artistName}</p>
                       </div>
                     </div>
 
                     {/* Reason */}
                     <p className="truncate text-sm text-slate-700 font-medium">{reasonText}</p>
 
-                    {/* Type */}
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold capitalize text-slate-600 bg-slate-100 rounded-lg px-2.5 py-1 w-fit">
-                      {group.targetType}
+                    {/* Violation count badge */}
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border w-fit ${
+                        isBlocked || vCount >= 5
+                          ? "bg-rose-50 border-rose-200 text-rose-700"
+                          : vCount >= 3
+                          ? "bg-amber-50 border-amber-200 text-amber-700"
+                          : "bg-blue-50 border-blue-200 text-blue-700"
+                      }`}
+                    >
+                      <ShieldAlert size={13} /> {vCount}/5 lần
                     </span>
 
-                    {/* Count */}
-                    <p className="text-sm font-semibold text-slate-900">
-                      {group.totalReports || 1} <span className="text-xs font-normal text-slate-400">lượt</span>
-                    </p>
-
-                    {/* Status badge */}
-                    <div>{getStatusBadge(latestStatus)}</div>
+                    {/* Account Status */}
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border w-fit ${
+                        isBlocked
+                          ? "bg-rose-50 border-rose-200 text-rose-700"
+                          : "bg-emerald-50 border-emerald-200 text-emerald-700"
+                      }`}
+                    >
+                      <span className={`h-1.5 w-1.5 rounded-full ${isBlocked ? "bg-rose-500" : "bg-emerald-500"}`} />
+                      {isBlocked ? "Đã khóa" : "Hoạt động"}
+                    </span>
 
                     {/* Action */}
-                    <div className="flex justify-end pr-2">
+                    <div className="text-right">
                       <Link
-                        to={routePaths.artistViolationDetail ? routePaths.artistViolationDetail(group.targetType, group.targetId) : `/artist-violations/detail/${group.targetType}/${group.targetId}`}
-                        className="inline-flex items-center gap-1 rounded-xl bg-slate-950 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800 shadow-sm"
+                        to={routePaths.artistViolationDetail ? routePaths.artistViolationDetail(group.targetType || "artist", group.targetId) : `/artist-violations/detail/${group.targetType || "artist"}/${group.targetId}`}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-slate-950 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 shadow-sm"
                       >
                         Chi tiết <ArrowUpRight size={14} />
                       </Link>
@@ -516,149 +576,6 @@ export default function ArtistViolationHistoryPage() {
           />
         </div>
       )}
-
-      {/* Modal View Details */}
-      {selectedGroup ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm animate-in fade-in"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setSelectedGroup(null);
-          }}
-        >
-          <div className="relative flex max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
-            
-            {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 bg-slate-50">
-              <div>
-                <h3 className="text-base font-bold text-slate-950">Chi tiết kiểm duyệt vi phạm</h3>
-                <p className="text-xs text-slate-500">Mã đối tượng: #{selectedGroup.targetId}</p>
-              </div>
-
-              <button
-                onClick={() => setSelectedGroup(null)}
-                className="rounded-xl p-2 text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-5">
-              
-              {/* Profile Card Header */}
-              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={
-                      selectedGroup.targetInfo?.avatar ||
-                      selectedGroup.targetInfo?.artist_artistId?.avatar ||
-                      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"
-                    }
-                    alt="Avatar"
-                    className="h-12 w-12 rounded-xl object-cover border border-slate-200"
-                  />
-                  <div>
-                    <h4 className="font-bold text-slate-950 text-sm">
-                      {selectedGroup.targetInfo?.name || selectedGroup.targetInfo?.title || selectedGroup.targetType}
-                    </h4>
-                    <p className="text-xs text-slate-500 capitalize">Đối tượng: {selectedGroup.targetType}</p>
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <span className="text-[11px] font-semibold uppercase text-slate-400 block">Tổng báo cáo thô</span>
-                  <span className="text-sm font-bold text-slate-700">{selectedGroup.totalReports || 1} lượt</span>
-                </div>
-              </div>
-
-              {/* Exact Artist Violations Count Card matching ReportDetailPage.jsx */}
-              <div className="rounded-2xl border border-slate-200 bg-[#fbfcfd] p-5 shadow-sm space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
-                    <ShieldAlert size={16} className="text-amber-500" />
-                    <span>Số lần vi phạm của nghệ sĩ</span>
-                  </div>
-                  <span
-                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${
-                      (selectedGroup.artistActiveStatus || selectedGroup.targetInfo?.activeStatus) === "blocked"
-                        ? "bg-rose-50 text-rose-600 border border-rose-100"
-                        : "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                    }`}
-                  >
-                    {(selectedGroup.artistActiveStatus || selectedGroup.targetInfo?.activeStatus) === "blocked" ? "Đã bị khóa" : "Hoạt động"}
-                  </span>
-                </div>
-
-                <div className="flex items-baseline justify-between">
-                  <span className="text-4xl font-extrabold text-slate-900">
-                    {selectedGroup.artistViolationsCount ?? selectedGroup.targetInfo?.violationsCount ?? 1}
-                  </span>
-                  <span className="text-xs font-semibold text-slate-500">
-                    {(selectedGroup.artistViolationsCount ?? selectedGroup.targetInfo?.violationsCount ?? 1) >= 5
-                      ? "⚠️ Đã đạt hạn mức tối đa"
-                      : `${selectedGroup.artistViolationsCount ?? selectedGroup.targetInfo?.violationsCount ?? 1}/5 vi phạm`}
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <p className="text-xs font-semibold uppercase text-slate-400">Mô tả vi phạm</p>
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-sm text-slate-800 leading-relaxed">
-                  {selectedGroup.latestReport?.description || "Không có mô tả chi tiết."}
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <p className="text-xs font-semibold uppercase text-slate-700">Ghi chú kiểm duyệt (Admin Note)</p>
-                <textarea
-                  value={adminNote}
-                  onChange={(e) => setAdminNote(e.target.value)}
-                  placeholder="Nhập ghi chú xử lý hoặc căn cứ kiểm duyệt..."
-                  rows={3}
-                  className="w-full resize-none rounded-xl border border-slate-200 bg-white p-3 text-sm font-medium text-slate-900 outline-none focus:border-slate-400"
-                />
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-6 py-4">
-              <button
-                onClick={() => setSelectedGroup(null)}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
-              >
-                Đóng
-              </button>
-
-              <div className="flex items-center gap-2">
-                <button
-                  disabled={isSubmitting}
-                  onClick={() => handleAction("reject")}
-                  className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-50"
-                >
-                  Từ chối báo cáo
-                </button>
-
-                <button
-                  disabled={isSubmitting}
-                  onClick={() => handleAction("warn")}
-                  className="rounded-xl bg-amber-500 px-4 py-2 text-xs font-semibold text-white hover:bg-amber-600 disabled:opacity-50"
-                >
-                  Gửi Cảnh báo
-                </button>
-
-                <button
-                  disabled={isSubmitting}
-                  onClick={() => handleAction("block")}
-                  className="rounded-xl bg-rose-600 px-4 py-2 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-50"
-                >
-                  Khóa Nghệ sĩ
-                </button>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      ) : null}
 
     </section>
   );

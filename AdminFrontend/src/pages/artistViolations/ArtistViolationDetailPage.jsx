@@ -25,14 +25,27 @@ import { updateAdminArtistStatusService } from "../../services/artistService";
 import { routePaths } from "../../routes/routePaths";
 
 const reasonLabels = {
-  copyright_infringement: "Vi phạm bản quyền (Copyright)",
-  harassment_or_hate: "Quấy rối / Thù ghét (Harassment)",
-  nudity_or_sexual_content: "Đồi trụy / Nhạy cảm (Explicit)",
-  violence_or_dangerous_content: "Bạo lực / Nguy hiểm (Violence)",
-  spam_or_scam: "Spam / Gian lận (Spam/Fraud)",
-  misleading_information: "Sai lệch thông tin (Misleading)",
-  impersonation: "Giả mạo nghệ sĩ (Impersonation)",
-  other: "Khác (Other)",
+  copyright_infringement: "Nghi ngờ vi phạm bản quyền",
+  harassment_or_hate: "Quấy rối / Thù ghét",
+  nudity_or_sexual_content: "Đồi trụy / Nhạy cảm",
+  violence_or_dangerous_content: "Nội dung bạo lực",
+  spam_or_scam: "Spam / Gian lận lượt nghe",
+  misleading_information: "Thông tin sai lệch",
+  impersonation: "Giả mạo nghệ sĩ",
+  other: "Lý do khác",
+};
+
+const targetTypeLabels = {
+  artist: "Nghệ sĩ",
+  track: "Bài hát",
+  album: "Album",
+};
+
+const reportStatusLabels = {
+  pending: "Đang xem xét",
+  reviewing: "Đang kiểm duyệt",
+  resolved: "Đã xử lý",
+  rejected: "Đã từ chối",
 };
 
 const actionOptions = [
@@ -203,6 +216,28 @@ export default function ArtistViolationDetailPage() {
     detail?.targetInfo?.avatar ||
     detail?.targetInfo?.artist_artistId?.avatar ||
     "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80";
+  const targetLabel = targetTypeLabels[targetType] || "Nghệ sĩ";
+
+  const resolvedReports = (detail.reports || [])
+    .filter((rep) => rep.status === "resolved")
+    .sort((a, b) => {
+      const timeA = new Date(a.handledAt || a.updatedAt || a.createdAt || 0).getTime();
+      const timeB = new Date(b.handledAt || b.updatedAt || b.createdAt || 0).getTime();
+      return timeB - timeA;
+    });
+
+  const reportedItemTitle =
+    detail?.targetInfo?.title ||
+    detail?.targetInfo?.name ||
+    detail?.reports?.[0]?.targetTitle ||
+    detail?.reports?.[0]?.trackTitle ||
+    detail?.reports?.[0]?.albumTitle ||
+    detail?.reports?.[0]?.targetInfo?.title ||
+    (targetType === "track"
+      ? "Bài hát bị báo cáo"
+      : targetType === "album"
+        ? "Album bị báo cáo"
+        : `Hồ sơ Nghệ sĩ "${artistName}"`);
 
   return (
     <section className="min-h-screen space-y-6 bg-slate-50/50 p-3 font-sans text-slate-900 antialiased lg:p-5">
@@ -236,7 +271,7 @@ export default function ArtistViolationDetailPage() {
           <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Đối tượng:</span>
           <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold capitalize text-slate-800 shadow-sm">
             {targetType === "artist" ? <Mic2 size={14} className="text-cyan-600" /> : targetType === "track" ? <Music2 size={14} className="text-violet-600" /> : <Disc3 size={14} className="text-orange-600" />}
-            {targetType}
+            {targetLabel}: {reportedItemTitle}
           </span>
         </div>
       </div>
@@ -261,118 +296,176 @@ export default function ArtistViolationDetailPage() {
       ) : null}
 
       {/* Grid Overview Info Cards */}
-      <div className="grid gap-6 md:grid-cols-2">
-        
-        {/* Card 1: Artist Summary & Violation Counter */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_12px_32px_rgba(15,23,42,0.05)] space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+      <div className="grid gap-5 md:grid-cols-2">
+        {/* Card 1: Artist Summary */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
             <div className="flex items-center gap-3">
               <img
                 src={artistAvatar}
                 alt={artistName}
-                className="h-12 w-12 rounded-full object-cover border border-slate-200 shadow-sm"
+                className="h-11 w-11 rounded-full object-cover border border-slate-200"
               />
               <div>
                 <h3 className="text-base font-bold text-slate-950">{artistName}</h3>
-                <p className="text-xs text-slate-500">Tài khoản Nghệ sĩ hệ thống</p>
+                <p className="text-xs text-slate-500">Nghệ sĩ hệ thống</p>
               </div>
             </div>
 
-            {detail.artistInfo?._id ? (
-              <Link
-                to={routePaths.artistDetail(detail.artistInfo._id)}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:underline"
-              >
-                Hồ sơ nghệ sĩ <ExternalLink size={12} />
-              </Link>
-            ) : null}
+            <span
+              className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                artistStatus === "blocked"
+                  ? "bg-rose-100 text-rose-700"
+                  : "bg-emerald-100 text-emerald-700"
+              }`}
+            >
+              {artistStatus === "blocked" ? "Đã bị khóa" : "Hoạt động"}
+            </span>
           </div>
 
-          {/* Exact Artist Violations Count Card matching ReportDetailPage.jsx */}
-          <div className="rounded-2xl border border-slate-200 bg-[#fbfcfd] p-5 shadow-sm space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
-                <ShieldAlert size={16} className="text-amber-500" />
-                <span>Số lần vi phạm của nghệ sĩ</span>
-              </div>
-              <span
-                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${
-                  artistStatus === "blocked"
-                    ? "bg-rose-50 text-rose-600 border border-rose-100"
-                    : "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                }`}
-              >
-                {artistStatus === "blocked" ? "Đã bị khóa" : "Hoạt động"}
-              </span>
-            </div>
-
-            <div className="flex items-baseline justify-between">
-              <span className="text-4xl font-extrabold text-slate-900">{artistViolations}</span>
-              <span className="text-xs font-semibold text-slate-500">
-                {artistViolations >= 5 ? "⚠️ Đã đạt hạn mức tối đa" : `${artistViolations}/5 vi phạm`}
-              </span>
-            </div>
+          <div className="flex items-center justify-between text-xs text-slate-600">
+            <span className="font-medium text-slate-500">Số lần vi phạm đã ghi nhận:</span>
+            <span className="text-lg font-bold text-slate-900">{artistViolations} / 5 lần</span>
           </div>
         </div>
 
         {/* Card 2: Reported Content Summary */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_12px_32px_rgba(15,23,42,0.05)] space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Thông tin nội dung bị báo cáo</span>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
+            <div className="flex items-center gap-2">
+              <ShieldAlert size={18} className="text-slate-500" />
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Thông tin nội dung bị báo cáo
+              </span>
+            </div>
+            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700 capitalize">
+              {targetLabel}
+            </span>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 border border-amber-200">
-              <ShieldAlert size={28} />
+          <div className="space-y-1.5 text-xs text-slate-700">
+            <div className="flex justify-between">
+              <span className="text-slate-500">Tên tác phẩm / Bài hát:</span>
+              <strong className="text-slate-900 font-bold">{reportedItemTitle}</strong>
             </div>
-            <div>
-              <h4 className="text-base font-bold text-slate-950">
-                {detail.targetInfo?.title || detail.targetInfo?.name || "Nội dung vi phạm"}
-              </h4>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Tổng cộng <strong className="text-slate-900 font-bold">{(detail.reports || []).length}</strong> lượt báo cáo khiếu nại
-              </p>
+            <div className="flex justify-between">
+              <span className="text-slate-500">Nghệ sĩ sở hữu:</span>
+              <strong className="text-slate-900">{artistName}</strong>
             </div>
-          </div>
-
-          <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600 space-y-1">
-            <p><strong>Loại tác phẩm:</strong> {targetType.toUpperCase()}</p>
-            <p><strong>Lần báo cáo mới nhất:</strong> {new Date(detail.reports?.[0]?.createdAt || Date.now()).toLocaleString()}</p>
+            <div className="flex justify-between">
+              <span className="text-slate-500">Tổng số lượt vi phạm đã xử lý:</span>
+              <strong className="text-slate-900">{resolvedReports.length} lượt</strong>
+            </div>
           </div>
         </div>
-
       </div>
 
-      {/* Reports History List */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_12px_32px_rgba(15,23,42,0.05)] space-y-4">
-        <h3 className="text-base font-bold text-slate-950">
-          Danh sách chi tiết các báo cáo khiếu nại ({detail.reports?.length || 0})
-        </h3>
+      {/* Violation History Section */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
+          <div className="flex items-center gap-2">
+            <ShieldAlert size={18} className="text-amber-500" />
+            <h3 className="text-base font-bold text-slate-950">
+              Lịch sử các lần vi phạm đã xử lý ({resolvedReports.length})
+            </h3>
+          </div>
+          <span className="text-xs text-slate-500 font-medium">
+            Hạn mức: <strong>{artistViolations}/5 vi phạm</strong>
+          </span>
+        </div>
 
-        <div className="divide-y divide-slate-100">
-          {(detail.reports || []).map((rep, idx) => (
-            <div key={rep._id || idx} className="py-4 space-y-2">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="rounded-md bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800 border border-amber-200">
-                    {reasonLabels[rep.reason] || rep.reason}
-                  </span>
+        <div className="space-y-4">
+          {resolvedReports.length > 0 ? (
+            resolvedReports.map((rep, idx) => {
+              const repTargetTitle =
+                rep.targetInfo?.title ||
+                rep.targetInfo?.name ||
+                rep.targetTitle ||
+                rep.trackTitle ||
+                rep.albumTitle ||
+                detail.targetInfo?.title ||
+                reportedItemTitle;
+
+              const itemType = rep.targetType || targetType || "track";
+
+              return (
+                <div
+                  key={rep._id || idx}
+                  className="rounded-xl border border-slate-200 bg-white p-4 space-y-3 shadow-xs hover:border-slate-300 transition"
+                >
+                  {/* Top Bar: Badges & Time */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-xs font-bold text-white">
+                        #{idx + 1}
+                      </span>
+                      <span className="rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800 border border-amber-200/80">
+                        {reasonLabels[rep.reason] || rep.reason || "Báo cáo vi phạm"}
+                      </span>
+                      <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-800 border border-slate-200">
+                        {itemType === "album" ? "Album" : itemType === "artist" ? "Nghệ sĩ" : "Bài hát"}: "{repTargetTitle}"
+                      </span>
+                    </div>
+
+                    <span className="text-xs text-slate-400 font-medium">
+                      {new Date(rep.createdAt || Date.now()).toLocaleString("vi-VN")}
+                    </span>
+                  </div>
+
+                  {/* User Description */}
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      Mô tả vi phạm từ người báo cáo:
+                    </p>
+                    <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-800 font-medium border border-slate-100">
+                      {rep.description || "Không có mô tả chi tiết."}
+                    </div>
+                  </div>
+
+                  {/* ADMIN RESOLUTION NOTE (Ghi chú Quản trị viên) */}
+                  <div className="rounded-xl border border-blue-100 bg-blue-50/70 p-3.5 space-y-1 text-xs text-blue-950">
+                    <div className="flex items-center justify-between font-bold text-blue-800 text-[11px]">
+                      <span className="flex items-center gap-1.5 uppercase tracking-wider">
+                        <FileText size={14} className="text-blue-600" />
+                        Ghi chú xử lý của Quản trị viên:
+                      </span>
+                      {rep.handledAt ? (
+                        <span className="text-blue-500 font-normal">
+                          Xử lý lúc {new Date(rep.handledAt).toLocaleString("vi-VN")}
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="font-semibold text-xs leading-relaxed text-blue-900 pt-0.5">
+                      {rep.resolutionNote || rep.resolution_note || "Đã kiểm duyệt vi phạm và gửi thông báo tới nghệ sĩ."}
+                    </p>
+                  </div>
+
+                  {/* Footer info */}
+                  <div className="flex items-center justify-between text-xs text-slate-500 pt-1 border-t border-slate-100">
+                    <span>
+                      Người báo cáo: <strong className="text-slate-800">{rep.userId?.profile?.fullName || rep.userId?.email || "Người dùng"}</strong>
+                    </span>
+                    <span className="font-semibold text-slate-800">
+                      Hình thức xử lý:{" "}
+                      <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-emerald-700 font-bold border border-emerald-200">
+                        {rep.resolution === "warning"
+                          ? "Cảnh báo"
+                          : rep.resolution === "hide_content"
+                            ? "Khóa nội dung"
+                            : rep.resolution === "block_artist"
+                              ? "Khóa nghệ sĩ"
+                              : "Cảnh báo"}
+                      </span>
+                    </span>
+                  </div>
                 </div>
-                <span className="text-xs text-slate-400">
-                  {new Date(rep.createdAt).toLocaleString()}
-                </span>
-              </div>
-
-              <p className="text-sm text-slate-800 leading-relaxed font-medium bg-slate-50 p-3 rounded-xl">
-                {rep.description || "Không có mô tả chi tiết."}
-              </p>
-
-              <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
-                <span>Người báo cáo: <strong className="text-slate-800">{rep.userId?.profile?.fullName || rep.userId?.email || "User"}</strong></span>
-                <span className="capitalize font-semibold text-slate-600">Trạng thái: {rep.status}</span>
-              </div>
+              );
+            })
+          ) : (
+            <div className="p-6 text-center text-xs text-slate-500 italic">
+              Chưa có lượt vi phạm nào đã xử lý được ghi nhận cho nghệ sĩ này.
             </div>
-          ))}
+          )}
         </div>
       </div>
 
