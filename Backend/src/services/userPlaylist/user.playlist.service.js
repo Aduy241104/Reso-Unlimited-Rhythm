@@ -247,7 +247,7 @@ const addTrackToMyPlaylistByUserId = async (userId, playlistId, trackId) => {
     ]);
 
     if (!track) {
-        throw new AppError("Track not found or unavailable.", 404);
+        throw new AppError("Bài hát không tồn tại hoặc hiện không khả dụng.", 404);
     }
 
     const alreadyExists = playlist.tracks.some(

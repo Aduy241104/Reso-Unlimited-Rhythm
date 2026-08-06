@@ -11,13 +11,14 @@ import {
 
 const ANIMATION_DURATION = 300;
 const USER_PLAYLISTS_CHANGED_EVENT = "user-playlists:changed";
+const DEFAULT_PLAYLIST_TITLE = "Danh sách phát của tôi";
 
-const INITIAL_FORM_STATE = {
-  title: "Danh sách phát của tôi",
+const createInitialFormState = (title = DEFAULT_PLAYLIST_TITLE) => ({
+  title,
   description: "",
   isPublic: false,
   coverImage: null,
-};
+});
 
 const normalizePlaylistTitle = (value) => {
   if (typeof value !== "string") {
@@ -39,6 +40,37 @@ const getPlaylistTitleValue = (playlist) => {
   return "";
 };
 
+export const getNextDefaultPlaylistTitle = (existingPlaylists = []) => {
+  const normalizedBaseTitle = normalizePlaylistTitle(DEFAULT_PLAYLIST_TITLE);
+  let maxSuffix = -1;
+
+  existingPlaylists.forEach((playlist) => {
+    const normalizedTitle = normalizePlaylistTitle(getPlaylistTitleValue(playlist));
+
+    if (!normalizedTitle || !normalizedTitle.startsWith(normalizedBaseTitle)) {
+      return;
+    }
+
+    const suffix = normalizedTitle.slice(normalizedBaseTitle.length).trim();
+
+    if (suffix && !/^\d+$/.test(suffix)) {
+      return;
+    }
+
+    const suffixValue = suffix ? Number(suffix) : 0;
+
+    if (suffixValue > maxSuffix) {
+      maxSuffix = suffixValue;
+    }
+  });
+
+  if (maxSuffix < 0) {
+    return DEFAULT_PLAYLIST_TITLE;
+  }
+
+  return `${DEFAULT_PLAYLIST_TITLE}${maxSuffix + 1}`;
+};
+
 const CreatePlaylistModal = ({
   isOpen,
   onClose,
@@ -46,14 +78,18 @@ const CreatePlaylistModal = ({
   children,
   existingPlaylists = [],
 }) => {
+  const defaultPlaylistTitle = getNextDefaultPlaylistTitle(existingPlaylists);
   const [shouldRender, setShouldRender] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
-  const [formData, setFormData] = useState(INITIAL_FORM_STATE);
+  const [formData, setFormData] = useState(() =>
+    createInitialFormState(defaultPlaylistTitle)
+  );
   const [coverPreview, setCoverPreview] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [titleError, setTitleError] = useState("");
   const fileInputRef = useRef(null);
+  const previousIsOpenRef = useRef(isOpen);
   const descriptionId = useId();
   const titleId = useId();
 
@@ -140,8 +176,8 @@ const CreatePlaylistModal = ({
     onClose?.();
   };
 
-  const resetForm = () => {
-    setFormData(INITIAL_FORM_STATE);
+  const resetForm = (title = defaultPlaylistTitle) => {
+    setFormData(createInitialFormState(title));
     setErrorMessage("");
     setTitleError("");
 
@@ -149,6 +185,15 @@ const CreatePlaylistModal = ({
       fileInputRef.current.value = "";
     }
   };
+
+  useEffect(() => {
+    const wasOpen = previousIsOpenRef.current;
+    previousIsOpenRef.current = isOpen;
+
+    if (isOpen && !wasOpen) {
+      resetForm(defaultPlaylistTitle);
+    }
+  }, [defaultPlaylistTitle, isOpen]);
 
   const handleTitleChange = (event) => {
     const value = event.target.value;
@@ -265,7 +310,12 @@ const CreatePlaylistModal = ({
         );
       }
 
-      resetForm();
+      resetForm(
+        getNextDefaultPlaylistTitle([
+          ...existingPlaylists,
+          createdPlaylist || { title: formData.title },
+        ])
+      );
       onCreated?.(createdPlaylist);
       onClose?.();
     } catch (error) {
@@ -449,3 +499,6 @@ const CreatePlaylistModal = ({
 };
 
 export default CreatePlaylistModal;
+
+
+

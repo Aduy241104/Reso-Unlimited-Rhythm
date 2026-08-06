@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import ReactPaginate from "react-paginate";
 import toast from "react-hot-toast";
 import {
   ArrowLeft,
+  Ban,
   Disc,
   Eye,
   EyeOff,
@@ -16,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import AddTracksModal from "./AddTracksModal";
+import ConfirmModal from "./ConfirmModal";
 import {
   deleteAdminSystemPlaylistService,
   getAdminSystemPlaylistDetailService,
@@ -38,31 +41,29 @@ const fmtDate = (value) => {
   });
 };
 
-const VisibilityBadge = ({ isPublic }) => (
-  <span
-    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border ${
-      isPublic
-        ? "bg-emerald-50 border-emerald-100 text-emerald-600"
-        : "bg-slate-50 border-slate-200 text-slate-500"
-    }`}
-  >
-    {isPublic ? <Globe className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
-    {isPublic ? "Công khai" : "Riêng tư"}
-  </span>
-);
+const PlaylistStatusBadge = ({ playlist }) => {
+  if (playlist?.isHidden) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+        <EyeOff className="h-3.5 w-3.5" /> Đã ẩn
+      </span>
+    );
+  }
 
-const HiddenBadge = ({ hidden }) => (
-  <span
-    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border ${
-      hidden
-        ? "bg-amber-50 border-amber-100 text-amber-600"
-        : "bg-emerald-50 border-emerald-100 text-emerald-600"
-    }`}
-  >
-    {hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-    {hidden ? "Ẩn" : "Hiển thị"}
-  </span>
-);
+  if (playlist?.isPublic) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+        <Globe className="h-3.5 w-3.5" /> Công khai
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+      <Lock className="h-3.5 w-3.5" /> Riêng tư
+    </span>
+  );
+};
 
 const StatCard = ({ icon: Icon, label, value }) => (
   <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
@@ -93,7 +94,18 @@ const SystemPlaylistDetailPage = () => {
   const [removingTrackId, setRemovingTrackId] = useState(null);
 
   const existingTrackIds = useMemo(() => {
-    return tracks.map((r) => r.trackId ?? r.track?.id).filter(Boolean);
+    if (!Array.isArray(tracks)) return [];
+    return tracks
+      .map((r) => {
+        if (!r) return null;
+        if (typeof r.trackId === "string") return r.trackId;
+        if (r.trackId?._id) return String(r.trackId._id);
+        if (r.trackId?.id) return String(r.trackId.id);
+        if (r.track?.id) return String(r.track.id);
+        if (r.track?._id) return String(r.track._id);
+        return typeof r.trackId === "number" ? String(r.trackId) : null;
+      })
+      .filter(Boolean);
   }, [tracks]);
 
   const loadPlaylist = useCallback(async () => {
@@ -112,7 +124,7 @@ const SystemPlaylistDetailPage = () => {
         return;
       }
       setPlaylist(data);
-      setTracks(data.tracks ?? []);
+      setTracks(Array.isArray(data.tracks) ? data.tracks : []);
     } catch (e) {
       setPlaylist(null);
       setTracks([]);
@@ -128,13 +140,16 @@ const SystemPlaylistDetailPage = () => {
     loadPlaylist();
   }, [loadPlaylist]);
 
-  const handleDelete = async () => {
+  const [deletePlaylistModalOpen, setDeletePlaylistModalOpen] = useState(false);
+  const [removeTrackTarget, setRemoveTrackTarget] = useState(null);
+
+  const handleDeleteConfirm = async () => {
     if (!playlistId) return;
-    if (!window.confirm("Xóa vĩnh viễn playlist này? Hành động này không thể hoàn tác.")) return;
     setIsDeleting(true);
     try {
       await deleteAdminSystemPlaylistService(playlistId);
-      toast.success("Đã xóa playlist.");
+      toast.success("Đã xóa playlist thành công.");
+      setDeletePlaylistModalOpen(false);
       navigate(routePaths.systemPlaylists, { replace: true });
     } catch (e) {
       toast.error(
@@ -146,17 +161,21 @@ const SystemPlaylistDetailPage = () => {
   };
 
   const handleTracksBatchAdded = (updated, count) => {
-    setPlaylist(updated);
-    setTracks(updated?.tracks ?? tracks);
+    if (updated) {
+      setPlaylist(updated);
+      if (Array.isArray(updated.tracks)) {
+        setTracks(updated.tracks);
+      }
+    }
     setTracksMsg({
       type: "success",
       text: `Đã thêm ${count} bài hát.`,
     });
   };
 
-  const handleRemoveTrack = async (rowId, title) => {
-    if (!playlistId || !rowId) return;
-    if (!window.confirm(`Gỡ "${title}" khỏi playlist?`)) return;
+  const handleRemoveTrackConfirm = async () => {
+    if (!playlistId || !removeTrackTarget?.id) return;
+    const { id: rowId } = removeTrackTarget;
     setTracksMsg({ type: "", text: "" });
     setRemovingTrackId(rowId);
     try {
@@ -166,9 +185,10 @@ const SystemPlaylistDetailPage = () => {
       );
       if (updated) {
         setPlaylist(updated);
-        setTracks(updated.tracks ?? []);
+        setTracks(Array.isArray(updated.tracks) ? updated.tracks : []);
       }
       setTracksMsg({ type: "success", text: "Đã gỡ bài hát khỏi playlist." });
+      setRemoveTrackTarget(null);
     } catch (e) {
       toast.error(
         e?.response?.data?.message || e.message || "Không thể gỡ bài hát."
@@ -178,9 +198,49 @@ const SystemPlaylistDetailPage = () => {
     }
   };
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const TRACKS_PER_PAGE = 10;
+
   const orderedTracks = useMemo(() => {
-    return [...tracks].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    if (!Array.isArray(tracks)) return [];
+    return [...tracks].sort((a, b) => {
+      const trackA = a?.track;
+      const trackB = b?.track;
+
+      const aDisabled =
+        trackA?.activeStatus === "blocked" ||
+        trackA?.isBlocked === true ||
+        trackA?.activeStatus === "hidden" ||
+        trackA?.isHidden === true ||
+        trackA?.isHide === true;
+
+      const bDisabled =
+        trackB?.activeStatus === "blocked" ||
+        trackB?.isBlocked === true ||
+        trackB?.activeStatus === "hidden" ||
+        trackB?.isHidden === true ||
+        trackB?.isHide === true;
+
+      if (aDisabled !== bDisabled) {
+        return aDisabled ? 1 : -1;
+      }
+
+      return (a?.order ?? 0) - (b?.order ?? 0);
+    });
   }, [tracks]);
+
+  const totalTrackPages = Math.ceil(orderedTracks.length / TRACKS_PER_PAGE) || 1;
+
+  useEffect(() => {
+    if (currentPage > totalTrackPages) {
+      setCurrentPage(Math.max(1, totalTrackPages));
+    }
+  }, [orderedTracks.length, totalTrackPages, currentPage]);
+
+  const paginatedTracks = useMemo(() => {
+    const start = (currentPage - 1) * TRACKS_PER_PAGE;
+    return orderedTracks.slice(start, start + TRACKS_PER_PAGE);
+  }, [orderedTracks, currentPage]);
 
   if (isLoading) {
     return (
@@ -248,7 +308,7 @@ const SystemPlaylistDetailPage = () => {
           </Link>
           <button
             type="button"
-            onClick={handleDelete}
+            onClick={() => setDeletePlaylistModalOpen(true)}
             disabled={isDeleting}
             className="inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition disabled:opacity-40"
             style={{
@@ -266,8 +326,7 @@ const SystemPlaylistDetailPage = () => {
       <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
           <div className="flex flex-wrap gap-3">
-            <VisibilityBadge isPublic={playlist.isPublic} />
-            <HiddenBadge hidden={playlist.isHidden} />
+            <PlaylistStatusBadge playlist={playlist} />
           </div>
 
           {playlist.description && (
@@ -350,69 +409,105 @@ const SystemPlaylistDetailPage = () => {
             <p className="mt-1 text-xs text-slate-400">Nhấn "Thêm bài hát" để cập nhật playlist này</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full border-separate border-spacing-0 text-sm">
-              <thead>
-                <tr
-                  className="text-[10px] font-semibold uppercase tracking-widest text-slate-400"
-                  style={{ borderBottom: "1px solid #e2e8f0" }}
-                >
-                  <th className="px-4 py-3 text-center w-12">#</th>
-                  <th className="px-4 py-3 text-left">Bài hát</th>
-                  <th className="px-4 py-3 text-left">Nghệ sĩ</th>
-                  <th className="px-4 py-3 text-right w-20">Thời lượng</th>
-                  <th className="px-4 py-3 w-28" />
-                </tr>
-              </thead>
-              <tbody>
-                {orderedTracks.map((row, i) => {
-                  const track = row.track;
-                  const title = track?.title ?? "Bài hát không xác định";
-                  const artistName = track?.artist?.name ?? "-";
-                  const rowTrackId = row.trackId ?? track?.id ?? null;
-                  const isRemoving = removingTrackId === rowTrackId;
-                  return (
-                    <tr
-                      key={rowTrackId ?? `orphan-${i}`}
-                      className="transition hover:bg-slate-50"
-                      style={{ borderBottom: "1px solid #f1f5f9" }}
-                    >
-                      <td className="px-4 py-3 text-center text-slate-400">
-                        {i + 1}
-                      </td>
-                      <td className="px-4 py-3 font-medium text-slate-900">
-                        {title}
-                      </td>
-                      <td className="px-4 py-3 text-slate-500">
-                        {artistName}
-                      </td>
-                      <td className="px-4 py-3 text-right text-slate-400">
-                        {fmtDur(track?.duration)}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {rowTrackId && (
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveTrack(rowTrackId, title)}
-                            disabled={isRemoving}
-                            className="inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-medium transition disabled:opacity-40"
-                            style={{
-                              borderColor: "#fecaca",
-                              backgroundColor: "#fef2f2",
-                              color: "#dc2626",
-                            }}
-                          >
-                            <X className="h-3 w-3" />
-                            {isRemoving ? "..." : "Gỡ"}
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full border-separate border-spacing-0 text-sm">
+                <thead>
+                  <tr
+                    className="text-[10px] font-semibold uppercase tracking-widest text-slate-400"
+                    style={{ borderBottom: "1px solid #e2e8f0" }}
+                  >
+                    <th className="px-4 py-3 text-center w-12">STT</th>
+                    <th className="px-4 py-3 text-left">Bài hát</th>
+                    <th className="px-4 py-3 text-left">Nghệ sĩ</th>
+                    <th className="px-4 py-3 text-right w-20">Thời lượng</th>
+                    <th className="px-4 py-3 w-28" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedTracks.map((row, index) => {
+                    const track = row.track;
+                    const title = track?.title ?? "Bài hát không xác định";
+                    const artistName = track?.artist?.name ?? "-";
+                    const rowTrackId = typeof row.trackId === "string" ? row.trackId : (row.trackId?._id ? String(row.trackId._id) : (track?.id ? String(track.id) : null));
+                    const isRemoving = removingTrackId === rowTrackId;
+                    const trackNumber = (currentPage - 1) * TRACKS_PER_PAGE + index + 1;
+                    const isBlocked = track?.activeStatus === "blocked" || track?.isBlocked === true;
+                    const isHidden = track?.activeStatus === "hidden" || track?.isHidden === true || track?.isHide === true;
+
+                    return (
+                      <tr
+                        key={rowTrackId ?? `orphan-${index}`}
+                        className="transition hover:bg-slate-50"
+                        style={{ borderBottom: "1px solid #f1f5f9" }}
+                      >
+                        <td className="px-4 py-3 text-center text-slate-400">
+                          {trackNumber}
+                        </td>
+                        <td className="px-4 py-3 font-medium text-slate-900">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span>{title}</span>
+                            {isBlocked && (
+                              <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-700">
+                                <Ban className="h-3 w-3" /> Đã khóa
+                              </span>
+                            )}
+                            {isHidden && (
+                              <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                                <EyeOff className="h-3 w-3" /> Tạm ẩn
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-slate-500">
+                          {artistName}
+                        </td>
+                        <td className="px-4 py-3 text-right text-slate-400">
+                          {fmtDur(track?.duration)}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {rowTrackId && (
+                            <button
+                              type="button"
+                              onClick={() => setRemoveTrackTarget({ id: rowTrackId, title })}
+                              disabled={isRemoving}
+                              className="inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-medium transition disabled:opacity-40"
+                              style={{
+                                borderColor: "#fecaca",
+                                backgroundColor: "#fef2f2",
+                                color: "#dc2626",
+                              }}
+                            >
+                              <X className="h-3 w-3" />
+                              {isRemoving ? "..." : "Gỡ"}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {totalTrackPages >= 1 && (
+              <div className="flex justify-center p-4 border-t border-slate-200">
+                <ReactPaginate
+                  previousLabel="Trở lại"
+                  nextLabel="Tiếp"
+                  onPageChange={({ selected }) => setCurrentPage(selected + 1)}
+                  pageCount={totalTrackPages}
+                  forcePage={Math.max(0, Math.min(currentPage - 1, totalTrackPages - 1))}
+                  containerClassName="flex items-center gap-1 text-sm font-medium text-slate-600"
+                  pageClassName="rounded-lg border border-slate-200 bg-white px-3 py-1.5 hover:bg-slate-50 transition cursor-pointer"
+                  activeClassName="!bg-blue-600 !border-blue-600 !text-white"
+                  previousClassName="rounded-lg border border-slate-200 bg-white px-3 py-1.5 hover:bg-slate-50 transition cursor-pointer"
+                  nextClassName="rounded-lg border border-slate-200 bg-white px-3 py-1.5 hover:bg-slate-50 transition cursor-pointer"
+                  disabledClassName="opacity-40 cursor-not-allowed"
+                />
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -422,6 +517,40 @@ const SystemPlaylistDetailPage = () => {
         playlistId={playlistId}
         existingTrackIds={existingTrackIds}
         onAdded={handleTracksBatchAdded}
+      />
+
+      {/* Confirm modal: Xóa playlist */}
+      <ConfirmModal
+        isOpen={deletePlaylistModalOpen}
+        onClose={() => setDeletePlaylistModalOpen(false)}
+        onConfirm={handleDeleteConfirm}
+        title="Xóa vĩnh viễn playlist"
+        description={
+          <span>
+            Bạn có chắc chắn muốn xóa playlist <strong className="font-bold text-slate-900">"{playlist?.title}"</strong>? Hành động này không thể hoàn tác.
+          </span>
+        }
+        confirmText="Xóa playlist"
+        cancelText="Hủy"
+        type="danger"
+        isLoading={isDeleting}
+      />
+
+      {/* Confirm modal: Gỡ bài hát */}
+      <ConfirmModal
+        isOpen={Boolean(removeTrackTarget)}
+        onClose={() => setRemoveTrackTarget(null)}
+        onConfirm={handleRemoveTrackConfirm}
+        title="Gỡ bài hát khỏi playlist"
+        description={
+          <span>
+            Bạn có chắc chắn muốn gỡ bài hát <strong className="font-bold text-slate-900">"{removeTrackTarget?.title}"</strong> khỏi playlist này?
+          </span>
+        }
+        confirmText="Gỡ bài hát"
+        cancelText="Hủy"
+        type="danger"
+        isLoading={Boolean(removingTrackId)}
       />
     </section>
   );

@@ -1,4 +1,5 @@
-﻿import Interaction from "../../models/Interaction.js";
+import Interaction from "../../models/Interaction.js";
+import Track from "../../models/Track.js";
 import { AppError } from "../../utils/AppError.js";
 import {
     buildFavoriteTracksFilter,
@@ -7,6 +8,31 @@ import {
     getTrackOrThrow,
     validateTrackId,
 } from "./user.favorite.service.helper.js";
+
+const incrementTrackFavoriteCount = async (trackId) => {
+    await Track.updateOne(
+        { _id: trackId },
+        {
+            $inc: {
+                "stats.totalLike": 1,
+            },
+        }
+    );
+};
+
+const decrementTrackFavoriteCount = async (trackId) => {
+    await Track.updateOne(
+        {
+            _id: trackId,
+            "stats.totalLike": { $gt: 0 },
+        },
+        {
+            $inc: {
+                "stats.totalLike": -1,
+            },
+        }
+    );
+};
 
 const addTrackToFavorite = async (userId, trackId) => {
     if (!userId) {
@@ -30,6 +56,7 @@ const addTrackToFavorite = async (userId, trackId) => {
 
     try {
         await Interaction.create(buildTrackFavoriteFilter(userId, normalizedTrackId));
+        await incrementTrackFavoriteCount(normalizedTrackId);
     } catch (error) {
         if (error?.code === 11000) {
             return {
@@ -54,9 +81,13 @@ const removeTrackFromFavorite = async (userId, trackId) => {
 
     await getTrackOrThrow(normalizedTrackId);
 
-    await Interaction.deleteOne(
+    const deleteResult = await Interaction.deleteOne(
         buildTrackFavoriteFilter(userId, normalizedTrackId)
     );
+
+    if (deleteResult?.deletedCount > 0) {
+        await decrementTrackFavoriteCount(normalizedTrackId);
+    }
 
     return {
         isFavorite: false,
