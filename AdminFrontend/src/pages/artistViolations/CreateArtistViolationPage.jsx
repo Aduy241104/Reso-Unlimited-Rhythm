@@ -4,13 +4,11 @@ import {
   ArrowLeft,
   ShieldAlert,
   AlertTriangle,
-  Upload,
   X,
   CheckCircle2,
   AlertOctagon,
   Search,
   UserCheck,
-  FileText,
 } from "lucide-react";
 import { searchAdminArtistsService, updateAdminArtistStatusService } from "../../services/artistService";
 import { resolveGroupedReportService } from "../../services/reportService";
@@ -25,13 +23,6 @@ const VIOLATION_TYPES = [
   { value: "misleading_information", label: "Thông tin sai lệch" },
   { value: "impersonation", label: "Giả mạo nghệ sĩ / Thương hiệu" },
   { value: "other", label: "Khác" },
-];
-
-const SEVERITY_LEVELS = [
-  { value: "Low", label: "Thấp", bg: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-  { value: "Medium", label: "Trung bình", bg: "bg-amber-50 text-amber-700 border-amber-200" },
-  { value: "High", label: "Cao", bg: "bg-orange-50 text-orange-700 border-orange-200" },
-  { value: "Critical", label: "Nghiêm trọng", bg: "bg-rose-50 text-rose-700 border-rose-200" },
 ];
 
 const PENALTY_OPTIONS = [
@@ -54,17 +45,11 @@ export default function CreateArtistViolationPage() {
   // Form State
   const [formData, setFormData] = useState({
     violationType: "copyright_infringement",
-    severity: "Medium",
     title: "",
     description: "",
     violationDate: new Date().toISOString().slice(0, 16),
-    adminNotes: "",
     penalty: "warning",
   });
-
-  // File Upload State
-  const [evidenceFile, setEvidenceFile] = useState(null);
-  const [evidencePreview, setEvidencePreview] = useState("");
 
   // Validation & UI state
   const [errors, setErrors] = useState({});
@@ -99,26 +84,6 @@ export default function CreateArtistViolationPage() {
     }
   };
 
-  // Handle File Upload Preview
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setEvidenceFile(file);
-    if (file.type.startsWith("image/")) {
-      const reader = new FileReader();
-      reader.onloadend = () => setEvidencePreview(reader.result);
-      reader.readAsDataURL(file);
-    } else {
-      setEvidencePreview("");
-    }
-  };
-
-  const handleRemoveFile = () => {
-    setEvidenceFile(null);
-    setEvidencePreview("");
-  };
-
   // Validate form
   const validate = () => {
     const newErrors = {};
@@ -151,15 +116,11 @@ export default function CreateArtistViolationPage() {
     setArtistSearchQuery("");
     setFormData({
       violationType: "copyright_infringement",
-      severity: "Medium",
       title: "",
       description: "",
       violationDate: new Date().toISOString().slice(0, 16),
-      adminNotes: "",
       penalty: "warning",
     });
-    setEvidenceFile(null);
-    setEvidencePreview("");
     setErrors({});
   };
 
@@ -180,14 +141,14 @@ export default function CreateArtistViolationPage() {
       if (formData.penalty === "block" && selectedArtist) {
         await updateAdminArtistStatusService(selectedArtist._id || selectedArtist.id, {
           activeStatus: "blocked",
-          blockedReason: formData.adminNotes || formData.description,
+          blockedReason: formData.description,
         });
       }
 
       // 2. Submit grouped report / violation record
       await resolveGroupedReportService("artist", selectedArtist._id || selectedArtist.id, {
         action: formData.penalty,
-        resolutionNote: `[${formData.severity.toUpperCase()}] ${formData.title}: ${formData.description} | ${formData.adminNotes}`,
+        resolutionNote: `${formData.title}: ${formData.description}`,
         evaluations: [{ isValid: true }],
       });
 
@@ -352,49 +313,23 @@ export default function CreateArtistViolationPage() {
           {errors.artist ? <p className="text-xs text-red-500">{errors.artist}</p> : null}
         </div>
 
-        {/* 2. Violation Type & Severity */}
-        <div className="grid gap-6 sm:grid-cols-2">
-          {/* Violation Type */}
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-slate-700">
-              Loại vi phạm <span className="text-red-500">*</span>
-            </label>
-            <select
-              name="violationType"
-              value={formData.violationType}
-              onChange={handleChange}
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition focus:border-slate-400 cursor-pointer"
-            >
-              {VIOLATION_TYPES.map((type) => (
-                <option key={type.value} value={type.value}>
-                  {type.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Severity */}
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-slate-700">
-              Mức độ nghiêm trọng <span className="text-red-500">*</span>
-            </label>
-            <div className="flex flex-wrap items-center gap-2">
-              {SEVERITY_LEVELS.map((sev) => (
-                <button
-                  key={sev.value}
-                  type="button"
-                  onClick={() => setFormData((prev) => ({ ...prev, severity: sev.value }))}
-                  className={`rounded-xl border px-3.5 py-2.5 text-xs font-bold transition ${
-                    formData.severity === sev.value
-                      ? `${sev.bg} ring-2 ring-slate-900/20`
-                      : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  {sev.label}
-                </button>
-              ))}
-            </div>
-          </div>
+        {/* 2. Violation Type */}
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-slate-700">
+            Loại vi phạm <span className="text-red-500">*</span>
+          </label>
+          <select
+            name="violationType"
+            value={formData.violationType}
+            onChange={handleChange}
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition focus:border-slate-400 cursor-pointer"
+          >
+            {VIOLATION_TYPES.map((type) => (
+              <option key={type.value} value={type.value}>
+                {type.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* 3. Title & Date */}
@@ -463,97 +398,26 @@ export default function CreateArtistViolationPage() {
           {errors.description ? <p className="text-xs text-red-500">{errors.description}</p> : null}
         </div>
 
-        {/* 5. File Evidence Upload */}
+        {/* 5. Penalty Selection */}
         <div className="space-y-2">
           <label className="block text-sm font-semibold text-slate-700">
-            Tải lên tài liệu / Hình ảnh bằng chứng
+            Hình thức xử lý / Áp phạt <span className="text-red-500">*</span>
           </label>
-          <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-6 text-center transition hover:bg-slate-100/50">
-            {evidenceFile ? (
-              <div className="flex flex-col items-center gap-3">
-                {evidencePreview ? (
-                  <img
-                    src={evidencePreview}
-                    alt="Preview"
-                    className="h-32 max-w-full rounded-xl object-cover border border-slate-200 shadow-sm"
-                  />
-                ) : (
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-200 text-slate-600">
-                    <FileText size={24} />
-                  </div>
-                )}
-                <div>
-                  <p className="text-sm font-bold text-slate-900">{evidenceFile.name}</p>
-                  <p className="text-xs text-slate-400">{(evidenceFile.size / 1024).toFixed(1)} KB</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleRemoveFile}
-                  className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100"
-                >
-                  Xóa tập tin
-                </button>
-              </div>
-            ) : (
-              <label className="flex cursor-pointer flex-col items-center gap-2">
-                <Upload className="h-8 w-8 text-slate-400" />
-                <span className="text-sm font-semibold text-slate-700">Kéo thả hoặc nhấp để tải bằng chứng</span>
-                <span className="text-xs text-slate-400">Hỗ trợ các định dạng PNG, JPG, PDF, MP3 (Tối đa 10MB)</span>
-                <input
-                  type="file"
-                  onChange={handleFileChange}
-                  accept="image/*,application/pdf,audio/*"
-                  className="hidden"
-                />
-              </label>
-            )}
-          </div>
+          <select
+            name="penalty"
+            value={formData.penalty}
+            onChange={handleChange}
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition focus:border-slate-400 cursor-pointer"
+          >
+            {PENALTY_OPTIONS.map((p) => (
+              <option key={p.value} value={p.value}>
+                {p.label}
+              </option>
+            ))}
+          </select>
         </div>
 
-        {/* 6. Admin Notes & Penalty Selection */}
-        <div className="grid gap-6 sm:grid-cols-2">
-          {/* Penalty selection */}
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-slate-700">
-              Hình thức xử lý / Áp phạt
-            </label>
-            <select
-              name="penalty"
-              value={formData.penalty}
-              onChange={handleChange}
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition focus:border-slate-400 cursor-pointer"
-            >
-              {PENALTY_OPTIONS.map((p) => (
-                <option key={p.value} value={p.value}>
-                  {p.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Admin notes */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="block text-sm font-semibold text-slate-700">
-                Ghi chú nội bộ Quản trị viên
-              </label>
-              <span className="text-xs font-medium text-slate-400">
-                {formData.adminNotes.length}/500 ký tự
-              </span>
-            </div>
-            <input
-              type="text"
-              name="adminNotes"
-              maxLength={500}
-              value={formData.adminNotes}
-              onChange={handleChange}
-              placeholder="Ghi chú nội bộ cho ban quản trị (tối đa 500 ký tự)..."
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400"
-            />
-          </div>
-        </div>
-
-        {/* 7. Action Buttons */}
+        {/* 6. Action Buttons */}
         <div className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 pt-6">
           <button
             type="button"
@@ -598,8 +462,7 @@ export default function CreateArtistViolationPage() {
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs space-y-2 text-slate-700">
               <p><strong>Nghệ sĩ:</strong> {selectedArtist?.name}</p>
               <p><strong>Tiêu đề:</strong> {formData.title}</p>
-              <p><strong>Mức độ:</strong> {formData.severity}</p>
-              <p><strong>Hình thức phạt:</strong> <span className="font-bold text-rose-600">{formData.penalty.toUpperCase()}</span></p>
+              <p><strong>Hình thức phạt:</strong> <span className="font-bold text-rose-600">{PENALTY_OPTIONS.find(p => p.value === formData.penalty)?.label || formData.penalty.toUpperCase()}</span></p>
             </div>
 
             <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-3">

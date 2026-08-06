@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Save, X } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, Save, X } from "lucide-react";
 import { createPlanService } from "../../services/subscriptionService";
 import { routePaths } from "../../routes/routePaths";
 
@@ -17,13 +17,94 @@ const ALL_FEATURES = [
   "EXCLUSIVE_CONTENT",
 ];
 
-const DURATIONS = [
-  { value: 7, label: "7 ngày (1 tuần)" },
-  { value: 30, label: "30 ngày (1 tháng)" },
-  { value: 90, label: "90 ngày (3 tháng)" },
-  { value: 180, label: "180 ngày (6 tháng)" },
-  { value: 365, label: "365 ngày (1 năm)" },
+const PRESET_DAYS = [
+  { value: 7, label: "7 ngày" },
+  { value: 30, label: "30 ngày" },
+  { value: 90, label: "90 ngày" },
+  { value: 180, label: "180 ngày" },
+  { value: 365, label: "365 ngày" },
 ];
+
+const IntegratedDurationPicker = ({ value, onChange, error }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={containerRef} className="relative w-full max-w-[260px]">
+      <div className="relative flex items-center">
+        <input
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          name="durationDays"
+          value={value || ""}
+          onKeyDown={(e) => {
+            if (["e", "E", "+", "-", ".", ","].includes(e.key)) {
+              e.preventDefault();
+            }
+          }}
+          onChange={(e) => {
+            const digitsOnly = e.target.value.replace(/\D/g, "");
+            onChange(digitsOnly);
+          }}
+          onFocus={() => setIsOpen(true)}
+          placeholder="30"
+          className={`w-full rounded-xl border pl-4 pr-16 py-3 text-sm font-semibold text-slate-900 outline-none transition shadow-sm ${error
+            ? "border-red-300 bg-red-50 focus:border-red-500"
+            : "border-slate-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            }`}
+        />
+        <button
+          type="button"
+          onClick={() => setIsOpen((prev) => !prev)}
+          className="absolute right-3 flex items-center gap-1 text-slate-400 hover:text-slate-600 transition"
+        >
+          <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">ngày</span>
+          <ChevronDown size={16} className={`transition-transform duration-200 ${isOpen ? "rotate-180 text-blue-600" : ""}`} />
+        </button>
+      </div>
+
+      {isOpen && (
+        <div className="absolute left-0 right-0 top-full mt-1.5 z-30 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl animate-in fade-in slide-in-from-top-2 duration-150">
+          <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            Chọn nhanh số ngày:
+          </div>
+          <div className="grid grid-cols-1 gap-0.5">
+            {PRESET_DAYS.map((preset) => (
+              <button
+                key={preset.value}
+                type="button"
+                onClick={() => {
+                  onChange(preset.value);
+                  setIsOpen(false);
+                }}
+                className={`flex items-center justify-between w-full rounded-lg px-3 py-2 text-xs font-semibold transition ${Number(value) === preset.value
+                  ? "bg-blue-50 text-blue-600 font-bold"
+                  : "text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+              >
+                <span>{preset.label}</span>
+                {Number(value) === preset.value ? (
+                  <Check size={14} className="text-blue-600" />
+                ) : null}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const CreateSubscriptionPlanPage = () => {
   const navigate = useNavigate();
@@ -125,11 +206,10 @@ const CreateSubscriptionPlanPage = () => {
 
       {message.text ? (
         <div
-          className={`rounded-xl border px-4 py-3 text-sm ${
-            message.type === "success"
-              ? "border-emerald-100 bg-emerald-50 text-emerald-600"
-              : "border-red-100 bg-red-50 text-red-600"
-          }`}
+          className={`rounded-xl border px-4 py-3 text-sm ${message.type === "success"
+            ? "border-emerald-100 bg-emerald-50 text-emerald-600"
+            : "border-red-100 bg-red-50 text-red-600"
+            }`}
         >
           {message.text}
         </div>
@@ -155,11 +235,10 @@ const CreateSubscriptionPlanPage = () => {
             value={formData.name}
             onChange={handleChange}
             placeholder="VD: Premium, Basic, VIP..."
-            className={`w-full rounded-lg border px-4 py-3 text-sm outline-none transition ${
-              errors.name
-                ? "border-red-300 bg-red-50 focus:border-red-500"
-                : "border-slate-200 focus:border-blue-500"
-            }`}
+            className={`w-full rounded-lg border px-4 py-3 text-sm outline-none transition ${errors.name
+              ? "border-red-300 bg-red-50 focus:border-red-500"
+              : "border-slate-200 focus:border-blue-500"
+              }`}
           />
           {errors.name ? <p className="text-xs text-red-500">{errors.name}</p> : null}
         </div>
@@ -176,11 +255,10 @@ const CreateSubscriptionPlanPage = () => {
               onChange={handleChange}
               placeholder="VD: 99000"
               min="0"
-              className={`w-full rounded-lg border px-4 py-3 text-sm outline-none transition ${
-                errors.price
-                  ? "border-red-300 bg-red-50 focus:border-red-500"
-                  : "border-slate-200 focus:border-blue-500"
-              }`}
+              className={`w-full rounded-lg border px-4 py-3 text-sm outline-none transition ${errors.price
+                ? "border-red-300 bg-red-50 focus:border-red-500"
+                : "border-slate-200 focus:border-blue-500"
+                }`}
             />
             {errors.price ? <p className="text-xs text-red-500">{errors.price}</p> : null}
           </div>
@@ -189,22 +267,16 @@ const CreateSubscriptionPlanPage = () => {
             <label className="block text-sm font-semibold text-slate-700">
               Thời hạn <span className="text-red-500">*</span>
             </label>
-            <select
-              name="durationDays"
+            <IntegratedDurationPicker
               value={formData.durationDays}
-              onChange={handleChange}
-              className={`w-full rounded-lg border px-4 py-3 text-sm outline-none transition ${
-                errors.durationDays
-                  ? "border-red-300 bg-red-50 focus:border-red-500"
-                  : "border-slate-200 focus:border-blue-500"
-              }`}
-            >
-              {DURATIONS.map((duration) => (
-                <option key={duration.value} value={duration.value}>
-                  {duration.label}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => {
+                setFormData((prev) => ({ ...prev, durationDays: val }));
+                if (errors.durationDays) {
+                  setErrors((prev) => ({ ...prev, durationDays: undefined }));
+                }
+              }}
+              error={errors.durationDays}
+            />
             {errors.durationDays ? (
               <p className="text-xs text-red-500">{errors.durationDays}</p>
             ) : null}

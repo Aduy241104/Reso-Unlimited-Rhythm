@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import ReactPaginate from "react-paginate";
 import { Link } from "react-router-dom";
 import { Search, CheckCircle, XCircle, Eye, ArrowRight, Layers } from "lucide-react";
@@ -42,6 +42,17 @@ reasonLabels.fake_artist = "Nghệ sĩ giả mạo";
 reasonLabels.wrong_metadata = "Thông tin bài hát không chính xác";
 reasonLabels.lyrics_issue = "Lời bài hát không phù hợp";
 reasonLabels.audio_quality = "Chất lượng âm thanh kém";
+
+const normalizeText = (str) => {
+    if (!str) return "";
+    return String(str)
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/đ/g, "d")
+        .replace(/Đ/g, "D")
+        .toLowerCase()
+        .trim();
+};
 
 const getStatusConfig = (status) => {
     switch (status) {
@@ -106,29 +117,20 @@ const HeaderStat = ({ label, value }) => (
 );
 
 const ReportsListPage = () => {
-    const [groups, setGroups] = useState([]);
+    const [allGroups, setAllGroups] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [filterStatus, setFilterStatus] = useState("");
     const [filterTargetType, setFilterTargetType] = useState("");
-    const [query, setQuery] = useState({ search: "", status: "", targetType: "", page: 1, limit: 10 });
-    const [pagination, setPagination] = useState(null);
+    const [query, setQuery] = useState({ page: 1, limit: 10 });
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState("");
 
-    const loadGroupedReports = async (params = query) => {
+    const loadGroupedReports = async () => {
         setIsLoading(true);
         setMessage("");
         try {
-            const result = await getGroupedReportsService({
-                search: params.search,
-                status: params.status,
-                targetType: params.targetType,
-                page: params.page,
-                limit: params.limit,
-            });
-
-            setGroups(result.groups || []);
-            setPagination(result.meta || null);
+            const result = await getGroupedReportsService({ limit: 1000 });
+            setAllGroups(result?.groups || []);
         } catch (error) {
             setMessage("Không thể tải danh sách báo cáo.");
             console.error(error);
@@ -138,33 +140,70 @@ const ReportsListPage = () => {
     };
 
     useEffect(() => {
-        void loadGroupedReports(query);
-    }, [query]);
+        void loadGroupedReports();
+    }, []);
 
-    const handleSearchSubmit = (event) => {
-        event.preventDefault();
-        setQuery((prev) => ({
-            ...prev,
-            search: searchTerm.trim(),
-            status: filterStatus,
-            targetType: filterTargetType,
-            page: 1,
-        }));
-    };
+    const { paginatedGroups, paginationMeta } = useMemo(() => {
+        let list = allGroups;
+
+        if (searchTerm && searchTerm.trim() !== "") {
+            const q = normalizeText(searchTerm);
+            list = list.filter((g) => {
+                const target = g.targetInfo;
+                const title = normalizeText(target?.title || target?.name);
+                const artistName = normalizeText(
+                    target?.artist_artistId?.name || target?.artistId?.name || (g.targetType === "artist" ? target?.name : "")
+                );
+                const targetId = normalizeText(g.targetId);
+                const reasons = Object.keys(g.reasonCounts || {})
+                    .map((r) => normalizeText(reasonLabels[r] || r))
+                    .join(" ");
+
+                return title.includes(q) || artistName.includes(q) || targetId.includes(q) || reasons.includes(q);
+            });
+        }
+
+        if (filterStatus) {
+            list = list.filter((g) => g.groupStatus === filterStatus || g.latestReport?.status === filterStatus);
+        }
+
+        if (filterTargetType) {
+            list = list.filter((g) => g.targetType === filterTargetType);
+        }
+
+        const page = query.page || 1;
+        const limit = query.limit || 10;
+        const total = list.length;
+        const totalPages = Math.ceil(total / limit) || 1;
+        const startIndex = (page - 1) * limit;
+        const paginated = list.slice(startIndex, startIndex + limit);
+
+        return {
+            paginatedGroups: paginated,
+            paginationMeta: { page, limit, total, totalPages },
+        };
+    }, [allGroups, searchTerm, filterStatus, filterTargetType, query.page, query.limit]);
+
+    useEffect(() => {
+        setQuery((prev) => ({ ...prev, page: 1 }));
+    }, [searchTerm, filterStatus, filterTargetType]);
 
     const handleResetFilters = () => {
         setSearchTerm("");
         setFilterStatus("");
         setFilterTargetType("");
-        setQuery({ search: "", status: "", targetType: "", page: 1, limit: 10 });
+        setQuery({ page: 1, limit: 10 });
+        window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
     const handlePageChange = ({ selected }) => {
         setQuery((prev) => ({ ...prev, page: selected + 1 }));
+        window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
-    const total = pagination?.total ?? 0;
-    const totalPages = pagination?.totalPages ?? 1;
+    const total = paginationMeta.total;
+    const totalPages = paginationMeta.totalPages;
+    const pageLabel = `${paginationMeta.page}/${totalPages}`;
 
     return (
         <section className="space-y-5 p-3 lg:p-5 bg-slate-50/50 min-h-screen text-slate-800 font-sans antialiased">
@@ -180,19 +219,15 @@ const ReportsListPage = () => {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-4 self-start lg:self-auto">
-                    <div className="grid gap-2 grid-cols-3">
+                    <div className="grid gap-2 grid-cols-2">
                         <HeaderStat label="Nội dung vi phạm" value={total} />
-                        <HeaderStat label="Hiển thị" value={groups.length} />
-                        <HeaderStat label="Trang" value={`${query.page}/${totalPages}`} />
+                        <HeaderStat label="Trang" value={pageLabel} />
                     </div>
                 </div>
             </div>
 
             {/* Filters */}
-            <form
-                onSubmit={handleSearchSubmit}
-                className="grid gap-3 rounded-2xl bg-white p-4 shadow-[0_12px_32px_rgba(15,23,42,0.06)] grid-cols-1 sm:grid-cols-2 md:grid-cols-[1.5fr_1fr_1fr_100px_100px]"
-            >
+            <div className="grid gap-3 rounded-2xl bg-white p-4 shadow-[0_12px_32px_rgba(15,23,42,0.06)] grid-cols-1 sm:grid-cols-2 md:grid-cols-[1fr_200px_200px_100px]">
                 <label className="relative block">
                     <Search
                         size={18}
@@ -237,14 +272,7 @@ const ReportsListPage = () => {
                 >
                     Đặt lại
                 </button>
-
-                <button
-                    type="submit"
-                    className="rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 shadow-sm"
-                >
-                    Tìm kiếm
-                </button>
-            </form>
+            </div>
 
             {message && (
                 <div className="border border-red-100 bg-red-50/50 px-4 py-3 text-sm rounded-xl text-red-600">
@@ -253,7 +281,7 @@ const ReportsListPage = () => {
             )}
 
             {/* Grouped Table */}
-            <div className="overflow-hidden rounded-2xl bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+            <div key={`table-page-${query.page}`} className="overflow-hidden rounded-2xl bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)] transition-all duration-300">
                 <div className="grid min-w-[1000px] grid-cols-[minmax(0,1.8fr)_100px_120px_minmax(0,1.5fr)_140px_160px_120px] gap-4 border-b border-slate-200 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
                     <span>Nội dung bị báo cáo</span>
                     <span>Loại</span>
@@ -270,12 +298,12 @@ const ReportsListPage = () => {
                             <div className="p-12 text-center text-xs font-bold text-slate-400 uppercase tracking-wider">
                                 Đang tải danh sách báo cáo gom nhóm...
                             </div>
-                        ) : groups.length === 0 ? (
+                        ) : paginatedGroups.length === 0 ? (
                             <div className="p-12 text-center text-slate-400 italic">
                                 Không có nội dung bị báo cáo nào phù hợp điều kiện.
                             </div>
                         ) : (
-                            groups.map((group) => {
+                            paginatedGroups.map((group) => {
                                 const statusConfig = getStatusConfig(group.groupStatus);
                                 const StatusIcon = statusConfig.icon;
                                 const target = group.targetInfo;
@@ -385,13 +413,13 @@ const ReportsListPage = () => {
             </div>
 
             {/* Pagination */}
-            {pagination && pagination.totalPages > 1 && (
+            {totalPages > 1 && (
                 <div className="flex justify-center pt-2">
                     <ReactPaginate
                         previousLabel="Trở lại"
                         nextLabel="Tiếp"
                         onPageChange={handlePageChange}
-                        pageCount={pagination.totalPages}
+                        pageCount={totalPages}
                         forcePage={query.page - 1}
                         containerClassName="flex items-center gap-1 text-sm font-medium text-slate-600"
                         pageClassName="rounded-lg border border-slate-200 bg-white px-3 py-1.5 hover:bg-slate-50 transition cursor-pointer"
