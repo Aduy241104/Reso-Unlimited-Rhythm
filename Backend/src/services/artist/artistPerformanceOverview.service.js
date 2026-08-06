@@ -46,7 +46,7 @@ const resolveArtistProfile = async (userId) => {
     const artist = await Artist.findOne({ userId }).select("_id name stats").lean();
 
     if (!artist) {
-        throw new AppError("Artist profile not found.", StatusCodes.NOT_FOUND);
+        throw new AppError("Không tìm thấy hồ sơ nghệ sĩ.", StatusCodes.NOT_FOUND);
     }
 
     return artist;
@@ -56,7 +56,7 @@ const resolveRange = (range) => {
     const normalizedRange = String(range || DEFAULT_RANGE).trim();
 
     if (!ALLOWED_RANGES.has(normalizedRange)) {
-        throw new AppError("Invalid analytics range", StatusCodes.BAD_REQUEST);
+        throw new AppError("Khoảng phân tích không hợp lệ.", StatusCodes.BAD_REQUEST);
     }
 
     return normalizedRange;
@@ -70,7 +70,7 @@ const resolveYear = (year) => {
     const normalizedYear = Number.parseInt(year, 10);
 
     if (!Number.isInteger(normalizedYear) || normalizedYear < 2000 || normalizedYear > 9999) {
-        throw new AppError("Invalid request data.", StatusCodes.BAD_REQUEST);
+        throw new AppError("Dữ liệu yêu cầu không hợp lệ.", StatusCodes.BAD_REQUEST);
     }
 
     return normalizedYear;

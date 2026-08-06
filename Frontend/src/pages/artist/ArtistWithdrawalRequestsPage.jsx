@@ -584,7 +584,7 @@ const ArtistWithdrawalRequestsPage = () => {
               Rút tiền từ số dư hiện có
             </h3>
             <p className="max-w-2xl text-sm leading-6 text-[#6a647d]">
-              Chọn tài khoản đã lưu, nhập mật khẩu rút tiền và số tiền muốn rút để gửi yêu cầu cho admin.
+              Chọn tài khoản đã lưu, nhập mật khẩu rút tiền và số tiền muốn rút để gửi yêu cầu cho quản trị viên.
             </p>
           </div>
 
@@ -670,7 +670,7 @@ const ArtistWithdrawalRequestsPage = () => {
                     Kiểm tra kỹ tài khoản và số tiền trước khi gửi.
                   </p>
                   <p className="mt-1 text-sm leading-6 text-[#4a6a9a]">
-                    Admin sẽ dựa trên tài khoản đã lưu của bạn để duyệt và xử lý thanh toán.
+                    Quản trị viên sẽ dựa trên tài khoản đã lưu của bạn để duyệt và xử lý thanh toán.
                   </p>
                 </div>
               </div>

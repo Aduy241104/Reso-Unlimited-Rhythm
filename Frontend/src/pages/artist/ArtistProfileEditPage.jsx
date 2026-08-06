@@ -470,12 +470,12 @@ export default function ArtistProfileEditPage() {
                       className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-600 hover:underline"
                     >
                       <Trash2 size={13} />
-                      <span>Xóa ảnh avatar</span>
+                      <span>Xóa ảnh đại diện</span>
                     </button>
                   )}
                   {removeAvatar && !avatarFile && (
                     <p className="text-[11px] text-rose-600 font-medium">
-                      Ảnh avatar sẽ bị gỡ khi bạn bấm Lưu.
+                      Ảnh đại diện sẽ bị gỡ khi bạn bấm Lưu.
                     </p>
                   )}
                 </div>

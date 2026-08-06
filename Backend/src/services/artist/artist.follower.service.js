@@ -38,13 +38,13 @@ const formatFollowerItem = (interaction) => {
 
 const getArtistFollowers = async (loggedInUserId, query = {}) => {
     if (!loggedInUserId) {
-        throw new AppError("Unauthorized.", 401);
+        throw new AppError("Bạn chưa được xác thực.", 401);
     }
 
     const artist = await findArtistByUserId(loggedInUserId);
 
     if (!artist) {
-        throw new AppError("Artist not found.", 404, {
+        throw new AppError("Không tìm thấy nghệ sĩ.", 404, {
             field: "artistId",
         });
     }

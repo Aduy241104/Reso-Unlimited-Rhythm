@@ -37,7 +37,7 @@ export const formatDate = (value) => {
 
 export const getCoverSrc = (artist) => {
   if (!artist?.name) {
-    return createPlaceholderImage("Artist", "#8b5e3c", "#2a2019");
+    return createPlaceholderImage("Nghệ sĩ", "#8b5e3c", "#2a2019");
   }
   return artist.coverImage || createPlaceholderImage(artist.name, "#8b5e3c", "#2a2019");
 };

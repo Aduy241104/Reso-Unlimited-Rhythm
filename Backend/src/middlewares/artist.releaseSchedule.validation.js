@@ -30,7 +30,7 @@ const createReleaseScheduleSchema = Joi.object({
                 .greater("now")
                 .required()
                 .messages({
-                    "date.greater": "scheduledAt must be in the future.",
+                    "date.greater": "Thời gian phát hành phải ở trong tương lai.",
                 }),
             otherwise: Joi.any()
                 .optional()
@@ -44,7 +44,7 @@ const updateReleaseScheduleSchema = Joi.object({
         .greater("now")
         .required()
         .messages({
-            "date.greater": "scheduledAt must be in the future.",
+            "date.greater": "Thời gian phát hành phải ở trong tương lai.",
         }),
 });
 

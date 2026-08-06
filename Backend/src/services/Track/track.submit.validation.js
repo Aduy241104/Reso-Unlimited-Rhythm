@@ -27,7 +27,7 @@ export const validateRequiredAudioFiles = (audioFiles) => {
 
     if (normalizedFiles.length === 0) {
         throw new AppError(
-            "At least one audio file is required before submitting for approval.",
+            "Cần ít nhất một tệp âm thanh trước khi gửi duyệt.",
             StatusCodes.BAD_REQUEST,
             { field: "audioFiles" }
         );
@@ -37,7 +37,7 @@ export const validateRequiredAudioFiles = (audioFiles) => {
 
     if (!labels.includes("original")) {
         throw new AppError(
-            "Original audio file is required before submitting for approval.",
+            "Cần có tệp âm thanh gốc trước khi gửi duyệt.",
             StatusCodes.BAD_REQUEST,
             { field: "audioFiles" }
         );
@@ -49,7 +49,7 @@ export const validateRequiredAudioFiles = (audioFiles) => {
 export const validateRequiredGenreIds = async (genreIds) => {
     if (!Array.isArray(genreIds) || genreIds.length === 0) {
         throw new AppError(
-            "At least one genre is required before submitting for approval.",
+            "Cần chọn ít nhất một thể loại trước khi gửi duyệt.",
             StatusCodes.BAD_REQUEST,
             { field: "genreIds" }
         );
@@ -63,20 +63,20 @@ export const validateCopyrightForSubmit = (copyright = {}) => {
     const recordingOwner = String(copyright.recordingOwner || "").trim();
 
     if (!copyrightOwner) {
-        throw new AppError("Copyright owner is required.", StatusCodes.BAD_REQUEST, {
+        throw new AppError("Chủ sở hữu bản quyền là bắt buộc.", StatusCodes.BAD_REQUEST, {
             field: "copyright.copyrightOwner",
         });
     }
 
     if (!recordingOwner) {
-        throw new AppError("Recording owner is required.", StatusCodes.BAD_REQUEST, {
+        throw new AppError("Chủ sở hữu bản ghi âm là bắt buộc.", StatusCodes.BAD_REQUEST, {
             field: "copyright.recordingOwner",
         });
     }
 
     if (copyright.declarationAccepted !== true) {
         throw new AppError(
-            "You must accept the copyright declaration before submitting.",
+            "Bạn phải chấp nhận tuyên bố bản quyền trước khi gửi duyệt.",
             StatusCodes.BAD_REQUEST,
             { field: "copyright.declarationAccepted" }
         );
@@ -90,7 +90,7 @@ export const validateCopyrightForSubmit = (copyright = {}) => {
 
     if (copyright.isOriginal && hasThirdPartyRights) {
         throw new AppError(
-            "Original track cannot be marked as cover, remix, sample, or licensed beat.",
+            "Tác phẩm gốc không thể đồng thời được đánh dấu là bản hát lại, bản phối lại, có đoạn nhạc mẫu hoặc phần nhạc nền được cấp phép.",
             StatusCodes.BAD_REQUEST,
             { field: "copyright.isOriginal" }
         );
@@ -103,7 +103,7 @@ export const validateCopyrightForSubmit = (copyright = {}) => {
 
         if (licenseUrls.length === 0) {
             throw new AppError(
-                "License documents are required for cover/remix/sample/licensed beat.",
+                "Cần có tài liệu cấp phép cho bản hát lại, bản phối lại, đoạn nhạc mẫu hoặc phần nhạc nền được cấp phép.",
                 StatusCodes.BAD_REQUEST,
                 { field: "copyright.licenseDocumentUrls" }
             );
@@ -111,7 +111,7 @@ export const validateCopyrightForSubmit = (copyright = {}) => {
 
         if (!String(copyright.originalTrackTitle || "").trim()) {
             throw new AppError(
-                "Original track title is required for third-party rights.",
+                "Tên bài hát gốc là bắt buộc khi sử dụng quyền của bên thứ ba.",
                 StatusCodes.BAD_REQUEST,
                 { field: "copyright.originalTrackTitle" }
             );
@@ -119,7 +119,7 @@ export const validateCopyrightForSubmit = (copyright = {}) => {
 
         if (!String(copyright.originalArtistName || "").trim()) {
             throw new AppError(
-                "Original artist name is required for third-party rights.",
+                "Tên nghệ sĩ gốc là bắt buộc khi sử dụng quyền của bên thứ ba.",
                 StatusCodes.BAD_REQUEST,
                 { field: "copyright.originalArtistName" }
             );
@@ -129,19 +129,19 @@ export const validateCopyrightForSubmit = (copyright = {}) => {
 
 export const assertTrackCanBeSubmitted = (track) => {
     if (!track) {
-        throw new AppError("Track not found.", StatusCodes.NOT_FOUND);
+        throw new AppError("Không tìm thấy bài hát.", StatusCodes.NOT_FOUND);
     }
 
     if (track.approvalStatus === "pending") {
         throw new AppError(
-            "Track is already pending review and cannot be submitted again.",
+            "Bài hát đang chờ duyệt nên không thể gửi lại.",
             StatusCodes.BAD_REQUEST
         );
     }
 
     if (track.approvalStatus === "approved") {
         throw new AppError(
-            "Approved tracks cannot be submitted again.",
+            "Bài hát đã được phê duyệt không thể gửi lại.",
             StatusCodes.BAD_REQUEST
         );
     }
@@ -149,26 +149,26 @@ export const assertTrackCanBeSubmitted = (track) => {
 
 export const assertTrackEditableByArtist = (track) => {
     if (!track) {
-        throw new AppError("Track not found.", StatusCodes.NOT_FOUND);
+        throw new AppError("Không tìm thấy bài hát.", StatusCodes.NOT_FOUND);
     }
 
     if (track.activeStatus === "blocked") {
         throw new AppError(
-            "Blocked tracks cannot be edited.",
+            "Không thể chỉnh sửa bài hát đang bị khóa.",
             StatusCodes.BAD_REQUEST
         );
     }
 
     if (track.approvalStatus === "pending") {
         throw new AppError(
-            "Cannot edit a track while it is pending review.",
+            "Không thể chỉnh sửa bài hát khi đang chờ duyệt.",
             StatusCodes.BAD_REQUEST
         );
     }
 
     if (track.pendingUpdate?.status === "pending") {
         throw new AppError(
-            "Cannot edit a track while its pending update is under review.",
+            "Không thể chỉnh sửa bài hát khi bản cập nhật đang được xem xét.",
             StatusCodes.BAD_REQUEST
         );
     }
@@ -187,7 +187,7 @@ export const validateTrackForSubmit = async (track, artist) => {
 
     if (!Number.isFinite(duration) || duration <= 0) {
         throw new AppError(
-            "Duration must be greater than 0 before submitting for approval.",
+            "Thời lượng phải lớn hơn 0 trước khi gửi duyệt.",
             StatusCodes.BAD_REQUEST,
             { field: "duration" }
         );
@@ -195,7 +195,7 @@ export const validateTrackForSubmit = async (track, artist) => {
 
     if (!hasCoverOrAvatar(track)) {
         throw new AppError(
-            "Cover image or track avatar is required before submitting for approval.",
+            "Cần có ảnh bìa hoặc ảnh đại diện bài hát trước khi gửi duyệt.",
             StatusCodes.BAD_REQUEST,
             { field: "coverImage" }
         );
@@ -207,7 +207,7 @@ export const validateTrackForSubmit = async (track, artist) => {
 
     if (coverCount > MAX_COVER_IMAGES) {
         throw new AppError(
-            `A track can have at most ${MAX_COVER_IMAGES} cover images.`,
+            `Một bài hát chỉ được có tối đa ${MAX_COVER_IMAGES} ảnh bìa.`,
             StatusCodes.BAD_REQUEST,
             { field: "coverImage" }
         );
@@ -217,7 +217,7 @@ export const validateTrackForSubmit = async (track, artist) => {
 
     if (lyricsLength > LYRICS_STATIC_MAX_LENGTH) {
         throw new AppError(
-            `Static lyrics cannot exceed ${LYRICS_STATIC_MAX_LENGTH} characters.`,
+            `Lời bài hát tĩnh không được vượt quá ${LYRICS_STATIC_MAX_LENGTH} ký tự.`,
             StatusCodes.BAD_REQUEST,
             { field: "lyricsStatic" }
         );
@@ -230,7 +230,7 @@ export const validateTrackForSubmit = async (track, artist) => {
 
         if (!mongoose.Types.ObjectId.isValid(trackArtistId) || !artist._id.equals(trackArtistId)) {
             throw new AppError(
-                "You can only submit tracks that belong to your artist profile.",
+                "Bạn chỉ có thể gửi duyệt bài hát thuộc hồ sơ nghệ sĩ của mình.",
                 StatusCodes.FORBIDDEN
             );
         }

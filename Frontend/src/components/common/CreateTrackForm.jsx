@@ -147,7 +147,7 @@ const CreateTrackForm = () => {
 
   const readinessItems = [
     {
-      label: "Đã tải file âm thanh gốc",
+      label: "Đã tải tệp âm thanh gốc",
       ready: Boolean(audioFile),
     },
     {
@@ -257,7 +257,7 @@ const CreateTrackForm = () => {
     }
 
     if (!audioFile) {
-      errors.audio = "Vui lòng tải lên file âm thanh chính.";
+      errors.audio = "Vui lòng tải lên tệp âm thanh chính.";
     }
 
     if (!avatarFile && coverImages.length === 0) {
@@ -297,7 +297,7 @@ const CreateTrackForm = () => {
       );
 
       if (!uploadResponse?.success) {
-        throw new Error("Tải file lên thất bại.");
+        throw new Error("Tải tệp lên thất bại.");
       }
 
       const {
@@ -347,7 +347,7 @@ const CreateTrackForm = () => {
           icon={Music4}
           eyebrow="Tổng quan"
           title="Thông tin bài hát"
-          description="Bắt đầu với phần nhận diện chính của bài hát. Bạn có thể tải file âm thanh gốc ngay bây giờ và hệ thống sẽ tự nhận diện thời lượng."
+          description="Bắt đầu với phần nhận diện chính của bài hát. Bạn có thể tải tệp âm thanh gốc ngay bây giờ và hệ thống sẽ tự nhận diện thời lượng."
         >
           <div className="grid gap-5 md:grid-cols-2">
             <FieldShell
@@ -387,10 +387,10 @@ const CreateTrackForm = () => {
           icon={FileAudio}
           eyebrow="Tệp"
           title="Tải lên âm thanh và hình ảnh"
-          description="Tải lên một file âm thanh chất lượng cao cho bài hát, cùng với ảnh đại diện, ảnh bìa và file lời đồng bộ nếu có."
+          description="Tải lên một tệp âm thanh chất lượng cao cho bài hát, cùng với ảnh đại diện, ảnh bìa và tệp lời đồng bộ nếu có."
         >
           <div className="grid gap-5 md:grid-cols-2">
-            <FieldShell label="File âm thanh gốc" error={fieldErrors.audio}>
+            <FieldShell label="Tệp âm thanh gốc" error={fieldErrors.audio}>
               <input
                 type="file"
                 accept=".mp3,.wav,.flac,.aac,.m4a,.mp4,audio/mpeg,audio/wav,audio/flac,audio/aac,audio/mp4,video/mp4"
@@ -454,7 +454,7 @@ const CreateTrackForm = () => {
               ) : null}
             </FieldShell>
 
-            <FieldShell label="File lời đồng bộ (.lrc)">
+            <FieldShell label="Tệp lời đồng bộ (.lrc)">
               <input
                 type="file"
                 accept=".lrc,text/plain"

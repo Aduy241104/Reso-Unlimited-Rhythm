@@ -209,7 +209,7 @@ const ArtistTrackDetailPage = () => {
 
     if (!canPlayTrack) {
       showArtistError(
-        "Bài hát chỉ có thể phát khi đang phát hành, đã được duyệt và có file âm thanh."
+        "Bài hát chỉ có thể phát khi đang phát hành, đã được duyệt và có tệp âm thanh."
       );
       return;
     }
@@ -389,7 +389,7 @@ const ArtistTrackDetailPage = () => {
 
       {track?.pendingUpdate?.status === "pending" ? (
         <div className="rounded-[22px] border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
-          Bản chỉnh sửa mới đang chờ admin duyệt. Người nghe hiện vẫn nghe phiên bản đang phát hành.
+          Bản chỉnh sửa mới đang chờ quản trị viên duyệt. Người nghe hiện vẫn nghe phiên bản đang phát hành.
         </div>
       ) : null}
 
@@ -748,11 +748,11 @@ const ArtistTrackDetailPage = () => {
             <div className="rounded-[28px] border border-rose-300 bg-rose-50 p-5 text-sm text-rose-950 shadow-[0_12px_35px_rgba(32,23,71,0.04)]">
               <div className="flex items-center gap-2">
                 <LockKeyhole className="h-4 w-4 shrink-0" />
-                <p className="font-semibold">Lý do track bị khóa</p>
+                <p className="font-semibold">Lý do bài hát bị khóa</p>
               </div>
               <p className="mt-3 leading-6">
                 {track.blockedReason?.trim() ||
-                  "Track đã bị khóa bởi quản trị viên. Hiện chưa có lý do chi tiết."}
+                  "Bài hát đã bị khóa bởi quản trị viên. Hiện chưa có lý do chi tiết."}
               </p>
             </div>
           ) : null}
@@ -796,7 +796,7 @@ const ArtistTrackDetailPage = () => {
       <ConfirmActionModal
         isOpen={isSubmitConfirmOpen}
         title="Gửi bài hát để duyệt?"
-        message="Sau khi gửi duyệt, bạn sẽ không thể chỉnh sửa bài hát trong thời gian chờ admin xử lý. Bạn có muốn tiếp tục không?"
+        message="Sau khi gửi duyệt, bạn sẽ không thể chỉnh sửa bài hát trong thời gian chờ quản trị viên xử lý. Bạn có muốn tiếp tục không?"
         confirmText="Gửi duyệt"
         cancelText="Hủy"
         isLoading={isActionLoading}
