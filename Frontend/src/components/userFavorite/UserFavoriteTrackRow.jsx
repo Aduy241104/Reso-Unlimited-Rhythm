@@ -1,9 +1,10 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { CheckCircle2, Pause, Play } from "lucide-react";
 import { Link } from "react-router-dom";
 import TrackTwoLevelMenu from "../trackMenu/TrackTwoLevelMenu";
 import { routePaths } from "../../routes/routePaths";
 import { formatTrackDuration } from "../../utils/albumDetail";
+import { isPlayableTrack } from "../../utils/trackStatus";
 
 const UserFavoriteTrackRow = ({
   index,
@@ -21,6 +22,11 @@ const UserFavoriteTrackRow = ({
   onPlaybackAction,
 }) => {
   const [failedImageSrc, setFailedImageSrc] = useState("");
+
+  if (track && !isPlayableTrack(track)) {
+    return null;
+  }
+
   const PlaybackIcon = isPlaybackActive && isPlaying ? Pause : Play;
   const playbackLabel = isPlaybackActive && isPlaying ? "Tạm dừng" : "Phát";
   const durationLabel =

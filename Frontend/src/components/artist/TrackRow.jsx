@@ -1,6 +1,7 @@
-﻿import { useMemo } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { routePaths } from "../../routes/routePaths";
+import { isPlayableTrack } from "../../utils/trackStatus";
 import { formatTrackTitle } from "../../utils/trackTitle";
 
 const TrackRow = ({
@@ -15,6 +16,11 @@ const TrackRow = ({
   menu = null,
 }) => {
   const navigate = useNavigate();
+
+  if (track && !isPlayableTrack(track)) {
+    return null;
+  }
+
   const resolvedTrackId = useMemo(
     () => track?._id || track?.id || trackId || "",
     [track?._id, track?.id, trackId]
