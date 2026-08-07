@@ -111,6 +111,7 @@ const normalizeAlbums = (albums = []) =>
     coverImage: album?.coverImage || "",
     trackCount: Number(album?.trackCount) || 0,
     totalDuration: Number(album?.totalDuration) || 0,
+    status: album?.status || "draft",
   }));
 
 const ArtistCreateReleaseSchedulePage = () => {
@@ -208,7 +209,7 @@ const ArtistCreateReleaseSchedulePage = () => {
     () =>
       releaseType === "track"
         ? activeOptions.filter((item) => item.releaseStatus === "unreleased")
-        : activeOptions,
+        : activeOptions.filter((item) => item.status === "draft"),
     [activeOptions, releaseType]
   );
 
@@ -265,7 +266,9 @@ const ArtistCreateReleaseSchedulePage = () => {
     const isTrack = releaseType === "track";
     const hasSelectedTarget = Boolean(selectedTarget);
     const isApprovedTrack = !isTrack || selectedTarget?.approvalStatus === "approved";
-    const canTrackBeReleased = !isTrack || selectedTarget?.releaseStatus === "unreleased";
+    const canTargetBeReleased = isTrack
+      ? selectedTarget?.releaseStatus === "unreleased"
+      : selectedTarget?.status === "draft";
     const hasValidContent = isTrack
       ? Number(selectedTarget?.audioFilesCount || 0) > 0 ||
         Number(selectedTarget?.duration || 0) > 0
@@ -280,10 +283,10 @@ const ArtistCreateReleaseSchedulePage = () => {
         label: isTrack
           ? "Bài hát chưa phát hành và chưa có lịch phát hành"
           : "Album có thể tạo lịch phát hành",
-        passed: hasSelectedTarget && canTrackBeReleased,
+        passed: hasSelectedTarget && canTargetBeReleased,
       },
       {
-        label: isTrack ? "File âm thanh hợp lệ" : "Album có ít nhất 2 bài hát",
+        label: isTrack ? "Tệp âm thanh hợp lệ" : "Album có ít nhất 2 bài hát",
         passed: hasSelectedTarget && hasValidContent,
       },
       {
@@ -457,7 +460,9 @@ const ArtistCreateReleaseSchedulePage = () => {
                       {activeOptions.map((item) => {
                         const isSelected = item.id === selectedTargetId;
                         const isUnavailable =
-                          releaseType === "track" && item.releaseStatus !== "unreleased";
+                          releaseType === "track"
+                            ? item.releaseStatus !== "unreleased"
+                            : item.status !== "draft";
                         const optionSummary =
                           releaseType === "track"
                             ? `${item.albumTitle ? `${item.albumTitle} • ` : ""}${formatDuration(item.duration)}`
@@ -503,7 +508,12 @@ const ArtistCreateReleaseSchedulePage = () => {
                               <p className="mt-1 truncate text-xs text-[#857f99]">
                                 {optionSummary}
                                 {isUnavailable
-                                  ? ` • ${item.releaseStatus === "released" ? "Đã phát hành" : "Đã lên lịch"}`
+                                  ? ` • ${
+                                      releaseType === "album" ||
+                                      item.releaseStatus === "released"
+                                        ? "Đã phát hành"
+                                        : "Đã lên lịch"
+                                    }`
                                   : ""}
                               </p>
                             </div>
@@ -535,7 +545,7 @@ const ArtistCreateReleaseSchedulePage = () => {
                   <div>
                     <p className="text-sm font-medium text-[#1f1830]">Công khai ngay</p>
                     <p className="mt-1 text-xs leading-5 text-[#857f99]">
-                      Bản phát hành sẽ được public ngay sau khi bạn xác nhận tạo lịch.
+                      Bản phát hành sẽ được công khai ngay sau khi bạn xác nhận tạo lịch.
                     </p>
                   </div>
                 </label>

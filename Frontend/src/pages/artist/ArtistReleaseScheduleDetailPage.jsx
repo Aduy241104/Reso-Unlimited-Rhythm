@@ -798,7 +798,7 @@ const ArtistReleaseScheduleDetailPage = () => {
 
             <div className="mt-4 rounded-2xl border border-[#ece9ff] bg-[#f7f5ff] px-4 py-3 text-sm text-[#665f7a]">
               Lịch này đang theo múi giờ hệ thống hiện tại và sẽ tự cập nhật trạng thái
-              khi backend xử lý phát hành.
+              khi hệ thống xử lý phát hành.
             </div>
           </div>
         </div>

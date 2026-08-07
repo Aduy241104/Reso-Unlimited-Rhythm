@@ -8,7 +8,7 @@ const TrackRow = ({
   index,
   image,
   title,
-  artistName = "Unknown Artist",
+  artistName = "Nghệ sĩ chưa xác định",
   plays,
   duration,
   track = null,

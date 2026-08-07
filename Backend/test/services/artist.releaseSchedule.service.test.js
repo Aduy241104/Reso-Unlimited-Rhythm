@@ -149,6 +149,32 @@ describe("artistReleaseScheduleService album track synchronization", () => {
         );
     });
 
+    test("rejects creating another release for an album that is already active", async () => {
+        const album = createAlbum({ status: "active" });
+
+        mockArtistModel.findOne.mockReturnValue(
+            createSelectLeanQuery({ _id: artistId, name: "Artist" })
+        );
+        mockAlbumModel.findOne.mockReturnValue(createLeanQuery(album));
+
+        const { default: service } = await loadReleaseScheduleService();
+
+        await expect(
+            service.createMyReleaseSchedule(userId, {
+                type: "album",
+                targetId: albumId,
+                publishMode: "immediate",
+            })
+        ).rejects.toMatchObject({
+            statusCode: 409,
+            details: {
+                code: "ALBUM_ALREADY_RELEASED",
+            },
+        });
+
+        expect(mockReleaseScheduleModel.create).not.toHaveBeenCalled();
+    });
+
     test("releases eligible unreleased tracks at the album scheduled time", async () => {
         const scheduledAt = new Date("2026-08-01T00:00:00.000Z");
         const album = createAlbum({ releaseDate: scheduledAt });

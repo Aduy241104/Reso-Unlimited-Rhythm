@@ -1,20 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ChevronLeft,
   ChevronRight,
   Eye,
   EyeOff,
-  Grid2X2,
-  List,
   Loader2,
   Music2,
   Pencil,
   Plus,
-  Search,
   X,
 } from "lucide-react";
-import { ARTIST_INPUT_LIMITS } from "../../constants/artistInputLimits";
 import {
   getArtistAlbumsService,
   hideAlbumService,
@@ -49,14 +45,6 @@ const STATUS_META = {
     className: "border-rose-200 bg-rose-50 text-rose-700",
   },
 };
-
-const FILTER_OPTIONS = [
-  { value: "", label: "Tất cả trạng thái" },
-  { value: "active", label: "Đã phát hành" },
-  { value: "draft", label: "Bản nháp" },
-  { value: "hidden", label: "Đã ẩn" },
-  { value: "blocked", label: "Bị khóa" },
-];
 
 const formatDate = (value) => {
   if (!value) {
@@ -93,9 +81,7 @@ const ArtistAlbumPage = () => {
   const [albums, setAlbums] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
-  const [activeFilter, setActiveFilter] = useState("");
-  const [query, setQuery] = useState("");
-  const [viewMode, setViewMode] = useState("list");
+  const viewMode = "list";
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState(null);
   const [hideConfirm, setHideConfirm] = useState(null);
@@ -109,13 +95,7 @@ const ArtistAlbumPage = () => {
       setErrorMessage("");
 
       try {
-        const params = { page: currentPage };
-
-        if (activeFilter) {
-          params.status = activeFilter;
-        }
-
-        const result = await getArtistAlbumsService(params);
+        const result = await getArtistAlbumsService({ page: currentPage });
 
         if (!isMounted) {
           return;
@@ -143,26 +123,9 @@ const ArtistAlbumPage = () => {
     return () => {
       isMounted = false;
     };
-  }, [currentPage, activeFilter]);
+  }, [currentPage]);
 
-  const filteredAlbums = useMemo(() => {
-    const normalizedQuery = query.trim().toLocaleLowerCase("vi");
-
-    if (!normalizedQuery) {
-      return albums;
-    }
-
-    return albums.filter((album) =>
-      String(album?.title || "")
-        .toLocaleLowerCase("vi")
-        .includes(normalizedQuery)
-    );
-  }, [albums, query]);
-
-  const handleFilterChange = (event) => {
-    setActiveFilter(event.target.value);
-    setCurrentPage(1);
-  };
+  const filteredAlbums = albums;
 
   const handleToggleVisibility = async () => {
     if (!hideConfirm) {
@@ -242,62 +205,6 @@ const ArtistAlbumPage = () => {
       ) : null}
 
       <div className="overflow-hidden rounded-[24px] border border-[#ece8ff] bg-white shadow-[0_14px_36px_rgba(32,23,71,0.06)]">
-        <div className="flex flex-col gap-3 border-b border-[#ece8ff] p-4 lg:flex-row lg:items-center lg:justify-between">
-          <label className="flex h-11 w-full items-center gap-2.5 rounded-xl border border-[#e8e3f5] bg-[#fcfbff] px-3 text-sm transition focus-within:border-[#9484f5] focus-within:ring-4 focus-within:ring-[#7664ef]/10 lg:max-w-md">
-            <Search className="h-4 w-4 text-[#aaa4bd]" />
-            <input
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              maxLength={ARTIST_INPUT_LIMITS.search}
-              placeholder="Tìm kiếm album..."
-              className="min-w-0 flex-1 bg-transparent text-[#332a52] outline-none placeholder:text-[#aaa4bd]"
-            />
-          </label>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <select
-              value={activeFilter}
-              onChange={handleFilterChange}
-              className="h-11 min-w-44 rounded-xl border border-[#e8e3f5] bg-white px-3 text-sm text-[#514969] outline-none transition focus:border-[#9484f5]"
-              aria-label="Lọc album theo trạng thái"
-            >
-              {FILTER_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-
-            <div className="inline-flex rounded-xl border border-[#e8e3f5] bg-[#faf9ff] p-1">
-              <button
-                type="button"
-                onClick={() => setViewMode("grid")}
-                className={`inline-flex h-8 w-8 items-center justify-center rounded-lg transition ${
-                  viewMode === "grid"
-                    ? "bg-white text-[#6f5cf1] shadow-sm"
-                    : "text-[#9b95ae]"
-                }`}
-                aria-label="Hiển thị dạng lưới"
-              >
-                <Grid2X2 className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("list")}
-                className={`inline-flex h-8 w-8 items-center justify-center rounded-lg transition ${
-                  viewMode === "list"
-                    ? "bg-white text-[#6f5cf1] shadow-sm"
-                    : "text-[#9b95ae]"
-                }`}
-                aria-label="Hiển thị dạng danh sách"
-              >
-                <List className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-
         {isLoading ? (
           <div className="flex min-h-72 items-center justify-center gap-3 text-sm text-[#8d87aa]">
             <Loader2 className="h-5 w-5 animate-spin text-[#6f5cf1]" />
@@ -309,23 +216,19 @@ const ArtistAlbumPage = () => {
               <Music2 className="h-7 w-7" />
             </div>
             <h2 className="mt-5 text-lg font-bold text-[#332a52]">
-              {query ? "Không tìm thấy album phù hợp" : "Bạn chưa có album nào"}
+              Bạn chưa có album nào
             </h2>
             <p className="mt-2 max-w-md text-sm leading-6 text-[#8d87aa]">
-              {query
-                ? "Hãy thử tìm kiếm bằng một tên album khác."
-                : "Tạo album đầu tiên để sắp xếp và phát hành các bài hát của bạn."}
+              Tạo album đầu tiên để sắp xếp và phát hành các bài hát của bạn.
             </p>
-            {!query ? (
-              <button
-                type="button"
-                onClick={() => navigate(routePaths.artistCreateAlbum)}
-                className="mt-5 inline-flex h-10 items-center gap-2 rounded-xl bg-[#6f5cf1] px-4 text-sm font-semibold text-white"
-              >
-                <Plus className="h-4 w-4" />
-                Tạo album mới
-              </button>
-            ) : null}
+            <button
+              type="button"
+              onClick={() => navigate(routePaths.artistCreateAlbum)}
+              className="mt-5 inline-flex h-10 items-center gap-2 rounded-xl bg-[#6f5cf1] px-4 text-sm font-semibold text-white"
+            >
+              <Plus className="h-4 w-4" />
+              Tạo album mới
+            </button>
           </div>
         ) : viewMode === "grid" ? (
           <div className="grid gap-4 p-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
@@ -374,6 +277,7 @@ const ArtistAlbumPage = () => {
                     </button>
                     <button
                       type="button"
+                      disabled={!["active", "hidden"].includes(album.status)}
                       onClick={() =>
                         setHideConfirm({
                           id: album.id,
@@ -381,7 +285,12 @@ const ArtistAlbumPage = () => {
                           isHidden: album.status === "hidden",
                         })
                       }
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[#817a99] transition hover:bg-[#f2efff]"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[#817a99] transition hover:bg-[#f2efff] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
+                      title={
+                        ["active", "hidden"].includes(album.status)
+                          ? undefined
+                          : "Album chưa phát hành nên chưa thể ẩn"
+                      }
                       aria-label={
                         album.status === "hidden"
                           ? `Hiển thị album ${album.title}`
@@ -483,6 +392,7 @@ const ArtistAlbumPage = () => {
                         </button>
                         <button
                           type="button"
+                          disabled={!["active", "hidden"].includes(album.status)}
                           onClick={() =>
                             setHideConfirm({
                               id: album.id,
@@ -490,7 +400,12 @@ const ArtistAlbumPage = () => {
                               isHidden: album.status === "hidden",
                             })
                           }
-                          className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#e8e3f5] text-[#746d8f] transition hover:border-[#b9adfa] hover:bg-[#f7f4ff] hover:text-[#6f5cf1]"
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#e8e3f5] text-[#746d8f] transition hover:border-[#b9adfa] hover:bg-[#f7f4ff] hover:text-[#6f5cf1] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:border-[#e8e3f5] disabled:hover:bg-transparent disabled:hover:text-[#746d8f]"
+                          title={
+                            ["active", "hidden"].includes(album.status)
+                              ? undefined
+                              : "Album chưa phát hành nên chưa thể ẩn"
+                          }
                           aria-label={
                             album.status === "hidden"
                               ? `Hiển thị album ${album.title}`

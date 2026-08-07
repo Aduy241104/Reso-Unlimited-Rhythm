@@ -170,7 +170,7 @@ export const getSubmitReadinessIssues = (track) => {
   }
 
   if (copyright.isOriginal && usesThirdPartyRights(copyright)) {
-    issues.push("Bài hát gốc không thể đồng thời đánh dấu là cover, remix, sample hoặc licensed beat.");
+    issues.push("Bài hát gốc không thể đồng thời được đánh dấu là bản hát lại, bản phối lại, có đoạn nhạc mẫu hoặc phần nhạc nền được cấp phép.");
   }
 
   if (usesThirdPartyRights(copyright)) {
@@ -179,7 +179,7 @@ export const getSubmitReadinessIssues = (track) => {
       : [];
 
     if (validLicenseUrls.length < 1) {
-      issues.push("Vui lòng cung cấp ít nhất một URL giấy phép hợp lệ (http/https).");
+      issues.push("Vui lòng cung cấp ít nhất một địa chỉ giấy phép hợp lệ (http/https).");
     }
 
     if (!String(copyright.originalTrackTitle || "").trim()) {

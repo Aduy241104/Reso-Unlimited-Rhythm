@@ -59,7 +59,7 @@ const resolveOwnedArtistProfile = async (userId) => {
 
     if (!artist) {
         throw new AppError(
-            "Artist profile not found for this account.",
+            "Không tìm thấy hồ sơ nghệ sĩ của tài khoản này.",
             StatusCodes.NOT_FOUND
         );
     }
@@ -104,7 +104,7 @@ const buildLatestPeriodPayload = (summary) => {
 
 const ensureArtistRevenueSummaryId = (artistRevenueSummaryId) => {
     if (!mongoose.Types.ObjectId.isValid(artistRevenueSummaryId)) {
-        throw new AppError("Artist revenue summary id is invalid.", 400, {
+        throw new AppError("Mã tổng hợp doanh thu nghệ sĩ không hợp lệ.", 400, {
             field: "id",
         });
     }
@@ -473,7 +473,7 @@ const getArtistRevenuePeriodDetail = async (userId, artistRevenueSummaryId) => {
     }
 
     if (!artistRevenueSummary) {
-        throw new AppError("Artist revenue period not found.", 404, {
+        throw new AppError("Không tìm thấy kỳ doanh thu nghệ sĩ.", 404, {
             field: "id",
         });
     }

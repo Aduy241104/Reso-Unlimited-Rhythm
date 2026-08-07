@@ -39,7 +39,7 @@ export const SOURCE_LABEL_MAP = {
   "Track detail": "Chi tiết bài hát",
   "Chi tiet bai hat": "Chi tiết bài hát",
   Album: "Album",
-  Playlist: "Playlist",
+  Playlist: "Danh sách phát",
   Search: "Tìm kiếm",
   "Tim kiem": "Tìm kiếm",
   "Artist profile": "Trang nghệ sĩ",
@@ -75,9 +75,9 @@ export const localizeItems = (items = [], labelMap = {}) =>
 
 export const buildListenerBehaviorSummaryCards = (summary) => [
   {
-    label: "Tổng lượt stream",
+    label: "Tổng lượt nghe",
     value: `${formatNumber(summary?.totalStreams)} lượt`,
-    helper: "Toàn bộ lượt stream đã được ghi nhận.",
+    helper: "Toàn bộ lượt nghe đã được ghi nhận.",
     icon: Activity,
   },
   {
@@ -93,7 +93,7 @@ export const buildListenerBehaviorSummaryCards = (summary) => [
     icon: Repeat2,
   },
   {
-    label: "Stream trung bình mỗi người",
+    label: "Lượt nghe trung bình mỗi người",
     value: `${formatNumber(summary?.averageStreamsPerListener)} lượt`,
     helper: "Độ sâu nghe trung bình trên mỗi người nghe duy nhất.",
     icon: MousePointerClick,
@@ -188,7 +188,7 @@ export const EngagementCard = ({ engagement }) => (
         {
           label: "Lượt theo dõi",
           value: formatNumber(engagement?.followActions),
-          helper: "Số lượt follow nghệ sĩ",
+          helper: "Số lượt theo dõi nghệ sĩ",
           icon: UserPlus,
         },
         {

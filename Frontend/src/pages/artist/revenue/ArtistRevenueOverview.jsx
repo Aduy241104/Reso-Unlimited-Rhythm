@@ -184,7 +184,7 @@ const ArtistRevenueOverview = () => {
 
                     <RevenueStatCard
                         icon={ Headphones }
-                        label="Stream hợp lệ"
+                        label="Lượt nghe hợp lệ"
                         value={ formatNumber(summary?.totalEligibleStreams) }
                         description="Dùng để chia doanh thu"
                     />
@@ -232,16 +232,16 @@ const ArtistRevenueOverview = () => {
                     <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                         <div>
                             <h2 className="text-base font-semibold text-zinc-950">
-                                Doanh thu theo track
+                                Doanh thu theo bài hát
                             </h2>
 
                             <p className="mt-1 text-sm text-zinc-500">
-                                Danh sách track có stream hợp lệ trong kỳ doanh thu mới nhất.
+                                Danh sách bài hát có lượt nghe hợp lệ trong kỳ doanh thu mới nhất.
                             </p>
                         </div>
 
                         <p className="text-sm text-zinc-500">
-                            { formatNumber(trackRevenues.length) } track
+                            { formatNumber(trackRevenues.length) } bài hát
                         </p>
                     </div>
 

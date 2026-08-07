@@ -307,7 +307,7 @@ const ArtistTrackInsightsPage = () => {
               onChangeMetric={ setMonthlyChartMetric }
               sectionEyebrow="Xu hướng theo tháng"
               sectionTitle="Biểu đồ tích lũy theo tháng"
-              sectionDescription="So sánh nhịp tăng trưởng dài hạn của bài hát qua từng tháng với lượt phát, người nghe và stream hợp lệ."
+              sectionDescription="So sánh nhịp tăng trưởng dài hạn của bài hát qua từng tháng với lượt phát, người nghe và lượt nghe hợp lệ."
               emptyTitle="Chưa có dữ liệu theo tháng"
               emptyDescription="Khi hệ thống bắt đầu tổng hợp dữ liệu theo tháng, biểu đồ tích lũy sẽ xuất hiện tại đây."
               tooltipLabelFormatter={ (value) => formatMonthLabel(value) }

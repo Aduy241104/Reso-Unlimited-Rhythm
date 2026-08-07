@@ -104,7 +104,7 @@ const createUpcomingReleaseNotificationForArtistFollowers = async ({
 
     const notification = await Notification.create({
         title: `${artist.name || "Nghệ sĩ"} sắp phát hành bài hát mới`,
-        content: `${track.title || "Bài hát mới"} sẽ phát hành${releaseTimeText}. Vào trang nghệ sĩ để xem Upcoming Release.`,
+        content: `${track.title || "Bài hát mới"} sẽ phát hành${releaseTimeText}. Vào trang nghệ sĩ để xem bản phát hành sắp tới.`,
         type: "artist_update",
         receiverType: "followers",
         artistId: artist._id,

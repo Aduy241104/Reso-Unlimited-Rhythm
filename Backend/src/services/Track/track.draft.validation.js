@@ -48,7 +48,7 @@ export const assertPayloadHasNoForbiddenFields = (payload = {}) => {
     for (const key of FORBIDDEN_ARTIST_TRACK_FIELDS) {
         if (Object.prototype.hasOwnProperty.call(payload, key)) {
             throw new AppError(
-                `Field "${key}" cannot be set by artists.`,
+                `Nghệ sĩ không được phép thiết lập trường "${key}".`,
                 StatusCodes.BAD_REQUEST,
                 { field: key }
             );
@@ -60,7 +60,7 @@ export const assertPayloadHasNoForbiddenFields = (payload = {}) => {
         Object.prototype.hasOwnProperty.call(payload.copyright, "copyrightStatus")
     ) {
         throw new AppError(
-            'Field "copyright.copyrightStatus" cannot be set by artists.',
+            'Nghệ sĩ không được phép thiết lập trường "copyright.copyrightStatus".',
             StatusCodes.BAD_REQUEST,
             { field: "copyright.copyrightStatus" }
         );
@@ -71,14 +71,14 @@ export const validateDraftTitle = (title) => {
     const normalizedTitle = typeof title === "string" ? title.trim() : "";
 
     if (!normalizedTitle) {
-        throw new AppError("Title is required.", StatusCodes.BAD_REQUEST, {
+        throw new AppError("Tên bài hát là bắt buộc.", StatusCodes.BAD_REQUEST, {
             field: "title",
         });
     }
 
     if (normalizedTitle.length > TITLE_MAX_LENGTH) {
         throw new AppError(
-            `Title cannot exceed ${TITLE_MAX_LENGTH} characters.`,
+            `Tên bài hát không được vượt quá ${TITLE_MAX_LENGTH} ký tự.`,
             StatusCodes.BAD_REQUEST,
             { field: "title" }
         );
@@ -96,7 +96,7 @@ export const validateOptionalDescription = (description) => {
 
     if (normalizedDescription.length > DESCRIPTION_MAX_LENGTH) {
         throw new AppError(
-            `Description cannot exceed ${DESCRIPTION_MAX_LENGTH} characters.`,
+            `Mô tả không được vượt quá ${DESCRIPTION_MAX_LENGTH} ký tự.`,
             StatusCodes.BAD_REQUEST,
             { field: "description" }
         );
@@ -111,7 +111,7 @@ export const validateOptionalTags = (tags) => {
     }
 
     if (!Array.isArray(tags)) {
-        throw new AppError("Tags must be an array.", StatusCodes.BAD_REQUEST, {
+        throw new AppError("Danh sách thẻ phải là một mảng.", StatusCodes.BAD_REQUEST, {
             field: "tags",
         });
     }
@@ -122,7 +122,7 @@ export const validateOptionalTags = (tags) => {
 
     if (normalizedTags.length > MAX_TAGS) {
         throw new AppError(
-            `A track can have at most ${MAX_TAGS} tags.`,
+            `Một bài hát chỉ được có tối đa ${MAX_TAGS} thẻ.`,
             StatusCodes.BAD_REQUEST,
             { field: "tags" }
         );
@@ -131,7 +131,7 @@ export const validateOptionalTags = (tags) => {
     normalizedTags.forEach((tag, index) => {
         if (tag.length > MAX_TAG_LENGTH) {
             throw new AppError(
-                `Tag cannot exceed ${MAX_TAG_LENGTH} characters.`,
+                `Mỗi thẻ không được vượt quá ${MAX_TAG_LENGTH} ký tự.`,
                 StatusCodes.BAD_REQUEST,
                 { field: `tags[${index}]` }
             );
@@ -139,7 +139,7 @@ export const validateOptionalTags = (tags) => {
     });
 
     if (new Set(normalizedTags.map((tag) => tag.toLowerCase())).size !== normalizedTags.length) {
-        throw new AppError("Duplicate tags are not allowed.", StatusCodes.BAD_REQUEST, {
+        throw new AppError("Không được phép dùng thẻ trùng lặp.", StatusCodes.BAD_REQUEST, {
             field: "tags",
         });
     }
@@ -157,14 +157,14 @@ export const resolveArtistIdForCreate = (trackData, artist) => {
     const artistId = String(rawArtistId).trim();
 
     if (!mongoose.Types.ObjectId.isValid(artistId)) {
-        throw new AppError("Artist id is invalid.", StatusCodes.BAD_REQUEST, {
+        throw new AppError("Mã nghệ sĩ không hợp lệ.", StatusCodes.BAD_REQUEST, {
             field: "artist_artistId",
         });
     }
 
     if (!artist._id.equals(artistId)) {
         throw new AppError(
-            "You can only create tracks for your own artist profile.",
+            "Bạn chỉ có thể tạo bài hát cho hồ sơ nghệ sĩ của mình.",
             StatusCodes.FORBIDDEN,
             { field: "artist_artistId" }
         );
@@ -176,14 +176,14 @@ export const resolveArtistIdForCreate = (trackData, artist) => {
 export const assertArtistCanCreateTrack = (artist) => {
     if (artist.activeStatus === "blocked") {
         throw new AppError(
-            "Your artist account has been blocked. Cannot create tracks.",
+            "Tài khoản nghệ sĩ của bạn đã bị khóa nên không thể tạo bài hát.",
             StatusCodes.FORBIDDEN
         );
     }
 
     if (artist.activeStatus === "inactive") {
         throw new AppError(
-            "Your artist account is inactive. Cannot create tracks.",
+            "Tài khoản nghệ sĩ của bạn chưa hoạt động nên không thể tạo bài hát.",
             StatusCodes.FORBIDDEN
         );
     }
@@ -193,7 +193,7 @@ const validateSingleAudioFile = (file, index) => {
     const fieldPrefix = `audioFiles[${index}]`;
 
     if (!file?.url || !isHttpUrl(file.url)) {
-        throw new AppError("Audio file URL must be a valid http(s) URL.", StatusCodes.BAD_REQUEST, {
+        throw new AppError("Địa chỉ tệp âm thanh phải là địa chỉ http(s) hợp lệ.", StatusCodes.BAD_REQUEST, {
             field: `${fieldPrefix}.url`,
         });
     }
@@ -202,7 +202,7 @@ const validateSingleAudioFile = (file, index) => {
 
     if (!AUDIO_FORMATS.has(format)) {
         throw new AppError(
-            `Audio format must be one of: ${[...AUDIO_FORMATS].join(", ")}.`,
+            `Định dạng âm thanh phải là một trong các loại: ${[...AUDIO_FORMATS].join(", ")}.`,
             StatusCodes.BAD_REQUEST,
             { field: `${fieldPrefix}.format` }
         );
@@ -212,7 +212,7 @@ const validateSingleAudioFile = (file, index) => {
 
     if (!Number.isFinite(bitrate) || bitrate < MIN_AUDIO_BITRATE) {
         throw new AppError(
-            `Audio bitrate must be at least ${MIN_AUDIO_BITRATE}.`,
+            `Tốc độ bit của âm thanh phải đạt ít nhất ${MIN_AUDIO_BITRATE}.`,
             StatusCodes.BAD_REQUEST,
             { field: `${fieldPrefix}.bitrate` }
         );
@@ -222,7 +222,7 @@ const validateSingleAudioFile = (file, index) => {
 
     if (!AUDIO_LABELS.has(label)) {
         throw new AppError(
-            `Audio label must be one of: ${[...AUDIO_LABELS].join(", ")}.`,
+            `Nhãn âm thanh phải là một trong các giá trị: ${[...AUDIO_LABELS].join(", ")}.`,
             StatusCodes.BAD_REQUEST,
             { field: `${fieldPrefix}.label` }
         );
@@ -231,7 +231,7 @@ const validateSingleAudioFile = (file, index) => {
     const priority = file.priority !== undefined ? Number(file.priority) : 0;
 
     if (!Number.isFinite(priority) || priority < 0) {
-        throw new AppError("Audio priority must be a number >= 0.", StatusCodes.BAD_REQUEST, {
+        throw new AppError("Độ ưu tiên âm thanh phải là số lớn hơn hoặc bằng 0.", StatusCodes.BAD_REQUEST, {
             field: `${fieldPrefix}.priority`,
         });
     }
@@ -251,7 +251,7 @@ export const validateOptionalAudioFiles = (audioFiles) => {
     }
 
     if (!Array.isArray(audioFiles)) {
-        throw new AppError("Audio files must be an array.", StatusCodes.BAD_REQUEST, {
+        throw new AppError("Danh sách tệp âm thanh phải là một mảng.", StatusCodes.BAD_REQUEST, {
             field: "audioFiles",
         });
     }
@@ -262,7 +262,7 @@ export const validateOptionalAudioFiles = (audioFiles) => {
 
     if (audioFiles.length > MAX_AUDIO_FILES) {
         throw new AppError(
-            `A track can have at most ${MAX_AUDIO_FILES} audio files.`,
+            `Một bài hát chỉ được có tối đa ${MAX_AUDIO_FILES} tệp âm thanh.`,
             StatusCodes.BAD_REQUEST,
             { field: "audioFiles" }
         );
@@ -288,7 +288,7 @@ export const validateOptionalAudioFiles = (audioFiles) => {
     const labels = normalizedFiles.map((file) => file.label);
 
     if (new Set(labels).size !== labels.length) {
-        throw new AppError("Audio file labels must be unique.", StatusCodes.BAD_REQUEST, {
+        throw new AppError("Nhãn của các tệp âm thanh không được trùng nhau.", StatusCodes.BAD_REQUEST, {
             field: "audioFiles",
         });
     }
@@ -304,13 +304,13 @@ export const validateOptionalDuration = (duration, hasAudioFiles) => {
     const parsedDuration = Number(duration);
 
     if (!Number.isFinite(parsedDuration) || parsedDuration < 0) {
-        throw new AppError("Duration must be a number >= 0.", StatusCodes.BAD_REQUEST, {
+        throw new AppError("Thời lượng phải là số lớn hơn hoặc bằng 0.", StatusCodes.BAD_REQUEST, {
             field: "duration",
         });
     }
 
     if (hasAudioFiles && parsedDuration <= 0) {
-        throw new AppError("Duration must be greater than 0 when audio files are provided.", StatusCodes.BAD_REQUEST, {
+        throw new AppError("Thời lượng phải lớn hơn 0 khi có tệp âm thanh.", StatusCodes.BAD_REQUEST, {
             field: "duration",
         });
     }
@@ -327,7 +327,7 @@ export const validateDurationFromAudioAnalysis = (audioAnalysis, hasAudioFiles) 
 
     if (!Number.isFinite(parsedDuration) || parsedDuration <= 0) {
         throw new AppError(
-            "Duration must be extracted from the uploaded audio file.",
+            "Thời lượng phải được trích xuất từ tệp âm thanh đã tải lên.",
             StatusCodes.BAD_REQUEST,
             { field: "audioAnalysis.duration" }
         );
@@ -342,7 +342,7 @@ export const validateOptionalGenreIds = async (genreIds) => {
     }
 
     if (!Array.isArray(genreIds)) {
-        throw new AppError("Genre IDs must be an array.", StatusCodes.BAD_REQUEST, {
+        throw new AppError("Danh sách mã thể loại phải là một mảng.", StatusCodes.BAD_REQUEST, {
             field: "genreIds",
         });
     }
@@ -353,7 +353,7 @@ export const validateOptionalGenreIds = async (genreIds) => {
 
     if (genreIds.length > MAX_GENRE_IDS) {
         throw new AppError(
-            `A track can have at most ${MAX_GENRE_IDS} genres.`,
+            `Một bài hát chỉ được có tối đa ${MAX_GENRE_IDS} thể loại.`,
             StatusCodes.BAD_REQUEST,
             { field: "genreIds" }
         );
@@ -362,7 +362,7 @@ export const validateOptionalGenreIds = async (genreIds) => {
     const normalizedIds = genreIds.map((id) => String(id).trim()).filter(Boolean);
 
     if (normalizedIds.length !== genreIds.length) {
-        throw new AppError("Genre IDs cannot be empty.", StatusCodes.BAD_REQUEST, {
+        throw new AppError("Mã thể loại không được để trống.", StatusCodes.BAD_REQUEST, {
             field: "genreIds",
         });
     }
@@ -370,7 +370,7 @@ export const validateOptionalGenreIds = async (genreIds) => {
     const uniqueIds = [...new Set(normalizedIds)];
 
     if (uniqueIds.length !== normalizedIds.length) {
-        throw new AppError("Duplicate genre IDs are not allowed.", StatusCodes.BAD_REQUEST, {
+        throw new AppError("Không được phép dùng mã thể loại trùng lặp.", StatusCodes.BAD_REQUEST, {
             field: "genreIds",
         });
     }
@@ -378,7 +378,7 @@ export const validateOptionalGenreIds = async (genreIds) => {
     const invalidIds = uniqueIds.filter((id) => !mongoose.Types.ObjectId.isValid(id));
 
     if (invalidIds.length > 0) {
-        throw new AppError("One or more genre IDs are invalid.", StatusCodes.BAD_REQUEST, {
+        throw new AppError("Một hoặc nhiều mã thể loại không hợp lệ.", StatusCodes.BAD_REQUEST, {
             field: "genreIds",
         });
     }
@@ -390,7 +390,7 @@ export const validateOptionalGenreIds = async (genreIds) => {
     });
 
     if (existingCount !== uniqueIds.length) {
-        throw new AppError("One or more genres do not exist or are inactive.", StatusCodes.BAD_REQUEST, {
+        throw new AppError("Một hoặc nhiều thể loại không tồn tại hoặc chưa hoạt động.", StatusCodes.BAD_REQUEST, {
             field: "genreIds",
         });
     }
@@ -404,7 +404,7 @@ export const validateOptionalAlbumForDraft = async (albumId, artistId) => {
     }
 
     if (!mongoose.Types.ObjectId.isValid(albumId)) {
-        throw new AppError("Album id is invalid.", StatusCodes.BAD_REQUEST, {
+        throw new AppError("Mã album không hợp lệ.", StatusCodes.BAD_REQUEST, {
             field: "album_albumId",
         });
     }
@@ -412,14 +412,14 @@ export const validateOptionalAlbumForDraft = async (albumId, artistId) => {
     const album = await Album.findById(albumId);
 
     if (!album) {
-        throw new AppError("Album not found.", StatusCodes.NOT_FOUND, {
+        throw new AppError("Không tìm thấy album.", StatusCodes.NOT_FOUND, {
             field: "album_albumId",
         });
     }
 
     if (!album.artistId.equals(artistId)) {
         throw new AppError(
-            "You cannot add a track to another artist's album.",
+            "Bạn không thể thêm bài hát vào album của nghệ sĩ khác.",
             StatusCodes.FORBIDDEN,
             { field: "album_albumId" }
         );
@@ -427,7 +427,7 @@ export const validateOptionalAlbumForDraft = async (albumId, artistId) => {
 
     if (album.status === "blocked" || album.status === "hidden") {
         throw new AppError(
-            "Cannot add a track to a hidden or blocked album.",
+            "Không thể thêm bài hát vào album đang bị ẩn hoặc bị khóa.",
             StatusCodes.BAD_REQUEST,
             { field: "album_albumId" }
         );
@@ -435,7 +435,7 @@ export const validateOptionalAlbumForDraft = async (albumId, artistId) => {
 
     if (album.releaseDate && album.releaseDate <= new Date()) {
         throw new AppError(
-            "Cannot add a track to an album that has already been released.",
+            "Không thể thêm bài hát vào album đã phát hành.",
             StatusCodes.BAD_REQUEST,
             { field: "album_albumId" }
         );

@@ -304,46 +304,14 @@ const ArtistDetailPage = () => {
                         )}
                     </div>
 
-                    {/* Phân phối khu vực Demographics */}
-                    <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
-                        <h2 className="text-base font-bold text-slate-900 border-b border-slate-50 pb-3">Phân bổ vị trí khán giả (Demographics)</h2>
-                        <div className="grid gap-3 sm:grid-cols-3 mt-4">
-                            {artist.demographics && Object.keys(artist.demographics).length > 0 ? (
-                                Object.entries(artist.demographics).map(([country, percentage]) => (
-                                    <div key={country} className="flex justify-between items-center bg-slate-50/70 border border-slate-100 rounded-xl p-4 text-xs font-bold">
-                                        <span className="font-mono text-slate-400 uppercase block">📍 {country}</span>
-                                        <span className="text-slate-950 font-extrabold bg-white border border-slate-100 px-2 py-0.5 rounded-lg shadow-sm">{percentage}%</span>
-                                    </div>
-                                ))
-                            ) : (
-                                <p className="text-xs text-slate-400 italic font-medium pl-1">Chưa có dữ liệu vị trí người nghe.</p>
-                            )}
-                        </div>
-                    </div>
-
                 </div>
 
                 {/* CỘT PHẢI (GOVERNANCE + SOCIAL LINKS + BIO) */}
                 <div className="space-y-6">
                     
-                    {/* Quản trị & Xác minh hệ thống */}
-                    <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
-                        <h2 className="text-base font-bold text-slate-900 border-b border-slate-50 pb-3">Trạng thái định danh quản trị</h2>
-                        <div className="mt-4 space-y-3">
-                            <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex justify-between items-center text-xs font-bold">
-                                <span className="text-slate-400 uppercase text-[10px] tracking-wider">Trạng thái tích xanh</span>
-                                <span className={getStatusClasses(artist.verificationStatus)}>{artist.verificationStatus || "pending"}</span>
-                            </div>
-                            <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex justify-between items-center text-xs font-bold">
-                                <span className="text-slate-400 uppercase text-[10px] tracking-wider">Trạng thái hiển thị</span>
-                                <span className={getStatusClasses(artist.activeStatus)}>{artist.activeStatus || "active"}</span>
-                            </div>
-                        </div>
-                    </div>
-
                     {/* Mạng xã hội liên kết */}
                     <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
-                        <h2 className="text-base font-bold text-slate-900 border-b border-slate-50 pb-3">Kênh định danh mạng xã hội</h2>
+                        <h2 className="text-base font-bold text-slate-900 border-b border-slate-50 pb-3">Mạng xã hội liên kết</h2>
                         <div className="mt-4 space-y-3 text-xs font-bold">
                             <div className="p-3 bg-slate-50/70 border border-slate-100 rounded-xl">
                                 <span className="text-slate-400 block text-[10px] uppercase tracking-wide mb-1">Facebook</span>

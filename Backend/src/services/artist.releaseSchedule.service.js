@@ -149,7 +149,7 @@ const getArtistByUserId = async (userId) => {
     const artist = await Artist.findOne({ userId }).select("_id name").lean();
 
     if (!artist) {
-        throw new AppError("Artist profile not found.", 404);
+        throw new AppError("Không tìm thấy hồ sơ nghệ sĩ.", 404);
     }
 
     return artist;
@@ -163,7 +163,7 @@ const getOwnedReleaseTarget = async ({ artistId, type, targetId }) => {
         }).lean();
 
         if (!album) {
-            throw new AppError("Album not found for this artist.", 404);
+            throw new AppError("Không tìm thấy album của nghệ sĩ này.", 404);
         }
 
         return album;
@@ -175,7 +175,7 @@ const getOwnedReleaseTarget = async ({ artistId, type, targetId }) => {
     }).lean();
 
     if (!track) {
-        throw new AppError("Track not found for this artist.", 404);
+        throw new AppError("Không tìm thấy bài hát của nghệ sĩ này.", 404);
     }
 
     return track;
@@ -186,7 +186,7 @@ const ensureAlbumCanBeScheduledForRelease = (album) => {
 
     if (trackCount < MIN_TRACKS_TO_PUBLISH_ALBUM) {
         throw new AppError(
-            `Album must contain at least ${MIN_TRACKS_TO_PUBLISH_ALBUM} tracks before it can be scheduled for release.`,
+            `Album phải có ít nhất ${MIN_TRACKS_TO_PUBLISH_ALBUM} bài hát trước khi lên lịch phát hành.`,
             400,
             {
                 field: "targetId",
@@ -198,7 +198,7 @@ const ensureAlbumCanBeScheduledForRelease = (album) => {
 const ensureTargetCanBeReleased = ({ type, target }) => {
     if (type === "album") {
         if (target?.status === "blocked") {
-            throw new AppError("Blocked albums cannot be released.", 409, {
+            throw new AppError("Không thể phát hành album đang bị khóa.", 409, {
                 field: "targetId",
             });
         }
@@ -207,13 +207,13 @@ const ensureTargetCanBeReleased = ({ type, target }) => {
     }
 
     if (target?.approvalStatus !== "approved") {
-        throw new AppError("Track must be approved before it can be released.", 409, {
+        throw new AppError("Bài hát phải được phê duyệt trước khi phát hành.", 409, {
             field: "targetId",
         });
     }
 
     if (target?.activeStatus === "blocked") {
-        throw new AppError("Blocked tracks cannot be released.", 409, {
+        throw new AppError("Không thể phát hành bài hát đang bị khóa.", 409, {
             field: "targetId",
         });
     }
@@ -221,7 +221,7 @@ const ensureTargetCanBeReleased = ({ type, target }) => {
 
 const ensureTrackHasNotBeenReleased = async ({ artistId, target }) => {
     if (resolveTrackReleaseStatus(target) === TRACK_RELEASE_STATUS.RELEASED) {
-        throw new AppError("Released tracks cannot be scheduled again.", 409, {
+        throw new AppError("Không thể lên lịch lại cho bài hát đã phát hành.", 409, {
             field: "targetId",
             code: "TRACK_ALREADY_RELEASED",
         });
@@ -235,9 +235,32 @@ const ensureTrackHasNotBeenReleased = async ({ artistId, target }) => {
     });
 
     if (releasedScheduleExists) {
-        throw new AppError("Released tracks cannot be scheduled again.", 409, {
+        throw new AppError("Không thể lên lịch lại cho bài hát đã phát hành.", 409, {
             field: "targetId",
             code: "TRACK_ALREADY_RELEASED",
+        });
+    }
+};
+
+const ensureAlbumHasNotBeenReleased = async ({ artistId, target }) => {
+    if (["active", "hidden"].includes(target?.status)) {
+        throw new AppError("Không thể lên lịch lại cho album đã phát hành.", 409, {
+            field: "targetId",
+            code: "ALBUM_ALREADY_RELEASED",
+        });
+    }
+
+    const releasedScheduleExists = await ReleaseSchedule.exists({
+        artistId,
+        type: "album",
+        targetId: target?._id,
+        status: "released",
+    });
+
+    if (releasedScheduleExists) {
+        throw new AppError("Không thể lên lịch lại cho album đã phát hành.", 409, {
+            field: "targetId",
+            code: "ALBUM_ALREADY_RELEASED",
         });
     }
 };
@@ -252,7 +275,7 @@ const ensureNoConflictingScheduledRelease = async ({ artistId, type, targetId })
 
     if (existingSchedule) {
         throw new AppError(
-            "A scheduled release already exists for this item.",
+            "Nội dung này đã có lịch phát hành.",
             409
         );
     }
@@ -334,7 +357,7 @@ const ensureScheduledAtIsValid = (value) => {
     const scheduledAt = new Date(value);
 
     if (Number.isNaN(scheduledAt.getTime())) {
-        throw new AppError("Scheduled date is invalid.", 400, {
+        throw new AppError("Ngày phát hành theo lịch không hợp lệ.", 400, {
             field: "scheduledAt",
         });
     }
@@ -344,15 +367,15 @@ const ensureScheduledAtIsValid = (value) => {
 
 const ensureReleaseScheduleIsEditable = (schedule) => {
     if (schedule.status === "cancelled") {
-        throw new AppError("Cancelled schedules cannot be edited.", 409);
+        throw new AppError("Không thể chỉnh sửa lịch đã hủy.", 409);
     }
 
     if (schedule.status === "released") {
-        throw new AppError("Released schedules cannot be edited.", 409);
+        throw new AppError("Không thể chỉnh sửa lịch đã phát hành.", 409);
     }
 
     if (new Date(schedule.scheduledAt).getTime() <= Date.now()) {
-        throw new AppError("This release schedule can no longer be edited.", 409);
+        throw new AppError("Lịch phát hành này không còn có thể chỉnh sửa.", 409);
     }
 };
 
@@ -771,7 +794,7 @@ const getMyReleaseScheduleDetail = async (userId, scheduleId) => {
     }).lean();
 
     if (!schedule) {
-        throw new AppError("Release schedule not found.", 404);
+        throw new AppError("Không tìm thấy lịch phát hành.", 404);
     }
 
     const target = await getOwnedReleaseTarget({
@@ -802,19 +825,19 @@ const cancelMyReleaseSchedule = async (userId, scheduleId) => {
     });
 
     if (!schedule) {
-        throw new AppError("Release schedule not found.", 404);
+        throw new AppError("Không tìm thấy lịch phát hành.", 404);
     }
 
     if (schedule.status === "cancelled") {
-        throw new AppError("Release schedule has already been cancelled.", 409);
+        throw new AppError("Lịch phát hành đã được hủy trước đó.", 409);
     }
 
     if (schedule.status === "released") {
-        throw new AppError("Released schedules cannot be cancelled.", 409);
+        throw new AppError("Không thể hủy lịch đã phát hành.", 409);
     }
 
     if (new Date(schedule.scheduledAt).getTime() <= Date.now()) {
-        throw new AppError("This release schedule can no longer be cancelled.", 409);
+        throw new AppError("Lịch phát hành này không còn có thể hủy.", 409);
     }
 
     const target = await getOwnedReleaseTarget({
@@ -887,6 +910,10 @@ const createMyReleaseSchedule = async (userId, payload, io = null) => {
 
     if (payload.type === "album") {
         ensureAlbumCanBeScheduledForRelease(target);
+        await ensureAlbumHasNotBeenReleased({
+            artistId: artist._id,
+            target,
+        });
     }
 
     await ensureNoConflictingScheduledRelease({
@@ -968,7 +995,7 @@ const updateMyReleaseSchedule = async (userId, scheduleId, payload) => {
     });
 
     if (!schedule) {
-        throw new AppError("Release schedule not found.", 404);
+        throw new AppError("Không tìm thấy lịch phát hành.", 404);
     }
 
     ensureReleaseScheduleIsEditable(schedule);
@@ -984,7 +1011,7 @@ const updateMyReleaseSchedule = async (userId, scheduleId, payload) => {
         schedule.type === "track" &&
         resolveTrackReleaseStatus(target) === TRACK_RELEASE_STATUS.RELEASED
     ) {
-        throw new AppError("Released tracks cannot be scheduled again.", 409, {
+        throw new AppError("Không thể lên lịch lại cho bài hát đã phát hành.", 409, {
             field: "targetId",
             code: "TRACK_ALREADY_RELEASED",
         });

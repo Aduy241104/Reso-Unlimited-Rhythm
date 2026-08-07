@@ -35,7 +35,7 @@ const getTodayInAnalyticsTimezone = () =>
 
 const ensureDateKey = (value) => {
     if (!isValidDateKey(value)) {
-        throw new AppError("Invalid date range", StatusCodes.BAD_REQUEST);
+        throw new AppError("Khoảng ngày không hợp lệ.", StatusCodes.BAD_REQUEST);
     }
 
     return value;
@@ -43,7 +43,7 @@ const ensureDateKey = (value) => {
 
 const ensureDateRangeOrder = (from, to) => {
     if (parseDateKey(from).isAfter(parseDateKey(to))) {
-        throw new AppError("Invalid date range", StatusCodes.BAD_REQUEST);
+        throw new AppError("Khoảng ngày không hợp lệ.", StatusCodes.BAD_REQUEST);
     }
 };
 
@@ -51,7 +51,7 @@ const resolveArtistProfile = async (userId) => {
     const artist = await Artist.findOne({ userId }).select("_id").lean();
 
     if (!artist) {
-        throw new AppError("Artist profile not found.", StatusCodes.NOT_FOUND);
+        throw new AppError("Không tìm thấy hồ sơ nghệ sĩ.", StatusCodes.NOT_FOUND);
     }
 
     return artist;
@@ -98,7 +98,7 @@ const resolveOverviewPeriod = ({ range, from, to }) => {
     const normalizedRange = String(range || DEFAULT_RANGE).trim();
 
     if (!ALLOWED_RANGES.has(normalizedRange)) {
-        throw new AppError("Invalid analytics range", StatusCodes.BAD_REQUEST);
+        throw new AppError("Khoảng phân tích không hợp lệ.", StatusCodes.BAD_REQUEST);
     }
 
     if (normalizedRange === "all") {
@@ -111,7 +111,7 @@ const resolveOverviewPeriod = ({ range, from, to }) => {
 
     if (normalizedRange === "custom") {
         if (!from || !to) {
-            throw new AppError("Invalid date range", StatusCodes.BAD_REQUEST);
+            throw new AppError("Khoảng ngày không hợp lệ.", StatusCodes.BAD_REQUEST);
         }
 
         const normalizedFrom = ensureDateKey(String(from).trim());

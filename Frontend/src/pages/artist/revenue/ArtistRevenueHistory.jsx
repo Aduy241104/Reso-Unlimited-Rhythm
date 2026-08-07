@@ -259,7 +259,7 @@ const ArtistRevenueHistory = () => {
                         <div className="relative ">
                             <div>
                                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-violet-500">
-                                    Revenue history
+                                    Lịch sử doanh thu
                                 </p>
 
                                 <h1 className="mt-1 text-xl font-semibold tracking-tight text-black md:text-2xl">
@@ -314,11 +314,11 @@ const ArtistRevenueHistory = () => {
                                         </th>
 
                                         <th className="whitespace-nowrap px-5 py-3 text-right font-semibold">
-                                            Stream hợp lệ
+                                            Lượt nghe hợp lệ
                                         </th>
 
                                         <th className="whitespace-nowrap px-5 py-3 text-right font-semibold">
-                                            Track
+                                            Bài hát
                                         </th>
 
                                         <th className="whitespace-nowrap px-5 py-3 font-semibold">

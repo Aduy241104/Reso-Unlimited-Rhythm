@@ -14,7 +14,7 @@ import { MONTHLY_TOP_ARTISTS_LIMIT } from "../../utils/monthlyTopArtists";
 
 const PERIOD_CONFIG = {
   daily: {
-    title: "Top nghệ sĩ theo ngày",
+    title: "Nghệ sĩ nổi bật theo ngày",
     description: "Bảng xếp hạng những nghệ sĩ được nghe nhiều nhất trong ngày.",
     errorMessage: "Không thể tải bảng xếp hạng nghệ sĩ theo ngày lúc này.",
     emptyMessage: "Chưa có dữ liệu xếp hạng nghệ sĩ cho ngày này.",
@@ -25,7 +25,7 @@ const PERIOD_CONFIG = {
       }),
   },
   monthly: {
-    title: "Top nghệ sĩ theo tháng",
+    title: "Nghệ sĩ nổi bật theo tháng",
     description: "Bảng xếp hạng những nghệ sĩ được nghe nhiều nhất trong tháng.",
     errorMessage: "Không thể tải bảng xếp hạng nghệ sĩ theo tháng lúc này.",
     emptyMessage: "Chưa có dữ liệu xếp hạng nghệ sĩ cho tháng này.",
