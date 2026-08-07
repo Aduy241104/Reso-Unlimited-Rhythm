@@ -5,7 +5,7 @@ import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
-import models from "./models/index.js";
+import models from "./src/models/index.js";
 
 dotenv.config();
 dayjs.extend(utc);
@@ -52,8 +52,10 @@ const ANALYTICS_TIMEZONE =
     process.env.CRON_TIMEZONE ||
     "Asia/Ho_Chi_Minh";
 const SEED_PASSWORD = process.env.SEED_PASSWORD || "Seed@123";
-const HISTORY_DAYS = 30;
+const HISTORY_DAYS = 14;
 const FUTURE_DAYS = 7;
+const DEMO_MONTHS = 12;
+const RANKING_TRACK_COUNT = 3;
 const DRY_RUN = process.argv.includes("--dry-run");
 const VERIFY_MEDIA = process.argv.includes("--verify-media");
 
@@ -74,24 +76,24 @@ const ids = {
     artists: idList(4, 8),
     albums: idList(5, 16),
     tracks: idList(6, 48),
-    playlists: idList(7, 48),
+    playlists: idList(7, 64),
     listenEvents: idList(8, 9000),
     recentActivities: idList(9, 256),
     interactions: idList(10, 512),
     searchEvents: idList(11, 512),
     subscriptions: idList(12, 32),
-    transactions: idList(13, 96),
+    transactions: idList(13, 256),
     notifications: idList(14, 128),
     reports: idList(15, 32),
     releaseSchedules: idList(16, 32),
     artistRequests: idList(17, 8),
     verificationRequests: idList(18, 16),
-    trackDailyStats: idList(19, 1024),
-    artistDailyStats: idList(20, 256),
-    trackMonthlyStats: idList(21, 256),
-    artistMonthlyStats: idList(22, 64),
+    trackDailyStats: idList(19, 2048),
+    artistDailyStats: idList(20, 512),
+    trackMonthlyStats: idList(21, 768),
+    artistMonthlyStats: idList(22, 128),
     artistStats: idList(23, 16),
-    revenueSummaries: idList(24, 64),
+    revenueSummaries: idList(24, 128),
     withdrawals: idList(25, 32),
     personalizedMixes: idList(26, 128),
     refreshTokens: idList(27, 16),
@@ -312,6 +314,42 @@ const planSnapshot = (plan) => ({
 
 const round = (value, digits = 2) => Number(Number(value).toFixed(digits));
 const hashToken = (label) => crypto.createHash("sha512").update(label).digest("hex");
+const gmailAddress = (prefix) => `${prefix}@gmail.com`;
+const monthOffsets = () =>
+    Array.from({ length: DEMO_MONTHS }, (_, index) => index - (DEMO_MONTHS - 1));
+const monthKeyFromDate = (value) => dayjs(value).tz(ANALYTICS_TIMEZONE).format("YYYY-MM");
+const OPEN_REVENUE_PERIOD_COUNT = 5;
+const CLOSED_REVENUE_PERIOD_COUNT = 2;
+const isSeedOpenRevenuePeriod = (monthOffset) =>
+    monthOffset >= -(OPEN_REVENUE_PERIOD_COUNT - 1);
+const isSeedClosedRevenuePeriod = (monthOffset) =>
+    monthOffset < -(OPEN_REVENUE_PERIOD_COUNT - 1) &&
+    monthOffset >= -(OPEN_REVENUE_PERIOD_COUNT + CLOSED_REVENUE_PERIOD_COUNT - 1);
+const resolveSeedRevenuePeriodStatus = (monthOffset) => {
+    if (isSeedOpenRevenuePeriod(monthOffset)) {
+        return "open";
+    }
+
+    return isSeedClosedRevenuePeriod(monthOffset)
+        ? "closed"
+        : "confirmed";
+};
+const resolveSeedRevenueSummaryStatus = (monthOffset) =>
+    resolveSeedRevenuePeriodStatus(monthOffset) !== "confirmed"
+        ? "pending"
+        : "confirmed";
+const resolveSeedRevenueClosedAt = (month, monthOffset) =>
+    ["closed", "confirmed"].includes(resolveSeedRevenuePeriodStatus(monthOffset))
+        ? month.endOf("month").toDate()
+        : null;
+const resolveSeedRevenueCalculatedAt = (month, monthOffset) =>
+    resolveSeedRevenuePeriodStatus(monthOffset) !== "confirmed"
+        ? null
+        : month.add(1, "month").date(1).hour(9).minute(0).second(0).millisecond(0).toDate();
+const resolveSeedRevenueConfirmedAt = (month, monthOffset) =>
+    resolveSeedRevenuePeriodStatus(monthOffset) === "confirmed"
+        ? month.add(1, "month").date(3).hour(9).minute(0).second(0).millisecond(0).toDate()
+        : null;
 
 const buildSeedData = async () => {
     const dates = dateContext();
@@ -358,7 +396,7 @@ const buildSeedData = async () => {
     const users = [
         {
             _id: ids.users[0],
-            email: "admin@reso.seed",
+            email: gmailAddress("reso.seed.admin"),
             password: passwordHash,
             authProvider: "local",
             avatar: portrait(0),
@@ -371,7 +409,7 @@ const buildSeedData = async () => {
         },
         ...ARTIST_FULL_NAMES.map((fullName, index) => ({
             _id: ids.users[index + 1],
-            email: `artist${String(index + 1).padStart(2, "0")}@reso.seed`,
+            email: gmailAddress(`reso.artist.${String(index + 1).padStart(2, "0")}`),
             password: passwordHash,
             authProvider: "local",
             avatar: portrait(index + 1),
@@ -392,7 +430,7 @@ const buildSeedData = async () => {
             const plan = plans[index % 3 === 0 ? 2 : 1];
             return {
                 _id: ids.users[index + 9],
-                email: `listener${String(index + 1).padStart(2, "0")}@reso.seed`,
+                email: gmailAddress(`reso.listener.${String(index + 1).padStart(2, "0")}`),
                 password: passwordHash,
                 authProvider: "local",
                 avatar: portrait(index + 4),
@@ -415,7 +453,7 @@ const buildSeedData = async () => {
         }),
         ...APPLICANT_NAMES.map((fullName, index) => ({
             _id: ids.users[index + 33],
-            email: `applicant${String(index + 1).padStart(2, "0")}@reso.seed`,
+            email: gmailAddress(`reso.applicant.${String(index + 1).padStart(2, "0")}`),
             password: passwordHash,
             authProvider: "local",
             avatar: portrait(index + 8),
@@ -517,6 +555,16 @@ const buildSeedData = async () => {
             lyricsSyncUrl: "",
             stats: { totalLike: 0, totalPlay: 0 },
             releaseDate: dates.at(-150 + index * 3).toDate(),
+            releaseStatus:
+                approvalStatus === "approved" && ["active", "hidden"].includes(activeStatus)
+                    ? "released"
+                    : activeStatus === "draft"
+                        ? "unreleased"
+                        : "scheduled",
+            releasedAt:
+                approvalStatus === "approved" && ["active", "hidden"].includes(activeStatus)
+                    ? dates.at(-150 + index * 3).toDate()
+                    : null,
             activeStatus,
             approvalStatus,
             copyright: {
@@ -560,79 +608,237 @@ const buildSeedData = async () => {
     const playableTracks = tracks.filter(
         (track) => track.activeStatus === "active" && track.approvalStatus === "approved"
     );
+    const audienceUsers = [...listeners.slice(0, 18), ...artistUsers.slice(0, 4)];
+    const rankingTracks = playableTracks.slice(0, RANKING_TRACK_COUNT);
+    const monthOffsetsList = monthOffsets();
     const listenEvents = [];
     const eventBuckets = new Map();
-    const userListeningTotals = new Map();
+    const userDailyOrders = new Map();
     let listenEventIndex = 0;
 
-    for (let dayOffset = -(HISTORY_DAYS - 1); dayOffset <= FUTURE_DAYS; dayOffset += 1) {
-        const dateKey = dates.key(dayOffset);
-        const dayEvents = [];
+    const registerListenEvent = ({
+        user,
+        track,
+        listenedAt,
+        isValidStream = true,
+        sourceIndex = 0,
+        requiredPercent = 80,
+        listenPercent = null,
+    }) => {
+        const resolvedListenPercent = listenPercent ?? (
+            isValidStream
+                ? Math.min(100, requiredPercent + 8 + ((listenEventIndex + sourceIndex) % 12))
+                : 18 + ((listenEventIndex + sourceIndex) % 26)
+        );
+        const listenedDuration = round(track.duration * (resolvedListenPercent / 100));
+        const dateKey = dayjs(listenedAt).tz(ANALYTICS_TIMEZONE).format("YYYY-MM-DD");
+        const orderKey = `${String(user._id)}:${dateKey}`;
+        const order = (userDailyOrders.get(orderKey) || 0) + 1;
+        userDailyOrders.set(orderKey, order);
 
-        listeningUsers.forEach((user, userIndex) => {
-            const eventCount = 4 + ((userIndex + dayOffset + HISTORY_DAYS) % 5);
+        const event = {
+            _id: ids.listenEvents[listenEventIndex],
+            userId: user._id,
+            trackId: track._id,
+            artistId: track.artist_artistId,
+            listenedAt,
+            trackDuration: track.duration,
+            listenedDuration,
+            listenPercent: resolvedListenPercent,
+            dailyListenOrder: order,
+            requiredPercent,
+            source: SOURCES[sourceIndex % SOURCES.length],
+            isValidStream,
+            duration: listenedDuration,
+            completed: resolvedListenPercent >= 90,
+            skipped: !isValidStream && resolvedListenPercent < 30,
+            device: DEVICES[(listenEventIndex + sourceIndex) % DEVICES.length],
+            country: user.profile.country,
+            createdAt: listenedAt,
+            updatedAt: listenedAt,
+        };
 
-            for (let order = 1; order <= eventCount; order += 1) {
-                const track = playableTracks[
-                    (userIndex * 7 + (dayOffset + HISTORY_DAYS) * 3 + order * 5) % playableTracks.length
+        if (!event._id) {
+            throw new Error("ListenEvent seed exceeded the reserved deterministic ID range.");
+        }
+
+        listenEvents.push(event);
+        if (!eventBuckets.has(dateKey)) {
+            eventBuckets.set(dateKey, []);
+        }
+        eventBuckets.get(dateKey).push(event);
+        listenEventIndex += 1;
+    };
+
+    monthOffsetsList.forEach((monthOffset, monthIndex) => {
+        const month = dates.month(monthOffset);
+        const daysToSchedule = monthOffset === 0 ? dates.anchor.date() : month.daysInMonth();
+
+        playableTracks.forEach((track, trackIndex) => {
+            const rankingIndex = rankingTracks.findIndex(
+                (candidate) => String(candidate._id) === String(track._id)
+            );
+            const baseEvents = 2 + (trackIndex % 2);
+            const catalogBoost = trackIndex < 12 ? 1 : 0;
+            const rankingBoost = rankingIndex >= 0 ? 4 - rankingIndex : 0;
+            const currentMonthBoost = monthOffset === 0 ? 1 : 0;
+            const totalEvents = baseEvents + catalogBoost + rankingBoost + currentMonthBoost;
+
+            for (let eventIndex = 0; eventIndex < totalEvents; eventIndex += 1) {
+                const user = audienceUsers[
+                    (trackIndex * 5 + eventIndex * 3 + monthIndex * 7) % audienceUsers.length
                 ];
-                const requiredPercent = order <= 3 ? 80 : 30;
-                const isValidStream = (userIndex + order + dayOffset + 50) % 11 !== 0;
-                const listenPercent = isValidStream
-                    ? Math.min(100, requiredPercent + 8 + ((userIndex * 3 + order * 7) % 19))
-                    : 8 + ((userIndex + order * 4) % Math.max(requiredPercent - 8, 1));
-                const listenedDuration = round(track.duration * (listenPercent / 100));
-                const listenedAt = dates
-                    .at(
-                        dayOffset,
-                        6 + ((userIndex * 3 + order * 2 + dayOffset + 40) % 17),
-                        (userIndex * 11 + order * 7) % 60
-                    )
-                    .toDate();
-                const event = {
-                    _id: ids.listenEvents[listenEventIndex],
-                    userId: user._id,
-                    trackId: track._id,
-                    artistId: track.artist_artistId,
-                    listenedAt,
-                    trackDuration: track.duration,
-                    listenedDuration,
-                    listenPercent,
-                    dailyListenOrder: order,
-                    requiredPercent,
-                    source: SOURCES[(userIndex + order) % SOURCES.length],
+                const dayNumber = 1 + (
+                    (trackIndex * 7 + eventIndex * 5 + monthIndex * 3) % daysToSchedule
+                );
+                const listenedMoment = month
+                    .date(dayNumber)
+                    .hour(8 + ((trackIndex + eventIndex + monthIndex) % 12))
+                    .minute((trackIndex * 11 + eventIndex * 13 + monthIndex) % 60)
+                    .second(0)
+                    .millisecond(0);
+                const isValidStream = eventIndex !== totalEvents - 1 || (trackIndex + monthIndex) % 5 !== 0;
+                registerListenEvent({
+                    user,
+                    track,
+                    listenedAt: listenedMoment.toDate(),
                     isValidStream,
-                    duration: listenedDuration,
-                    completed: listenPercent >= 90,
-                    skipped: !isValidStream && listenPercent < 30,
-                    device: DEVICES[(userIndex + order) % DEVICES.length],
-                    country: user.profile.country,
-                    createdAt: listenedAt,
-                    updatedAt: listenedAt,
-                };
-
-                if (!event._id) {
-                    throw new Error("ListenEvent seed exceeded the reserved deterministic ID range.");
-                }
-
-                listenEvents.push(event);
-                dayEvents.push(event);
-                listenEventIndex += 1;
-
-                if (dayOffset <= 0) {
-                    const current = userListeningTotals.get(String(user._id)) || {
-                        duration: 0,
-                        plays: 0,
-                    };
-                    current.duration += listenedDuration;
-                    current.plays += isValidStream ? 1 : 0;
-                    userListeningTotals.set(String(user._id), current);
-                }
+                    sourceIndex: trackIndex + eventIndex,
+                    requiredPercent: isValidStream ? 80 : 60,
+                    listenPercent: isValidStream
+                        ? 84 + ((trackIndex + eventIndex + monthIndex) % 13)
+                        : 20 + ((trackIndex + eventIndex + monthIndex) % 18),
+                });
             }
         });
+    });
 
-        eventBuckets.set(dateKey, dayEvents);
+    for (let dayOffset = -(HISTORY_DAYS - 1); dayOffset <= FUTURE_DAYS; dayOffset += 1) {
+        rankingTracks.forEach((track, rankingIndex) => {
+            const boostCount = Math.max(
+                1,
+                3 - rankingIndex + (dayOffset === 0 && rankingIndex === 0 ? 1 : 0)
+            );
+
+            for (let eventIndex = 0; eventIndex < boostCount; eventIndex += 1) {
+                const user = audienceUsers[
+                    (rankingIndex * 9 + dayOffset + HISTORY_DAYS + eventIndex * 2) % audienceUsers.length
+                ];
+                const listenedAt = dates
+                    .at(dayOffset, 19 + rankingIndex, (eventIndex * 17 + rankingIndex * 11) % 60)
+                    .toDate();
+                registerListenEvent({
+                    user,
+                    track,
+                    listenedAt,
+                    isValidStream: true,
+                    sourceIndex: dayOffset + rankingIndex + eventIndex + 20,
+                    requiredPercent: 80,
+                    listenPercent: 91 - rankingIndex * 3 + eventIndex,
+                });
+            }
+        });
     }
+
+    const interactions = [];
+    let interactionIndex = 0;
+    listeners.forEach((user, userIndex) => {
+        for (let index = 0; index < 8; index += 1) {
+            const track = playableTracks[(userIndex * 3 + index * 5) % playableTracks.length];
+            const month = dates.month(monthOffsetsList[(userIndex + index) % monthOffsetsList.length]);
+            const daysInMonth = month.isSame(dates.anchor, "month")
+                ? dates.anchor.date()
+                : month.daysInMonth();
+            interactions.push({
+                _id: ids.interactions[interactionIndex++],
+                userId: user._id,
+                targetType: "Track",
+                targetId: track._id,
+                action: "like",
+                createdAt: month
+                    .date(1 + ((userIndex * 5 + index * 3) % daysInMonth))
+                    .hour(19)
+                    .minute((index * 9) % 60)
+                    .second(0)
+                    .millisecond(0)
+                    .toDate(),
+            });
+        }
+        for (let index = 0; index < 3; index += 1) {
+            const artist = artists[(userIndex + index * 3) % artists.length];
+            const month = dates.month(monthOffsetsList[(userIndex + index + 2) % monthOffsetsList.length]);
+            const daysInMonth = month.isSame(dates.anchor, "month")
+                ? dates.anchor.date()
+                : month.daysInMonth();
+            interactions.push({
+                _id: ids.interactions[interactionIndex++],
+                userId: user._id,
+                targetType: "Artist",
+                targetId: artist._id,
+                action: "follow",
+                createdAt: month
+                    .date(1 + ((userIndex * 7 + index * 5) % daysInMonth))
+                    .hour(9)
+                    .minute((index * 15) % 60)
+                    .second(0)
+                    .millisecond(0)
+                    .toDate(),
+            });
+        }
+        for (let index = 0; index < 2; index += 1) {
+            const album = albums[(userIndex * 2 + index * 5) % 13];
+            const month = dates.month(monthOffsetsList[(userIndex + index + 4) % monthOffsetsList.length]);
+            const daysInMonth = month.isSame(dates.anchor, "month")
+                ? dates.anchor.date()
+                : month.daysInMonth();
+            interactions.push({
+                _id: ids.interactions[interactionIndex++],
+                userId: user._id,
+                targetType: "Album",
+                targetId: album._id,
+                action: "follow",
+                createdAt: month
+                    .date(1 + ((userIndex * 11 + index * 7) % daysInMonth))
+                    .hour(10)
+                    .minute((index * 21) % 60)
+                    .second(0)
+                    .millisecond(0)
+                    .toDate(),
+            });
+        }
+    });
+
+    const allPastEvents = listenEvents.filter((event) =>
+        dayjs(event.listenedAt).tz(ANALYTICS_TIMEZONE).isBefore(dates.day(1))
+    );
+    const validPastEvents = listenEvents.filter(
+        (event) => event.isValidStream && dayjs(event.listenedAt).isBefore(dates.day(1))
+    );
+    const playCountByTrack = new Map();
+    const listenerSetsByArtist = new Map();
+    const monthlyListenersByArtist = new Map();
+    const userListeningTotals = new Map();
+    const recentWindowStart = dates.day(-29);
+    allPastEvents.forEach((event) => {
+        const userKey = String(event.userId);
+        const totals = userListeningTotals.get(userKey) || { duration: 0, plays: 0 };
+        totals.duration += event.listenedDuration;
+        if (event.isValidStream) {
+            totals.plays += 1;
+        }
+        userListeningTotals.set(userKey, totals);
+    });
+    validPastEvents.forEach((event) => {
+        const trackKey = String(event.trackId);
+        const artistKey = String(event.artistId);
+        playCountByTrack.set(trackKey, (playCountByTrack.get(trackKey) || 0) + 1);
+        if (!listenerSetsByArtist.has(artistKey)) listenerSetsByArtist.set(artistKey, new Set());
+        listenerSetsByArtist.get(artistKey).add(String(event.userId));
+        if (dayjs(event.listenedAt).tz(ANALYTICS_TIMEZONE).isAfter(recentWindowStart.subtract(1, "millisecond"))) {
+            if (!monthlyListenersByArtist.has(artistKey)) monthlyListenersByArtist.set(artistKey, new Set());
+            monthlyListenersByArtist.get(artistKey).add(String(event.userId));
+        }
+    });
 
     users.forEach((user) => {
         const totals = userListeningTotals.get(String(user._id));
@@ -640,57 +846,6 @@ const buildSeedData = async () => {
             user.stats.totalListeningTime = Math.round(totals.duration);
             user.stats.totalTracksPlayed = totals.plays;
         }
-    });
-
-    const interactions = [];
-    let interactionIndex = 0;
-    listeners.forEach((user, userIndex) => {
-        for (let index = 0; index < 8; index += 1) {
-            const track = playableTracks[(userIndex * 3 + index * 5) % playableTracks.length];
-            interactions.push({
-                _id: ids.interactions[interactionIndex++],
-                userId: user._id,
-                targetType: "Track",
-                targetId: track._id,
-                action: "like",
-                createdAt: dates.at(-((userIndex + index) % 20), 19, index * 3).toDate(),
-            });
-        }
-        for (let index = 0; index < 3; index += 1) {
-            const artist = artists[(userIndex + index * 3) % artists.length];
-            interactions.push({
-                _id: ids.interactions[interactionIndex++],
-                userId: user._id,
-                targetType: "Artist",
-                targetId: artist._id,
-                action: "follow",
-                createdAt: dates.at(-((userIndex + index + 2) % 25), 9, index * 5).toDate(),
-            });
-        }
-        for (let index = 0; index < 2; index += 1) {
-            const album = albums[(userIndex * 2 + index * 5) % 13];
-            interactions.push({
-                _id: ids.interactions[interactionIndex++],
-                userId: user._id,
-                targetType: "Album",
-                targetId: album._id,
-                action: "follow",
-                createdAt: dates.at(-((userIndex + index + 4) % 18), 10, index * 7).toDate(),
-            });
-        }
-    });
-
-    const validPastEvents = listenEvents.filter(
-        (event) => event.isValidStream && dayjs(event.listenedAt).isBefore(dates.day(1))
-    );
-    const playCountByTrack = new Map();
-    const listenerSetsByArtist = new Map();
-    validPastEvents.forEach((event) => {
-        const trackKey = String(event.trackId);
-        const artistKey = String(event.artistId);
-        playCountByTrack.set(trackKey, (playCountByTrack.get(trackKey) || 0) + 1);
-        if (!listenerSetsByArtist.has(artistKey)) listenerSetsByArtist.set(artistKey, new Set());
-        listenerSetsByArtist.get(artistKey).add(String(event.userId));
     });
     const likesByTrack = new Map();
     const followersByArtist = new Map();
@@ -703,17 +858,17 @@ const buildSeedData = async () => {
             followersByArtist.set(targetKey, (followersByArtist.get(targetKey) || 0) + 1);
         }
     });
-    tracks.forEach((track, index) => {
-        track.stats.totalPlay = (playCountByTrack.get(String(track._id)) || 0) + 1200 + index * 137;
-        track.stats.totalLike = (likesByTrack.get(String(track._id)) || 0) + 80 + index * 11;
+    tracks.forEach((track) => {
+        track.stats.totalPlay = playCountByTrack.get(String(track._id)) || 0;
+        track.stats.totalLike = likesByTrack.get(String(track._id)) || 0;
     });
-    artists.forEach((artist, index) => {
+    artists.forEach((artist) => {
         const artistEvents = validPastEvents.filter(
             (event) => String(event.artistId) === String(artist._id)
         );
-        artist.stats.followers = (followersByArtist.get(String(artist._id)) || 0) + 900 + index * 620;
-        artist.stats.totalStreams = artistEvents.length + 18000 + index * 7400;
-        artist.stats.monthlyListeners = (listenerSetsByArtist.get(String(artist._id))?.size || 0) + 1200 + index * 310;
+        artist.stats.followers = followersByArtist.get(String(artist._id)) || 0;
+        artist.stats.totalStreams = artistEvents.length;
+        artist.stats.monthlyListeners = monthlyListenersByArtist.get(String(artist._id))?.size || 0;
     });
 
     const playlists = [];
@@ -799,14 +954,31 @@ const buildSeedData = async () => {
     const subscriptions = [];
     listeners.forEach((user, index) => {
         const isActive = index < 16;
-        const plan = isActive ? plans[index % 3 === 0 ? 2 : 1] : plans[1];
+        const plan = isActive || index % 2 === 0 ? plans[index % 4 === 0 ? 2 : 1] : plans[1];
+        const firstPaidMonthOffset = isActive
+            ? Math.max(-(DEMO_MONTHS - 1), -8 - (index % 4))
+            : Math.max(-(DEMO_MONTHS - 1), -10 + (index % 3));
+        const startDate = dates
+            .month(firstPaidMonthOffset)
+            .date(1 + ((index * 3) % 12))
+            .hour(9)
+            .minute(0)
+            .second(0)
+            .millisecond(0)
+            .toDate();
         const status = isActive ? "active" : ["expired", "cancelled", "pending"][index % 3];
-        const startDate = dates.at(isActive ? -12 - index : -70 - index).toDate();
         const endDate = status === "active"
             ? user.subscription.premiumEndDate
             : status === "pending"
                 ? null
-                : dates.at(-25 - index).toDate();
+                : dates
+                    .month(-2 - (index % 2))
+                    .endOf("month")
+                    .hour(23)
+                    .minute(59)
+                    .second(59)
+                    .millisecond(0)
+                    .toDate();
         subscriptions.push({
             _id: ids.subscriptions[index],
             userId: user._id,
@@ -854,6 +1026,124 @@ const buildSeedData = async () => {
             });
             transactionIndex += 1;
         }
+    });
+
+    transactions.length = 0;
+    transactionIndex = 0;
+    const paymentMethods = ["vnpay", "momo", "card"];
+    subscriptions.forEach((subscription, index) => {
+        const plan = plans.find((item) => String(item._id) === String(subscription.planId));
+        const firstChargeOffset = subscription.status === "active"
+            ? Math.max(-(DEMO_MONTHS - 1), -8 - (index % 4))
+            : subscription.status === "pending"
+                ? 0
+                : Math.max(-(DEMO_MONTHS - 1), -10 + (index % 3));
+
+        monthOffsetsList.forEach((monthOffset, monthIndex) => {
+            if (monthOffset < firstChargeOffset) {
+                return;
+            }
+            if (
+                subscription.status !== "active" &&
+                subscription.status !== "pending" &&
+                monthOffset > -2 - (index % 2)
+            ) {
+                return;
+            }
+
+            const month = dates.month(monthOffset);
+            const daysInMonth = monthOffset === 0
+                ? Math.max(1, dates.anchor.date() - 1)
+                : month.daysInMonth();
+            const paymentMethod = paymentMethods[(index + monthIndex) % paymentMethods.length];
+            const paidMoment = month
+                .date(1 + ((index * 3 + monthIndex * 5) % daysInMonth))
+                .hour(10 + (index % 8))
+                .minute(15 + ((monthIndex * 7) % 30))
+                .second(0)
+                .millisecond(0);
+            const isPendingCurrentMonth = subscription.status === "pending" && monthOffset === 0;
+            const status = isPendingCurrentMonth ? "pending" : "success";
+
+            transactions.push({
+                _id: ids.transactions[transactionIndex],
+                userId: subscription.userId,
+                subscriptionId: subscription._id,
+                planId: plan._id,
+                planSnapshot: planSnapshot(plan),
+                amount: plan.price,
+                tax: 0,
+                totalAmount: plan.price,
+                currency: "VND",
+                paymentMethod,
+                paymentGateway: paymentMethod === "card" ? "stripe" : paymentMethod,
+                clientPlatform: index % 3 === 0 ? "mobile" : "web",
+                gatewayTransactionId: `SEED-${month.format("YYYYMM")}-${String(transactionIndex + 1).padStart(5, "0")}`,
+                status,
+                paidAt: status === "success" ? paidMoment.toDate() : null,
+                failedAt: null,
+                failureReason: "",
+                invoiceNumber: status === "success" ? `RESO-SEED-${String(transactionIndex + 1).padStart(6, "0")}` : "",
+                paymentExpiresAt: status === "pending" ? paidMoment.add(2, "day").toDate() : null,
+                createdAt: paidMoment.toDate(),
+                updatedAt: paidMoment.toDate(),
+            });
+            transactionIndex += 1;
+
+            if (status === "success" && monthOffset < 0 && (index + monthIndex) % 9 === 0) {
+                const failedMoment = paidMoment.add(2, "day");
+                transactions.push({
+                    _id: ids.transactions[transactionIndex],
+                    userId: subscription.userId,
+                    subscriptionId: subscription._id,
+                    planId: plan._id,
+                    planSnapshot: planSnapshot(plan),
+                    amount: plan.price,
+                    tax: 0,
+                    totalAmount: plan.price,
+                    currency: "VND",
+                    paymentMethod,
+                    paymentGateway: paymentMethod === "card" ? "stripe" : paymentMethod,
+                    clientPlatform: index % 2 === 0 ? "web" : "mobile",
+                    gatewayTransactionId: `SEED-FAIL-${month.format("YYYYMM")}-${String(transactionIndex + 1).padStart(5, "0")}`,
+                    status: "failed",
+                    paidAt: null,
+                    failedAt: failedMoment.toDate(),
+                    failureReason: "Giao dich mau bi tu choi boi ngan hang.",
+                    invoiceNumber: "",
+                    createdAt: failedMoment.toDate(),
+                    updatedAt: failedMoment.toDate(),
+                });
+                transactionIndex += 1;
+            }
+
+            if (status === "success" && monthOffset <= -4 && (index + monthIndex) % 13 === 0) {
+                const refundedMoment = paidMoment.add(4, "day");
+                transactions.push({
+                    _id: ids.transactions[transactionIndex],
+                    userId: subscription.userId,
+                    subscriptionId: subscription._id,
+                    planId: plan._id,
+                    planSnapshot: planSnapshot(plan),
+                    amount: plan.price,
+                    tax: 0,
+                    totalAmount: plan.price,
+                    currency: "VND",
+                    paymentMethod,
+                    paymentGateway: paymentMethod === "card" ? "stripe" : paymentMethod,
+                    clientPlatform: "web",
+                    gatewayTransactionId: `SEED-REFUND-${month.format("YYYYMM")}-${String(transactionIndex + 1).padStart(5, "0")}`,
+                    status: "refunded",
+                    paidAt: refundedMoment.toDate(),
+                    failedAt: null,
+                    failureReason: "",
+                    invoiceNumber: `RESO-REF-${String(transactionIndex + 1).padStart(6, "0")}`,
+                    createdAt: refundedMoment.toDate(),
+                    updatedAt: refundedMoment.toDate(),
+                });
+                transactionIndex += 1;
+            }
+        });
     });
 
     const artistRequests = applicants.map((user, index) => {
@@ -996,6 +1286,9 @@ const buildSeedData = async () => {
             createdAt: dates.at(-(index % 29), 7 + (index % 15), index % 60).toDate(),
         };
     });
+
+    reports.length = 0;
+    notifications.length = 0;
 
     const trackDailyStats = [];
     const artistDailyStats = [];
@@ -1299,6 +1592,276 @@ const buildSeedData = async () => {
         });
     }
 
+    trackMonthlyStats.length = 0;
+    artistMonthlyStats.length = 0;
+    trackMonthlyRankings.length = 0;
+    platformMonthlyStats.length = 0;
+    revenuePeriods.length = 0;
+    revenueSummaries.length = 0;
+    trackMonthlyIndex = 0;
+    artistMonthlyIndex = 0;
+    revenueSummaryIndex = 0;
+    const dailyArtistRankings = artistRankings.filter((item) => item.periodType === "daily");
+    artistRankings.length = 0;
+    artistRankings.push(...dailyArtistRankings);
+
+    const successfulTransactions = transactions.filter((item) => item.status === "success");
+    const artistFollowInteractions = interactions.filter(
+        (item) => item.targetType === "Artist" && item.action === "follow"
+    );
+
+    monthOffsetsList.forEach((monthOffset, monthOrderIndex) => {
+        const month = dates.month(monthOffset);
+        const year = month.year();
+        const monthNumber = month.month() + 1;
+        const monthKey = month.format("YYYY-MM");
+        const revenuePeriodStatus = resolveSeedRevenuePeriodStatus(monthOffset);
+        const revenueSummaryStatus = resolveSeedRevenueSummaryStatus(monthOffset);
+        const calculatedAt = resolveSeedRevenueCalculatedAt(month, monthOffset);
+        const confirmedAt = resolveSeedRevenueConfirmedAt(month, monthOffset);
+        const validMonthEvents = validPastEvents.filter(
+            (event) => monthKeyFromDate(event.listenedAt) === monthKey
+        );
+        const successMonthTransactions = successfulTransactions.filter(
+            (item) => monthKeyFromDate(item.paidAt) === monthKey
+        );
+        const totalPremiumRevenue = successMonthTransactions.reduce(
+            (sum, item) => sum + item.totalAmount,
+            0
+        );
+        const totalEligibleStreams = validMonthEvents.length;
+        const totalArtistPool = Math.round(totalPremiumRevenue * 0.7);
+        const totalPlatformRevenue = totalPremiumRevenue - totalArtistPool;
+
+        const monthlyTrackDocuments = tracks.map((track) => {
+            const trackEvents = validMonthEvents.filter(
+                (event) => String(event.trackId) === String(track._id)
+            );
+            const playCount = trackEvents.length;
+            const uniqueListeners = new Set(
+                trackEvents.map((event) => String(event.userId))
+            ).size;
+            const artistRevenueAmount = totalEligibleStreams
+                ? Math.round(totalArtistPool * (playCount / totalEligibleStreams))
+                : 0;
+            const revenueAmount = artistRevenueAmount
+                ? Math.round(artistRevenueAmount / 0.7)
+                : 0;
+
+            return {
+                _id: ids.trackMonthlyStats[trackMonthlyIndex++],
+                trackId: track._id,
+                year,
+                month: monthNumber,
+                playCount,
+                uniqueListeners,
+                revenue: {
+                    eligibleStreams: playCount,
+                    revenueAmount,
+                    artistRevenueAmount,
+                    calculatedAt: monthOffset < 0 ? month.endOf("month").toDate() : dates.anchor.toDate(),
+                },
+            };
+        });
+        trackMonthlyStats.push(...monthlyTrackDocuments);
+        trackMonthlyRankings.push({
+            year,
+            month: monthNumber,
+            rankings: [...monthlyTrackDocuments]
+                .filter((item) => item.playCount > 0)
+                .sort((left, right) => right.playCount - left.playCount || right.uniqueListeners - left.uniqueListeners)
+                .slice(0, 100)
+                .map((item, index) => ({
+                    trackId: item.trackId,
+                    playCount: item.playCount,
+                    uniqueListeners: item.uniqueListeners,
+                    rank: index + 1,
+                })),
+        });
+
+        const monthlyArtistDocuments = artists.map((artist) => {
+            const artistTracks = monthlyTrackDocuments.filter((item) => {
+                const track = tracks.find((candidate) => String(candidate._id) === String(item.trackId));
+                return String(track.artist_artistId) === String(artist._id);
+            });
+            const monthFollowers = artistFollowInteractions.filter(
+                (item) =>
+                    String(item.targetId) === String(artist._id) &&
+                    monthKeyFromDate(item.createdAt) === monthKey
+            ).length;
+            const totalFollowers = artistFollowInteractions.filter(
+                (item) =>
+                    String(item.targetId) === String(artist._id) &&
+                    dayjs(item.createdAt).tz(ANALYTICS_TIMEZONE).isBefore(month.endOf("month").add(1, "millisecond"))
+            ).length;
+            return {
+                _id: ids.artistMonthlyStats[artistMonthlyIndex++],
+                artistId: artist._id,
+                year,
+                month: monthNumber,
+                newFollowers: monthFollowers,
+                totalFollowers,
+                totalStreams: artistTracks.reduce((sum, item) => sum + item.playCount, 0),
+                revenueAmount: artistTracks.reduce(
+                    (sum, item) => sum + item.revenue.artistRevenueAmount,
+                    0
+                ),
+            };
+        });
+        artistMonthlyStats.push(...monthlyArtistDocuments);
+        artistRankings.push({
+            periodType: "monthly",
+            year,
+            month: monthNumber,
+            rankings: [...monthlyArtistDocuments]
+                .filter((item) => item.totalStreams > 0)
+                .sort((left, right) => right.totalStreams - left.totalStreams || right.totalFollowers - left.totalFollowers)
+                .slice(0, 20)
+                .map((item, index) => ({
+                    artistId: item.artistId,
+                    playCount: item.totalStreams,
+                    uniqueListeners: new Set(
+                        validMonthEvents
+                            .filter((event) => String(event.artistId) === String(item.artistId))
+                            .map((event) => String(event.userId))
+                    ).size,
+                    completedPlayCount: validMonthEvents.filter(
+                        (event) => String(event.artistId) === String(item.artistId) && event.completed
+                    ).length,
+                    totalTracksPlayed: new Set(
+                        validMonthEvents
+                            .filter((event) => String(event.artistId) === String(item.artistId))
+                            .map((event) => String(event.trackId))
+                    ).size,
+                    score: round(item.totalStreams * 1.2 + item.newFollowers * 4),
+                    rank: index + 1,
+                })),
+        });
+
+        const daysToInclude = monthOffset === 0 ? dates.anchor.date() : month.daysInMonth();
+        const platformDailyStats = [];
+        for (let dayNumber = 1; dayNumber <= daysToInclude; dayNumber += 1) {
+            const dayKey = month.date(dayNumber).format("YYYY-MM-DD");
+            const validDayEvents = (eventBuckets.get(dayKey) || []).filter((event) => event.isValidStream);
+            const successDayTransactions = successMonthTransactions.filter(
+                (item) =>
+                    dayjs(item.paidAt).tz(ANALYTICS_TIMEZONE).format("YYYY-MM-DD") === dayKey
+            );
+            const trackCounts = new Map();
+            const artistCounts = new Map();
+            validDayEvents.forEach((event) => {
+                trackCounts.set(String(event.trackId), (trackCounts.get(String(event.trackId)) || 0) + 1);
+                artistCounts.set(String(event.artistId), (artistCounts.get(String(event.artistId)) || 0) + 1);
+            });
+
+            platformDailyStats.push({
+                date: dayKey,
+                totalStreams: validDayEvents.length,
+                uniqueUsers: new Set(validDayEvents.map((event) => String(event.userId))).size,
+                totalListeningTime: validDayEvents.reduce((sum, event) => sum + event.listenedDuration, 0),
+                topTracks: [...trackCounts.entries()]
+                    .sort((left, right) => right[1] - left[1])
+                    .slice(0, 3)
+                    .map(([trackId, streamCount]) => {
+                        const track = tracks.find((item) => String(item._id) === trackId);
+                        return { trackId: track._id, title: track.title, streamCount };
+                    }),
+                topArtists: [...artistCounts.entries()]
+                    .sort((left, right) => right[1] - left[1])
+                    .slice(0, 3)
+                    .map(([artistId, streamCount]) => ({
+                        artistId: artists.find((item) => String(item._id) === artistId)._id,
+                        streamCount,
+                    })),
+            });
+
+        }
+
+        const revenueDailyStats = platformDailyStats.map((item) => {
+            const dailyRevenue = successMonthTransactions
+                .filter((transaction) =>
+                    dayjs(transaction.paidAt).tz(ANALYTICS_TIMEZONE).format("YYYY-MM-DD") === item.date
+                )
+                .reduce((sum, transaction) => sum + transaction.totalAmount, 0);
+            return {
+                day: Number(item.date.slice(-2)),
+                date: dayjs.tz(item.date, ANALYTICS_TIMEZONE).toDate(),
+                premiumRevenue: dailyRevenue,
+                artistPool: Math.round(dailyRevenue * 0.7),
+                platformRevenue: dailyRevenue - Math.round(dailyRevenue * 0.7),
+                successfulTransactions: successMonthTransactions.filter(
+                    (transaction) =>
+                        dayjs(transaction.paidAt).tz(ANALYTICS_TIMEZONE).format("YYYY-MM-DD") === item.date
+                ).length,
+            };
+        });
+
+        revenuePeriods.push({
+            year,
+            month: monthNumber,
+            periodStart: month.toDate(),
+            periodEnd: month.add(1, "month").toDate(),
+            status: revenuePeriodStatus,
+            totalPremiumRevenue,
+            totalArtistPool,
+            totalPlatformRevenue,
+            totalEligibleStreams,
+            successfulTransactions: successMonthTransactions.length,
+            dailyStats: revenueDailyStats,
+            lastAggregatedAt: dates.anchor.toDate(),
+            closedAt: resolveSeedRevenueClosedAt(month, monthOffset),
+            calculatedAt,
+            confirmedAt,
+            confirmedBy: confirmedAt ? ids.users[0] : null,
+        });
+
+        platformMonthlyStats.push({
+            year,
+            month: monthNumber,
+            periodStart: month.toDate(),
+            periodEnd: month.add(1, "month").toDate(),
+            userStats: {
+                newUsers: 2 + ((monthOrderIndex + 1) % 4),
+                totalUsers: users.length,
+            },
+            artistStats: { totalArtists: artists.length },
+            streamingStats: {
+                totalStreams: platformDailyStats.reduce((sum, item) => sum + item.totalStreams, 0),
+                trackStreams: platformDailyStats.reduce((sum, item) => sum + item.totalStreams, 0),
+                totalListeningTime: platformDailyStats.reduce((sum, item) => sum + item.totalListeningTime, 0),
+            },
+            dailyStats: platformDailyStats,
+        });
+
+        monthlyArtistDocuments.forEach((artistMonth, artistIndex) => {
+            const artistRevenueAmount = artistMonth.revenueAmount;
+            const withdrawnAmount = revenueSummaryStatus === "confirmed" && (artistIndex + monthOrderIndex) % 3 === 0
+                ? Math.round(artistRevenueAmount * 0.2)
+                : 0;
+            const grossRevenueAmount = artistRevenueAmount
+                ? Math.round(artistRevenueAmount / 0.7)
+                : 0;
+            revenueSummaries.push({
+                _id: ids.revenueSummaries[revenueSummaryIndex++],
+                artistId: artistMonth.artistId,
+                year,
+                month: monthNumber,
+                totalEligibleStreams: artistMonth.totalStreams,
+                grossRevenueAmount,
+                artistRevenueAmount,
+                platformRevenueAmount: grossRevenueAmount - artistRevenueAmount,
+                withdrawnAmount,
+                availableAmount: revenueSummaryStatus === "confirmed"
+                    ? artistRevenueAmount - withdrawnAmount
+                    : 0,
+                status: revenueSummaryStatus,
+                calculatedAt,
+                confirmedAt,
+                confirmedBy: confirmedAt ? ids.users[0] : null,
+            });
+        });
+    });
+
     artists.forEach((artist) => {
         const summaries = revenueSummaries.filter((item) => String(item.artistId) === String(artist._id));
         artist.revenue.totalEarnedAmount = summaries.reduce((sum, item) => sum + item.artistRevenueAmount, 0);
@@ -1548,7 +2111,7 @@ const cleanupSeedOwnedData = async (data) => {
         await Model.deleteMany(filter);
     }
 
-    // These are global monthly snapshots. Only the three months generated by this run are replaced.
+    // These are global monthly snapshots. Only the months generated by this run are replaced.
     for (const item of data.platformMonthlyStats) {
         await PlatformMonthlyStat.deleteMany({ year: item.year, month: item.month });
     }
@@ -1614,7 +2177,9 @@ const printSummary = (data, mode) => {
     console.log(`Users / artists / tracks: ${data.users.length} / ${data.artists.length} / ${data.tracks.length}`);
     console.log(`ListenEvent records: ${data.listenEvents.length}`);
     console.log(`Future ListenEvent coverage: ${futureStart} -> ${futureEnd}`);
-    console.log(`Login: admin@reso.seed or listener01@reso.seed / password: ${SEED_PASSWORD}`);
+    console.log(
+        `Login: ${gmailAddress("reso.seed.admin")} or ${gmailAddress("reso.listener.01")} / password: ${SEED_PASSWORD}`
+    );
 };
 
 const main = async () => {
