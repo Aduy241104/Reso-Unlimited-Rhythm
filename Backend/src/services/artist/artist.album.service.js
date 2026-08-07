@@ -515,6 +515,17 @@ const addTrackToAlbum = async (userId, albumId, trackId) => {
         throw new AppError("Không tìm thấy bài hát hoặc bài hát không thuộc quyền sở hữu của bạn.", StatusCodes.NOT_FOUND);
     }
 
+    if (track.approvalStatus !== "approved") {
+        throw new AppError(
+            "Chỉ có thể thêm bài hát đã được quản trị viên phê duyệt vào album.",
+            StatusCodes.CONFLICT,
+            {
+                field: "trackId",
+                code: "TRACK_NOT_APPROVED",
+            }
+        );
+    }
+
     // Check if track is already in album
     const trackExists = album.trackList.some((item) => item.trackId.toString() === trackId.toString());
     

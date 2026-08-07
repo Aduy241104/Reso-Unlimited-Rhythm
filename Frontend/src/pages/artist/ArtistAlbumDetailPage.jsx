@@ -165,6 +165,7 @@ const ArtistAlbumDetailPage = () => {
     try {
       const result = await getArtistTracksService({
         unassignedOnly: true,
+        approvalStatus: "approved",
         limit: 100,
       });
       const currentTrackIds = new Set(
@@ -176,6 +177,7 @@ const ArtistAlbumDetailPage = () => {
       setAvailableTracks(
         result.tracks.filter(
           (track) =>
+            track?.approvalStatus === "approved" &&
             !track?.album &&
             !currentTrackIds.has(String(track._id || track.id))
         )
@@ -710,7 +712,7 @@ const ArtistAlbumDetailPage = () => {
                     Không còn bài hát khả dụng
                   </h3>
                   <p className="mt-2 text-sm text-[#9690ac]">
-                    Tất cả bài hát trong thư viện đã thuộc một album.
+                    Không có bài hát đã được duyệt nào chưa thuộc album.
                   </p>
                 </div>
               ) : (

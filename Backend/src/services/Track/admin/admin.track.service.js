@@ -299,6 +299,7 @@ const createTrackModerationNotification = async ({
     const normalizedStatus = status === "approved" ? "approved" : "rejected";
     const title =
         normalizedStatus === "approved"
+
             ? `Bài hát "${track.title}" đã được phê duyệt`
             : `Bài hát "${track.title}" đã bị từ chối`;
     const content =
@@ -354,6 +355,7 @@ const createTrackVisibilityNotification = async ({
     let content = "";
 
     if (action === "hide") {
+
         title = `Bài hát "${track.title}" đã bị ẩn`;
         content = `Quản trị viên đã tạm ẩn bài hát của bạn khỏi nền tảng.${reason ? ` Lý do: ${reason}` : ""}`;
     } else if (action === "block") {

@@ -90,6 +90,7 @@ describe("artistAlbumService track assignment", () => {
             _id: trackId,
             artist_artistId: artistId,
             album_albumId: null,
+            approvalStatus: "approved",
         };
 
         mockAlbumModel.findOne.mockResolvedValue(album);
@@ -126,6 +127,7 @@ describe("artistAlbumService track assignment", () => {
             _id: trackId,
             artist_artistId: artistId,
             album_albumId: otherAlbumId,
+            approvalStatus: "approved",
         });
 
         const { default: service } = await loadArtistAlbumService();
@@ -136,6 +138,32 @@ describe("artistAlbumService track assignment", () => {
             statusCode: 409,
             details: {
                 code: "TRACK_ALREADY_ASSIGNED_TO_ALBUM",
+            },
+        });
+
+        expect(mockTrackModel.updateOne).not.toHaveBeenCalled();
+        expect(album.save).not.toHaveBeenCalled();
+    });
+
+    test("rejects a track that has not been approved", async () => {
+        const album = createAlbumDocument();
+
+        mockAlbumModel.findOne.mockResolvedValue(album);
+        mockTrackModel.findOne.mockResolvedValue({
+            _id: trackId,
+            artist_artistId: artistId,
+            album_albumId: null,
+            approvalStatus: "pending",
+        });
+
+        const { default: service } = await loadArtistAlbumService();
+
+        await expect(
+            service.addTrackToAlbum(userId, albumId, trackId)
+        ).rejects.toMatchObject({
+            statusCode: 409,
+            details: {
+                code: "TRACK_NOT_APPROVED",
             },
         });
 
