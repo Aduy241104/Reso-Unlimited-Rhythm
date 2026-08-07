@@ -1,4 +1,9 @@
-﻿import axiosClient from '../api/axiosClient';
+import axiosClient from '../api/axiosClient';
+import {
+  isDateDisplayValueValid,
+  toApiDateValue,
+  toDisplayDateValue,
+} from '../utils/artistRegistrationDate';
 
 const USER_PROFILE_ENDPOINT = '/users/me';
 const ALLOWED_GENDERS = new Set(['male', 'female', 'other']);
@@ -39,12 +44,13 @@ const normalizeGender = (value) => {
 const normalizeProfileFields = (profile = {}) => {
   const fullName = String(profile?.fullName || '').trim();
   const gender = normalizeGender(profile?.gender);
-  const country = String(profile?.country || '').trim();
+  const rawDateOfBirth = profile?.dateOfBirth;
+  const dateOfBirth = toDisplayDateValue(rawDateOfBirth);
 
   return {
     fullName,
     gender,
-    country,
+    dateOfBirth,
     genderLabel: genderLabels[gender] || 'Chưa cập nhật',
   };
 };
@@ -103,7 +109,7 @@ const hasProfileChanges = (draft, currentProfile = null) => {
   return (
     nextDraft.fullName !== currentDraft.fullName ||
     nextDraft.gender !== currentDraft.gender ||
-    nextDraft.country !== currentDraft.country
+    nextDraft.dateOfBirth !== currentDraft.dateOfBirth
   );
 };
 
@@ -124,6 +130,10 @@ const validateProfileDraft = (draft, currentProfile = null) => {
     errors.gender = 'Giới tính không hợp lệ.';
   }
 
+  if (nextDraft.dateOfBirth && !isDateDisplayValueValid(nextDraft.dateOfBirth)) {
+    errors.dateOfBirth = 'Ngày sinh phải đúng định dạng dd-mm-yyyy và không lớn hơn ngày hiện tại.';
+  }
+
   return errors;
 };
 
@@ -140,8 +150,8 @@ const buildProfileUpdatePayload = (draft, currentProfile = null) => {
     payload.gender = nextDraft.gender;
   }
 
-  if (nextDraft.country !== currentDraft.country) {
-    payload.country = nextDraft.country;
+  if (nextDraft.dateOfBirth !== currentDraft.dateOfBirth) {
+    payload.dateOfBirth = nextDraft.dateOfBirth ? toApiDateValue(nextDraft.dateOfBirth) : null;
   }
 
   return payload;
@@ -172,7 +182,7 @@ export const userProfileService = {
         ...(currentProfile?.profile || {}),
         fullName: nextDraft.fullName || currentProfile?.profile?.fullName || '',
         gender: nextDraft.gender || currentProfile?.profile?.gender || '',
-        country: nextDraft.country,
+        dateOfBirth: responsePayload?.user?.profile?.dateOfBirth || responsePayload?.profile?.dateOfBirth || nextDraft.dateOfBirth,
       },
     };
 
