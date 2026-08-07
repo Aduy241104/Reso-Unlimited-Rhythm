@@ -3,7 +3,6 @@ import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 import { StatusCodes } from "http-status-codes";
 import Artist from "../../models/Artist.js";
-import ArtistDailyStat from "../../models/ArtistDailyStat.js";
 import ListenEvent from "../../models/ListenEvent.js";
 import Track from "../../models/Track.js";
 import User from "../../models/User.js";
@@ -24,23 +23,6 @@ const roundToTwoDecimals = (value) => Number(Number(value || 0).toFixed(2));
 
 const getTodayInAnalyticsTimezone = () =>
     dayjs().tz(getAnalyticsTimezone()).startOf("day");
-
-const resolveSnapshotAndLiveBoundaries = ({ startDate, endDateExclusive }) => {
-    const todayStart = getTodayInAnalyticsTimezone();
-    const snapshotEndDateExclusive = todayStart.toDate();
-    const liveStartDate =
-        endDateExclusive > snapshotEndDateExclusive
-            ? new Date(
-                Math.max(startDate.getTime(), snapshotEndDateExclusive.getTime())
-            )
-            : null;
-
-    return {
-        todayStart,
-        snapshotEndDateExclusive,
-        liveStartDate,
-    };
-};
 
 const resolveArtistProfile = async (userId) => {
     const artist = await Artist.findOne({ userId }).select("_id name stats").lean();
@@ -135,11 +117,15 @@ const resolveRangePeriod = (range) => {
 
 const resolveMonthlyPeriod = (year) => {
     const timezoneName = getAnalyticsTimezone();
+    const today = getTodayInAnalyticsTimezone();
     const from = dayjs.tz(`${year}-01-01`, timezoneName).startOf("year");
+    const endDateExclusive = year === today.year()
+        ? today.add(1, "day").toDate()
+        : from.add(1, "year").toDate();
 
     return {
         startDate: from.toDate(),
-        endDateExclusive: from.add(1, "year").toDate(),
+        endDateExclusive,
     };
 };
 
@@ -148,15 +134,13 @@ const buildYearSeries = (currentYear, length = YEAR_SERIES_LENGTH) =>
 
 const resolveYearlyPeriod = (currentYear) => {
     const timezoneName = getAnalyticsTimezone();
+    const today = getTodayInAnalyticsTimezone();
     const firstYear = currentYear - YEAR_SERIES_LENGTH + 1;
     const from = dayjs.tz(`${firstYear}-01-01`, timezoneName).startOf("year");
 
     return {
         startDate: from.toDate(),
-        endDateExclusive: dayjs
-            .tz(`${currentYear + 1}-01-01`, timezoneName)
-            .startOf("year")
-            .toDate(),
+        endDateExclusive: today.add(1, "day").toDate(),
     };
 };
 
@@ -185,21 +169,67 @@ const resolveAllTimeSummaryPeriod = () => ({
     endDateExclusive: getTodayInAnalyticsTimezone().add(1, "day").toDate(),
 });
 
-const aggregatePeriodSummary = async ({ artistId, startDate, endDateExclusive }) => {
+const buildListenEventPeriodMatch = ({
+    artistId,
+    startDate,
+    endDateExclusive,
+}) => ({
+    artistId,
+    isValidStream: true,
+    listenedAt: {
+        $gte: startDate,
+        $lt: endDateExclusive,
+    },
+});
+
+const aggregatePeriodStreamCount = async ({
+    artistId,
+    startDate,
+    endDateExclusive,
+}) => {
     const [summary] = await ListenEvent.aggregate([
         {
-            $match: {
+            $match: buildListenEventPeriodMatch({
                 artistId,
-                isValidStream: true,
-                listenedAt: {
-                    $gte: startDate,
-                    $lt: endDateExclusive,
-                },
-            },
+                startDate,
+                endDateExclusive,
+            }),
         },
         {
             $group: {
                 _id: null,
+                streamCount: { $sum: 1 },
+            },
+        },
+        {
+            $project: {
+                _id: 0,
+                streamCount: 1,
+            },
+        },
+    ]);
+
+    return Number(summary?.streamCount || 0);
+};
+
+const aggregateDailyStats = async ({ artistId, startDate, endDateExclusive }) => {
+    const stats = await ListenEvent.aggregate([
+        {
+            $match: buildListenEventPeriodMatch({
+                artistId,
+                startDate,
+                endDateExclusive,
+            }),
+        },
+        {
+            $group: {
+                _id: {
+                    $dateToString: {
+                        format: "%Y-%m-%d",
+                        date: "$listenedAt",
+                        timezone: getAnalyticsTimezone(),
+                    },
+                },
                 streamCount: { $sum: 1 },
                 uniqueListeners: {
                     $addToSet: { $ifNull: ["$userId", "$guestId"] },
@@ -209,172 +239,24 @@ const aggregatePeriodSummary = async ({ artistId, startDate, endDateExclusive })
         {
             $project: {
                 _id: 0,
+                date: "$_id",
                 streamCount: 1,
                 uniqueListeners: { $size: "$uniqueListeners" },
             },
         },
-    ]);
-
-    return {
-        streamCount: Number(summary?.streamCount || 0),
-        uniqueListeners: Number(summary?.uniqueListeners || 0),
-    };
-};
-
-const aggregatePeriodStreamCount = async ({
-    artistId,
-    startDate,
-    endDateExclusive,
-}) => {
-    const {
-        snapshotEndDateExclusive,
-        liveStartDate,
-    } = resolveSnapshotAndLiveBoundaries({ startDate, endDateExclusive });
-
-    const [snapshotSummary, liveSummary] = await Promise.all([
-        startDate < snapshotEndDateExclusive
-            ? ArtistDailyStat.aggregate([
-                {
-                    $match: {
-                        artistId,
-                        date: {
-                            $gte: startDate,
-                            $lt: snapshotEndDateExclusive,
-                        },
-                    },
-                },
-                {
-                    $group: {
-                        _id: null,
-                        streamCount: { $sum: "$streamCount" },
-                    },
-                },
-                {
-                    $project: {
-                        _id: 0,
-                        streamCount: 1,
-                    },
-                },
-            ])
-            : Promise.resolve([]),
-        liveStartDate
-            ? ListenEvent.aggregate([
-                {
-                    $match: {
-                        artistId,
-                        isValidStream: true,
-                        listenedAt: {
-                            $gte: liveStartDate,
-                            $lt: endDateExclusive,
-                        },
-                    },
-                },
-                {
-                    $group: {
-                        _id: null,
-                        streamCount: { $sum: 1 },
-                    },
-                },
-                {
-                    $project: {
-                        _id: 0,
-                        streamCount: 1,
-                    },
-                },
-            ])
-            : Promise.resolve([]),
-    ]);
-
-    return Number(snapshotSummary?.[0]?.streamCount || 0) +
-        Number(liveSummary?.[0]?.streamCount || 0);
-};
-
-const aggregateDailyStats = async ({ artistId, startDate, endDateExclusive }) =>
-    (async () => {
-        const {
-            todayStart,
-            snapshotEndDateExclusive,
-            liveStartDate,
-        } = resolveSnapshotAndLiveBoundaries({ startDate, endDateExclusive });
-        const [snapshotStats, liveStats] = await Promise.all([
-            startDate < snapshotEndDateExclusive
-                ? ArtistDailyStat.find({
-                    artistId,
-                    date: {
-                        $gte: startDate,
-                        $lt: snapshotEndDateExclusive,
-                    },
-                })
-                    .sort({ dateKey: 1, _id: 1 })
-                    .select("dateKey streamCount uniqueListeners")
-                    .lean()
-                : Promise.resolve([]),
-            liveStartDate
-                ? ListenEvent.aggregate([
-                    {
-                        $match: {
-                            artistId,
-                            isValidStream: true,
-                            listenedAt: {
-                                $gte: liveStartDate,
-                                $lt: endDateExclusive,
-                            },
-                        },
-                    },
-                    {
-                        $group: {
-                            _id: {
-                                $dateToString: {
-                                    format: "%Y-%m-%d",
-                                    date: "$listenedAt",
-                                    timezone: getAnalyticsTimezone(),
-                                },
-                            },
-                            streamCount: { $sum: 1 },
-                            uniqueListeners: {
-                                $addToSet: { $ifNull: ["$userId", "$guestId"] },
-                            },
-                        },
-                    },
-                    {
-                        $project: {
-                            _id: 0,
-                            date: "$_id",
-                            streamCount: 1,
-                            uniqueListeners: { $size: "$uniqueListeners" },
-                        },
-                    },
-                    {
-                        $sort: {
-                            date: 1,
-                        },
-                    },
-                ])
-                : Promise.resolve([]),
-        ]);
-
-        const normalizedSnapshotStats = snapshotStats.map((stat) => ({
-            date: stat.dateKey,
-            streamCount: Number(stat.streamCount || 0),
-            uniqueListeners: Number(stat.uniqueListeners || 0),
-        }));
-
-        if (!liveStartDate) {
-            return normalizedSnapshotStats;
-        }
-
-        const liveDateKey = todayStart.format(DATE_KEY_FORMAT);
-        const liveMap = new Map(liveStats.map((stat) => [stat.date, stat]));
-
-        return [
-            ...normalizedSnapshotStats,
-            {
-                date: liveDateKey,
-                streamCount: Number(liveMap.get(liveDateKey)?.streamCount || 0),
-                uniqueListeners: Number(liveMap.get(liveDateKey)?.uniqueListeners || 0),
+        {
+            $sort: {
+                date: 1,
             },
-        ];
-    })();
+        },
+    ]);
+
+    return stats.map((stat) => ({
+        date: stat.date,
+        streamCount: Number(stat.streamCount || 0),
+        uniqueListeners: Number(stat.uniqueListeners || 0),
+    }));
+};
 
 const fillMissingDailyStats = ({ stats = [], from, to }) => {
     const statMap = new Map(
@@ -399,102 +281,45 @@ const fillMissingDailyStats = ({ stats = [], from, to }) => {
     return filledStats;
 };
 
-const aggregateMonthlyStats = async ({ artistId, startDate, endDateExclusive }) =>
-    (async () => {
-        const {
-            snapshotEndDateExclusive,
-            liveStartDate,
-        } = resolveSnapshotAndLiveBoundaries({ startDate, endDateExclusive });
-        const [snapshotStats, liveStats] = await Promise.all([
-            startDate < snapshotEndDateExclusive
-                ? ArtistDailyStat.aggregate([
-                    {
-                        $match: {
-                            artistId,
-                            date: {
-                                $gte: startDate,
-                                $lt: snapshotEndDateExclusive,
-                            },
-                        },
+const aggregateMonthlyStats = async ({ artistId, startDate, endDateExclusive }) => {
+    const stats = await ListenEvent.aggregate([
+        {
+            $match: buildListenEventPeriodMatch({
+                artistId,
+                startDate,
+                endDateExclusive,
+            }),
+        },
+        {
+            $group: {
+                _id: {
+                    $month: {
+                        date: "$listenedAt",
+                        timezone: getAnalyticsTimezone(),
                     },
-                    {
-                        $group: {
-                            _id: {
-                                $month: {
-                                    date: "$date",
-                                    timezone: getAnalyticsTimezone(),
-                                },
-                            },
-                            streamCount: { $sum: "$streamCount" },
-                        },
-                    },
-                    {
-                        $project: {
-                            _id: 0,
-                            month: "$_id",
-                            streamCount: 1,
-                        },
-                    },
-                    {
-                        $sort: {
-                            month: 1,
-                        },
-                    },
-                ])
-                : Promise.resolve([]),
-            liveStartDate
-                ? ListenEvent.aggregate([
-                    {
-                        $match: {
-                            artistId,
-                            isValidStream: true,
-                            listenedAt: {
-                                $gte: liveStartDate,
-                                $lt: endDateExclusive,
-                            },
-                        },
-                    },
-                    {
-                        $group: {
-                            _id: {
-                                $month: {
-                                    date: "$listenedAt",
-                                    timezone: getAnalyticsTimezone(),
-                                },
-                            },
-                            streamCount: { $sum: 1 },
-                        },
-                    },
-                    {
-                        $project: {
-                            _id: 0,
-                            month: "$_id",
-                            streamCount: 1,
-                        },
-                    },
-                ])
-                : Promise.resolve([]),
-        ]);
+                },
+                streamCount: { $sum: 1 },
+            },
+        },
+        {
+            $project: {
+                _id: 0,
+                month: "$_id",
+                streamCount: 1,
+            },
+        },
+        {
+            $sort: {
+                month: 1,
+            },
+        },
+    ]);
 
-        const statMap = new Map(
-            snapshotStats.map((stat) => [Number(stat.month), Number(stat.streamCount || 0)])
-        );
-
-        liveStats.forEach((stat) => {
-            const month = Number(stat.month);
-            statMap.set(
-                month,
-                Number(statMap.get(month) || 0) + Number(stat.streamCount || 0)
-            );
-        });
-
-        return [...statMap.entries()]
-            .map(([month, streamCount]) => ({
-                month,
-                streamCount,
-            }))
-            .sort((left, right) => left.month - right.month);
-    })();
+    return stats.map((stat) => ({
+        month: Number(stat.month),
+        streamCount: Number(stat.streamCount || 0),
+    }));
+};
 
 const fillMissingMonthlyStats = ({ stats = [], year }) => {
     const statMap = new Map(stats.map((stat) => [Number(stat.month), stat]));
@@ -511,102 +336,45 @@ const fillMissingMonthlyStats = ({ stats = [], year }) => {
     });
 };
 
-const aggregateYearlyStats = async ({ artistId, startDate, endDateExclusive }) =>
-    (async () => {
-        const {
-            snapshotEndDateExclusive,
-            liveStartDate,
-        } = resolveSnapshotAndLiveBoundaries({ startDate, endDateExclusive });
-        const [snapshotStats, liveStats] = await Promise.all([
-            startDate < snapshotEndDateExclusive
-                ? ArtistDailyStat.aggregate([
-                    {
-                        $match: {
-                            artistId,
-                            date: {
-                                $gte: startDate,
-                                $lt: snapshotEndDateExclusive,
-                            },
-                        },
+const aggregateYearlyStats = async ({ artistId, startDate, endDateExclusive }) => {
+    const stats = await ListenEvent.aggregate([
+        {
+            $match: buildListenEventPeriodMatch({
+                artistId,
+                startDate,
+                endDateExclusive,
+            }),
+        },
+        {
+            $group: {
+                _id: {
+                    $year: {
+                        date: "$listenedAt",
+                        timezone: getAnalyticsTimezone(),
                     },
-                    {
-                        $group: {
-                            _id: {
-                                $year: {
-                                    date: "$date",
-                                    timezone: getAnalyticsTimezone(),
-                                },
-                            },
-                            streamCount: { $sum: "$streamCount" },
-                        },
-                    },
-                    {
-                        $project: {
-                            _id: 0,
-                            year: "$_id",
-                            streamCount: 1,
-                        },
-                    },
-                    {
-                        $sort: {
-                            year: 1,
-                        },
-                    },
-                ])
-                : Promise.resolve([]),
-            liveStartDate
-                ? ListenEvent.aggregate([
-                    {
-                        $match: {
-                            artistId,
-                            isValidStream: true,
-                            listenedAt: {
-                                $gte: liveStartDate,
-                                $lt: endDateExclusive,
-                            },
-                        },
-                    },
-                    {
-                        $group: {
-                            _id: {
-                                $year: {
-                                    date: "$listenedAt",
-                                    timezone: getAnalyticsTimezone(),
-                                },
-                            },
-                            streamCount: { $sum: 1 },
-                        },
-                    },
-                    {
-                        $project: {
-                            _id: 0,
-                            year: "$_id",
-                            streamCount: 1,
-                        },
-                    },
-                ])
-                : Promise.resolve([]),
-        ]);
+                },
+                streamCount: { $sum: 1 },
+            },
+        },
+        {
+            $project: {
+                _id: 0,
+                year: "$_id",
+                streamCount: 1,
+            },
+        },
+        {
+            $sort: {
+                year: 1,
+            },
+        },
+    ]);
 
-        const statMap = new Map(
-            snapshotStats.map((stat) => [Number(stat.year), Number(stat.streamCount || 0)])
-        );
-
-        liveStats.forEach((stat) => {
-            const year = Number(stat.year);
-            statMap.set(
-                year,
-                Number(statMap.get(year) || 0) + Number(stat.streamCount || 0)
-            );
-        });
-
-        return [...statMap.entries()]
-            .map(([year, streamCount]) => ({
-                year,
-                streamCount,
-            }))
-            .sort((left, right) => left.year - right.year);
-    })();
+    return stats.map((stat) => ({
+        year: Number(stat.year),
+        streamCount: Number(stat.streamCount || 0),
+    }));
+};
 
 const fillMissingYearlyStats = ({ stats = [], years = [] }) => {
     const statMap = new Map(stats.map((stat) => [Number(stat.year), stat]));
@@ -619,11 +387,15 @@ const fillMissingYearlyStats = ({ stats = [], years = [] }) => {
 };
 
 const aggregateAvailableYears = async ({ artistId }) => {
+    const todayEnd = getTodayInAnalyticsTimezone().add(1, "day").toDate();
     const results = await ListenEvent.aggregate([
         {
             $match: {
                 artistId,
                 isValidStream: true,
+                listenedAt: {
+                    $lt: todayEnd,
+                },
             },
         },
         {

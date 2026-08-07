@@ -350,6 +350,10 @@ const resolveSeedRevenueConfirmedAt = (month, monthOffset) =>
     resolveSeedRevenuePeriodStatus(monthOffset) === "confirmed"
         ? month.add(1, "month").date(3).hour(9).minute(0).second(0).millisecond(0).toDate()
         : null;
+const shouldSeedConfirmedRevenueData = (monthOffset) =>
+    resolveSeedRevenuePeriodStatus(monthOffset) === "confirmed";
+const shouldSeedArtistRevenueSummary = (monthOffset) =>
+    shouldSeedConfirmedRevenueData(monthOffset);
 
 const buildSeedData = async () => {
     const dates = dateContext();
@@ -1619,6 +1623,7 @@ const buildSeedData = async () => {
         const revenueSummaryStatus = resolveSeedRevenueSummaryStatus(monthOffset);
         const calculatedAt = resolveSeedRevenueCalculatedAt(month, monthOffset);
         const confirmedAt = resolveSeedRevenueConfirmedAt(month, monthOffset);
+        const hasConfirmedRevenueData = shouldSeedConfirmedRevenueData(monthOffset);
         const validMonthEvents = validPastEvents.filter(
             (event) => monthKeyFromDate(event.listenedAt) === monthKey
         );
@@ -1641,7 +1646,10 @@ const buildSeedData = async () => {
             const uniqueListeners = new Set(
                 trackEvents.map((event) => String(event.userId))
             ).size;
-            const artistRevenueAmount = totalEligibleStreams
+            const eligibleStreams = hasConfirmedRevenueData
+                ? playCount
+                : 0;
+            const artistRevenueAmount = hasConfirmedRevenueData && totalEligibleStreams
                 ? Math.round(totalArtistPool * (playCount / totalEligibleStreams))
                 : 0;
             const revenueAmount = artistRevenueAmount
@@ -1656,10 +1664,10 @@ const buildSeedData = async () => {
                 playCount,
                 uniqueListeners,
                 revenue: {
-                    eligibleStreams: playCount,
+                    eligibleStreams,
                     revenueAmount,
                     artistRevenueAmount,
-                    calculatedAt: monthOffset < 0 ? month.endOf("month").toDate() : dates.anchor.toDate(),
+                    calculatedAt: hasConfirmedRevenueData ? calculatedAt : null,
                 },
             };
         });
@@ -1834,6 +1842,10 @@ const buildSeedData = async () => {
         });
 
         monthlyArtistDocuments.forEach((artistMonth, artistIndex) => {
+            if (!shouldSeedArtistRevenueSummary(monthOffset)) {
+                return;
+            }
+
             const artistRevenueAmount = artistMonth.revenueAmount;
             const withdrawnAmount = revenueSummaryStatus === "confirmed" && (artistIndex + monthOrderIndex) % 3 === 0
                 ? Math.round(artistRevenueAmount * 0.2)
