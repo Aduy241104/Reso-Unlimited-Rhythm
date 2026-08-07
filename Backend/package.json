@@ -10,7 +10,8 @@
     "revenue:sync": "node src/runRevenueAggregation.js",
     "analytics:artist-monthly": "node src/runArtistMonthlyStatAggregation.js",
     "migrate:track-release-state": "node src/migrations/backfillTrackReleaseState.js",
-    "seed:comprehensive": "node seedComprehensive.js"
+    "seed:comprehensive": "node seedComprehensive.js",
+    "repair:top-track-visibility": "node scripts/repairTopTrackVisibility.js"
   },
   "author": "",
   "license": "ISC",

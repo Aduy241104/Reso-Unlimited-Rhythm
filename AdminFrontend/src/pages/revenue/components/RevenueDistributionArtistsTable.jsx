@@ -31,7 +31,7 @@ const RevenueDistributionArtistsTable = ({ artists = [] }) => (
       </div>
     ) : (
       <div className="overflow-x-auto">
-        <table className="min-w-[1180px] w-full">
+        <table className="min-w-[860px] w-full">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50 text-left">
               <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
@@ -41,19 +41,7 @@ const RevenueDistributionArtistsTable = ({ artists = [] }) => (
                 Stream hợp lệ
               </th>
               <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                Doanh thu gộp
-              </th>
-              <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
                 Nghệ sĩ nhận
-              </th>
-              <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                Nền tảng giữ
-              </th>
-              <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                Đã rút
-              </th>
-              <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                Còn khả dụng
               </th>
               <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
                 Trạng thái
@@ -63,6 +51,13 @@ const RevenueDistributionArtistsTable = ({ artists = [] }) => (
           <tbody>
             {artists.map((artistItem) => {
               const artist = artistItem.artist ?? {};
+              const verificationLabel = getVerificationStatusLabel(
+                artist?.verificationStatus
+              );
+              const activeLabel = getActiveStatusLabel(artist?.activeStatus);
+              const badges = [verificationLabel, activeLabel].filter(
+                (label) => label && label !== "Chưa rõ"
+              );
 
               return (
                 <tr
@@ -83,16 +78,18 @@ const RevenueDistributionArtistsTable = ({ artists = [] }) => (
                         <p className="mt-1 text-sm text-slate-500">
                           ID: {artistItem.artistId}
                         </p>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600">
-                            {getVerificationStatusLabel(
-                              artist?.verificationStatus
-                            )}
-                          </span>
-                          <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600">
-                            {getActiveStatusLabel(artist?.activeStatus)}
-                          </span>
-                        </div>
+                        {badges.length > 0 ? (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {badges.map((label) => (
+                              <span
+                                key={label}
+                                className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600"
+                              >
+                                {label}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
                       </div>
                     </div>
                   </td>
@@ -100,19 +97,7 @@ const RevenueDistributionArtistsTable = ({ artists = [] }) => (
                     {formatNumber(artistItem.totalEligibleStreams)}
                   </td>
                   <td className="px-4 py-4 text-sm font-medium text-slate-900">
-                    {formatCurrency(artistItem.grossRevenueAmount)}
-                  </td>
-                  <td className="px-4 py-4 text-sm font-medium text-slate-900">
                     {formatCurrency(artistItem.artistRevenueAmount)}
-                  </td>
-                  <td className="px-4 py-4 text-sm font-medium text-slate-900">
-                    {formatCurrency(artistItem.platformRevenueAmount)}
-                  </td>
-                  <td className="px-4 py-4 text-sm font-medium text-slate-900">
-                    {formatCurrency(artistItem.withdrawnAmount)}
-                  </td>
-                  <td className="px-4 py-4 text-sm font-medium text-slate-900">
-                    {formatCurrency(artistItem.availableAmount)}
                   </td>
                   <td className="px-4 py-4">
                     <div className="space-y-2">
