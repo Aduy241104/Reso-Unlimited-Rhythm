@@ -319,14 +319,14 @@ const ArtistDashboardLayout = () => {
               <div className="flex min-h-full items-center justify-center p-6">
                 <div className="w-full max-w-md rounded-3xl border border-neutral-200 bg-white px-6 py-8 text-center shadow-sm">
                   <p className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-500">
-                    Artist Access
+                    Quyền truy cập của nghệ sĩ
                   </p>
                   <h2 className="mt-3 text-xl font-semibold text-black">
-                    Dang kiem tra trang thai tai khoan
+                    Đang kiểm tra trạng thái tài khoản
                   </h2>
                   <p className="mt-2 text-sm leading-6 text-neutral-600">
-                    He thong dang xac minh quyen truy cap khu vuc artist truoc
-                    khi hien thi noi dung.
+                    Hệ thống đang xác minh quyền truy cập khu vực nghệ sĩ trước
+                    khi hiển thị nội dung.
                   </p>
                 </div>
               </div>

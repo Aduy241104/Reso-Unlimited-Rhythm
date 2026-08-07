@@ -245,7 +245,7 @@ const updateArtistStatusForAdmin = async (
 
     if (activeStatus === "blocked") {
         updateData.blockedReason =
-            blockedReason || "Vi pham dieu khoan he thong.";
+            blockedReason || "Vi phạm điều khoản hệ thống.";
     } else {
         updateData.blockedReason = "";
     }
@@ -268,10 +268,10 @@ const updateArtistStatusForAdmin = async (
                 userId: updatedArtist.userId,
                 type: "system",
                 title: isUnblocking
-                    ? "Thông báo mở khóa tài khoản Nghệ sĩ"
-                    : "Thông báo khóa tài khoản Nghệ sĩ",
+                    ? "Thông báo mở khóa tài khoản nghệ sĩ"
+                    : "Thông báo khóa tài khoản nghệ sĩ",
                 content: isUnblocking
-                    ? "Tài khoản nghệ sĩ của bạn đã được Admin mở khóa thành công. Bạn có thể tiếp tục quản lý bài hát và hoạt động bình thường."
+                    ? "Tài khoản nghệ sĩ của bạn đã được quản trị viên mở khóa thành công. Bạn có thể tiếp tục quản lý bài hát và hoạt động bình thường."
                     : `Tài khoản nghệ sĩ của bạn đã bị khóa. Lý do: ${updateData.blockedReason}`,
                 targetId: artistId,
                 targetType: "artist",

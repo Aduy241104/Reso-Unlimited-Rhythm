@@ -16,7 +16,7 @@ const TrackAvatar = ({ src, title }) => {
     return (
         <img
             src={ src }
-            alt={ title || "Track" }
+            alt={ title || "Bài hát" }
             onError={ () => setHasError(true) }
             className="h-11 w-11 shrink-0 rounded-xl object-cover"
         />
@@ -28,10 +28,10 @@ const TrackRevenueTable = ({ tracks = [] }) => {
         return (
             <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-8 text-center">
                 <p className="text-sm font-medium text-zinc-800">
-                    Chưa có track phát sinh doanh thu
+                    Chưa có bài hát phát sinh doanh thu
                 </p>
                 <p className="mt-1 text-sm text-zinc-500">
-                    Khi kỳ doanh thu được xác nhận, các track có stream hợp lệ sẽ xuất hiện tại đây.
+                    Khi kỳ doanh thu được xác nhận, các bài hát có lượt nghe hợp lệ sẽ xuất hiện tại đây.
                 </p>
             </div>
         );
@@ -43,10 +43,10 @@ const TrackRevenueTable = ({ tracks = [] }) => {
                 <table className="min-w-full text-left text-sm">
                     <thead className="border-b border-zinc-200 bg-zinc-50 text-xs uppercase tracking-[0.12em] text-zinc-500">
                         <tr>
-                            <th className="px-5 py-3 font-semibold">Track</th>
+                            <th className="px-5 py-3 font-semibold">Bài hát</th>
                             <th className="px-5 py-3 text-right font-semibold">Doanh thu</th>
-                            <th className="px-5 py-3 text-right font-semibold">Stream hợp lệ</th>
-                            <th className="px-5 py-3 text-right font-semibold">Play count</th>
+                            <th className="px-5 py-3 text-right font-semibold">Lượt nghe hợp lệ</th>
+                            <th className="px-5 py-3 text-right font-semibold">Lượt phát</th>
                         </tr>
                     </thead>
 

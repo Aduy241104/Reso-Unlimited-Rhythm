@@ -163,7 +163,11 @@ const ArtistAlbumDetailPage = () => {
     setTracksLoading(true);
 
     try {
-      const result = await getArtistTracksService();
+      const result = await getArtistTracksService({
+        unassignedOnly: true,
+        approvalStatus: "approved",
+        limit: 100,
+      });
       const currentTrackIds = new Set(
         trackItems
           .map((item) => item?.track?.id || item?.track?._id)
@@ -172,7 +176,10 @@ const ArtistAlbumDetailPage = () => {
       );
       setAvailableTracks(
         result.tracks.filter(
-          (track) => !currentTrackIds.has(String(track._id || track.id))
+          (track) =>
+            track?.approvalStatus === "approved" &&
+            !track?.album &&
+            !currentTrackIds.has(String(track._id || track.id))
         )
       );
     } catch {
@@ -222,17 +229,12 @@ const ArtistAlbumDetailPage = () => {
     setIsRemovingTrack(true);
 
     try {
-      const previousStatus = album?.status;
       await removeTrackFromAlbumService(album.id, removeConfirm.id);
       const updatedAlbum = await getArtistAlbumDetailService(id);
 
       setAlbum(updatedAlbum);
       setRemoveConfirm(null);
-      showArtistSuccess(
-        previousStatus === "active" && updatedAlbum?.status === "draft"
-          ? "Đã gỡ bài hát. Album được chuyển về bản nháp vì còn dưới 2 bài hát."
-          : "Đã gỡ bài hát khỏi album."
-      );
+      showArtistSuccess("Đã gỡ bài hát khỏi album.");
     } catch {
       showArtistError("Không thể gỡ bài hát khỏi album.");
     } finally {
@@ -294,7 +296,7 @@ const ArtistAlbumDetailPage = () => {
     trackItems
   );
   const canReleaseAlbum = trackItems.length >= 2;
-  const showReleaseActions = album.status !== "active";
+  const showReleaseActions = album.status === "draft";
   const statusMeta =
     ALBUM_STATUS_META[album.status] || ALBUM_STATUS_META.draft;
 
@@ -710,7 +712,7 @@ const ArtistAlbumDetailPage = () => {
                     Không còn bài hát khả dụng
                   </h3>
                   <p className="mt-2 text-sm text-[#9690ac]">
-                    Tất cả bài hát trong thư viện đã thuộc album này.
+                    Không có bài hát đã được duyệt nào chưa thuộc album.
                   </p>
                 </div>
               ) : (

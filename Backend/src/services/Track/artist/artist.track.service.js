@@ -19,6 +19,7 @@ import {
     validateTrackForSubmit,
 } from "../track.submit.validation.js";
 import Artist from "../../../models/Artist.js";
+import Album from "../../../models/Album.js";
 import ReleaseSchedule from "../../../models/ReleaseSchedule.js";
 import Track from "../../../models/Track.js";
 import User from "../../../models/User.js";
@@ -45,7 +46,7 @@ const assertTrackVisibilityCanBeChangedByArtist = async (track) => {
 
     if (hasScheduledRelease) {
         throw new AppError(
-            "Cancel the release schedule before changing track visibility.",
+            "Hãy hủy lịch phát hành trước khi thay đổi trạng thái hiển thị của bài hát.",
             StatusCodes.CONFLICT,
             {
                 field: "activeStatus",
@@ -325,12 +326,12 @@ const createTrack = async (userId, trackData) => {
     const user = await User.findById(userId);
 
     if (!user) {
-        throw new AppError("User not found.", StatusCodes.NOT_FOUND);
+        throw new AppError("Không tìm thấy người dùng.", StatusCodes.NOT_FOUND);
     }
 
     if (user.role !== "artist") {
         throw new AppError(
-            "Only artists can create tracks.",
+            "Chỉ nghệ sĩ mới có thể tạo bài hát.",
             StatusCodes.FORBIDDEN
         );
     }
@@ -339,7 +340,7 @@ const createTrack = async (userId, trackData) => {
 
     if (!artist) {
         throw new AppError(
-            "Artist profile not found. Please complete your artist profile first.",
+            "Không tìm thấy hồ sơ nghệ sĩ. Vui lòng hoàn thiện hồ sơ nghệ sĩ trước.",
             StatusCodes.NOT_FOUND
         );
     }
@@ -364,7 +365,7 @@ const createTrack = async (userId, trackData) => {
 
     if (coverImage.length > MAX_COVER_IMAGES) {
         throw new AppError(
-            `A track can have at most ${MAX_COVER_IMAGES} cover images.`,
+            `Một bài hát chỉ được có tối đa ${MAX_COVER_IMAGES} ảnh bìa.`,
             StatusCodes.BAD_REQUEST,
             { field: "coverImage" }
         );
@@ -375,7 +376,7 @@ const createTrack = async (userId, trackData) => {
 
     if (lyricsStatic.length > LYRICS_STATIC_MAX_LENGTH) {
         throw new AppError(
-            `Static lyrics cannot exceed ${LYRICS_STATIC_MAX_LENGTH} characters.`,
+            `Lời bài hát tĩnh không được vượt quá ${LYRICS_STATIC_MAX_LENGTH} ký tự.`,
             StatusCodes.BAD_REQUEST,
             { field: "lyricsStatic" }
         );
@@ -422,12 +423,12 @@ const updateArtistTrack = async (userId, trackId, trackData) => {
     const user = await User.findById(userId);
 
     if (!user) {
-        throw new AppError("User not found.", StatusCodes.NOT_FOUND);
+        throw new AppError("Không tìm thấy người dùng.", StatusCodes.NOT_FOUND);
     }
 
     if (user.role !== "artist") {
         throw new AppError(
-            "Only artists can update tracks.",
+            "Chỉ nghệ sĩ mới có thể cập nhật bài hát.",
             StatusCodes.FORBIDDEN
         );
     }
@@ -435,11 +436,11 @@ const updateArtistTrack = async (userId, trackId, trackData) => {
     const artist = await Artist.findOne({ userId });
 
     if (!artist) {
-        throw new AppError("Artist profile not found.", StatusCodes.NOT_FOUND);
+        throw new AppError("Không tìm thấy hồ sơ nghệ sĩ.", StatusCodes.NOT_FOUND);
     }
 
     if (!mongoose.Types.ObjectId.isValid(trackId)) {
-        throw new AppError("Track id is invalid.", StatusCodes.BAD_REQUEST, {
+        throw new AppError("Mã bài hát không hợp lệ.", StatusCodes.BAD_REQUEST, {
             field: "id",
         });
     }
@@ -451,7 +452,7 @@ const updateArtistTrack = async (userId, trackId, trackData) => {
 
     if (!track) {
         throw new AppError(
-            "Track not found or you do not have permission to update it.",
+            "Không tìm thấy bài hát hoặc bạn không có quyền cập nhật bài hát này.",
             StatusCodes.NOT_FOUND
         );
     }
@@ -506,7 +507,7 @@ const updateArtistTrack = async (userId, trackId, trackData) => {
 
         if (nextTrackData.coverImage.length > MAX_COVER_IMAGES) {
             throw new AppError(
-                `A track can have at most ${MAX_COVER_IMAGES} cover images.`,
+                `Một bài hát chỉ được có tối đa ${MAX_COVER_IMAGES} ảnh bìa.`,
                 StatusCodes.BAD_REQUEST,
                 { field: "coverImage" }
             );
@@ -532,7 +533,7 @@ const updateArtistTrack = async (userId, trackId, trackData) => {
 
         if (nextLyrics.length > LYRICS_STATIC_MAX_LENGTH) {
             throw new AppError(
-                `Static lyrics cannot exceed ${LYRICS_STATIC_MAX_LENGTH} characters.`,
+                `Lời bài hát tĩnh không được vượt quá ${LYRICS_STATIC_MAX_LENGTH} ký tự.`,
                 StatusCodes.BAD_REQUEST,
                 { field: "lyricsStatic" }
             );
@@ -629,7 +630,7 @@ const getArtistTracks = async (userId, query = {}) => {
     const artist = await Artist.findOne({ userId });
 
     if (!artist) {
-        throw new AppError("Artist profile not found.", StatusCodes.NOT_FOUND);
+        throw new AppError("Không tìm thấy hồ sơ nghệ sĩ.", StatusCodes.NOT_FOUND);
     }
 
     const page = normalizePositiveInteger(query.page, DEFAULT_PAGE);
@@ -640,6 +641,22 @@ const getArtistTracks = async (userId, query = {}) => {
     const filter = {
         artist_artistId: artist._id,
     };
+
+    const unassignedOnly = ["true", "1"].includes(
+        String(query.unassignedOnly || "").trim().toLowerCase()
+    );
+
+    if (unassignedOnly) {
+        const legacyAssignedTrackIds = await Album.distinct("trackList.trackId", {
+            artistId: artist._id,
+        });
+
+        filter.album_albumId = null;
+
+        if (legacyAssignedTrackIds.length > 0) {
+            filter._id = { $nin: legacyAssignedTrackIds };
+        }
+    }
 
     const rawSearch = typeof query.q === "string" ? query.q.trim() : "";
     if (rawSearch) {
@@ -713,11 +730,11 @@ const getArtistTrackDetail = async (userId, trackId) => {
     const artist = await Artist.findOne({ userId });
 
     if (!artist) {
-        throw new AppError("Artist profile not found.", StatusCodes.NOT_FOUND);
+        throw new AppError("Không tìm thấy hồ sơ nghệ sĩ.", StatusCodes.NOT_FOUND);
     }
 
     if (!mongoose.Types.ObjectId.isValid(trackId)) {
-        throw new AppError("Track id is invalid.", StatusCodes.BAD_REQUEST, {
+        throw new AppError("Mã bài hát không hợp lệ.", StatusCodes.BAD_REQUEST, {
             field: "id",
         });
     }
@@ -742,7 +759,7 @@ const getArtistTrackDetail = async (userId, trackId) => {
 
     if (!track) {
         throw new AppError(
-            "Track not found or you do not have permission to view it.",
+            "Không tìm thấy bài hát hoặc bạn không có quyền xem bài hát này.",
             StatusCodes.NOT_FOUND
         );
     }
@@ -754,11 +771,11 @@ const hideArtistTrack = async (userId, trackId) => {
     const artist = await Artist.findOne({ userId });
 
     if (!artist) {
-        throw new AppError("Artist profile not found.", StatusCodes.NOT_FOUND);
+        throw new AppError("Không tìm thấy hồ sơ nghệ sĩ.", StatusCodes.NOT_FOUND);
     }
 
     if (!mongoose.Types.ObjectId.isValid(trackId)) {
-        throw new AppError("Track id is invalid.", StatusCodes.BAD_REQUEST, {
+        throw new AppError("Mã bài hát không hợp lệ.", StatusCodes.BAD_REQUEST, {
             field: "id",
         });
     }
@@ -770,7 +787,7 @@ const hideArtistTrack = async (userId, trackId) => {
 
     if (!track) {
         throw new AppError(
-            "Track not found or you do not have permission to update it.",
+            "Không tìm thấy bài hát hoặc bạn không có quyền cập nhật bài hát này.",
             StatusCodes.NOT_FOUND
         );
     }
@@ -779,7 +796,7 @@ const hideArtistTrack = async (userId, trackId) => {
 
     if (track.activeStatus === "blocked") {
         throw new AppError(
-            "This track cannot be hidden in its current state.",
+            "Không thể ẩn bài hát ở trạng thái hiện tại.",
             StatusCodes.CONFLICT,
             { field: "activeStatus" }
         );
@@ -818,11 +835,11 @@ const unhideArtistTrack = async (userId, trackId) => {
     const artist = await Artist.findOne({ userId });
 
     if (!artist) {
-        throw new AppError("Artist profile not found.", StatusCodes.NOT_FOUND);
+        throw new AppError("Không tìm thấy hồ sơ nghệ sĩ.", StatusCodes.NOT_FOUND);
     }
 
     if (!mongoose.Types.ObjectId.isValid(trackId)) {
-        throw new AppError("Track id is invalid.", StatusCodes.BAD_REQUEST, {
+        throw new AppError("Mã bài hát không hợp lệ.", StatusCodes.BAD_REQUEST, {
             field: "id",
         });
     }
@@ -834,7 +851,7 @@ const unhideArtistTrack = async (userId, trackId) => {
 
     if (!track) {
         throw new AppError(
-            "Track not found or you do not have permission to update it.",
+            "Không tìm thấy bài hát hoặc bạn không có quyền cập nhật bài hát này.",
             StatusCodes.NOT_FOUND
         );
     }
@@ -844,7 +861,7 @@ const unhideArtistTrack = async (userId, trackId) => {
     if (track.approvalStatus !== "approved" || track.activeStatus === "blocked") {
         if (track.activeStatus === "blocked") {
             throw new AppError(
-                "This track cannot be made active in its current state.",
+                "Không thể chuyển bài hát sang trạng thái hoạt động ở trạng thái hiện tại.",
                 StatusCodes.CONFLICT,
                 { field: "activeStatus" }
             );
@@ -867,11 +884,11 @@ const deleteArtistTrack = async (userId, trackId) => {
     const artist = await Artist.findOne({ userId });
 
     if (!artist) {
-        throw new AppError("Artist profile not found.", StatusCodes.NOT_FOUND);
+        throw new AppError("Không tìm thấy hồ sơ nghệ sĩ.", StatusCodes.NOT_FOUND);
     }
 
     if (!mongoose.Types.ObjectId.isValid(trackId)) {
-        throw new AppError("Track id is invalid.", StatusCodes.BAD_REQUEST, {
+        throw new AppError("Mã bài hát không hợp lệ.", StatusCodes.BAD_REQUEST, {
             field: "id",
         });
     }
@@ -883,7 +900,7 @@ const deleteArtistTrack = async (userId, trackId) => {
 
     if (!track) {
         throw new AppError(
-            "Track not found or you do not have permission to delete it.",
+            "Không tìm thấy bài hát hoặc bạn không có quyền xóa bài hát này.",
             StatusCodes.NOT_FOUND
         );
     }
@@ -913,27 +930,27 @@ const submitArtistTrack = async (userId, trackId) => {
     const user = await User.findById(userId);
 
     if (!user) {
-        throw new AppError("User not found.", StatusCodes.NOT_FOUND);
+        throw new AppError("Không tìm thấy người dùng.", StatusCodes.NOT_FOUND);
     }
 
     if (user.role !== "artist") {
-        throw new AppError("Only artists can submit tracks.", StatusCodes.FORBIDDEN);
+        throw new AppError("Chỉ nghệ sĩ mới có thể gửi duyệt bài hát.", StatusCodes.FORBIDDEN);
     }
 
     const artist = await Artist.findOne({ userId });
 
     if (!artist) {
-        throw new AppError("Artist profile not found.", StatusCodes.NOT_FOUND);
+        throw new AppError("Không tìm thấy hồ sơ nghệ sĩ.", StatusCodes.NOT_FOUND);
     }
 
     if (!mongoose.Types.ObjectId.isValid(trackId)) {
-        throw new AppError("Track id is invalid.", StatusCodes.BAD_REQUEST, { field: "id" });
+        throw new AppError("Mã bài hát không hợp lệ.", StatusCodes.BAD_REQUEST, { field: "id" });
     }
 
     const track = await Track.findOne({ _id: trackId, artist_artistId: artist._id });
 
     if (!track) {
-        throw new AppError("Track not found or you do not have permission.", StatusCodes.NOT_FOUND);
+        throw new AppError("Không tìm thấy bài hát hoặc bạn không có quyền truy cập.", StatusCodes.NOT_FOUND);
     }
 
     await validateTrackForSubmit(track, artist);

@@ -19,9 +19,9 @@ const RANGE_OPTIONS = [
 
 const DAILY_METRICS = {
   streamCount: {
-    label: "Lượt stream",
+    label: "Lượt nghe",
     color: "#7c6cf2",
-    description: "Tổng lượt stream được ghi nhận theo từng ngày.",
+    description: "Tổng lượt nghe được ghi nhận theo từng ngày.",
     formatter: (value) => formatNumber(value),
   },
   uniqueListeners: {
@@ -34,9 +34,9 @@ const DAILY_METRICS = {
 
 const PERIOD_STREAM_METRICS = {
   streamCount: {
-    label: "Lượt stream",
+    label: "Lượt nghe",
     color: "#7c6cf2",
-    description: "Tổng lượt stream trong từng mốc thời gian.",
+    description: "Tổng lượt nghe trong từng mốc thời gian.",
     formatter: (value) => formatNumber(value),
   },
 };
@@ -80,7 +80,7 @@ const normalizeErrorMessage = (error) =>
 
 const buildSummaryCards = (summary) => [
   {
-    label: "Follower",
+    label: "Người theo dõi",
     value: `${formatNumber(summary?.followers)} người`,
     helper: "Tổng số người đang theo dõi nghệ sĩ của bạn trên hệ thống.",
     icon: Users,
@@ -88,13 +88,13 @@ const buildSummaryCards = (summary) => [
   {
     label: "Tổng bài hát",
     value: `${formatNumber(summary?.trackCount)} bài`,
-    helper: "Tổng số track hiện thuộc về nghệ sĩ của bạn.",
+    helper: "Tổng số bài hát hiện thuộc về nghệ sĩ của bạn.",
     icon: Disc3,
   },
   {
     label: "Tổng lượt nghe",
     value: `${formatNumber(summary?.totalStreams)} lượt`,
-    helper: "Tổng lượt stream toàn thời gian của toàn bộ catalog nghệ sĩ.",
+    helper: "Tổng lượt nghe toàn thời gian của toàn bộ danh mục nhạc nghệ sĩ.",
     icon: Headphones,
   },
 ];
@@ -236,14 +236,14 @@ const ArtistOverviewPage = () => {
     <section className="space-y-6">
       <section className="rounded-[20px] border border-[#e7e1ff] bg-white p-6 shadow-sm">
         <p className="text-xs uppercase tracking-[0.3em] text-[#7c6cf2]">
-          Artist Performance Overview
+          Tổng quan hiệu suất nghệ sĩ
         </p>
         <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[#2f2747]">
           {overview?.artist?.name || "Nghệ sĩ"}
         </h2>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-[#7c7891]">
           Các chỉ số tổng quan bên dưới luôn được tính theo toàn thời gian. Bộ
-          lọc 7 ngày và 30 ngày chỉ áp dụng cho biểu đồ stream theo ngày.
+          lọc 7 ngày và 30 ngày chỉ áp dụng cho biểu đồ lượt nghe theo ngày.
         </p>
       </section>
 
@@ -301,9 +301,9 @@ const ArtistOverviewPage = () => {
         maxMetricValue={dailyExtremes.max}
         metricOptions={DAILY_METRICS}
         onChangeMetric={setDailyMetric}
-        sectionEyebrow="Daily Streaming"
-        sectionTitle="Thống kê stream theo ngày"
-        sectionDescription={`Biểu đồ này thể hiện lượt stream và số người nghe duy nhất theo từng ngày trong ${selectedRangeLabel.toLowerCase()} gần nhất.`}
+        sectionEyebrow="Lượt nghe hằng ngày"
+        sectionTitle="Thống kê lượt nghe theo ngày"
+        sectionDescription={`Biểu đồ này thể hiện lượt nghe và số người nghe duy nhất theo từng ngày trong ${selectedRangeLabel.toLowerCase()} gần nhất.`}
         showTooltipListenValue={false}
         tooltipLabelFormatter={(value) =>
           formatDateLabel(value, {
@@ -312,7 +312,7 @@ const ArtistOverviewPage = () => {
             year: "numeric",
           })
         }
-        tooltipListenLabel="lượt stream"
+        tooltipListenLabel="lượt nghe"
         tooltipListenValueKey="streamCount"
         xAxisLabelFormatter={(value) =>
           formatDateLabel(value, { day: "2-digit", month: "short" })
@@ -354,9 +354,9 @@ const ArtistOverviewPage = () => {
         maxMetricValue={monthlyExtremes.max}
         metricOptions={PERIOD_STREAM_METRICS}
         onChangeMetric={setMonthlyMetric}
-        sectionEyebrow="Monthly Totals"
-        sectionTitle={`Tổng stream theo tháng của năm ${selectedYear}`}
-        sectionDescription={`Tổng lượt stream của từng tháng trong năm ${selectedYear}. Tổng cộng năm này hiện là ${formatNumber(
+        sectionEyebrow="Tổng theo tháng"
+        sectionTitle={`Tổng lượt nghe theo tháng của năm ${selectedYear}`}
+        sectionDescription={`Tổng lượt nghe của từng tháng trong năm ${selectedYear}. Tổng cộng năm này hiện là ${formatNumber(
           selectedYearTotalStreams
         )} lượt.`}
         showTooltipListenValue={false}
@@ -379,9 +379,9 @@ const ArtistOverviewPage = () => {
         maxMetricValue={yearlyExtremes.max}
         metricOptions={PERIOD_STREAM_METRICS}
         onChangeMetric={setYearlyMetric}
-        sectionEyebrow="Yearly Totals"
-        sectionTitle="Tổng stream theo năm"
-        sectionDescription="So sánh tổng lượt stream của 5 năm gần nhất để nhìn xu hướng tăng trưởng dài hạn."
+        sectionEyebrow="Tổng theo năm"
+        sectionTitle="Tổng lượt nghe theo năm"
+        sectionDescription="So sánh tổng lượt nghe của 5 năm gần nhất để nhìn xu hướng tăng trưởng dài hạn."
         showTooltipListenValue={false}
         tooltipLabelFormatter={(value) => value}
         tooltipListenValueKey="streamCount"

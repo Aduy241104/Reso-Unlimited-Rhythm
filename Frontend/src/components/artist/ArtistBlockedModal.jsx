@@ -48,8 +48,8 @@ const ArtistBlockedModal = ({
               Tài khoản nghệ sĩ của bạn đang bị khóa
             </h2>
             <p className="mt-2 text-sm leading-6 text-neutral-600">
-              Bạn tạm thời không thể truy cập khu vực artist. Vui lòng xem lý do
-              bên dưới và liên hệ admin để được hỗ trợ.
+              Bạn tạm thời không thể truy cập khu vực nghệ sĩ. Vui lòng xem lý do
+              bên dưới và liên hệ quản trị viên để được hỗ trợ.
             </p>
           </div>
         </div>
@@ -65,7 +65,7 @@ const ArtistBlockedModal = ({
 
         <div className="mt-4 rounded-xl border border-neutral-200 bg-white p-4">
           <p className="text-sm font-medium text-neutral-900">
-            Liên hệ admin qua email:
+            Liên hệ quản trị viên qua thư điện tử:
           </p>
           <a
             href={supportMailTo}
@@ -86,7 +86,7 @@ const ArtistBlockedModal = ({
             className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-neutral-950 bg-neutral-950 px-4 text-sm font-semibold text-white transition hover:bg-neutral-800"
           >
             <ArrowLeft className="h-4 w-4" />
-            Rời khu vực artist
+            Rời khu vực nghệ sĩ
           </button>
         </div>
       </div>

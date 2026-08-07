@@ -8,7 +8,7 @@ const getArtistName = (track) =>
   track?.artist?.name ||
   track?.artistName ||
   track?.artistId?.name ||
-  "Unknown Artist";
+  "Nghệ sĩ chưa xác định";
 
 const getTrackImage = (track) =>
   track?.avatar ||
@@ -66,7 +66,7 @@ const PopularTracksSection = ({
                 key={ track?._id || track?.id || track?.title || index }
                 index={ String(index + 1).padStart(2, "0") }
                 image={ getTrackImage(track) }
-                title={ track?.title || "Untitled track" }
+                title={ track?.title || "Bài hát chưa có tên" }
                 artistName={ getArtistName(track) }
                 plays={ track?.plays || "0" }
                 duration={ track?.duration || "--:--" }

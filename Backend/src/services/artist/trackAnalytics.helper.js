@@ -56,7 +56,7 @@ const normalizeRange = (range) => {
 
 const ensureDateKey = (value) => {
     if (!isValidDateKey(value)) {
-        throw new AppError("Invalid date range", StatusCodes.BAD_REQUEST);
+        throw new AppError("Khoảng ngày không hợp lệ.", StatusCodes.BAD_REQUEST);
     }
 
     return value;
@@ -64,7 +64,7 @@ const ensureDateKey = (value) => {
 
 const ensureDateRangeOrder = (from, to) => {
     if (parseDateKey(from).isAfter(parseDateKey(to))) {
-        throw new AppError("Invalid date range", StatusCodes.BAD_REQUEST);
+        throw new AppError("Khoảng ngày không hợp lệ.", StatusCodes.BAD_REQUEST);
     }
 };
 
@@ -72,7 +72,7 @@ export const resolveOverviewPeriod = ({ range, from, to }) => {
     const normalizedRange = normalizeRange(range);
 
     if (!ALLOWED_RANGES.has(normalizedRange)) {
-        throw new AppError("Invalid analytics range", StatusCodes.BAD_REQUEST);
+        throw new AppError("Khoảng phân tích không hợp lệ.", StatusCodes.BAD_REQUEST);
     }
 
     if (normalizedRange === "all") {
@@ -85,7 +85,7 @@ export const resolveOverviewPeriod = ({ range, from, to }) => {
 
     if (normalizedRange === "custom") {
         if (!from || !to) {
-            throw new AppError("Invalid date range", StatusCodes.BAD_REQUEST);
+            throw new AppError("Khoảng ngày không hợp lệ.", StatusCodes.BAD_REQUEST);
         }
 
         const normalizedFrom = ensureDateKey(String(from).trim());

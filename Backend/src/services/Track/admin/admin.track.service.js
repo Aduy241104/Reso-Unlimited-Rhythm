@@ -299,12 +299,13 @@ const createTrackModerationNotification = async ({
     const normalizedStatus = status === "approved" ? "approved" : "rejected";
     const title =
         normalizedStatus === "approved"
-            ? `Track "${track.title}" đã được phê duyệt`
-            : `Track "${track.title}" đã bị từ chối`;
+
+            ? `Bài hát "${track.title}" đã được phê duyệt`
+            : `Bài hát "${track.title}" đã bị từ chối`;
     const content =
         normalizedStatus === "approved"
-            ? "Admin đã phê duyệt track của bạn."
-            : `Admin đã từ chối track của bạn.${note ? ` Lý do: ${note}` : ""}`;
+            ? "Quản trị viên đã phê duyệt bài hát của bạn."
+            : `Quản trị viên đã từ chối bài hát của bạn.${note ? ` Lý do: ${note}` : ""}`;
 
     const notification = await Notification.create({
         userId: artist.userId,
@@ -354,17 +355,18 @@ const createTrackVisibilityNotification = async ({
     let content = "";
 
     if (action === "hide") {
-        title = `Track "${track.title}" đã bị ẩn`;
-        content = `Admin đã tạm ẩn track của bạn khỏi nền tảng.${reason ? ` Lý do: ${reason}` : ""}`;
+
+        title = `Bài hát "${track.title}" đã bị ẩn`;
+        content = `Quản trị viên đã tạm ẩn bài hát của bạn khỏi nền tảng.${reason ? ` Lý do: ${reason}` : ""}`;
     } else if (action === "block") {
-        title = `Track "${track.title}" đã bị khóa`;
-        content = `Admin đã khóa track của bạn.${reason ? ` Lý do: ${reason}` : ""}`;
+        title = `Bài hát "${track.title}" đã bị khóa`;
+        content = `Quản trị viên đã khóa bài hát của bạn.${reason ? ` Lý do: ${reason}` : ""}`;
     } else if (action === "unhide") {
-        title = `Track "${track.title}" đã được hiển thị lại`;
-        content = "Admin đã mở lại hiển thị cho track của bạn trên nền tảng.";
+        title = `Bài hát "${track.title}" đã được hiển thị lại`;
+        content = "Quản trị viên đã hiển thị lại bài hát của bạn trên nền tảng.";
     } else if (action === "unblock") {
-        title = `Track "${track.title}" đã được gỡ khóa`;
-        content = "Admin đã gỡ khóa track của bạn trên hệ thống.";
+        title = `Bài hát "${track.title}" đã được gỡ khóa`;
+        content = "Quản trị viên đã gỡ khóa bài hát của bạn trên hệ thống.";
     } else {
         return null;
     }
@@ -581,14 +583,14 @@ const updateTrackApprovalStatus = async (
                 reviewedBy: adminUserId,
                 reviewedAt: new Date(),
                 adminNote: note,
-                rejectReason: note || "Rejected by administrator.",
+                rejectReason: note || "Bị quản trị viên từ chối.",
             };
 
             await track.save();
         } else {
             track.approvalStatus = "rejected";
             track.activeStatus = "draft";
-            track.rejectReason = note || "Rejected by administrator.";
+            track.rejectReason = note || "Bị quản trị viên từ chối.";
 
             if (track.copyright) {
                 track.copyright.copyrightStatus = flags.includes("copyright")
@@ -651,13 +653,13 @@ const updateTrackVisibility = async (
     if (payload.action === "hide") {
         track.blockedByAlbumId = null;
         track.activeStatus = "hidden";
-        track.hiddenReason = (payload.hiddenReason || payload.adminNote || "Hidden by administrator.").trim();
+        track.hiddenReason = (payload.hiddenReason || payload.adminNote || "Bị quản trị viên ẩn.").trim();
         track.blockedReason = "";
         track.hiddenAt = new Date();
     } else if (payload.action === "block") {
         track.blockedByAlbumId = null;
         track.activeStatus = "blocked";
-        track.blockedReason = (payload.blockedReason || payload.adminNote || "Blocked by administrator.").trim();
+        track.blockedReason = (payload.blockedReason || payload.adminNote || "Bị quản trị viên khóa.").trim();
         track.hiddenReason = "";
         track.hiddenAt = null;
     } else if (payload.action === "unhide") {

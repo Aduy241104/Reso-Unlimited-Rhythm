@@ -969,7 +969,7 @@ export const MyMusicPage = () => {
       <ConfirmActionModal
         isOpen={Boolean(submitTarget)}
         title="Gửi bài hát để duyệt?"
-        message="Sau khi gửi duyệt, bạn sẽ không thể chỉnh sửa bài hát trong thời gian chờ admin xử lý. Bạn có muốn tiếp tục không?"
+        message="Sau khi gửi duyệt, bạn sẽ không thể chỉnh sửa bài hát trong thời gian chờ quản trị viên xử lý. Bạn có muốn tiếp tục không?"
         confirmText="Gửi duyệt"
         cancelText="Hủy"
         isLoading={isActionLoading}
@@ -985,7 +985,7 @@ export const ReleasesPage = () => <ArtistReleaseSchedulePage />;
 export const AnalyticsPage = () => (
   <ArtistSectionPage
     title="Phân tích"
-    description="Xem tăng trưởng người nghe, hiệu suất phát hành và các chỉ số streaming trên toàn bộ danh mục bài hát."
+    description="Xem tăng trưởng người nghe, hiệu suất phát hành và các chỉ số lượt nghe trên toàn bộ danh mục bài hát."
   />
 );
 

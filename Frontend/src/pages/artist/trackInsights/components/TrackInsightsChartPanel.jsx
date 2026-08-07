@@ -37,20 +37,20 @@ const TrackInsightsChartPanel = ({
   chartMeta,
   chartMetric,
   embedded = false,
-  emptyDescription = "Khi du lieu bat dau duoc ghi nhan, bieu do se hien thi tai day.",
-  emptyTitle = "Chua co du lieu trong giai doan nay",
+  emptyDescription = "Khi dữ liệu bắt đầu được ghi nhận, biểu đồ sẽ hiển thị tại đây.",
+  emptyTitle = "Chưa có dữ liệu trong giai đoạn này",
   items,
   isAnalyticsLoading,
   latestMetricValue,
   maxMetricValue,
   metricOptions,
   onChangeMetric,
-  sectionDescription = "Chon chi so can theo doi de xem bien dong du lieu.",
-  sectionEyebrow = "Xu huong",
-  sectionTitle = "Bieu do hieu suat",
+  sectionDescription = "Chọn chỉ số cần theo dõi để xem biến động dữ liệu.",
+  sectionEyebrow = "Xu hướng",
+  sectionTitle = "Biểu đồ hiệu suất",
   showTooltipListenValue = true,
   tooltipLabelFormatter = (value) => value,
-  tooltipListenLabel = "luot nghe",
+  tooltipListenLabel = "lượt nghe",
   tooltipListenValueKey = "playCount",
   tooltipMetricValueKey,
   xAxisLabelFormatter = (value) => value,
@@ -337,7 +337,7 @@ const TrackInsightsChartPanel = ({
             <div className="flex h-[320px] items-center justify-center rounded-[20px] border border-dashed border-neutral-200 bg-white text-sm text-neutral-500">
               <div className="flex items-center gap-3">
                 <LoaderCircle className="h-5 w-5 animate-spin text-[#8b5e3c]" />
-                Dang tai bieu do phan tich...
+                Đang tải biểu đồ phân tích...
               </div>
             </div>
           ) : chartIsEmpty ? (

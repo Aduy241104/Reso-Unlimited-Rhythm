@@ -22,7 +22,7 @@ const getMyAlbums = async (userId, query = {}) => {
 
     if (!artist) {
         throw new AppError(
-            "Artist profile not found for this account.",
+            "Không tìm thấy hồ sơ nghệ sĩ của tài khoản này.",
             StatusCodes.NOT_FOUND
         );
     }

@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { StatusCodes } from "http-status-codes";
 import Album from "../../models/Album.js";
 import Artist from "../../models/Artist.js";
+import ReleaseSchedule from "../../models/ReleaseSchedule.js";
 import Track from "../../models/Track.js";
 import { AppError } from "../../utils/AppError.js";
 import { formatAlbumItem, formatAlbumDetail } from "../album/album.helper.js";
@@ -23,10 +24,40 @@ const getAlbumTrackCount = (album) =>
 const ensureAlbumCanBePublished = (album) => {
     if (getAlbumTrackCount(album) < MIN_TRACKS_TO_PUBLISH_ALBUM) {
         throw new AppError(
-            `Album must contain at least ${MIN_TRACKS_TO_PUBLISH_ALBUM} tracks before it can be published.`,
+            `Album phải có ít nhất ${MIN_TRACKS_TO_PUBLISH_ALBUM} bài hát trước khi phát hành.`,
             StatusCodes.BAD_REQUEST,
             {
                 field: "status",
+            }
+        );
+    }
+};
+
+const ensureAlbumHasNotBeenPublished = async (album) => {
+    if (["active", "hidden"].includes(album?.status)) {
+        throw new AppError(
+            "Album này đã được phát hành.",
+            StatusCodes.CONFLICT,
+            {
+                field: "status",
+                code: "ALBUM_ALREADY_RELEASED",
+            }
+        );
+    }
+
+    const existingRelease = await ReleaseSchedule.exists({
+        type: "album",
+        targetId: album?._id,
+        status: { $in: ["scheduled", "released"] },
+    });
+
+    if (existingRelease) {
+        throw new AppError(
+            "Album này đã có lịch phát hành hoặc đã được phát hành.",
+            StatusCodes.CONFLICT,
+            {
+                field: "status",
+                code: "ALBUM_RELEASE_ALREADY_EXISTS",
             }
         );
     }
@@ -45,7 +76,7 @@ const getMyAlbums = async (userId, query = {}) => {
 
     if (!artist) {
         throw new AppError(
-            "Artist profile not found for this account.",
+            "Không tìm thấy hồ sơ nghệ sĩ của tài khoản này.",
             StatusCodes.NOT_FOUND
         );
     }
@@ -87,7 +118,7 @@ const getMyAlbums = async (userId, query = {}) => {
 
 const getMyAlbumDetail = async (userId, albumId) => {
     if (!mongoose.Types.ObjectId.isValid(albumId)) {
-        throw new AppError("Album id is invalid.", StatusCodes.BAD_REQUEST, {
+        throw new AppError("Mã album không hợp lệ.", StatusCodes.BAD_REQUEST, {
             field: "id",
         });
     }
@@ -96,7 +127,7 @@ const getMyAlbumDetail = async (userId, albumId) => {
 
     if (!artist) {
         throw new AppError(
-            "Artist profile not found for this account.",
+            "Không tìm thấy hồ sơ nghệ sĩ của tài khoản này.",
             StatusCodes.NOT_FOUND
         );
     }
@@ -140,7 +171,7 @@ const getMyAlbumDetail = async (userId, albumId) => {
         .lean();
 
     if (!album) {
-        throw new AppError("Album not found.", StatusCodes.NOT_FOUND);
+        throw new AppError("Không tìm thấy album.", StatusCodes.NOT_FOUND);
     }
 
     const trackSelect = [
@@ -205,13 +236,13 @@ const createAlbum = async (userId, payload, file) => {
 
     if (!artist) {
         throw new AppError(
-            "Artist profile not found for this account.",
+            "Không tìm thấy hồ sơ nghệ sĩ của tài khoản này.",
             StatusCodes.NOT_FOUND
         );
     }
 
     if (!payload.title || !payload.title.trim()) {
-        throw new AppError("Album title is required.", StatusCodes.BAD_REQUEST, {
+        throw new AppError("Tên album là bắt buộc.", StatusCodes.BAD_REQUEST, {
             field: "title",
         });
     }
@@ -230,7 +261,7 @@ const createAlbum = async (userId, payload, file) => {
         } catch (uploadError) {
             console.error("Failed to upload cover image:", uploadError.message);
             throw new AppError(
-                "Failed to upload cover image. Please try again.",
+                "Không thể tải ảnh bìa lên. Vui lòng thử lại.",
                 StatusCodes.INTERNAL_SERVER_ERROR
             );
         }
@@ -257,7 +288,7 @@ const createAlbum = async (userId, payload, file) => {
 
 const updateAlbum = async (userId, albumId, payload, file) => {
     if (!mongoose.Types.ObjectId.isValid(albumId)) {
-        throw new AppError("Album id is invalid.", StatusCodes.BAD_REQUEST, {
+        throw new AppError("Mã album không hợp lệ.", StatusCodes.BAD_REQUEST, {
             field: "id",
         });
     }
@@ -266,7 +297,7 @@ const updateAlbum = async (userId, albumId, payload, file) => {
 
     if (!artist) {
         throw new AppError(
-            "Artist profile not found for this account.",
+            "Không tìm thấy hồ sơ nghệ sĩ của tài khoản này.",
             StatusCodes.NOT_FOUND
         );
     }
@@ -277,13 +308,13 @@ const updateAlbum = async (userId, albumId, payload, file) => {
     });
 
     if (!album) {
-        throw new AppError("Album not found.", StatusCodes.NOT_FOUND);
+        throw new AppError("Không tìm thấy album.", StatusCodes.NOT_FOUND);
     }
 
     // Validate title if provided
     if (payload.title !== undefined) {
         if (!payload.title.trim()) {
-            throw new AppError("Album title is required.", StatusCodes.BAD_REQUEST, {
+            throw new AppError("Tên album là bắt buộc.", StatusCodes.BAD_REQUEST, {
                 field: "title",
             });
         }
@@ -299,6 +330,7 @@ const updateAlbum = async (userId, albumId, payload, file) => {
     if (payload.status !== undefined) {
         if (payload.status === "active") {
             ensureAlbumCanBePublished(album);
+            await ensureAlbumHasNotBeenPublished(album);
         }
         album.status = payload.status;
     }
@@ -326,7 +358,7 @@ const updateAlbum = async (userId, albumId, payload, file) => {
         } catch (uploadError) {
             console.error("Failed to upload cover image:", uploadError.message);
             throw new AppError(
-                "Failed to upload cover image. Please try again.",
+                "Không thể tải ảnh bìa lên. Vui lòng thử lại.",
                 StatusCodes.INTERNAL_SERVER_ERROR
             );
         }
@@ -344,7 +376,7 @@ const updateAlbum = async (userId, albumId, payload, file) => {
 
 const hideAlbum = async (userId, albumId) => {
     if (!mongoose.Types.ObjectId.isValid(albumId)) {
-        throw new AppError("Album id is invalid.", StatusCodes.BAD_REQUEST, {
+        throw new AppError("Mã album không hợp lệ.", StatusCodes.BAD_REQUEST, {
             field: "id",
         });
     }
@@ -353,7 +385,7 @@ const hideAlbum = async (userId, albumId) => {
 
     if (!artist) {
         throw new AppError(
-            "Artist profile not found for this account.",
+            "Không tìm thấy hồ sơ nghệ sĩ của tài khoản này.",
             StatusCodes.NOT_FOUND
         );
     }
@@ -364,7 +396,18 @@ const hideAlbum = async (userId, albumId) => {
     });
 
     if (!album) {
-        throw new AppError("Album not found.", StatusCodes.NOT_FOUND);
+        throw new AppError("Không tìm thấy album.", StatusCodes.NOT_FOUND);
+    }
+
+    if (album.status !== "active") {
+        throw new AppError(
+            "Chỉ có thể ẩn album đã phát hành.",
+            StatusCodes.CONFLICT,
+            {
+                field: "status",
+                code: "ALBUM_NOT_RELEASED",
+            }
+        );
     }
 
     // Set album status to hidden
@@ -381,7 +424,7 @@ const hideAlbum = async (userId, albumId) => {
 
 const unhideAlbum = async (userId, albumId) => {
     if (!mongoose.Types.ObjectId.isValid(albumId)) {
-        throw new AppError("Album id is invalid.", StatusCodes.BAD_REQUEST, {
+        throw new AppError("Mã album không hợp lệ.", StatusCodes.BAD_REQUEST, {
             field: "id",
         });
     }
@@ -390,7 +433,7 @@ const unhideAlbum = async (userId, albumId) => {
 
     if (!artist) {
         throw new AppError(
-            "Artist profile not found for this account.",
+            "Không tìm thấy hồ sơ nghệ sĩ của tài khoản này.",
             StatusCodes.NOT_FOUND
         );
     }
@@ -401,7 +444,18 @@ const unhideAlbum = async (userId, albumId) => {
     });
 
     if (!album) {
-        throw new AppError("Album not found.", StatusCodes.NOT_FOUND);
+        throw new AppError("Không tìm thấy album.", StatusCodes.NOT_FOUND);
+    }
+
+    if (album.status !== "hidden") {
+        throw new AppError(
+            "Chỉ có thể hiển thị lại album đang bị ẩn.",
+            StatusCodes.CONFLICT,
+            {
+                field: "status",
+                code: "ALBUM_NOT_HIDDEN",
+            }
+        );
     }
 
     // Set album status back to active
@@ -420,13 +474,13 @@ const unhideAlbum = async (userId, albumId) => {
 const addTrackToAlbum = async (userId, albumId, trackId) => {
     // Validate IDs
     if (!mongoose.Types.ObjectId.isValid(albumId)) {
-        throw new AppError("Album id is invalid.", StatusCodes.BAD_REQUEST, {
+        throw new AppError("Mã album không hợp lệ.", StatusCodes.BAD_REQUEST, {
             field: "albumId",
         });
     }
 
     if (!mongoose.Types.ObjectId.isValid(trackId)) {
-        throw new AppError("Track id is invalid.", StatusCodes.BAD_REQUEST, {
+        throw new AppError("Mã bài hát không hợp lệ.", StatusCodes.BAD_REQUEST, {
             field: "trackId",
         });
     }
@@ -436,7 +490,7 @@ const addTrackToAlbum = async (userId, albumId, trackId) => {
 
     if (!artist) {
         throw new AppError(
-            "Artist profile not found for this account.",
+            "Không tìm thấy hồ sơ nghệ sĩ của tài khoản này.",
             StatusCodes.NOT_FOUND
         );
     }
@@ -448,7 +502,7 @@ const addTrackToAlbum = async (userId, albumId, trackId) => {
     });
 
     if (!album) {
-        throw new AppError("Album not found.", StatusCodes.NOT_FOUND);
+        throw new AppError("Không tìm thấy album.", StatusCodes.NOT_FOUND);
     }
 
     // Check if track exists and belongs to artist
@@ -458,7 +512,18 @@ const addTrackToAlbum = async (userId, albumId, trackId) => {
     });
 
     if (!track) {
-        throw new AppError("Track not found or does not belong to you.", StatusCodes.NOT_FOUND);
+        throw new AppError("Không tìm thấy bài hát hoặc bài hát không thuộc quyền sở hữu của bạn.", StatusCodes.NOT_FOUND);
+    }
+
+    if (track.approvalStatus !== "approved") {
+        throw new AppError(
+            "Chỉ có thể thêm bài hát đã được quản trị viên phê duyệt vào album.",
+            StatusCodes.CONFLICT,
+            {
+                field: "trackId",
+                code: "TRACK_NOT_APPROVED",
+            }
+        );
     }
 
     // Check if track is already in album
@@ -466,9 +531,64 @@ const addTrackToAlbum = async (userId, albumId, trackId) => {
     
     if (trackExists) {
         throw new AppError(
-            "This track is already in the album.",
+            "Bài hát này đã có trong album.",
             StatusCodes.BAD_REQUEST,
             { field: "trackId" }
+        );
+    }
+
+    const assignedAlbumId = track.album_albumId?.toString();
+
+    if (assignedAlbumId && assignedAlbumId !== album._id.toString()) {
+        throw new AppError(
+            "Bài hát này đã thuộc một album khác.",
+            StatusCodes.CONFLICT,
+            {
+                field: "trackId",
+                code: "TRACK_ALREADY_ASSIGNED_TO_ALBUM",
+            }
+        );
+    }
+
+    // Handle legacy records where trackList was updated without synchronizing
+    // album_albumId on the track document.
+    const legacyAlbumMembership = await Album.exists({
+        _id: { $ne: album._id },
+        artistId: artist._id,
+        "trackList.trackId": track._id,
+    });
+
+    if (legacyAlbumMembership) {
+        throw new AppError(
+            "Bài hát này đã thuộc một album khác.",
+            StatusCodes.CONFLICT,
+            {
+                field: "trackId",
+                code: "TRACK_ALREADY_ASSIGNED_TO_ALBUM",
+            }
+        );
+    }
+
+    const trackAssignment = await Track.updateOne(
+        {
+            _id: track._id,
+            artist_artistId: artist._id,
+            $or: [
+                { album_albumId: null },
+                { album_albumId: album._id },
+            ],
+        },
+        { $set: { album_albumId: album._id } }
+    );
+
+    if (trackAssignment.matchedCount === 0) {
+        throw new AppError(
+            "Bài hát này đã thuộc một album khác.",
+            StatusCodes.CONFLICT,
+            {
+                field: "trackId",
+                code: "TRACK_ALREADY_ASSIGNED_TO_ALBUM",
+            }
         );
     }
 
@@ -483,8 +603,21 @@ const addTrackToAlbum = async (userId, albumId, trackId) => {
         order: maxOrder + 1,
     });
 
-    await syncAlbumTotalDuration(album);
-    await album.save();
+    try {
+        await syncAlbumTotalDuration(album);
+        await album.save();
+    } catch (error) {
+        if (!assignedAlbumId) {
+            await Track.updateOne(
+                {
+                    _id: track._id,
+                    album_albumId: album._id,
+                },
+                { $unset: { album_albumId: "" } }
+            );
+        }
+        throw error;
+    }
 
     // Populate and return
     const populated = await album.populate({
@@ -498,13 +631,13 @@ const addTrackToAlbum = async (userId, albumId, trackId) => {
 const removeTrackFromAlbum = async (userId, albumId, trackId) => {
     // Validate IDs
     if (!mongoose.Types.ObjectId.isValid(albumId)) {
-        throw new AppError("Album id is invalid.", StatusCodes.BAD_REQUEST, {
+        throw new AppError("Mã album không hợp lệ.", StatusCodes.BAD_REQUEST, {
             field: "albumId",
         });
     }
 
     if (!mongoose.Types.ObjectId.isValid(trackId)) {
-        throw new AppError("Track id is invalid.", StatusCodes.BAD_REQUEST, {
+        throw new AppError("Mã bài hát không hợp lệ.", StatusCodes.BAD_REQUEST, {
             field: "trackId",
         });
     }
@@ -514,7 +647,7 @@ const removeTrackFromAlbum = async (userId, albumId, trackId) => {
 
     if (!artist) {
         throw new AppError(
-            "Artist profile not found for this account.",
+            "Không tìm thấy hồ sơ nghệ sĩ của tài khoản này.",
             StatusCodes.NOT_FOUND
         );
     }
@@ -526,7 +659,7 @@ const removeTrackFromAlbum = async (userId, albumId, trackId) => {
     });
 
     if (!album) {
-        throw new AppError("Album not found.", StatusCodes.NOT_FOUND);
+        throw new AppError("Không tìm thấy album.", StatusCodes.NOT_FOUND);
     }
 
     // Check if track exists in album
@@ -536,29 +669,58 @@ const removeTrackFromAlbum = async (userId, albumId, trackId) => {
 
     if (trackIndex === -1) {
         throw new AppError(
-            "Track is not in this album.",
+            "Bài hát không nằm trong album này.",
             StatusCodes.NOT_FOUND,
             { field: "trackId" }
+        );
+    }
+
+    if (
+        ["active", "hidden"].includes(album.status) &&
+        getAlbumTrackCount(album) <= MIN_TRACKS_TO_PUBLISH_ALBUM
+    ) {
+        throw new AppError(
+            `Album đã phát hành phải giữ lại ít nhất ${MIN_TRACKS_TO_PUBLISH_ALBUM} bài hát.`,
+            StatusCodes.CONFLICT,
+            {
+                field: "trackId",
+                code: "RELEASED_ALBUM_MIN_TRACKS_REQUIRED",
+            }
         );
     }
 
     // Remove track from trackList
     album.trackList.splice(trackIndex, 1);
 
-    // Reorder remaining tracks
-    album.trackList.forEach((item, index) => {
-        item.order = index + 1;
-    });
+    const trackUnassignment = await Track.updateOne(
+        {
+            _id: trackId,
+            artist_artistId: artist._id,
+            album_albumId: album._id,
+        },
+        { $unset: { album_albumId: "" } }
+    );
 
-    if (
-        album.status === "active" &&
-        getAlbumTrackCount(album) < MIN_TRACKS_TO_PUBLISH_ALBUM
-    ) {
-        album.status = "draft";
+    try {
+        // Reorder remaining tracks
+        album.trackList.forEach((item, index) => {
+            item.order = index + 1;
+        });
+
+        await syncAlbumTotalDuration(album);
+        await album.save();
+    } catch (error) {
+        if (trackUnassignment.modifiedCount > 0) {
+            await Track.updateOne(
+                {
+                    _id: trackId,
+                    album_albumId: null,
+                },
+                { $set: { album_albumId: album._id } }
+            );
+        }
+        throw error;
     }
-
-    await syncAlbumTotalDuration(album);
-    await album.save();
 
     // Populate and return
     const populated = await album.populate({
