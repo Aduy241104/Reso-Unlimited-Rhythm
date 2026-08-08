@@ -12,8 +12,21 @@ import {
 } from "./search.service.helper.js";
 
 const formatSongSearchItem = (song) => ({
-    ...song,
+    _id: song._id,
+    title: song.title,
     versionTitle: song.versionTitle || "",
+    avatar: song.avatar,
+    coverImage: song.coverImage,
+    createdAt: song.createdAt,
+});
+
+const hasActiveArtist = (item, artistField) => Boolean(item?.[artistField]);
+
+const formatAlbumSearchItem = (album) => ({
+    _id: album._id,
+    title: album.title,
+    coverImage: album.coverImage,
+    createdAt: album.createdAt,
 });
 
 const searchSongs = async (query = {}) => {
@@ -29,11 +42,17 @@ const searchSongs = async (query = {}) => {
     }
 
     const songs = await Track.find(filter)
-        .select("_id title versionTitle avatar coverImage createdAt")
+        .select("_id title versionTitle avatar coverImage createdAt artist_artistId")
         .sort({ createdAt: -1 })
+        .populate({
+            path: "artist_artistId",
+            select: "_id activeStatus",
+            match: { activeStatus: "active" },
+        })
         .lean();
 
     const matchedSongs = songs.filter((song) =>
+        hasActiveArtist(song, "artist_artistId") &&
         isSearchTextMatched(song.title, keyword)
     );
 
@@ -83,16 +102,22 @@ const searchAlbums = async (query = {}) => {
     }
 
     const albums = await Album.find(filter)
-        .select("_id title coverImage createdAt")
+        .select("_id title coverImage createdAt artistId")
         .sort({ createdAt: -1 })
+        .populate({
+            path: "artistId",
+            select: "_id activeStatus",
+            match: { activeStatus: "active" },
+        })
         .lean();
 
     const matchedAlbums = albums.filter((album) =>
+        hasActiveArtist(album, "artistId") &&
         isSearchTextMatched(album.title, keyword)
     );
 
     return {
-        items: matchedAlbums.slice(skip, skip + limit),
+        items: matchedAlbums.slice(skip, skip + limit).map(formatAlbumSearchItem),
         pagination: buildPaginationMeta(page, limit, matchedAlbums.length),
     };
 };
@@ -114,30 +139,47 @@ const searchAll = async (query = {}) => {
 
     const [songs, artists, albums] = await Promise.all([
         Track.find(songsFilter)
-            .select("_id title versionTitle avatar coverImage createdAt")
+            .select("_id title versionTitle avatar coverImage createdAt artist_artistId")
             .sort({ createdAt: -1 })
+            .populate({
+                path: "artist_artistId",
+                select: "_id activeStatus",
+                match: { activeStatus: "active" },
+            })
             .lean(),
         Artist.find(artistsFilter)
             .select("_id name avatar createdAt")
             .sort({ createdAt: -1 })
             .lean(),
         Album.find(albumsFilter)
-            .select("_id title coverImage createdAt")
+            .select("_id title coverImage createdAt artistId")
             .sort({ createdAt: -1 })
+            .populate({
+                path: "artistId",
+                select: "_id activeStatus",
+                match: { activeStatus: "active" },
+            })
             .lean(),
     ]);
 
     return {
         songs: songs
-            .filter((song) => isSearchTextMatched(song.title, keyword))
+            .filter((song) =>
+                hasActiveArtist(song, "artist_artistId") &&
+                isSearchTextMatched(song.title, keyword)
+            )
             .slice(0, 6)
             .map(formatSongSearchItem),
         artists: artists
             .filter((artist) => isSearchTextMatched(artist.name, keyword))
             .slice(0, 6),
         albums: albums
-            .filter((album) => isSearchTextMatched(album.title, keyword))
-            .slice(0, 6),
+            .filter((album) =>
+                hasActiveArtist(album, "artistId") &&
+                isSearchTextMatched(album.title, keyword)
+            )
+            .slice(0, 6)
+            .map(formatAlbumSearchItem),
     };
 };
 

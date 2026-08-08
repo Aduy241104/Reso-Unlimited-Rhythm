@@ -3,7 +3,7 @@
         return "";
     }
 
-    return q.trim();
+    return normalizeSearchText(q);
 };
 
 const escapeRegex = (value) => {
@@ -18,8 +18,8 @@ const removeVietnameseTones = (text) => {
     return text
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
-        .replace(/ð/g, "d")
-        .replace(/Ð/g, "D");
+        .replace(/đ/g, "d")
+        .replace(/Đ/g, "D");
 };
 
 const normalizeSearchText = (text) => {
@@ -27,7 +27,9 @@ const normalizeSearchText = (text) => {
         return "";
     }
 
-    return removeVietnameseTones(text).toLowerCase().trim();
+    return removeVietnameseTones(text)
+        .toLowerCase()
+        .trim();
 };
 
 const isSearchTextMatched = (source, keyword) => {
