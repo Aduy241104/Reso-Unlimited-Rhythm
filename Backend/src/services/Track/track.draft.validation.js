@@ -3,6 +3,7 @@ import { StatusCodes } from "http-status-codes";
 import Album from "../../models/Album.js";
 import Genre from "../../models/Genre.js";
 import { AppError } from "../../utils/AppError.js";
+import { normalizeCopyrightDeclaration } from "./copyright.validation.service.js";
 
 export const TITLE_MIN_LENGTH = 1;
 export const TITLE_MAX_LENGTH = 150;
@@ -174,6 +175,20 @@ export const resolveArtistIdForCreate = (trackData, artist) => {
 };
 
 export const assertArtistCanCreateTrack = (artist) => {
+    if (!artist) {
+        throw new AppError(
+            "Artist profile does not exist.",
+            StatusCodes.NOT_FOUND
+        );
+    }
+
+    if (artist?.isDeleted === true) {
+        throw new AppError(
+            "This artist profile has been deleted and cannot mutate tracks.",
+            StatusCodes.FORBIDDEN
+        );
+    }
+
     if (artist.activeStatus === "blocked") {
         throw new AppError(
             "Tài khoản nghệ sĩ của bạn đã bị khóa nên không thể tạo bài hát.",
@@ -461,5 +476,47 @@ export const sanitizeArtistCopyright = (copyright = {}) => {
             .filter((url) => isHttpUrl(url));
     }
 
-    return allowed;
+    for (const field of [
+        "isrc",
+        "iswc",
+        "originalISRC",
+        "originalISWC",
+        "sampleSourceISRC",
+        "proName",
+        "workRegistrationNumber",
+        "recordingId",
+        "copyrightNote",
+        "copyrightNotes",
+        "originalComposer",
+        "sampleSourceTitle",
+        "sampleSourceArtist",
+        "beatTitle",
+        "beatProducer",
+        "beatSourceUrl",
+    ]) {
+        if (typeof allowed[field] === "string") {
+            allowed[field] = allowed[field].trim();
+        }
+    }
+
+    if (allowed.copyrightNotes && !allowed.copyrightNote) {
+        allowed.copyrightNote = allowed.copyrightNotes;
+    }
+
+    if (Array.isArray(allowed.copyrightEvidenceDocuments)) {
+        allowed.copyrightEvidenceDocuments = allowed.copyrightEvidenceDocuments.map((document) => ({
+            ...document,
+            type: document?.type || "other",
+            url: document?.url || document?.storageUrl || "",
+            hash: document?.hash || document?.sha256 || "",
+        }));
+    }
+
+    const normalized = normalizeCopyrightDeclaration(allowed);
+    // Keep explicit legacy flags during draft saves so a contradictory declaration
+    // can still be rejected when the artist submits it.
+    for (const field of ["isOriginal", "isCover", "isRemix", "usesSample", "usesThirdPartyBeat", "usesLicensedBeat"]) {
+        if (typeof allowed[field] === "boolean") normalized[field] = allowed[field];
+    }
+    return normalized;
 };

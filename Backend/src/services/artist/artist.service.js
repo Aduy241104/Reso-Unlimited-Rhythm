@@ -5,6 +5,7 @@ import { AppError } from "../../utils/AppError.js";
 import { uploadImageBuffer, deleteImageByPublicId } from "../cloudinaryService.js";
 import { extractPublicIdFromUrl } from "../../utils/uploadCloud.js";
 import { formatArtistProfile } from "./artist.helper.js";
+import { assertArtistOperational } from "./artist.status.helper.js";
 
 const CLOUDINARY_ARTIST_FOLDER = "reso/artists";
 
@@ -17,6 +18,8 @@ const findOwnedArtistDocumentOrThrow = async (userId) => {
             StatusCodes.NOT_FOUND
         );
     }
+
+    assertArtistOperational(artist);
 
     if (artist.activeStatus === "blocked") {
         throw new AppError(
@@ -229,8 +232,8 @@ const getMyViolationsByUserId = async (userId) => {
     const Album = (await import("../../models/Album.js")).default;
 
     const [tracks, albums] = await Promise.all([
-        Track.find({ artistId: artist._id }).select("_id title").lean(),
-        Album.find({ artistId: artist._id }).select("_id title").lean(),
+        Track.find({ artist_artistId: artist._id, isDeleted: { $ne: true } }).select("_id title").lean(),
+        Album.find({ artistId: artist._id, isDeleted: { $ne: true } }).select("_id title").lean(),
     ]);
 
     const trackIds = tracks.map((t) => t._id);

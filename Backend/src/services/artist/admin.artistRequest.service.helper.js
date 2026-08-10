@@ -65,7 +65,7 @@ export const assertApprovalChecklist = (checklist) => {
     }
 };
 
-export const buildArtistPayloadFromRequest = (artistRequest) => ({
+export const buildArtistPayloadFromRequest = (artistRequest, reviewedBy = null) => ({
     userId: artistRequest.userId,
     name: artistRequest.stageName,
     bio: artistRequest.bio || "",
@@ -76,6 +76,12 @@ export const buildArtistPayloadFromRequest = (artistRequest) => ({
         youtube: artistRequest.socialLinks?.youtube || "",
     },
     activeStatus: "active",
+    identityVerification: {
+        status: "verified",
+        verifiedAt: new Date(),
+        verifiedBy: reviewedBy,
+        sourceRequestId: artistRequest._id,
+    },
 });
 
 export default {

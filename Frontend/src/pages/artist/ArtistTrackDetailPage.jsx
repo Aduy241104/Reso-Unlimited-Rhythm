@@ -22,6 +22,8 @@ import ConfirmActionModal from "../../components/common/ConfirmActionModal";
 import { usePlayer } from "../../hooks/usePlayer";
 import { routePaths } from "../../routes/routePaths";
 import { trackService } from "../../services/trackService";
+import { getApiErrorFullMessage } from "../../utils/apiError";
+import { isResourceNotFoundError } from "../../utils/resourceError";
 import {
   showArtistError,
   showArtistSuccess,
@@ -31,6 +33,7 @@ import {
   canArtistSubmitTrack,
   getArtistTrackReviewStatus,
   getSubmitReadinessIssues,
+  serializeCopyrightForApi,
   usesThirdPartyRights,
 } from "../../utils/trackWorkflow";
 import {
@@ -134,8 +137,13 @@ const ArtistTrackDetailPage = () => {
         }
 
         setTrack(detail);
-      } catch {
+      } catch (error) {
         if (!isMounted) {
+          return;
+        }
+
+        if (isResourceNotFoundError(error)) {
+          navigate(routePaths.artistMusic, { replace: true });
           return;
         }
 
@@ -274,11 +282,15 @@ const ArtistTrackDetailPage = () => {
     setIsSubmitConfirmOpen(false);
 
     try {
-      const updatedTrack = await trackService.submitForApproval(track._id);
+      const updatedTrack = await trackService.submitForApproval(track._id, {
+        copyright: serializeCopyrightForApi(track.copyright || {}),
+      });
       setTrack(updatedTrack);
       showArtistSuccess("Đã gửi bài hát để duyệt thành công.");
-    } catch {
-      showArtistError("Không thể gửi bài hát này để duyệt.");
+    } catch (error) {
+      showArtistError(
+        getApiErrorFullMessage(error, "Không thể gửi bài hát này để duyệt.")
+      );
     } finally {
       setIsActionLoading(false);
     }

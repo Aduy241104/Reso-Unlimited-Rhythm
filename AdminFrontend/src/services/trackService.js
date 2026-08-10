@@ -69,6 +69,16 @@ export const getAdminTrackDetailService = async (trackId) => {
   return response?.data?.data?.track ?? null;
 };
 
+export const startAdminTrackReviewSessionService = async (trackId) => {
+  const response = await axiosClient.post(`${ADMIN_TRACK_API_PREFIX}/${trackId}/review/session`);
+  return response?.data?.data?.review ?? null;
+};
+
+export const recordAdminTrackReviewEventService = async (trackId, payload = {}) => {
+  const response = await axiosClient.post(`${ADMIN_TRACK_API_PREFIX}/${trackId}/review/events`, payload);
+  return response?.data?.data?.review ?? null;
+};
+
 export const updateAdminTrackVisibilityService = async (
   trackId,
   payload = {}

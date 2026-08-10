@@ -1,14 +1,12 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
+  getUserModerationAuditService,
   getUserService,
   updateUserService,
 } from "../../services/userService";
-import { getTransactionsByUserIdService } from "../../services/transactionsService";
-
-// Chỉ cho phép điều hướng giữa user và admin trực tiếp tại đây
-const roles = ["user", "admin"];
+import { useAuth } from "../../hooks/useAuth";
 
 // Danh sách tùy chọn lý do khóa tài khoản Thành viên/Người dùng đồng bộ hệ thống SaaS
 const BLOCK_REASON_OPTIONS = [
@@ -39,8 +37,9 @@ const formatDuration = (minutes) => {
 const UserDetailPage = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
+  const { user: currentAdmin } = useAuth();
   const [user, setUser] = useState(null);
-  const [transactions, setTransactions] = useState([]);
+  const [moderationAudit, setModerationAudit] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
   
@@ -57,27 +56,40 @@ const UserDetailPage = () => {
   // 3. State cho Modal Cảnh báo nếu tài khoản đích thực đang là Artist
   const [artistWarningModalOpen, setArtistWarningModalOpen] = useState(false);
 
-  const loadUser = async () => {
+  const currentAdminId = currentAdmin?._id || currentAdmin?.id || currentAdmin?.userId;
+  const viewedUserId = user?._id || user?.id || userId;
+  const isViewingOwnAccount = Boolean(
+    currentAdminId && viewedUserId && String(currentAdminId) === String(viewedUserId)
+  );
+  const isAdminProfile = user?.role === "admin";
+
+  const preventSelfLock = () => {
+    toast.error("Bạn không thể tự khóa tài khoản quản trị hiện tại.");
+    setModalOpen(false);
+  };
+
+  const loadUser = useCallback(async () => {
     setIsLoading(true);
     setMessage("");
     try {
-      const [userData, transactionData] = await Promise.all([
-        getUserService(userId),
-        getTransactionsByUserIdService(userId),
-      ]);
+      const userData = await getUserService(userId);
       setUser(userData);
-      setTransactions(transactionData);
+      setModerationAudit(
+        userData?.role === "admin"
+          ? await getUserModerationAuditService(userId)
+          : []
+      );
     } catch (error) {
       setMessage(error?.response?.data?.message || error?.message || "Không thể tải dữ liệu người dùng.");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [userId]);
 
   useEffect(() => {
     if (!userId) return;
     void loadUser();
-  }, [userId]);
+  }, [loadUser, userId]);
 
   // Bộ chặn sự kiện thay đổi Dropdown phân quyền
   const handleRoleSelectChange = (event) => {
@@ -104,6 +116,11 @@ const UserDetailPage = () => {
     try {
       const updated = await updateUserService(user._id, { role: pendingRole });
       setUser(updated);
+      setModerationAudit(
+        updated?.role === "admin"
+          ? await getUserModerationAuditService(updated._id)
+          : []
+      );
       setRoleModalOpen(false);
       toast.success(`Thay đổi vai trò thành ${pendingRole.toUpperCase()} thành công.`);
     } catch (error) {
@@ -118,6 +135,10 @@ const UserDetailPage = () => {
   // Xử lý nút kích hoạt trạng thái hoạt động / Mở khóa
   const handleToggleBlockAction = async () => {
     if (!user) return;
+    if (isViewingOwnAccount) {
+      preventSelfLock();
+      return;
+    }
     if (user.activeStatus !== "blocked") {
       setAdminNote("");
       setSelectedReasons([]);
@@ -143,6 +164,10 @@ const UserDetailPage = () => {
   // Thực thi lệnh khóa tài khoản diện rộng
   const handleConfirmBlockEnforcement = async () => {
     if (!user) return;
+    if (isViewingOwnAccount) {
+      preventSelfLock();
+      return;
+    }
     setIsProcessing(true);
     try {
       const selectedLabels = selectedReasons.map(
@@ -206,12 +231,14 @@ const UserDetailPage = () => {
               ● {user?.activeStatus === "active" ? "Hoạt Động" : "Bị Khóa"}
             </p>
           </div>
-          <div className="rounded-xl bg-slate-50 px-4 py-2 border border-slate-100 min-w-[100px] text-center">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Hội viên</p>
-            <p className="mt-0.5 text-xs font-bold text-slate-900">
-              {user?.subscription?.isPremium ? "Premium ★" : "Free Tier"}
-            </p>
-          </div>
+          {!isAdminProfile ? (
+            <div className="rounded-xl bg-slate-50 px-4 py-2 border border-slate-100 min-w-[100px] text-center">
+              <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Hội viên</p>
+              <p className="mt-0.5 text-xs font-bold text-slate-900">
+                {user?.subscription?.isPremium ? "Premium ★" : "Free Tier"}
+              </p>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -253,10 +280,10 @@ const UserDetailPage = () => {
         </div>
       </div>
 
-      {/* BỐ CỤC CHÍNH ĐẦY ĐỦ PHÂN CHIA GRID 2:1 */}
+      {/* BỐ CỤC CHÍNH: HỒ SƠ + THAO TÁC QUẢN TRỊ */}
       <div className="grid gap-6 lg:grid-cols-3">
         
-        {/* CỘT TRÁI: THÔNG TIN CHI TIẾT TÀI KHOẢN & LỊCH SỬ HÓA ĐƠN */}
+        {/* CỘT TRÁI: THÔNG TIN CHI TIẾT TÀI KHOẢN */}
         <div className="lg:col-span-2 space-y-6">
           
           {/* Card 1: Thông tin chi tiết tài khoản */}
@@ -309,52 +336,9 @@ const UserDetailPage = () => {
             </div>
           </div>
 
-          {/* Card 2: Lịch sử hóa đơn giao dịch */}
-          <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
-            <div className="flex items-center justify-between border-b border-slate-50 pb-3">
-            <h2 className="text-base font-bold text-slate-900">Lịch sử giao dịch</h2>
-              <span className="rounded-full bg-slate-50 px-2.5 py-0.5 text-[11px] font-bold text-slate-500 border border-slate-100">
-                {transactions?.length ?? 0} Bản ghi
-              </span>
-            </div>
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full text-left text-sm text-slate-600">
-                <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100">
-                  <tr>
-                    <th className="px-4 py-3">Mã đơn hàng</th>
-                    <th className="px-4 py-3">Số tiền</th>
-                    <th className="px-4 py-3">Cổng giao dịch</th>
-                    <th className="px-4 py-3">Trạng thái</th>
-                    <th className="px-4 py-3">Thời gian</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {isLoading ? (
-                    <tr><td colSpan="5" className="px-4 py-6 text-center text-slate-400">Đang tải dữ liệu...</td></tr>
-                  ) : transactions.length === 0 ? (
-                    <tr><td colSpan="5" className="px-4 py-6 text-center text-slate-400">Không tìm thấy dữ liệu giao dịch.</td></tr>
-                  ) : (
-                    transactions.map((transaction) => (
-                      <tr key={transaction._id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-4 py-3 font-mono text-xs text-slate-900">{transaction.gatewayTransactionId || transaction.invoiceNumber || transaction._id}</td>
-                        <td className="px-4 py-3 font-bold text-slate-900">+{transaction.totalAmount?.toLocaleString("en-US")} {transaction.currency}</td>
-                        <td className="px-4 py-3 text-xs capitalize">{transaction.paymentMethod || transaction.paymentGateway || "-"}</td>
-                        <td className="px-4 py-3">
-                          <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold uppercase ${
-                            transaction.status === "completed" || transaction.status === "success" ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-700"
-                          }`}>{transaction.status}</span>
-                        </td>
-                        <td className="px-4 py-3 text-xs text-slate-400">{formatDate(transaction.paidAt || transaction.createdAt)}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
         </div>
 
-        {/* CỘT PHẢI: THAO TÁC QUẢN TRỊ + SUBSCRIPTION DETAILS CARD + APP PREFERENCES CARD */}
+        {/* CỘT PHẢI: THAO TÁC QUẢN TRỊ + GÓI HỘI VIÊN (CHỈ USER/ARTIST) */}
         <div className="space-y-6">
           
           {/* Card 1: Thao tác quản trị nhanh */}
@@ -362,13 +346,21 @@ const UserDetailPage = () => {
             <h2 className="text-base font-bold text-slate-900">Thao tác quản trị</h2>
             <button
               type="button"
-              disabled={isProcessing}
+              disabled={isProcessing || isViewingOwnAccount}
               onClick={handleToggleBlockAction}
               className={`w-full flex items-center justify-center gap-1 rounded-xl py-2.5 text-xs font-bold text-white shadow-sm transition ${
-                user?.activeStatus === "blocked" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-slate-900 hover:bg-slate-800"
+                isViewingOwnAccount
+                  ? "bg-slate-200 text-slate-500 cursor-not-allowed"
+                  : user?.activeStatus === "blocked"
+                    ? "bg-emerald-600 hover:bg-emerald-700"
+                    : "bg-slate-900 hover:bg-slate-800"
               } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
             >
-              {user?.activeStatus === "blocked" ? "Kích hoạt tài khoản ↗" : "Khóa tài khoản hệ thống ↗"}
+              {isViewingOwnAccount
+                ? "Không thể tự khóa tài khoản"
+                : user?.activeStatus === "blocked"
+                  ? "Kích hoạt tài khoản ↗"
+                  : "Khóa tài khoản hệ thống ↗"}
             </button>
             <button
               type="button"
@@ -379,33 +371,119 @@ const UserDetailPage = () => {
             </button>
           </div>
 
-          {/* KHÔI PHỤC Card 2: Thông tin chi tiết gói hội viên Premium */}
-          <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
-            <h2 className="text-base font-bold text-slate-900 border-b border-slate-50 pb-3">Chi tiết Gói hội viên</h2>
-            <div className="mt-4 space-y-4">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Hạng mục Premium</p>
-                <p className="mt-1 text-sm font-bold text-slate-900">
-                  {user?.subscription?.isPremium ? "Đang dùng Premium" : "Tài khoản miễn phí"}
-                </p>
-              </div>
-              {user?.subscription?.isPremium && (
+          {!isAdminProfile ? (
+            <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
+              <h2 className="text-base font-bold text-slate-900 border-b border-slate-50 pb-3">Chi tiết Gói hội viên</h2>
+              <div className="mt-4 space-y-4">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Ngày hết hạn Premium</p>
-                  <p className="mt-1 text-sm font-semibold text-slate-900">
-                    {user?.subscription?.premiumEndDate ? new Date(user.subscription.premiumEndDate).toLocaleDateString("vi-VN") : "-"}
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Hạng mục Premium</p>
+                  <p className="mt-1 text-sm font-bold text-slate-900">
+                    {user?.subscription?.isPremium ? "Đang dùng Premium" : "Tài khoản miễn phí"}
                   </p>
                 </div>
-              )}
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Mã liên kết Plan ID</p>
-                <p className="mt-1 font-mono text-xs text-slate-400 break-all">{user?.subscription?.currentPlanId || "Trống (Không định dạng)"}</p>
+                {user?.subscription?.isPremium && (
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Ngày hết hạn Premium</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900">
+                      {user?.subscription?.premiumEndDate ? new Date(user.subscription.premiumEndDate).toLocaleDateString("vi-VN") : "-"}
+                    </p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Mã liên kết Plan ID</p>
+                  <p className="mt-1 font-mono text-xs text-slate-400 break-all">{user?.subscription?.currentPlanId || "Trống (Không định dạng)"}</p>
+                </div>
               </div>
             </div>
-          </div>
+          ) : null}
 
         </div>
       </div>
+
+      {/* AUDIT LOG KIỂM DUYỆ - CHỈ HIỂN THỊ KHI XEM ADMIN */}
+      {isAdminProfile && (
+        <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
+          <div className="flex flex-col gap-3 border-b border-slate-50 pb-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-base font-bold text-slate-900">Audit log kiểm duyệt</h2>
+              <p className="mt-1 text-xs text-slate-500">
+                Lịch sử duyệt hoặc từ chối Track và hồ sơ Nghệ sĩ của Admin này.
+              </p>
+            </div>
+            <span className="w-fit rounded-full border border-slate-100 bg-slate-50 px-2.5 py-0.5 text-[11px] font-bold text-slate-500">
+              {moderationAudit.length} bản ghi
+            </span>
+          </div>
+
+          <div className="mt-4 overflow-x-auto">
+            <table className="min-w-[760px] w-full text-left text-sm text-slate-600">
+              <thead className="border-b border-slate-100 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <tr>
+                  <th className="px-4 py-3">Đối tượng</th>
+                  <th className="px-4 py-3">Loại</th>
+                  <th className="px-4 py-3">Quyết định</th>
+                  <th className="px-4 py-3">Lý do / Ghi chú</th>
+                  <th className="px-4 py-3">Thời gian</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {isLoading ? (
+                  <tr>
+                    <td colSpan="5" className="px-4 py-8 text-center text-slate-400">
+                      Đang tải audit log...
+                    </td>
+                  </tr>
+                ) : moderationAudit.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" className="px-4 py-8 text-center text-slate-400">
+                      Admin này chưa có quyết định duyệt Track hoặc Nghệ sĩ.
+                    </td>
+                  </tr>
+                ) : (
+                  moderationAudit.map((entry) => (
+                    <tr key={entry.id} className="transition-colors hover:bg-slate-50/50">
+                      <td className="px-4 py-3">
+                        <Link
+                          to={
+                            entry.targetType === "track"
+                              ? `/system-tracks/${entry.targetId}`
+                              : `/artist-requests/${entry.targetId}`
+                          }
+                          className="font-semibold text-indigo-600 hover:underline"
+                        >
+                          {entry.targetName}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-600">
+                          {entry.targetType === "track" ? "Track" : "Hồ sơ nghệ sĩ"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                            entry.decision === "approved"
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "bg-rose-50 text-rose-700"
+                          }`}
+                        >
+                          {entry.decision === "approved" ? "Đã duyệt" : "Từ chối"}
+                        </span>
+                      </td>
+                      <td className="max-w-md px-4 py-3 text-xs text-slate-600">
+                        {entry.reason || "—"}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-400">
+                        {formatDate(entry.occurredAt)}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* ================= MODAL 1: CẢNH BÁO NẾU ĐÃ LÀ ARTIST ================= */}
       {artistWarningModalOpen && (
@@ -528,7 +606,7 @@ const UserDetailPage = () => {
               <button
                 type="button"
                 onClick={handleConfirmBlockEnforcement}
-                disabled={isProcessing || !adminNote.trim() || selectedReasons.length === 0}
+                disabled={isProcessing || isViewingOwnAccount || !adminNote.trim() || selectedReasons.length === 0}
                 className="rounded-xl px-5 py-2 text-xs font-bold text-white shadow-sm transition bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {isProcessing ? "Đang xử lý..." : "Xác nhận khóa"}

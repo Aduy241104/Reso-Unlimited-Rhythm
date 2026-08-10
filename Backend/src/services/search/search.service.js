@@ -1,6 +1,7 @@
 ﻿import Album from "../../models/Album.js";
 import Artist from "../../models/Artist.js";
 import Track from "../../models/Track.js";
+import { publicArtistMatch } from "../artist/artist.status.helper.js";
 import {
     buildAlbumsSearchFilter,
     buildArtistsSearchFilter,
@@ -29,12 +30,13 @@ const searchSongs = async (query = {}) => {
     }
 
     const songs = await Track.find(filter)
-        .select("_id title versionTitle avatar coverImage createdAt")
+        .select("_id title versionTitle avatar coverImage createdAt artist_artistId")
+        .populate({ path: "artist_artistId", match: publicArtistMatch, select: "_id" })
         .sort({ createdAt: -1 })
         .lean();
 
     const matchedSongs = songs.filter((song) =>
-        isSearchTextMatched(song.title, keyword)
+        song.artist_artistId && isSearchTextMatched(song.title, keyword)
     );
 
     return {
@@ -83,12 +85,13 @@ const searchAlbums = async (query = {}) => {
     }
 
     const albums = await Album.find(filter)
-        .select("_id title coverImage createdAt")
+        .select("_id title coverImage createdAt artistId")
+        .populate({ path: "artistId", match: publicArtistMatch, select: "_id" })
         .sort({ createdAt: -1 })
         .lean();
 
     const matchedAlbums = albums.filter((album) =>
-        isSearchTextMatched(album.title, keyword)
+        album.artistId && isSearchTextMatched(album.title, keyword)
     );
 
     return {
@@ -114,7 +117,8 @@ const searchAll = async (query = {}) => {
 
     const [songs, artists, albums] = await Promise.all([
         Track.find(songsFilter)
-            .select("_id title versionTitle avatar coverImage createdAt")
+            .select("_id title versionTitle avatar coverImage createdAt artist_artistId")
+            .populate({ path: "artist_artistId", match: publicArtistMatch, select: "_id" })
             .sort({ createdAt: -1 })
             .lean(),
         Artist.find(artistsFilter)
@@ -122,21 +126,22 @@ const searchAll = async (query = {}) => {
             .sort({ createdAt: -1 })
             .lean(),
         Album.find(albumsFilter)
-            .select("_id title coverImage createdAt")
+            .select("_id title coverImage createdAt artistId")
+            .populate({ path: "artistId", match: publicArtistMatch, select: "_id" })
             .sort({ createdAt: -1 })
             .lean(),
     ]);
 
     return {
         songs: songs
-            .filter((song) => isSearchTextMatched(song.title, keyword))
+            .filter((song) => song.artist_artistId && isSearchTextMatched(song.title, keyword))
             .slice(0, 6)
             .map(formatSongSearchItem),
         artists: artists
             .filter((artist) => isSearchTextMatched(artist.name, keyword))
             .slice(0, 6),
         albums: albums
-            .filter((album) => isSearchTextMatched(album.title, keyword))
+            .filter((album) => album.artistId && isSearchTextMatched(album.title, keyword))
             .slice(0, 6),
     };
 };

@@ -61,8 +61,23 @@ const draftCopyrightSchema = Joi.object({
     isRemix: Joi.boolean(),
     usesSample: Joi.boolean(),
     usesLicensedBeat: Joi.boolean(),
+    primaryCopyrightType: Joi.string().valid("original", "cover", "remix", "sample", "licensed_beat"),
+    usesThirdPartyBeat: Joi.boolean(),
+    rightsConfirmed: Joi.boolean(),
     originalTrackTitle: Joi.string().trim().max(500).allow(""),
     originalArtistName: Joi.string().trim().max(500).allow(""),
+    originalComposer: Joi.string().trim().max(500).allow(""),
+    originalISRC: Joi.string().trim().max(32).allow(""),
+    originalISWC: Joi.string().trim().max(32).allow(""),
+    sampleSourceTitle: Joi.string().trim().max(500).allow(""),
+    sampleSourceArtist: Joi.string().trim().max(500).allow(""),
+    sampleSourceISRC: Joi.string().trim().max(32).allow(""),
+    sampleStartTime: Joi.number().min(0).allow(null),
+    sampleEndTime: Joi.number().min(0).allow(null),
+    beatTitle: Joi.string().trim().max(500).allow(""),
+    beatProducer: Joi.string().trim().max(500).allow(""),
+    beatSourceUrl: optionalHttpUrl,
+    licenseType: Joi.string().valid("", "exclusive", "non_exclusive", "custom", "other"),
     licenseDocumentUrls: Joi.array()
         .items(optionalHttpUrl)
         .default([])
@@ -75,8 +90,34 @@ const draftCopyrightSchema = Joi.object({
                 .map((item) => String(item).trim())
                 .filter((item) => item.length > 0);
         }, "filter empty license URLs"),
+    copyrightEvidenceDocuments: Joi.array()
+        .max(5)
+        .items(
+            Joi.object({
+                documentId: Joi.string().trim().max(128).required(),
+                type: Joi.string().valid("license", "contract", "copyright_certificate", "sample_clearance", "beat_license", "remix_permission", "other").default("other"),
+                version: Joi.number().integer().min(1).default(1),
+                originalName: Joi.string().trim().max(255).required(),
+                mimeType: Joi.string().trim().max(120).required(),
+                size: Joi.number().integer().positive().max(25 * 1024 * 1024).required(),
+                storageUrl: optionalHttpUrl.required(),
+                url: optionalHttpUrl,
+                publicId: Joi.string().trim().max(500).allow(""),
+                sha256: Joi.string().trim().hex().length(64).required(),
+                hash: Joi.string().trim().hex().length(64),
+                uploadedAt: Joi.date().iso().optional(),
+                uploadStatus: Joi.string().valid("uploaded", "replaced", "deleted", "failed").default("uploaded"),
+            }).unknown(false)
+        )
+        .default([]),
     declarationAccepted: Joi.boolean(),
     copyrightNote: Joi.string().trim().max(2000).allow(""),
+    copyrightNotes: Joi.string().trim().max(2000).allow(""),
+    isrc: Joi.string().trim().max(32).allow(""),
+    iswc: Joi.string().trim().max(32).allow(""),
+    proName: Joi.string().trim().max(255).allow(""),
+    workRegistrationNumber: Joi.string().trim().max(255).allow(""),
+    recordingId: Joi.string().trim().max(255).allow(""),
 });
 
 const audioAnalysisSchema = Joi.object({

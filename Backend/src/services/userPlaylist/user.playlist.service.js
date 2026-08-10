@@ -241,6 +241,7 @@ const addTrackToMyPlaylistByUserId = async (userId, playlistId, trackId) => {
             _id: normalizedTrackId,
             activeStatus: "active",
             approvalStatus: "approved",
+            isDeleted: { $ne: true },
             ...buildReleasedTrackFilter(),
         }).lean(),
         getPlaylistLimitByUserId(userId),

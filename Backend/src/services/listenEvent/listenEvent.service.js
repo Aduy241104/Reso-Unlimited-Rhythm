@@ -285,16 +285,32 @@ export const recordCompletedListenAttempt = async ({
     }
 
     const track = await Track.findById(trackId)
-        .select("title versionTitle artist_artistId album_albumId duration avatar coverImage activeStatus approvalStatus")
-        .populate({ path: "artist_artistId", select: "name avatar" })
-        .populate({ path: "album_albumId", select: "title coverImage" })
+        .select("title versionTitle artist_artistId album_albumId duration avatar coverImage activeStatus approvalStatus isDeleted")
+        .populate({ path: "artist_artistId", select: "name avatar activeStatus isDeleted" })
+        .populate({ path: "album_albumId", select: "title coverImage status isDeleted" })
         .lean();
 
-    if (!track) {
+    if (!track || track.isDeleted === true) {
         throw new AppError("Track not found.", 404);
     }
 
-    if (track.activeStatus !== "active" || track.approvalStatus !== "approved") {
+    const populatedArtist = track.artist_artistId && typeof track.artist_artistId === "object"
+        ? track.artist_artistId
+        : null;
+    const populatedAlbum = track.album_albumId && typeof track.album_albumId === "object"
+        ? track.album_albumId
+        : null;
+
+    if (
+        track.activeStatus !== "active" ||
+        track.approvalStatus !== "approved" ||
+        populatedArtist?.activeStatus === "blocked" ||
+        populatedArtist?.activeStatus === "inactive" ||
+        populatedArtist?.isDeleted === true ||
+        populatedAlbum?.status === "blocked" ||
+        populatedAlbum?.status === "hidden" ||
+        populatedAlbum?.isDeleted === true
+    ) {
         throw new AppError("Track is not available for streaming.", 400);
     }
 

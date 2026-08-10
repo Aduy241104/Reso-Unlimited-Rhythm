@@ -34,7 +34,8 @@ const updateUser = async (req, res, next) => {
     try {
         const user = await userService.updateUser(
             req.params.id,
-            req.body
+            req.body,
+            req.user?.id
         );
 
         return formatResponse.success(
@@ -47,8 +48,42 @@ const updateUser = async (req, res, next) => {
     }
 };
 
+const restoreUser = async (req, res, next) => {
+    try {
+        const user = await userService.restoreUser(req.params.id);
+        return formatResponse.success(res, { user }, "User restored successfully");
+    } catch (error) {
+        next(error);
+    }
+};
+
+const getUserModerationAudit = async (req, res, next) => {
+    try {
+        const auditLogs = await userService.getUserModerationAudit(req.params.id);
+        return formatResponse.success(
+            res,
+            { auditLogs },
+            "User moderation audit fetched successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+const deleteUser = async (req, res, next) => {
+    try {
+        const result = await userService.softDeleteUserForAdmin(req.params.id, req.user?.id);
+        return formatResponse.success(res, result, "User deleted successfully");
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getUsers,
     getUserDetail,
+    getUserModerationAudit,
     updateUser,
+    restoreUser,
+    deleteUser,
 };

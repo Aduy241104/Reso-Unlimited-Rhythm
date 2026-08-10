@@ -3,15 +3,24 @@
   "version": "1.0.0",
   "main": "index.js",
   "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
+    "postinstall": "node scripts/setupChromaprint.js",
     "start": "nodemon --inspect src/server.js",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand",
     "listen:sync": "node src/runListenEventSync.js",
     "revenue:sync": "node src/runRevenueAggregation.js",
     "analytics:artist-monthly": "node src/runArtistMonthlyStatAggregation.js",
     "migrate:track-release-state": "node src/migrations/backfillTrackReleaseState.js",
+    "migrate:track-indexes": "node scripts/repairTrackIndexes.js",
     "seed:comprehensive": "node seedComprehensive.js",
-    "repair:top-track-visibility": "node scripts/repairTopTrackVisibility.js"
+    "repair:top-track-visibility": "node scripts/repairTopTrackVisibility.js",
+    "repair:track-ownership": "node scripts/repairTrackOwnership.js",
+    "fingerprint:backfill": "node scripts/backfillAudioFingerprints.js",
+    "fingerprint:matches": "node scripts/rebuildFingerprintMatches.js",
+    "fingerprint:lifecycle": "node scripts/auditFingerprintLifecycle.js"
   },
   "author": "",
   "license": "ISC",

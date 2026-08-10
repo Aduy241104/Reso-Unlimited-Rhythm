@@ -2,6 +2,7 @@ import Artist from "../../models/Artist.js";
 import ArtistRequest from "../../models/ArtistRequest.js";
 import User from "../../models/User.js";
 import { AppError } from "../../utils/AppError.js";
+import { recordAuditEvent } from "../audit/auditLog.service.js";
 import {
     applyReviewFields,
     assertApprovalChecklist,
@@ -119,7 +120,7 @@ const reviewArtistRequest = async (artistRequestId, payload = {}, adminUserId) =
         let artist = null;
 
         try {
-            artist = await Artist.create(buildArtistPayloadFromRequest(artistRequest));
+            artist = await Artist.create(buildArtistPayloadFromRequest(artistRequest, adminUserId));
 
             user.role = "artist";
             await user.save();
@@ -140,6 +141,19 @@ const reviewArtistRequest = async (artistRequestId, payload = {}, adminUserId) =
             throw error;
         }
 
+        void recordAuditEvent({
+            actorUserId: adminUserId,
+            action: "ARTIST_REQUEST_APPROVED",
+            targetType: "artist_request",
+            targetId: artistRequest._id,
+            metadata: {
+                decision: "approved",
+                stageName: artistRequest.stageName,
+                artistId: artist._id,
+                adminNote: artistRequest.review?.adminNote || "",
+            },
+        }).catch((error) => console.error("Artist request decision audit failed:", error.message));
+
         return {
             artistRequest: await buildArtistRequestDetailQuery(artistRequest._id),
             artist: await buildArtistDetailQuery(artist._id),
@@ -149,6 +163,19 @@ const reviewArtistRequest = async (artistRequestId, payload = {}, adminUserId) =
     artistRequest.status = "rejected";
     artistRequest.rejectReason = payload.rejectReason?.trim() || "";
     await artistRequest.save();
+
+    void recordAuditEvent({
+        actorUserId: adminUserId,
+        action: "ARTIST_REQUEST_REJECTED",
+        targetType: "artist_request",
+        targetId: artistRequest._id,
+        metadata: {
+            decision: "rejected",
+            stageName: artistRequest.stageName,
+            reason: artistRequest.rejectReason,
+            adminNote: artistRequest.review?.adminNote || "",
+        },
+    }).catch((error) => console.error("Artist request decision audit failed:", error.message));
 
     return {
         artistRequest: await buildArtistRequestDetailQuery(artistRequest._id),

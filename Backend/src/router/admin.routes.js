@@ -11,12 +11,15 @@ import adminWithdrawalRouter, { withdrawalRequestRouter } from "./admin.withdraw
 import adminRevenueRouter from "./admin.revenue.routes.js";
 import { requireAdmin } from "../middlewares/Authentication/authentication.middleware.js";
 import upload from "../middlewares/upload.middleware.js";
+import adminUserValidation from "../middlewares/Admin/admin.user.validation.js";
+import validate from "../middlewares/validate.middleware.js";
 
 const router = express.Router();
 
 router.use(requireAdmin);
 
 router.get("/users", adminUserController.getUsers);
+router.get("/users/:id/moderation-audit", adminUserController.getUserModerationAudit);
 router.get("/users/:id", adminUserController.getUserDetail);
 router.get("/genres", adminGenreController.getGenres);
 router.get("/genres/:id", adminGenreController.getGenre);
@@ -31,10 +34,23 @@ router.post(
     adminGenreController.uploadGenreImage
 );
 router.patch("/genres/:id", adminGenreController.updateGenre);
-// The following admin user routes are intentionally disabled to keep only the "list users" and "detail" features.
-// Uncomment if you need delete endpoints in the future.
-router.patch("/users/:id", adminUserController.updateUser);
-// router.delete("/users/:id", adminUserController.deleteUser);
+// User mutations use explicit validation and service-level safety checks.
+router.patch(
+    "/users/:id",
+    validate(adminUserValidation.userIdParamSchema, "params"),
+    validate(adminUserValidation.updateUserSchema, "body"),
+    adminUserController.updateUser
+);
+router.patch(
+    "/users/:id/restore",
+    validate(adminUserValidation.userIdParamSchema, "params"),
+    adminUserController.restoreUser
+);
+router.delete(
+    "/users/:id",
+    validate(adminUserValidation.userIdParamSchema, "params"),
+    adminUserController.deleteUser
+);
 
 // Dashboard - Streaming Stats
 router.get("/dashboard/overview", adminDashboardController.getOverviewStats);

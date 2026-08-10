@@ -8,6 +8,7 @@ import createTrackSchema, {
 import validate from "../middlewares/validate.middleware.js";
 import { requireArtist } from "../middlewares/Authentication/authentication.middleware.js";
 import upload from "../middlewares/upload.middleware.js";
+import { runArtistCopyrightEvidenceUpload } from "../middlewares/artist/artist.copyrightEvidenceUpload.middleware.js";
 
 const router = express.Router();
 
@@ -66,6 +67,13 @@ artistMeRouter.patch(
     artistTrackController.submitMyTrack
 );
 
+artistMeRouter.post(
+    "/me/:id/copyright-evidence",
+    validate(trackValidation.trackIdParamSchema, "params"),
+    runArtistCopyrightEvidenceUpload,
+    artistTrackController.uploadCopyrightEvidence
+);
+
 artistMeRouter.delete(
     "/me/:id",
     validate(trackValidation.trackIdParamSchema, "params"),
@@ -73,5 +81,9 @@ artistMeRouter.delete(
 );
 
 router.use("/artist", artistMeRouter);
+// Keep the canonical /api/artist/track/me/... form as well. Older clients
+// used /api/artist/track/artist/me/...; both must resolve during deployment
+// and rolling frontend/backend restarts.
+router.use(artistMeRouter);
 
 export default router;

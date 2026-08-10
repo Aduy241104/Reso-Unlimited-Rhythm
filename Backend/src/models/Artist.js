@@ -68,6 +68,24 @@ const ArtistSchema = new Schema(
         ],
 
         blockedReason: { type: String, default: "" },
+
+        identityVerification: {
+            status: {
+                type: String,
+                enum: ["unverified", "pending", "verified", "rejected"],
+                default: "unverified",
+                index: true,
+            },
+            verifiedAt: { type: Date },
+            verifiedBy: { type: Schema.Types.ObjectId, ref: "User" },
+            sourceRequestId: { type: Schema.Types.ObjectId, ref: "ArtistRequest" },
+            note: { type: String, default: "", trim: true },
+        },
+
+        isDeleted: { type: Boolean, default: false, index: true },
+        deletedAt: { type: Date },
+        deletedBy: { type: Schema.Types.ObjectId, ref: "User" },
+        deleteReason: { type: String, default: "", trim: true },
     },
     { timestamps: true }
 );

@@ -12,6 +12,7 @@ import {
     syncAlbumTotalDuration,
 } from "../album/album.sync.js";
 import { uploadToCloudinary, deleteCloudinaryAssetByUrl } from "../../utils/uploadCloud.js";
+import { assertArtistOperational } from "./artist.status.helper.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
@@ -233,6 +234,7 @@ const getMyAlbumDetail = async (userId, albumId) => {
 
 const createAlbum = async (userId, payload, file) => {
     const artist = await Artist.findOne({ userId });
+    assertArtistOperational(artist);
 
     if (!artist) {
         throw new AppError(
@@ -294,6 +296,7 @@ const updateAlbum = async (userId, albumId, payload, file) => {
     }
 
     const artist = await Artist.findOne({ userId });
+    assertArtistOperational(artist);
 
     if (!artist) {
         throw new AppError(
@@ -382,6 +385,7 @@ const hideAlbum = async (userId, albumId) => {
     }
 
     const artist = await Artist.findOne({ userId });
+    assertArtistOperational(artist);
 
     if (!artist) {
         throw new AppError(
@@ -430,6 +434,7 @@ const unhideAlbum = async (userId, albumId) => {
     }
 
     const artist = await Artist.findOne({ userId });
+    assertArtistOperational(artist);
 
     if (!artist) {
         throw new AppError(
@@ -487,6 +492,7 @@ const addTrackToAlbum = async (userId, albumId, trackId) => {
 
     // Get artist
     const artist = await Artist.findOne({ userId });
+    assertArtistOperational(artist);
 
     if (!artist) {
         throw new AppError(
@@ -644,6 +650,7 @@ const removeTrackFromAlbum = async (userId, albumId, trackId) => {
 
     // Get artist
     const artist = await Artist.findOne({ userId });
+    assertArtistOperational(artist);
 
     if (!artist) {
         throw new AppError(
@@ -731,6 +738,46 @@ const removeTrackFromAlbum = async (userId, albumId, trackId) => {
     return formatAlbumItem(populated.toObject());
 };
 
+const deleteAlbum = async (userId, albumId) => {
+    if (!mongoose.Types.ObjectId.isValid(albumId)) {
+        throw new AppError("Album id is invalid.", StatusCodes.BAD_REQUEST, { field: "id" });
+    }
+
+    const artist = await Artist.findOne({ userId });
+    assertArtistOperational(artist);
+
+    const album = await Album.findOne({
+        _id: albumId,
+        artistId: artist._id,
+        isDeleted: { $ne: true },
+    });
+
+    if (!album) {
+        throw new AppError("Album not found.", StatusCodes.NOT_FOUND);
+    }
+
+    await Promise.all([
+        Track.updateMany(
+            { album_albumId: album._id, artist_artistId: artist._id },
+            { $unset: { album_albumId: "" } }
+        ),
+        Album.updateOne(
+            { _id: album._id, artistId: artist._id },
+            {
+                $set: {
+                    isDeleted: true,
+                    deletedAt: new Date(),
+                    deletedBy: artist.userId,
+                    deleteReason: "Deleted by artist",
+                    status: "hidden",
+                },
+            }
+        ),
+    ]);
+
+    return { deletedId: album._id };
+};
+
 export default {
     getMyAlbums,
     getMyAlbumDetail,
@@ -740,4 +787,5 @@ export default {
     unhideAlbum,
     addTrackToAlbum,
     removeTrackFromAlbum,
+    deleteAlbum,
 };

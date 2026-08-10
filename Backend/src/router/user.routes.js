@@ -32,5 +32,6 @@ const runUserAvatarUpload = (req, res, next) => {
 router.get("/me", authenticate(), userController.getMyProfile);
 router.patch("/me", authenticate(), runUserAvatarUpload, userController.updateMyProfile);
 router.patch("/me/change-password", authenticate(), userController.changeMyPassword);
+router.delete("/me", authenticate(), userController.deleteMyAccount);
 
 export default router;

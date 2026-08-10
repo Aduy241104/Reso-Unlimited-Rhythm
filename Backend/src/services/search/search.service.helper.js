@@ -62,6 +62,7 @@ const buildSongsSearchFilter = (keyword) => {
 
     return {
         activeStatus: "active",
+        isDeleted: { $ne: true },
         approvalStatus: "approved",
         ...buildReleasedTrackFilter(),
     };
@@ -74,6 +75,7 @@ const buildArtistsSearchFilter = (keyword) => {
 
     return {
         activeStatus: "active",
+        isDeleted: { $ne: true },
     };
 };
 
@@ -84,6 +86,7 @@ const buildAlbumsSearchFilter = (keyword) => {
 
     return {
         status: "active",
+        isDeleted: { $ne: true },
     };
 };
 

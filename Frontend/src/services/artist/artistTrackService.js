@@ -1,6 +1,6 @@
 import axiosClient from "../../axios/axiosClient";
 
-const ARTIST_TRACK_API_PREFIX = "/api/artist/track/artist/me";
+const ARTIST_TRACK_API_PREFIX = "/api/artist/track/me";
 
 export const getArtistTracksService = async (params = {}) => {
   const response = await axiosClient.get(ARTIST_TRACK_API_PREFIX, { params });

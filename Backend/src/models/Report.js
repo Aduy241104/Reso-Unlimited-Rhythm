@@ -20,6 +20,8 @@ const ReportSchema = new Schema(
     { timestamps: true }
 );
 
+ReportSchema.index({ userId: 1, targetId: 1, targetType: 1, status: 1 });
+
 const Report = model("Report", ReportSchema);
 
 export default Report;

@@ -3,6 +3,7 @@ import Artist from "../models/Artist.js";
 import ReleaseSchedule from "../models/ReleaseSchedule.js";
 import Track from "../models/Track.js";
 import { AppError } from "../utils/AppError.js";
+import { assertArtistOperational } from "./artist/artist.status.helper.js";
 import {
     TRACK_RELEASE_STATUS,
     resolveTrackReleaseStatus,
@@ -146,7 +147,9 @@ const normalizeType = (type) => {
 };
 
 const getArtistByUserId = async (userId) => {
-    const artist = await Artist.findOne({ userId }).select("_id name").lean();
+    const artist = await Artist.findOne({ userId })
+        .select("_id name activeStatus isDeleted")
+        .lean();
 
     if (!artist) {
         throw new AppError("Không tìm thấy hồ sơ nghệ sĩ.", 404);
@@ -160,6 +163,7 @@ const getOwnedReleaseTarget = async ({ artistId, type, targetId }) => {
         const album = await Album.findOne({
             _id: targetId,
             artistId,
+            isDeleted: { $ne: true },
         }).lean();
 
         if (!album) {
@@ -172,6 +176,7 @@ const getOwnedReleaseTarget = async ({ artistId, type, targetId }) => {
     const track = await Track.findOne({
         _id: targetId,
         artist_artistId: artistId,
+        isDeleted: { $ne: true },
     }).lean();
 
     if (!track) {
@@ -818,6 +823,7 @@ const getMyReleaseScheduleDetail = async (userId, scheduleId) => {
 
 const cancelMyReleaseSchedule = async (userId, scheduleId) => {
     const artist = await getArtistByUserId(userId);
+    assertArtistOperational(artist);
     await publishDueReleaseSchedules({ artistId: artist._id });
     const schedule = await ReleaseSchedule.findOne({
         _id: scheduleId,
@@ -884,6 +890,7 @@ const cancelMyReleaseSchedule = async (userId, scheduleId) => {
 
 const createMyReleaseSchedule = async (userId, payload, io = null) => {
     const artist = await getArtistByUserId(userId);
+    assertArtistOperational(artist);
     const publishMode = payload.publishMode === "immediate" ? "immediate" : "scheduled";
     const isImmediateRelease = publishMode === "immediate";
     const scheduledAt = isImmediateRelease
@@ -988,6 +995,7 @@ const createMyReleaseSchedule = async (userId, payload, io = null) => {
 
 const updateMyReleaseSchedule = async (userId, scheduleId, payload) => {
     const artist = await getArtistByUserId(userId);
+    assertArtistOperational(artist);
     await publishDueReleaseSchedules({ artistId: artist._id });
     const schedule = await ReleaseSchedule.findOne({
         _id: scheduleId,

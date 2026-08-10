@@ -14,6 +14,7 @@ router.patch("/:id/hide", artistAlbumController.hideAlbum);
 router.patch("/:id/unhide", artistAlbumController.unhideAlbum);
 router.post("/:id/tracks", artistAlbumController.addTrackToAlbum);
 router.delete("/:id/tracks/:trackId", artistAlbumController.removeTrackFromAlbum);
+router.delete("/:id", artistAlbumController.deleteAlbum);
 
 router.patch("/:id", upload.single("coverImage"), artistAlbumController.updateAlbum);
 router.get("/:id", artistAlbumController.getMyAlbumDetail);

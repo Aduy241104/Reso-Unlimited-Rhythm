@@ -1,15 +1,47 @@
 import cloudinary from "../config/cloudinaryConfig.js";
 
-export const uploadToCloudinary = (fileBuffer, folder = "my-uploads", resourceType = "auto") => {
+export const uploadToCloudinary = (
+    fileBuffer,
+    folder = "my-uploads",
+    resourceType = "auto",
+    { publicId = "" } = {}
+) => {
     return new Promise((resolve, reject) => {
+        const cloudinaryPublicId = publicId ? `${folder}/${publicId}` : "";
+        const uploadOptions = {
+            folder,
+            resource_type: resourceType,
+            ...(publicId ? { public_id: publicId, overwrite: false } : {}),
+        };
         const stream = cloudinary.uploader.upload_stream(
-            { 
-                folder,
-                resource_type: resourceType
-            },
+            uploadOptions,
             (error, result) => {
-                if (error) reject(error);
-                else resolve(result);
+                if (!error) {
+                    resolve(result);
+                    return;
+                }
+
+                // A retry with the same content-addressed public ID is an
+                // idempotent reuse, not a resource collision. A different
+                // content hash gets a different ID and still fails normally.
+                if (!publicId || !cloudinary.api?.resource) {
+                    reject(error);
+                    return;
+                }
+
+                const errorText = String(error?.message || error || "").toLowerCase();
+                const isAlreadyExists = error?.http_code === 409 ||
+                    error?.code === "already_exists" ||
+                    errorText.includes("already exists") ||
+                    errorText.includes("already_exists");
+                if (!isAlreadyExists) {
+                    reject(error);
+                    return;
+                }
+
+                cloudinary.api.resource(cloudinaryPublicId, { resource_type: resourceType })
+                    .then((existing) => resolve({ ...existing, idempotentReuse: true }))
+                    .catch(() => reject(error));
             }
         );
         stream.end(fileBuffer);

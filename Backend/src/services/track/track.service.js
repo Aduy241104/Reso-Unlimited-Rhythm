@@ -3,6 +3,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 import Track from "../../models/Track.js";
+import Artist from "../../models/Artist.js";
 import TrackDailyRanking from "../../models/TrackDailyRanking.js";
 import TrackMonthlyRanking from "../../models/TrackMonthlyRanking.js";
 import Interaction from "../../models/Interaction.js";
@@ -18,6 +19,7 @@ import {
 } from "./track.helper.js";
 import { getAnalyticsTimezone } from "../analytics/trackStatAggregation.service.js";
 import { buildReleasedTrackFilter } from "../../utils/trackRelease.js";
+import { publicArtistMatch } from "../artist/artist.status.helper.js";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -47,12 +49,22 @@ const getValidTrackIds = async (trackIds) => {
         _id: { $in: trackIds },
         activeStatus: "active",
         approvalStatus: "approved",
+        isDeleted: { $ne: true },
         ...buildReleasedTrackFilter(),
     })
-        .select("_id")
+        .select("_id artist_artistId")
+        .populate({
+            path: "artist_artistId",
+            match: publicArtistMatch,
+            select: "_id",
+        })
         .lean();
 
-    return new Set(validTracks.map((track) => track._id.toString()));
+    return new Set(
+        validTracks
+            .filter((track) => Boolean(track.artist_artistId))
+            .map((track) => track._id.toString())
+    );
 };
 
 const normalizeTopTracks = async (topTracks, limit) => {
@@ -217,6 +229,7 @@ const formatMonthlyTopTrackStat = ({ stat, monthKey }) => ({
 const PLAYBACK_TRACK_FILTER = {
     activeStatus: "active",
     approvalStatus: "approved",
+    isDeleted: { $ne: true },
     ...buildReleasedTrackFilter(),
 };
 
@@ -237,6 +250,7 @@ const buildTrackPlaybackQuery = (filter) =>
     Track.findOne(filter)
         .populate({
             path: "artist_artistId",
+            match: publicArtistMatch,
             select: "name avatar coverImage",
         })
         .populate({
@@ -252,6 +266,23 @@ const getRandomTrackPlaybackCandidate = async () => {
             $match: {
                 ...PLAYBACK_TRACK_FILTER,
                 "audioFiles.url": { $exists: true, $ne: "" },
+            },
+        },
+        {
+            $lookup: {
+                from: Artist.collection.name,
+                localField: "artist_artistId",
+                foreignField: "_id",
+                as: "publicArtist",
+            },
+        },
+        {
+            $unwind: "$publicArtist",
+        },
+        {
+            $match: {
+                "publicArtist.activeStatus": "active",
+                "publicArtist.isDeleted": { $ne: true },
             },
         },
         {
@@ -284,10 +315,12 @@ const getTrackDetail = async (trackId, userId = null) => {
         _id: trackId,
         activeStatus: "active",
         approvalStatus: "approved",
+        isDeleted: { $ne: true },
         ...buildReleasedTrackFilter(),
     })
         .populate({
             path: "artist_artistId",
+            match: publicArtistMatch,
             select: "name bio avatar coverImage activeStatus stats",
         })
         .populate({
@@ -301,7 +334,7 @@ const getTrackDetail = async (trackId, userId = null) => {
         .lean()
         .select("-__v -createdAt -updatedAt -blockedReason -hiddenReason -hiddenAt");
 
-    if (!track) {
+    if (!track || !track.artist_artistId) {
         throw new AppError("Track not found.", 404);
     }
 
@@ -340,7 +373,7 @@ const getTrackPlayback = async (trackId, user) => {
         });
     }
 
-    if (!track) {
+    if (!track || !track.artist_artistId) {
         throw new AppError("Track not found.", 404);
     }
 
@@ -395,11 +428,13 @@ const getDailyTopTracks = async ({ date, limit }) => {
             match: {
                 activeStatus: "active",
                 approvalStatus: "approved",
+                isDeleted: { $ne: true },
                 ...buildReleasedTrackFilter(),
             },
             select: "_id title versionTitle duration avatar stats releaseDate releaseStatus releasedAt activeStatus approvalStatus artist_artistId",
             populate: {
                 path: "artist_artistId",
+                match: publicArtistMatch,
                 select: "_id name avatar",
             },
         })
@@ -481,11 +516,13 @@ const getMonthlyTopTracks = async ({ month, limit }) => {
             match: {
                 activeStatus: "active",
                 approvalStatus: "approved",
+                isDeleted: { $ne: true },
                 ...buildReleasedTrackFilter(),
             },
             populate: [
                 {
                     path: "artist_artistId",
+                    match: publicArtistMatch,
                     select: "name avatar coverImage",
                 },
                 {
