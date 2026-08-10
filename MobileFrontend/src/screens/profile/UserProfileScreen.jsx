@@ -17,6 +17,7 @@ import AppButton from '../../components/common/AppButton';
 import AppInput from '../../components/common/AppInput';
 import AppLoader from '../../components/common/AppLoader';
 import ErrorState from '../../components/common/ErrorState';
+import ArtistBirthDatePickerModal from '../../components/profile/ArtistBirthDatePickerModal';
 import { useAuth } from '../../hooks/useAuth';
 import userProfileService from '../../services/userProfileService';
 import profilePasswordService from '../../services/profilePasswordService';
@@ -30,7 +31,7 @@ const buildInfoRows = (profile) => {
   return [
     { label: 'Họ và tên', value: profile?.profile?.fullName || 'Chưa cập nhật' },
     { label: 'Giới tính', value: profile?.profile?.genderLabel || 'Chưa cập nhật' },
-    { label: 'Quốc gia', value: profile?.profile?.country || 'Chưa cập nhật' },
+    { label: 'Ngày sinh', value: profile?.profile?.dateOfBirth || 'Chưa cập nhật' },
     { label: 'Email', value: profile.email || 'Chưa có email' },
   ].filter(Boolean);
 };
@@ -55,6 +56,20 @@ export default function UserProfileScreen() {
   const [isPasswordSaving, setIsPasswordSaving] = useState(false);
   const [passwordErrorMessage, setPasswordErrorMessage] = useState('');
   const [passwordSuccessMessage, setPasswordSuccessMessage] = useState('');
+  const [isDatePickerVisible, setIsDatePickerVisible] = useState(false);
+
+  const handleOpenDatePicker = useCallback(() => {
+    setIsDatePickerVisible(true);
+  }, []);
+
+  const handleCloseDatePicker = useCallback(() => {
+    setIsDatePickerVisible(false);
+  }, []);
+
+  const handleConfirmDatePicker = useCallback((value) => {
+    handleDraftChange('dateOfBirth', value);
+    setIsDatePickerVisible(false);
+  }, [handleDraftChange]);
 
   const syncDraftState = useCallback((nextProfile) => {
     setDraft(userProfileService.buildProfileDraft(nextProfile));
@@ -450,14 +465,31 @@ export default function UserProfileScreen() {
               </View>
               {formErrors.gender ? <Text style={styles.fieldError}>{formErrors.gender}</Text> : null}
 
-              <AppInput
-                label="Quốc gia"
-                value={draft.country}
-                onChangeText={(value) => handleDraftChange('country', value)}
-                placeholder="VD: Việt Nam"
-                autoCapitalize="words"
-                autoCorrect={false}
-              />
+              <View style={styles.dateFieldGroup}>
+                <Text style={styles.groupLabel}>Ngày sinh</Text>
+                <TouchableOpacity
+                  style={[styles.dateFieldButton, formErrors.dateOfBirth ? styles.dateFieldButtonError : null]}
+                  onPress={handleOpenDatePicker}
+                  activeOpacity={0.85}
+                >
+                  <View style={styles.dateFieldIconWrap}>
+                    <Ionicons name="calendar-outline" size={18} color="#1ed760" />
+                  </View>
+                  <View style={styles.dateFieldContent}>
+                    <Text style={styles.dateFieldCaption}>Chạm để chọn ngày sinh</Text>
+                    <Text
+                      style={[
+                        styles.dateFieldValue,
+                        !draft.dateOfBirth ? styles.dateFieldValuePlaceholder : null,
+                      ]}
+                    >
+                      {draft.dateOfBirth || 'dd-mm-yyyy'}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color="#8f8f8f" />
+                </TouchableOpacity>
+                {formErrors.dateOfBirth ? <Text style={styles.fieldError}>{formErrors.dateOfBirth}</Text> : null}
+              </View>
 
               {saveErrorMessage ? <Text style={styles.errorBanner}>{saveErrorMessage}</Text> : null}
             </ScrollView>
@@ -559,6 +591,14 @@ export default function UserProfileScreen() {
           </View>
         </View>
       </Modal>
+
+      <ArtistBirthDatePickerModal
+        visible={isDatePickerVisible}
+        value={draft.dateOfBirth}
+        onClose={handleCloseDatePicker}
+        onConfirm={handleConfirmDatePicker}
+        bottomInset={insets.bottom}
+      />
     </View>
   );
 }
@@ -883,5 +923,48 @@ const styles = StyleSheet.create({
   modalScrollContent: {
     paddingTop: 4,
     paddingBottom: 8,
+  },
+  dateFieldGroup: {
+    marginBottom: 16,
+  },
+  dateFieldButton: {
+    minHeight: 58,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#262626',
+    backgroundColor: '#141414',
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  dateFieldButtonError: {
+    borderColor: '#ff8e8e',
+  },
+  dateFieldIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#16221a',
+    borderWidth: 1,
+    borderColor: '#214d30',
+  },
+  dateFieldContent: {
+    flex: 1,
+  },
+  dateFieldCaption: {
+    color: '#8a8a8a',
+    fontSize: 11,
+    marginBottom: 2,
+  },
+  dateFieldValue: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  dateFieldValuePlaceholder: {
+    color: '#666666',
   },
 });

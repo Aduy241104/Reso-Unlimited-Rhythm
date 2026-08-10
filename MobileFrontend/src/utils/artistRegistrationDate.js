@@ -1,4 +1,4 @@
-﻿const DATE_VALUE_PATTERN = /^(\d{2})-(\d{2})-(\d{4})$/;
+const DATE_VALUE_PATTERN = /^(\d{2})-(\d{2})-(\d{4})$/;
 const API_DATE_VALUE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 export const DATE_PICKER_MIN_YEAR = 1900;
@@ -93,21 +93,33 @@ export const parseDateDisplayValue = (value = '') => {
 };
 
 export const parseAnyDateValue = (value = '') => {
-  const displayParts = parseDateDisplayValue(value);
+  if (!value) {
+    return null;
+  }
 
+  const normalizedValue = String(value || '').trim();
+
+  const displayParts = parseDateDisplayValue(normalizedValue);
   if (displayParts) {
     return displayParts;
   }
 
-  const normalizedValue = String(value || '').trim();
-  const match = API_DATE_VALUE_PATTERN.exec(normalizedValue);
-
-  if (!match) {
-    return null;
+  const apiMatch = API_DATE_VALUE_PATTERN.exec(normalizedValue);
+  if (apiMatch) {
+    const [, year, month, day] = apiMatch;
+    return parseDateDisplayValue(`${day}-${month}-${year}`);
   }
 
-  const [, year, month, day] = match;
-  return parseDateDisplayValue(`${day}-${month}-${year}`);
+  const dateObj = value instanceof Date ? value : new Date(normalizedValue);
+  if (!Number.isNaN(dateObj.getTime())) {
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const year = String(dateObj.getFullYear());
+
+    return normalizeDatePickerParts({ day, month, year });
+  }
+
+  return null;
 };
 
 export const isDateDisplayValueValid = (value = '') => Boolean(parseDateDisplayValue(value));
