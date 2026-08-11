@@ -14,6 +14,8 @@ import {
     enrichAlbumWithTotalDuration,
     enrichAlbumsWithTotalDuration,
 } from "./album.sync.js";
+import { publicArtistMatch } from "../artist/artist.status.helper.js";
+import { buildReleasedTrackFilter } from "../../utils/trackRelease.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
@@ -46,6 +48,7 @@ const buildReleasedAlbumFilter = (now) => ({
 const buildAlbumListFilter = (criteria, now) => {
     const filter = {
         status: "active",
+        isDeleted: { $ne: true },
     };
 
     if (criteria === ALBUM_LIST_CRITERIA.UPCOMING) {
@@ -124,6 +127,7 @@ const buildAlbumListAggregation = ({ criteria, now, skip, limit }) => {
         {
             $match: {
                 "artist.activeStatus": "active",
+                "artist.isDeleted": { $ne: true },
             },
         },
         {
@@ -147,6 +151,7 @@ const buildAlbumListAggregation = ({ criteria, now, skip, limit }) => {
                                     },
                                     { $eq: ["$activeStatus", "active"] },
                                     { $eq: ["$approvalStatus", "approved"] },
+                                    { $ne: [{ $ifNull: ["$isDeleted", false] }, true] },
                                 ],
                             },
                         },
@@ -307,9 +312,12 @@ const getActiveAlbumOrThrow = async (albumId) => {
     const album = await Album.findOne({
         _id: normalizedAlbumId,
         status: "active",
-    }).select("_id");
+        isDeleted: { $ne: true },
+    })
+        .populate({ path: "artistId", match: publicArtistMatch, select: "_id" })
+        .select("_id artistId");
 
-    if (!album) {
+    if (!album || !album.artistId) {
         throw new AppError("Album not found.", 404);
     }
 
@@ -362,9 +370,11 @@ const getAlbumDetail = async (albumId) => {
     const album = await Album.findOne({
         _id: albumId,
         status: "active",
+        isDeleted: { $ne: true },
     })
         .populate({
             path: "artistId",
+            match: publicArtistMatch,
             select: [
                 "name",
                 "bio",
@@ -376,6 +386,12 @@ const getAlbumDetail = async (albumId) => {
         })
         .populate({
             path: "trackList.trackId",
+            match: {
+                activeStatus: "active",
+                approvalStatus: "approved",
+                isDeleted: { $ne: true },
+                ...buildReleasedTrackFilter(),
+            },
             select: [
                 "title",
                 "versionTitle",
@@ -392,14 +408,19 @@ const getAlbumDetail = async (albumId) => {
             ].join(" "),
             populate: {
                 path: "artist_artistId",
+                match: publicArtistMatch,
                 select: "name avatar coverImage",
             },
         })
         .lean();
 
-    if (!album) {
+    if (!album || !album.artistId) {
         throw new AppError("Album not found.", 404);
     }
+
+    album.trackList = (album.trackList || []).filter(
+        (entry) => Boolean(entry?.trackId?.artist_artistId)
+    );
 
     const trackSelect = [
         "title",
@@ -436,16 +457,23 @@ const getAlbumDetail = async (albumId) => {
     const orphanTracks = await Track.find({
         album_albumId: album._id,
         _id: { $nin: listedTrackIds },
+        activeStatus: "active",
+        approvalStatus: "approved",
+        isDeleted: { $ne: true },
+        ...buildReleasedTrackFilter(),
     })
         .select(trackSelect)
         .populate({
             path: "artist_artistId",
+            match: publicArtistMatch,
             select: "name avatar coverImage",
         })
         .lean();
 
-    if (orphanTracks.length > 0) {
-        const supplemental = orphanTracks.map((track, index) => ({
+    const publicOrphanTracks = orphanTracks.filter((track) => Boolean(track.artist_artistId));
+
+    if (publicOrphanTracks.length > 0) {
+        const supplemental = publicOrphanTracks.map((track, index) => ({
             order: maxOrder + index + 1,
             trackId: track,
         }));

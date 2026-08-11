@@ -37,3 +37,26 @@ export const deleteImageByPublicId = async (publicId, invalidate = false) => {
     console.log("[DEBUG] Cloudinary destroy result:", result);
     return result;
 };
+
+export const uploadEvidenceBuffer = ({ buffer, folder = "reso/copyright-evidence", publicId }) =>
+    new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+            {
+                folder,
+                public_id: publicId,
+                resource_type: "auto",
+                // Ownership evidence may contain IDs/contracts; never expose it as a public asset.
+                type: "authenticated",
+            },
+            (err, result) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+
+                resolve(result);
+            }
+        );
+
+        stream.end(buffer);
+    });

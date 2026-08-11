@@ -13,6 +13,7 @@ const buildGenreTracksFilter = (genreId) => ({
     genreIds: genreId,
     activeStatus: "active",
     approvalStatus: "approved",
+    isDeleted: { $ne: true },
     ...buildReleasedTrackFilter(),
 });
 

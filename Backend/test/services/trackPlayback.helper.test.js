@@ -1,7 +1,7 @@
 import {
     formatTrackPlayback,
     getValidAudioFiles,
-} from "../../src/services/Track/track.helper.js";
+} from "../../src/services/track/track.helper.js";
 
 describe("track playback helper", () => {
     test("keeps audio metadata and exposes the 128kbps mp3 stream to basic listeners", () => {

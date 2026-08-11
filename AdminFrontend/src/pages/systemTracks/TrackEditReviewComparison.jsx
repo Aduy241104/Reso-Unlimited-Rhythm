@@ -23,6 +23,11 @@ const COPYRIGHT_FIELDS = [
   ["originalArtistName", "Nghệ sĩ gốc"],
   ["copyrightStatus", "Trạng thái bản quyền"],
   ["copyrightNote", "Ghi chú bản quyền"],
+  ["primaryCopyrightType", "Loại quyền chính"],
+  ["usesThirdPartyBeat", "Có dùng beat bên thứ ba"],
+  ["sampleSourceTitle", "Nguồn sample"],
+  ["beatTitle", "Tên beat"],
+  ["licenseType", "Loại giấy phép beat"],
 ];
 
 const COPYRIGHT_FLAGS = [

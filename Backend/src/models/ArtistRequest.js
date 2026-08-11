@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { normalizeArtistName } from "../services/artist/artist.name.normalizer.js";
 
 const { Schema, model } = mongoose;
 
@@ -6,6 +7,7 @@ const ArtistRequestSchema = new Schema(
     {
         userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
         stageName: { type: String, required: true, trim: true },
+        stageNameKey: { type: String, trim: true },
         bio: { type: String, default: "" },
         avatar: { type: String, trim: true, default: "" },
         genres: [{ type: String, trim: true }],
@@ -67,6 +69,25 @@ const ArtistRequestSchema = new Schema(
         rejectReason: { type: String, default: "" },
     },
     { timestamps: true }
+);
+
+ArtistRequestSchema.pre("validate", function setStageNameKey(next) {
+    if (this.isModified("stageName") || !this.stageNameKey) {
+        this.stageNameKey = normalizeArtistName(this.stageName);
+    }
+    next();
+});
+
+ArtistRequestSchema.index(
+    { stageNameKey: 1 },
+    {
+        unique: true,
+        name: "unique_pending_artist_request_stage_name_key",
+        partialFilterExpression: {
+            status: "pending",
+            stageNameKey: { $type: "string" },
+        },
+    }
 );
 
 export default model("ArtistRequest", ArtistRequestSchema);

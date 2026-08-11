@@ -56,7 +56,8 @@ const updateArtistStatusForAdmin = async (req, res, next) => {
 
         const updatedArtist = await adminArtistService.updateArtistStatusForAdmin(id, {
             activeStatus,
-            blockedReason
+            blockedReason,
+            adminUserId: req.user?.id,
         });
 
         const statusMessage = activeStatus === "blocked" 

@@ -8,6 +8,7 @@ import {
     buildGenreTracksFilter,
     normalizePagination,
 } from "./user.genre.service.helper.js";
+import { publicArtistMatch } from "../artist/artist.status.helper.js";
 
 const GENRE_TRACK_SELECT_FIELDS = [
     "title",
@@ -49,25 +50,26 @@ const getGenreTracksByGenreId = async (genreId, query = {}) => {
     const { page, limit, skip } = normalizePagination(query);
     const trackFilter = buildGenreTracksFilter(genreId);
 
-    const [totalItems, tracks] = await Promise.all([
-        Track.countDocuments(trackFilter),
+    const [tracks] = await Promise.all([
         Track.find(trackFilter)
             .select(GENRE_TRACK_SELECT_FIELDS)
             .populate({
                 path: "artist_artistId",
+                match: publicArtistMatch,
                 select: "name avatar coverImage",
             })
             .sort({ releaseDate: -1, createdAt: -1 })
-            .skip(skip)
-            .limit(limit)
             .lean(),
     ]);
 
+    const publicTracks = tracks.filter((track) => Boolean(track.artist_artistId));
+    const totalItems = publicTracks.length;
+    const pagedTracks = publicTracks.slice(skip, skip + limit);
     const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / limit);
 
     return {
         genre,
-        tracks: tracks.map((track) => ({
+        tracks: pagedTracks.map((track) => ({
             ...track,
             versionTitle: track.versionTitle || "",
         })),

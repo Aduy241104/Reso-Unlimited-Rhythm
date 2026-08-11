@@ -63,12 +63,9 @@ const ArtistTracksModal = ({ artistId, artistName, isOpen, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-
-  const totalPages = Math.max(1, Math.ceil(tracks.length / PAGE_SIZE));
-  const visibleTracks = tracks.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE
-  );
+  const [deletionStatus, setDeletionStatus] = useState("active");
+  const [pagination, setPagination] = useState(null);
+  const totalPages = pagination?.totalPages ?? 0;
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -82,11 +79,9 @@ const ArtistTracksModal = ({ artistId, artistName, isOpen, onClose }) => {
   }, [isOpen, onClose]);
 
   useEffect(() => {
-    if (!isOpen || !artistId || !artistName) return undefined;
+    if (!isOpen || !artistId) return undefined;
 
     let isCancelled = false;
-    setCurrentPage(1);
-
     const loadTracks = async () => {
       setIsLoading(true);
       setError("");
@@ -94,13 +89,19 @@ const ArtistTracksModal = ({ artistId, artistName, isOpen, onClose }) => {
       try {
         const result = await getAdminArtistTracksService({
           artistId,
-          artistName,
+          deletionStatus,
+          page: currentPage,
+          limit: PAGE_SIZE,
         });
 
-        if (!isCancelled) setTracks(result);
+        if (!isCancelled) {
+          setTracks(result.tracks ?? []);
+          setPagination(result.pagination ?? null);
+        }
       } catch (loadError) {
         if (!isCancelled) {
           setTracks([]);
+          setPagination(null);
           setError(
             loadError?.response?.data?.message ||
               loadError?.message ||
@@ -116,7 +117,11 @@ const ArtistTracksModal = ({ artistId, artistName, isOpen, onClose }) => {
     return () => {
       isCancelled = true;
     };
-  }, [artistId, artistName, isOpen]);
+  }, [artistId, deletionStatus, currentPage, isOpen]);
+
+  useEffect(() => {
+    if (isOpen) setCurrentPage(1);
+  }, [artistId, deletionStatus, isOpen]);
 
   if (!isOpen) return null;
 
@@ -148,7 +153,7 @@ const ArtistTracksModal = ({ artistId, artistName, isOpen, onClose }) => {
             <p className="mt-1 text-sm text-slate-500">
               {isLoading
                 ? "Đang tải danh sách..."
-                : `${tracks.length} bài hát được tìm thấy trong hệ thống.`}
+                : `${pagination?.total ?? tracks.length} bài hát được tìm thấy trong hệ thống.`}
             </p>
           </div>
 
@@ -163,6 +168,36 @@ const ArtistTracksModal = ({ artistId, artistName, isOpen, onClose }) => {
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-6">
+          <div
+            className="mb-4 flex flex-wrap items-center gap-2"
+            role="tablist"
+            aria-label="Trạng thái xóa track"
+          >
+            {[
+              ["active", "Đang tồn tại"],
+              ["deleted", "Nghệ sĩ đã xóa"],
+              ["all", "Tất cả"],
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                role="tab"
+                aria-selected={deletionStatus === value}
+                onClick={() => {
+                  setDeletionStatus(value);
+                  setCurrentPage(1);
+                }}
+                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                  deletionStatus === value
+                    ? "border-slate-900 bg-slate-900 text-white"
+                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
           {isLoading ? (
             <div className="flex min-h-52 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50">
               <p className="text-sm font-medium text-slate-500">
@@ -193,7 +228,7 @@ const ArtistTracksModal = ({ artistId, artistName, isOpen, onClose }) => {
               </div>
 
               <div className="divide-y divide-slate-100">
-                {visibleTracks.map((track) => {
+                {tracks.map((track) => {
                   const approvalStatus =
                     track.reviewStatus || track.approvalStatus;
 
@@ -219,6 +254,11 @@ const ArtistTracksModal = ({ artistId, artistName, isOpen, onClose }) => {
                           <p className="truncate text-sm font-semibold text-slate-900">
                             {track.title || "Bài hát chưa đặt tên"}
                           </p>
+                          {track.isDeleted ? (
+                            <span className="mt-1 inline-flex rounded-full border border-rose-300 bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-800">
+                              Nghệ sĩ đã xóa bài
+                            </span>
+                          ) : null}
                           <p className="mt-0.5 truncate text-xs text-slate-500">
                             {getStatusLabel(track.activeStatus)}
                           </p>
@@ -254,7 +294,7 @@ const ArtistTracksModal = ({ artistId, artistName, isOpen, onClose }) => {
         </div>
 
         <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-          {tracks.length > 0 ? (
+          {tracks.length > 0 && totalPages > 0 ? (
             <div className="flex items-center gap-2">
               <button
                 type="button"

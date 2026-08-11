@@ -38,7 +38,7 @@ const loadArtistLyricsService = async () => {
         default: mockTrackModel,
     }));
     jest.unstable_mockModule(
-        "../../src/services/Track/artist/artist.track.service.js",
+        "../../src/services/track/artist/artist.track.service.js",
         () => ({
             default: {
                 updateArtistTrack: mockUpdateArtistTrack,
@@ -47,13 +47,13 @@ const loadArtistLyricsService = async () => {
         })
     );
     jest.unstable_mockModule(
-        "../../src/services/Track/track.draft.validation.js",
+        "../../src/services/track/track.draft.validation.js",
         () => ({
             assertArtistCanCreateTrack: mockAssertArtistCanCreateTrack,
         })
     );
     jest.unstable_mockModule(
-        "../../src/services/Track/track.submit.validation.js",
+        "../../src/services/track/track.submit.validation.js",
         () => ({
             assertTrackEditableByArtist: mockAssertTrackEditableByArtist,
         })

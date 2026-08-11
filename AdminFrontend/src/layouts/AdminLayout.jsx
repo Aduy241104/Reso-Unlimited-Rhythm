@@ -15,6 +15,7 @@ import {
   Tags,
   UserCheck,
   Users,
+  MessageSquareReply,
 } from "lucide-react";
 import AdminSidebar from "../components/layout/AdminSidebar";
 import { useAuth } from "../hooks/useAuth";
@@ -51,6 +52,12 @@ const navigationItems = [
     to: routePaths.systemTracks,
     label: "Bài hát hệ thống",
     icon: Music2,
+    end: false,
+  },
+  {
+    to: routePaths.trackAppeals,
+    label: "Phản hồi từ nghệ sĩ",
+    icon: MessageSquareReply,
     end: false,
   },
   {
