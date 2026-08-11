@@ -6,7 +6,9 @@ const recordCompletedListenAttempt = async (req, res, next) => {
         const result = await listenEventService.recordCompletedListenAttempt({
             userId,
             guestId: userId ? undefined : req.body.guestId,
+            contentType: req.body.contentType,
             trackId: req.body.trackId,
+            podcastId: req.body.podcastId,
             listenedDuration: req.body.listenedDuration,
             source: req.body.source,
         });

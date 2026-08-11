@@ -14,8 +14,15 @@ const ListenEventSchema = new Schema(
             default: undefined,
             index: true,
         },
-        trackId: { type: Schema.Types.ObjectId, ref: "Track", required: true, index: true },
-        artistId: { type: Schema.Types.ObjectId, ref: "Artist", required: true, index: true },
+        contentType: {
+            type: String,
+            enum: ["track", "podcast"],
+            default: "track",
+            index: true,
+        },
+        trackId: { type: Schema.Types.ObjectId, ref: "Track", default: null, index: true },
+        podcastId: { type: Schema.Types.ObjectId, ref: "Podcast", default: null, index: true },
+        artistId: { type: Schema.Types.ObjectId, ref: "Artist", default: null, index: true },
         listenedAt: { type: Date, default: Date.now, index: true },
         trackDuration: { type: Number, default: null, min: 0 },
         listenedDuration: { type: Number, default: null, min: 0 },
@@ -24,7 +31,7 @@ const ListenEventSchema = new Schema(
         requiredPercent: { type: Number, default: null, min: 0, max: 100 },
         source: {
             type: String,
-            enum: ["track_detail", "album", "playlist", "search", "artist_profile", "unknown"],
+            enum: ["track_detail", "album", "playlist", "search", "artist_profile", "podcast_detail", "unknown"],
             default: "unknown",
         },
         isValidStream: { type: Boolean, default: null, index: true },
@@ -48,13 +55,46 @@ ListenEventSchema.pre("validate", function validateListenerIdentity(next) {
     next();
 });
 
+ListenEventSchema.pre("validate", function validateListenedContent(next) {
+    const hasTrackId = Boolean(this.trackId);
+    const hasPodcastId = Boolean(this.podcastId);
+
+    if (hasTrackId === hasPodcastId) {
+        this.invalidate(
+            "contentType",
+            "A listen event must belong to exactly one trackId or podcastId."
+        );
+    }
+
+    if (this.contentType === "track") {
+        if (!hasTrackId) {
+            this.invalidate("trackId", "trackId is required for track listen events.");
+        }
+
+        if (!this.artistId) {
+            this.invalidate("artistId", "artistId is required for track listen events.");
+        }
+    }
+
+    if (this.contentType === "podcast" && !hasPodcastId) {
+        this.invalidate("podcastId", "podcastId is required for podcast listen events.");
+    }
+
+    next();
+});
+
+ListenEventSchema.index({ contentType: 1, listenedAt: -1 });
 ListenEventSchema.index({ userId: 1, listenedAt: -1 });
 ListenEventSchema.index({ userId: 1, trackId: 1, listenedAt: -1 });
+ListenEventSchema.index({ userId: 1, podcastId: 1, listenedAt: -1 });
 ListenEventSchema.index({ guestId: 1, listenedAt: -1 });
 ListenEventSchema.index({ guestId: 1, trackId: 1, listenedAt: -1 });
+ListenEventSchema.index({ guestId: 1, podcastId: 1, listenedAt: -1 });
 ListenEventSchema.index({ trackId: 1, listenedAt: -1 });
+ListenEventSchema.index({ podcastId: 1, listenedAt: -1 });
 ListenEventSchema.index({ artistId: 1, listenedAt: -1 });
 ListenEventSchema.index({ trackId: 1, listenedAt: -1, isValidStream: 1 });
+ListenEventSchema.index({ podcastId: 1, listenedAt: -1, isValidStream: 1 });
 ListenEventSchema.index({ artistId: 1, listenedAt: -1, isValidStream: 1 });
 
 const ListenEvent = model("ListenEvent", ListenEventSchema);

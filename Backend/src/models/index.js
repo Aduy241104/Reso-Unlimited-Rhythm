@@ -13,6 +13,7 @@ import ListenEvent from "./ListenEvent.js";
 import Notification from "./Notification.js";
 import Plan from "./Plan.js";
 import Playlist from "./Playlist.js";
+import Podcast from "./Podcast.js";
 import PlatformMonthlyStat from "./PlatformMonthlyStat.js";
 import UserRecentListeningActivity from "./userRecentListeningActivity.js";
 import PersonalizedMix from "./PersonalizedMix.js";
@@ -58,6 +59,7 @@ export default {
     Notification,
     Plan,
     Playlist,
+    Podcast,
     PlatformMonthlyStat,
     PersonalizedMix,
     UserRecentListeningActivity,
