@@ -6,6 +6,7 @@ import { uploadImageBuffer, deleteImageByPublicId } from "../cloudinaryService.j
 import { extractPublicIdFromUrl } from "../../utils/uploadCloud.js";
 import { formatArtistProfile } from "./artist.helper.js";
 import { assertArtistOperational } from "./artist.status.helper.js";
+import { assertArtistStageNameAvailable } from "./artist.name.service.js";
 
 const CLOUDINARY_ARTIST_FOLDER = "reso/artists";
 
@@ -87,6 +88,9 @@ const updateMyProfileByUserId = async (userId, payload) => {
     const artist = await findOwnedArtistDocumentOrThrow(userId);
 
     if (payload.name !== undefined) {
+        await assertArtistStageNameAvailable(payload.name, {
+            excludeArtistId: artist._id,
+        });
         artist.name = payload.name;
     }
 

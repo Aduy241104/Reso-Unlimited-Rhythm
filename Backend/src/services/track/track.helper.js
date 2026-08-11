@@ -4,6 +4,7 @@ import {
     resolveTrackReleasedAt,
     resolveTrackReleaseStatus,
 } from "../../utils/trackRelease.js";
+import { getDisplayRejectionReason } from "../fingerprint/moderationDecision.service.js";
 
 const PREMIUM_AUDIO_FEATURES = new Set([
     "HIGH_QUALITY_AUDIO",
@@ -65,6 +66,10 @@ const formatPendingTrackUpdateData = (data) => {
 const formatTrackManagementDetail = (track) => {
     if (!track) return null;
 
+    const automaticDecision = track.moderation?.automatic || null;
+    const rejectReason = getDisplayRejectionReason(track.rejectReason, automaticDecision);
+    const pendingRejectReason = getDisplayRejectionReason(track.pendingUpdate?.rejectReason, automaticDecision);
+
     return {
         _id: track._id,
         title: track.title,
@@ -114,7 +119,7 @@ const formatTrackManagementDetail = (track) => {
         evidenceVersion: Number(track.evidenceVersion || 1),
         copyright: track.copyright || null,
         moderation: track.moderation || null,
-        rejectReason: track.rejectReason || "",
+        rejectReason,
         blockedReason: track.blockedReason,
         hiddenReason: track.hiddenReason,
         hiddenAt: track.hiddenAt,
@@ -127,7 +132,7 @@ const formatTrackManagementDetail = (track) => {
             lastSavedAt: track.pendingUpdate?.lastSavedAt || null,
             reviewedAt: track.pendingUpdate?.reviewedAt || null,
             adminNote: track.pendingUpdate?.adminNote || "",
-            rejectReason: track.pendingUpdate?.rejectReason || "",
+            rejectReason: pendingRejectReason,
             data: formatPendingTrackUpdateData(track.pendingUpdate?.data || null),
         },
     };

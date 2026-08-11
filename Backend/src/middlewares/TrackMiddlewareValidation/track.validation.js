@@ -98,6 +98,8 @@ const draftCopyrightSchema = Joi.object({
                 type: Joi.string().valid("license", "contract", "copyright_certificate", "sample_clearance", "beat_license", "remix_permission", "other").default("other"),
                 version: Joi.number().integer().min(1).default(1),
                 originalName: Joi.string().trim().max(255).required(),
+                fileName: Joi.string().trim().max(255).allow(""),
+                evidenceType: Joi.string().trim().max(80).allow(""),
                 mimeType: Joi.string().trim().max(120).required(),
                 size: Joi.number().integer().positive().max(25 * 1024 * 1024).required(),
                 storageUrl: optionalHttpUrl.required(),
@@ -107,6 +109,15 @@ const draftCopyrightSchema = Joi.object({
                 hash: Joi.string().trim().hex().length(64),
                 uploadedAt: Joi.date().iso().optional(),
                 uploadStatus: Joi.string().valid("uploaded", "replaced", "deleted", "failed").default("uploaded"),
+                // Server-managed review/audit fields are accepted only so a
+                // stale client payload can be stripped before business logic.
+                reviewedAt: Joi.any().strip(),
+                reviewedBy: Joi.any().strip(),
+                reviewedSessionId: Joi.any().strip(),
+                adminNote: Joi.any().strip(),
+                reviewDecision: Joi.any().strip(),
+                verificationResult: Joi.any().strip(),
+                reviewStatus: Joi.any().strip(),
             }).unknown(false)
         )
         .default([]),

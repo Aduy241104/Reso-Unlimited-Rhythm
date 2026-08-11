@@ -17,6 +17,18 @@ describe("fingerprint deletion lifecycle policy", () => {
         })).toMatchObject({ mode: "retain_enforcement", reasonCode: "exact_duplicate" });
     });
 
+    test("neutral automatic return does not become enforcement evidence", () => {
+        expect(getTrackDeletionDisposition({
+            approvalStatus: "rejected",
+            moderation: {
+                automatic: { decision: "auto_reject" },
+                violationFlags: [],
+            },
+            copyright: { copyrightStatus: "pending" },
+            fingerprintScreening: { exactDuplicate: false },
+        })).toMatchObject({ mode: "historical" });
+    });
+
     test("approved deletion remains historical and does not block re-upload", () => {
         expect(getTrackDeletionDisposition({
             approvalStatus: "approved",

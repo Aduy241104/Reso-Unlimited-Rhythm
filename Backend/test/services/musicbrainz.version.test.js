@@ -17,6 +17,8 @@ describe("MusicBrainz target version resolution", () => {
         })).toEqual({
             submissionVersion: 2,
             audioVersion: 3,
+            copyrightVersion: 1,
+            evidenceVersion: 1,
         });
     });
 
@@ -33,6 +35,8 @@ describe("MusicBrainz target version resolution", () => {
         })).toEqual({
             submissionVersion: 4,
             audioVersion: 5,
+            copyrightVersion: 1,
+            evidenceVersion: 1,
         });
     });
 });
@@ -89,6 +93,14 @@ describe("MusicBrainz lookup fallback", () => {
         expect(result.flags).toEqual(expect.arrayContaining([
             "possible_existing_work",
             "external_metadata_conflict",
+        ]));
+        expect(result).toMatchObject({
+            metadataSimilarity: expect.any(Number),
+            riskLevel: "medium",
+        });
+        expect(result.reasonCodes).toEqual(expect.arrayContaining([
+            "MUSICBRAINZ_ARTIST_MISMATCH",
+            "MUSICBRAINZ_METADATA_CONFLICT",
         ]));
     });
 

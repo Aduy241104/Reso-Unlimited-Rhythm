@@ -41,6 +41,7 @@ import {
   resolveTrackArtwork,
 } from "../../utils/artistTrackPresentation";
 import ArtistReleaseSchedulePage from "./ArtistReleaseSchedulePage";
+import { getApiErrorFullMessage } from "../../utils/apiError";
 
 const LIST_TABS = [
   { key: "all", label: "Tất cả bài hát" },
@@ -638,8 +639,13 @@ export const MyMusicPage = () => {
       const updatedTrack = await trackService.submitForApproval(track._id);
       setTracks((current) => current.map((item) => (item._id === updatedTrack?._id ? updatedTrack : item)));
       showArtistSuccess("Đã gửi bài hát để chờ duyệt.");
-    } catch {
-      showArtistError("Không thể gửi bài hát để duyệt vào lúc này.");
+    } catch (error) {
+      showArtistError(
+        getApiErrorFullMessage(
+          error,
+          "Không thể gửi bài hát để duyệt vào lúc này."
+        )
+      );
     } finally {
       setIsActionLoading(false);
     }

@@ -4,12 +4,21 @@ const listTracksQuerySchema = Joi.object({
     q: Joi.string().trim().max(200).allow("").default(""),
     page: Joi.number().integer().min(1).default(1),
     limit: Joi.number().integer().min(1).max(50).default(20),
-    scope: Joi.string().valid("catalog").optional(),
+    artistId: Joi.string().trim().pattern(/^[0-9a-fA-F]{24}$/).optional(),
+    deletionStatus: Joi.string().valid("active", "deleted", "all").default("active"),
+    scope: Joi.string().valid("catalog", "moderation").optional(),
     reviewSource: Joi.string()
         .valid("track_release", "pending_update")
         .optional(),
     // BỔ SUNG 2 DÒNG NÀY ĐỂ NHẬN BỘ LỌC TỪ FRONTEND:
     approvalStatus: Joi.string().valid("pending", "approved", "rejected").optional(),
+    moderationDecision: Joi.string().valid(
+        "auto_clear",
+        "auto_reject",
+        "manual_review",
+        "manual_review_high",
+        "enforcement_block"
+    ).optional(),
     activeStatus: Joi.string().valid("draft", "active", "hidden", "blocked").optional(),
     releaseStatus: Joi.string().valid("unreleased", "scheduled", "released").optional(),
 });

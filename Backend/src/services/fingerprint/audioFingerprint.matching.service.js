@@ -6,10 +6,17 @@ import Track from "../../models/Track.js";
 import { assessCopyrightRisk } from "./copyrightRisk.service.js";
 import { compareFingerprints } from "./fingerprintSimilarity.service.js";
 import { activeFingerprintScopeFilter } from "./fingerprint.lifecycle.service.js";
+import { getCandidateContext } from "./moderationDecision.service.js";
 
 const ALGORITHM_VERSION = "chromaprint-v1";
 
 const canonicalPair = (firstId, secondId) => [String(firstId), String(secondId)].sort();
+
+const getTrackAudioVersion = (track) => Number(
+    track?.pendingUpdate?.status === "pending"
+        ? track.pendingUpdate.audioVersion
+        : track?.audioVersion
+) || 1;
 
 const upsertMatch = async ({
     sourceTrack,
@@ -20,8 +27,19 @@ const upsertMatch = async ({
     comparison,
     sourceAudioVersion = null,
     matchedAudioVersion = null,
+    sourceContext = null,
+    matchedContext = null,
 }) => {
     const [sourceTrackId, matchedTrackId] = canonicalPair(sourceTrack._id, matchedTrack._id);
+    const canonicalSourceTrack = String(sourceTrack._id) === String(sourceTrackId) ? sourceTrack : matchedTrack;
+    const canonicalMatchedTrack = String(sourceTrack._id) === String(sourceTrackId) ? matchedTrack : sourceTrack;
+    const sourceVersion = Number(sourceAudioVersion || getTrackAudioVersion(sourceTrack)) || 1;
+    const matchedVersion = Number(matchedAudioVersion || getTrackAudioVersion(matchedTrack)) || 1;
+    const canonicalSourceIsCallerSource = String(sourceTrack._id) === String(sourceTrackId);
+    const canonicalSourceAudioVersion = canonicalSourceIsCallerSource ? sourceVersion : matchedVersion;
+    const canonicalMatchedAudioVersion = canonicalSourceIsCallerSource ? matchedVersion : sourceVersion;
+    const canonicalSourceContext = canonicalSourceIsCallerSource ? sourceContext : matchedContext;
+    const canonicalMatchedContext = canonicalSourceIsCallerSource ? matchedContext : sourceContext;
     const effectiveComparison = comparison || {
         similarityScore: 1,
         overlapScore: 1,
@@ -42,7 +60,13 @@ const upsertMatch = async ({
         ? "high"
         : effectiveComparison.classification === "review" ? "review" : "none";
 
-    const query = { sourceTrackId, matchedTrackId, algorithmVersion: ALGORITHM_VERSION };
+    const query = {
+        sourceTrackId,
+        matchedTrackId,
+        algorithmVersion: ALGORITHM_VERSION,
+        sourceAudioVersion: canonicalSourceAudioVersion,
+        matchedAudioVersion: canonicalMatchedAudioVersion,
+    };
     try {
         return await AudioFingerprintMatch.findOneAndUpdate(
             query,
@@ -60,8 +84,11 @@ const upsertMatch = async ({
                     riskScore: risk.score,
                     riskLevel: risk.level,
                     riskSignals: risk.signals,
-                    sourceAudioVersion: sourceAudioVersion || sourceTrack.audioVersion || 1,
-                    matchedAudioVersion: matchedAudioVersion || matchedTrack.audioVersion || 1,
+                    sourceAudioVersion: canonicalSourceAudioVersion,
+                    matchedAudioVersion: canonicalMatchedAudioVersion,
+                    candidateContext: canonicalMatchedContext || getCandidateContext(canonicalMatchedTrack),
+                    sourceContext: canonicalSourceContext || getCandidateContext(canonicalSourceTrack),
+                    matchedContext: canonicalMatchedContext || getCandidateContext(canonicalMatchedTrack),
                     matchingScope: "active",
                 },
                 $setOnInsert: {
@@ -79,7 +106,12 @@ const upsertMatch = async ({
     }
 };
 
-export const recordExactFileDuplicateMatch = async ({ sourceTrackId, matchedTrackId }) => {
+export const recordExactFileDuplicateMatch = async ({
+    sourceTrackId,
+    matchedTrackId,
+    sourceAudioVersion = null,
+    matchedAudioVersion = null,
+}) => {
     if (!mongoose.Types.ObjectId.isValid(sourceTrackId) || !mongoose.Types.ObjectId.isValid(matchedTrackId)) {
         return null;
     }
@@ -87,11 +119,31 @@ export const recordExactFileDuplicateMatch = async ({ sourceTrackId, matchedTrac
     const [sourceTrack, matchedTrack, sourceFingerprint, matchedFingerprint] = await Promise.all([
         Track.findById(sourceTrackId).lean(),
         Track.findById(matchedTrackId).lean(),
-        AudioFingerprint.findOne({ trackId: sourceTrackId, algorithmVersion: ALGORITHM_VERSION }).select("audioVersion").lean(),
-        AudioFingerprint.findOne({ trackId: matchedTrackId, algorithmVersion: ALGORITHM_VERSION }).select("audioVersion").lean(),
+        AudioFingerprint.findOne({ trackId: sourceTrackId, algorithmVersion: ALGORITHM_VERSION })
+            .select("status matchingScope audioVersion sourceAudioHash")
+            .lean(),
+        AudioFingerprint.findOne({ trackId: matchedTrackId, algorithmVersion: ALGORITHM_VERSION })
+            .select("status matchingScope audioVersion sourceAudioHash")
+            .lean(),
     ]);
 
     if (!sourceTrack || !matchedTrack || String(sourceTrack._id) === String(matchedTrack._id)) {
+        return null;
+    }
+
+    if (
+        !sourceFingerprint ||
+        !matchedFingerprint ||
+        sourceFingerprint.status !== "completed" ||
+        matchedFingerprint.status !== "completed" ||
+        sourceFingerprint.matchingScope !== "active" ||
+        matchedFingerprint.matchingScope !== "active" ||
+        !String(sourceFingerprint.sourceAudioHash || "").trim() ||
+        !String(matchedFingerprint.sourceAudioHash || "").trim() ||
+        String(sourceFingerprint.sourceAudioHash) !== String(matchedFingerprint.sourceAudioHash) ||
+        Number(sourceFingerprint.audioVersion || 0) !== Number(sourceAudioVersion || getTrackAudioVersion(sourceTrack)) ||
+        Number(matchedFingerprint.audioVersion || 0) !== Number(matchedAudioVersion || getTrackAudioVersion(matchedTrack))
+    ) {
         return null;
     }
 
@@ -106,8 +158,10 @@ export const recordExactFileDuplicateMatch = async ({ sourceTrackId, matchedTrac
         sourceRegistry: registryMap.get(String(sourceTrack._id)),
         matchedRegistry: registryMap.get(String(matchedTrack._id)),
         matchType: "exact_file_duplicate",
-        sourceAudioVersion: sourceFingerprint?.audioVersion,
-        matchedAudioVersion: matchedFingerprint?.audioVersion,
+        sourceAudioVersion: sourceAudioVersion || sourceFingerprint?.audioVersion,
+        matchedAudioVersion: matchedAudioVersion || matchedFingerprint?.audioVersion,
+        sourceContext: getCandidateContext(sourceTrack),
+        matchedContext: getCandidateContext(matchedTrack),
     });
 };
 
@@ -121,9 +175,18 @@ export const rebuildMatchesForTrack = async (trackId) => {
         ...activeFingerprintScopeFilter(),
     }).lean();
     const sourceTrack = await Track.findOne({ _id: trackId, isDeleted: { $ne: true } }).lean();
-    if (!sourceFingerprint || !sourceTrack) return { exactMatches: 0, similarityMatches: 0, candidates: 0 };
+    if (
+        !sourceFingerprint ||
+        !sourceTrack ||
+        Number(sourceFingerprint.audioVersion || 0) !== getTrackAudioVersion(sourceTrack)
+    ) {
+        return { exactMatches: 0, similarityMatches: 0, candidates: 0 };
+    }
 
-    const duration = Number(sourceFingerprint.duration || sourceTrack.duration || 0);
+    const sourceTarget = sourceTrack.pendingUpdate?.status === "pending" && sourceTrack.pendingUpdate.data
+        ? sourceTrack.pendingUpdate.data
+        : sourceTrack;
+    const duration = Number(sourceFingerprint.duration || sourceTarget.duration || sourceTrack.duration || 0);
     const tolerance = Math.max(30, duration * 0.35);
     const maxCandidates = Number.parseInt(process.env.FINGERPRINT_MAX_CANDIDATES, 10) || 500;
     const exactCandidates = sourceFingerprint.sourceAudioHash
@@ -156,21 +219,26 @@ export const rebuildMatchesForTrack = async (trackId) => {
     ]);
     const trackMap = new Map(tracks.map((track) => [String(track._id), track]));
     const registryMap = new Map(registries.map((registry) => [String(registry.trackId), registry]));
+    const currentCandidates = candidates.filter((candidate) => {
+        const candidateTrack = trackMap.get(String(candidate.trackId));
+        return candidateTrack &&
+            Number(candidate.audioVersion || 0) === getTrackAudioVersion(candidateTrack);
+    });
     let exactMatches = 0;
     let similarityMatches = 0;
 
-    for (const candidate of candidates) {
+    for (const candidate of currentCandidates) {
         const matchedTrack = trackMap.get(String(candidate.trackId));
         if (!matchedTrack) continue;
 
         if (sourceFingerprint.sourceAudioHash && sourceFingerprint.sourceAudioHash === candidate.sourceAudioHash) {
-            await recordExactFileDuplicateMatch({
+            const exactMatch = await recordExactFileDuplicateMatch({
                 sourceTrackId: sourceTrack._id,
                 matchedTrackId: matchedTrack._id,
                 sourceAudioVersion: sourceFingerprint.audioVersion,
                 matchedAudioVersion: candidate.audioVersion,
             });
-            exactMatches += 1;
+            if (exactMatch) exactMatches += 1;
             continue;
         }
 
@@ -194,7 +262,7 @@ export const rebuildMatchesForTrack = async (trackId) => {
         similarityMatches += 1;
     }
 
-    return { exactMatches, similarityMatches, candidates: candidates.length };
+    return { exactMatches, similarityMatches, candidates: currentCandidates.length };
 };
 
 export default { rebuildMatchesForTrack };

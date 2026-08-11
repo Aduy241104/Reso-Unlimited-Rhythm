@@ -10,6 +10,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import TrackCopyrightFields from "../../components/artist/TrackCopyrightFields";
+import TrackReviewAppealModal from "../../components/artist/TrackReviewAppealModal";
 import ConfirmActionModal from "../../components/common/ConfirmActionModal";
 import genreService from "../../services/genreService";
 import trackService from "../../services/trackService";
@@ -160,6 +161,8 @@ const ArtistTrackEditPage = () => {
   const [lyricsPreviewText, setLyricsPreviewText] = useState("");
   const [genresOpen, setGenresOpen] = useState(false);
   const [isSubmitConfirmOpen, setIsSubmitConfirmOpen] = useState(false);
+  const [isAppealModalOpen, setIsAppealModalOpen] = useState(false);
+  const [latestAppeal, setLatestAppeal] = useState(null);
   const [formData, setFormData] = useState({
     title: "",
     versionTitle: "",
@@ -189,6 +192,10 @@ const ArtistTrackEditPage = () => {
         const editableTrack = getEditableTrackSource(trackDetail);
 
         setTrack(trackDetail);
+        if (trackDetail?.approvalStatus === "rejected") {
+          const appeals = await trackService.getTrackReviewAppeals(id).catch(() => []);
+          if (isMounted) setLatestAppeal(appeals[0] || null);
+        }
         setGenres(Array.isArray(genreList) ? genreList : []);
         setFormData(getFormDataFromTrack(trackDetail));
         setCopyrightForm(mapTrackCopyrightToForm(editableTrack?.copyright || trackDetail?.copyright));
@@ -269,6 +276,8 @@ const ArtistTrackEditPage = () => {
 
   const canEdit = canArtistEditTrack(track);
   const canSubmit = canArtistSubmitTrack(track);
+  const isEnforcement = track?.moderation?.automatic?.decision === "enforcement_block";
+  const hasCurrentAppeal = latestAppeal?.rejectionSnapshot?.rejectionId && latestAppeal.rejectionSnapshot.rejectionId === track?.moderation?.lastRejection?.rejectionId;
   const reviewStatus = getArtistTrackReviewStatus(track);
 
   const previewTrackForSubmit = useMemo(() => {
@@ -788,6 +797,16 @@ const ArtistTrackEditPage = () => {
       {track?.approvalStatus === "rejected" && track?.rejectReason ? (
         <div className="rounded-[22px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
           Lý do từ chối: {track.rejectReason}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" onClick={() => setIsAppealModalOpen(true)} disabled={Boolean(hasCurrentAppeal)} className="rounded-xl bg-rose-700 px-3 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">{isEnforcement ? "Gửi khiếu nại" : "Phản hồi quyết định"}</button>
+            {latestAppeal?.status === "pending" ? <span className="self-center text-xs font-semibold">Đang chờ Admin xem xét phản hồi.</span> : null}
+          </div>
+          {latestAppeal?.status === "rejected" && latestAppeal.adminResponse ? <p className="mt-3 rounded-xl bg-white/70 p-3 text-xs leading-5"><strong>Phản hồi của Admin:</strong> {latestAppeal.adminResponse}</p> : null}
+        </div>
+      ) : null}
+      {track?.approvalStatus === "rejected" && !canSubmit && latestAppeal?.status !== "pending" ? (
+        <div className="rounded-[22px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Bạn cần chỉnh sửa ít nhất một thông tin hoặc bổ sung bằng chứng trước khi gửi duyệt lại.
         </div>
       ) : null}
 
@@ -1209,6 +1228,18 @@ const ArtistTrackEditPage = () => {
         onCancel={() => setIsSubmitConfirmOpen(false)}
         onConfirm={handleSubmitForApproval}
       />
+      {isAppealModalOpen && track?.approvalStatus === "rejected" ? (
+        <TrackReviewAppealModal
+          track={track}
+          reviewTarget={isEnforcement ? "enforcement" : "track_submission"}
+          onClose={() => setIsAppealModalOpen(false)}
+          onCreated={(appeal) => {
+            setLatestAppeal(appeal);
+            setIsAppealModalOpen(false);
+            showArtistSuccess("Đã gửi phản hồi. Đang chờ Admin xem xét.");
+          }}
+        />
+      ) : null}
     </section>
   );
 };

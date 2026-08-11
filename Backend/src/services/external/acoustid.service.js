@@ -2,7 +2,6 @@ import AudioFingerprint from "../../models/AudioFingerprint.js";
 import Artist from "../../models/Artist.js";
 import CopyrightRegistry from "../../models/CopyrightRegistry.js";
 import Track from "../../models/Track.js";
-import { normalizeExternalText } from "./musicbrainz.service.js";
 
 const LOOKUP_URL = "https://api.acoustid.org/v2/lookup";
 const DEFAULT_MIN_SCORE = 0.85;
@@ -14,6 +13,14 @@ const lookupInFlight = new Map();
 const verificationInFlight = new Map();
 let requestQueue = Promise.resolve();
 let nextRequestAt = 0;
+
+const normalizeExternalText = (value) => String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
 const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
@@ -199,7 +206,11 @@ export const normalizeAcoustIdResult = ({ payload, declared = {}, minScore = get
         reasonCodes.push("no_external_audio_match");
     } else if (status === "possible_match") {
         decision = "review_required";
-        reasonCodes.push("low_confidence_external_audio_match");
+        reasonCodes.push(
+            score >= Number(minScore) && musicBrainzRecordingIds.length === 0
+                ? "ACOUSTID_HIGH_SCORE_WITHOUT_IDENTITY"
+                : "low_confidence_external_audio_match",
+        );
     } else if (["cover", "remix"].includes(primaryType)) {
         decision = "review_required";
         reasonCodes.push(`declared_${primaryType}_external_audio_match`);
@@ -245,6 +256,9 @@ export const normalizeAcoustIdResult = ({ payload, declared = {}, minScore = get
 const failedResult = (code, error) => ({
     status: "failed",
     decision: "review_required",
+    providerUnavailable: Boolean(
+        /timeout|unavailable|lookup_failed|missing_api_key|disabled|api_|http_/i.test(String(code || ""))
+    ),
     score: 0,
     acoustIdTrackId: null,
     musicBrainzRecordingIds: [],
@@ -314,7 +328,26 @@ const getVersions = (track) => {
     return {
         submissionVersion: Number(pending ? track.pendingUpdate.submissionVersion : track.submissionVersion) || 1,
         audioVersion: Number(pending ? track.pendingUpdate.audioVersion : track.audioVersion) || 1,
+        copyrightVersion: Number(pending ? track.pendingUpdate.copyrightVersion : track.copyrightVersion) || 1,
+        evidenceVersion: Number(pending ? track.pendingUpdate.evidenceVersion : track.evidenceVersion) || 1,
     };
+};
+
+const isCurrentVerificationVersion = async (trackId, versions) => {
+    const current = await Track.findById(trackId).lean();
+    if (!current || (current.approvalStatus !== "pending" && current.pendingUpdate?.status !== "pending")) return false;
+    const currentVersions = getVersions(current);
+    return ["audioVersion", "submissionVersion", "copyrightVersion", "evidenceVersion"]
+        .every((key) => Number(currentVersions[key]) === Number(versions[key]));
+};
+
+const reEvaluateAfterVerification = async (trackId) => {
+    try {
+        const { evaluateAutomaticTrackModeration } = await import("../fingerprint/automaticTrackModeration.service.js");
+        await evaluateAutomaticTrackModeration(trackId, { force: true });
+    } catch (error) {
+        console.error("Automatic moderation re-evaluation failed:", error.message);
+    }
 };
 
 const buildDeclaredData = ({ track, target, artistName }) => ({
@@ -338,8 +371,10 @@ export const isReusableAcoustIdResult = ({
 }) => Boolean(
     !force &&
     sameFingerprint &&
-    Number(current?.submissionVersion || 0) === Number(versions?.submissionVersion || 0) &&
-    Number(current?.audioVersion || 0) === Number(versions?.audioVersion || 0) &&
+    Number(current?.submissionVersion || 1) === Number(versions?.submissionVersion || 1) &&
+    Number(current?.audioVersion || 1) === Number(versions?.audioVersion || 1) &&
+    Number(current?.copyrightVersion || 1) === Number(versions?.copyrightVersion || 1) &&
+    Number(current?.evidenceVersion || 1) === Number(versions?.evidenceVersion || 1) &&
     current?.status &&
     current.status !== "pending" &&
     !(retryFailed && current.status === "failed")
@@ -363,6 +398,7 @@ export const runAcoustIdVerification = async (trackId, {
     retryFailed = false,
     request,
     rateLimit,
+    reevaluate = true,
 } = {}) => {
     const track = await Track.findById(trackId).lean();
     if (!track || (track.approvalStatus !== "pending" && track.pendingUpdate?.status !== "pending")) {
@@ -384,6 +420,7 @@ export const runAcoustIdVerification = async (trackId, {
         Number(registry?.acoustIdAudioVersion || 1) === versions.audioVersion
     );
     if (isReusableAcoustIdResult({ current, force, retryFailed, sameFingerprint, versions })) {
+        if (reevaluate) await reEvaluateAfterVerification(trackId);
         return current;
     }
     if (fingerprint?.status !== "completed" || !fingerprint.rawFingerprint?.length || !fingerprint.duration) {
@@ -393,13 +430,18 @@ export const runAcoustIdVerification = async (trackId, {
             error: null,
             submissionVersion: versions.submissionVersion,
             audioVersion: versions.audioVersion,
+            copyrightVersion: versions.copyrightVersion,
+            evidenceVersion: versions.evidenceVersion,
             fingerprintHash: fingerprint?.fingerprintHash || "",
         };
+        if (!await isCurrentVerificationVersion(trackId, versions)) {
+            return { status: "skipped", reason: "stale_version", ...versions };
+        }
         await persistResult(trackId, pending, fingerprint, versions);
         return pending;
     }
 
-    const verificationKey = `${trackId}:${fingerprint.fingerprintHash}:${versions.audioVersion}:${versions.submissionVersion}`;
+    const verificationKey = `${trackId}:${fingerprint.fingerprintHash}:${versions.audioVersion}:${versions.submissionVersion}:${versions.copyrightVersion}:${versions.evidenceVersion}`;
     const running = verificationInFlight.get(verificationKey);
     if (running) return running;
     const operation = (async () => {
@@ -411,9 +453,14 @@ export const runAcoustIdVerification = async (trackId, {
             error: null,
             submissionVersion: versions.submissionVersion,
             audioVersion: versions.audioVersion,
+            copyrightVersion: versions.copyrightVersion,
+            evidenceVersion: versions.evidenceVersion,
             fingerprintHash: fingerprint.fingerprintHash,
             declared,
         };
+        if (!await isCurrentVerificationVersion(trackId, versions)) {
+            return { status: "skipped", reason: "stale_version", ...versions };
+        }
         await persistResult(trackId, pending, fingerprint, versions);
         const result = await lookupAcoustId({
             rawFingerprint: fingerprint.rawFingerprint,
@@ -428,23 +475,39 @@ export const runAcoustIdVerification = async (trackId, {
             ...result,
             submissionVersion: versions.submissionVersion,
             audioVersion: versions.audioVersion,
+            copyrightVersion: versions.copyrightVersion,
+            evidenceVersion: versions.evidenceVersion,
             fingerprintHash: fingerprint.fingerprintHash,
             declared,
         };
+        if (!await isCurrentVerificationVersion(trackId, versions)) {
+            return { status: "skipped", reason: "stale_version", ...versions };
+        }
         await persistResult(trackId, persisted, fingerprint, versions);
+        if (reevaluate) await reEvaluateAfterVerification(trackId);
         return persisted;
     })().finally(() => verificationInFlight.delete(verificationKey));
     verificationInFlight.set(verificationKey, operation);
     return operation;
 };
 
-export const getAcoustIdResultForTrack = async (trackId) => {
+const isAcoustIdResultCurrent = (result, versions) => !versions || !result || [
+    ["submissionVersion", versions.submissionVersion],
+    ["audioVersion", versions.audioVersion],
+    ["copyrightVersion", versions.copyrightVersion],
+    ["evidenceVersion", versions.evidenceVersion],
+].every(([key, version]) => Number(result[key] || 1) === Number(version || 1));
+
+export const getAcoustIdResultForTrack = async (trackId, versions = null) => {
     const registry = await CopyrightRegistry.findOne({ trackId })
         .select("acoustIdResult acoustIdFingerprintHash acoustIdAudioVersion")
         .lean();
-    const result = registry?.acoustIdResult?.status === "not_found"
-        ? { ...registry.acoustIdResult, decision: "review_required" }
-        : (registry?.acoustIdResult || null);
+    const currentResult = isAcoustIdResultCurrent(registry?.acoustIdResult, versions)
+        ? registry?.acoustIdResult
+        : null;
+    const result = currentResult?.status === "not_found"
+        ? { ...currentResult, decision: "review_required" }
+        : (currentResult || null);
     return {
         result,
         fingerprintHash: registry?.acoustIdFingerprintHash || "",

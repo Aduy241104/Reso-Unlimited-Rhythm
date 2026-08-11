@@ -1,11 +1,42 @@
 import Track from "../../src/models/Track.js";
 import {
+    getRequiredAudioReviewSeconds,
+    getReviewTarget,
     hashReviewSnapshotValue,
     hasCompletedAudioReview,
     hasReviewedStaticLyrics,
 } from "../../src/services/track/moderationReview.service.js";
 
 describe("moderation review snapshot hashing", () => {
+    test("caps the configured listening threshold at the review target duration", () => {
+        expect(getRequiredAudioReviewSeconds({ configuredSeconds: 15, duration: 8 })).toBe(8);
+        expect(getRequiredAudioReviewSeconds({ configuredSeconds: 15, duration: 30 })).toBe(15);
+    });
+
+    test("uses pending audio and duration as the review target", () => {
+        const track = new Track({
+            title: "Pending audio target",
+            artist_artistId: "6a44d1972c39caf158e3734d",
+            duration: 240,
+            audioVersion: 1,
+            pendingUpdate: {
+                status: "pending",
+                audioVersion: 2,
+                submissionVersion: 3,
+                data: {
+                    title: "Pending audio target",
+                    duration: 6,
+                    audioFiles: [{ url: "https://example.test/pending.mp3", format: "mp3", bitrate: 128 }],
+                },
+            },
+        });
+        expect(getReviewTarget(track)).toMatchObject({
+            source: "pending_update",
+            versions: { audio: 2, submission: 3 },
+            target: { duration: 6 },
+        });
+    });
+
     test("hashes a Mongoose copyright subdocument without following its parent cycle", () => {
         const track = new Track({
             title: "Review snapshot test",

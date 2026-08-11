@@ -1,4 +1,7 @@
-import { getTrackSubmissionData } from "../../src/services/Track/track.submit.validation.js";
+import {
+    assertTrackEditableByArtist,
+    getTrackSubmissionData,
+} from "../../src/services/Track/track.submit.validation.js";
 
 describe("track submission snapshot", () => {
     test("fills missing pending copyright fields from the current track", () => {
@@ -30,5 +33,31 @@ describe("track submission snapshot", () => {
             declarationAccepted: true,
             rightsConfirmed: true,
         });
+    });
+});
+
+describe("artist track edit guards", () => {
+    test("allows a draft to be edited without creating a pending-update draft status", () => {
+        expect(() => assertTrackEditableByArtist({
+            approvalStatus: "draft",
+            activeStatus: "draft",
+            pendingUpdate: { status: "none" },
+        })).not.toThrow();
+    });
+
+    test("keeps approval-pending tracks locked", () => {
+        expect(() => assertTrackEditableByArtist({
+            approvalStatus: "pending",
+            activeStatus: "draft",
+            pendingUpdate: { status: "none" },
+        })).toThrow("đang chờ duyệt");
+    });
+
+    test("keeps pending updates locked", () => {
+        expect(() => assertTrackEditableByArtist({
+            approvalStatus: "approved",
+            activeStatus: "active",
+            pendingUpdate: { status: "pending" },
+        })).toThrow("bản cập nhật đang được xem xét");
     });
 });

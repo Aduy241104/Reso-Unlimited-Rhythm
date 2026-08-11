@@ -14,6 +14,8 @@
     "revenue:sync": "node src/runRevenueAggregation.js",
     "analytics:artist-monthly": "node src/runArtistMonthlyStatAggregation.js",
     "migrate:track-release-state": "node src/migrations/backfillTrackReleaseState.js",
+    "migrate:artist-stage-names": "node src/migrations/auditArtistStageNameKeys.js",
+    "migrate:fingerprint-match-versions": "node src/migrations/migrateFingerprintMatchVersions.js",
     "migrate:track-indexes": "node scripts/repairTrackIndexes.js",
     "seed:comprehensive": "node seedComprehensive.js",
     "repair:top-track-visibility": "node scripts/repairTopTrackVisibility.js",

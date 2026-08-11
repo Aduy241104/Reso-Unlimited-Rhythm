@@ -25,6 +25,7 @@ import ReleaseSchedule from "../../../models/ReleaseSchedule.js";
 import Track from "../../../models/Track.js";
 import User from "../../../models/User.js";
 import { AppError } from "../../../utils/AppError.js";
+import { recordAuditEvent } from "../../audit/auditLog.service.js";
 import { deleteCloudinaryAssetsByUrls } from "../../../utils/uploadCloud.js";
 import { uploadEvidenceBuffer } from "../../cloudinaryService.js";
 import {
@@ -32,15 +33,27 @@ import {
     MAX_EVIDENCE_DOCUMENTS,
     validateEvidenceUploadFile,
 } from "../copyright.validation.service.js";
-import { scheduleTrackAudioFingerprint } from "../../fingerprint/audioFingerprint.job.js";
+import {
+    processTrackAudioFingerprint,
+    scheduleTrackAudioFingerprint,
+} from "../../fingerprint/audioFingerprint.job.js";
 import { evaluateAutomaticTrackModeration } from "../../fingerprint/automaticTrackModeration.service.js";
-import { cleanupTrackFingerprintLifecycle } from "../../fingerprint/fingerprint.lifecycle.service.js";
+import {
+    cleanupTrackFingerprintLifecycle,
+    invalidateTrackAudioVersionState,
+} from "../../fingerprint/fingerprint.lifecycle.service.js";
+import { runAcoustIdVerification } from "../../external/acoustid.service.js";
 import { runMusicBrainzVerification } from "../../external/musicbrainz.service.js";
 import { formatTrackManagementDetail } from "../track.helper.js";
 import {
     TRACK_RELEASE_STATUS,
     resolveTrackReleaseStatus,
 } from "../../../utils/trackRelease.js";
+import {
+    getCopyrightChangeFlags,
+    getTrackRejectionSnapshot,
+    hashTrackMutableData,
+} from "../../track/track.rejection.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 50;
@@ -274,6 +287,28 @@ const cloneTrackMutableData = (source) => ({
     copyright: cloneCopyrightValue(source?.copyright?.toObject?.() || source?.copyright || null),
 });
 
+const mergeArtistCopyrightUpdate = (currentCopyright, artistCopyright) => {
+    const current = currentCopyright || {};
+    const update = artistCopyright || {};
+    const merged = { ...current, ...update };
+
+    if (Array.isArray(update.copyrightEvidenceDocuments)) {
+        const currentDocuments = Array.isArray(current.copyrightEvidenceDocuments)
+            ? current.copyrightEvidenceDocuments
+            : [];
+        const findExistingDocument = (document) => currentDocuments.find((candidate) => (
+            (document.documentId && candidate?.documentId === document.documentId) ||
+            (document.url && (candidate?.url === document.url || candidate?.storageUrl === document.url))
+        ));
+        merged.copyrightEvidenceDocuments = update.copyrightEvidenceDocuments.map((document) => ({
+            ...(findExistingDocument(document) || {}),
+            ...document,
+        }));
+    }
+
+    return merged;
+};
+
 const getPendingEditableSource = (track) => {
     const pendingStatus = track?.pendingUpdate?.status;
     const pendingData = track?.pendingUpdate?.data;
@@ -384,6 +419,7 @@ const clearTrackModerationForResubmission = (track) => {
         reviewedAt: null,
         adminNote: "",
         violationFlags: [],
+        lastRejection: null,
     };
     track.fingerprintScreening = {
         ...(track.fingerprintScreening?.toObject?.() || track.fingerprintScreening || {}),
@@ -393,6 +429,38 @@ const clearTrackModerationForResubmission = (track) => {
         enforcementEvidenceId: null,
         exactDuplicate: false,
         riskLevel: "none",
+        failureReason: "",
+        completedAt: null,
+    };
+};
+
+export const assertRejectedTrackHasMeaningfulChanges = (track, candidateData) => {
+    if (track?.approvalStatus !== "rejected") return;
+
+    const rejection = getTrackRejectionSnapshot(track);
+    const candidateHash = hashTrackMutableData(candidateData);
+
+    if (!rejection.mutableSnapshotHash || rejection.mutableSnapshotHash === candidateHash) {
+        throw new AppError(
+            "Bạn chưa thay đổi nội dung kể từ lần bị từ chối. Hãy chỉnh sửa hồ sơ hoặc gửi phản hồi quyết định nếu bạn cho rằng kết quả xét duyệt chưa phù hợp.",
+            StatusCodes.CONFLICT,
+            { code: "TRACK_RESUBMIT_REQUIRES_CHANGES" }
+        );
+    }
+};
+
+const resetTrackFingerprintScreeningForAudioVersion = (track, audioVersion) => {
+    track.fingerprintScreening = {
+        ...(track.fingerprintScreening?.toObject?.() || track.fingerprintScreening || {}),
+        status: "pending",
+        audioHash: "",
+        audioVersion: Number(audioVersion) || 1,
+        fingerprintId: null,
+        matchedTrackId: null,
+        enforcementEvidenceId: null,
+        highestSimilarity: 0,
+        riskLevel: "none",
+        exactDuplicate: false,
         failureReason: "",
         completedAt: null,
     };
@@ -490,8 +558,10 @@ const createTrack = async (userId, trackData) => {
     });
 
     const savedTrack = await newTrack.save();
-    await scheduleTrackAudioFingerprint(savedTrack._id, {
+    void scheduleTrackAudioFingerprint(savedTrack._id, {
         sourceAudioHash: trackData.audioAnalysis?.sourceAudioHash || "",
+    }).catch((error) => {
+        console.error("Audio fingerprint scheduling after track save failed:", error.message);
     });
     const populatedTrack = await populateManagementTrack(savedTrack._id);
 
@@ -631,16 +701,20 @@ const updateArtistTrack = async (userId, trackId, trackData) => {
         const sanitizedCopyright = sanitizeArtistCopyright(trackData.copyright);
 
         if (sanitizedCopyright !== undefined) {
-            nextTrackData.copyright = {
-                ...(nextTrackData.copyright || {}),
-                ...sanitizedCopyright,
-            };
+            nextTrackData.copyright = mergeArtistCopyrightUpdate(
+                nextTrackData.copyright,
+                sanitizedCopyright,
+            );
         }
     }
 
     let urlsToDelete = [];
 
     const changedFields = getChangedTrackFields(liveSnapshot, nextTrackData);
+    const copyrightChanges = getCopyrightChangeFlags(
+        liveSnapshot.copyright,
+        nextTrackData.copyright,
+    );
 
     if (isApprovedTrack) {
         const nextVersions = {
@@ -648,10 +722,10 @@ const updateArtistTrack = async (userId, trackId, trackData) => {
             audio: changedFields.includes("audioFiles")
                 ? Number(track.audioVersion || 1) + 1
                 : Number(track.audioVersion || 1),
-            copyright: changedFields.includes("copyright")
+            copyright: copyrightChanges.declarationChanged
                 ? Number(track.copyrightVersion || 1) + 1
                 : Number(track.copyrightVersion || 1),
-            evidence: changedFields.includes("copyright")
+            evidence: copyrightChanges.evidenceChanged
                 ? Number(track.evidenceVersion || 1) + 1
                 : Number(track.evidenceVersion || 1),
         };
@@ -706,17 +780,12 @@ const updateArtistTrack = async (userId, trackId, trackData) => {
             track.submissionVersion = Number(track.submissionVersion || 1) + 1;
             if (changedFields.includes("audioFiles")) {
                 track.audioVersion = Number(track.audioVersion || 1) + 1;
-                track.fingerprintScreening = {
-                    ...(track.fingerprintScreening?.toObject?.() || track.fingerprintScreening || {}),
-                    status: "pending",
-                    audioVersion: track.audioVersion,
-                    enforcementEvidenceId: null,
-                    failureReason: "",
-                    completedAt: null,
-                };
+                resetTrackFingerprintScreeningForAudioVersion(track, track.audioVersion);
             }
-            if (changedFields.includes("copyright")) {
+            if (copyrightChanges.declarationChanged) {
                 track.copyrightVersion = Number(track.copyrightVersion || 1) + 1;
+            }
+            if (copyrightChanges.evidenceChanged) {
                 track.evidenceVersion = Number(track.evidenceVersion || 1) + 1;
             }
         }
@@ -733,6 +802,14 @@ const updateArtistTrack = async (userId, trackId, trackData) => {
 
     await track.save();
 
+    let audioStateInvalidation = null;
+    if (!isApprovedTrack && changedFields.includes("audioFiles")) {
+        audioStateInvalidation = invalidateTrackAudioVersionState(track._id, {
+            audioVersion: track.audioVersion,
+            submissionVersion: track.submissionVersion,
+        });
+    }
+
     if (isApprovedTrack && changedFields.length > 0) {
         void runMusicBrainzVerification(track._id).catch((error) => {
             console.error("MusicBrainz pending update verification failed:", error.message);
@@ -746,11 +823,23 @@ const updateArtistTrack = async (userId, trackId, trackData) => {
         const fingerprintVersion = isApprovedTrack
             ? track.pendingUpdate?.audioVersion
             : track.audioVersion;
-        await scheduleTrackAudioFingerprint(track._id, {
+        const scheduleFingerprint = () => scheduleTrackAudioFingerprint(track._id, {
             sourceAudioHash: trackData.audioAnalysis?.sourceAudioHash || "",
             sourceAudio: fingerprintAudio,
             audioVersion: fingerprintVersion,
+        }).catch((error) => {
+            console.error("Audio fingerprint scheduling after track save failed:", error.message);
         });
+
+        if (audioStateInvalidation) {
+            void audioStateInvalidation
+                .then(scheduleFingerprint)
+                .catch((error) => {
+                    console.error("Audio version state invalidation failed after track save:", error.message);
+                });
+        } else {
+            void scheduleFingerprint();
+        }
     }
 
     if (urlsToDelete.length > 0) {
@@ -869,13 +958,12 @@ const uploadCopyrightEvidence = async (userId, trackId, files = [], metadata = {
             rejectReason: "",
             submissionVersion: Number(track.submissionVersion || 1) + 1,
             audioVersion: Number(track.audioVersion || 1),
-            copyrightVersion: Number(track.copyrightVersion || 1) + 1,
+            copyrightVersion: Number(track.copyrightVersion || 1),
             evidenceVersion: Number(track.evidenceVersion || 1) + 1,
         };
     } else {
         track.copyright = nextCopyright;
         track.submissionVersion = Number(track.submissionVersion || 1) + 1;
-        track.copyrightVersion = Number(track.copyrightVersion || 1) + 1;
         track.evidenceVersion = Number(track.evidenceVersion || 1) + 1;
     }
 
@@ -1270,18 +1358,28 @@ const submitArtistTrack = async (userId, trackId, submitData = {}) => {
         throw new AppError("Không tìm thấy bài hát hoặc bạn không có quyền truy cập.", StatusCodes.NOT_FOUND);
     }
 
+    const editableSource = getPendingEditableSource(track);
+    const candidateData = cloneTrackMutableData(editableSource);
+    if (Object.prototype.hasOwnProperty.call(submitData, "copyright")) {
+        const sanitizedCopyright = sanitizeArtistCopyright(submitData.copyright);
+        candidateData.copyright = mergeArtistCopyrightUpdate(
+            candidateData.copyright,
+            sanitizedCopyright,
+        );
+    }
+    assertRejectedTrackHasMeaningfulChanges(track, candidateData);
+
     // Keep the final declaration attached to the submit request. This prevents
     // a stale draft save from making validation read different data than the
     // edit form currently shows.
     if (Object.prototype.hasOwnProperty.call(submitData, "copyright")) {
-        const editableSource = getPendingEditableSource(track);
         const nextTrackData = cloneTrackMutableData(editableSource);
         const sanitizedCopyright = sanitizeArtistCopyright(submitData.copyright);
 
-        nextTrackData.copyright = {
-            ...(nextTrackData.copyright || {}),
-            ...(sanitizedCopyright || {}),
-        };
+        nextTrackData.copyright = mergeArtistCopyrightUpdate(
+            nextTrackData.copyright,
+            sanitizedCopyright,
+        );
         applyMutableTrackData(track, nextTrackData);
         clearPendingUpdate(track);
     }
@@ -1293,6 +1391,27 @@ const submitArtistTrack = async (userId, trackId, submitData = {}) => {
     if (submissionData !== track) {
         applyMutableTrackData(track, submissionData);
         clearPendingUpdate(track);
+        // Persist the exact draft snapshot before the synchronous fingerprint
+        // preflight reads the Track from MongoDB.
+        await track.save();
+    }
+
+    // Submission must not enter the moderation queue while its fingerprint is
+    // still pending. Otherwise the API returns success and the artist sees a
+    // false "submitted" toast even though duplicate detection has not run.
+    const fingerprintPreflight = await processTrackAudioFingerprint(track._id, {
+        audioVersion: Number(track.audioVersion || 1),
+    });
+    if (fingerprintPreflight?.status !== "completed") {
+        throw new AppError(
+            "Chưa hoàn tất kiểm tra fingerprint âm thanh. Vui lòng thử lại sau khi kiểm tra xong.",
+            StatusCodes.CONFLICT,
+            {
+                field: "fingerprintScreening",
+                code: "FINGERPRINT_SCREENING_NOT_READY",
+                reason: fingerprintPreflight?.reason || fingerprintPreflight?.errorCode || fingerprintPreflight?.status || "pending",
+            }
+        );
     }
 
     track.approvalStatus = "pending";
@@ -1305,6 +1424,7 @@ const submitArtistTrack = async (userId, trackId, submitData = {}) => {
         reviewedAt: null,
         adminNote: "",
         violationFlags: [],
+        lastRejection: null,
     };
     track.submissionVersion = Number(track.submissionVersion || 1) + 1;
     track.fingerprintScreening = {
@@ -1324,7 +1444,58 @@ const submitArtistTrack = async (userId, trackId, submitData = {}) => {
 
     await track.save();
 
-    await evaluateAutomaticTrackModeration(track._id);
+    void recordAuditEvent({
+        actorUserId: userId,
+        actorSnapshot: { id: userId, email: user.email || "", role: user.role || "artist" },
+        action: "TRACK_RESUBMITTED",
+        targetType: "track",
+        targetId: track._id,
+        metadata: {
+            trackId: track._id,
+            artistId: artist._id,
+            submissionVersion: track.submissionVersion || 1,
+            audioVersion: track.audioVersion || 1,
+            copyrightVersion: track.copyrightVersion || 1,
+            evidenceVersion: track.evidenceVersion || 1,
+        },
+    }).catch((error) => console.error("Track resubmission audit failed:", error.message));
+
+    await runAcoustIdVerification(track._id, { reevaluate: false });
+    await runMusicBrainzVerification(track._id, { reevaluate: false });
+    const automaticDecision = await evaluateAutomaticTrackModeration(track._id, { force: true });
+    if (["pending_fingerprint", "processing"].includes(automaticDecision?.status)) {
+        throw new AppError(
+            "Kiểm tra fingerprint âm thanh vừa thay đổi trong lúc gửi duyệt. Vui lòng thử lại.",
+            StatusCodes.CONFLICT,
+            {
+                field: "fingerprintScreening",
+                code: "FINGERPRINT_SCREENING_NOT_READY",
+                reason: automaticDecision.status,
+            }
+        );
+    }
+    if (automaticDecision?.decision === "auto_reject" || automaticDecision?.status === "auto_reject") {
+        throw new AppError(
+            "Bài hát đã bị tự động từ chối do phát hiện trùng bản ghi âm.",
+            StatusCodes.CONFLICT,
+            {
+                field: "fingerprintScreening",
+                code: "TRACK_AUTO_REJECTED",
+                reasonCodes: automaticDecision.reasonCodes || [],
+            }
+        );
+    }
+    if (automaticDecision?.decision === "enforcement_block" || automaticDecision?.status === "enforcement_block") {
+        throw new AppError(
+            "Bài hát đã bị chặn bởi cơ chế thực thi bản quyền.",
+            StatusCodes.CONFLICT,
+            {
+                field: "fingerprintScreening",
+                code: "TRACK_ENFORCEMENT_BLOCKED",
+                reasonCodes: automaticDecision.reasonCodes || [],
+            }
+        );
+    }
     void runMusicBrainzVerification(track._id).catch((error) => {
         console.error("MusicBrainz submit verification failed:", error.message);
     });

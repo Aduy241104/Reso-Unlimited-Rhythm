@@ -43,6 +43,7 @@ import CreateSubscriptionPlanPage from "../pages/subscriptions/CreateSubscriptio
 import EditSubscriptionPlanPage from "../pages/subscriptions/EditSubscriptionPlanPage";
 import TransactionDetail from "../pages/transactions/TransactionDetail";
 import TransactionList from "../pages/transactions/TransactionList";
+import TrackAppealsPage from "../pages/trackAppeals/TrackAppealsPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import RoleRoute from "./RoleRoute";
@@ -148,6 +149,14 @@ export const appRoutes = [
               {
                 path: "system-tracks/moderation",
                 element: <SystemTracksModerationPage />,
+              },
+              {
+                path: "track-appeals",
+                element: <TrackAppealsPage />,
+              },
+              {
+                path: "track-appeals/:appealId",
+                element: <TrackAppealsPage />,
               },
               {
                 path: "system-albums",

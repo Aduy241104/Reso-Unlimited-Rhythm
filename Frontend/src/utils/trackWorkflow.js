@@ -103,7 +103,12 @@ export const mapTrackCopyrightToForm = (copyright) => {
   return form;
 };
 
-export const serializeCopyrightForApi = (copyright) => {
+const ARTIST_EDITABLE_EVIDENCE_FIELDS = [
+  "documentId", "type", "version", "originalName", "fileName", "mimeType", "size",
+  "storageUrl", "url", "publicId", "sha256", "hash", "evidenceType", "uploadStatus",
+];
+
+export const serializeArtistCopyrightForUpdate = (copyright) => {
   const form = mapTrackCopyrightToForm(copyright);
   const primaryCopyrightType = resolvePrimaryType(form);
   form.primaryCopyrightType = primaryCopyrightType;
@@ -114,6 +119,14 @@ export const serializeCopyrightForApi = (copyright) => {
   form.usesThirdPartyBeat = Boolean(form.usesThirdPartyBeat || form.usesLicensedBeat);
   form.usesLicensedBeat = form.usesThirdPartyBeat;
   form.licenseDocumentUrls = form.licenseDocumentUrls.filter((url) => isHttpUrl(url));
+  form.copyrightEvidenceDocuments = (Array.isArray(form.copyrightEvidenceDocuments)
+    ? form.copyrightEvidenceDocuments
+    : []).map((document) => ARTIST_EDITABLE_EVIDENCE_FIELDS.reduce((result, field) => {
+      if (document?.[field] !== undefined && document?.[field] !== null) {
+        result[field] = document[field];
+      }
+      return result;
+    }, {}));
   if (primaryCopyrightType === "original" && !form.usesSample && !form.usesThirdPartyBeat) {
     form.licenseDocumentUrls = [];
     form.originalTrackTitle = "";
@@ -121,6 +134,9 @@ export const serializeCopyrightForApi = (copyright) => {
   }
   return form;
 };
+
+// Backward-compatible name used by existing artist forms and submit actions.
+export const serializeCopyrightForApi = serializeArtistCopyrightForUpdate;
 
 export const hasCoverOrAvatar = (track) => {
   const avatar = typeof track?.avatar === "string" ? track.avatar.trim() : "";
@@ -305,7 +321,24 @@ export const getSubmitReadinessIssues = (track) => {
 };
 
 export const canArtistEditTrack = (track) => Boolean(track) && track?.approvalStatus !== "pending" && track?.pendingUpdate?.status !== "pending" && track?.activeStatus !== "blocked";
-export const canArtistSubmitTrack = (track) => track?.approvalStatus === "draft" || track?.approvalStatus === "rejected";
+export const hasMeaningfulChangeSinceRejection = (track) => {
+  if (track?.approvalStatus !== "rejected") return true;
+  const snapshot = track?.moderation?.lastRejection;
+  if (!snapshot?.rejectionId) return false;
+  return [
+    ["submissionVersion", "submissionVersion"],
+    ["audioVersion", "audioVersion"],
+    ["copyrightVersion", "copyrightVersion"],
+    ["evidenceVersion", "evidenceVersion"],
+  ].some(([currentKey, snapshotKey]) => (
+    Number(track?.[currentKey] || 1) > Number(snapshot?.[snapshotKey] || 1)
+  ));
+};
+
+export const canArtistSubmitTrack = (track) => (
+  track?.approvalStatus === "draft" ||
+  (track?.approvalStatus === "rejected" && hasMeaningfulChangeSinceRejection(track))
+);
 export const getTrackPendingUpdateStatus = (track) => track?.pendingUpdate?.status || "none";
 export const getArtistTrackReviewStatus = (track) => {
   const pendingStatus = getTrackPendingUpdateStatus(track);

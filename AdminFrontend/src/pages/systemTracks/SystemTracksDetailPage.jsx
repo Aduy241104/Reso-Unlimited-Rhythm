@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 import { routePaths } from "../../routes/routePaths";
 import { Section, StatusBadge } from "../albums/components/AlbumManagementPrimitives";
 import { getTrackActiveStatusBadge, getTrackApprovalStatusBadge } from "../albums/utils";
-import { 
+import {
     getAdminTrackDetailService,
     startAdminTrackReviewSessionService,
     recordAdminTrackReviewEventService,
@@ -47,10 +47,10 @@ const getPrimaryCopyrightType = (copyright = {}) => (
     ["original", "cover", "remix"].includes(copyright.primaryCopyrightType)
         ? copyright.primaryCopyrightType
         : copyright.isCover
-        ? "cover"
-        : copyright.isRemix
-            ? "remix"
-            : "original"
+            ? "cover"
+            : copyright.isRemix
+                ? "remix"
+                : "original"
 );
 
 const COPYRIGHT_TYPE_LABELS = {
@@ -107,10 +107,24 @@ const MUSICBRAINZ_FLAG_LABELS = {
     musicbrainz_unavailable: "Dịch vụ MusicBrainz không khả dụng",
 };
 
+const MUSICBRAINZ_REASON_LABELS = {
+    MUSICBRAINZ_ARTIST_MISMATCH: "Nghệ sĩ khai báo không khớp",
+    MUSICBRAINZ_RECORDING_MISMATCH: "Thông tin bản ghi không khớp",
+    MUSICBRAINZ_METADATA_CONFLICT: "Có xung đột metadata cần kiểm tra",
+    MUSICBRAINZ_STRONG_METADATA_CONFLICT: "Có xung đột metadata mạnh",
+};
+
+const MUSICBRAINZ_RISK_LABELS = {
+    none: "Không phát hiện rủi ro",
+    low: "Thấp",
+    medium: "Trung bình",
+    high: "Cao",
+};
+
 const ACOUSTID_STATUS_LABELS = {
     pending: "Đang chờ đối chiếu âm thanh",
     matched: "Đã nhận diện bản ghi âm",
-    possible_match: "Có kết quả tương đồng thấp",
+    possible_match: "Có kết quả tương đồng, cần kiểm tra",
     not_found: "Không tìm thấy bản ghi âm phù hợp",
     failed: "Không thể đối chiếu AcoustID",
 };
@@ -130,10 +144,65 @@ const ACOUSTID_REASON_LABELS = {
     acoustid_fingerprint_missing: "Chưa có dấu vân tay Chromaprint để đối chiếu.",
     acoustid_timeout: "AcoustID không phản hồi trong thời gian cho phép.",
     acoustid_lookup_failed: "Yêu cầu AcoustID thất bại.",
+    ACOUSTID_HIGH_SCORE_WITHOUT_IDENTITY: "Điểm đối chiếu cao nhưng chưa xác định được bản ghi.",
 };
 
+const AUTOMATIC_DECISION_LABELS = {
+    auto_clear: { label: "Hồ sơ sạch", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+    auto_reject: { label: "Đã tự động trả về", className: "border-slate-200 bg-slate-100 text-slate-700" },
+    manual_review: { label: "Cần kiểm tra", className: "border-amber-200 bg-amber-50 text-amber-700" },
+    manual_review_high: { label: "Rủi ro cao", className: "border-rose-200 bg-rose-50 text-rose-700" },
+    enforcement_block: { label: "Enforcement block", className: "border-red-300 bg-red-100 text-red-800" },
+};
+
+const AUTOMATIC_REASON_LABELS = {
+    FINGERPRINT_CLEAN: "Fingerprint không phát hiện trùng",
+    COPYRIGHT_DECLARATION_VALID: "Khai báo bản quyền hợp lệ",
+    SAME_ARTIST_EXACT_DUPLICATE: "Trùng bản ghi âm với bài đã phát hành của cùng nghệ sĩ",
+    APPROVED_EXACT_CONFLICT_NO_EVIDENCE: "Trùng bản ghi đã phát hành, chưa có bằng chứng quyền sử dụng",
+    SAME_ARTIST_PERFECT_FINGERPRINT_DUPLICATE: "Fingerprint trùng hoàn toàn với bài đã phát hành của cùng nghệ sĩ",
+    APPROVED_PERFECT_FINGERPRINT_DUPLICATE: "Fingerprint trùng hoàn toàn với bài đã phát hành",
+    HIGH_SIMILARITY_NO_EXACT_DUPLICATE: "Fingerprint có độ tương đồng cao, cần kiểm tra",
+    SIMILARITY_REQUIRES_REVIEW: "Fingerprint có dấu hiệu tương đồng, cần kiểm tra",
+    PENDING_EXACT_DUPLICATE: "Có bản ghi trùng đang chờ duyệt",
+    PENDING_PERFECT_FINGERPRINT_DUPLICATE: "Có fingerprint trùng hoàn toàn đang chờ duyệt",
+    FINGERPRINT_INCOMPLETE: "Chưa đủ dữ liệu fingerprint",
+    AUDIO_OR_METADATA_INVALID: "Audio hoặc metadata chưa hợp lệ",
+    MISSING_COPYRIGHT_DECLARATION: "Thiếu khai báo bản quyền",
+    MISSING_COPYRIGHT_EVIDENCE: "Thiếu bằng chứng bản quyền",
+    CONTRADICTORY_DECLARATION: "Khai báo bản quyền mâu thuẫn",
+    CONFIRMED_FINGERPRINT_BLOCKLIST: "Fingerprint nằm trong danh sách thực thi bản quyền",
+    ACOUSTID_STRONG_EXTERNAL_MISMATCH: "AcoustID phát hiện xung đột mạnh",
+    ACOUSTID_DECLARED_DERIVATIVE_WITH_EVIDENCE: "AcoustID nhận diện bản ghi gốc, cần kiểm tra bằng chứng sử dụng",
+    ACOUSTID_STRONG_CONFLICT: "AcoustID phát hiện xung đột mạnh với khai báo",
+    ACOUSTID_POSSIBLE_MATCH: "AcoustID phát hiện kết quả tương đồng, cần kiểm tra thủ công",
+    ACOUSTID_HIGH_SCORE_WITHOUT_IDENTITY: "Điểm đối chiếu cao nhưng chưa xác định được bản ghi",
+    MUSICBRAINZ_STRONG_EXTERNAL_MISMATCH: "MusicBrainz phát hiện xung đột metadata mạnh",
+    MUSICBRAINZ_EXTERNAL_CONFLICT: "MusicBrainz phát hiện xung đột metadata cần kiểm tra",
+    MUSICBRAINZ_ARTIST_MISMATCH: "Nghệ sĩ khai báo không khớp MusicBrainz",
+    MUSICBRAINZ_RECORDING_MISMATCH: "Thông tin bản ghi không khớp MusicBrainz",
+    MUSICBRAINZ_METADATA_CONFLICT: "Có xung đột metadata cần kiểm tra",
+    MUSICBRAINZ_STRONG_METADATA_CONFLICT: "Có xung đột metadata mạnh",
+    APPROVED_EXACT_CONFLICT_WITH_EVIDENCE: "Trùng bản ghi đã phát hành nhưng có bằng chứng quyền sử dụng",
+    APPROVED_PERFECT_FINGERPRINT_WITH_EVIDENCE: "Fingerprint trùng hoàn toàn nhưng có bằng chứng quyền sử dụng",
+    COVER_MISSING_ORIGINAL_WORK: "Thiếu thông tin tác phẩm gốc cho bản cover",
+    REMIX_MISSING_RIGHTS: "Thiếu bằng chứng quyền sử dụng cho bản remix",
+    SAMPLE_MISSING_CLEARANCE: "Thiếu giấy phép sử dụng sample",
+    LICENSED_BEAT_MISSING_LICENSE: "Thiếu giấy phép sử dụng beat",
+};
+
+const getAutomaticReasonLabels = (reasonCodes = []) => [
+    ...new Set(
+        (Array.isArray(reasonCodes) ? reasonCodes : []).map(
+            (reasonCode) => AUTOMATIC_REASON_LABELS[reasonCode] || "Có tín hiệu cần kiểm tra thêm",
+        ),
+    ),
+];
+
 const getAcoustIdSuggestedAction = (result) => {
-    if (result?.status === "failed") return "Thử lại lookup. Nếu vẫn lỗi, chỉ override khi đã xác minh thủ công và ghi rõ lý do.";
+    if (result?.reasonCodes?.includes("ACOUSTID_HIGH_SCORE_WITHOUT_IDENTITY")) return "Kiểm tra thủ công vì điểm đối chiếu cao nhưng AcoustID chưa xác định được bản ghi hoặc nghệ sĩ.";
+    if (result?.status === "failed" && result?.providerUnavailable) return "Nhà cung cấp không khả dụng; đây là tín hiệu trung lập, có thể tiếp tục checklist và thử lại sau.";
+    if (result?.status === "failed") return "Thử lại lookup và ghi nhận kết quả kiểm tra thủ công nếu cần.";
     if (result?.decision === "blocked") return "Đề nghị đổi khai báo thành Cover/Remix hoặc yêu cầu bằng chứng bản quyền; chỉ override khi đã xác minh.";
     if (result?.status === "possible_match") return "Kiểm tra bản ghi tương đồng và yêu cầu bằng chứng bản quyền khi cần.";
     if (result?.status === "not_found") return "AcoustID không có dữ liệu đối sánh; Admin phải ghi căn cứ kiểm tra thủ công trước khi duyệt.";
@@ -145,7 +214,8 @@ const translateStatus = (labels, value, fallback) => labels[value] || fallback |
 
 const getMusicBrainzNotice = (result, declaredData) => {
     const flags = Array.isArray(result?.flags) ? result.flags : [];
-    if (!flags.length) return null;
+    const reasonCodes = Array.isArray(result?.reasonCodes) ? result.reasonCodes : [];
+    if (!flags.length && !reasonCodes.length) return null;
     if (flags.includes("musicbrainz_unavailable")) {
         return {
             level: "error",
@@ -158,25 +228,29 @@ const getMusicBrainzNotice = (result, declaredData) => {
     const referencedArtists = Array.isArray(result?.recording?.artists)
         ? result.recording.artists.filter(Boolean).join(", ")
         : "";
-    if (flags.includes("external_metadata_conflict")) {
+    if (flags.includes("external_metadata_conflict") || reasonCodes.some((code) => String(code).startsWith("MUSICBRAINZ_"))) {
         const artistDetail = declaredArtist && referencedArtists
             ? ` Nghệ sĩ khai báo: ${declaredArtist}; MusicBrainz: ${referencedArtists}.`
             : "";
+        const similarity = Number(result?.metadataSimilarity ?? result?.confidence ?? 0);
+        const similarityPercent = formatSimilarityPercent(similarity);
+        const riskLevel = result?.riskLevel || (similarity >= 0.85 ? "high" : "medium");
+        const signals = reasonCodes.map((code) => MUSICBRAINZ_REASON_LABELS[code]).filter(Boolean).join("; ");
         return {
             level: "review",
-            title: "Lưu ý khi đối chiếu metadata",
-            message: `MusicBrainz có bản ghi cùng tên nhưng một số thông tin khai báo chưa khớp.${artistDetail} Đây là dữ liệu tham khảo để quản trị viên kiểm tra thêm.`,
+            title: `Mức rủi ro: ${MUSICBRAINZ_RISK_LABELS[riskLevel] || "Cần kiểm tra"}`,
+            message: `Phát hiện metadata cần kiểm tra.${artistDetail} Mức tương đồng metadata: ${similarityPercent}. ${signals ? `Tín hiệu: ${signals}. ` : ""}Kết quả này không tự xác nhận vi phạm bản quyền nhưng làm tăng mức rủi ro của hồ sơ.`,
         };
     }
 
     return {
         level: "review",
         title: "Thông tin cần kiểm tra thêm",
-        message: flags.map((flag) => MUSICBRAINZ_FLAG_LABELS[flag] || flag).join(". "),
+        message: [...flags.map((flag) => MUSICBRAINZ_FLAG_LABELS[flag] || flag), ...reasonCodes.map((code) => MUSICBRAINZ_REASON_LABELS[code] || "Có tín hiệu metadata cần kiểm tra")].join(". "),
     };
 };
 
-const formatSimilarityPercent = (value) => `${(Number(value || 0) * 100).toLocaleString("vi-VN", {
+const formatSimilarityPercent = (value) => `${((Number(value || 0) > 1 ? Number(value || 0) : Number(value || 0) * 100)).toLocaleString("vi-VN", {
     minimumFractionDigits: 1,
     maximumFractionDigits: 1,
 })}%`;
@@ -313,7 +387,7 @@ const TrackDetailPage = () => {
         try {
             const data = await getAdminTrackDetailService(id);
             setTrack(data);
-            if (data?.reviewStatus === "pending" || data?.approvalStatus === "pending") {
+            if (!data?.isDeleted && (data?.reviewStatus === "pending" || data?.approvalStatus === "pending")) {
                 await initializeReviewSession();
             } else {
                 setReview(null);
@@ -354,8 +428,8 @@ const TrackDetailPage = () => {
                 if (!confirmedReview?.id) {
                     throw new Error(reviewError || "Không thể xác nhận phiên kiểm duyệt. Vui lòng thử khởi tạo lại phiên duyệt.");
                 }
-                const updatedTrack = await updateAdminTrackApprovalStatusService(id, { 
-                    status: "approved", 
+                const updatedTrack = await updateAdminTrackApprovalStatusService(id, {
+                    status: "approved",
                     adminNote,
                     fingerprintOverrideReason,
                     acoustIdOverride: acoustIdOverrideChecked,
@@ -363,7 +437,7 @@ const TrackDetailPage = () => {
                     reviewSessionId: confirmedReview.id,
                 });
                 if (updatedTrack) setTrack(updatedTrack);
-            } 
+            }
             else if (modalType === "reject") {
                 const rejectCategory = violationFlags.includes("copyright")
                     ? "copyright_conflict"
@@ -372,27 +446,27 @@ const TrackDetailPage = () => {
                         : violationFlags.includes("duplicate_track")
                             ? "duplicate_audio"
                             : "other";
-                const updatedTrack = await updateAdminTrackApprovalStatusService(id, { 
-                    status: "rejected", 
-                    adminNote, 
+                const updatedTrack = await updateAdminTrackApprovalStatusService(id, {
+                    status: "rejected",
+                    adminNote,
                     rejectReason: adminNote,
                     rejectCategory,
                     violationFlags,
                 });
                 if (updatedTrack) setTrack(updatedTrack);
-            } 
+            }
             else if (modalType === "hide") {
                 const selectedLabels = hideReasons.map(r => HIDE_REASON_OPTIONS.find(o => o.value === r)?.label || r);
-                const combinedHiddenReason = selectedLabels.length > 0 
+                const combinedHiddenReason = selectedLabels.length > 0
                     ? `[${selectedLabels.join(", ")}] ${adminNote}`.trim()
                     : adminNote.trim();
 
-                const updatedTrack = await updateAdminTrackVisibilityService(id, { 
-                    action: "hide", 
-                    hiddenReason: combinedHiddenReason 
+                const updatedTrack = await updateAdminTrackVisibilityService(id, {
+                    action: "hide",
+                    hiddenReason: combinedHiddenReason
                 });
                 if (updatedTrack) setTrack(updatedTrack);
-            } 
+            }
             else if (modalType === "unhide") {
                 const updatedTrack = await updateAdminTrackVisibilityService(id, {
                     action: "unhide",
@@ -410,13 +484,13 @@ const TrackDetailPage = () => {
             }
             else if (modalType === "block") {
                 const selectedLabels = violationFlags.map(f => VIOLATION_OPTIONS.find(o => o.value === f)?.label || f);
-                const combinedBlockedReason = selectedLabels.length > 0 
+                const combinedBlockedReason = selectedLabels.length > 0
                     ? `[BAN - ${selectedLabels.join(", ")}] ${adminNote}`.trim()
                     : adminNote.trim();
 
-                const updatedTrack = await updateAdminTrackVisibilityService(id, { 
-                    action: "block", 
-                    blockedReason: combinedBlockedReason 
+                const updatedTrack = await updateAdminTrackVisibilityService(id, {
+                    action: "block",
+                    blockedReason: combinedBlockedReason
                 });
                 if (updatedTrack) setTrack(updatedTrack);
             }
@@ -452,8 +526,12 @@ const TrackDetailPage = () => {
     const isActive = track?.activeStatus === "active";
     const isHidden = track?.activeStatus === "hidden";
     const isBlocked = track?.activeStatus === "blocked";
+    const isDeleted = track?.isDeleted === true;
     const isPendingUpdateReview = track?.reviewSource === "pending_update";
     const artistId = track?.artist?.id || track?.artist?._id;
+    const automaticDecision = track?.moderation?.automatic || null;
+    const automaticDecisionBadge = AUTOMATIC_DECISION_LABELS[automaticDecision?.decision] || null;
+    const automaticReasonLabels = getAutomaticReasonLabels(automaticDecision?.reasonCodes);
 
     const recordReviewEvent = useCallback((payload) => {
         if (!id || !isPendingApproval) return null;
@@ -516,14 +594,22 @@ const TrackDetailPage = () => {
     const acoustIdResult = review?.checklist?.acoustIdResult
         || track?.acoustId?.result
         || null;
-    const acoustIdNeedsOverride = acoustIdResult?.status === "failed"
-        || acoustIdResult?.decision === "blocked";
-    const acoustIdNeedsManualReason = acoustIdResult?.decision === "review_required"
-        && acoustIdResult?.status !== "failed";
+    const acoustIdUnavailable = Boolean(
+        acoustIdResult?.providerUnavailable ||
+        acoustIdResult?.status === "unavailable" ||
+        acoustIdResult?.reasonCodes?.some?.((code) => /timeout|unavailable|lookup_failed|missing_api_key|disabled|api_|http_/i.test(String(code)))
+    );
+    const acoustIdNeedsOverride = !acoustIdUnavailable && acoustIdResult?.decision === "blocked";
+    const acoustIdNeedsManualReason = !acoustIdUnavailable && acoustIdResult?.decision === "review_required"
+        && !["failed", "not_found", "unavailable"].includes(acoustIdResult?.status);
     const acoustIdReasonText = (acoustIdResult?.reasonCodes || [])
         .map((code) => ACOUSTID_REASON_LABELS[code] || code.replace(/_/g, " "))
         .join(" ");
-    const approvalMissingItems = (review?.missing || []).filter((item) => item !== "final_confirmation");
+    const approvalMissingItems = (review?.missing || []).filter(
+        (item) =>
+            item !== "final_confirmation" &&
+            item !== "high_risk_fingerprint"
+    );
     const approvalBlockingMessages = [
         ...(!review ? ["Phiên kiểm duyệt chưa sẵn sàng."] : []),
         ...(reviewError ? [reviewError] : []),
@@ -531,9 +617,19 @@ const TrackDetailPage = () => {
         ...(approvalMissingItems.length > 0
             ? [`Checklist còn thiếu: ${approvalMissingItems.map(getReviewMissingLabel).join(", ")}.`]
             : []),
-        ...(review?.checklist?.mediumRisk && fingerprintOverrideReason.trim().length < 10
-            ? ["Lý do xử lý cảnh báo dấu vân tay phải có ít nhất 10 ký tự."]
-            : []),
+        ...(
+            (
+                review?.checklist?.mediumRisk ||
+                review?.checklist?.highRisk
+            ) &&
+                fingerprintOverrideReason.trim().length < 10
+                ? [
+                    review?.checklist?.highRisk
+                        ? "Fingerprint đang ở mức HIGH. Admin phải nhập căn cứ kiểm tra thủ công ít nhất 10 ký tự trước khi duyệt."
+                        : "Lý do xử lý cảnh báo dấu vân tay phải có ít nhất 10 ký tự."
+                ]
+                : []
+        ),
         ...(acoustIdNeedsManualReason && adminNote.trim().length < 10
             ? [`Căn cứ kiểm tra audio/bản quyền còn thiếu ${10 - adminNote.trim().length} ký tự.`]
             : []),
@@ -634,7 +730,7 @@ const TrackDetailPage = () => {
 
     return (
         <section className="-mt-3 space-y-6 pb-6 font-sans text-slate-900 antialiased [&_.border-slate-100]:border-slate-200 [&_.text-slate-400]:text-slate-600 [&_.text-slate-500]:text-slate-700">
-            
+
             {/* KHUNG 1: Header Trang Chi Tiết & Ảnh đại diện tác phẩm */}
             <Section
                 title="Tổng quan bài hát"
@@ -646,7 +742,7 @@ const TrackDetailPage = () => {
                                 <UserRound className="h-4 w-4" /> Chi tiết nghệ sĩ
                             </Link>
                         ) : null}
-                        {isApproved && (isActive || isHidden || isBlocked) ? (
+                        {!isDeleted && isApproved && (isActive || isHidden || isBlocked) ? (
                             <button type="button" onClick={() => openModerationModal(isBlocked ? "unblock" : "block")} disabled={isActionLoading} className={`inline-flex h-10 items-center gap-2 px-4 text-sm font-semibold transition disabled:opacity-60 ${isBlocked ? "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" : "bg-rose-600 text-white hover:bg-rose-700"}`}>
                                 <ShieldAlert className="h-4 w-4" />
                                 {isActionLoading ? "Đang xử lý..." : isBlocked ? "Gỡ khóa bài hát" : "Khóa bài hát"}
@@ -659,33 +755,54 @@ const TrackDetailPage = () => {
                     <ArrowLeft className="h-4 w-4" /> Quay lại danh sách bài hát
                 </button>
                 <div className="mt-5 border-y border-slate-200 py-5 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="flex items-center gap-5 min-w-0">
-                    {track.avatar ? (
-                        <img src={track.avatar} alt={track.title} className="w-16 h-16 object-cover border border-slate-100 rounded-xl shadow-inner" />
-                    ) : (
-                        <div className="w-20 h-20 bg-slate-950 flex items-center justify-center text-xs text-white font-bold uppercase">Chưa có ảnh</div>
-                    )}
-                    <div className="space-y-0.5">
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">Quản lý bài hát</p>
-                        <h1 className="mt-1.5 text-2xl md:text-3xl font-semibold tracking-tight text-slate-950">{track.title}</h1>
-                        <p className="mt-2 text-sm text-slate-600">
-                            {artistId ? (
-                                <Link
-                                    to={routePaths.artistDetail(artistId)}
-                                    className="font-semibold text-sky-700 transition hover:text-sky-900 hover:underline"
-                                >
-                                    {track.artist?.name || "Nghệ sĩ không xác định"}
-                                </Link>
-                            ) : (
-                                track.artist?.name || "Nghệ sĩ không xác định"
-                            )}
-                            {track.artist?.email ? ` • ${track.artist.email}` : ""}
-                        </p>
+                    <div className="flex items-center gap-5 min-w-0">
+                        {track.avatar ? (
+                            <img src={track.avatar} alt={track.title} className="w-16 h-16 object-cover border border-slate-100 rounded-xl shadow-inner" />
+                        ) : (
+                            <div className="w-20 h-20 bg-slate-950 flex items-center justify-center text-xs text-white font-bold uppercase">Chưa có ảnh</div>
+                        )}
+                        <div className="space-y-0.5">
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">Quản lý bài hát</p>
+                            <h1 className="mt-1.5 text-2xl md:text-3xl font-semibold tracking-tight text-slate-950">{track.title}</h1>
+                            <p className="mt-2 text-sm text-slate-600">
+                                {artistId ? (
+                                    <Link
+                                        to={routePaths.artistDetail(artistId)}
+                                        className="font-semibold text-sky-700 transition hover:text-sky-900 hover:underline"
+                                    >
+                                        {track.artist?.name || "Nghệ sĩ không xác định"}
+                                    </Link>
+                                ) : (
+                                    track.artist?.name || "Nghệ sĩ không xác định"
+                                )}
+                                {track.artist?.email ? ` • ${track.artist.email}` : ""}
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {isDeleted ? (
+                            <span className="inline-flex items-center rounded-full border border-rose-300 bg-rose-100 px-3 py-1 text-xs font-bold text-rose-800">
+                                Nghệ sĩ đã xóa bài
+                            </span>
+                        ) : null}
+                        <StatusBadge config={getTrackApprovalStatusBadge(reviewStatus)} />
+                        <StatusBadge config={getTrackActiveStatusBadge(track.activeStatus)} />
+                        {automaticDecisionBadge ? (
+                            <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold ${automaticDecisionBadge.className}`}>
+                                {automaticDecisionBadge.label}
+                            </span>
+                        ) : null}
                     </div>
                 </div>
-                <div className="flex flex-wrap gap-2"><StatusBadge config={getTrackApprovalStatusBadge(reviewStatus)} /><StatusBadge config={getTrackActiveStatusBadge(track.activeStatus)} /></div>
-                </div>
             </Section>
+
+            {isDeleted ? (
+                <div className="rounded-2xl border border-rose-300 bg-rose-50 px-5 py-4 text-sm text-rose-900">
+                    <p className="font-bold">Nghệ sĩ đã xóa bài</p>
+                    <p className="mt-1">Track chỉ được mở để phục vụ audit. Các thao tác phê duyệt, kiểm duyệt và thay đổi hiển thị đều bị khóa.</p>
+                    {track.deleteReason ? <p className="mt-2 text-xs">Lý do: {track.deleteReason}</p> : null}
+                </div>
+            ) : null}
 
             {track?.reviewSource === "pending_update" && (
                 <div className="rounded-2xl border border-sky-200 bg-sky-50 px-5 py-4 text-sm text-sky-900">
@@ -710,10 +827,10 @@ const TrackDetailPage = () => {
                         <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Hệ thống tác vụ kiểm duyệt</h3>
                         <p className="text-sm text-slate-700">Phê duyệt bản phát hành và quản lý trạng thái khóa của bài hát.</p>
                     </div>
-                    
+
                     {/* HỆ THỐNG NÚT BẤM ĐIỀU HƯỚNG SANG MODAL XỬ LÝ (BO GÓC X-LARGE) */}
                     <div className="flex flex-wrap gap-2">
-                        {isPendingApproval && (
+                        {!isDeleted && isPendingApproval && (
                             <>
                                 <button
                                     type="button"
@@ -755,6 +872,26 @@ const TrackDetailPage = () => {
                     <div className="p-4 bg-slate-50 border border-slate-200 flex flex-col justify-between gap-2">
                         <span className="text-slate-400 uppercase text-[10px] font-bold tracking-wide">Quản trị viên rà soát</span>
                         <span className="font-mono font-bold text-slate-700 truncate mt-0.5">{track.moderation?.reviewedBy?.email || "Chưa rà soát / Hệ thống tự động"}</span>
+                    </div>
+                    <div className="p-4 bg-slate-50 border border-slate-200 flex flex-col justify-between gap-2">
+                        <span className="text-slate-400 uppercase text-[10px] font-bold tracking-wide">Quyết định tự động</span>
+                        <div className="mt-1 flex min-w-0 flex-col gap-2">
+                            <span className="font-semibold text-slate-700">
+                                {automaticDecisionBadge?.label || "Chưa đánh giá"}
+                            </span>
+                            {automaticReasonLabels.length ? (
+                                <div className="flex min-w-0 flex-wrap gap-1.5">
+                                    {automaticReasonLabels.map((reason) => (
+                                        <span
+                                            key={reason}
+                                            className="inline-flex max-w-full rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium leading-4 text-slate-600"
+                                        >
+                                            {reason}
+                                        </span>
+                                    ))}
+                                </div>
+                            ) : null}
+                        </div>
                     </div>
                 </div>
 
@@ -828,7 +965,7 @@ const TrackDetailPage = () => {
                 {/* Nhật ký cờ vi phạm (Violation Flags) */}
                 {track.moderation?.violationFlags?.length > 0 && (
                     <div className="border border-rose-100 bg-rose-50/50 p-4 text-xs space-y-2 rounded-xl">
-                        <span className="text-rose-700 font-bold text-[10px] uppercase tracking-wide block">Hồ sơ ghi nhận các cờ vi phạm:</span>
+                        <span className="text-rose-700 font-bold text-[10px] uppercase tracking-wide block">{track.moderation?.automatic?.decision === "enforcement_block" ? "Vi phạm được ghi nhận:" : "Vấn đề được ghi nhận:"}</span>
                         <div className="flex flex-wrap gap-1.5">
                             {track.moderation.violationFlags.map((flag, idx) => (
                                 <span key={idx} className="bg-rose-100 text-rose-700 text-[10px] font-semibold border border-rose-200 rounded-lg px-2.5 py-0.5 capitalize">{flag.replace(/_/g, " ")}</span>
@@ -857,7 +994,7 @@ const TrackDetailPage = () => {
 
             {/* KHUNG 3: Chi tiết siêu dữ liệu kỹ thuật và bản quyền pháp lý */}
             <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-8">
-                
+
                 {/* 1. Tổng quan kỹ thuật */}
                 <div>
                     <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Thông số kỹ thuật & Hiệu năng</h3>
@@ -879,7 +1016,7 @@ const TrackDetailPage = () => {
                             <span className="text-base font-bold text-slate-900 block">{(track.stats?.totalLike || 0).toLocaleString("vi-VN")} lượt</span>
                         </div>
                     </div>
-                    
+
                     <div className="grid gap-4 sm:grid-cols-2 mt-4">
                         <div className="bg-slate-50/60 border border-slate-100 p-4 space-y-1 rounded-xl">
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Thuộc Album</span>
@@ -998,6 +1135,11 @@ const TrackDetailPage = () => {
                             </span>
                         </div>
                     </div>
+                    {Number(track.fingerprint?.comparison?.activeExactFileMatchCount || 0) > 0 ? (
+                        <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs leading-relaxed text-rose-900">
+                            <span className="font-bold">Trùng bản ghi âm hoàn toàn:</span> Tìm thấy {Number(track.fingerprint.comparison.activeExactFileMatchCount).toLocaleString("vi-VN")} bản ghi đang hoạt động. Khi nghệ sĩ gửi duyệt, hệ thống sẽ tự động từ chối nếu bản trùng đã được phát hành.
+                        </div>
+                    ) : null}
                     {Number(track.fingerprint?.comparison?.historicalExactFileMatchCount || 0) > 0 ? (
                         <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-relaxed text-amber-900">
                             <span className="font-bold">Đối chiếu dữ liệu lịch sử:</span> Tìm thấy {Number(track.fingerprint.comparison.historicalExactFileMatchCount).toLocaleString("vi-VN")} tệp âm thanh trùng hoàn toàn với một bài đã xóa. Thông tin này không tự động chặn bài hiện tại và chỉ cần quản trị viên kiểm tra thêm.
@@ -1064,7 +1206,7 @@ const TrackDetailPage = () => {
                             : acoustIdResult?.status === "failed" || acoustIdResult?.decision === "review_required"
                                 ? "border-amber-200 bg-amber-50 text-amber-900"
                                 : "border-sky-100 bg-sky-50/70 text-sky-900"
-                        }`}>
+                            }`}>
                             <p><span className="font-bold">Kết quả:</span> {acoustIdReasonText || "Chưa có cảnh báo bổ sung."}</p>
                             <p className="mt-1"><span className="font-bold">Đề xuất:</span> {getAcoustIdSuggestedAction(acoustIdResult)}</p>
                             {acoustIdResult?.error ? <p className="mt-1"><span className="font-bold">Lỗi đã rút gọn:</span> {String(acoustIdResult.error)}</p> : null}
@@ -1099,7 +1241,7 @@ const TrackDetailPage = () => {
                             </button>
                         ) : null}
                     </div>
-                    <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-xs">
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5 text-xs">
                         <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
                             <span className="block text-[10px] font-bold uppercase tracking-wide text-slate-400">Trạng thái</span>
                             <span className="mt-1 block font-semibold text-slate-800">
@@ -1108,7 +1250,11 @@ const TrackDetailPage = () => {
                         </div>
                         <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
                             <span className="block text-[10px] font-bold uppercase tracking-wide text-slate-400">Mức tương đồng metadata</span>
-                            <span className="mt-1 block font-semibold text-slate-800">{Math.round(Number(musicBrainzResult?.confidence || 0) * 100)}%</span>
+                            <span className="mt-1 block font-semibold text-slate-800">{formatSimilarityPercent(musicBrainzResult?.metadataSimilarity ?? musicBrainzResult?.confidence)}</span>
+                        </div>
+                        <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
+                            <span className="block text-[10px] font-bold uppercase tracking-wide text-slate-400">Mức rủi ro</span>
+                            <span className="mt-1 block font-semibold text-slate-800">{MUSICBRAINZ_RISK_LABELS[musicBrainzResult?.riskLevel || "none"] || "Chưa đánh giá"}</span>
                         </div>
                         <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
                             <span className="block text-[10px] font-bold uppercase tracking-wide text-slate-400">Mã bản ghi MusicBrainz</span>
@@ -1123,7 +1269,7 @@ const TrackDetailPage = () => {
                         <div className={`mt-3 rounded-xl border p-4 text-xs leading-relaxed ${musicBrainzNotice.level === "error"
                             ? "border-rose-200 bg-rose-50 text-rose-900"
                             : "border-amber-200 bg-amber-50 text-amber-900"
-                        }`}>
+                            }`}>
                             <span className="font-bold">{musicBrainzNotice.title}:</span> {musicBrainzNotice.message}
                         </div>
                     ) : null}
@@ -1132,7 +1278,7 @@ const TrackDetailPage = () => {
                 {/* 3. Bản quyền tác giả nâng cao */}
                 <div className="border-t border-slate-100 pt-6 space-y-4">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Xác minh hồ sơ sở hữu trí tuệ & Bản quyền</h3>
-                    
+
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 text-xs font-bold">
                         <div className="p-4 bg-slate-50/60 border border-slate-100 space-y-1 rounded-xl">
                             <span className="text-slate-400 block text-[10px] uppercase tracking-wide">Nhạc sĩ / Người sáng tác</span>
@@ -1265,9 +1411,9 @@ const TrackDetailPage = () => {
                                                 ? "Từ chối bản chỉnh sửa"
                                                 : "Từ chối hồ sơ & Gắn cờ vi phạm"
                                             :
-                                     modalType === "unblock" ? "Gỡ khóa bài hát" :
-                                     modalType === "hide" ? "Tạm ẩn tác phẩm khỏi nền tảng" :
-                                     "Khóa bài hát"}
+                                            modalType === "unblock" ? "Gỡ khóa bài hát" :
+                                                modalType === "hide" ? "Tạm ẩn tác phẩm khỏi nền tảng" :
+                                                    "Khóa bài hát"}
                                 </h2>
                             </div>
                             <button type="button" onClick={closeModal} className="text-slate-400 hover:text-slate-600 text-lg font-bold transition">✕</button>
@@ -1297,16 +1443,35 @@ const TrackDetailPage = () => {
                         </div>
 
                         <div className="space-y-4">
-                            {modalType === "approve" && review?.checklist?.mediumRisk ? (
+                            {modalType === "approve" &&
+                                (review?.checklist?.mediumRisk || review?.checklist?.highRisk) ? (
                                 <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50 p-3">
-                                    <label className="text-xs font-semibold text-amber-900">Lý do bỏ qua cảnh báo dấu vân tay mức trung bình *</label>
+                                    <label className="text-xs font-semibold text-amber-900">
+                                        {review?.checklist?.highRisk
+                                            ? "Căn cứ override fingerprint mức HIGH *"
+                                            : "Lý do xử lý cảnh báo fingerprint mức MEDIUM *"}
+                                    </label>
+
                                     <textarea
                                         value={fingerprintOverrideReason}
-                                        onChange={(event) => setFingerprintOverrideReason(event.target.value)}
-                                        rows={2}
+                                        onChange={(event) =>
+                                            setFingerprintOverrideReason(event.target.value)
+                                        }
+                                        rows={3}
                                         className="w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400"
-                                        placeholder="Nêu căn cứ kiểm tra thủ công và lý do vẫn cho phép duyệt..."
+                                        placeholder={
+                                            review?.checklist?.highRisk
+                                                ? "Nêu rõ bằng chứng đã kiểm tra, quyền sử dụng/license và lý do vẫn cho phép duyệt..."
+                                                : "Nêu căn cứ kiểm tra thủ công và lý do vẫn cho phép duyệt..."
+                                        }
                                     />
+
+                                    {review?.checklist?.highRisk ? (
+                                        <p className="text-[11px] leading-5 text-amber-800">
+                                            Phát hiện này chỉ thể hiện audio trùng hoặc tương đồng cao.
+                                            Không được kết luận quyền sở hữu chỉ dựa vào thời điểm upload.
+                                        </p>
+                                    ) : null}
                                 </div>
                             ) : null}
 
@@ -1346,13 +1511,12 @@ const TrackDetailPage = () => {
                                                     key={flag.value}
                                                     type="button"
                                                     onClick={() => {
-                                                        setViolationFlags((prev) => 
+                                                        setViolationFlags((prev) =>
                                                             prev.includes(flag.value) ? prev.filter((f) => f !== flag.value) : [...prev, flag.value]
                                                         );
                                                     }}
-                                                    className={`flex items-center text-left gap-3 p-3 rounded-xl border text-xs font-medium transition ${
-                                                        isChecked ? "bg-rose-50 border-rose-400 text-rose-800" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-                                                    }`}
+                                                    className={`flex items-center text-left gap-3 p-3 rounded-xl border text-xs font-medium transition ${isChecked ? "bg-rose-50 border-rose-400 text-rose-800" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                                                        }`}
                                                 >
                                                     <div className={`w-3.5 h-3.5 rounded flex items-center justify-center border text-[9px] ${isChecked ? "bg-rose-600 border-rose-600 text-white" : "bg-white border-slate-300"}`}>
                                                         {isChecked && "✓"}
@@ -1377,13 +1541,12 @@ const TrackDetailPage = () => {
                                                     key={reason.value}
                                                     type="button"
                                                     onClick={() => {
-                                                        setHideReasons((prev) => 
+                                                        setHideReasons((prev) =>
                                                             prev.includes(reason.value) ? prev.filter((r) => r !== reason.value) : [...prev, reason.value]
                                                         );
                                                     }}
-                                                    className={`flex items-center text-left gap-3 p-3 rounded-xl border text-xs font-medium transition ${
-                                                        isChecked ? "bg-orange-50 border-orange-400 text-orange-800" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-                                                    }`}
+                                                    className={`flex items-center text-left gap-3 p-3 rounded-xl border text-xs font-medium transition ${isChecked ? "bg-orange-50 border-orange-400 text-orange-800" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                                                        }`}
                                                 >
                                                     <div className={`w-3.5 h-3.5 rounded flex items-center justify-center border text-[9px] ${isChecked ? "bg-orange-600 border-orange-600 text-white" : "bg-white border-slate-300"}`}>
                                                         {isChecked && "✓"}
@@ -1402,8 +1565,8 @@ const TrackDetailPage = () => {
                                     {modalType === "approve" && acoustIdNeedsManualReason
                                         ? "Căn cứ kiểm tra audio/bản quyền thủ công (Bắt buộc, tối thiểu 10 ký tự)"
                                         : modalType === "approve" || modalType === "unblock"
-                                        ? "Nội dung ghi chú kèm theo (Tùy chọn)"
-                                        : "Nội dung giải trình chi tiết hành động (Bắt buộc)"}
+                                            ? "Nội dung ghi chú kèm theo (Tùy chọn)"
+                                            : "Nội dung giải trình chi tiết hành động (Bắt buộc)"}
                                 </label>
                                 <textarea
                                     value={adminNote}
@@ -1416,9 +1579,9 @@ const TrackDetailPage = () => {
                                                 ? "Nêu rõ trường nào chưa phù hợp để artist chỉnh sửa và gửi lại..."
                                                 : "Cung cấp giải thích chi tiết về vi phạm để phản hồi cho creator..."
                                             :
-                                        modalType === "hide" ? "Cung cấp giải thích cụ thể lý do tạm ẩn hành chính..." :
-                                        modalType === "block" ? "Cung cấp căn cứ chi tiết để ban/gỡ bỏ vĩnh viễn..." :
-                                        acoustIdNeedsManualReason ? "Nêu cách đã kiểm tra bản ghi, quyền sử dụng hoặc tài liệu bản quyền..." : "Nhập nội dung ghi chú lưu vết hệ thống..."
+                                            modalType === "hide" ? "Cung cấp giải thích cụ thể lý do tạm ẩn hành chính..." :
+                                                modalType === "block" ? "Cung cấp căn cứ chi tiết để ban/gỡ bỏ vĩnh viễn..." :
+                                                    acoustIdNeedsManualReason ? "Nêu cách đã kiểm tra bản ghi, quyền sử dụng hoặc tài liệu bản quyền..." : "Nhập nội dung ghi chú lưu vết hệ thống..."
                                     }
                                     required={!["approve", "unblock"].includes(modalType)}
                                 />
@@ -1465,11 +1628,11 @@ const TrackDetailPage = () => {
                             <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-semibold border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl transition">
                                 Hủy bỏ
                             </button>
-                            <button 
-                                type="button" 
-                                onClick={handleConfirmAction} 
+                            <button
+                                type="button"
+                                onClick={handleConfirmAction}
                                 disabled={
-                                    isActionLoading || 
+                                    isActionLoading ||
                                     (modalType === "approve" && approvalBlockingMessages.length > 0) ||
                                     (modalType === "reject" && (
                                         !adminNote.trim() ||
@@ -1477,14 +1640,13 @@ const TrackDetailPage = () => {
                                     )) ||
                                     (modalType === "hide" && (!adminNote.trim() || hideReasons.length === 0)) ||
                                     (modalType === "block" && !adminNote.trim())
-                                } 
-                                className={`px-4 py-2 text-sm font-semibold text-white rounded-xl shadow-sm transition disabled:opacity-40 ${
-                                    modalType === "approve" ? "bg-emerald-600 hover:bg-emerald-700" : 
-                                    modalType === "reject" ? "bg-rose-600 hover:bg-rose-700" : 
-                                    modalType === "hide" ? "bg-orange-600 hover:bg-orange-700" :
-                                    modalType === "unblock" ? "bg-emerald-600 hover:bg-emerald-700" :
-                                    "bg-red-600 hover:bg-red-700"
-                                }`}
+                                }
+                                className={`px-4 py-2 text-sm font-semibold text-white rounded-xl shadow-sm transition disabled:opacity-40 ${modalType === "approve" ? "bg-emerald-600 hover:bg-emerald-700" :
+                                    modalType === "reject" ? "bg-rose-600 hover:bg-rose-700" :
+                                        modalType === "hide" ? "bg-orange-600 hover:bg-orange-700" :
+                                            modalType === "unblock" ? "bg-emerald-600 hover:bg-emerald-700" :
+                                                "bg-red-600 hover:bg-red-700"
+                                    }`}
                             >
                                 {isActionLoading ? "Đang xử lý..." : "Xác nhận thực thi"}
                             </button>

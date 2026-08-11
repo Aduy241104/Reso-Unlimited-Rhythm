@@ -11,6 +11,7 @@ import {
     buildArtistPayloadFromRequest,
     buildArtistRequestDetailQuery,
 } from "./admin.artistRequest.service.helper.js";
+import { assertArtistStageNameAvailable } from "./artist.name.service.js";
 
 const getArtistRequests = async (query) => {
     const page = Math.max(1, parseInt(query.page, 10) || 1);
@@ -115,6 +116,12 @@ const reviewArtistRequest = async (artistRequestId, payload = {}, adminUserId) =
                 }
             );
         }
+
+        // Re-check immediately before creating the profile. The request can
+        // have been waiting while another artist/request claimed this key.
+        await assertArtistStageNameAvailable(artistRequest.stageName, {
+            excludeRequestId: artistRequest._id,
+        });
 
         const previousUserRole = user.role;
         let artist = null;

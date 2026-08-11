@@ -320,10 +320,13 @@ export const lookupMusicBrainz = async (declared, { request = fetchJson } = {}) 
     const result = {
         status: "not_found",
         confidence: 0,
+        metadataSimilarity: 0,
         recording: { mbid: null, title: null, artists: [], durationMs: null, isrcs: [] },
         work: { mbid: null, title: null, iswcs: [], composers: [], lyricists: [] },
         comparison: { titleMatch: null, artistMatch: null, durationMatch: null, isrcMatch: null, iswcMatch: null, composerMatch: null, lyricistMatch: null },
         flags: [],
+        reasonCodes: [],
+        riskLevel: "none",
         checkedAt: new Date(),
         submissionVersion: null,
     };
@@ -348,21 +351,36 @@ export const lookupMusicBrainz = async (declared, { request = fetchJson } = {}) 
         result.recording = selectedRecording;
         result.work = selectedWork;
         result.confidence = score?.confidence || 0;
+        result.metadataSimilarity = result.confidence;
         result.comparison = score?.comparison || result.comparison;
         result.status = result.confidence >= 0.85 ? "matched" : "possible_match";
 
         const artistMismatch = result.comparison.artistMatch !== null && result.comparison.artistMatch < 0.5;
-        const titleMismatch = result.comparison.titleMatch !== null && result.comparison.titleMatch < 0.5;
-        if (declared.primaryCopyrightType === "original" && ((result.confidence >= 0.75 && (artistMismatch || titleMismatch)) || (titleMismatch === false && artistMismatch))) {
+        const recordingMismatch = [
+            result.comparison.titleMatch,
+            result.comparison.durationMatch,
+            result.comparison.isrcMatch,
+            result.comparison.iswcMatch,
+        ].some((value) => value !== null && value !== undefined && value < 0.5);
+        if (artistMismatch || recordingMismatch) {
             result.flags.push("possible_existing_work", "external_metadata_conflict");
+            if (artistMismatch) result.reasonCodes.push("MUSICBRAINZ_ARTIST_MISMATCH");
+            if (recordingMismatch) result.reasonCodes.push("MUSICBRAINZ_RECORDING_MISMATCH");
+            result.reasonCodes.push(
+                result.confidence >= 0.85
+                    ? "MUSICBRAINZ_STRONG_METADATA_CONFLICT"
+                    : "MUSICBRAINZ_METADATA_CONFLICT",
+            );
+            result.riskLevel = result.confidence >= 0.85 ? "high" : "medium";
         }
-        if (declared.primaryCopyrightType === "cover" && (artistMismatch || titleMismatch)) result.flags.push("cover_source_mismatch");
+        if (declared.primaryCopyrightType === "cover" && (artistMismatch || recordingMismatch)) result.flags.push("cover_source_mismatch");
         if (declared.primaryCopyrightType === "remix" && declared.submittedIsrc && result.recording.isrcs.length > 0 && !result.recording.isrcs.includes(String(declared.submittedIsrc).toUpperCase())) result.flags.push("remix_isrc_mismatch");
         return result;
     } catch (error) {
         return {
             ...result,
             status: "failed",
+            providerUnavailable: true,
             flags: ["musicbrainz_unavailable"],
             error: String(error?.message || "MusicBrainz request failed").slice(0, 300),
         };
@@ -373,6 +391,23 @@ const getTarget = (track) => track?.pendingUpdate?.status === "pending" && track
     ? track.pendingUpdate.data
     : track;
 
+const isCurrentVerificationVersion = async (trackId, versions) => {
+    const current = await Track.findById(trackId).lean();
+    if (!current || (current.approvalStatus !== "pending" && current.pendingUpdate?.status !== "pending")) return false;
+    const currentVersions = resolveMusicBrainzTargetVersions(current);
+    return ["audioVersion", "submissionVersion", "copyrightVersion", "evidenceVersion"]
+        .every((key) => Number(currentVersions[key]) === Number(versions[key]));
+};
+
+const reEvaluateAfterVerification = async (trackId) => {
+    try {
+        const { evaluateAutomaticTrackModeration } = await import("../fingerprint/automaticTrackModeration.service.js");
+        await evaluateAutomaticTrackModeration(trackId, { force: true });
+    } catch (error) {
+        console.error("Automatic moderation re-evaluation failed:", error.message);
+    }
+};
+
 export const resolveMusicBrainzTargetVersions = (track = {}) => {
     const isPendingUpdate = track?.pendingUpdate?.status === "pending" && track.pendingUpdate.data;
     return {
@@ -382,10 +417,16 @@ export const resolveMusicBrainzTargetVersions = (track = {}) => {
         submissionVersion: Number(
             isPendingUpdate ? track.pendingUpdate.submissionVersion : track.submissionVersion
         ) || 1,
+        copyrightVersion: Number(
+            isPendingUpdate ? track.pendingUpdate.copyrightVersion : track.copyrightVersion
+        ) || 1,
+        evidenceVersion: Number(
+            isPendingUpdate ? track.pendingUpdate.evidenceVersion : track.evidenceVersion
+        ) || 1,
     };
 };
 
-export const runMusicBrainzVerification = async (trackId, { force = false } = {}) => {
+export const runMusicBrainzVerification = async (trackId, { force = false, reevaluate = true } = {}) => {
     const track = await Track.findById(trackId).lean();
     if (!track || (track.approvalStatus !== "pending" && track.pendingUpdate?.status !== "pending")) {
         return { status: "skipped", reason: "track_not_pending" };
@@ -400,11 +441,16 @@ export const runMusicBrainzVerification = async (trackId, { force = false } = {}
         algorithmVersion: "chromaprint-v1",
     }).select("status audioVersion").lean();
     if (fingerprint?.status !== "completed" || Number(fingerprint.audioVersion || 1) !== targetAudioVersion) {
-        return { status: "pending", submissionVersion: targetVersions.submissionVersion };
+        return { status: "pending", ...targetVersions };
     }
     const submissionVersion = targetVersions.submissionVersion;
     const registry = await CopyrightRegistry.findOne({ trackId }).lean();
-    if (!force && registry?.externalResult?.submissionVersion === submissionVersion && registry.externalResult.status && registry.externalResult.status !== "pending") {
+    if (!force && registry?.externalResult?.status && registry.externalResult.status !== "pending" &&
+        Number(registry.externalResult.submissionVersion || 0) === targetVersions.submissionVersion &&
+        Number(registry.externalResult.audioVersion || 0) === targetVersions.audioVersion &&
+        Number(registry.externalResult.copyrightVersion || 0) === targetVersions.copyrightVersion &&
+        Number(registry.externalResult.evidenceVersion || 0) === targetVersions.evidenceVersion) {
+        if (reevaluate) await reEvaluateAfterVerification(trackId);
         return registry.externalResult;
     }
 
@@ -412,7 +458,14 @@ export const runMusicBrainzVerification = async (trackId, { force = false } = {}
     const declared = buildDeclaredData({ track, target, artistName: artist?.name || "" });
     const externalResult = await lookupMusicBrainz(declared);
     externalResult.submissionVersion = submissionVersion;
+    externalResult.audioVersion = targetVersions.audioVersion;
+    externalResult.copyrightVersion = targetVersions.copyrightVersion;
+    externalResult.evidenceVersion = targetVersions.evidenceVersion;
     externalResult.checkedAt = new Date();
+
+    if (!await isCurrentVerificationVersion(trackId, targetVersions)) {
+        return { status: "skipped", reason: "stale_version", ...targetVersions };
+    }
 
     await CopyrightRegistry.findOneAndUpdate(
         { trackId },
@@ -434,16 +487,24 @@ export const runMusicBrainzVerification = async (trackId, { force = false } = {}
         { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
+    if (reevaluate) await reEvaluateAfterVerification(trackId);
     return externalResult;
 };
 
-export const getMusicBrainzResultForTrack = async (trackId) => {
+const isMusicBrainzResultCurrent = (result, versions) => !versions || !result || [
+    ["submissionVersion", versions.submissionVersion],
+    ["audioVersion", versions.audioVersion],
+    ["copyrightVersion", versions.copyrightVersion],
+    ["evidenceVersion", versions.evidenceVersion],
+].every(([key, version]) => Number(result[key] || 1) === Number(version || 1));
+
+export const getMusicBrainzResultForTrack = async (trackId, versions = null) => {
     const registry = await CopyrightRegistry.findOne({ trackId }).select("artistDeclaredData externalResult externalVerification externalSubmissionVersion").lean();
     return registry
         ? {
             artistDeclaredData: registry.artistDeclaredData || null,
-            externalResult: registry.externalResult || null,
-            externalVerification: registry.externalVerification || null,
+            externalResult: isMusicBrainzResultCurrent(registry.externalResult, versions) ? registry.externalResult || null : null,
+            externalVerification: isMusicBrainzResultCurrent(registry.externalResult, versions) ? registry.externalVerification || null : null,
             externalSubmissionVersion: registry.externalSubmissionVersion || null,
         }
         : { artistDeclaredData: null, externalResult: null, externalVerification: null, externalSubmissionVersion: null };

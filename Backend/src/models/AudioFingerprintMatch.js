@@ -25,6 +25,24 @@ const AudioFingerprintMatchSchema = new Schema(
         riskSignals: { type: [Schema.Types.Mixed], default: [] },
         sourceAudioVersion: { type: Number, min: 1, default: null },
         matchedAudioVersion: { type: Number, min: 1, default: null },
+        // Context is persisted with the match so later policy evaluation does
+        // not infer ownership from creation order or from a stale Track state.
+        candidateContext: {
+            type: String,
+            enum: ["unknown", "draft", "pending", "approved_active", "historical_deleted", "blocklist"],
+            default: "unknown",
+            index: true,
+        },
+        sourceContext: {
+            type: String,
+            enum: ["unknown", "draft", "pending", "approved_active", "historical_deleted", "blocklist"],
+            default: "unknown",
+        },
+        matchedContext: {
+            type: String,
+            enum: ["unknown", "draft", "pending", "approved_active", "historical_deleted", "blocklist"],
+            default: "unknown",
+        },
         // active is used for current matching; enforcement/historical records
         // remain available for moderation and audit without becoming candidates.
         matchingScope: {
@@ -51,8 +69,14 @@ const AudioFingerprintMatchSchema = new Schema(
 );
 
 AudioFingerprintMatchSchema.index(
-    { sourceTrackId: 1, matchedTrackId: 1, algorithmVersion: 1 },
-    { unique: true }
+    {
+        sourceTrackId: 1,
+        matchedTrackId: 1,
+        algorithmVersion: 1,
+        sourceAudioVersion: 1,
+        matchedAudioVersion: 1,
+    },
+    { unique: true, name: "unique_track_audio_version_match" }
 );
 AudioFingerprintMatchSchema.index({ status: 1, severity: 1, createdAt: -1 });
 

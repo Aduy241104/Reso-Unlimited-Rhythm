@@ -84,7 +84,16 @@ const getAudioReviewMinimum = () => {
     return Number.isFinite(value) ? Math.min(60, Math.max(1, value)) : DEFAULT_AUDIO_REVIEW_SECONDS;
 };
 
-const getReviewTarget = (track) => {
+const isProviderUnavailable = (result) => Boolean(
+    result?.providerUnavailable ||
+    result?.status === "unavailable" ||
+    (result?.status === "failed" && (
+        result?.reasonCodes?.some?.((code) => /timeout|unavailable|lookup_failed|missing_api_key|disabled|api_|http_/i.test(String(code))) ||
+        result?.flags?.includes?.("musicbrainz_unavailable")
+    ))
+);
+
+export const getReviewTarget = (track) => {
     const isPendingUpdate = track?.pendingUpdate?.status === "pending" && track.pendingUpdate.data;
     const target = isPendingUpdate ? track.pendingUpdate.data : track;
     const versions = isPendingUpdate
@@ -128,6 +137,11 @@ const getReviewTarget = (track) => {
         ],
     };
 };
+
+export const getRequiredAudioReviewSeconds = ({ configuredSeconds, duration }) => Math.min(
+    Number(configuredSeconds) || DEFAULT_AUDIO_REVIEW_SECONDS,
+    Math.max(0, Number(duration) || 0),
+);
 
 const getLatestReview = (trackId, adminId) => TrackModerationReview.findOne({
     trackId,
@@ -190,7 +204,13 @@ const getFingerprintRisk = async (trackId) => {
 
 const buildChecklist = async (track, review) => {
     const target = getReviewTarget(track);
-    const minimumAudioSeconds = getAudioReviewMinimum();
+    // Review the active target. For a pending update this is the pending
+    // duration, and a short track should never require more seconds than it
+    // actually contains.
+    const minimumAudioSeconds = getRequiredAudioReviewSeconds({
+        configuredSeconds: getAudioReviewMinimum(),
+        duration: target.target?.duration,
+    });
     const { fingerprint, highMatch, reviewMatch } = await getFingerprintRisk(track._id);
     const [musicBrainz, acoustId] = await Promise.all([
         getMusicBrainzResultForTrack(track._id),
@@ -211,15 +231,20 @@ const buildChecklist = async (track, review) => {
     const musicBrainzResult = musicBrainz.externalResult;
     const musicBrainzReady = Boolean(
         musicBrainzResult &&
-        ["matched", "possible_match", "not_found"].includes(musicBrainzResult.status) &&
-        Number(musicBrainzResult.submissionVersion || 0) === Number(target.versions.submission)
+        (["matched", "possible_match", "not_found"].includes(musicBrainzResult.status) || isProviderUnavailable(musicBrainzResult)) &&
+        Number(musicBrainzResult.submissionVersion || 0) === Number(target.versions.submission) &&
+        Number(musicBrainzResult.audioVersion || 1) === Number(target.versions.audio) &&
+        Number(musicBrainzResult.copyrightVersion || 1) === Number(target.versions.copyright) &&
+        Number(musicBrainzResult.evidenceVersion || 1) === Number(target.versions.evidence)
     );
     const acoustIdResult = acoustId.result;
     const acoustIdReady = Boolean(
         acoustIdResult &&
-        ["matched", "possible_match", "not_found", "failed"].includes(acoustIdResult.status) &&
+        (["matched", "possible_match", "not_found"].includes(acoustIdResult.status) || isProviderUnavailable(acoustIdResult)) &&
         Number(acoustIdResult.submissionVersion || 0) === Number(target.versions.submission) &&
-        Number(acoustIdResult.audioVersion || 0) === Number(target.versions.audio)
+        Number(acoustIdResult.audioVersion || 0) === Number(target.versions.audio) &&
+        Number(acoustIdResult.copyrightVersion || 1) === Number(target.versions.copyright) &&
+        Number(acoustIdResult.evidenceVersion || 1) === Number(target.versions.evidence)
     );
 
     const checklist = {
@@ -231,7 +256,7 @@ const buildChecklist = async (track, review) => {
         acoustIdViewed: hasEvent(review, "OPEN_ACOUSTID_RESULT"),
         acoustIdReady,
         acoustIdStatus: acoustIdResult?.status || "pending",
-        acoustIdDecision: acoustIdResult?.decision || "review_required",
+        acoustIdDecision: acoustIdResult?.decision || (isProviderUnavailable(acoustIdResult) ? "provider_unavailable" : "review_required"),
         acoustIdResult: acoustIdResult || null,
         musicBrainzViewed: hasEvent(review, "OPEN_MUSICBRAINZ_RESULT"),
         musicBrainzReady,
@@ -315,6 +340,13 @@ export const ensureReviewSession = async (adminId, trackId) => {
     ensureObjectId(trackId, "trackId");
     const track = await Track.findById(trackId);
     if (!track) throw new AppError("Không tìm thấy bài hát.", 404, { field: "trackId" });
+    if (track.isDeleted === true) {
+        throw new AppError(
+            "Không thể kiểm duyệt track của nghệ sĩ đã bị xóa.",
+            409,
+            { code: "TRACK_DELETED", field: "isDeleted" }
+        );
+    }
     if (track.approvalStatus !== "pending" && track.pendingUpdate?.status !== "pending") {
         throw new AppError("Bài hát hiện không có yêu cầu duyệt.", 409, { field: "status" });
     }
@@ -403,6 +435,13 @@ export const recordReviewEvent = async (adminId, trackId, payload = {}) => {
 
     const track = await Track.findById(trackId);
     if (!track) throw new AppError("Không tìm thấy bài hát.", 404, { field: "trackId" });
+    if (track.isDeleted === true) {
+        throw new AppError(
+            "Không thể kiểm duyệt track của nghệ sĩ đã bị xóa.",
+            409,
+            { code: "TRACK_DELETED", field: "isDeleted" }
+        );
+    }
     const review = await getLatestReview(track._id, adminId);
     if (!review || review.status !== "active") return ensureReviewSession(adminId, trackId);
     const target = assertCurrentReviewSnapshot(track, review);
@@ -411,10 +450,20 @@ export const recordReviewEvent = async (adminId, trackId, payload = {}) => {
     // An explicit Admin action always refreshes the external reference so a
     // previously cached miss can pick up MusicBrainz metadata added later.
     if (payload.type === "OPEN_MUSICBRAINZ_RESULT") {
-        await runMusicBrainzVerification(track._id, { force: true });
+        try {
+            await runMusicBrainzVerification(track._id, { force: true });
+        } catch (error) {
+            // External metadata is advisory. Record the review event even if
+            // the provider is down so an Admin can still complete review.
+            console.error("MusicBrainz review lookup unavailable:", error.message);
+        }
     }
     if (payload.type === "OPEN_ACOUSTID_RESULT") {
-        await runAcoustIdVerification(track._id, { retryFailed: true });
+        try {
+            await runAcoustIdVerification(track._id, { retryFailed: true });
+        } catch (error) {
+            console.error("AcoustID review lookup unavailable:", error.message);
+        }
         await markAcoustIdReviewed(track._id, adminId);
     }
 
@@ -435,7 +484,7 @@ export const recordReviewEvent = async (adminId, trackId, payload = {}) => {
         }
         const delta = Math.min(30, Math.max(0, Number(payload.deltaSeconds) || 0));
         review.audioListenedSeconds = Math.min(
-            Number(track.duration) || Number.MAX_SAFE_INTEGER,
+            Number(target.target?.duration) || Number.MAX_SAFE_INTEGER,
             Number(review.audioListenedSeconds || 0) + delta
         );
         payload.deltaSeconds = delta;
@@ -482,7 +531,12 @@ export const assertAcoustIdApprovalAllowed = ({
             checklist,
         });
     }
-    const needsOverride = checklist.acoustIdStatus === "failed" || checklist.acoustIdDecision === "blocked";
+    // Timeout, disabled provider, missing key and upstream errors are neutral
+    // signals. They must not force an override or make review impossible.
+    if (isProviderUnavailable(checklist.acoustIdResult) || checklist.acoustIdDecision === "provider_unavailable") {
+        return { overrideUsed: false, providerUnavailable: true };
+    }
+    const needsOverride = checklist.acoustIdDecision === "blocked";
     if (needsOverride) {
         if (!overrideAuthorized) {
             throw new AppError("This AcoustID result can only be overridden by an authorized moderator.", 403, {
@@ -499,7 +553,11 @@ export const assertAcoustIdApprovalAllowed = ({
         }
         return { overrideUsed: true };
     }
-    if (checklist.acoustIdDecision === "review_required" && String(payload.adminNote || "").trim().length < 10) {
+    if (
+        checklist.acoustIdDecision === "review_required" &&
+        !["not_found", "failed", "unavailable"].includes(checklist.acoustIdStatus) &&
+        String(payload.adminNote || "").trim().length < 10
+    ) {
         throw new AppError("A manual external-audio review reason of at least 10 characters is required.", 409, {
             code: "ACOUSTID_MANUAL_REVIEW_REASON_REQUIRED",
             field: "adminNote",
@@ -512,6 +570,11 @@ export const assertAcoustIdApprovalAllowed = ({
 export const assertReviewCanApprove = async (track, adminId, payload = {}) => {
     if (!track || (track.approvalStatus !== "pending" && track.pendingUpdate?.status !== "pending")) {
         throw new AppError("Track không còn ở trạng thái chờ duyệt.", 409, { field: "status" });
+    }
+    if (track.moderation?.automatic?.decision === "enforcement_block" || track.activeStatus === "blocked") {
+        throw new AppError("Track đang bị enforcement block và không thể override trong luồng duyệt thông thường.", 409, {
+            code: "ENFORCEMENT_BLOCK_ACTIVE",
+        });
     }
     const review = await getLatestReview(track._id, adminId);
     if (!review || review.status !== "active") {
@@ -547,10 +610,63 @@ export const assertReviewCanApprove = async (track, adminId, payload = {}) => {
             });
         }
     }
+    const fingerprintOverrideReason = String(
+        payload.fingerprintOverrideReason || ""
+    ).trim();
+
     if (isInternalFingerprintApprovalBlocked(result.checklist)) {
-        throw new AppError("Fingerprint có dấu hiệu trùng/độ tin cậy cao, không thể duyệt thông thường.", 409, {
-            code: "HIGH_RISK_FINGERPRINT",
-            checklist: result.checklist,
+        /*
+         * HIGH không phải CRITICAL.
+         *
+         * Admin có thể approve sau manual review nếu:
+         * - đúng role admin;
+         * - checklist đã hoàn tất;
+         * - evidence đã được xem;
+         * - có reason đủ rõ.
+         */
+        if (payload.moderationRole !== "admin") {
+            throw new AppError(
+                "Chỉ Admin được phép override cảnh báo fingerprint mức HIGH.",
+                403,
+                {
+                    code: "HIGH_RISK_FINGERPRINT_OVERRIDE_FORBIDDEN",
+                    checklist: result.checklist,
+                }
+            );
+        }
+
+        if (fingerprintOverrideReason.length < 10) {
+            throw new AppError(
+                "Fingerprint mức HIGH cần lý do xử lý thủ công tối thiểu 10 ký tự.",
+                409,
+                {
+                    code: "HIGH_RISK_FINGERPRINT_OVERRIDE_REASON_REQUIRED",
+                    field: "fingerprintOverrideReason",
+                    checklist: result.checklist,
+                }
+            );
+        }
+
+        await recordAuditEvent({
+            actorUserId: adminId,
+            actorSnapshot: {
+                role: payload.moderationRole || "",
+            },
+            action: "TRACK_REVIEW_HIGH_FINGERPRINT_OVERRIDE",
+            targetType: "track",
+            targetId: track._id,
+            metadata: {
+                reviewSessionId: review._id,
+                matchedTrackId:
+                    result.checklist.highMatchTrackId || null,
+                fingerprintStatus:
+                    result.checklist.fingerprintStatus,
+                screeningStatus:
+                    result.checklist.screeningStatus,
+                audioVersion:
+                    result.checklist.versions?.audio || null,
+                reason: fingerprintOverrideReason,
+            },
         });
     }
     const acoustIdGuard = assertAcoustIdApprovalAllowed({
@@ -558,12 +674,20 @@ export const assertReviewCanApprove = async (track, adminId, payload = {}) => {
         payload,
         overrideAuthorized: payload.moderationRole === "admin",
     });
-    if (result.mediumRisk && String(payload.fingerprintOverrideReason || "").trim().length < 10) {
-        throw new AppError("Match fingerprint mức trung bình cần lý do override tối thiểu 10 ký tự.", 409, {
-            code: "FINGERPRINT_OVERRIDE_REASON_REQUIRED",
-            field: "fingerprintOverrideReason",
-            checklist: result.checklist,
-        });
+    if (
+        result.mediumRisk &&
+        !result.checklist.highRisk &&
+        fingerprintOverrideReason.length < 10
+    ) {
+        throw new AppError(
+            "Match fingerprint mức trung bình cần lý do override tối thiểu 10 ký tự.",
+            409,
+            {
+                code: "FINGERPRINT_OVERRIDE_REASON_REQUIRED",
+                field: "fingerprintOverrideReason",
+                checklist: result.checklist,
+            }
+        );
     }
     if (acoustIdGuard.overrideUsed) {
         const overrideReason = String(payload.acoustIdOverrideReason || "").trim();

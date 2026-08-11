@@ -93,6 +93,20 @@ describe("AcoustID verification decisions", () => {
         expect(result).toMatchObject({ status: "possible_match", decision: "review_required", score: 0.6 });
     });
 
+    test("a high score without a recording identity is not described as low confidence", () => {
+        const result = normalizeAcoustIdResult({
+            payload: {
+                status: "ok",
+                results: [{ id: "acoustid-unknown", score: 0.93, recordings: [] }],
+            },
+            declared: declared(),
+        });
+
+        expect(result).toMatchObject({ status: "possible_match", decision: "review_required", score: 0.93 });
+        expect(result.reasonCodes).toContain("ACOUSTID_HIGH_SCORE_WITHOUT_IDENTITY");
+        expect(result.reasonCodes).not.toContain("low_confidence_external_audio_match");
+    });
+
     test("karaoke/instrumental/radio-edit ambiguity stays in manual review", () => {
         const result = normalizeAcoustIdResult({
             payload: recordingPayload({ title: "Lạc Trôi (Instrumental)" }),
@@ -125,7 +139,7 @@ describe("AcoustID lookup failures and retries", () => {
     test.each([
         [Object.assign(new Error("request timed out"), { name: "AbortError" }), "acoustid_timeout"],
         [new Error("upstream unavailable"), "acoustid_lookup_failed"],
-    ])("timeout/API failure blocks normal approval", async (error, reasonCode) => {
+    ])("timeout/API failure stays neutral and does not force an override", async (error, reasonCode) => {
         const result = await lookupAcoustId({
             ...lookupInput,
             fingerprintHash: `failure-${reasonCode}`,
@@ -134,9 +148,13 @@ describe("AcoustID lookup failures and retries", () => {
 
         expect(result).toMatchObject({ status: "failed", decision: "review_required" });
         expect(result.reasonCodes).toContain(reasonCode);
-        expect(() => assertAcoustIdApprovalAllowed({
-            checklist: { acoustIdStatus: result.status, acoustIdDecision: result.decision },
-        })).toThrow("only be overridden");
+        expect(assertAcoustIdApprovalAllowed({
+            checklist: {
+                acoustIdStatus: result.status,
+                acoustIdDecision: result.decision,
+                acoustIdResult: result,
+            },
+        })).toMatchObject({ overrideUsed: false, providerUnavailable: true });
     });
 
     test("a missing production key fails without making an HTTP request", async () => {
@@ -188,7 +206,11 @@ describe("AcoustID approval override", () => {
 
     test.each([
         blockedChecklist,
-        { acoustIdStatus: "failed", acoustIdDecision: "review_required" },
+        {
+            acoustIdStatus: "failed",
+            acoustIdDecision: "blocked",
+            acoustIdResult: { status: "failed", providerUnavailable: false },
+        },
     ])("an authorized moderator can override a blocked/failed result with a non-empty reason", (checklist) => {
         expect(assertAcoustIdApprovalAllowed({
             checklist,
@@ -205,14 +227,17 @@ describe("AcoustID approval override", () => {
         })).toThrow("override reason is required");
     });
 
-    test("a review-required result needs a recorded manual-review reason", () => {
-        const checklist = { acoustIdStatus: "not_found", acoustIdDecision: "review_required" };
+    test("a possible match needs a recorded manual-review reason while not_found stays neutral", () => {
+        const checklist = { acoustIdStatus: "possible_match", acoustIdDecision: "review_required" };
 
         expect(() => assertAcoustIdApprovalAllowed({ checklist, payload: { adminNote: "short" } }))
             .toThrow("manual external-audio review reason");
         expect(assertAcoustIdApprovalAllowed({
             checklist,
             payload: { adminNote: "Đã đối chiếu tài liệu bản quyền thủ công." },
+        })).toEqual({ overrideUsed: false });
+        expect(assertAcoustIdApprovalAllowed({
+            checklist: { acoustIdStatus: "not_found", acoustIdDecision: "review_required" },
         })).toEqual({ overrideUsed: false });
     });
 

@@ -18,10 +18,12 @@ import { assertReviewCanApprove } from "../../track/moderationReview.service.js"
 import { getMusicBrainzResultForTrack } from "../../external/musicbrainz.service.js";
 import { getAcoustIdResultForTrack } from "../../external/acoustid.service.js";
 import { recordAuditEvent } from "../../audit/auditLog.service.js";
+import { getDisplayRejectionReason } from "../../fingerprint/moderationDecision.service.js";
 import {
     resolveTrackReleasedAt,
     resolveTrackReleaseStatus,
 } from "../../../utils/trackRelease.js";
+import { hashTrackMutableData } from "../../track/track.rejection.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
@@ -133,7 +135,7 @@ const formatPendingUpdate = (track) => {
         lastSavedAt: track?.pendingUpdate?.lastSavedAt || null,
         reviewedAt: track?.pendingUpdate?.reviewedAt || null,
         adminNote: track?.pendingUpdate?.adminNote || "",
-        rejectReason: track?.pendingUpdate?.rejectReason || "",
+        rejectReason: getDisplayRejectionReason(track?.pendingUpdate?.rejectReason, track?.moderation?.automatic),
         reviewedBy:
             track?.pendingUpdate?.reviewedBy &&
             typeof track.pendingUpdate.reviewedBy === "object"
@@ -196,16 +198,20 @@ const formatAdminTrackListItem = (track) => {
                 : null,
         pendingUpdateStatus: track.pendingUpdate?.status || "none",
         activeStatus: track.activeStatus,
+        isDeleted: track.isDeleted === true,
+        deletedAt: track.deletedAt || null,
+        deleteReason: track.deleteReason || "",
         submissionVersion: Number(track.submissionVersion || 1),
         audioVersion: Number(track.audioVersion || 1),
         copyrightVersion: Number(track.copyrightVersion || 1),
         evidenceVersion: Number(track.evidenceVersion || 1),
         releaseStatus: resolveTrackReleaseStatus(track),
         releasedAt: resolveTrackReleasedAt(track),
-        rejectReason: track.rejectReason || "",
+        rejectReason: getDisplayRejectionReason(track.rejectReason, track.moderation?.automatic),
         hiddenReason: track.hiddenReason || "",
         hiddenAt: track.hiddenAt || null,
         moderation: track.moderation || { adminNote: "", violationFlags: [] },
+        moderationAutomatic: track.moderation?.automatic || null,
         artist: isPopulatedArtist
             ? {
                 id: toId(artistRef._id),
@@ -332,11 +338,14 @@ const formatAdminTrackDetailItem = (
         reviewStatus: getReviewStatus(track),
         reviewSource: getReviewSource(track),
         activeStatus: track.activeStatus,
+        isDeleted: track.isDeleted === true,
+        deletedAt: track.deletedAt || null,
+        deleteReason: track.deleteReason || "",
         submissionVersion: Number(track.submissionVersion || 1),
         audioVersion: Number(track.audioVersion || 1),
         copyrightVersion: Number(track.copyrightVersion || 1),
         evidenceVersion: Number(track.evidenceVersion || 1),
-        rejectReason: track.rejectReason || "",
+        rejectReason: getDisplayRejectionReason(track.rejectReason, track.moderation?.automatic),
         hiddenReason: track.hiddenReason || "",
         blockedReason: track.blockedReason || "",
         hiddenAt: track.hiddenAt || null,
@@ -429,6 +438,8 @@ const formatAdminTrackDetailItem = (
                         email: track.moderation.reviewedBy.email || "",
                     }
                     : null,
+            automatic: track.moderation?.automatic || null,
+            lastRejection: track.moderation?.lastRejection || null,
         },
         createdAt: track.createdAt,
         updatedAt: track.updatedAt,
@@ -458,6 +469,22 @@ const assertObjectId = (trackId) => {
     if (!mongoose.Types.ObjectId.isValid(trackId)) {
         throw new AppError("Track id is invalid.", 400, { field: "id" });
     }
+};
+
+export const assertTrackNotDeleted = (track) => {
+    if (track?.isDeleted === true) {
+        throw new AppError(
+            "Không thể thao tác với track của nghệ sĩ đã bị xóa.",
+            409,
+            { code: "TRACK_DELETED", field: "isDeleted" }
+        );
+    }
+};
+
+export const getAdminTrackDeletionFilter = (deletionStatus = "active") => {
+    if (deletionStatus === "deleted") return { isDeleted: true };
+    if (deletionStatus === "all") return {};
+    return { isDeleted: { $ne: true } };
 };
 
 const getTrackThumbnail = (track) => {
@@ -593,13 +620,43 @@ const listTracksForAdmin = async (query = {}) => {
     const limit = Math.min(requestedLimit, MAX_LIMIT);
     const skip = (page - 1) * limit;
     const rawSearch = typeof query.q === "string" ? query.q.trim() : "";
+    const deletionStatus = ["active", "deleted", "all"].includes(query.deletionStatus)
+        ? query.deletionStatus
+        : "active";
 
     const conditions = [];
+
+    const deletionFilter = getAdminTrackDeletionFilter(deletionStatus);
+    if (Object.keys(deletionFilter).length > 0) conditions.push(deletionFilter);
+
+    if (query.artistId) {
+        if (!mongoose.Types.ObjectId.isValid(query.artistId)) {
+            throw new AppError("Artist id is invalid.", 400, { field: "artistId" });
+        }
+        conditions.push({ artist_artistId: query.artistId });
+    }
 
     // Drafts stay private until submission. Pending records belong to the
     // dedicated moderation queue, not the system catalog.
     if (query.scope === "catalog") {
         conditions.push({ approvalStatus: { $in: ["approved", "rejected"] } });
+    }
+
+    if (query.scope === "moderation") {
+        // AUTO_REJECT is returned to the artist and is intentionally absent
+        // from the normal manual queue. Enforcement blocks remain queryable
+        // explicitly for the security/audit view.
+        if (query.moderationDecision) {
+            conditions.push({ "moderation.automatic.decision": query.moderationDecision });
+        } else {
+            conditions.push({
+                "moderation.automatic.decision": {
+                    $in: ["manual_review_high", "manual_review", "auto_clear"],
+                },
+            });
+        }
+    } else if (query.moderationDecision) {
+        conditions.push({ "moderation.automatic.decision": query.moderationDecision });
     }
 
     if (query.approvalStatus) {
@@ -664,7 +721,15 @@ const listTracksForAdmin = async (query = {}) => {
 
     const [tracks, total] = await Promise.all([
         Track.find(filter)
-            .sort({ createdAt: -1, _id: 1 })
+            .sort(query.scope === "moderation"
+                ? {
+                    "moderation.automatic.priority": -1,
+                    "pendingUpdate.submittedAt": 1,
+                    "moderation.submittedAt": 1,
+                    createdAt: 1,
+                    _id: 1,
+                }
+                : { createdAt: -1, _id: 1 })
             .skip(skip)
             .limit(limit)
             .populate({ path: "artist_artistId", select: "name" })
@@ -699,6 +764,19 @@ const getTrackDetailForAdmin = async (trackId) => {
         throw new AppError("Track not found.", 404, { field: "id" });
     }
 
+    const providerVersions = track.pendingUpdate?.status === "pending"
+        ? {
+            submissionVersion: track.pendingUpdate.submissionVersion,
+            audioVersion: track.pendingUpdate.audioVersion,
+            copyrightVersion: track.pendingUpdate.copyrightVersion,
+            evidenceVersion: track.pendingUpdate.evidenceVersion,
+        }
+        : {
+            submissionVersion: track.submissionVersion,
+            audioVersion: track.audioVersion,
+            copyrightVersion: track.copyrightVersion,
+            evidenceVersion: track.evidenceVersion,
+        };
     const [fingerprint, musicBrainz, acoustId] = await Promise.all([
         AudioFingerprint.findOne({
             trackId: track._id,
@@ -707,8 +785,8 @@ const getTrackDetailForAdmin = async (trackId) => {
         })
             .select("algorithm algorithmVersion status duration rawFingerprint sourceAudioHash retryCount lastAttemptAt generatedAt errorCode error audioVersion")
             .lean(),
-        getMusicBrainzResultForTrack(track._id),
-        getAcoustIdResultForTrack(track._id),
+        getMusicBrainzResultForTrack(track._id, providerVersions),
+        getAcoustIdResultForTrack(track._id, providerVersions),
     ]);
     const fingerprintComparison = await buildFingerprintComparisonSummary(track._id, fingerprint);
 
@@ -727,6 +805,7 @@ const updateTrackApprovalStatus = async (
     if (!track) {
         throw new AppError("Track not found.", 404, { field: "id" });
     }
+    assertTrackNotDeleted(track);
 
     const note = (payload.adminNote || payload.rejectReason || "").trim();
     const flags = payload.violationFlags || [];
@@ -825,6 +904,18 @@ const updateTrackApprovalStatus = async (
                 reviewedAt: new Date(),
                 adminNote: note,
                 violationFlags: flags,
+                lastRejection: {
+                    rejectionId: new mongoose.Types.ObjectId().toString(),
+                    rejectedAt: new Date(),
+                    rejectedBy: adminUserId,
+                    submissionVersion: Number(track.submissionVersion || 1),
+                    audioVersion: Number(track.audioVersion || 1),
+                    copyrightVersion: Number(track.copyrightVersion || 1),
+                    evidenceVersion: Number(track.evidenceVersion || 1),
+                    rejectReason: track.rejectReason,
+                    violationFlags: flags,
+                    mutableSnapshotHash: hashTrackMutableData(track),
+                },
             };
 
             await track.save();
@@ -900,6 +991,7 @@ const updateTrackVisibility = async (
     if (!track) {
         throw new AppError("Track not found.", 404, { field: "id" });
     }
+    assertTrackNotDeleted(track);
 
     if (payload.action === "hide") {
         track.blockedByAlbumId = null;

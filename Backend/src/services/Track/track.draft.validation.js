@@ -4,6 +4,10 @@ import Album from "../../models/Album.js";
 import Genre from "../../models/Genre.js";
 import { AppError } from "../../utils/AppError.js";
 import { normalizeCopyrightDeclaration } from "./copyright.validation.service.js";
+import {
+    ARTIST_COPYRIGHT_UPDATE_FIELDS,
+    ARTIST_EVIDENCE_UPDATE_FIELDS,
+} from "./track.rejection.js";
 
 export const TITLE_MIN_LENGTH = 1;
 export const TITLE_MAX_LENGTH = 150;
@@ -464,11 +468,12 @@ export const sanitizeArtistCopyright = (copyright = {}) => {
         return undefined;
     }
 
-    const {
-        copyrightStatus,
-        _id,
-        ...allowed
-    } = copyright;
+    const allowed = ARTIST_COPYRIGHT_UPDATE_FIELDS.reduce((result, field) => {
+        if (copyright[field] !== undefined && copyright[field] !== null) {
+            result[field] = copyright[field];
+        }
+        return result;
+    }, {});
 
     if (Array.isArray(allowed.licenseDocumentUrls)) {
         allowed.licenseDocumentUrls = allowed.licenseDocumentUrls
@@ -505,7 +510,12 @@ export const sanitizeArtistCopyright = (copyright = {}) => {
 
     if (Array.isArray(allowed.copyrightEvidenceDocuments)) {
         allowed.copyrightEvidenceDocuments = allowed.copyrightEvidenceDocuments.map((document) => ({
-            ...document,
+            ...ARTIST_EVIDENCE_UPDATE_FIELDS.reduce((result, field) => {
+                if (document?.[field] !== undefined && document?.[field] !== null) {
+                    result[field] = document[field];
+                }
+                return result;
+            }, {}),
             type: document?.type || "other",
             url: document?.url || document?.storageUrl || "",
             hash: document?.hash || document?.sha256 || "",

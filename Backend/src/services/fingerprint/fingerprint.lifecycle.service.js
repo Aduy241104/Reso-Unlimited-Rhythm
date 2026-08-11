@@ -15,6 +15,109 @@ export const activeFingerprintScopeFilter = () => ({
     matchingScope: { $in: ["active", null] },
 });
 
+const AUDIO_VERSION_REPLACED_REASON = "Audio version replaced; previous fingerprint state is no longer authoritative.";
+
+/**
+ * Invalidate derived audio state after a Track receives a new audio version.
+ *
+ * The current AudioFingerprint schema intentionally remains one-record-per-
+ * track. The record is reset for the new version, while old matches/reviews
+ * are retained as historical data and excluded from active matching.
+ */
+export const invalidateTrackAudioVersionState = async (
+    trackId,
+    {
+        audioVersion = 1,
+        submissionVersion = 1,
+        reason = AUDIO_VERSION_REPLACED_REASON,
+    } = {}
+) => {
+    if (!trackId) return;
+
+    const now = new Date();
+    await Promise.all([
+        AudioFingerprint.updateMany(
+            {
+                trackId,
+                ...activeFingerprintScopeFilter(),
+            },
+            {
+                $set: {
+                    status: "pending",
+                    audioVersion: Number(audioVersion) || 1,
+                    rawFingerprint: [],
+                    fingerprintHash: "",
+                    sourceAudioHash: "",
+                    sourceAudioFormat: "",
+                    duration: 0,
+                    retryCount: 0,
+                    lastAttemptAt: null,
+                    processingStartedAt: null,
+                    generatedAt: null,
+                    errorCode: "",
+                    error: "",
+                },
+            }
+        ),
+        AudioFingerprintMatch.updateMany(
+            {
+                $and: [
+                    {
+                        $or: [
+                            { sourceTrackId: trackId },
+                            { matchedTrackId: trackId },
+                        ],
+                    },
+                    activeFingerprintScopeFilter(),
+                ],
+            },
+            {
+                $set: {
+                    matchingScope: "historical",
+                    retainedAt: now,
+                    retentionReason: reason,
+                },
+            }
+        ),
+        CopyrightRegistry.updateOne(
+            { trackId },
+            {
+                $set: {
+                    "fingerprint.algorithm": "none",
+                    "fingerprint.value": "",
+                    "fingerprint.algorithmVersion": "",
+                    "fingerprint.status": "pending",
+                    "fingerprint.sourceAudioHash": "",
+                    "fingerprint.duration": 0,
+                    "fingerprint.generatedAt": null,
+                    externalResult: null,
+                    externalSubmissionVersion: Number(submissionVersion) || 1,
+                    "externalVerification.mode": "none",
+                    "externalVerification.provider": "",
+                    "externalVerification.source": "",
+                    "externalVerification.status": "",
+                    acoustIdResult: null,
+                    acoustIdFingerprintHash: "",
+                    acoustIdAudioVersion: Number(audioVersion) || 1,
+                },
+            }
+        ),
+        TrackModerationReview.updateMany(
+            {
+                trackId,
+                status: "active",
+                "versions.audio": { $ne: Number(audioVersion) || 1 },
+            },
+            {
+                $set: {
+                    status: "abandoned",
+                    completedAt: now,
+                },
+            }
+        ),
+    ]);
+};
+
 const VIOLATION_FLAGS = new Set([
     "copyright",
     "duplicate_track",
@@ -27,6 +130,8 @@ const getViolationFlags = (track) => (
         : []
 );
 
+const isNeutralAutomaticReturn = (track) => track?.moderation?.automatic?.decision === "auto_reject";
+
 /**
  * Pure policy decision used by deletion and tests. Database-backed claims and
  * matches are checked separately by resolveTrackDeletionDisposition().
@@ -37,7 +142,7 @@ export const getTrackDeletionDisposition = (track) => {
         track?.fingerprintScreening?.exactDuplicate ||
         violationFlags.some((flag) => VIOLATION_FLAGS.has(flag)) ||
         track?.copyright?.copyrightStatus === "disputed" ||
-        track?.approvalStatus === "rejected"
+        (track?.approvalStatus === "rejected" && !isNeutralAutomaticReturn(track))
     );
 
     if (hasFingerprintViolation) {
@@ -263,6 +368,7 @@ export const cleanupTrackFingerprintLifecycle = async (track, { actorUserId = nu
 
 export default {
     activeFingerprintScopeFilter,
+    invalidateTrackAudioVersionState,
     getTrackDeletionDisposition,
     resolveTrackDeletionDisposition,
     cleanupTrackFingerprintLifecycle,

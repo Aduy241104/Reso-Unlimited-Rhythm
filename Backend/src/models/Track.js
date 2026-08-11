@@ -244,6 +244,33 @@ const TrackSchema = new Schema(
             reviewedAt: { type: Date, default: null },
             adminNote: { type: String, default: "" },
 
+            // Automatic moderation is a separate decision record. It never
+            // replaces approvalStatus, which remains the content workflow
+            // state machine used by Artist/Admin actions.
+            automatic: {
+                decision: {
+                    type: String,
+                    enum: [
+                        "auto_clear",
+                        "auto_reject",
+                        "manual_review",
+                        "manual_review_high",
+                        "enforcement_block",
+                    ],
+                    default: null,
+                },
+                priority: { type: Number, min: 0, max: 100, default: 0, index: true },
+                reasonCodes: { type: [String], default: [] },
+                riskLevel: { type: String, enum: ["none", "low", "medium", "high"], default: "none" },
+                summary: { type: String, default: "", trim: true, maxlength: 2000 },
+                evaluatedAt: { type: Date, default: null, index: true },
+                audioVersion: { type: Number, min: 1, default: 1 },
+                submissionVersion: { type: Number, min: 1, default: 1 },
+                copyrightVersion: { type: Number, min: 1, default: 1 },
+                evidenceVersion: { type: Number, min: 1, default: 1 },
+                providerStatus: { type: Schema.Types.Mixed, default: null },
+            },
+
             violationFlags: [{
                 type: String,
                 enum: [
@@ -255,7 +282,19 @@ const TrackSchema = new Schema(
                     "duplicate_track",
                     "other"
                 ]
-            }]
+            }],
+            lastRejection: {
+                rejectionId: { type: String, default: "", index: true },
+                rejectedAt: { type: Date, default: null },
+                rejectedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
+                submissionVersion: { type: Number, min: 1, default: 1 },
+                audioVersion: { type: Number, min: 1, default: 1 },
+                copyrightVersion: { type: Number, min: 1, default: 1 },
+                evidenceVersion: { type: Number, min: 1, default: 1 },
+                rejectReason: { type: String, default: "" },
+                violationFlags: { type: [String], default: [] },
+                mutableSnapshotHash: { type: String, default: "", trim: true },
+            },
         },
         rejectReason: { 
             type: String,
@@ -318,6 +357,7 @@ TrackSchema.index(
 );
 TrackSchema.index({ artist_artistId: 1, isDeleted: 1, activeStatus: 1, approvalStatus: 1 });
 TrackSchema.index({ album_albumId: 1, isDeleted: 1, activeStatus: 1, approvalStatus: 1 });
+TrackSchema.index({ "moderation.automatic.decision": 1, "moderation.automatic.priority": -1, createdAt: 1 });
 
 const Track = model("Track", TrackSchema);
 export default Track;   

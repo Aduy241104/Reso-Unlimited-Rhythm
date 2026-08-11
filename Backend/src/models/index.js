@@ -38,6 +38,7 @@ import AudioFingerprintMatch from "./AudioFingerprintMatch.js";
 import TrackModerationReview from "./TrackModerationReview.js";
 import CopyrightFingerprintBlocklist from "./CopyrightFingerprintBlocklist.js";
 import RevenuePeriod from "./RevenuePeriod.js"; 
+import TrackReviewAppeal from "./TrackReviewAppeal.js";
 
 export default {
     Album,
@@ -83,4 +84,5 @@ export default {
     TrackModerationReview,
     CopyrightFingerprintBlocklist,
     RevenuePeriod,
+    TrackReviewAppeal,
 };
