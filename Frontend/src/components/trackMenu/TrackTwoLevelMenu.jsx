@@ -102,6 +102,7 @@ const TrackTwoLevelMenu = ({
     onRemoveFromCurrentPlaylist,
     isRemovingFromCurrentPlaylist = false,
     menuAlign = "end",
+    menuPlacement = "top",
 }) => {
     const menuRef = useRef(null);
     const navigate = useNavigate();
@@ -270,13 +271,14 @@ const TrackTwoLevelMenu = ({
     `;
 
     const menuClassName = `
-        absolute bottom-full z-[9999] mb-1.5
+        absolute z-[9999]
         w-56 overflow-visible rounded-md
         border border-[#3d3c3c]
         bg-[#202020]
         p-1 text-[12px]
         shadow-[0_10px_30px_rgba(0,0,0,0.35)]
         ${menuAlign === "start" ? "left-0" : "right-0"}
+        ${menuPlacement === "bottom" ? "top-full mt-1.5" : "bottom-full mb-1.5"}
     `;
 
     const filteredPlaylists = useMemo(() => {
