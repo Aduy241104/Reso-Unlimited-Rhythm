@@ -2,6 +2,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 import redisClient from "../../config/redisConfig.js";
+import Podcast from "../../models/Podcast.js";
 import Track from "../../models/Track.js";
 import { AppError } from "../../utils/AppError.js";
 import { getAnalyticsTimezone } from "../analytics/trackStatAggregation.service.js";
@@ -21,6 +22,7 @@ export const LISTEN_EVENT_SOURCE_ENUM = [
     "playlist",
     "search",
     "artist_profile",
+    "podcast_detail",
     "unknown",
 ];
 
@@ -49,9 +51,25 @@ export const resolveRequiredPercent = (dailyListenOrder) => {
     return 100;
 };
 
-export const buildValidStreamCountKey = ({ dateKey, userId, guestId, trackId }) => {
+const resolveListenTargetKey = ({ contentType = "track", trackId, podcastId }) => {
+    if (contentType === "podcast") {
+        return `podcast:${podcastId}`;
+    }
+
+    return String(trackId);
+};
+
+export const buildValidStreamCountKey = ({
+    dateKey,
+    userId,
+    guestId,
+    contentType = "track",
+    trackId,
+    podcastId,
+}) => {
     const listenerId = userId || guestId;
-    return `${VALID_STREAM_COUNT_KEY_PREFIX}:${dateKey}:${listenerId}:${trackId}`;
+    const targetKey = resolveListenTargetKey({ contentType, trackId, podcastId });
+    return `${VALID_STREAM_COUNT_KEY_PREFIX}:${dateKey}:${listenerId}:${targetKey}`;
 };
 
 export const buildAnalyticsDateKey = (date = new Date()) =>
@@ -110,7 +128,9 @@ export const normalizeListenEventSource = (value) => {
 const buildQueuedEventPayload = ({
     userId,
     guestId,
+    contentType,
     trackId,
+    podcastId,
     artistId,
     listenedAt,
     trackDuration,
@@ -124,8 +144,7 @@ const buildQueuedEventPayload = ({
     source,
 }) => {
     const payload = {
-        trackId: String(trackId),
-        artistId: String(artistId),
+        contentType,
         listenedAt: listenedAt.toISOString(),
         trackDuration: String(trackDuration),
         listenedDuration: String(listenedDuration),
@@ -136,6 +155,18 @@ const buildQueuedEventPayload = ({
         isValidStream: String(Boolean(isValidStream)),
         source: normalizeListenEventSource(source),
     };
+
+    if (trackId) {
+        payload.trackId = String(trackId);
+    }
+
+    if (podcastId) {
+        payload.podcastId = String(podcastId);
+    }
+
+    if (artistId) {
+        payload.artistId = String(artistId);
+    }
 
     if (userId) {
         payload.userId = String(userId);
@@ -166,7 +197,9 @@ const queueListenEventInRedis = async (payload) => {
 const queueSkippedListenInRedis = async ({
     userId,
     guestId,
+    contentType,
     trackId,
+    podcastId,
     artistId,
     listenedAt,
     trackDuration,
@@ -177,7 +210,9 @@ const queueSkippedListenInRedis = async ({
     const queuedEventPayload = buildQueuedEventPayload({
         userId,
         guestId,
+        contentType,
         trackId,
+        podcastId,
         artistId,
         listenedAt,
         trackDuration,
@@ -196,7 +231,9 @@ const queueValidStreamInRedis = async ({
     countKey,
     userId,
     guestId,
+    contentType,
     trackId,
+    podcastId,
     artistId,
     listenedAt,
     trackDuration,
@@ -229,7 +266,9 @@ const queueValidStreamInRedis = async ({
             const queuedEventPayload = buildQueuedEventPayload({
                 userId,
                 guestId,
+                contentType,
                 trackId,
+                podcastId,
                 artistId,
                 listenedAt,
                 trackDuration,
@@ -267,23 +306,38 @@ const queueValidStreamInRedis = async ({
     });
 };
 
-export const recordCompletedListenAttempt = async ({
-    userId,
-    guestId,
-    trackId,
-    listenedDuration,
-    source = "unknown",
-}) => {
-    const listenerIdentity = resolveListenerIdentity({ userId, guestId });
+const resolveListenContentType = ({ contentType, trackId, podcastId }) => {
+    const normalizedContentType = typeof contentType === "string"
+        ? contentType.trim().toLowerCase()
+        : "";
 
-    const normalizedListenedDuration = Number(listenedDuration);
-
-    if (!Number.isFinite(normalizedListenedDuration) || normalizedListenedDuration <= 0) {
-        throw new AppError("Listened duration must be greater than 0.", 400, {
-            field: "listenedDuration",
+    if (normalizedContentType && !["track", "podcast"].includes(normalizedContentType)) {
+        throw new AppError("contentType must be either track or podcast.", 400, {
+            field: "contentType",
         });
     }
 
+    const hasTrackId = Boolean(trackId);
+    const hasPodcastId = Boolean(podcastId);
+
+    if (hasTrackId === hasPodcastId) {
+        throw new AppError("Exactly one of trackId or podcastId is required.", 400, {
+            field: hasTrackId ? "podcastId" : "trackId",
+        });
+    }
+
+    const inferredContentType = hasPodcastId ? "podcast" : "track";
+
+    if (normalizedContentType && normalizedContentType !== inferredContentType) {
+        throw new AppError("contentType does not match the supplied content id.", 400, {
+            field: "contentType",
+        });
+    }
+
+    return inferredContentType;
+};
+
+const getTrackListenContext = async (trackId) => {
     const track = await Track.findById(trackId)
         .select("title versionTitle artist_artistId album_albumId duration avatar coverImage activeStatus approvalStatus")
         .populate({ path: "artist_artistId", select: "name avatar" })
@@ -298,9 +352,9 @@ export const recordCompletedListenAttempt = async ({
         throw new AppError("Track is not available for streaming.", 400);
     }
 
-    const trackDuration = Number(track.duration) || 0;
+    const duration = Number(track.duration) || 0;
 
-    if (trackDuration <= 0) {
+    if (duration <= 0) {
         throw new AppError("Track duration is invalid for stream counting.", 400);
     }
 
@@ -311,7 +365,84 @@ export const recordCompletedListenAttempt = async ({
         throw new AppError("Track artist information is missing.", 400);
     }
 
-    const allowedDurationCeiling = trackDuration + resolveDurationTolerance(trackDuration);
+    return {
+        content: track,
+        duration,
+        artistId,
+        albumId,
+    };
+};
+
+const getPodcastListenContext = async (podcastId) => {
+    const podcast = await Podcast.findById(podcastId)
+        .select("title creator duration audioUrl coverImageUrl approvalStatus visibility isBlocked releaseDate")
+        .populate({ path: "creator", select: "name avatar" })
+        .lean();
+
+    if (!podcast) {
+        throw new AppError("Podcast not found.", 404);
+    }
+
+    if (
+        podcast.approvalStatus !== "approved" ||
+        podcast.visibility !== "public" ||
+        podcast.isBlocked
+    ) {
+        throw new AppError("Podcast is not available for streaming.", 400);
+    }
+
+    if (podcast.releaseDate && new Date(podcast.releaseDate).getTime() > Date.now()) {
+        throw new AppError("Podcast is not released yet.", 400);
+    }
+
+    const duration = Number(podcast.duration) || 0;
+
+    if (duration <= 0) {
+        throw new AppError("Podcast duration is invalid for stream counting.", 400);
+    }
+
+    return {
+        content: podcast,
+        duration,
+        artistId: null,
+        albumId: null,
+    };
+};
+
+export const recordCompletedListenAttempt = async ({
+    userId,
+    guestId,
+    contentType,
+    trackId,
+    podcastId,
+    listenedDuration,
+    source = "unknown",
+}) => {
+    const listenerIdentity = resolveListenerIdentity({ userId, guestId });
+    const resolvedContentType = resolveListenContentType({
+        contentType,
+        trackId,
+        podcastId,
+    });
+
+    const normalizedListenedDuration = Number(listenedDuration);
+
+    if (!Number.isFinite(normalizedListenedDuration) || normalizedListenedDuration <= 0) {
+        throw new AppError("Listened duration must be greater than 0.", 400, {
+            field: "listenedDuration",
+        });
+    }
+
+    const {
+        content,
+        duration: contentDuration,
+        artistId,
+        albumId,
+    } = resolvedContentType === "podcast"
+        ? await getPodcastListenContext(podcastId)
+        : await getTrackListenContext(trackId);
+
+    const allowedDurationCeiling = contentDuration + resolveDurationTolerance(contentDuration);
 
     if (normalizedListenedDuration > allowedDurationCeiling) {
         throw new AppError("Listened duration exceeds the allowed playback window.", 400, {
@@ -319,15 +450,15 @@ export const recordCompletedListenAttempt = async ({
         });
     }
 
-    const clampedListenedDuration = Math.min(normalizedListenedDuration, trackDuration);
-    const listenPercent = roundToTwoDecimals((clampedListenedDuration / trackDuration) * 100);
+    const clampedListenedDuration = Math.min(normalizedListenedDuration, contentDuration);
+    const listenPercent = roundToTwoDecimals((clampedListenedDuration / contentDuration) * 100);
     const listenedAt = new Date();
 
-    if (listenerIdentity.userId) {
+    if (resolvedContentType === "track" && listenerIdentity.userId) {
         try {
             await storeRecentListeningActivity({
                 userId: listenerIdentity.userId,
-                track,
+                track: content,
                 artistId,
                 albumId,
                 listenedAt,
@@ -343,10 +474,12 @@ export const recordCompletedListenAttempt = async ({
     if (listenPercent <= SKIP_LISTEN_PERCENT_THRESHOLD) {
         await queueSkippedListenInRedis({
             ...listenerIdentity,
+            contentType: resolvedContentType,
             trackId,
+            podcastId,
             artistId,
             listenedAt,
-            trackDuration,
+            trackDuration: contentDuration,
             listenedDuration: clampedListenedDuration,
             listenPercent,
             source,
@@ -357,7 +490,7 @@ export const recordCompletedListenAttempt = async ({
             isValidStream: false,
             isSkipped: true,
             listenPercent,
-            message: `Listen counted as a skip because it stayed at or below ${SKIP_LISTEN_PERCENT_THRESHOLD}% of the track.`,
+            message: `Listen counted as a skip because it stayed at or below ${SKIP_LISTEN_PERCENT_THRESHOLD}% of the ${resolvedContentType}.`,
         };
     }
 
@@ -365,16 +498,20 @@ export const recordCompletedListenAttempt = async ({
     const countKey = buildValidStreamCountKey({
         dateKey,
         ...listenerIdentity,
+        contentType: resolvedContentType,
         trackId,
+        podcastId,
     });
 
     const queueResult = await queueValidStreamInRedis({
         countKey,
         ...listenerIdentity,
+        contentType: resolvedContentType,
         trackId,
+        podcastId,
         artistId,
         listenedAt,
-        trackDuration,
+        trackDuration: contentDuration,
         listenedDuration: clampedListenedDuration,
         listenPercent,
         source,
