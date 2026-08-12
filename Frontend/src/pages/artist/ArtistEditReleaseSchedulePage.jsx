@@ -9,6 +9,7 @@ import {
   Disc3,
   Globe2,
   Info,
+  Mic2,
   Music2,
   Save,
   XCircle,
@@ -217,11 +218,14 @@ const ArtistEditReleaseSchedulePage = () => {
     .toLowerCase();
   const statusInfo = statusMeta[normalizedStatus] || statusMeta.scheduled;
   const releaseImage = getReleaseImage(releaseSchedule);
-  const isTrack = releaseSchedule?.sourceType !== "album";
-  const ReleaseIcon = isTrack ? Music2 : Disc3;
+  const isPodcast = releaseSchedule?.sourceType === "podcast";
+  const isTrack = releaseSchedule?.sourceType === "track";
+  const ReleaseIcon = isPodcast ? Mic2 : isTrack ? Music2 : Disc3;
   const selectedTargetSummary = isTrack
     ? formatDuration(releaseSchedule?.item?.duration)
-    : `${releaseSchedule?.item?.trackCount || 0} bài hát`;
+    : isPodcast
+      ? formatDuration(releaseSchedule?.item?.duration)
+      : `${releaseSchedule?.item?.trackCount || 0} bài hát`;
 
   const isFutureSchedule = useMemo(() => {
     if (!scheduledAtIso) {
@@ -395,7 +399,7 @@ const ArtistEditReleaseSchedulePage = () => {
                     {selectedTargetSummary}
                   </p>
                   <span className="mt-2 inline-flex items-center rounded-full bg-[#f3f1ff] px-2.5 py-1 text-xs font-medium text-[#5b4dde]">
-                    {isTrack ? "Bài hát" : "Album"}
+                    {isTrack ? "Bài hát" : isPodcast ? "Podcast" : "Album"}
                   </span>
                 </div>
               </div>
@@ -504,7 +508,7 @@ const ArtistEditReleaseSchedulePage = () => {
                   </p>
                   <p className="mt-1 text-xs text-[#8a84a3]">{selectedTargetSummary}</p>
                   <span className="mt-2 inline-flex items-center rounded-full bg-[#f3f1ff] px-2.5 py-1 text-xs font-medium text-[#5b4dde]">
-                    {isTrack ? "Bài hát" : "Album"}
+                    {isTrack ? "Bài hát" : isPodcast ? "Podcast" : "Album"}
                   </span>
                 </div>
               </div>

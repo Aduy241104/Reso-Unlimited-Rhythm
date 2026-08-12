@@ -230,8 +230,8 @@ const getPlaylistTotalCount = (payload, fallbackCount) => {
 
 const tabButtonClassName = (isActive) =>
   isActive
-    ? "rounded-full bg-white/20 px-3 py-1.5 text-xs font-medium text-white"
-    : "rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-[#f7f1ea]";
+    ? "rounded-full bg-white/20 px-2 py-1.5 text-[11px] font-medium text-white"
+    : "rounded-full bg-white/10 px-2 py-1.5 text-[11px] font-medium text-[#f7f1ea]";
 
 const Sidebar = ({
   isCollapsed = false,
@@ -689,7 +689,7 @@ const Sidebar = ({
           ) : (
             <>
               <div className="mb-4 px-3">
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-4 gap-1">
                   <button
                     type="button"
                     onClick={() => setActiveTab("playlist")}
@@ -712,6 +712,18 @@ const Sidebar = ({
                     className={tabButtonClassName(activeTab === "album")}
                   >
                     Album
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab("podcast");
+                      navigate(routePaths.podcasts);
+                      onNavigate?.();
+                    }}
+                    className={tabButtonClassName(activeTab === "podcast")}
+                  >
+                    Podcast
                   </button>
                 </div>
               </div>
@@ -914,6 +926,17 @@ const Sidebar = ({
                       );
                     })
                   )
+                ) : null}
+
+                {activeTab === "podcast" ? (
+                  <Link
+                    to={routePaths.podcasts}
+                    onClick={onNavigate}
+                    className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 text-sm font-medium text-[#f7f1ea] transition hover:bg-white/[0.1]"
+                  >
+                    <span>Khám phá Podcast</span>
+                    <span aria-hidden="true">→</span>
+                  </Link>
                 ) : null}
               </div>
             </>

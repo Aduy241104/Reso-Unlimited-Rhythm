@@ -86,6 +86,31 @@
   }
 }
 
+@layer components {
+  .field-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #241b15;
+  }
+
+  .field-input {
+    width: 100%;
+    border-radius: 0.75rem;
+    border: 1px solid #e5e5e5;
+    background: white;
+    padding: 0.75rem 0.875rem;
+    color: #241b15;
+    outline: none;
+  }
+
+  .field-input:focus {
+    border-color: #8b5e3c;
+    box-shadow: 0 0 0 3px rgb(139 94 60 / 0.12);
+  }
+}
+
 /* Keep full-screen user pages stable when mobile browser toolbars expand/collapse. */
 @supports (height: 100dvh) {
   .h-screen {

@@ -37,6 +37,9 @@ import userSubscriptionRoutes from "./user.subscription.routes.js";
 import artistFollowerRoutes from "./artist.follower.route.js";
 import copyrightClaimRoutes from "./copyrightClaim.routes.js";
 import adminCopyrightClaimRoutes from "./admin.copyrightClaim.routes.js";
+import artistPodcastRoutes from "./artist.podcast.routes.js";
+import adminPodcastRoutes from "./admin.podcast.routes.js";
+import podcastRoutes from "./podcast.routes.js";
 
 function route(app) {
     app.use("/api/auth", authenticationRoutes);
@@ -56,7 +59,9 @@ function route(app) {
     app.use("/api/artist", artistTrackAnalyticsRoutes);
     app.use("/api/playlists", playlistRoutes);
     app.use("/api/artist/track", artistTrackRoutes);
+    app.use("/api/artist/podcasts", artistPodcastRoutes);
     app.use("/api/tracks", trackRoutes);
+    app.use("/api/podcasts", podcastRoutes);
     app.use("/api/listen-events", listenEventRoutes);
     app.use("/api/artist/lyrics", lyricsRoutes);
     app.use("/api/admin/transactions", adminTransactionRoutes);
@@ -79,6 +84,7 @@ function route(app) {
     app.use("/api/artists", artistFollowerRoutes);
     app.use("/api/copyright-claims", copyrightClaimRoutes);
     app.use("/api/admin/copyright-claims", adminCopyrightClaimRoutes);
+    app.use("/api/admin/podcasts", adminPodcastRoutes);
 
 }
 

@@ -19,6 +19,8 @@ const SEARCH_COLLECTION_KEYS = {
   song: ["songs", "tracks", "items"],
   artist: ["artists", "items"],
   album: ["albums", "releases", "items"],
+  podcast: ["podcasts", "items"],
+  playlist: ["playlists", "items"],
 };
 
 const getCandidateContainers = (payload) => {
@@ -59,6 +61,8 @@ export const normalizeSearchAllPayload = (payload) => ({
   songs: normalizeSearchCollection(payload, "song"),
   artists: normalizeSearchCollection(payload, "artist"),
   albums: normalizeSearchCollection(payload, "album"),
+  podcasts: normalizeSearchCollection(payload, "podcast"),
+  playlists: normalizeSearchCollection(payload, "playlist"),
 });
 
 export const searchAll = async (keyword) =>
@@ -87,11 +91,27 @@ export const searchAlbums = async (keyword, page = 1, limit = 10) =>
     limit,
   });
 
+export const searchPodcasts = async (keyword, page = 1, limit = 10) =>
+  requestSearch(`${SEARCH_API_PREFIX}/podcasts`, {
+    q: keyword,
+    page,
+    limit,
+  });
+
+export const searchPlaylists = async (keyword, page = 1, limit = 10) =>
+  requestSearch(`${SEARCH_API_PREFIX}/playlists`, {
+    q: keyword,
+    page,
+    limit,
+  });
+
 export default {
   searchAll,
   searchSongs,
   searchArtists,
   searchAlbums,
+  searchPodcasts,
+  searchPlaylists,
   normalizeSearchAllPayload,
   normalizeSearchCollection,
 };

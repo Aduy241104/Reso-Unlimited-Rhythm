@@ -6,7 +6,7 @@ import {
   resolveSearchItemPrimaryText,
   resolveSearchItemTypeLabel,
   SEARCH_RESULT_TYPES,
-} from "./SearchResultItem";
+} from "./searchResultUtils";
 
 const SearchTopResultCard = ({ item, type }) => {
   const navigate = useNavigate();

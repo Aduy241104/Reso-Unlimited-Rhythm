@@ -10,6 +10,7 @@ import ArtistRanking, {
 } from "../../models/ArtistRanking.js";
 import Interaction from "../../models/Interaction.js";
 import ListenEvent from "../../models/ListenEvent.js";
+import Podcast from "../../models/Podcast.js";
 import ReleaseSchedule from "../../models/ReleaseSchedule.js";
 import ArtistMonthlyStat from "../../models/ArtistMonthlyStat.js";
 import Track from "../../models/Track.js";
@@ -488,8 +489,11 @@ const getArtistComingReleases = async (artistId, query = {}) => {
     const trackIds = schedules
         .filter((schedule) => schedule.type === "track")
         .map((schedule) => schedule.targetId);
+    const podcastIds = schedules
+        .filter((schedule) => schedule.type === "podcast")
+        .map((schedule) => schedule.targetId);
 
-    const [albums, tracks] = await Promise.all([
+    const [albums, tracks, podcasts] = await Promise.all([
         albumIds.length > 0
             ? Album.find({
                 _id: { $in: albumIds },
@@ -504,10 +508,18 @@ const getArtistComingReleases = async (artistId, query = {}) => {
                 isDeleted: { $ne: true },
             }).lean()
             : [],
+        podcastIds.length > 0
+            ? Podcast.find({
+                _id: { $in: podcastIds },
+                creator: artistId,
+                isDeleted: { $ne: true },
+            }).lean()
+            : [],
     ]);
 
     const albumMap = new Map(albums.map((album) => [album._id.toString(), album]));
     const trackMap = new Map(tracks.map((track) => [track._id.toString(), track]));
+    const podcastMap = new Map(podcasts.map((podcast) => [podcast._id.toString(), podcast]));
 
     return {
         comingReleases: schedules
@@ -515,7 +527,9 @@ const getArtistComingReleases = async (artistId, query = {}) => {
                 const target =
                     schedule.type === "album"
                         ? albumMap.get(schedule.targetId.toString())
-                        : trackMap.get(schedule.targetId.toString());
+                        : schedule.type === "podcast"
+                            ? podcastMap.get(schedule.targetId.toString())
+                            : trackMap.get(schedule.targetId.toString());
 
                 if (!target) {
                     return null;

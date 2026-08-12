@@ -1,167 +1,15 @@
-﻿import { Disc3, Mic2, Music2 } from "lucide-react";
+import { Disc3, Headphones, ListMusic, Mic2, Music2, Play } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import TrackTwoLevelMenu from "../trackMenu/TrackTwoLevelMenu";
-import { routePaths } from "../../routes/routePaths";
-import { createPlaceholderImage } from "../../utils/albumDetail";
-import { getTrackDisplayTitle } from "../../utils/trackTitle";
-
-export const SEARCH_RESULT_TYPES = {
-  song: "song",
-  artist: "artist",
-  album: "album",
-};
-
-const resolveImageCandidate = (candidate) => {
-  if (typeof candidate === "string" && candidate.trim()) {
-    return candidate.trim();
-  }
-
-  if (Array.isArray(candidate)) {
-    const firstImage = candidate.find(
-      (item) => typeof item === "string" && item.trim()
-    );
-
-    return firstImage ? firstImage.trim() : "";
-  }
-
-  return "";
-};
-
-const resolveItemId = (item) =>
-  item?._id || item?.id || item?.trackId || item?.artistId || item?.albumId || "";
-
-const collectArtistNames = (candidate) => {
-  if (Array.isArray(candidate)) {
-    return candidate
-      .map((item) => {
-        if (typeof item === "string") {
-          return item.trim();
-        }
-
-        return (
-          item?.stageName ||
-          item?.artistName ||
-          item?.displayName ||
-          item?.name ||
-          item?.fullName ||
-          ""
-        ).trim();
-      })
-      .filter(Boolean);
-  }
-
-  if (typeof candidate === "string") {
-    return candidate
-      .split(",")
-      .map((name) => name.trim())
-      .filter(Boolean);
-  }
-
-  return [];
-};
-
-export const resolveSearchItemPrimaryText = (item, type) => {
-  if (type === SEARCH_RESULT_TYPES.artist) {
-    return (
-      item?.stageName ||
-      item?.artistName ||
-      item?.displayName ||
-      item?.name ||
-      item?.fullName ||
-      "Nghệ sĩ chưa đặt tên"
-    );
-  }
-
-  if (type === SEARCH_RESULT_TYPES.album) {
-    return item?.title || item?.name || item?.albumName || "Album chưa đặt tên";
-  }
-
-  return getTrackDisplayTitle(item, "Bài hát chưa đặt tên");
-};
-
-export const resolveSearchItemTypeLabel = (type) => {
-  if (type === SEARCH_RESULT_TYPES.artist) {
-    return "Nghệ sĩ";
-  }
-
-  if (type === SEARCH_RESULT_TYPES.album) {
-    return "Album";
-  }
-
-  return "Bài hát";
-};
-
-const resolveSearchItemSecondaryText = (item, type) => {
-  const typeLabel = resolveSearchItemTypeLabel(type);
-  const artistNames = collectArtistNames(
-    item?.artists || item?.artistNames || item?.artistName || item?.artist
-  );
-
-  if (type === SEARCH_RESULT_TYPES.song && artistNames.length > 0) {
-    return `${typeLabel} • ${artistNames.join(", ")}`;
-  }
-
-  return typeLabel;
-};
-
-export const resolveSearchItemImage = (item, type) => {
-  if (type === SEARCH_RESULT_TYPES.song) {
-    return (
-      resolveImageCandidate(item?.avatar) ||
-      resolveImageCandidate(item?.coverImage) ||
-      resolveImageCandidate(item?.image) ||
-      resolveImageCandidate(item?.album?.coverImage) ||
-      resolveImageCandidate(item?.album?.image) ||
-      createPlaceholderImage(resolveSearchItemPrimaryText(item, type), "#f59e0b", "#111827")
-    );
-  }
-
-  if (type === SEARCH_RESULT_TYPES.artist) {
-    return (
-      resolveImageCandidate(item?.avatar) ||
-      resolveImageCandidate(item?.image) ||
-      resolveImageCandidate(item?.photo) ||
-      createPlaceholderImage(resolveSearchItemPrimaryText(item, type), "#10b981", "#111827")
-    );
-  }
-
-  return (
-    resolveImageCandidate(item?.coverImage) ||
-    resolveImageCandidate(item?.image) ||
-    resolveImageCandidate(item?.thumbnail) ||
-    createPlaceholderImage(resolveSearchItemPrimaryText(item, type), "#3b82f6", "#111827")
-  );
-};
-
-export const resolveSearchItemPath = (item, type) => {
-  const itemId = resolveItemId(item);
-
-  if (!itemId) {
-    return "";
-  }
-
-  if (type === SEARCH_RESULT_TYPES.artist) {
-    return routePaths.artistBrowseProfile(itemId);
-  }
-
-  if (type === SEARCH_RESULT_TYPES.album) {
-    return routePaths.albumDetail(itemId);
-  }
-
-  return routePaths.trackDetail(itemId);
-};
-
-const resolveTypeIcon = (type) => {
-  if (type === SEARCH_RESULT_TYPES.artist) {
-    return Mic2;
-  }
-
-  if (type === SEARCH_RESULT_TYPES.album) {
-    return Disc3;
-  }
-
-  return Music2;
-};
+import { formatTrackDuration } from "../../utils/albumDetail";
+import {
+  resolveSearchItemImage,
+  resolveSearchItemPath,
+  resolveSearchItemPrimaryText,
+  resolveSearchItemSecondaryText,
+  resolveSearchItemTypeLabel,
+  SEARCH_RESULT_TYPES,
+} from "./searchResultUtils";
 
 const SearchResultItem = ({
   item,
@@ -169,30 +17,53 @@ const SearchResultItem = ({
   className = "",
   compact = false,
   onSelect,
+  onPlay,
+  isActive = false,
   showTrackMenu = false,
+  showDuration = false,
 }) => {
   const navigate = useNavigate();
   const detailPath = resolveSearchItemPath(item, type);
-  const TypeIcon = resolveTypeIcon(type);
   const primaryText = resolveSearchItemPrimaryText(item, type);
   const typeLabel = resolveSearchItemTypeLabel(type);
   const secondaryText = resolveSearchItemSecondaryText(item, type);
   const imageSource = resolveSearchItemImage(item, type);
-  const itemId = resolveItemId(item);
+  const itemId = item?._id || item?.id || item?.trackId || item?.artistId || item?.albumId || "";
   const isTrack = type === SEARCH_RESULT_TYPES.song || type === "track";
   const shouldShowTrackMenu = showTrackMenu && isTrack && Boolean(itemId);
+  const durationLabel = isTrack ? formatTrackDuration(item?.duration) : "";
+  const shouldShowPlayButton =
+    typeof onPlay === "function" &&
+    ((type === SEARCH_RESULT_TYPES.podcast && Boolean(item?.audioUrl)) ||
+      (type === SEARCH_RESULT_TYPES.song && Array.isArray(item?.audioFiles) && item.audioFiles.length > 0));
 
   const handleClick = () => {
     if (!detailPath) {
       return;
     }
 
-    if (typeof onSelect === "function") {
-      onSelect(item, type);
-    }
-
+    onSelect?.(item, type);
     navigate(detailPath);
   };
+
+  const handlePlay = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    onPlay?.(item, type);
+  };
+
+  const typeIcon =
+    type === SEARCH_RESULT_TYPES.artist ? (
+      <Mic2 className="h-3.5 w-3.5" />
+    ) : type === SEARCH_RESULT_TYPES.album ? (
+      <Disc3 className="h-3.5 w-3.5" />
+    ) : type === SEARCH_RESULT_TYPES.podcast ? (
+      <Headphones className="h-3.5 w-3.5" />
+    ) : type === SEARCH_RESULT_TYPES.playlist ? (
+      <ListMusic className="h-3.5 w-3.5" />
+    ) : (
+      <Music2 className="h-3.5 w-3.5" />
+    );
 
   return (
     <div
@@ -200,6 +71,7 @@ const SearchResultItem = ({
         "flex w-full items-center gap-3 rounded-2xl px-3 transition",
         compact ? "py-2.5" : "py-3.5",
         detailPath ? "hover:bg-[#1f1f1f]" : "opacity-70",
+        isActive ? "bg-white/[0.08]" : "",
         className,
       ].filter(Boolean).join(" ")}
     >
@@ -228,22 +100,34 @@ const SearchResultItem = ({
           <p className="truncate text-sm font-semibold text-white sm:text-base">
             {primaryText}
           </p>
-          <p className="truncate text-xs text-[#b3b3b3] sm:text-sm">
-            {secondaryText}
-          </p>
+          <p className="truncate text-xs text-[#b3b3b3] sm:text-sm">{secondaryText}</p>
         </div>
       </button>
 
       <div className="hidden shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-[#b3b3b3] sm:flex">
-        <TypeIcon className="h-3.5 w-3.5" />
+        {typeIcon}
         <span>{typeLabel}</span>
       </div>
 
-      {shouldShowTrackMenu ? (
-        <div
-          className="shrink-0"
-          onClick={(event) => event.stopPropagation()}
+      {shouldShowPlayButton ? (
+        <button
+          type="button"
+          onClick={handlePlay}
+          aria-label={`Phát ${primaryText}`}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#E0FFE0] via-[#D3FFCE] to-[#FFD700] text-black shadow-[0_10px_22px_rgba(30,215,96,0.25)] transition hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#1ed760]"
         >
+          <Play className="h-4 w-4 fill-current" />
+        </button>
+      ) : null}
+
+      {showDuration && isTrack ? (
+        <span className="hidden shrink-0 text-xs tabular-nums text-[#91879d] sm:block">
+          {durationLabel}
+        </span>
+      ) : null}
+
+      {shouldShowTrackMenu ? (
+        <div className="shrink-0" onClick={(event) => event.stopPropagation()}>
           <TrackTwoLevelMenu trackId={itemId} track={item} />
         </div>
       ) : null}

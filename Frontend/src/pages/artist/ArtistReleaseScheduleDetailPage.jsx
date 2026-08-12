@@ -9,6 +9,7 @@ import {
   Disc3,
   ExternalLink,
   Info,
+  Mic2,
   Music2,
   Pencil,
   Sparkles,
@@ -59,15 +60,12 @@ const sourceTypeMeta = {
     icon: Disc3,
     helper: "Lịch phát hành album",
   },
+  podcast: {
+    label: "Podcast",
+    icon: Mic2,
+    helper: "Lịch phát hành Podcast",
+  },
 };
-
-const platformItems = [
-  { name: "Spotify", accent: "from-[#22c55e] to-[#16a34a]", short: "S" },
-  { name: "Apple Music", accent: "from-[#fb7185] to-[#ef4444]", short: "A" },
-  { name: "YouTube Music", accent: "from-[#f97316] to-[#ef4444]", short: "Y" },
-  { name: "TikTok", accent: "from-[#1f2937] to-[#111827]", short: "T" },
-  { name: "Zing MP3", accent: "from-[#f59e0b] to-[#f97316]", short: "Z" },
-];
 
 const formatDate = (value) => {
   if (!value) {
@@ -152,6 +150,10 @@ const getDetailPath = (releaseSchedule) => {
     return routePaths.artistAlbumDetail(releaseSchedule.item.id);
   }
 
+  if (releaseSchedule.sourceType === "podcast") {
+    return routePaths.artistPodcastDetail(releaseSchedule.item.id);
+  }
+
   return routePaths.artistTrackDetail(releaseSchedule.item.id);
 };
 
@@ -162,6 +164,10 @@ const getEditPath = (releaseSchedule) => {
 
   if (releaseSchedule.sourceType === "album") {
     return routePaths.artistEditAlbum(releaseSchedule.item.id);
+  }
+
+  if (releaseSchedule.sourceType === "podcast") {
+    return routePaths.artistPodcastEdit(releaseSchedule.item.id);
   }
 
   return routePaths.artistTrackEdit(releaseSchedule.item.id);
@@ -346,6 +352,8 @@ const ArtistReleaseScheduleDetailPage = () => {
   const statusInfo = statusMeta[normalizedStatus] || statusMeta.draft;
   const sourceInfo =
     sourceTypeMeta[releaseSchedule?.sourceType] || sourceTypeMeta.track;
+  const isAlbumRelease = releaseSchedule?.sourceType === "album";
+  const isPodcastRelease = releaseSchedule?.sourceType === "podcast";
   const scheduledTimeValue = releaseSchedule?.scheduledAt
     ? new Date(releaseSchedule.scheduledAt).getTime()
     : NaN;
@@ -372,9 +380,11 @@ const ArtistReleaseScheduleDetailPage = () => {
       {
         id: "target-selected",
         label:
-          releaseSchedule?.sourceType === "album"
+          isAlbumRelease
             ? "Album đã được chọn hợp lệ"
-            : "Bài hát đã được chọn hợp lệ",
+            : isPodcastRelease
+              ? "Podcast đã được chọn hợp lệ"
+              : "Bài hát đã được chọn hợp lệ",
         done: Boolean(releaseSchedule?.item?.id),
       },
       {
@@ -389,7 +399,7 @@ const ArtistReleaseScheduleDetailPage = () => {
         done: Boolean(releaseSchedule?.id),
       },
     ],
-    [normalizedStatus, releaseSchedule]
+    [isAlbumRelease, isPodcastRelease, normalizedStatus, releaseSchedule]
   );
 
   const handleOpenCancelModal = () => {
@@ -572,14 +582,18 @@ const ArtistReleaseScheduleDetailPage = () => {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-[#1e172f]">
-                  {releaseSchedule?.sourceType === "album"
+                  {isAlbumRelease
                     ? "Album trong lịch phát hành"
-                    : "Bài hát trong lịch phát hành"}
+                    : isPodcastRelease
+                      ? "Podcast trong lịch phát hành"
+                      : "Bài hát trong lịch phát hành"}
                 </h2>
                 <p className="mt-1 text-sm text-[#857f98]">
-                  {releaseSchedule?.sourceType === "album"
+                  {isAlbumRelease
                     ? `${releaseSchedule?.item?.trackCount || 0} bài hát`
-                    : "1 bài hát"}
+                    : isPodcastRelease
+                      ? "1 Podcast"
+                      : "1 bài hát"}
                 </p>
               </div>
 
@@ -603,14 +617,10 @@ const ArtistReleaseScheduleDetailPage = () => {
                       <th className="px-5 py-4 font-medium">#</th>
                       <th className="px-5 py-4 font-medium">Tiêu đề</th>
                       <th className="px-5 py-4 font-medium">
-                        {releaseSchedule?.sourceType === "album"
-                          ? "Số bài hát"
-                          : "Thời lượng"}
+                        {isAlbumRelease ? "Số bài hát" : "Thời lượng"}
                       </th>
                       <th className="px-5 py-4 font-medium">
-                        {releaseSchedule?.sourceType === "album"
-                          ? "Ngày phát hành"
-                          : "Loại"}
+                        {isAlbumRelease ? "Ngày phát hành" : "Loại"}
                       </th>
                       <th className="px-5 py-4 font-medium text-right">Hành động</th>
                     </tr>
@@ -639,20 +649,22 @@ const ArtistReleaseScheduleDetailPage = () => {
                               {releaseSchedule?.item?.title || "Chưa có tiêu đề"}
                             </p>
                             <p className="mt-1 text-xs text-[#8d88a3]">
-                              {releaseSchedule?.sourceType === "album"
+                              {isAlbumRelease
                                 ? "Album"
-                                : "Bài hát"}
+                                : isPodcastRelease
+                                  ? "Podcast"
+                                  : "Bài hát"}
                             </p>
                           </div>
                         </div>
                       </td>
                       <td className="px-5 py-4 text-[#6b657f]">
-                        {releaseSchedule?.sourceType === "album"
+                        {isAlbumRelease
                           ? releaseSchedule?.item?.trackCount || 0
                           : formatDuration(releaseSchedule?.item?.duration)}
                       </td>
                       <td className="px-5 py-4 text-[#6b657f]">
-                        {releaseSchedule?.sourceType === "album"
+                        {isAlbumRelease
                           ? formatDate(releaseSchedule?.item?.releaseDate)
                           : sourceInfo.label}
                       </td>

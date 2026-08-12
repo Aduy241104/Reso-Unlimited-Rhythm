@@ -1,6 +1,7 @@
 ﻿import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AboutArtistSection from "../../components/artist/AboutArtistSection";
+import ArtistPodcastsSection from "../../components/artist/ArtistPodcastsSection";
 import ComingSoonCountdownOverlay from "../../components/artist/ComingSoonCountdownOverlay";
 import ArtistHeroSection from "../../components/artist/ArtistHeroSection";
 import ArtistInformationModal from "../../components/artist/ArtistInformationModal";
@@ -485,6 +486,11 @@ const ArtistProfileView = () => {
                 tracks={ artistData.popularTracks }
                 isLoading={ isLoading }
                 onComingSoonClick={ openComingSoonExperience }
+              />
+
+              <ArtistPodcastsSection
+                artistId={ profile?.id || id }
+                artistName={ profile?.name }
               />
 
               <AboutArtistSection profile={ profile } isLoading={ isLoading } />
