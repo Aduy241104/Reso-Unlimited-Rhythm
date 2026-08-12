@@ -4,7 +4,7 @@ const { Schema, model } = mongoose;
 
 const ReleaseScheduleSchema = new Schema(
     {
-        type: { type: String, enum: ["track", "album"], required: true, index: true },
+        type: { type: String, enum: ["track", "album", "podcast"], required: true, index: true },
         targetId: { type: Schema.Types.ObjectId, required: true, index: true },
         artistId: { type: Schema.Types.ObjectId, ref: "Artist", required: true, index: true },
         scheduledAt: { type: Date, required: true, index: true },

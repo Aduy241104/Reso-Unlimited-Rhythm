@@ -14,6 +14,7 @@ import Notification from "./Notification.js";
 import Plan from "./Plan.js";
 import Playlist from "./Playlist.js";
 import Podcast from "./Podcast.js";
+import PodcastModerationReview from "./PodcastModerationReview.js";
 import PlatformMonthlyStat from "./PlatformMonthlyStat.js";
 import UserRecentListeningActivity from "./userRecentListeningActivity.js";
 import PersonalizedMix from "./PersonalizedMix.js";
@@ -60,6 +61,7 @@ export default {
     Plan,
     Playlist,
     Podcast,
+    PodcastModerationReview,
     PlatformMonthlyStat,
     PersonalizedMix,
     UserRecentListeningActivity,

@@ -4,61 +4,28 @@ const { Schema, model } = mongoose;
 
 const PodcastSchema = new Schema(
     {
-        title: {
-            type: String,
-            required: true,
-            trim: true,
-            index: true,
-        },
-
-        description: {
-            type: String,
-            required: true,
-        },
-
+        // The creator is always resolved from the authenticated artist. It is
+        // deliberately not accepted from artist request payloads.
         creator: {
             type: Schema.Types.ObjectId,
             ref: "Artist",
             required: true,
             index: true,
         },
+        title: { type: String, default: "", trim: true, index: true, maxlength: 200 },
+        description: { type: String, default: "", trim: true, maxlength: 10000 },
+        audioUrl: { type: String, default: "", trim: true },
+        coverImageUrl: { type: String, default: "", trim: true },
+        duration: { type: Number, default: 0, min: 0 },
 
-        audioUrl: {
+        releaseDate: { type: Date, default: null, index: true },
+        releaseStatus: {
             type: String,
-            required: true,
-        },
-
-        coverImageUrl: {
-            type: String,
-            default: null,
-        },
-
-        duration: {
-            type: Number,
-            required: true,
-            min: 0,
-        },
-
-        stats: {
-            totalListen: {
-                type: Number,
-                default: 0,
-                min: 0,
-            },
-        },
-
-        genre: {
-            type: Schema.Types.ObjectId,
-            ref: "Genre",
-            required: true,
+            enum: ["unreleased", "scheduled", "released"],
+            default: "unreleased",
             index: true,
         },
-
-        releaseDate: {
-            type: Date,
-            required: true,
-            index: true,
-        },
+        releasedAt: { type: Date, default: null },
 
         approvalStatus: {
             type: String,
@@ -66,22 +33,9 @@ const PodcastSchema = new Schema(
             default: "draft",
             index: true,
         },
-
-        reviewedBy: {
-            type: Schema.Types.ObjectId,
-            ref: "User",
-            default: null,
-        },
-
-        reviewedAt: {
-            type: Date,
-            default: null,
-        },
-
-        rejectReason: {
-            type: String,
-            default: null,
-        },
+        reviewedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
+        reviewedAt: { type: Date, default: null },
+        rejectReason: { type: String, default: null, trim: true },
 
         visibility: {
             type: String,
@@ -90,49 +44,40 @@ const PodcastSchema = new Schema(
             index: true,
         },
 
-        isBlocked: {
-            type: Boolean,
-            default: false,
-            index: true,
-        },
+        isBlocked: { type: Boolean, default: false, index: true },
+        blockedReason: { type: String, default: null, trim: true },
+        blockedAt: { type: Date, default: null },
+        blockedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
 
-        blockedReason: {
-            type: String,
-            default: null,
-        },
-
-        blockedAt: {
-            type: Date,
-            default: null,
-        },
-
+        // Podcast V1 intentionally keeps copyright as a declaration rather
+        // than importing Track's fingerprint/moderation state machine.
         copyrightType: {
             type: String,
             enum: ["original", "licensed", "third_party"],
-            required: true,
+            default: "original",
+        },
+        copyrightSource: { type: String, default: "", trim: true, maxlength: 2000 },
+        copyrightProofUrl: { type: String, default: "", trim: true, maxlength: 2000 },
+        copyrightConfirmed: { type: Boolean, default: false },
+
+        stats: {
+            totalListen: { type: Number, default: 0, min: 0 },
         },
 
-        copyrightSource: {
-            type: String,
-            default: null,
-        },
-
-        copyrightProofUrl: {
-            type: String,
-            default: null,
-        },
-
-        copyrightConfirmed: {
-            type: Boolean,
-            default: false,
-        },
+        isDeleted: { type: Boolean, default: false, index: true },
+        deletedAt: { type: Date, default: null },
+        deletedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
     },
     { timestamps: true }
 );
 
 PodcastSchema.index({ creator: 1, title: 1 });
-PodcastSchema.index({ approvalStatus: 1, visibility: 1, isBlocked: 1 });
+PodcastSchema.index({
+    approvalStatus: 1,
+    visibility: 1,
+    isBlocked: 1,
+    isDeleted: 1,
+});
 
 const Podcast = model("Podcast", PodcastSchema);
-
 export default Podcast;
