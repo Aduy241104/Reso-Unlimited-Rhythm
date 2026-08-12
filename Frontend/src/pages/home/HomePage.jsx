@@ -1,6 +1,7 @@
 import ContentCardSection from "../../components/content/ContentCardSection";
 import LoadingState from "../../components/common/LoadingState";
 import TrackChartSection from "../../components/home/TrackChartSection";
+import PodcastHomeSection from "../../components/podcast/PodcastHomeSection";
 import { useAuth } from "../../hooks/useAuth";
 import { useContentPlayback } from "../../hooks/useContentPlayback";
 import { useHomePageData } from "../../hooks/useHomePageData";
@@ -204,6 +205,8 @@ const HomePage = () => {
         actionHref={ routePaths.monthlyTopArtists }
         isArtistSection
       />
+
+      <PodcastHomeSection />
 
       <ContentCardSection
         title="Playlist hệ thống"

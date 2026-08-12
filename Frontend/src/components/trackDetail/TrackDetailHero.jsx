@@ -19,6 +19,7 @@ const TrackDetailHero = ({
   releaseYear,
   duration,
   listensLabel,
+  eyebrow = "Bài hát",
 }) => {
   const headerGradient = useDominantColorGradient(image);
 
@@ -63,7 +64,7 @@ const TrackDetailHero = ({
 
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/72">
-              { "B\u00e0i h\u00e1t" }
+              { eyebrow }
             </p>
             <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-5xl lg:text-7xl">
               { title }
@@ -95,20 +96,36 @@ const TrackDetailHero = ({
                   <span className="font-medium text-white">{ artistName }</span>
                 </div>
               ) }
-              <HeroMetaSeparator />
-              { albumHref ? (
-                <Link to={ albumHref } className="font-medium text-white/88 transition hover:text-white hover:underline">
-                  { albumTitle }
-                </Link>
-              ) : (
-                <span>{ albumTitle }</span>
-              ) }
-              <HeroMetaSeparator />
-              <span>{ releaseYear }</span>
-              <HeroMetaSeparator />
-              <span>{ duration }</span>
-              <HeroMetaSeparator />
-              <span>{ listensLabel }</span>
+              { albumTitle ? (
+                <>
+                  <HeroMetaSeparator />
+                  { albumHref ? (
+                    <Link to={ albumHref } className="font-medium text-white/88 transition hover:text-white hover:underline">
+                      { albumTitle }
+                    </Link>
+                  ) : (
+                    <span>{ albumTitle }</span>
+                  ) }
+                </>
+              ) : null }
+              { releaseYear ? (
+                <>
+                  <HeroMetaSeparator />
+                  <span>{ releaseYear }</span>
+                </>
+              ) : null }
+              { duration ? (
+                <>
+                  <HeroMetaSeparator />
+                  <span>{ duration }</span>
+                </>
+              ) : null }
+              { listensLabel ? (
+                <>
+                  <HeroMetaSeparator />
+                  <span>{ listensLabel }</span>
+                </>
+              ) : null }
             </div>
           </div>
         </div>

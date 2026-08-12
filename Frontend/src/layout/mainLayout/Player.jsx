@@ -10,6 +10,8 @@ import {
   Play,
   Repeat,
   Repeat1,
+  RotateCcw,
+  RotateCw,
   Settings2,
   SkipBack,
   SkipForward,
@@ -106,6 +108,7 @@ const Player = ({
     seekTo,
     changeAudioQuality,
     setVolumeLevel,
+    seekBy,
     removeTrackFromQueue,
   } = usePlayer();
 
@@ -158,7 +161,7 @@ const Player = ({
       ? `${currentIndex + 1}/${queue.length}`
       : `${queue.length} bài chờ`;
   const queueLabel = activeCollection?.title
-    ? `${activeCollection.type === "playlist" ? "Playlist" : "Album"}: ${activeCollection.title}`
+    ? `${activeCollection.type === "playlist" ? "Playlist" : activeCollection.type === "podcast" ? "Podcast" : "Album"}: ${activeCollection.title}`
     : queue.length > 0
       ? `Hàng chờ: ${queuePositionLabel}`
       : "Chọn bài hát để bắt đầu phát";
@@ -166,6 +169,10 @@ const Player = ({
     currentTrack,
     "Chưa chọn bài hát"
   );
+  const isPodcast =
+    currentTrack?.mediaType === "podcast" ||
+    currentTrack?.contentType === "podcast" ||
+    currentTrack?.type === "podcast";
 
   const progressMax = duration > 0 ? duration : 0;
   const progressValue = duration > 0 ? Math.min(currentTime, duration) : 0;
@@ -173,7 +180,8 @@ const Player = ({
     progressMax > 0 ? Math.min((progressValue / progressMax) * 100, 100) : 0;
   const volumePercent = Math.round(volume * 100);
   const hasQualitySelector = isPremium && availableAudioQualities.length > 1;
-  const progressDisabled = progressMax === 0 || !canSeek;
+  const canSeekCurrentMedia = canSeek || isPodcast;
+  const progressDisabled = progressMax === 0 || !canSeekCurrentMedia;
   const selectedQuality =
     availableAudioQualities.find(
       (quality) =>
@@ -438,16 +446,18 @@ const Player = ({
         ) : null }
       </div>
 
-      <button
-        type="button"
-        onClick={ handleOpenLyrics }
-        disabled={ queue.length === 0 }
-        className={ utilityButtonClassName }
-        aria-label="Mở trang lời bài hát"
-        title="Mở trang lời bài hát"
-      >
-        <Mic2 className="h-[18px] w-[18px]" />
-      </button>
+      { !isPodcast ? (
+        <button
+          type="button"
+          onClick={ handleOpenLyrics }
+          disabled={ queue.length === 0 }
+          className={ utilityButtonClassName }
+          aria-label="Mở trang lời bài hát"
+          title="Mở trang lời bài hát"
+        >
+          <Mic2 className="h-[18px] w-[18px]" />
+        </button>
+      ) : null }
 
       { renderDesktopQualitySelector() }
     </div>
@@ -498,15 +508,28 @@ const Player = ({
         </div>
 
         <div className="flex shrink-0 items-center gap-0.5">
-          <button
-            type="button"
-            onClick={ playPrevious }
-            disabled={ queue.length === 0 }
-            className={ `${controlButtonClassName} h-6 w-6` }
-            aria-label="Bài trước"
-          >
-            <SkipBack className="h-3 w-3 fill-current text-white" />
-          </button>
+          { isPodcast ? (
+            <button
+              type="button"
+              onClick={ () => seekBy(-15) }
+              disabled={ queue.length === 0 }
+              className={ `${controlButtonClassName} h-6 w-6` }
+              aria-label="Lùi 15 giây"
+              title="Lùi 15 giây"
+            >
+              <RotateCcw className="h-3.5 w-3.5 text-white" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={ playPrevious }
+              disabled={ queue.length === 0 }
+              className={ `${controlButtonClassName} h-6 w-6` }
+              aria-label="Bài trước"
+            >
+              <SkipBack className="h-3 w-3 fill-current text-white" />
+            </button>
+          ) }
 
           <button
             type="button"
@@ -524,14 +547,27 @@ const Player = ({
             ) }
           </button>
 
-          <button
-            type="button"
-            onClick={ playNext }
-            className={ `${controlButtonClassName} h-6 w-6` }
-            aria-label="Bài tiếp theo"
-          >
-            <SkipForward className="h-3 w-3 fill-current text-white" />
-          </button>
+          { isPodcast ? (
+            <button
+              type="button"
+              onClick={ () => seekBy(15) }
+              disabled={ queue.length === 0 }
+              className={ `${controlButtonClassName} h-6 w-6` }
+              aria-label="Tua tới 15 giây"
+              title="Tua tới 15 giây"
+            >
+              <RotateCw className="h-3.5 w-3.5 text-white" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={ playNext }
+              className={ `${controlButtonClassName} h-6 w-6` }
+              aria-label="Bài tiếp theo"
+            >
+              <SkipForward className="h-3 w-3 fill-current text-white" />
+            </button>
+          ) }
         </div>
 
         <div className="relative shrink-0" ref={ mobileMenuRef }>
@@ -646,14 +682,14 @@ const Player = ({
           value={ progressValue }
           disabled={ progressDisabled }
           onChange={ (event) => seekTo(event.target.value) }
-          title={ canSeek ? "Tua đến vị trí phát" : "Cần Premium để tua" }
+          title={ canSeekCurrentMedia ? "Tua đến vị trí phát" : "Cần Premium để tua" }
           style={ {
             "--progress": `${progressPercent}%`,
             "--range-color": "#f5b66f",
           } }
           className={ [
             "custom-range h-1 flex-1 appearance-none rounded-full disabled:cursor-not-allowed",
-            canSeek ? "cursor-pointer" : "cursor-not-allowed opacity-60",
+            canSeekCurrentMedia ? "cursor-pointer" : "cursor-not-allowed opacity-60",
           ].join(" ") }
         />
 
@@ -707,26 +743,41 @@ const Player = ({
 
       <div className="hidden min-w-0 flex-col gap-1.5 sm:flex sm:gap-2 lg:justify-self-center lg:w-full lg:max-w-[360px]">
         <div className="flex items-center justify-center gap-1.5">
-          <button
-            type="button"
-            onClick={ toggleShuffle }
-            className={ `${modeButtonClassName(isShuffleEnabled)} ${desktopModeButtonSizeClassName}` }
-            aria-label="Bật/tắt phát ngẫu nhiên"
-            aria-pressed={ isShuffleEnabled }
-            title={ isShuffleEnabled ? "Đang bật phát ngẫu nhiên" : "Đang tắt phát ngẫu nhiên" }
-          >
-            <Shuffle className={ desktopModeIconSizeClassName } />
-          </button>
+          { !isPodcast ? (
+            <button
+              type="button"
+              onClick={ toggleShuffle }
+              className={ `${modeButtonClassName(isShuffleEnabled)} ${desktopModeButtonSizeClassName}` }
+              aria-label="Bật/tắt phát ngẫu nhiên"
+              aria-pressed={ isShuffleEnabled }
+              title={ isShuffleEnabled ? "Đang bật phát ngẫu nhiên" : "Đang tắt phát ngẫu nhiên" }
+            >
+              <Shuffle className={ desktopModeIconSizeClassName } />
+            </button>
+          ) : null }
 
-          <button
-            type="button"
-            onClick={ playPrevious }
-            disabled={ queue.length === 0 }
-            className={ `${controlButtonClassName} h-7 w-7 sm:h-8 sm:w-8` }
-            aria-label="Bài trước"
-          >
-            <SkipBack className="h-[14px] w-[14px] fill-current text-white" />
-          </button>
+          { isPodcast ? (
+            <button
+              type="button"
+              onClick={ () => seekBy(-15) }
+              disabled={ queue.length === 0 }
+              className={ `${controlButtonClassName} h-7 w-7 sm:h-8 sm:w-8` }
+              aria-label="Lùi 15 giây"
+              title="Lùi 15 giây"
+            >
+              <RotateCcw className="h-[16px] w-[16px]" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={ playPrevious }
+              disabled={ queue.length === 0 }
+              className={ `${controlButtonClassName} h-7 w-7 sm:h-8 sm:w-8` }
+              aria-label="Bài trước"
+            >
+              <SkipBack className="h-[14px] w-[14px] fill-current text-white" />
+            </button>
+          ) }
 
           <button
             type="button"
@@ -744,28 +795,43 @@ const Player = ({
             ) }
           </button>
 
-          <button
-            type="button"
-            onClick={ playNext }
-            className={ `${controlButtonClassName} h-7 w-7 sm:h-8 sm:w-8` }
-            aria-label="Bài tiếp theo"
-          >
-            <SkipForward className="h-[14px] w-[14px] fill-current text-white" />
-          </button>
+          { isPodcast ? (
+            <button
+              type="button"
+              onClick={ () => seekBy(15) }
+              disabled={ queue.length === 0 }
+              className={ `${controlButtonClassName} h-7 w-7 sm:h-8 sm:w-8` }
+              aria-label="Tua tới 15 giây"
+              title="Tua tới 15 giây"
+            >
+              <RotateCw className="h-[16px] w-[16px]" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={ playNext }
+              className={ `${controlButtonClassName} h-7 w-7 sm:h-8 sm:w-8` }
+              aria-label="Bài tiếp theo"
+            >
+              <SkipForward className="h-[14px] w-[14px] fill-current text-white" />
+            </button>
+          ) }
 
-          <button
-            type="button"
-            onClick={ cycleRepeatMode }
-            className={ `${modeButtonClassName(repeatMode !== "off")} ${desktopModeButtonSizeClassName}` }
-            aria-label={ repeatButtonLabel }
-            title={ repeatButtonLabel }
-          >
-            { repeatMode === "one" ? (
-              <Repeat1 className={ desktopModeIconSizeClassName } />
-            ) : (
-              <Repeat className={ desktopModeIconSizeClassName } />
-            ) }
-          </button>
+          { !isPodcast ? (
+            <button
+              type="button"
+              onClick={ cycleRepeatMode }
+              className={ `${modeButtonClassName(repeatMode !== "off")} ${desktopModeButtonSizeClassName}` }
+              aria-label={ repeatButtonLabel }
+              title={ repeatButtonLabel }
+            >
+              { repeatMode === "one" ? (
+                <Repeat1 className={ desktopModeIconSizeClassName } />
+              ) : (
+                <Repeat className={ desktopModeIconSizeClassName } />
+              ) }
+            </button>
+          ) : null }
         </div>
 
         <div className="flex w-full min-w-0 items-center gap-2 text-[10px] text-[#d7c9bc] sm:max-w-[23rem] sm:gap-2.5">
@@ -781,14 +847,14 @@ const Player = ({
             value={ progressValue }
             disabled={ progressDisabled }
             onChange={ (event) => seekTo(event.target.value) }
-            title={ canSeek ? "Tua đến vị trí phát" : "Cần Premium để tua" }
+            title={ canSeekCurrentMedia ? "Tua đến vị trí phát" : "Cần Premium để tua" }
             style={ {
               "--progress": `${progressPercent}%`,
               "--range-color": "#f5b66f",
             } }
             className={ [
               "custom-range h-1 flex-1 appearance-none rounded-full disabled:cursor-not-allowed",
-              canSeek ? "cursor-pointer" : "cursor-not-allowed opacity-60",
+              canSeekCurrentMedia ? "cursor-pointer" : "cursor-not-allowed opacity-60",
             ].join(" ") }
           />
           <span className="w-7 shrink-0 sm:w-8">
