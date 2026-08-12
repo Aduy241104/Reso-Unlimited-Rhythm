@@ -9,6 +9,7 @@ import {
   Disc3,
   Eye,
   FileText,
+  Mic2,
   Music2,
   Pencil,
   Trash2,
@@ -114,6 +115,11 @@ const typeMeta = {
     secondary: "Album",
     icon: Disc3,
   },
+  podcast: {
+    label: "Podcast",
+    secondary: "Podcast",
+    icon: Mic2,
+  },
 };
 
 const getReleaseImage = (release) => {
@@ -186,7 +192,6 @@ const ArtistReleaseSchedulePage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [page, setPage] = useState(1);
-  const [refreshKey, setRefreshKey] = useState(0);
   const [pendingCancelRelease, setPendingCancelRelease] = useState(null);
   const [isCancelling, setIsCancelling] = useState(false);
 
@@ -235,7 +240,7 @@ const ArtistReleaseSchedulePage = () => {
     return () => {
       isMounted = false;
     };
-  }, [refreshKey, serverStatus, serverType]);
+  }, [serverStatus, serverType]);
 
   const filteredSchedules = useMemo(() => {
     const normalizedSearchTerm = normalizeText(searchTerm);
@@ -433,7 +438,7 @@ const ArtistReleaseSchedulePage = () => {
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 maxLength={ARTIST_INPUT_LIMITS.search}
-                placeholder="Tìm theo tên bài hát hoặc album"
+                placeholder="Tìm theo tên bài hát, Podcast hoặc album"
                 className="h-12 w-full rounded-2xl border border-[#ebe8f8] bg-[#fcfbff] pl-11 pr-4 text-sm text-[#201931] outline-none transition focus:border-[#7c6cf2]"
               />
             </label>
@@ -457,6 +462,7 @@ const ArtistReleaseSchedulePage = () => {
               <option value="">Tất cả loại</option>
               <option value="track">Bài hát</option>
               <option value="album">Album</option>
+              <option value="podcast">Podcast</option>
             </select>
 
             <input

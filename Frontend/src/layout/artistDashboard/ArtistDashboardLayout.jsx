@@ -254,7 +254,7 @@ const ArtistDashboardLayout = () => {
         onLeave={() => navigate(routePaths.home, { replace: true })}
       />
 
-      <div className="flex h-full overflow-hidden">
+      <div className="flex h-full min-h-0">
         <aside
           className="fixed inset-y-0 left-0 z-30 hidden border-r border-[#ece8ff] lg:block"
           style={{ width: SIDEBAR_WIDTH }}
@@ -282,7 +282,7 @@ const ArtistDashboardLayout = () => {
           {renderSidebar()}
         </aside>
 
-        <div className="flex min-w-0 flex-1 flex-col lg:pl-[244px]">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:pl-[244px]">
           <header className="border-b border-[#ece8ff] bg-white">
             <div className="flex items-center justify-between gap-4 px-4 py-4 sm:px-5 xl:px-6">
               <div className="flex items-center gap-3">
@@ -314,7 +314,7 @@ const ArtistDashboardLayout = () => {
             </div>
           </header>
 
-          <main className="min-h-0 flex-1 overflow-y-auto bg-white">
+          <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-white">
             {isCheckingBlockStatus ? (
               <div className="flex min-h-full items-center justify-center p-6">
                 <div className="w-full max-w-md rounded-3xl border border-neutral-200 bg-white px-6 py-8 text-center shadow-sm">
@@ -331,7 +331,7 @@ const ArtistDashboardLayout = () => {
                 </div>
               </div>
             ) : (
-              <div className="min-h-full bg-white p-4 sm:p-5 xl:p-6 2xl:p-7">
+              <div className="min-h-full min-w-0 bg-white p-4 sm:p-5 xl:p-6 2xl:p-7">
                 <Outlet />
               </div>
             )}

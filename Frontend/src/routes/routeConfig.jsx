@@ -55,6 +55,10 @@ import PremiumPage from "../pages/premium/PremiumPage";
 import PaymentHistoryPage from "../pages/userPayment/PaymentHistoryPage";
 import PaymentReceiptPdfPage from "../pages/userPayment/PaymentReceiptPdfPage";
 import TrackDetailPage from "../pages/track/TrackDetailPage";
+import PodcastListPage from "../pages/podcast/PodcastListPage";
+import PodcastDetailPage from "../pages/podcast/PodcastDetailPage";
+import ArtistPodcastsPage from "../pages/artist/ArtistPodcastsPage";
+import ArtistPodcastFormPage from "../pages/artist/ArtistPodcastFormPage";
 import UserRecentListeningPage from "../pages/userInsign/user.recentListening.page";
 import UserFavoriteTracksPage from "../pages/userFavorite/UserFavoriteTracksPage";
 import ProtectedRoute from "./ProtectedRoute";
@@ -130,6 +134,14 @@ export const appRoutes = [
       {
         path: routePaths.trackDetail(),
         element: <TrackDetailPage />,
+      },
+      {
+        path: routePaths.podcasts,
+        element: <PodcastListPage />,
+      },
+      {
+        path: routePaths.podcastDetail(),
+        element: <PodcastDetailPage />,
       },
       {
         element: <ProtectedRoute />,
@@ -257,6 +269,22 @@ export const appRoutes = [
               {
                 path: routePaths.artistMusic,
                 element: <MyMusicPage />,
+              },
+              {
+                path: routePaths.artistPodcasts,
+                element: <ArtistPodcastsPage />,
+              },
+              {
+                path: routePaths.artistCreatePodcast,
+                element: <ArtistPodcastFormPage />,
+              },
+              {
+                path: routePaths.artistPodcastDetail(),
+                element: <ArtistPodcastFormPage />,
+              },
+              {
+                path: routePaths.artistPodcastEdit(),
+                element: <ArtistPodcastFormPage />,
               },
               {
                 path: routePaths.artistCreateTrack,

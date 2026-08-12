@@ -94,7 +94,7 @@ const FULL_COPYRIGHT_POLICY = {
 
 const SCROLL_THRESHOLD = 8;
 
-const CopyrightPolicyModal = ({ isOpen, accepted, onClose, onAccept }) => {
+export const CopyrightPolicyModal = ({ isOpen, accepted, onClose, onAccept }) => {
   const scrollRef = useRef(null);
   const [hasScrolledToEnd, setHasScrolledToEnd] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -103,6 +103,8 @@ const CopyrightPolicyModal = ({ isOpen, accepted, onClose, onAccept }) => {
   useEffect(() => {
     if (!isOpen) return undefined;
 
+    // Reset the modal's local reading state whenever a new policy session opens.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setHasScrolledToEnd(false);
     setProgress(0);
     setConfirmChecked(Boolean(accepted));
@@ -149,7 +151,7 @@ const CopyrightPolicyModal = ({ isOpen, accepted, onClose, onAccept }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-contain bg-black/60 p-3 backdrop-blur-sm sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="track-copyright-policy-title"
@@ -157,7 +159,7 @@ const CopyrightPolicyModal = ({ isOpen, accepted, onClose, onAccept }) => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-[0_24px_80px_rgba(0,0,0,0.18)]">
+      <div className="flex max-h-[85vh] min-h-0 w-full max-w-2xl flex-col overflow-y-auto overscroll-contain rounded-3xl border border-neutral-200 bg-white shadow-[0_24px_80px_rgba(0,0,0,0.18)]">
         <div className="flex items-start justify-between gap-4 border-b border-neutral-200 px-6 py-5">
           <div>
             <h2 id="track-copyright-policy-title" className="text-lg font-semibold text-[#241b15]">
@@ -176,7 +178,7 @@ const CopyrightPolicyModal = ({ isOpen, accepted, onClose, onAccept }) => {
           <div className="h-full bg-[#8b5e3c] transition-[width] duration-200" style={{ width: `${progress}%` }} />
         </div>
 
-        <div ref={scrollRef} onScroll={handleScroll} className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
+        <div ref={scrollRef} onScroll={handleScroll} className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-6 py-5">
           <p className="rounded-2xl border border-[#eadfce] bg-[#fcfaf7] px-4 py-3 text-sm leading-6 text-neutral-700">
             {FULL_COPYRIGHT_POLICY.intro}
           </p>
@@ -285,7 +287,14 @@ const TrackCopyrightFields = ({ value, onChange, disabled = false, errors = {} }
         <div><label className="block text-sm font-medium text-[#241b15]">Ghi chú bản quyền</label><textarea rows={2} value={copyright.copyrightNotes || copyright.copyrightNote || ""} onChange={(event) => onChange({ ...copyright, copyrightNote: event.target.value, copyrightNotes: event.target.value })} maxLength={ARTIST_INPUT_LIMITS.copyrightNote} disabled={disabled} className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm" /></div>
         <div className={`rounded-2xl border p-4 ${displayedErrors.declarationAccepted || displayedErrors.rightsConfirmed ? "border-red-300 bg-red-50" : "border-[#eadfce] bg-white"}`}><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-medium text-[#241b15]">Xác nhận chính sách bản quyền</p><p className="mt-1 text-sm text-neutral-600">Đọc chính sách và xác nhận trước khi gửi duyệt.</p></div><button type="button" onClick={() => setIsPolicyModalOpen(true)} disabled={disabled} className="rounded-md border border-[#8b5e3c] px-4 py-2 text-sm font-medium text-[#8b5e3c]">{copyright.declarationAccepted ? "Xem lại chính sách" : "Đọc chính sách bản quyền"}</button></div><label className="mt-4 inline-flex items-start gap-2 text-sm text-neutral-700"><input type="checkbox" checked={Boolean(copyright.declarationAccepted && copyright.rightsConfirmed)} onChange={(event) => { if (event.target.checked) { markTouched("declarationAccepted"); markTouched("rightsConfirmed"); setIsPolicyModalOpen(true); } else { markTouched("declarationAccepted"); markTouched("rightsConfirmed"); onChange({ ...copyright, declarationAccepted: false, rightsConfirmed: false }); } }} disabled={disabled} className="mt-1 h-4 w-4" /><span>Tôi đã đọc, hiểu và đồng ý với chính sách bản quyền; đồng thời xác nhận rằng tôi có đầy đủ quyền sử dụng bài nhạc này.</span></label>{displayedErrors.declarationAccepted ? <p className="mt-2 text-xs text-red-500">{displayedErrors.declarationAccepted}</p> : displayedErrors.rightsConfirmed ? <p className="mt-2 text-xs text-red-500">{displayedErrors.rightsConfirmed}</p> : null}</div>
       </div>
-      <CopyrightPolicyModal isOpen={isPolicyModalOpen} accepted={Boolean(copyright.declarationAccepted)} onClose={() => setIsPolicyModalOpen(false)} onAccept={handlePolicyAccept} />
+      {isPolicyModalOpen ? (
+        <CopyrightPolicyModal
+          isOpen
+          accepted={Boolean(copyright.declarationAccepted)}
+          onClose={() => setIsPolicyModalOpen(false)}
+          onAccept={handlePolicyAccept}
+        />
+      ) : null}
     </>
   );
 };
