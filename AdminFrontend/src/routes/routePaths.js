@@ -2,6 +2,8 @@ export const routePaths = {
   home: "/",
   login: "/login",
   systemTracks: "/system-tracks",
+  podcasts: "/podcasts",
+  podcastDetail: (podcastId = ":id") => `/podcasts/${podcastId}`,
   systemAlbums: "/system-albums",
   trackModeration: "/system-tracks/moderation",
   trackAppeals: "/track-appeals",

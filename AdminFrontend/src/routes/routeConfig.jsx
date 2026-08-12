@@ -26,6 +26,8 @@ import SystemAlbumDetailPage from "../pages/albums/SystemAlbumDetailPage";
 import SystemArtistsListPage from "../pages/artist/SystemArtistsListPage";
 import SystemArtistDetailPage from "../pages/artist/ArtistDetailPage";
 import SystemTracksModerationPage from "../pages/systemTracks/SystemTracksModerationPage";
+import PodcastManagementPage from "../pages/podcasts/PodcastManagementPage";
+import PodcastManagementDetailPage from "../pages/podcasts/PodcastManagementDetailPage";
 import AlbumDetailPage from "../pages/albums/AlbumDetailPage";
 import CreateNotificationPage from "../pages/notification/CreateNotificationPage";
 import AdminListPage from "../pages/users/AdminListPage";
@@ -145,6 +147,14 @@ export const appRoutes = [
               {
                 path: "system-tracks",
                 element: <SystemTracksListPage />,
+              },
+              {
+                path: "podcasts",
+                element: <PodcastManagementPage />,
+              },
+              {
+                path: "podcasts/:id",
+                element: <PodcastManagementDetailPage />,
               },
               {
                 path: "system-tracks/moderation",

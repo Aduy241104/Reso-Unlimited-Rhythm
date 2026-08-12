@@ -55,6 +55,12 @@ const navigationItems = [
     end: false,
   },
   {
+    to: routePaths.podcasts,
+    label: "Podcast",
+    icon: Mic2,
+    end: false,
+  },
+  {
     to: routePaths.trackAppeals,
     label: "Phản hồi từ nghệ sĩ",
     icon: MessageSquareReply,
