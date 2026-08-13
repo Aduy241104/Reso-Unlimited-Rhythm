@@ -15,41 +15,22 @@ export const searchAdminTracksService = async (params = {}) => {
 
 export const getAdminArtistTracksService = async ({
   artistId,
-  artistName,
+  deletionStatus = "active",
+  page = 1,
+  limit = 5,
 } = {}) => {
   const normalizedArtistId = String(artistId || "");
-  const normalizedArtistName = artistName?.trim();
 
-  if (!normalizedArtistId || !normalizedArtistName) {
-    return [];
+  if (!normalizedArtistId) {
+    return { tracks: [], pagination: null };
   }
 
-  const limit = 50;
-  const firstPage = await searchAdminTracksService({
-    q: normalizedArtistName,
-    page: 1,
+  return searchAdminTracksService({
+    artistId: normalizedArtistId,
+    deletionStatus,
+    page,
     limit,
   });
-  const totalPages = firstPage.pagination?.totalPages ?? 1;
-
-  const remainingPages =
-    totalPages > 1
-      ? await Promise.all(
-          Array.from({ length: totalPages - 1 }, (_, index) =>
-            searchAdminTracksService({
-              q: normalizedArtistName,
-              page: index + 2,
-              limit,
-            })
-          )
-        )
-      : [];
-
-  return [firstPage, ...remainingPages]
-    .flatMap((result) => result.tracks ?? [])
-    .filter(
-      (track) => String(track.artist?.id || track.artist?._id || "") === normalizedArtistId
-    );
 };
 
 export const updateAdminTrackApprovalStatusService = async (
@@ -67,6 +48,16 @@ export const updateAdminTrackApprovalStatusService = async (
 export const getAdminTrackDetailService = async (trackId) => {
   const response = await axiosClient.get(`${ADMIN_TRACK_API_PREFIX}/${trackId}`);
   return response?.data?.data?.track ?? null;
+};
+
+export const startAdminTrackReviewSessionService = async (trackId) => {
+  const response = await axiosClient.post(`${ADMIN_TRACK_API_PREFIX}/${trackId}/review/session`);
+  return response?.data?.data?.review ?? null;
+};
+
+export const recordAdminTrackReviewEventService = async (trackId, payload = {}) => {
+  const response = await axiosClient.post(`${ADMIN_TRACK_API_PREFIX}/${trackId}/review/events`, payload);
+  return response?.data?.data?.review ?? null;
 };
 
 export const updateAdminTrackVisibilityService = async (

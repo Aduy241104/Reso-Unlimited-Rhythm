@@ -115,13 +115,31 @@ const deleteMyTrack = async (req, res, next) => {
 
 const submitMyTrack = async (req, res, next) => {
     try {
-        const track = await artistTrackService.submitArtistTrack(req.user.id, req.params.id);
+        const track = await artistTrackService.submitArtistTrack(
+            req.user.id,
+            req.params.id,
+            req.body || {}
+        );
 
         return formatResponse.success(
             res,
             { track },
             "Artist track submitted for approval"
         );
+    } catch (error) {
+        next(error);
+    }
+};
+
+const uploadCopyrightEvidence = async (req, res, next) => {
+    try {
+        const track = await artistTrackService.uploadCopyrightEvidence(
+            req.user.id,
+            req.params.id,
+            req.files || [],
+            req.body || {}
+        );
+        return formatResponse.success(res, { track }, "Copyright evidence uploaded successfully");
     } catch (error) {
         next(error);
     }
@@ -136,4 +154,5 @@ export default {
     unhideMyTrack,
     deleteMyTrack,
     submitMyTrack,
+    uploadCopyrightEvidence,
 };

@@ -5,6 +5,7 @@ import {
   Disc3,
   FileText,
   LayoutDashboard,
+  Mic2,
   Music2,
   ShieldAlert,
   Users,
@@ -24,6 +25,11 @@ export const artistNavigation = [
     label: "Nhạc của tôi",
     to: routePaths.artistMusic,
     icon: Music2,
+  },
+  {
+    label: "Podcast",
+    to: routePaths.artistPodcasts,
+    icon: Mic2,
   },
   {
     label: "Lời nhạc",
@@ -73,6 +79,8 @@ export const artistNavigation = [
 ];
 
 export const artistPageTitles = {
+  [routePaths.artistPodcasts]: "Podcast cÃ¹a tÃ´i",
+  [routePaths.artistCreatePodcast]: "Táº¡o Podcast",
   [routePaths.artistRoot]: "Tổng quan nghệ sĩ",
   [routePaths.artistMusic]: "Nhạc của tôi",
   [routePaths.artistTrackDetail()]: "Chi tiết bài hát",

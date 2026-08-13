@@ -4,6 +4,7 @@
 node_modules/
 .env
 .env.*
+!Backend/.env.example
 logs/
 *.log
 pids/
@@ -22,6 +23,7 @@ Backend/node_modules/
 Backend/.env
 Backend/dist/
 Backend/build/
+Backend/tools/chromaprint/
 Backend/coverage/
 Backend/tmp/
 Backend/temp/

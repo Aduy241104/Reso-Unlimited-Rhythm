@@ -9,11 +9,13 @@ import {
   Disc3,
   Globe2,
   Info,
+  Mic2,
   Music2,
   XCircle,
 } from "lucide-react";
 import { ARTIST_INPUT_LIMITS } from "../../constants/artistInputLimits";
 import trackService from "../../services/trackService";
+import podcastService from "../../services/podcastService";
 import { getArtistAlbumsService } from "../../services/artist/artistAlbumService";
 import { createMyReleaseScheduleService } from "../../services/artistReleaseScheduleService";
 import { routePaths } from "../../routes/routePaths";
@@ -114,6 +116,18 @@ const normalizeAlbums = (albums = []) =>
     status: album?.status || "draft",
   }));
 
+const normalizePodcasts = (podcasts = []) =>
+  podcasts.map((podcast) => ({
+    id: podcast?.id || podcast?._id || "",
+    title: podcast?.title || "Chưa có tên",
+    coverImage: podcast?.coverImageUrl || "",
+    duration: Number(podcast?.duration) || 0,
+    approvalStatus: podcast?.approvalStatus || "",
+    releaseStatus: podcast?.releaseStatus || "unreleased",
+    releasedAt: podcast?.releasedAt || null,
+    audioUrl: podcast?.audioUrl || "",
+  }));
+
 const ArtistCreateReleaseSchedulePage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -122,6 +136,7 @@ const ArtistCreateReleaseSchedulePage = () => {
   const [releaseType, setReleaseType] = useState("track");
   const [tracks, setTracks] = useState([]);
   const [albums, setAlbums] = useState([]);
+  const [podcasts, setPodcasts] = useState([]);
   const [selectedTargetId, setSelectedTargetId] = useState("");
   const [selectedDate, setSelectedDate] = useState(getTomorrowDateValue);
   const [selectedTime, setSelectedTime] = useState("08:00");
@@ -131,8 +146,11 @@ const ArtistCreateReleaseSchedulePage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const prefilledReleaseType =
-    location.state?.releaseType === "album" ? "album" : "track";
+  const prefilledReleaseType = ["track", "album", "podcast"].includes(
+    location.state?.releaseType
+  )
+    ? location.state.releaseType
+    : "track";
   const prefilledTargetId = location.state?.targetId || "";
 
   useEffect(() => {
@@ -143,9 +161,10 @@ const ArtistCreateReleaseSchedulePage = () => {
       setErrorMessage("");
 
       try {
-        const [tracksResponse, albumsResponse] = await Promise.all([
+        const [tracksResponse, albumsResponse, podcastsResponse] = await Promise.all([
           trackService.getArtistTracks({ limit: 100 }),
           getArtistAlbumsService({ limit: 100 }),
+          podcastService.listArtist({ status: "approved", limit: 50 }),
         ]);
 
         if (!isMounted) {
@@ -154,6 +173,7 @@ const ArtistCreateReleaseSchedulePage = () => {
 
         setTracks(normalizeTracks(tracksResponse));
         setAlbums(normalizeAlbums(albumsResponse?.albums || []));
+        setPodcasts(normalizePodcasts(podcastsResponse?.podcasts || []));
       } catch (error) {
         if (!isMounted) {
           return;
@@ -162,7 +182,7 @@ const ArtistCreateReleaseSchedulePage = () => {
         setErrorMessage(
           error?.message ||
             error?.response?.data?.message ||
-            "Không thể tải dữ liệu bài hát và album để tạo lịch phát hành."
+            "Không thể tải dữ liệu bài hát, Podcast và album để tạo lịch phát hành."
         );
       } finally {
         if (isMounted) {
@@ -201,15 +221,22 @@ const ArtistCreateReleaseSchedulePage = () => {
   }, [prefilledReleaseType, prefilledTargetId]);
 
   const activeOptions = useMemo(
-    () => (releaseType === "track" ? tracks : albums),
-    [releaseType, tracks, albums]
+    () =>
+      releaseType === "track"
+        ? tracks
+        : releaseType === "podcast"
+          ? podcasts
+          : albums,
+    [releaseType, tracks, albums, podcasts]
   );
 
   const selectableOptions = useMemo(
     () =>
       releaseType === "track"
         ? activeOptions.filter((item) => item.releaseStatus === "unreleased")
-        : activeOptions.filter((item) => item.status === "draft"),
+        : releaseType === "podcast"
+          ? activeOptions.filter((item) => item.releaseStatus !== "released")
+          : activeOptions.filter((item) => item.status === "draft"),
     [activeOptions, releaseType]
   );
 
@@ -264,29 +291,45 @@ const ArtistCreateReleaseSchedulePage = () => {
 
   const requirements = useMemo(() => {
     const isTrack = releaseType === "track";
+    const isPodcast = releaseType === "podcast";
     const hasSelectedTarget = Boolean(selectedTarget);
-    const isApprovedTrack = !isTrack || selectedTarget?.approvalStatus === "approved";
+    const isApprovedTarget =
+      (!isTrack && !isPodcast) || selectedTarget?.approvalStatus === "approved";
     const canTargetBeReleased = isTrack
       ? selectedTarget?.releaseStatus === "unreleased"
-      : selectedTarget?.status === "draft";
+      : isPodcast
+        ? selectedTarget?.releaseStatus !== "released"
+        : selectedTarget?.status === "draft";
     const hasValidContent = isTrack
       ? Number(selectedTarget?.audioFilesCount || 0) > 0 ||
         Number(selectedTarget?.duration || 0) > 0
-      : Number(selectedTarget?.trackCount || 0) >= 2;
+      : isPodcast
+        ? Boolean(selectedTarget?.audioUrl) && Number(selectedTarget?.duration || 0) > 0
+        : Number(selectedTarget?.trackCount || 0) >= 2;
 
     return [
       {
-        label: isTrack ? "Bài hát đã được duyệt" : "Album thuộc nghệ sĩ hiện tại",
-        passed: hasSelectedTarget && isApprovedTrack,
+        label: isTrack
+          ? "Bài hát đã được duyệt"
+          : isPodcast
+            ? "Podcast đã được duyệt"
+            : "Album thuộc nghệ sĩ hiện tại",
+        passed: hasSelectedTarget && isApprovedTarget,
       },
       {
         label: isTrack
           ? "Bài hát chưa phát hành và chưa có lịch phát hành"
-          : "Album có thể tạo lịch phát hành",
+          : isPodcast
+            ? "Podcast chưa phát hành và chưa có lịch phát hành"
+            : "Album có thể tạo lịch phát hành",
         passed: hasSelectedTarget && canTargetBeReleased,
       },
       {
-        label: isTrack ? "Tệp âm thanh hợp lệ" : "Album có ít nhất 2 bài hát",
+        label: isTrack
+          ? "Tệp âm thanh hợp lệ"
+          : isPodcast
+            ? "Podcast có tệp âm thanh hợp lệ"
+            : "Album có ít nhất 2 bài hát",
         passed: hasSelectedTarget && hasValidContent,
       },
       {
@@ -334,7 +377,9 @@ const ArtistCreateReleaseSchedulePage = () => {
   const targetSummary = selectedTarget
     ? releaseType === "track"
       ? `${selectedTarget.albumTitle ? `${selectedTarget.albumTitle} • ` : ""}${formatDuration(selectedTarget.duration)}`
-      : `${selectedTarget.trackCount} bài hát`
+      : releaseType === "podcast"
+        ? formatDuration(selectedTarget.duration)
+        : `${selectedTarget.trackCount} bài hát`
     : "Chưa chọn nội dung";
 
   const requirementsPassed = requirements.filter((item) => item.passed).length;
@@ -357,7 +402,7 @@ const ArtistCreateReleaseSchedulePage = () => {
           Tạo lịch phát hành mới
         </h1>
         <p className="text-sm text-[#7f7a8f]">
-          Chọn bài hát hoặc album và đặt ngày giờ phát hành.
+          Chọn bài hát, Podcast hoặc album và đặt ngày giờ phát hành.
         </p>
       </div>
 
@@ -398,6 +443,17 @@ const ArtistCreateReleaseSchedulePage = () => {
                   />
                   Album
                 </label>
+                <label className="inline-flex items-center gap-2 text-sm font-medium text-[#3c3454]">
+                  <input
+                    type="radio"
+                    name="releaseType"
+                    value="podcast"
+                    checked={releaseType === "podcast"}
+                    onChange={() => setReleaseType("podcast")}
+                    className="h-4 w-4 accent-[#6a5cf6]"
+                  />
+                  Podcast
+                </label>
               </div>
 
               <div ref={dropdownRef} className="relative">
@@ -420,6 +476,8 @@ const ArtistCreateReleaseSchedulePage = () => {
                           <div className="flex h-full w-full items-center justify-center text-[#6a5cf6]">
                             {releaseType === "track" ? (
                               <Music2 className="h-5 w-5" />
+                            ) : releaseType === "podcast" ? (
+                              <Mic2 className="h-5 w-5" />
                             ) : (
                               <Disc3 className="h-5 w-5" />
                             )}
@@ -442,7 +500,7 @@ const ArtistCreateReleaseSchedulePage = () => {
                         ? "Đang tải dữ liệu..."
                         : selectableOptions.length === 0
                           ? "Không có nội dung chưa phát hành"
-                          : "Chọn nội dung phát hành"}
+                        : "Chọn nội dung phát hành"}
                     </span>
                   )}
                 </button>
@@ -462,11 +520,15 @@ const ArtistCreateReleaseSchedulePage = () => {
                         const isUnavailable =
                           releaseType === "track"
                             ? item.releaseStatus !== "unreleased"
-                            : item.status !== "draft";
+                            : releaseType === "podcast"
+                              ? item.releaseStatus === "released"
+                              : item.status !== "draft";
                         const optionSummary =
                           releaseType === "track"
                             ? `${item.albumTitle ? `${item.albumTitle} • ` : ""}${formatDuration(item.duration)}`
-                            : `${item.trackCount} bài hát`;
+                            : releaseType === "podcast"
+                              ? formatDuration(item.duration)
+                              : `${item.trackCount} bài hát`;
 
                         return (
                           <button
@@ -496,6 +558,8 @@ const ArtistCreateReleaseSchedulePage = () => {
                                 <div className="flex h-full w-full items-center justify-center text-[#6a5cf6]">
                                   {releaseType === "track" ? (
                                     <Music2 className="h-4 w-4" />
+                                  ) : releaseType === "podcast" ? (
+                                    <Mic2 className="h-4 w-4" />
                                   ) : (
                                     <Disc3 className="h-4 w-4" />
                                   )}
@@ -690,6 +754,8 @@ const ArtistCreateReleaseSchedulePage = () => {
                       <div className="flex h-full w-full items-center justify-center text-[#6a5cf6]">
                         {releaseType === "track" ? (
                           <Music2 className="h-5 w-5" />
+                        ) : releaseType === "podcast" ? (
+                          <Mic2 className="h-5 w-5" />
                         ) : (
                           <Disc3 className="h-5 w-5" />
                         )}
@@ -703,7 +769,11 @@ const ArtistCreateReleaseSchedulePage = () => {
                     </p>
                     <p className="mt-1 text-xs text-[#8a84a3]">{targetSummary}</p>
                     <span className="mt-2 inline-flex items-center rounded-full bg-[#f3f1ff] px-2.5 py-1 text-xs font-medium text-[#5b4dde]">
-                      {releaseType === "track" ? "Bài hát" : "Album"}
+                      {releaseType === "track"
+                        ? "Bài hát"
+                        : releaseType === "podcast"
+                          ? "Podcast"
+                          : "Album"}
                     </span>
                   </div>
                 </div>
@@ -762,7 +832,7 @@ const ArtistCreateReleaseSchedulePage = () => {
               </div>
             ) : (
               <div className="mt-4 rounded-2xl border border-dashed border-[#ddd7ff] bg-[#faf9fe] px-4 py-8 text-center text-sm text-[#8a84a3]">
-                Hãy chọn bài hát hoặc album để xem phần tóm tắt.
+                Hãy chọn bài hát, Podcast hoặc album để xem phần tóm tắt.
               </div>
             )}
           </div>

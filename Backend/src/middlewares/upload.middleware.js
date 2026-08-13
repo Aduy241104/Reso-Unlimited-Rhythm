@@ -37,7 +37,7 @@ const fileFilter = (req, file, cb) => {
 
   // Accept audio files (for audioFiles)
   if (
-    file.fieldname === "audioFiles" &&
+    (file.fieldname === "audioFiles" || file.fieldname === "audio") &&
     (hasAllowedAudioMimeType || hasAllowedAudioExtension)
   ) {
     cb(null, true);

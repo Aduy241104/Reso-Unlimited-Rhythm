@@ -8,10 +8,86 @@ import ArtistRevenueSummary from "../../models/ArtistRevenueSummary.js";
 import Notification from "../../models/Notification.js";
 import { normalizePositiveInteger } from "../Playlist/playlist.helper.js";
 import { AppError } from "../../utils/AppError.js";
+import { recordAuditEvent } from "../audit/auditLog.service.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
+
+export const syncArtistContentVisibility = async (artistId, activeStatus, reason) => {
+    if (activeStatus === "blocked") {
+        await Album.updateMany(
+            {
+                artistId,
+                isDeleted: { $ne: true },
+                status: { $ne: "blocked" },
+            },
+            [{
+                $set: {
+                    previousStatusBeforeArtistBlock: "$status",
+                    status: "blocked",
+                    blockedByArtistId: artistId,
+                    blockedReason: reason,
+                },
+            }]
+        );
+
+        await Track.updateMany(
+            {
+                artist_artistId: artistId,
+                isDeleted: { $ne: true },
+                activeStatus: { $ne: "blocked" },
+            },
+            [{
+                $set: {
+                    previousActiveStatusBeforeArtistBlock: "$activeStatus",
+                    activeStatus: "blocked",
+                    blockedByArtistId: artistId,
+                    blockedReason: reason,
+                },
+            }]
+        );
+        return;
+    }
+
+    const [blockedAlbums, blockedTracks] = await Promise.all([
+        Album.find({ blockedByArtistId: artistId }).select("_id status previousStatusBeforeArtistBlock"),
+        Track.find({ blockedByArtistId: artistId }).select("_id activeStatus approvalStatus previousActiveStatusBeforeArtistBlock"),
+    ]);
+
+    if (blockedAlbums.length > 0) {
+        await Album.bulkWrite(blockedAlbums.map((album) => ({
+            updateOne: {
+                filter: { _id: album._id, blockedByArtistId: artistId },
+                update: {
+                    $set: {
+                        status: album.previousStatusBeforeArtistBlock || "draft",
+                        blockedReason: "",
+                        blockedByArtistId: null,
+                        previousStatusBeforeArtistBlock: null,
+                    },
+                },
+            },
+        })));
+    }
+
+    if (blockedTracks.length > 0) {
+        await Track.bulkWrite(blockedTracks.map((track) => ({
+            updateOne: {
+                filter: { _id: track._id, blockedByArtistId: artistId },
+                update: {
+                    $set: {
+                        activeStatus: track.previousActiveStatusBeforeArtistBlock ||
+                            (track.approvalStatus === "approved" ? "active" : "draft"),
+                        blockedReason: "",
+                        blockedByArtistId: null,
+                        previousActiveStatusBeforeArtistBlock: null,
+                    },
+                },
+            },
+        })));
+    }
+};
 
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -119,8 +195,8 @@ const getArtistDetailForAdmin = async (artistId) => {
 
     const [trackCount, albumCount, latestMonthlyStat, artistStat, revenueSummary] =
         await Promise.all([
-            Track.countDocuments({ artist_artistId: artistId }),
-            Album.countDocuments({ artistId }),
+            Track.countDocuments({ artist_artistId: artistId, isDeleted: { $ne: true } }),
+            Album.countDocuments({ artistId, isDeleted: { $ne: true } }),
             ArtistMonthlyStat.findOne({ artistId })
                 .sort({ year: -1, month: -1 })
                 .lean(),
@@ -148,7 +224,7 @@ const listArtistsForAdmin = async (query = {}) => {
     const rawSearch = typeof query.q === "string" ? query.q.trim() : "";
     const { activeStatus } = query;
 
-    const matchStage = {};
+    const matchStage = { isDeleted: { $ne: true } };
 
     if (activeStatus) {
         matchStage.activeStatus = activeStatus;
@@ -168,8 +244,19 @@ const listArtistsForAdmin = async (query = {}) => {
         {
             $lookup: {
                 from: "tracks",
-                localField: "_id",
-                foreignField: "artist_artistId",
+                let: { artistId: "$_id" },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {
+                                $and: [
+                                    { $eq: ["$artist_artistId", "$$artistId"] },
+                                    { $ne: [{ $ifNull: ["$isDeleted", false] }, true] },
+                                ],
+                            },
+                        },
+                    },
+                ],
                 as: "tracksData",
             },
         },
@@ -227,7 +314,7 @@ const listArtistsForAdmin = async (query = {}) => {
 
 const updateArtistStatusForAdmin = async (
     artistId,
-    { activeStatus, blockedReason }
+    { activeStatus, blockedReason, adminUserId = null }
 ) => {
     if (!mongoose.Types.ObjectId.isValid(artistId)) {
         throw new AppError("Artist id is invalid.", 400, { field: "id" });
@@ -250,11 +337,31 @@ const updateArtistStatusForAdmin = async (
         updateData.blockedReason = "";
     }
 
+    const artist = await Artist.findById(artistId);
+
+    if (!artist) {
+        throw new AppError("Artist not found.", 404, { field: "id" });
+    }
+
+    if (artist.isDeleted === true) {
+        throw new AppError("Deleted artist profiles cannot be restored or blocked.", 409);
+    }
+
+    await syncArtistContentVisibility(artist._id, activeStatus, updateData.blockedReason);
+
     const updatedArtist = await Artist.findByIdAndUpdate(
         artistId,
         { $set: updateData },
-        { new: true }
+        { new: true, runValidators: true }
     ).lean();
+
+    void recordAuditEvent({
+        actorUserId: adminUserId,
+        action: `admin.artist.${activeStatus === "blocked" ? "block" : "unblock"}`,
+        targetType: "artist",
+        targetId: artistId,
+        metadata: { activeStatus, reason: updateData.blockedReason },
+    }).catch(() => null);
 
     if (!updatedArtist) {
         throw new AppError("Artist not found.", 404, { field: "id" });

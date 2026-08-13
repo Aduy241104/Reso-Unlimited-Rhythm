@@ -12,7 +12,7 @@ const releaseScheduleIdParamSchema = Joi.object({
 const createReleaseScheduleSchema = Joi.object({
     type: Joi.string()
         .trim()
-        .valid("track", "album")
+        .valid("track", "album", "podcast")
         .required(),
     targetId: Joi.string()
         .trim()

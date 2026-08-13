@@ -26,6 +26,8 @@ import SystemAlbumDetailPage from "../pages/albums/SystemAlbumDetailPage";
 import SystemArtistsListPage from "../pages/artist/SystemArtistsListPage";
 import SystemArtistDetailPage from "../pages/artist/ArtistDetailPage";
 import SystemTracksModerationPage from "../pages/systemTracks/SystemTracksModerationPage";
+import PodcastManagementPage from "../pages/podcasts/PodcastManagementPage";
+import PodcastManagementDetailPage from "../pages/podcasts/PodcastManagementDetailPage";
 import AlbumDetailPage from "../pages/albums/AlbumDetailPage";
 import CreateNotificationPage from "../pages/notification/CreateNotificationPage";
 import AdminListPage from "../pages/users/AdminListPage";
@@ -43,6 +45,7 @@ import CreateSubscriptionPlanPage from "../pages/subscriptions/CreateSubscriptio
 import EditSubscriptionPlanPage from "../pages/subscriptions/EditSubscriptionPlanPage";
 import TransactionDetail from "../pages/transactions/TransactionDetail";
 import TransactionList from "../pages/transactions/TransactionList";
+import TrackAppealsPage from "../pages/trackAppeals/TrackAppealsPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import RoleRoute from "./RoleRoute";
@@ -146,8 +149,24 @@ export const appRoutes = [
                 element: <SystemTracksListPage />,
               },
               {
+                path: "podcasts",
+                element: <PodcastManagementPage />,
+              },
+              {
+                path: "podcasts/:id",
+                element: <PodcastManagementDetailPage />,
+              },
+              {
                 path: "system-tracks/moderation",
                 element: <SystemTracksModerationPage />,
+              },
+              {
+                path: "track-appeals",
+                element: <TrackAppealsPage />,
+              },
+              {
+                path: "track-appeals/:appealId",
+                element: <TrackAppealsPage />,
               },
               {
                 path: "system-albums",

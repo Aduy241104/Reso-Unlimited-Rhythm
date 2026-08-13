@@ -36,6 +36,7 @@ import {
     startSubscriptionMaintenanceCron,
 } from "./jobs/subscriptionMaintenance.cron.js";
 import { startRevenueAggregationCron } from "./jobs/revenueAggregation.cron.js";
+import { startAudioFingerprintCron } from "./jobs/audioFingerprint.cron.js";
 
 dotenv.config();
 const app = express();
@@ -89,6 +90,7 @@ const startServer = async () => {
         startReleaseScheduleCron();
         startSubscriptionMaintenanceCron();
         startRevenueAggregationCron();
+        startAudioFingerprintCron();
     } catch (error) {
         console.error("💥 Failed to start server:", error);
         process.exit(1);

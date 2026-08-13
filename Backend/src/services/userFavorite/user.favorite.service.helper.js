@@ -27,9 +27,16 @@ const buildFavoriteTracksFilter = (userId) => ({
 });
 
 const getTrackOrThrow = async (trackId) => {
-    const track = await Track.findById(trackId).select("_id").lean();
+    const track = await Track.findById(trackId)
+        .select("_id activeStatus approvalStatus isDeleted")
+        .lean();
 
-    if (!track) {
+    if (
+        !track ||
+        track.isDeleted === true ||
+        (typeof track.activeStatus !== "undefined" && track.activeStatus !== "active") ||
+        (typeof track.approvalStatus !== "undefined" && track.approvalStatus !== "approved")
+    ) {
         throw new AppError("Track not found.", 404, {
             field: "trackId",
         });

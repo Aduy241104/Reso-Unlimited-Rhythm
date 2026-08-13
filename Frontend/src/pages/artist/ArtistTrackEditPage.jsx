@@ -10,12 +10,13 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import TrackCopyrightFields from "../../components/artist/TrackCopyrightFields";
+import TrackReviewAppealModal from "../../components/artist/TrackReviewAppealModal";
 import ConfirmActionModal from "../../components/common/ConfirmActionModal";
 import genreService from "../../services/genreService";
 import trackService from "../../services/trackService";
 import { routePaths } from "../../routes/routePaths";
 import { ARTIST_INPUT_LIMITS } from "../../constants/artistInputLimits";
-import { getApiErrorMessage } from "../../utils/apiError";
+import { getApiErrorFullMessage, getApiErrorMessage } from "../../utils/apiError";
 import {
   IMAGE_FILE_ACCEPT,
   getImageFileValidationError,
@@ -29,6 +30,7 @@ import {
 import {
   canArtistEditTrack,
   canArtistSubmitTrack,
+  getCopyrightValidationErrors,
   getArtistTrackReviewStatus,
   getSubmitReadinessIssues,
   LYRICS_STATIC_MAX_LENGTH,
@@ -47,6 +49,23 @@ import {
 } from "../../utils/artistTrackPresentation";
 
 const getEditableTrackSource = (track) => track?.pendingUpdate?.data || track || null;
+
+const mapCopyrightApiErrors = (error) => {
+  const details = Array.isArray(error?.errors)
+    ? error.errors
+    : error?.errors?.field
+      ? [error.errors]
+      : [];
+  return details.reduce((result, detail) => {
+    const field = String(detail?.field || "");
+    if (!field.startsWith("copyright.")) return result;
+    const normalizedField = field
+      .replace(/^copyright\./, "")
+      .split(".")[0];
+    if (normalizedField && detail?.message) result[normalizedField] = detail.message;
+    return result;
+  }, {});
+};
 
 const FieldShell = ({ label, helper, error, children }) => (
   <label className="block">
@@ -128,6 +147,7 @@ const ArtistTrackEditPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submittingForApproval, setSubmittingForApproval] = useState(false);
   const [copyrightForm, setCopyrightForm] = useState(mapTrackCopyrightToForm());
+  const [copyrightEvidenceFiles, setCopyrightEvidenceFiles] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [audioFile, setAudioFile] = useState(null);
@@ -141,6 +161,8 @@ const ArtistTrackEditPage = () => {
   const [lyricsPreviewText, setLyricsPreviewText] = useState("");
   const [genresOpen, setGenresOpen] = useState(false);
   const [isSubmitConfirmOpen, setIsSubmitConfirmOpen] = useState(false);
+  const [isAppealModalOpen, setIsAppealModalOpen] = useState(false);
+  const [latestAppeal, setLatestAppeal] = useState(null);
   const [formData, setFormData] = useState({
     title: "",
     versionTitle: "",
@@ -170,6 +192,10 @@ const ArtistTrackEditPage = () => {
         const editableTrack = getEditableTrackSource(trackDetail);
 
         setTrack(trackDetail);
+        if (trackDetail?.approvalStatus === "rejected") {
+          const appeals = await trackService.getTrackReviewAppeals(id).catch(() => []);
+          if (isMounted) setLatestAppeal(appeals[0] || null);
+        }
         setGenres(Array.isArray(genreList) ? genreList : []);
         setFormData(getFormDataFromTrack(trackDetail));
         setCopyrightForm(mapTrackCopyrightToForm(editableTrack?.copyright || trackDetail?.copyright));
@@ -250,6 +276,8 @@ const ArtistTrackEditPage = () => {
 
   const canEdit = canArtistEditTrack(track);
   const canSubmit = canArtistSubmitTrack(track);
+  const isEnforcement = track?.moderation?.automatic?.decision === "enforcement_block";
+  const hasCurrentAppeal = latestAppeal?.rejectionSnapshot?.rejectionId && latestAppeal.rejectionSnapshot.rejectionId === track?.moderation?.lastRejection?.rejectionId;
   const reviewStatus = getArtistTrackReviewStatus(track);
 
   const previewTrackForSubmit = useMemo(() => {
@@ -268,7 +296,7 @@ const ArtistTrackEditPage = () => {
       lyricsStatic: formData.lyricsStatic,
       genres: formData.genreIds.map((genreId) => ({ _id: genreId })),
       genreIds: formData.genreIds,
-      copyright: serializeCopyrightForApi(copyrightForm),
+      copyright: copyrightForm,
       avatar: avatarPreview || editableTrack?.avatar || track.avatar,
       coverImage:
         coverPreviews.length > 0
@@ -280,6 +308,16 @@ const ArtistTrackEditPage = () => {
   const submitIssues = useMemo(
     () => getSubmitReadinessIssues(previewTrackForSubmit),
     [previewTrackForSubmit]
+  );
+  const copyrightValidationErrors = useMemo(
+    () => getCopyrightValidationErrors(copyrightForm),
+    [copyrightForm]
+  );
+  const effectiveSubmitIssues = useMemo(
+    () => copyrightEvidenceFiles.length > 0
+      ? submitIssues.filter((issue) => !issue.includes("tài liệu bản quyền"))
+      : submitIssues,
+    [copyrightEvidenceFiles.length, submitIssues]
   );
 
   const selectedGenres = useMemo(
@@ -306,7 +344,7 @@ const ArtistTrackEditPage = () => {
     },
     {
       label: "Đã xác nhận bản quyền",
-      ready: Boolean(copyrightForm.declarationAccepted),
+      ready: Boolean(copyrightForm.declarationAccepted && copyrightForm.rightsConfirmed),
     },
   ];
 
@@ -436,7 +474,7 @@ const ArtistTrackEditPage = () => {
     );
   };
 
-  const validateFormFields = () => {
+  const validateFormFields = ({ submitAfterSave = false } = {}) => {
     const errors = {};
     const title = formData.title.trim();
 
@@ -454,7 +492,28 @@ const ArtistTrackEditPage = () => {
       errors.lyricsStatic = `Lời bài hát không được vượt quá ${LYRICS_STATIC_MAX_LENGTH} ký tự.`;
     }
 
+    if (submitAfterSave) {
+      const copyrightErrors = getCopyrightValidationErrors(copyrightForm);
+
+      // A newly selected evidence file is uploaded before the submit request.
+      // Do not reject the form before that upload has had a chance to complete.
+      if (copyrightEvidenceFiles.length > 0) {
+        delete copyrightErrors.copyrightEvidenceDocuments;
+      }
+
+      Object.assign(errors, copyrightErrors);
+    }
+
     return errors;
+  };
+
+  const handleCopyrightChange = (nextCopyright) => {
+    setCopyrightForm(nextCopyright);
+    setFieldErrors((current) => Object.fromEntries(
+      Object.entries(current).filter(([field]) => (
+        !(field in (copyrightForm || {})) && !field.startsWith("licenseDocumentUrls.")
+      ))
+    ));
   };
 
   const buildPayload = (uploadedMedia) => {
@@ -526,7 +585,7 @@ const ArtistTrackEditPage = () => {
       return;
     }
 
-    const errors = validateFormFields();
+    const errors = validateFormFields({ submitAfterSave });
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       return;
@@ -559,6 +618,11 @@ const ArtistTrackEditPage = () => {
       }
 
       const payload = buildPayload(uploadedMedia);
+      if (submitAfterSave && !Object.prototype.hasOwnProperty.call(payload, "copyright")) {
+        // Submit must persist the exact declaration currently shown in the
+        // form, including data restored from a rejected draft/pending update.
+        payload.copyright = serializeCopyrightForApi(copyrightForm);
+      }
       const willRequireReview =
         track?.approvalStatus === "approved" &&
         Object.keys(payload).length > 0;
@@ -593,13 +657,25 @@ const ArtistTrackEditPage = () => {
         );
       }
 
+      if (copyrightEvidenceFiles.length > 0) {
+        latestTrack = await trackService.uploadCopyrightEvidence(id, copyrightEvidenceFiles);
+        setTrack(latestTrack);
+        setCopyrightEvidenceFiles([]);
+      }
+
       setAudioFile(null);
       setAvatarFile(null);
       setCoverImageFiles([]);
       setLyricsSyncFile(null);
 
       if (submitAfterSave) {
-        const submittedTrack = await trackService.submitForApproval(id);
+        const latestCopyright = getEditableTrackSource(latestTrack)?.copyright || latestTrack?.copyright || {};
+        const submittedTrack = await trackService.submitForApproval(id, {
+          copyright: serializeCopyrightForApi({
+            ...copyrightForm,
+            copyrightEvidenceDocuments: latestCopyright.copyrightEvidenceDocuments || [],
+          }),
+        });
         setTrack(submittedTrack);
         navigate(routePaths.artistTrackDetail(id), {
           state: { message: "Đã gửi bài hát để quản trị viên duyệt." },
@@ -607,18 +683,23 @@ const ArtistTrackEditPage = () => {
         return;
       }
 
-      if (Object.keys(payload).length === 0) {
+      if (Object.keys(payload).length === 0 && copyrightEvidenceFiles.length === 0) {
         showArtistInfo("Chưa có thay đổi nào để lưu.");
-      } else if (willRequireReview && latestTrack?.pendingUpdate?.status === "pending") {
+      } else if (willRequireReview || latestTrack?.pendingUpdate?.status === "pending") {
         showArtistSuccess("Đã lưu thay đổi và chuyển bài hát về trạng thái chờ duyệt.");
       } else {
         showArtistSuccess("Đã lưu thay đổi bài hát thành công.");
       }
-    } catch {
+    } catch (error) {
+      const copyrightErrors = mapCopyrightApiErrors(error);
+      if (Object.keys(copyrightErrors).length > 0) setFieldErrors(copyrightErrors);
       showArtistError(
-        submitAfterSave
-          ? "Không thể gửi bài hát để duyệt vào lúc này."
-          : "Không thể lưu thay đổi bài hát vào lúc này."
+        getApiErrorFullMessage(
+          error,
+          submitAfterSave
+            ? "Không thể gửi bài hát để duyệt vào lúc này."
+            : "Không thể lưu thay đổi bài hát vào lúc này."
+        )
       );
     } finally {
       setIsUploadingMedia(false);
@@ -651,9 +732,9 @@ const ArtistTrackEditPage = () => {
       return;
     }
 
-    if (submitIssues.length > 0) {
+    if (effectiveSubmitIssues.length > 0) {
       showArtistError(
-        `Vui lòng hoàn thiện các mục sau trước khi gửi duyệt:\n${submitIssues
+        `Vui lòng hoàn thiện các mục sau trước khi gửi duyệt:\n${effectiveSubmitIssues
           .map((issue) => `- ${issue}`)
           .join("\n")}`
       );
@@ -716,6 +797,16 @@ const ArtistTrackEditPage = () => {
       {track?.approvalStatus === "rejected" && track?.rejectReason ? (
         <div className="rounded-[22px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
           Lý do từ chối: {track.rejectReason}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" onClick={() => setIsAppealModalOpen(true)} disabled={Boolean(hasCurrentAppeal)} className="rounded-xl bg-rose-700 px-3 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">{isEnforcement ? "Gửi khiếu nại" : "Phản hồi quyết định"}</button>
+            {latestAppeal?.status === "pending" ? <span className="self-center text-xs font-semibold">Đang chờ Admin xem xét phản hồi.</span> : null}
+          </div>
+          {latestAppeal?.status === "rejected" && latestAppeal.adminResponse ? <p className="mt-3 rounded-xl bg-white/70 p-3 text-xs leading-5"><strong>Phản hồi của Admin:</strong> {latestAppeal.adminResponse}</p> : null}
+        </div>
+      ) : null}
+      {track?.approvalStatus === "rejected" && !canSubmit && latestAppeal?.status !== "pending" ? (
+        <div className="rounded-[22px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Bạn cần chỉnh sửa ít nhất một thông tin hoặc bổ sung bằng chứng trước khi gửi duyệt lại.
         </div>
       ) : null}
 
@@ -946,10 +1037,40 @@ const ArtistTrackEditPage = () => {
           >
             <TrackCopyrightFields
               value={copyrightForm}
-              onChange={setCopyrightForm}
+              onChange={handleCopyrightChange}
               disabled={!canEdit}
               errors={fieldErrors}
             />
+            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+              <label className="block text-sm font-semibold text-amber-950">
+                Tài liệu cấp phép / bằng chứng bản quyền *
+              </label>
+              <p className="mt-1 text-xs leading-5 text-amber-800">
+                Bắt buộc ít nhất một tệp trước khi gửi duyệt. Dùng giấy chứng nhận, hợp đồng, giấy phép, project/stem hoặc tài liệu quá trình tạo bản ghi; audio thành phẩm đơn lẻ không tự chứng minh quyền sở hữu. Tối đa 5 tệp, mỗi tệp 25 MB.
+              </p>
+              <input
+                type="file"
+                multiple
+                accept=".pdf,.zip,.mp3,.wav,.flac,.m4a,image/*,application/pdf,application/zip,audio/*"
+                onChange={(event) => setCopyrightEvidenceFiles(Array.from(event.target.files || []))}
+                disabled={!canEdit || submitting || submittingForApproval}
+                className="mt-3 block h-11 w-full rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm text-[#241b45] file:mr-3 file:rounded-lg file:border-0 file:bg-amber-100 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-amber-800"
+              />
+              {copyrightEvidenceFiles.length > 0 ? (
+                <p className="mt-2 text-xs font-medium text-amber-900">
+                  Đang chờ tải lên: {copyrightEvidenceFiles.map((file) => file.name).join(", ")}
+                </p>
+              ) : null}
+              {(fieldErrors.copyrightEvidenceDocuments || (
+                copyrightEvidenceFiles.length === 0
+                  ? copyrightValidationErrors.copyrightEvidenceDocuments
+                  : ""
+              )) ? (
+                <p className="mt-2 text-xs font-medium text-rose-600">
+                  {fieldErrors.copyrightEvidenceDocuments || copyrightValidationErrors.copyrightEvidenceDocuments}
+                </p>
+              ) : null}
+            </div>
           </SectionCard>
         </form>
 
@@ -1008,13 +1129,13 @@ const ArtistTrackEditPage = () => {
                 <p className="text-sm font-semibold text-[#241b45]">
                   Danh sách cần kiểm tra trước khi gửi duyệt
                 </p>
-                {submitIssues.length === 0 ? (
+                {effectiveSubmitIssues.length === 0 ? (
                   <p className="mt-2 text-sm text-emerald-700">
                     Bài hát này đã sẵn sàng để gửi duyệt.
                   </p>
                 ) : (
                   <ul className="mt-2 space-y-2 text-sm text-[#5e5678]">
-                    {submitIssues.map((issue) => (
+                    {effectiveSubmitIssues.map((issue) => (
                       <li key={issue}>{issue}</li>
                     ))}
                   </ul>
@@ -1077,7 +1198,7 @@ const ArtistTrackEditPage = () => {
                   setErrorMessage("");
                   setIsSubmitConfirmOpen(true);
                 }}
-                disabled={submitting || submittingForApproval || submitIssues.length > 0}
+                disabled={submitting || submittingForApproval || effectiveSubmitIssues.length > 0}
                 className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-sky-200 bg-sky-50 px-5 py-3 text-sm font-medium text-sky-800 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submittingForApproval ? (
@@ -1107,6 +1228,18 @@ const ArtistTrackEditPage = () => {
         onCancel={() => setIsSubmitConfirmOpen(false)}
         onConfirm={handleSubmitForApproval}
       />
+      {isAppealModalOpen && track?.approvalStatus === "rejected" ? (
+        <TrackReviewAppealModal
+          track={track}
+          reviewTarget={isEnforcement ? "enforcement" : "track_submission"}
+          onClose={() => setIsAppealModalOpen(false)}
+          onCreated={(appeal) => {
+            setLatestAppeal(appeal);
+            setIsAppealModalOpen(false);
+            showArtistSuccess("Đã gửi phản hồi. Đang chờ Admin xem xét.");
+          }}
+        />
+      ) : null}
     </section>
   );
 };

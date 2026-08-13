@@ -4,6 +4,7 @@ import ArtistRequest from "../../models/ArtistRequest.js";
 import Artist from "../../models/Artist.js";
 import { AppError } from "../../utils/AppError.js";
 import { uploadImageBuffer } from "../cloudinaryService.js";
+import { assertArtistStageNameAvailable } from "./artist.name.service.js";
 
 const normalizeString = (value) => {
     if (typeof value !== "string") {
@@ -453,6 +454,7 @@ const createArtistRegistrationRequestByUserId = async (userId, payload = {}, fil
     await ensureEligibleUser(userId);
 
     const validated = validateRequiredFields(payload, files);
+    const stageNameKey = await assertArtistStageNameAvailable(validated.stageName);
     await ensureUniqueArtistRegistrationFields({
         userId,
         stageName: validated.stageName,
@@ -474,6 +476,7 @@ const createArtistRegistrationRequestByUserId = async (userId, payload = {}, fil
     const artistRequest = await ArtistRequest.create({
         userId,
         stageName: validated.stageName,
+        stageNameKey,
         bio: normalizeString(payload.bio),
         avatar: avatarUrl || normalizeString(payload.avatar),
         genres: normalizeStringArray(payload.genres),

@@ -2,6 +2,7 @@ import Artist from "../../models/Artist.js";
 import ArtistRequest from "../../models/ArtistRequest.js";
 import User from "../../models/User.js";
 import { AppError } from "../../utils/AppError.js";
+import { recordAuditEvent } from "../audit/auditLog.service.js";
 import {
     applyReviewFields,
     assertApprovalChecklist,
@@ -10,17 +11,7 @@ import {
     buildArtistPayloadFromRequest,
     buildArtistRequestDetailQuery,
 } from "./admin.artistRequest.service.helper.js";
-
-const normalizeString = (value) =>
-    typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
-
-const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-const buildExactStageNameRegex = (value) => {
-    const normalized = normalizeString(value);
-    const pattern = escapeRegex(normalized).replace(/\s+/g, "\\s+");
-    return new RegExp(`^${pattern}$`, "i");
-};
+import { assertArtistStageNameAvailable } from "./artist.name.service.js";
 
 const getArtistRequests = async (query) => {
     const page = Math.max(1, parseInt(query.page, 10) || 1);
@@ -126,27 +117,17 @@ const reviewArtistRequest = async (artistRequestId, payload = {}, adminUserId) =
             );
         }
 
-        const conflictingStageNameArtist = await Artist.findOne({
-            name: buildExactStageNameRegex(artistRequest.stageName),
-        })
-            .select("_id name")
-            .lean();
-
-        if (conflictingStageNameArtist) {
-            throw new AppError(
-                "Tên nghệ sĩ này đã thuộc về một nghệ sĩ khác.",
-                409,
-                {
-                    field: "stageName",
-                }
-            );
-        }
+        // Re-check immediately before creating the profile. The request can
+        // have been waiting while another artist/request claimed this key.
+        await assertArtistStageNameAvailable(artistRequest.stageName, {
+            excludeRequestId: artistRequest._id,
+        });
 
         const previousUserRole = user.role;
         let artist = null;
 
         try {
-            artist = await Artist.create(buildArtistPayloadFromRequest(artistRequest));
+            artist = await Artist.create(buildArtistPayloadFromRequest(artistRequest, adminUserId));
 
             user.role = "artist";
             await user.save();
@@ -167,6 +148,19 @@ const reviewArtistRequest = async (artistRequestId, payload = {}, adminUserId) =
             throw error;
         }
 
+        void recordAuditEvent({
+            actorUserId: adminUserId,
+            action: "ARTIST_REQUEST_APPROVED",
+            targetType: "artist_request",
+            targetId: artistRequest._id,
+            metadata: {
+                decision: "approved",
+                stageName: artistRequest.stageName,
+                artistId: artist._id,
+                adminNote: artistRequest.review?.adminNote || "",
+            },
+        }).catch((error) => console.error("Artist request decision audit failed:", error.message));
+
         return {
             artistRequest: await buildArtistRequestDetailQuery(artistRequest._id),
             artist: await buildArtistDetailQuery(artist._id),
@@ -176,6 +170,19 @@ const reviewArtistRequest = async (artistRequestId, payload = {}, adminUserId) =
     artistRequest.status = "rejected";
     artistRequest.rejectReason = payload.rejectReason?.trim() || "";
     await artistRequest.save();
+
+    void recordAuditEvent({
+        actorUserId: adminUserId,
+        action: "ARTIST_REQUEST_REJECTED",
+        targetType: "artist_request",
+        targetId: artistRequest._id,
+        metadata: {
+            decision: "rejected",
+            stageName: artistRequest.stageName,
+            reason: artistRequest.rejectReason,
+            adminNote: artistRequest.review?.adminNote || "",
+        },
+    }).catch((error) => console.error("Artist request decision audit failed:", error.message));
 
     return {
         artistRequest: await buildArtistRequestDetailQuery(artistRequest._id),

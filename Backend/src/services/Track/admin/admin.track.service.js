@@ -1,17 +1,44 @@
 import mongoose from "mongoose";
+// Register models referenced only through populate(). Keeping these side-effect
+// imports local prevents MissingSchemaError when this service is loaded before
+// the aggregate models/index.js module.
+import "../../../models/Album.js";
+import "../../../models/Genre.js";
 import Track from "../../../models/Track.js";
 import Artist from "../../../models/Artist.js";
+import User from "../../../models/User.js";
 import Notification from "../../../models/Notification.js";
+import AudioFingerprint from "../../../models/AudioFingerprint.js";
 import { normalizePositiveInteger } from "../../Playlist/playlist.helper.js";
 import { AppError } from "../../../utils/AppError.js";
+import { scheduleTrackAudioFingerprint } from "../../fingerprint/audioFingerprint.job.js";
+import { activeFingerprintScopeFilter } from "../../fingerprint/fingerprint.lifecycle.service.js";
+import { compareFingerprints } from "../../fingerprint/fingerprintSimilarity.service.js";
+import { assertReviewCanApprove } from "../../track/moderationReview.service.js";
+import { getMusicBrainzResultForTrack } from "../../external/musicbrainz.service.js";
+import { getAcoustIdResultForTrack } from "../../external/acoustid.service.js";
+import { recordAuditEvent } from "../../audit/auditLog.service.js";
+import { getDisplayRejectionReason } from "../../fingerprint/moderationDecision.service.js";
 import {
     resolveTrackReleasedAt,
     resolveTrackReleaseStatus,
 } from "../../../utils/trackRelease.js";
+import { hashTrackMutableData } from "../../track/track.rejection.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
+
+const EMPTY_FINGERPRINT_COMPARISON = Object.freeze({
+    scope: "internal_catalog",
+    externalAudioCompared: false,
+    comparedCandidateCount: 0,
+    excludedCandidateCount: 0,
+    activeExactFileMatchCount: 0,
+    historicalExactFileMatchCount: 0,
+    highestActiveCandidateSimilarity: 0,
+    highestActiveCandidateClassification: "none",
+});
 
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -108,7 +135,7 @@ const formatPendingUpdate = (track) => {
         lastSavedAt: track?.pendingUpdate?.lastSavedAt || null,
         reviewedAt: track?.pendingUpdate?.reviewedAt || null,
         adminNote: track?.pendingUpdate?.adminNote || "",
-        rejectReason: track?.pendingUpdate?.rejectReason || "",
+        rejectReason: getDisplayRejectionReason(track?.pendingUpdate?.rejectReason, track?.moderation?.automatic),
         reviewedBy:
             track?.pendingUpdate?.reviewedBy &&
             typeof track.pendingUpdate.reviewedBy === "object"
@@ -171,12 +198,20 @@ const formatAdminTrackListItem = (track) => {
                 : null,
         pendingUpdateStatus: track.pendingUpdate?.status || "none",
         activeStatus: track.activeStatus,
+        isDeleted: track.isDeleted === true,
+        deletedAt: track.deletedAt || null,
+        deleteReason: track.deleteReason || "",
+        submissionVersion: Number(track.submissionVersion || 1),
+        audioVersion: Number(track.audioVersion || 1),
+        copyrightVersion: Number(track.copyrightVersion || 1),
+        evidenceVersion: Number(track.evidenceVersion || 1),
         releaseStatus: resolveTrackReleaseStatus(track),
         releasedAt: resolveTrackReleasedAt(track),
-        rejectReason: track.rejectReason || "",
+        rejectReason: getDisplayRejectionReason(track.rejectReason, track.moderation?.automatic),
         hiddenReason: track.hiddenReason || "",
         hiddenAt: track.hiddenAt || null,
         moderation: track.moderation || { adminNote: "", violationFlags: [] },
+        moderationAutomatic: track.moderation?.automatic || null,
         artist: isPopulatedArtist
             ? {
                 id: toId(artistRef._id),
@@ -186,7 +221,98 @@ const formatAdminTrackListItem = (track) => {
     };
 };
 
-const formatAdminTrackDetailItem = (track) => {
+const buildFingerprintComparisonSummary = async (trackId, fingerprint) => {
+    const summary = { ...EMPTY_FINGERPRINT_COMPARISON };
+    if (!fingerprint || fingerprint.status !== "completed") return summary;
+
+    const duration = Number(fingerprint.duration || 0);
+    const tolerance = Math.max(30, duration * 0.35);
+    const maxCandidates = Number.parseInt(process.env.FINGERPRINT_MAX_CANDIDATES, 10) || 500;
+    const exactCandidates = fingerprint.sourceAudioHash
+        ? await AudioFingerprint.find({
+            trackId: { $ne: trackId },
+            status: "completed",
+            algorithmVersion: "chromaprint-v1",
+            ...activeFingerprintScopeFilter(),
+            sourceAudioHash: fingerprint.sourceAudioHash,
+        })
+            .select("trackId sourceAudioHash duration rawFingerprint")
+            .sort({ updatedAt: -1 })
+            .limit(maxCandidates)
+            .lean()
+        : [];
+    const exactTrackIds = new Set(exactCandidates.map((candidate) => String(candidate.trackId)));
+    const similarityCandidates = await AudioFingerprint.find({
+        trackId: { $ne: trackId },
+        status: "completed",
+        algorithmVersion: "chromaprint-v1",
+        ...activeFingerprintScopeFilter(),
+        ...(fingerprint.sourceAudioHash
+            ? { sourceAudioHash: { $ne: fingerprint.sourceAudioHash } }
+            : {}),
+        duration: {
+            $gte: Math.max(0, duration - tolerance),
+            $lte: duration + tolerance,
+        },
+    })
+        .select("trackId sourceAudioHash duration rawFingerprint")
+        .sort({ updatedAt: -1 })
+        .limit(maxCandidates)
+        .lean();
+    const candidates = [
+        ...exactCandidates,
+        ...similarityCandidates.filter((candidate) => !exactTrackIds.has(String(candidate.trackId))),
+    ];
+    if (candidates.length === 0) return summary;
+
+    const activeTracks = await Track.find({
+        _id: { $in: candidates.map((candidate) => candidate.trackId) },
+        isDeleted: { $ne: true },
+    }).select("_id").lean();
+    const activeTrackIds = new Set(activeTracks.map((candidate) => String(candidate._id)));
+
+    for (const candidate of candidates) {
+        const isActive = activeTrackIds.has(String(candidate.trackId));
+        const isExactFile = Boolean(
+            fingerprint.sourceAudioHash &&
+            candidate.sourceAudioHash === fingerprint.sourceAudioHash
+        );
+        if (isActive) {
+            summary.comparedCandidateCount += 1;
+            if (isExactFile) {
+                summary.activeExactFileMatchCount += 1;
+                summary.highestActiveCandidateSimilarity = 1;
+                summary.highestActiveCandidateClassification = "high";
+                continue;
+            }
+            const comparison = compareFingerprints(
+                fingerprint.rawFingerprint || [],
+                candidate.rawFingerprint || [],
+                { durationA: fingerprint.duration, durationB: candidate.duration }
+            );
+            if (
+                comparison &&
+                Number(comparison.similarityScore || 0) > summary.highestActiveCandidateSimilarity
+            ) {
+                summary.highestActiveCandidateSimilarity = Number(comparison.similarityScore || 0);
+                summary.highestActiveCandidateClassification = comparison.classification || "none";
+            }
+        } else {
+            summary.excludedCandidateCount += 1;
+            if (isExactFile) summary.historicalExactFileMatchCount += 1;
+        }
+    }
+
+    return summary;
+};
+
+const formatAdminTrackDetailItem = (
+    track,
+    fingerprint = null,
+    musicBrainz = null,
+    acoustId = null,
+    fingerprintComparison = EMPTY_FINGERPRINT_COMPARISON
+) => {
     const artistRef = track.artist_artistId;
     const albumRef = track.album_albumId;
     const displayTrack = getDisplayTrackVersion(track);
@@ -212,7 +338,14 @@ const formatAdminTrackDetailItem = (track) => {
         reviewStatus: getReviewStatus(track),
         reviewSource: getReviewSource(track),
         activeStatus: track.activeStatus,
-        rejectReason: track.rejectReason || "",
+        isDeleted: track.isDeleted === true,
+        deletedAt: track.deletedAt || null,
+        deleteReason: track.deleteReason || "",
+        submissionVersion: Number(track.submissionVersion || 1),
+        audioVersion: Number(track.audioVersion || 1),
+        copyrightVersion: Number(track.copyrightVersion || 1),
+        evidenceVersion: Number(track.evidenceVersion || 1),
+        rejectReason: getDisplayRejectionReason(track.rejectReason, track.moderation?.automatic),
         hiddenReason: track.hiddenReason || "",
         blockedReason: track.blockedReason || "",
         hiddenAt: track.hiddenAt || null,
@@ -227,12 +360,72 @@ const formatAdminTrackDetailItem = (track) => {
             isRemix: displayTrack.copyright?.isRemix ?? false,
             usesSample: displayTrack.copyright?.usesSample ?? false,
             usesLicensedBeat: displayTrack.copyright?.usesLicensedBeat ?? false,
+            usesThirdPartyBeat: displayTrack.copyright?.usesThirdPartyBeat ?? displayTrack.copyright?.usesLicensedBeat ?? false,
+            primaryCopyrightType: ["original", "cover", "remix"].includes(displayTrack.copyright?.primaryCopyrightType)
+                ? displayTrack.copyright.primaryCopyrightType
+                : (displayTrack.copyright?.isCover ? "cover" : displayTrack.copyright?.isRemix ? "remix" : "original"),
+            rightsConfirmed: displayTrack.copyright?.rightsConfirmed === true,
+            declarationAccepted: displayTrack.copyright?.declarationAccepted === true,
             originalTrackTitle: displayTrack.copyright?.originalTrackTitle || "",
             originalArtistName: displayTrack.copyright?.originalArtistName || "",
+            originalComposer: displayTrack.copyright?.originalComposer || "",
+            originalISRC: displayTrack.copyright?.originalISRC || "",
+            originalISWC: displayTrack.copyright?.originalISWC || "",
+            sampleSourceTitle: displayTrack.copyright?.sampleSourceTitle || "",
+            sampleSourceArtist: displayTrack.copyright?.sampleSourceArtist || "",
+            sampleSourceISRC: displayTrack.copyright?.sampleSourceISRC || "",
+            sampleStartTime: displayTrack.copyright?.sampleStartTime ?? null,
+            sampleEndTime: displayTrack.copyright?.sampleEndTime ?? null,
+            beatTitle: displayTrack.copyright?.beatTitle || "",
+            beatProducer: displayTrack.copyright?.beatProducer || "",
+            beatSourceUrl: displayTrack.copyright?.beatSourceUrl || "",
+            licenseType: displayTrack.copyright?.licenseType || "",
             licenseDocumentUrls: displayTrack.copyright?.licenseDocumentUrls || [],
+            copyrightEvidenceDocuments: displayTrack.copyright?.copyrightEvidenceDocuments || [],
             copyrightStatus: displayTrack.copyright?.copyrightStatus || "pending",
             copyrightNote: displayTrack.copyright?.copyrightNote || "",
+            copyrightNotes: displayTrack.copyright?.copyrightNotes || displayTrack.copyright?.copyrightNote || "",
+            isrc: displayTrack.copyright?.isrc || "",
+            iswc: displayTrack.copyright?.iswc || "",
+            proName: displayTrack.copyright?.proName || "",
+            workRegistrationNumber: displayTrack.copyright?.workRegistrationNumber || "",
+            recordingId: displayTrack.copyright?.recordingId || "",
         },
+        fingerprint: fingerprint
+            ? {
+                algorithm: fingerprint.algorithm || "chromaprint",
+                algorithmVersion: fingerprint.algorithmVersion || "chromaprint-v1",
+                status: fingerprint.status || "pending",
+                duration: Number(fingerprint.duration || 0),
+                retryCount: Number(fingerprint.retryCount || 0),
+                lastAttemptAt: fingerprint.lastAttemptAt || null,
+                generatedAt: fingerprint.generatedAt || null,
+                errorCode: fingerprint.errorCode || "",
+                error: fingerprint.error || "",
+                audioVersion: Number(fingerprint.audioVersion || 1),
+                comparison: fingerprintComparison,
+            }
+            : {
+                algorithm: "chromaprint",
+                algorithmVersion: "chromaprint-v1",
+                status: "not_started",
+                duration: 0,
+                retryCount: 0,
+                lastAttemptAt: null,
+                generatedAt: null,
+                errorCode: "",
+                error: "",
+                audioVersion: 1,
+                comparison: { ...EMPTY_FINGERPRINT_COMPARISON },
+            },
+        fingerprintScreening: track.fingerprintScreening || { status: "unknown" },
+        musicBrainz: musicBrainz || {
+            artistDeclaredData: null,
+            externalResult: null,
+            externalVerification: null,
+            externalSubmissionVersion: null,
+        },
+        acoustId: acoustId || { result: null, fingerprintHash: "", audioVersion: 1 },
         moderation: {
             submittedAt: track.moderation?.submittedAt || null,
             reviewedAt: track.moderation?.reviewedAt || null,
@@ -245,6 +438,8 @@ const formatAdminTrackDetailItem = (track) => {
                         email: track.moderation.reviewedBy.email || "",
                     }
                     : null,
+            automatic: track.moderation?.automatic || null,
+            lastRejection: track.moderation?.lastRejection || null,
         },
         createdAt: track.createdAt,
         updatedAt: track.updatedAt,
@@ -274,6 +469,22 @@ const assertObjectId = (trackId) => {
     if (!mongoose.Types.ObjectId.isValid(trackId)) {
         throw new AppError("Track id is invalid.", 400, { field: "id" });
     }
+};
+
+export const assertTrackNotDeleted = (track) => {
+    if (track?.isDeleted === true) {
+        throw new AppError(
+            "Không thể thao tác với track của nghệ sĩ đã bị xóa.",
+            409,
+            { code: "TRACK_DELETED", field: "isDeleted" }
+        );
+    }
+};
+
+export const getAdminTrackDeletionFilter = (deletionStatus = "active") => {
+    if (deletionStatus === "deleted") return { isDeleted: true };
+    if (deletionStatus === "all") return {};
+    return { isDeleted: { $ne: true } };
 };
 
 const getTrackThumbnail = (track) => {
@@ -409,13 +620,43 @@ const listTracksForAdmin = async (query = {}) => {
     const limit = Math.min(requestedLimit, MAX_LIMIT);
     const skip = (page - 1) * limit;
     const rawSearch = typeof query.q === "string" ? query.q.trim() : "";
+    const deletionStatus = ["active", "deleted", "all"].includes(query.deletionStatus)
+        ? query.deletionStatus
+        : "active";
 
     const conditions = [];
+
+    const deletionFilter = getAdminTrackDeletionFilter(deletionStatus);
+    if (Object.keys(deletionFilter).length > 0) conditions.push(deletionFilter);
+
+    if (query.artistId) {
+        if (!mongoose.Types.ObjectId.isValid(query.artistId)) {
+            throw new AppError("Artist id is invalid.", 400, { field: "artistId" });
+        }
+        conditions.push({ artist_artistId: query.artistId });
+    }
 
     // Drafts stay private until submission. Pending records belong to the
     // dedicated moderation queue, not the system catalog.
     if (query.scope === "catalog") {
         conditions.push({ approvalStatus: { $in: ["approved", "rejected"] } });
+    }
+
+    if (query.scope === "moderation") {
+        // AUTO_REJECT is returned to the artist and is intentionally absent
+        // from the normal manual queue. Enforcement blocks remain queryable
+        // explicitly for the security/audit view.
+        if (query.moderationDecision) {
+            conditions.push({ "moderation.automatic.decision": query.moderationDecision });
+        } else {
+            conditions.push({
+                "moderation.automatic.decision": {
+                    $in: ["manual_review_high", "manual_review", "auto_clear"],
+                },
+            });
+        }
+    } else if (query.moderationDecision) {
+        conditions.push({ "moderation.automatic.decision": query.moderationDecision });
     }
 
     if (query.approvalStatus) {
@@ -480,7 +721,15 @@ const listTracksForAdmin = async (query = {}) => {
 
     const [tracks, total] = await Promise.all([
         Track.find(filter)
-            .sort({ createdAt: -1, _id: 1 })
+            .sort(query.scope === "moderation"
+                ? {
+                    "moderation.automatic.priority": -1,
+                    "pendingUpdate.submittedAt": 1,
+                    "moderation.submittedAt": 1,
+                    createdAt: 1,
+                    _id: 1,
+                }
+                : { createdAt: -1, _id: 1 })
             .skip(skip)
             .limit(limit)
             .populate({ path: "artist_artistId", select: "name" })
@@ -515,7 +764,33 @@ const getTrackDetailForAdmin = async (trackId) => {
         throw new AppError("Track not found.", 404, { field: "id" });
     }
 
-    return formatAdminTrackDetailItem(track);
+    const providerVersions = track.pendingUpdate?.status === "pending"
+        ? {
+            submissionVersion: track.pendingUpdate.submissionVersion,
+            audioVersion: track.pendingUpdate.audioVersion,
+            copyrightVersion: track.pendingUpdate.copyrightVersion,
+            evidenceVersion: track.pendingUpdate.evidenceVersion,
+        }
+        : {
+            submissionVersion: track.submissionVersion,
+            audioVersion: track.audioVersion,
+            copyrightVersion: track.copyrightVersion,
+            evidenceVersion: track.evidenceVersion,
+        };
+    const [fingerprint, musicBrainz, acoustId] = await Promise.all([
+        AudioFingerprint.findOne({
+            trackId: track._id,
+            algorithm: "chromaprint",
+            algorithmVersion: "chromaprint-v1",
+        })
+            .select("algorithm algorithmVersion status duration rawFingerprint sourceAudioHash retryCount lastAttemptAt generatedAt errorCode error audioVersion")
+            .lean(),
+        getMusicBrainzResultForTrack(track._id, providerVersions),
+        getAcoustIdResultForTrack(track._id, providerVersions),
+    ]);
+    const fingerprintComparison = await buildFingerprintComparisonSummary(track._id, fingerprint);
+
+    return formatAdminTrackDetailItem(track, fingerprint, musicBrainz, acoustId, fingerprintComparison);
 };
 
 const updateTrackApprovalStatus = async (
@@ -530,9 +805,11 @@ const updateTrackApprovalStatus = async (
     if (!track) {
         throw new AppError("Track not found.", 404, { field: "id" });
     }
+    assertTrackNotDeleted(track);
 
     const note = (payload.adminNote || payload.rejectReason || "").trim();
     const flags = payload.violationFlags || [];
+    const rejectCategory = String(payload.rejectCategory || "").trim();
     const hasPendingUpdateUnderReview =
         track.pendingUpdate?.status === "pending" && track.pendingUpdate?.data;
     const hasPendingReleaseUnderReview = track.approvalStatus === "pending";
@@ -547,7 +824,12 @@ const updateTrackApprovalStatus = async (
     }
 
     if (payload.status === "approved") {
+        await assertReviewCanApprove(track, adminUserId, payload);
         if (hasPendingUpdateUnderReview) {
+            track.submissionVersion = Number(track.pendingUpdate.submissionVersion || track.submissionVersion || 1);
+            track.audioVersion = Number(track.pendingUpdate.audioVersion || track.audioVersion || 1);
+            track.copyrightVersion = Number(track.pendingUpdate.copyrightVersion || track.copyrightVersion || 1);
+            track.evidenceVersion = Number(track.pendingUpdate.evidenceVersion || track.evidenceVersion || 1);
             applyMutableTrackData(track, track.pendingUpdate.data);
             clearPendingUpdate(track);
         }
@@ -560,8 +842,10 @@ const updateTrackApprovalStatus = async (
         }
         track.rejectReason = "";
 
-        if (track.copyright) {
-            track.copyright.copyrightStatus = "verified";
+        // Content moderation approval and copyright verification are separate decisions.
+        // Keep rights status pending until a claim/registry review explicitly verifies it.
+        if (track.copyright && track.copyright.copyrightStatus !== "verified") {
+            track.copyright.copyrightStatus = "pending";
         }
 
         track.moderation = {
@@ -574,8 +858,24 @@ const updateTrackApprovalStatus = async (
             violationFlags: [],
         };
 
-        await track.save();
+        try {
+            await track.save();
+        } catch (error) {
+            if (error?.name === "VersionError") {
+                throw new AppError("Track đã được cập nhật trong lúc kiểm duyệt. Vui lòng rà soát lại.", 409, {
+                    code: "STALE_REVIEW_SESSION",
+                });
+            }
+            throw error;
+        }
+        void scheduleTrackAudioFingerprint(track._id);
     } else if (payload.status === "rejected") {
+        if (!rejectCategory) {
+            throw new AppError("Cần chọn nhóm lý do khi từ chối bài hát.", 422, { field: "rejectCategory" });
+        }
+        if (note.length < 5) {
+            throw new AppError("Lý do từ chối phải có ít nhất 5 ký tự.", 422, { field: "rejectReason" });
+        }
         if (hasPendingUpdateUnderReview) {
             track.pendingUpdate = {
                 ...(track.pendingUpdate || {}),
@@ -604,6 +904,18 @@ const updateTrackApprovalStatus = async (
                 reviewedAt: new Date(),
                 adminNote: note,
                 violationFlags: flags,
+                lastRejection: {
+                    rejectionId: new mongoose.Types.ObjectId().toString(),
+                    rejectedAt: new Date(),
+                    rejectedBy: adminUserId,
+                    submissionVersion: Number(track.submissionVersion || 1),
+                    audioVersion: Number(track.audioVersion || 1),
+                    copyrightVersion: Number(track.copyrightVersion || 1),
+                    evidenceVersion: Number(track.evidenceVersion || 1),
+                    rejectReason: track.rejectReason,
+                    violationFlags: flags,
+                    mutableSnapshotHash: hashTrackMutableData(track),
+                },
             };
 
             await track.save();
@@ -611,6 +923,36 @@ const updateTrackApprovalStatus = async (
     } else {
         throw new AppError("Invalid approval status.", 400, { field: "status" });
     }
+
+    const reviewer = adminUserId
+        ? await User.findById(adminUserId).select("email role").lean()
+        : null;
+    void recordAuditEvent({
+        actorUserId: adminUserId,
+        actorSnapshot: {
+            id: adminUserId,
+            email: reviewer?.email || "",
+            role: reviewer?.role || "admin",
+        },
+        action: payload.status === "approved" ? "TRACK_APPROVED" : "TRACK_REJECTED",
+        targetType: "track",
+        targetId: track._id,
+        metadata: {
+            source: "admin_manual",
+            decision: payload.status,
+            rejectCategory,
+            reason: note,
+            submissionVersion: track.submissionVersion || 1,
+            audioVersion: track.audioVersion || 1,
+            copyrightVersion: track.copyrightVersion || 1,
+            evidenceVersion: track.evidenceVersion || 1,
+            copyrightDeclaration: hasPendingUpdateUnderReview
+                ? track.pendingUpdate?.data?.copyright || null
+                : track.copyright || null,
+            fingerprintScreening: track.fingerprintScreening || null,
+            violationFlags: flags,
+        },
+    }).catch((error) => console.error("Track decision audit failed:", error.message));
 
     await track.populate({ path: "artist_artistId", select: "name" });
 
@@ -649,6 +991,7 @@ const updateTrackVisibility = async (
     if (!track) {
         throw new AppError("Track not found.", 404, { field: "id" });
     }
+    assertTrackNotDeleted(track);
 
     if (payload.action === "hide") {
         track.blockedByAlbumId = null;

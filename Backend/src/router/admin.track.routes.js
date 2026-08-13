@@ -25,6 +25,49 @@ router.patch(
     adminTrackController.updateTrackApprovalStatus
 );
 
+router.post(
+    "/:id/review/session",
+    validate(trackValidation.trackIdParamSchema, "params"),
+    adminTrackController.startTrackReviewSession
+);
+
+router.get(
+    "/:id/review/session",
+    validate(trackValidation.trackIdParamSchema, "params"),
+    adminTrackController.getTrackReviewSession
+);
+
+router.post(
+    "/:id/review/events",
+    validate(trackValidation.trackIdParamSchema, "params"),
+    validate(adminTrackValidation.reviewEventSchema, "body"),
+    adminTrackController.recordTrackReviewEvent
+);
+
+router.post(
+    "/:id/fingerprint/reprocess",
+    validate(trackValidation.trackIdParamSchema, "params"),
+    adminTrackController.reprocessFingerprint
+);
+
+router.get(
+    "/fingerprint-matches",
+    validate(adminTrackValidation.fingerprintMatchesQuerySchema, "query"),
+    adminTrackController.listFingerprintMatches
+);
+router.get(
+    "/fingerprint-matches/:matchId",
+    validate(adminTrackValidation.fingerprintMatchIdParamSchema, "params"),
+    adminTrackController.getFingerprintMatchDetail
+);
+router.post(
+    "/fingerprint-matches/:matchId/review",
+    validate(adminTrackValidation.fingerprintMatchIdParamSchema, "params"),
+    validate(adminTrackValidation.fingerprintReviewBodySchema, "body"),
+    adminTrackController.reviewFingerprintMatch
+);
+router.get("/fingerprint-metrics", adminTrackController.getFingerprintMetrics);
+
 // PATCH /:id/visibility (Tương đương /admin/:id/visibility cũ)
 router.patch(
     "/:id/visibility",

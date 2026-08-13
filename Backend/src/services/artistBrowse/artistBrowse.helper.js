@@ -54,10 +54,11 @@ const formatArtistTrack = (track) => ({
 
 const formatArtistComingRelease = ({ schedule, target }) => {
     const isTrackRelease = schedule.type === "track";
+    const isPodcastRelease = schedule.type === "podcast";
 
     return {
         id: toId(schedule._id),
-        type: isTrackRelease ? "single" : "album",
+        type: isTrackRelease ? "single" : isPodcastRelease ? "podcast" : "album",
         sourceType: schedule.type,
         scheduledAt: schedule.scheduledAt,
         releasedAt: schedule.releasedAt || null,
@@ -76,6 +77,16 @@ const formatArtistComingRelease = ({ schedule, target }) => {
                 releaseStatus: resolveTrackReleaseStatus(target),
                 releasedAt: resolveTrackReleasedAt(target),
             }
+            : isPodcastRelease
+                ? {
+                    id: toId(target?._id),
+                    title: target?.title || "",
+                    duration: target?.duration || 0,
+                    coverImage: target?.coverImageUrl || "",
+                    releaseDate: target?.releaseDate || null,
+                    releaseStatus: target?.releaseStatus || "unreleased",
+                    releasedAt: target?.releasedAt || null,
+                }
             : {
                 id: toId(target?._id),
                 title: target?.title || "",

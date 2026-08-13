@@ -14,6 +14,7 @@ import {
   resolveTrackMediaUrlForQuality,
   recordListenService,
 } from "../services/playerService";
+import podcastService from "../services/podcastService";
 import {
   isBlockedTrack,
   isHiddenTrack,
@@ -29,6 +30,12 @@ const MAX_NATURAL_LISTEN_DELTA_SECONDS = 2;
 const REPEAT_MODE_SEQUENCE = ["off", "all", "one"];
 const MANUAL_QUEUE_SOURCE = "manual";
 const CONTEXT_QUEUE_SOURCE = "context";
+const PODCAST_MEDIA_TYPE = "podcast";
+
+const isPodcastMedia = (media) =>
+  media?.mediaType === PODCAST_MEDIA_TYPE ||
+  media?.contentType === PODCAST_MEDIA_TYPE ||
+  media?.type === PODCAST_MEDIA_TYPE;
 
 const getTrackId = (track, fallbackId = null) =>
   track?.id || track?._id || track?.trackId || fallbackId;
@@ -54,6 +61,8 @@ const resolveListenSource = (value = "unknown") => {
     case "search":
     case "artist_profile":
       return value;
+    case "podcast_detail":
+      return value;
     case "track":
       return "track_detail";
     default:
@@ -68,6 +77,7 @@ const getTrackImage = (track, fallbackImage = "") => {
 
   return (
     coverImage ||
+    track?.coverImageUrl ||
     track?.image ||
     track?.avatar ||
     track?.album?.coverImage ||
@@ -227,11 +237,21 @@ const normalizeQueueTrack = (item, options = {}) => {
     track?.queueSource ||
     options.queueSource ||
     CONTEXT_QUEUE_SOURCE;
+  const mediaType =
+    track?.mediaType ||
+    track?.contentType ||
+    item?.mediaType ||
+    item?.contentType ||
+    options.mediaType ||
+    "track";
 
   return {
     queueItemId,
     queueSource,
     id: normalizedTrackId,
+    mediaType,
+    contentType: mediaType,
+    type: mediaType === PODCAST_MEDIA_TYPE ? PODCAST_MEDIA_TYPE : "song",
     title: track?.title || item?.title || "Untitled track",
     versionTitle: track?.versionTitle || item?.versionTitle || "",
     artist: track?.artist || null,
@@ -278,12 +298,15 @@ const createPersistedQueueTrack = (
       queueSource: storedTrack?.queueSource,
       id: trackId,
       playbackTrackId: playbackTrackId || trackId,
+      mediaType: storedTrack?.mediaType || storedTrack?.contentType || "track",
+      contentType: storedTrack?.contentType || storedTrack?.mediaType || "track",
       title: storedTrack?.title || "Untitled track",
       versionTitle: storedTrack?.versionTitle || "",
       artistName: storedTrack?.artistName || "Unknown artist",
       duration: storedTrack?.duration,
       image: storedTrack?.image,
       listenSource: storedTrack?.listenSource,
+      streamUrl: storedTrack?.streamUrl || "",
     },
     {
       index,
@@ -303,12 +326,15 @@ const createStoredQueueTrack = (track) => ({
   playbackTrackId: String(
     track?.playbackTrackId || track?.id || ""
   ).trim(),
+  mediaType: isPodcastMedia(track) ? PODCAST_MEDIA_TYPE : "track",
+  contentType: isPodcastMedia(track) ? PODCAST_MEDIA_TYPE : "track",
   title: String(track?.title || "Untitled track"),
   versionTitle: String(track?.versionTitle || ""),
   artistName: String(track?.artistName || getArtistName(track)),
   duration: Math.max(Number(track?.duration) || 0, 0),
   image: String(track?.image || getTrackImage(track) || ""),
   listenSource: resolveListenSource(track?.listenSource),
+  streamUrl: isPodcastMedia(track) ? String(track?.streamUrl || "") : "",
 });
 
 const createFreeSkipWindow = (startedAt = Date.now()) => ({
@@ -597,6 +623,7 @@ export const PlayerProvider = ({ children }) => {
   const freeSkipWindowRef = useRef(freeSkipWindow);
   const listenTrackRef = useRef({
     trackId: null,
+    mediaType: "track",
     duration: 0,
     source: "unknown",
     hasReported: false,
@@ -606,6 +633,14 @@ export const PlayerProvider = ({ children }) => {
   const ignoreNextListenDeltaRef = useRef(true);
   const queueMutationCounterRef = useRef(0);
   const isRestoringPlaybackRef = useRef(false);
+  const podcastListenSessionIdRef = useRef(null);
+
+  if (!podcastListenSessionIdRef.current) {
+    podcastListenSessionIdRef.current =
+      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `podcast-session-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }
 
   const isPremium = useMemo(() => hasPremiumAccess(user), [user]);
 
@@ -698,6 +733,7 @@ export const PlayerProvider = ({ children }) => {
 
     listenTrackRef.current = {
       trackId: null,
+      mediaType: "track",
       duration: 0,
       source: "unknown",
       hasReported: false,
@@ -852,10 +888,47 @@ export const PlayerProvider = ({ children }) => {
     lastTrackedAudioTimeRef.current = normalizedNextTime;
   }, []);
 
+  const reportPodcastListenIfReady = useCallback(async (nextTime) => {
+    const activeListen = listenTrackRef.current;
+
+    if (
+      !activeListen?.trackId ||
+      activeListen.mediaType !== PODCAST_MEDIA_TYPE ||
+      activeListen.hasReported
+    ) {
+      return;
+    }
+
+    const podcastDuration = Number(activeListen.duration) || 0;
+    const threshold = Math.min(30, podcastDuration * 0.25);
+
+    if (threshold <= 0 || Number(nextTime) < threshold) {
+      return;
+    }
+
+    activeListen.hasReported = true;
+
+    try {
+      await podcastService.listen(
+        activeListen.trackId,
+        Math.floor(Number(nextTime) || 0),
+        podcastListenSessionIdRef.current
+      );
+    } catch (error) {
+      // Keep the client-side event one-shot. The backend also deduplicates
+      // repeated sessions, so a transient failure must not inflate listens.
+      console.warn("[PodcastListenTracking] Failed to record listen:", error);
+    }
+  }, []);
+
   const flushCurrentListenAttempt = useCallback(async () => {
     const activeListen = listenTrackRef.current;
 
-    if (!activeListen?.trackId || activeListen.hasReported) {
+    if (
+      !activeListen?.trackId ||
+      activeListen.mediaType === PODCAST_MEDIA_TYPE ||
+      activeListen.hasReported
+    ) {
       return;
     }
 
@@ -933,6 +1006,8 @@ export const PlayerProvider = ({ children }) => {
     persistFreeSkipWindow(freeSkipWindow);
   }, [freeSkipWindow]);
 
+  // Keep one audio engine/listener set for the provider lifetime. Adding the
+  // recreated queue helper here would tear down and recreate the engine.
   useEffect(() => {
     const audio = new Audio();
     const liricle = new Liricle();
@@ -967,6 +1042,7 @@ export const PlayerProvider = ({ children }) => {
     const handleTimeUpdate = () => {
       const nextTime = audio.currentTime || 0;
       trackListenProgress(nextTime);
+      void reportPodcastListenIfReady(nextTime);
       setCurrentTime(nextTime);
       syncLyricsRef.current?.(nextTime || 0);
     };
@@ -996,6 +1072,14 @@ export const PlayerProvider = ({ children }) => {
 
     const handleEnded = async () => {
       const endedTrack = listenTrackRef.current;
+
+      if (endedTrack?.mediaType === PODCAST_MEDIA_TYPE) {
+        await reportPodcastListenIfReady(endedTrack.duration);
+        setIsPlaying(false);
+        setIsBuffering(false);
+        return;
+      }
+
       if (endedTrack?.trackId) {
         await flushCurrentListenAttempt();
       }
@@ -1063,7 +1147,12 @@ export const PlayerProvider = ({ children }) => {
       audioRef.current = null;
       liricleRef.current = null;
     };
-  }, [flushCurrentListenAttempt, trackListenProgress]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    flushCurrentListenAttempt,
+    reportPodcastListenIfReady,
+    trackListenProgress,
+  ]);
 
   useEffect(() => {
     if (!audioRef.current) {
@@ -1129,24 +1218,34 @@ export const PlayerProvider = ({ children }) => {
           return;
         }
 
+        const restoredCurrentTrack = restoredQueue[restoredCurrentIndex];
         let playbackSource = null;
 
-        try {
-          playbackSource = await getTrackPlaybackSource(
-            currentPlaybackTrackId || currentTrackId
-          );
-        } catch {
-          if (!isCancelled) {
-            clearPlaybackState();
+        if (
+          isPodcastMedia(restoredCurrentTrack) &&
+          restoredCurrentTrack.streamUrl
+        ) {
+          playbackSource = {
+            url: restoredCurrentTrack.streamUrl,
+            track: restoredCurrentTrack.raw || restoredCurrentTrack,
+          };
+        } else {
+          try {
+            playbackSource = await getTrackPlaybackSource(
+              currentPlaybackTrackId || currentTrackId
+            );
+          } catch {
+            if (!isCancelled) {
+              clearPlaybackState();
+            }
+            return;
           }
-          return;
         }
 
         if (isCancelled || !playbackSource?.url) {
           return;
         }
 
-        const restoredCurrentTrack = restoredQueue[restoredCurrentIndex];
         const hydratedCurrentTrack = {
           ...restoredCurrentTrack,
           id: getExplicitTrackId(playbackSource.track) || restoredCurrentTrack.id,
@@ -1280,6 +1379,7 @@ export const PlayerProvider = ({ children }) => {
     const audio = audioRef.current;
     const workingQueue = incomingQueue || queueRef.current;
     const nextTrack = workingQueue?.[nextIndex];
+    const nextTrackIsPodcast = isPodcastMedia(nextTrack);
     const nextTrackPlaybackId = nextTrack?.playbackTrackId || nextTrack?.id;
     const nextQueueItemId = getQueueItemId(nextTrack);
     const isQueueSwitch =
@@ -1354,6 +1454,7 @@ export const PlayerProvider = ({ children }) => {
     try {
       let source = null;
       const shouldHydratePlayback =
+        !nextTrackIsPodcast &&
         Boolean(nextTrack.playbackTrackId) &&
         (!nextTrack.streamUrl || !nextTrack.lyricsSyncUrl || !nextTrack.playback);
 
@@ -1410,6 +1511,8 @@ export const PlayerProvider = ({ children }) => {
           getExplicitTrackId(source.track) ||
           nextTrack.playbackTrackId,
         playback: source.track?.playback || nextTrack.playback,
+        mediaType: nextTrack.mediaType,
+        contentType: nextTrack.contentType,
         lyricsSyncUrl:
           resolveTrackLyricsSyncUrl(source.track) || nextTrack.lyricsSyncUrl,
         raw: source.track || nextTrack.raw,
@@ -1442,8 +1545,13 @@ export const PlayerProvider = ({ children }) => {
 
       listenTrackRef.current = {
         trackId: hydratedTrack.playbackTrackId || hydratedTrack.id,
+        mediaType: isPodcastMedia(hydratedTrack)
+          ? PODCAST_MEDIA_TYPE
+          : "track",
         duration: hydratedTrack.duration || 0,
-        source: resolveListenSource(hydratedTrack.listenSource),
+        source: isPodcastMedia(hydratedTrack)
+          ? "podcast_detail"
+          : resolveListenSource(hydratedTrack.listenSource),
         hasReported: false,
       };
       resetListenProgress({
@@ -1506,7 +1614,7 @@ export const PlayerProvider = ({ children }) => {
 
   const playCollection = async (
     tracks,
-    { startIndex = 0, collection = null, shuffle } = {}
+    { startIndex = 0, collection = null, shuffle, autoplay } = {}
   ) => {
     const normalizedQueue = normalizeQueue(tracks, collection);
 
@@ -1538,7 +1646,9 @@ export const PlayerProvider = ({ children }) => {
       setIsShuffleEnabled(shuffle);
     }
 
-    await playTrackByIndexRef.current?.(playbackStartIndex, queueToPlay);
+    await playTrackByIndexRef.current?.(playbackStartIndex, queueToPlay, {
+      ...(typeof autoplay === "boolean" ? { autoplay } : {}),
+    });
   };
 
   const addTrackToQueue = (track, options = {}) => {
@@ -1618,6 +1728,42 @@ export const PlayerProvider = ({ children }) => {
     await playCollection(playableQueue, {
       startIndex: playableStartIndex,
       collection: options.collection || null,
+    });
+  };
+
+  const playPodcast = async (podcast, options = {}) => {
+    const podcastId = getTrackId(podcast);
+
+    if (!podcastId) {
+      setErrorMessage("Podcast này không có mã nội dung hợp lệ.");
+      return;
+    }
+
+    const podcastTrack = {
+      ...podcast,
+      id: podcastId,
+      playbackTrackId: podcastId,
+      mediaType: PODCAST_MEDIA_TYPE,
+      contentType: PODCAST_MEDIA_TYPE,
+      image: podcast?.coverImageUrl || podcast?.image || podcast?.creator?.avatar || "",
+      artistName: podcast?.creator?.name || podcast?.artistName || "Nghệ sĩ",
+      streamUrl: podcast?.audioUrl || podcast?.streamUrl || "",
+      listenSource: "podcast_detail",
+      raw: podcast,
+    };
+
+    await playCollection([podcastTrack], {
+      startIndex: 0,
+      shuffle: false,
+      autoplay: options.autoplay,
+      collection: {
+        id: podcastId,
+        type: PODCAST_MEDIA_TYPE,
+        title: podcast?.title || "Podcast",
+        image: podcastTrack.image,
+        artistName: podcastTrack.artistName,
+        listenSource: "podcast_detail",
+      },
     });
   };
 
@@ -1747,7 +1893,7 @@ export const PlayerProvider = ({ children }) => {
       return;
     }
 
-    if (!isPremiumRef.current) {
+    if (!isPodcastMedia(currentTrack) && !isPremiumRef.current) {
       setRestrictionMessage(
         "Seeking on the progress bar is available for Premium listeners only."
       );
@@ -1760,6 +1906,31 @@ export const PlayerProvider = ({ children }) => {
     );
 
     setRestrictionMessage("");
+    audio.currentTime = boundedTime;
+    lastTrackedAudioTimeRef.current = boundedTime;
+    ignoreNextListenDeltaRef.current = true;
+    setCurrentTime(boundedTime);
+    syncLyricsRef.current?.(boundedTime, true);
+  };
+
+  const seekBy = (seconds) => {
+    const audio = audioRef.current;
+
+    if (!audio || !currentTrack) {
+      return;
+    }
+
+    if (!isPodcastMedia(currentTrack)) {
+      seekTo((Number(audio.currentTime) || currentTime) + Number(seconds || 0));
+      return;
+    }
+
+    const maxTime = Number.isFinite(audio.duration) ? audio.duration : duration;
+    const boundedTime = Math.min(
+      Math.max((Number(audio.currentTime) || currentTime) + Number(seconds || 0), 0),
+      maxTime || Number.MAX_SAFE_INTEGER
+    );
+
     audio.currentTime = boundedTime;
     lastTrackedAudioTimeRef.current = boundedTime;
     ignoreNextListenDeltaRef.current = true;
@@ -1987,6 +2158,7 @@ export const PlayerProvider = ({ children }) => {
     queue,
     currentIndex,
     currentTrack,
+    currentMedia: currentTrack,
     isPlaying,
     isBuffering,
     currentTime,
@@ -2011,6 +2183,7 @@ export const PlayerProvider = ({ children }) => {
     freeSkipLimit: FREE_SKIP_LIMIT,
     freeSkipWindowEndsAt: activeFreeSkipWindow.startedAt + FREE_SKIP_WINDOW_MS,
     playTrack,
+    playPodcast,
     playAlbum,
     playPlaylist,
     playCollection,
@@ -2022,6 +2195,7 @@ export const PlayerProvider = ({ children }) => {
     toggleShuffle,
     cycleRepeatMode,
     seekTo,
+    seekBy,
     changeAudioQuality,
     setVolumeLevel,
     removeTrackFromQueue,

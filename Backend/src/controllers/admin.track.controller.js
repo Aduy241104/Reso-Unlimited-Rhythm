@@ -7,6 +7,8 @@ import Track from "../models/Track.js";
 import Artist from "../models/Artist.js";
 import Interaction from "../models/Interaction.js";
 import Notification from "../models/Notification.js";
+import fingerprintAdminService from "../services/fingerprint/fingerprintAdmin.service.js";
+import moderationReviewService from "../services/track/moderationReview.service.js";
 
 const listTracksForAdmin = async (req, res, next) => {
     try {
@@ -58,7 +60,17 @@ const updateTrackApprovalStatus = async (req, res, next) => {
     try {
         const { id } = req.params;
         // Bốc đầu đầy đủ tất cả các trường kiểm duyệt nâng cao gửi từ FE lên
-        const { status, adminNote, violationFlags, rejectReason } = req.body;
+        const {
+            status,
+            adminNote,
+            violationFlags,
+            rejectReason,
+            rejectCategory,
+            fingerprintOverrideReason,
+            acoustIdOverride,
+            acoustIdOverrideReason,
+            reviewSessionId,
+        } = req.body;
 
         const updatedTrack = await adminTrackService.updateTrackApprovalStatus(
             id,
@@ -67,6 +79,12 @@ const updateTrackApprovalStatus = async (req, res, next) => {
                 adminNote,
                 violationFlags,
                 rejectReason,
+                rejectCategory,
+                fingerprintOverrideReason,
+                acoustIdOverride,
+                acoustIdOverrideReason,
+                moderationRole: req.user.role,
+                reviewSessionId,
             },
             req.user.id,
             req.app.get("io")
@@ -106,9 +124,93 @@ const updateTrackVisibilityController = async (req, res, next) => {
     }
 };
 
+const startTrackReviewSession = async (req, res, next) => {
+    try {
+        const review = await moderationReviewService.ensureReviewSession(req.user.id, req.params.id);
+        return formatResponse.success(res, { review }, "Track review session ready");
+    } catch (error) {
+        next(error);
+    }
+};
+
+const getTrackReviewSession = async (req, res, next) => {
+    try {
+        const review = await moderationReviewService.getReviewSession(req.user.id, req.params.id);
+        return formatResponse.success(res, { review }, "Track review session fetched");
+    } catch (error) {
+        next(error);
+    }
+};
+
+const recordTrackReviewEvent = async (req, res, next) => {
+    try {
+        const review = await moderationReviewService.recordReviewEvent(
+            req.user.id,
+            req.params.id,
+            req.body
+        );
+        return formatResponse.success(res, { review }, "Track review event recorded");
+    } catch (error) {
+        next(error);
+    }
+};
+
+const reprocessFingerprint = async (req, res, next) => {
+    try {
+        const result = await fingerprintAdminService.reprocessFingerprint(req.params.id);
+        return formatResponse.success(res, result, "Fingerprint reprocess started.");
+    } catch (error) {
+        next(error);
+    }
+};
+
+const listFingerprintMatches = async (req, res, next) => {
+    try {
+        const result = await fingerprintAdminService.listFingerprintMatches(req.query);
+        return formatResponse.success(res, { matches: result.matches }, "Fingerprint matches fetched successfully", result.pagination);
+    } catch (error) {
+        next(error);
+    }
+};
+
+const getFingerprintMatchDetail = async (req, res, next) => {
+    try {
+        const match = await fingerprintAdminService.getFingerprintMatchDetail(req.params.matchId);
+        return formatResponse.success(res, { match }, "Fingerprint match fetched successfully");
+    } catch (error) {
+        next(error);
+    }
+};
+
+const reviewFingerprintMatch = async (req, res, next) => {
+    try {
+        const match = await fingerprintAdminService.reviewFingerprintMatch(req.user.id, req.params.matchId, req.body);
+        return formatResponse.success(res, { match }, "Fingerprint match review updated successfully");
+    } catch (error) {
+        next(error);
+    }
+};
+
+const getFingerprintMetrics = async (req, res, next) => {
+    try {
+        const metrics = await fingerprintAdminService.getFingerprintMetrics();
+        return formatResponse.success(res, { metrics }, "Fingerprint metrics fetched successfully");
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     listTracksForAdmin,
     updateTrackApprovalStatus,
     updateTrackVisibilityController,
     getTrackDetailForAdmin,
+    reprocessFingerprint,
+    listFingerprintMatches,
+    getFingerprintMatchDetail,
+    reviewFingerprintMatch,
+    getFingerprintMetrics,
+    startTrackReviewSession,
+    getTrackReviewSession,
+    recordTrackReviewEvent,
 };

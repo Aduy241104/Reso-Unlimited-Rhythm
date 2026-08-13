@@ -57,9 +57,39 @@ const searchAlbumsHandler = async (req, res, next) => {
     }
 };
 
+const searchPodcastsHandler = async (req, res, next) => {
+    try {
+        const result = await searchService.searchPodcasts(req.query);
+
+        return formatResponse.success(
+            res,
+            { items: result.items, pagination: result.pagination },
+            "Podcasts search fetched successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+const searchPlaylistsHandler = async (req, res, next) => {
+    try {
+        const result = await searchService.searchPlaylists(req.query);
+
+        return formatResponse.success(
+            res,
+            { items: result.items, pagination: result.pagination },
+            "Playlists search fetched successfully"
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     searchAllHandler,
     searchSongsHandler,
     searchArtistsHandler,
     searchAlbumsHandler,
+    searchPodcastsHandler,
+    searchPlaylistsHandler,
 };

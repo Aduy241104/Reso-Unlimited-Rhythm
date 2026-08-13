@@ -205,6 +205,15 @@ const removeTrackFromAlbum = async (req, res, next) => {
     }
 };
 
+const deleteAlbum = async (req, res, next) => {
+    try {
+        const result = await artistAlbumService.deleteAlbum(req.user.id, req.params.id);
+        return formatResponse.success(res, result, "Album deleted successfully");
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getMyAlbums,
     getMyAlbumDetail,
@@ -214,4 +223,5 @@ export default {
     unhideAlbum,
     addTrackToAlbum,
     removeTrackFromAlbum,
+    deleteAlbum,
 };

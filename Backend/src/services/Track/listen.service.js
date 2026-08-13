@@ -29,10 +29,15 @@ export const recordListenEvent = async (userId, trackId, listenedDuration, skipp
     }
 
     const track = await Track.findById(trackId)
-        .select("duration artist_artistId")
+        .select("duration artist_artistId activeStatus approvalStatus isDeleted")
         .lean();
 
-    if (!track) {
+    if (
+        !track ||
+        track.isDeleted === true ||
+        (typeof track.activeStatus !== "undefined" && track.activeStatus !== "active") ||
+        (typeof track.approvalStatus !== "undefined" && track.approvalStatus !== "approved")
+    ) {
         throw new AppError("Track not found.", 404);
     }
 

@@ -358,6 +358,7 @@ export const buildTasteProfile = async (
         ? await Album.find({
             _id: { $in: followedAlbumIds },
             status: "active",
+            isDeleted: { $ne: true },
         })
             .select("artistId trackList.trackId")
             .lean()
@@ -385,7 +386,7 @@ export const buildTasteProfile = async (
 
     const [tracks, followedArtists] = await Promise.all([
         collectedTrackIds.size > 0
-            ? Track.find({ _id: { $in: [...collectedTrackIds] } })
+            ? Track.find({ _id: { $in: [...collectedTrackIds] }, isDeleted: { $ne: true } })
                 .select("title artist_artistId genreIds")
                 .populate({
                     path: "artist_artistId",

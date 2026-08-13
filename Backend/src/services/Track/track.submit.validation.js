@@ -10,6 +10,7 @@ import {
     validateOptionalAudioFiles,
     validateOptionalGenreIds,
 } from "./track.draft.validation.js";
+import { validateCopyrightForSubmit as validateCopyrightDeclaration } from "./copyright.validation.service.js";
 
 export const MIN_GENRE_IDS_SUBMIT = 1;
 
@@ -58,73 +59,40 @@ export const validateRequiredGenreIds = async (genreIds) => {
     return validateOptionalGenreIds(genreIds);
 };
 
-export const validateCopyrightForSubmit = (copyright = {}) => {
-    const copyrightOwner = String(copyright.copyrightOwner || "").trim();
-    const recordingOwner = String(copyright.recordingOwner || "").trim();
+export const validateCopyrightForSubmit = (copyright = {}) =>
+    validateCopyrightDeclaration(copyright);
 
-    if (!copyrightOwner) {
-        throw new AppError("Chủ sở hữu bản quyền là bắt buộc.", StatusCodes.BAD_REQUEST, {
-            field: "copyright.copyrightOwner",
-        });
+// The edit screen can display a rejected/pending version from pendingUpdate.data.
+// Submission must validate that same version instead of the currently published
+// track snapshot, otherwise the UI and the submit validator inspect different data.
+export const getTrackSubmissionData = (track) => {
+    const pendingStatus = track?.pendingUpdate?.status;
+    const pendingData = track?.pendingUpdate?.data;
+
+    if (pendingData && (pendingStatus === "rejected" || pendingStatus === "pending")) {
+        const current = track?.toObject?.() || track || {};
+        const pendingCopyright = pendingData.copyright && typeof pendingData.copyright === "object"
+            ? pendingData.copyright
+            : {};
+        const currentCopyright = current.copyright && typeof current.copyright === "object"
+            ? current.copyright
+            : {};
+
+        // A rejected/pending snapshot may predate the current copyright form
+        // or contain only a partial edit. Validate the same effective values
+        // shown to the artist instead of rejecting valid live metadata because
+        // an old pending payload omitted required copyright fields.
+        return {
+            ...current,
+            ...pendingData,
+            copyright: {
+                ...currentCopyright,
+                ...pendingCopyright,
+            },
+        };
     }
 
-    if (!recordingOwner) {
-        throw new AppError("Chủ sở hữu bản ghi âm là bắt buộc.", StatusCodes.BAD_REQUEST, {
-            field: "copyright.recordingOwner",
-        });
-    }
-
-    if (copyright.declarationAccepted !== true) {
-        throw new AppError(
-            "Bạn phải chấp nhận tuyên bố bản quyền trước khi gửi duyệt.",
-            StatusCodes.BAD_REQUEST,
-            { field: "copyright.declarationAccepted" }
-        );
-    }
-
-    const hasThirdPartyRights =
-        Boolean(copyright.isCover) ||
-        Boolean(copyright.isRemix) ||
-        Boolean(copyright.usesSample) ||
-        Boolean(copyright.usesLicensedBeat);
-
-    if (copyright.isOriginal && hasThirdPartyRights) {
-        throw new AppError(
-            "Tác phẩm gốc không thể đồng thời được đánh dấu là bản hát lại, bản phối lại, có đoạn nhạc mẫu hoặc phần nhạc nền được cấp phép.",
-            StatusCodes.BAD_REQUEST,
-            { field: "copyright.isOriginal" }
-        );
-    }
-
-    if (hasThirdPartyRights) {
-        const licenseUrls = Array.isArray(copyright.licenseDocumentUrls)
-            ? copyright.licenseDocumentUrls.filter(Boolean)
-            : [];
-
-        if (licenseUrls.length === 0) {
-            throw new AppError(
-                "Cần có tài liệu cấp phép cho bản hát lại, bản phối lại, đoạn nhạc mẫu hoặc phần nhạc nền được cấp phép.",
-                StatusCodes.BAD_REQUEST,
-                { field: "copyright.licenseDocumentUrls" }
-            );
-        }
-
-        if (!String(copyright.originalTrackTitle || "").trim()) {
-            throw new AppError(
-                "Tên bài hát gốc là bắt buộc khi sử dụng quyền của bên thứ ba.",
-                StatusCodes.BAD_REQUEST,
-                { field: "copyright.originalTrackTitle" }
-            );
-        }
-
-        if (!String(copyright.originalArtistName || "").trim()) {
-            throw new AppError(
-                "Tên nghệ sĩ gốc là bắt buộc khi sử dụng quyền của bên thứ ba.",
-                StatusCodes.BAD_REQUEST,
-                { field: "copyright.originalArtistName" }
-            );
-        }
-    }
+    return track;
 };
 
 export const assertTrackCanBeSubmitted = (track) => {
@@ -178,12 +146,14 @@ export const validateTrackForSubmit = async (track, artist) => {
     assertArtistCanCreateTrack(artist);
     assertTrackCanBeSubmitted(track);
 
-    validateDraftTitle(track.title);
+    const submissionData = getTrackSubmissionData(track);
 
-    await validateRequiredGenreIds(track.genreIds);
-    validateRequiredAudioFiles(track.audioFiles);
+    validateDraftTitle(submissionData.title);
 
-    const duration = Number(track.duration);
+    await validateRequiredGenreIds(submissionData.genreIds);
+    validateRequiredAudioFiles(submissionData.audioFiles);
+
+    const duration = Number(submissionData.duration);
 
     if (!Number.isFinite(duration) || duration <= 0) {
         throw new AppError(
@@ -193,7 +163,7 @@ export const validateTrackForSubmit = async (track, artist) => {
         );
     }
 
-    if (!hasCoverOrAvatar(track)) {
+    if (!hasCoverOrAvatar(submissionData)) {
         throw new AppError(
             "Cần có ảnh bìa hoặc ảnh đại diện bài hát trước khi gửi duyệt.",
             StatusCodes.BAD_REQUEST,
@@ -201,8 +171,8 @@ export const validateTrackForSubmit = async (track, artist) => {
         );
     }
 
-    const coverCount = Array.isArray(track.coverImage)
-        ? track.coverImage.filter(Boolean).length
+    const coverCount = Array.isArray(submissionData.coverImage)
+        ? submissionData.coverImage.filter(Boolean).length
         : 0;
 
     if (coverCount > MAX_COVER_IMAGES) {
@@ -213,7 +183,7 @@ export const validateTrackForSubmit = async (track, artist) => {
         );
     }
 
-    const lyricsLength = String(track.lyricsStatic || "").length;
+    const lyricsLength = String(submissionData.lyricsStatic || "").length;
 
     if (lyricsLength > LYRICS_STATIC_MAX_LENGTH) {
         throw new AppError(
@@ -223,7 +193,7 @@ export const validateTrackForSubmit = async (track, artist) => {
         );
     }
 
-    validateCopyrightForSubmit(track.copyright);
+    validateCopyrightForSubmit(submissionData.copyright);
 
     if (!track.artist_artistId?.equals?.(artist._id)) {
         const trackArtistId = track.artist_artistId?.toString?.() || String(track.artist_artistId);
@@ -235,4 +205,6 @@ export const validateTrackForSubmit = async (track, artist) => {
             );
         }
     }
+
+    return submissionData;
 };

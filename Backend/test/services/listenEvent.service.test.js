@@ -3,8 +3,13 @@ import { jest } from "@jest/globals";
 const userId = "507f1f77bcf86cd799439011";
 const artistId = "507f1f77bcf86cd799439012";
 const trackId = "507f1f77bcf86cd799439013";
+const podcastId = "507f1f77bcf86cd799439014";
 
 const mockTrackModel = {
+    findById: jest.fn(),
+};
+
+const mockPodcastModel = {
     findById: jest.fn(),
 };
 
@@ -46,6 +51,9 @@ const loadListenEventService = async () => {
     jest.unstable_mockModule("../../src/models/Track.js", () => ({
         default: mockTrackModel,
     }));
+    jest.unstable_mockModule("../../src/models/Podcast.js", () => ({
+        default: mockPodcastModel,
+    }));
     jest.unstable_mockModule("../../src/config/redisConfig.js", () => ({
         default: mockRedisClient,
     }));
@@ -74,6 +82,8 @@ describe("listenEventService.recordCompletedListenAttempt", () => {
         jest.clearAllMocks();
         mockRedisClient.isOpen = true;
         mockStoreRecentListeningActivity.mockResolvedValue({ _id: "activity-1" });
+        mockPodcastModel.findById.mockReset();
+        mockTrackModel.findById.mockReset();
         jest.useFakeTimers();
         jest.setSystemTime(new Date("2026-06-07T12:00:00.000Z"));
     });
@@ -136,6 +146,55 @@ describe("listenEventService.recordCompletedListenAttempt", () => {
                 source: "playlist",
             })
         );
+    });
+
+    test("queues a valid podcast listen and does not store track recent activity", async () => {
+        const { listenEventService } = await loadListenEventService();
+        const isolatedClient = createIsolatedRedisClient({ currentCount: "0" });
+
+        mockPodcastModel.findById.mockReturnValue(
+            createTrackQuery({
+                _id: podcastId,
+                creator: artistId,
+                duration: 600,
+                approvalStatus: "approved",
+                visibility: "public",
+                isBlocked: false,
+                releaseDate: new Date("2026-06-01T00:00:00.000Z"),
+            })
+        );
+        mockRedisClient.executeIsolated.mockImplementation((callback) => callback(isolatedClient));
+
+        const result = await listenEventService.recordCompletedListenAttempt({
+            userId,
+            contentType: "podcast",
+            podcastId,
+            listenedDuration: 240,
+            source: "podcast_detail",
+        });
+
+        expect(result).toEqual({
+            success: true,
+            isValidStream: true,
+            isSkipped: false,
+            listenPercent: 40,
+            requiredPercent: 40,
+            dailyListenOrder: 1,
+            message: "Stream counted successfully.",
+        });
+        expect(isolatedClient.watch).toHaveBeenCalledWith(
+            "valid_stream_count:2026-06-07:507f1f77bcf86cd799439011:podcast:507f1f77bcf86cd799439014"
+        );
+        expect(isolatedClient.transactionChain.rPush).toHaveBeenCalledWith(
+            "listen_event_queue",
+            expect.stringContaining('"podcastId":"507f1f77bcf86cd799439014"')
+        );
+        expect(isolatedClient.transactionChain.rPush).toHaveBeenCalledWith(
+            "listen_event_queue",
+            expect.stringContaining('"contentType":"podcast"')
+        );
+        expect(mockTrackModel.findById).not.toHaveBeenCalled();
+        expect(mockStoreRecentListeningActivity).not.toHaveBeenCalled();
     });
 
     test("does not queue an invalid second stream when it stays under 60 percent", async () => {

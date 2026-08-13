@@ -1,6 +1,7 @@
 import axiosClient from "../axios/axiosClient";
 
 const TRACKS_API_PREFIX = "/api/artist/track";
+const ARTIST_ME_TRACKS_API_PREFIX = `${TRACKS_API_PREFIX}/me`;
 const ALBUMS_API_PREFIX = "/api/albums";
 const PUBLIC_TRACK_API_PREFIX = "/api/tracks";
 
@@ -105,7 +106,7 @@ export const trackService = {
 
   getArtistTracks: async (params = {}) => {
     try {
-      const response = await axiosClient.get(`${TRACKS_API_PREFIX}/artist/me`, {
+      const response = await axiosClient.get(ARTIST_ME_TRACKS_API_PREFIX, {
         params,
       });
 
@@ -118,7 +119,7 @@ export const trackService = {
   getArtistTrackDetail: async (trackId) => {
     try {
       const response = await axiosClient.get(
-        `${TRACKS_API_PREFIX}/artist/me/${trackId}`
+        `${ARTIST_ME_TRACKS_API_PREFIX}/${trackId}`
       );
 
       const payload = response?.data?.data;
@@ -146,7 +147,7 @@ export const trackService = {
   updateArtistTrack: async (trackId, trackData) => {
     try {
       const response = await axiosClient.patch(
-        `${TRACKS_API_PREFIX}/artist/me/${trackId}`,
+        `${ARTIST_ME_TRACKS_API_PREFIX}/${trackId}`,
         trackData
       );
 
@@ -157,10 +158,11 @@ export const trackService = {
     }
   },
 
-  submitForApproval: async (trackId) => {
+  submitForApproval: async (trackId, trackData = {}) => {
     try {
       const response = await axiosClient.patch(
-        `${TRACKS_API_PREFIX}/artist/me/${trackId}/submit`
+        `${ARTIST_ME_TRACKS_API_PREFIX}/${trackId}/submit`,
+        trackData
       );
 
       const payload = response?.data?.data;
@@ -170,10 +172,64 @@ export const trackService = {
     }
   },
 
+  uploadCopyrightEvidence: async (trackId, files = []) => {
+    try {
+      const formData = new FormData();
+      files.forEach((file) => formData.append("evidence", file));
+      const response = await axiosClient.post(
+        `${ARTIST_ME_TRACKS_API_PREFIX}/${trackId}/copyright-evidence`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
+      const payload = response?.data?.data;
+      return payload?.track || response?.data?.track || payload || null;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  uploadTrackReviewAppealEvidence: async (trackId, files = []) => {
+    try {
+      const formData = new FormData();
+      files.forEach((file) => formData.append("evidence", file));
+      const response = await axiosClient.post(
+        `${ARTIST_ME_TRACKS_API_PREFIX}/${trackId}/appeals/evidence`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
+      return response?.data?.data?.evidenceDocuments || [];
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  createTrackReviewAppeal: async (trackId, payload = {}) => {
+    try {
+      const response = await axiosClient.post(
+        `${ARTIST_ME_TRACKS_API_PREFIX}/${trackId}/appeals`,
+        payload
+      );
+      return response?.data?.data?.appeal || null;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  getTrackReviewAppeals: async (trackId) => {
+    try {
+      const response = await axiosClient.get(
+        `${ARTIST_ME_TRACKS_API_PREFIX}/${trackId}/appeals`
+      );
+      return response?.data?.data?.appeals || [];
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
   hideArtistTrack: async (trackId) => {
     try {
       const response = await axiosClient.patch(
-        `${TRACKS_API_PREFIX}/artist/me/${trackId}/hide`
+        `${ARTIST_ME_TRACKS_API_PREFIX}/${trackId}/hide`
       );
 
       const payload = response?.data?.data;
@@ -186,7 +242,7 @@ export const trackService = {
   unhideArtistTrack: async (trackId) => {
     try {
       const response = await axiosClient.patch(
-        `${TRACKS_API_PREFIX}/artist/me/${trackId}/unhide`
+        `${ARTIST_ME_TRACKS_API_PREFIX}/${trackId}/unhide`
       );
 
       const payload = response?.data?.data;
@@ -199,7 +255,7 @@ export const trackService = {
   deleteArtistTrack: async (trackId) => {
     try {
       const response = await axiosClient.delete(
-        `${TRACKS_API_PREFIX}/artist/me/${trackId}`
+        `${ARTIST_ME_TRACKS_API_PREFIX}/${trackId}`
       );
 
       return response.data;
