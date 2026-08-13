@@ -30,7 +30,6 @@ const FREE_SKIP_LIMIT = 6;
 const FREE_SKIP_WINDOW_MS = 5 * 60 * 60 * 1000;
 const FREE_SKIP_STORAGE_KEY = "capstone.player.free_skip_window";
 const PLAYBACK_STORAGE_KEY = "capstone.player.playback_state";
-const MAX_NATURAL_LISTEN_DELTA_SECONDS = 2;
 const REPEAT_MODE_SEQUENCE = ["off", "all", "one"];
 const MANUAL_QUEUE_SOURCE = "manual";
 const CONTEXT_QUEUE_SOURCE = "context";
@@ -905,7 +904,11 @@ export const PlayerProvider = ({ children }) => {
       return;
     }
 
-    if (delta > 0 && delta <= MAX_NATURAL_LISTEN_DELTA_SECONDS) {
+    // `timeupdate` is throttled by browsers, especially when the tab is
+    // backgrounded. Programmatic seeks are already ignored by
+    // `ignoreNextListenDeltaRef`, so a larger positive delta can still be
+    // legitimate playback progress and must not discard the whole listen.
+    if (delta > 0) {
       listenedDurationRef.current += delta;
     }
 
