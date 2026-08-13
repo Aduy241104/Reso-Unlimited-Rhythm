@@ -84,6 +84,10 @@ const Player = ({
     queue,
     currentIndex,
     currentTrack,
+    playerMode,
+    currentAd,
+    canSkipAd,
+    controlsLockedByAd,
     isPlaying,
     isBuffering,
     currentTime,
@@ -109,6 +113,7 @@ const Player = ({
     changeAudioQuality,
     setVolumeLevel,
     seekBy,
+    skipCurrentAd,
     removeTrackFromQueue,
   } = usePlayer();
 
@@ -165,10 +170,20 @@ const Player = ({
     : queue.length > 0
       ? `Hàng chờ: ${queuePositionLabel}`
       : "Chọn bài hát để bắt đầu phát";
-  const currentTrackDisplayTitle = getTrackDisplayTitle(
-    currentTrack,
-    "Chưa chọn bài hát"
-  );
+  const isAdvertisement = playerMode === "ad";
+  const currentTrackDisplayTitle = isAdvertisement
+    ? currentAd?.title || "Quảng cáo"
+    : getTrackDisplayTitle(currentTrack, "Chưa chọn bài hát");
+  const currentArtwork = isAdvertisement
+    ? currentAd?.thumbnailUrl || ""
+    : currentTrack?.image || "";
+  const currentSubtitle = isAdvertisement
+    ? currentAd?.skipEnabled
+      ? canSkipAd
+        ? `Quảng cáo · Có thể bỏ qua · ${currentAd?.advertiserName || "Reso"}`
+        : `Quảng cáo · Có thể bỏ qua sau ${Math.max(Math.ceil((Number(currentAd?.skipAfterSeconds) || 0) - currentTime), 0)} giây`
+      : `Quảng cáo không thể bỏ qua · ${currentAd?.advertiserName || "Reso"}`
+    : currentTrack?.artistName || queueLabel;
   const isPodcast =
     currentTrack?.mediaType === "podcast" ||
     currentTrack?.contentType === "podcast" ||
@@ -180,7 +195,7 @@ const Player = ({
     progressMax > 0 ? Math.min((progressValue / progressMax) * 100, 100) : 0;
   const volumePercent = Math.round(volume * 100);
   const hasQualitySelector = isPremium && availableAudioQualities.length > 1;
-  const canSeekCurrentMedia = canSeek || isPodcast;
+  const canSeekCurrentMedia = !isAdvertisement && (canSeek || isPodcast);
   const progressDisabled = progressMax === 0 || !canSeekCurrentMedia;
   const selectedQuality =
     availableAudioQualities.find(
@@ -485,9 +500,9 @@ const Player = ({
     >
       <div className="flex items-center gap-1.5 sm:hidden">
         <div className="flex items-center">
-          { currentTrack?.image ? (
+          { currentArtwork ? (
             <img
-              src={ currentTrack.image }
+              src={ currentArtwork }
               alt={ currentTrackDisplayTitle }
               className="h-8 w-8 shrink-0 rounded-md object-cover shadow-[0_8px_16px_rgba(0,0,0,0.2)]"
             />
@@ -503,7 +518,7 @@ const Player = ({
             { currentTrackDisplayTitle }
           </p>
           <p className="truncate text-[10px] leading-4 text-[#d7c9bc]">
-            { currentTrack?.artistName || queueLabel }
+            { currentSubtitle }
           </p>
         </div>
 
@@ -512,7 +527,7 @@ const Player = ({
             <button
               type="button"
               onClick={ () => seekBy(-15) }
-              disabled={ queue.length === 0 }
+              disabled={ queue.length === 0 || controlsLockedByAd }
               className={ `${controlButtonClassName} h-6 w-6` }
               aria-label="Lùi 15 giây"
               title="Lùi 15 giây"
@@ -561,9 +576,10 @@ const Player = ({
           ) : (
             <button
               type="button"
-              onClick={ playNext }
+              onClick={ controlsLockedByAd ? skipCurrentAd : playNext }
+              disabled={ controlsLockedByAd && !canSkipAd }
               className={ `${controlButtonClassName} h-6 w-6` }
-              aria-label="Bài tiếp theo"
+              aria-label={ controlsLockedByAd ? "Bỏ qua quảng cáo" : "Bài tiếp theo" }
             >
               <SkipForward className="h-3 w-3 fill-current text-white" />
             </button>
@@ -707,9 +723,9 @@ const Player = ({
 
       <div className="hidden min-w-0 items-start gap-2.5 sm:flex sm:items-center">
         <div className="flex min-w-0 flex-1 items-center gap-2.5">
-          { currentTrack?.image ? (
+          { currentArtwork ? (
             <img
-              src={ currentTrack.image }
+              src={ currentArtwork }
               alt={ currentTrackDisplayTitle }
               className="h-10 w-10 rounded-lg object-cover shadow-[0_12px_22px_rgba(0,0,0,0.22)]"
             />
@@ -724,7 +740,7 @@ const Player = ({
               { currentTrackDisplayTitle }
             </p>
             <p className="truncate text-[11px] leading-4 text-[#d7c9bc]">
-              { currentTrack?.artistName || queueLabel }
+              { currentSubtitle }
             </p>
             <p className="mt-0.5 truncate text-[10px] text-[#b8ab9e]">
               { queue.length > 0
@@ -743,7 +759,7 @@ const Player = ({
 
       <div className="hidden min-w-0 flex-col gap-1.5 sm:flex sm:gap-2 lg:justify-self-center lg:w-full lg:max-w-[360px]">
         <div className="flex items-center justify-center gap-1.5">
-          { !isPodcast ? (
+          { !isPodcast && !isAdvertisement ? (
             <button
               type="button"
               onClick={ toggleShuffle }
@@ -760,7 +776,7 @@ const Player = ({
             <button
               type="button"
               onClick={ () => seekBy(-15) }
-              disabled={ queue.length === 0 }
+              disabled={ queue.length === 0 || controlsLockedByAd }
               className={ `${controlButtonClassName} h-7 w-7 sm:h-8 sm:w-8` }
               aria-label="Lùi 15 giây"
               title="Lùi 15 giây"
@@ -809,9 +825,10 @@ const Player = ({
           ) : (
             <button
               type="button"
-              onClick={ playNext }
+              onClick={ controlsLockedByAd ? skipCurrentAd : playNext }
+              disabled={ controlsLockedByAd && !canSkipAd }
               className={ `${controlButtonClassName} h-7 w-7 sm:h-8 sm:w-8` }
-              aria-label="Bài tiếp theo"
+              aria-label={ controlsLockedByAd ? "Bỏ qua quảng cáo" : "Bài tiếp theo" }
             >
               <SkipForward className="h-[14px] w-[14px] fill-current text-white" />
             </button>

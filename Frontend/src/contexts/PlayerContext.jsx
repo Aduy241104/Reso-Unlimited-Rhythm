@@ -16,6 +16,10 @@ import {
 } from "../services/playerService";
 import podcastService from "../services/podcastService";
 import {
+  recordAdvertisementEvent,
+  requestAdvertisementDecision,
+} from "../services/advertisementService";
+import {
   isBlockedTrack,
   isHiddenTrack,
   isPlayableTrack,
@@ -31,6 +35,8 @@ const REPEAT_MODE_SEQUENCE = ["off", "all", "one"];
 const MANUAL_QUEUE_SOURCE = "manual";
 const CONTEXT_QUEUE_SOURCE = "context";
 const PODCAST_MEDIA_TYPE = "podcast";
+const PLAYER_MODE_TRACK = "track";
+const PLAYER_MODE_AD = "ad";
 
 const isPodcastMedia = (media) =>
   media?.mediaType === PODCAST_MEDIA_TYPE ||
@@ -603,6 +609,9 @@ export const PlayerProvider = ({ children }) => {
   const [freeSkipWindow, setFreeSkipWindow] = useState(() =>
     loadStoredFreeSkipWindow()
   );
+  const [playerMode, setPlayerMode] = useState(PLAYER_MODE_TRACK);
+  const [currentAd, setCurrentAd] = useState(null);
+  const [canSkipAd, setCanSkipAd] = useState(false);
   const audioRef = useRef(null);
   const queueRef = useRef([]);
   const orderedQueueRef = useRef([]);
@@ -627,6 +636,7 @@ export const PlayerProvider = ({ children }) => {
     duration: 0,
     source: "unknown",
     hasReported: false,
+    isReporting: false,
   });
   const listenedDurationRef = useRef(0);
   const lastTrackedAudioTimeRef = useRef(0);
@@ -634,6 +644,12 @@ export const PlayerProvider = ({ children }) => {
   const queueMutationCounterRef = useRef(0);
   const isRestoringPlaybackRef = useRef(false);
   const podcastListenSessionIdRef = useRef(null);
+  const playerModeRef = useRef(PLAYER_MODE_TRACK);
+  const currentAdDecisionRef = useRef(null);
+  const adEventStartedRef = useRef(false);
+  const pendingAfterAdRef = useRef(null);
+  const finishAdvertisementRef = useRef(null);
+  const maybePlayAdvertisementRef = useRef(null);
 
   if (!podcastListenSessionIdRef.current) {
     podcastListenSessionIdRef.current =
@@ -737,6 +753,7 @@ export const PlayerProvider = ({ children }) => {
       duration: 0,
       source: "unknown",
       hasReported: false,
+      isReporting: false,
     };
     currentIndexRef.current = -1;
     resetListenProgress();
@@ -757,6 +774,13 @@ export const PlayerProvider = ({ children }) => {
     setSelectedQualityBitrate(0);
     selectedQualityLabelRef.current = "";
     selectedQualityBitrateRef.current = 0;
+    playerModeRef.current = PLAYER_MODE_TRACK;
+    currentAdDecisionRef.current = null;
+    pendingAfterAdRef.current = null;
+    adEventStartedRef.current = false;
+    setPlayerMode(PLAYER_MODE_TRACK);
+    setCurrentAd(null);
+    setCanSkipAd(false);
   };
 
   const getLatestFreeSkipWindow = (now = Date.now()) => {
@@ -894,7 +918,8 @@ export const PlayerProvider = ({ children }) => {
     if (
       !activeListen?.trackId ||
       activeListen.mediaType !== PODCAST_MEDIA_TYPE ||
-      activeListen.hasReported
+      activeListen.hasReported ||
+      activeListen.isReporting
     ) {
       return;
     }
@@ -906,18 +931,19 @@ export const PlayerProvider = ({ children }) => {
       return;
     }
 
-    activeListen.hasReported = true;
+    activeListen.isReporting = true;
 
     try {
-      await podcastService.listen(
+      const result = await podcastService.listen(
         activeListen.trackId,
         Math.floor(Number(nextTime) || 0),
         podcastListenSessionIdRef.current
       );
+      if (result) activeListen.hasReported = true;
     } catch (error) {
-      // Keep the client-side event one-shot. The backend also deduplicates
-      // repeated sessions, so a transient failure must not inflate listens.
       console.warn("[PodcastListenTracking] Failed to record listen:", error);
+    } finally {
+      activeListen.isReporting = false;
     }
   }, []);
 
@@ -927,7 +953,8 @@ export const PlayerProvider = ({ children }) => {
     if (
       !activeListen?.trackId ||
       activeListen.mediaType === PODCAST_MEDIA_TYPE ||
-      activeListen.hasReported
+      activeListen.hasReported ||
+      activeListen.isReporting
     ) {
       return;
     }
@@ -946,13 +973,17 @@ export const PlayerProvider = ({ children }) => {
       return;
     }
 
-    activeListen.hasReported = true;
-
-    await recordListenService({
-      trackId: activeListen.trackId,
-      listenedDuration,
-      source: activeListen.source,
-    });
+    activeListen.isReporting = true;
+    try {
+      const result = await recordListenService({
+        trackId: activeListen.trackId,
+        listenedDuration,
+        source: activeListen.source,
+      });
+      if (result) activeListen.hasReported = true;
+    } finally {
+      activeListen.isReporting = false;
+    }
   }, [trackListenProgress]);
 
   syncLyricsRef.current = (nextTime, continuous = false) => {
@@ -982,6 +1013,9 @@ export const PlayerProvider = ({ children }) => {
 
     if (isPremium) {
       setRestrictionMessage("");
+      if (playerModeRef.current === PLAYER_MODE_AD) {
+        void finishAdvertisementRef.current?.("skip");
+      }
     }
   }, [isPremium]);
 
@@ -1041,6 +1075,14 @@ export const PlayerProvider = ({ children }) => {
 
     const handleTimeUpdate = () => {
       const nextTime = audio.currentTime || 0;
+      if (playerModeRef.current === PLAYER_MODE_AD) {
+        const ad = currentAdDecisionRef.current?.advertisement;
+        setCurrentTime(nextTime);
+        if (ad?.skipEnabled) {
+          setCanSkipAd(nextTime >= (Number(ad.skipAfterSeconds) || 0));
+        }
+        return;
+      }
       trackListenProgress(nextTime);
       void reportPodcastListenIfReady(nextTime);
       setCurrentTime(nextTime);
@@ -1056,6 +1098,12 @@ export const PlayerProvider = ({ children }) => {
       setIsPlaying(true);
       setIsBuffering(false);
       setErrorMessage("");
+      if (playerModeRef.current === PLAYER_MODE_AD && !adEventStartedRef.current) {
+        adEventStartedRef.current = true;
+        const decisionToken = currentAdDecisionRef.current?.decisionToken;
+        void recordAdvertisementEvent({ decisionToken, eventType: "started" });
+        void recordAdvertisementEvent({ decisionToken, eventType: "impression" });
+      }
     };
 
     const handlePause = () => {
@@ -1071,6 +1119,10 @@ export const PlayerProvider = ({ children }) => {
     };
 
     const handleEnded = async () => {
+      if (playerModeRef.current === PLAYER_MODE_AD) {
+        await finishAdvertisementRef.current?.("complete");
+        return;
+      }
       const endedTrack = listenTrackRef.current;
 
       if (endedTrack?.mediaType === PODCAST_MEDIA_TYPE) {
@@ -1098,25 +1150,29 @@ export const PlayerProvider = ({ children }) => {
       const nextIndex = currentIndexRef.current + 1;
 
       if (nextIndex < queueRef.current.length) {
-        await playTrackByIndexRef.current?.(nextIndex, null, {
-          skipListenFlush: true,
-        });
+        await maybePlayAdvertisementRef.current?.(() =>
+          playTrackByIndexRef.current?.(nextIndex, null, { skipListenFlush: true })
+        );
         return;
       }
 
       if (repeatModeRef.current === "all" && queueRef.current.length > 0) {
-        await playTrackByIndexRef.current?.(0, null, {
-          skipListenFlush: true,
-        });
+        await maybePlayAdvertisementRef.current?.(() =>
+          playTrackByIndexRef.current?.(0, null, { skipListenFlush: true })
+        );
         return;
       }
 
-      await playRandomPlaybackTrack({
-        skipListenFlush: true,
-      });
+      await maybePlayAdvertisementRef.current?.(() =>
+        playRandomPlaybackTrack({ skipListenFlush: true })
+      );
     };
 
     const handleError = () => {
+      if (playerModeRef.current === PLAYER_MODE_AD) {
+        void finishAdvertisementRef.current?.("skip");
+        return;
+      }
       setIsPlaying(false);
       setIsBuffering(false);
       setErrorMessage("Unable to stream this track right now.");
@@ -1305,7 +1361,7 @@ export const PlayerProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    if (isRestoringPlaybackRef.current) {
+    if (isRestoringPlaybackRef.current || playerMode === PLAYER_MODE_AD) {
       return;
     }
 
@@ -1364,6 +1420,7 @@ export const PlayerProvider = ({ children }) => {
     currentIndex,
     currentTime,
     currentTrack,
+    playerMode,
     isPlaying,
     isShuffleEnabled,
     queue,
@@ -1376,6 +1433,10 @@ export const PlayerProvider = ({ children }) => {
     incomingQueue = null,
     options = {}
   ) => {
+    if (playerModeRef.current === PLAYER_MODE_AD) {
+      setRestrictionMessage("Quảng cáo đang phát. Vui lòng chờ hoặc bỏ qua khi được phép.");
+      return;
+    }
     const audio = audioRef.current;
     const workingQueue = incomingQueue || queueRef.current;
     const nextTrack = workingQueue?.[nextIndex];
@@ -1553,6 +1614,7 @@ export const PlayerProvider = ({ children }) => {
           ? "podcast_detail"
           : resolveListenSource(hydratedTrack.listenSource),
         hasReported: false,
+        isReporting: false,
       };
       resetListenProgress({
         listenedDuration: preservedListenedDuration,
@@ -1649,6 +1711,81 @@ export const PlayerProvider = ({ children }) => {
     await playTrackByIndexRef.current?.(playbackStartIndex, queueToPlay, {
       ...(typeof autoplay === "boolean" ? { autoplay } : {}),
     });
+  };
+
+  finishAdvertisementRef.current = async (eventType = "complete") => {
+    if (playerModeRef.current !== PLAYER_MODE_AD) return;
+    const audio = audioRef.current;
+    const decision = currentAdDecisionRef.current;
+    const nextAction = pendingAfterAdRef.current;
+    if (decision?.decisionToken) {
+      await recordAdvertisementEvent({
+        decisionToken: decision.decisionToken,
+        eventType,
+        playedSeconds: Number(audio?.currentTime) || 0,
+      });
+    }
+    playerModeRef.current = PLAYER_MODE_TRACK;
+    currentAdDecisionRef.current = null;
+    pendingAfterAdRef.current = null;
+    adEventStartedRef.current = false;
+    setPlayerMode(PLAYER_MODE_TRACK);
+    setCurrentAd(null);
+    setCanSkipAd(false);
+    setCurrentTime(0);
+    setDuration(0);
+    if (typeof nextAction === "function") await nextAction();
+  };
+
+  maybePlayAdvertisementRef.current = async (nextAction) => {
+    if (isPremiumRef.current || playerModeRef.current === PLAYER_MODE_AD) {
+      await nextAction();
+      return;
+    }
+    try {
+      const decision = await requestAdvertisementDecision({
+        type: "audio",
+        placement: "between_tracks",
+        transitionId: typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `transition-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      });
+      const ad = decision?.advertisement;
+      if (!ad?.mediaUrl) {
+        await nextAction();
+        return;
+      }
+      const audio = audioRef.current;
+      if (!audio) {
+        await nextAction();
+        return;
+      }
+      playerModeRef.current = PLAYER_MODE_AD;
+      currentAdDecisionRef.current = decision;
+      pendingAfterAdRef.current = nextAction;
+      adEventStartedRef.current = false;
+      setPlayerMode(PLAYER_MODE_AD);
+      setCurrentAd(ad);
+      setCanSkipAd(Boolean(ad.skipEnabled) && Number(ad.skipAfterSeconds) <= 0);
+      setCurrentTime(0);
+      setDuration(Number(ad.duration) || 0);
+      setIsBuffering(true);
+      resetLyricsState();
+      releaseCurrentObjectUrl();
+      audio.pause();
+      audio.src = ad.mediaUrl;
+      audio.load();
+      await audio.play();
+    } catch {
+      playerModeRef.current = PLAYER_MODE_TRACK;
+      currentAdDecisionRef.current = null;
+      pendingAfterAdRef.current = null;
+      adEventStartedRef.current = false;
+      setPlayerMode(PLAYER_MODE_TRACK);
+      setCurrentAd(null);
+      setCanSkipAd(false);
+      await nextAction();
+    }
   };
 
   const addTrackToQueue = (track, options = {}) => {
@@ -1825,6 +1962,7 @@ export const PlayerProvider = ({ children }) => {
   };
 
   const playNext = async () => {
+    if (playerModeRef.current === PLAYER_MODE_AD) return;
     let nextIndex = currentIndexRef.current + 1;
 
     if (nextIndex >= queueRef.current.length) {
@@ -1848,6 +1986,7 @@ export const PlayerProvider = ({ children }) => {
   };
 
   const playPrevious = async () => {
+    if (playerModeRef.current === PLAYER_MODE_AD) return;
     const audio = audioRef.current;
 
     if (!audio) {
@@ -1893,6 +2032,8 @@ export const PlayerProvider = ({ children }) => {
       return;
     }
 
+    if (playerModeRef.current === PLAYER_MODE_AD) return;
+
     if (!isPodcastMedia(currentTrack) && !isPremiumRef.current) {
       setRestrictionMessage(
         "Seeking on the progress bar is available for Premium listeners only."
@@ -1916,7 +2057,7 @@ export const PlayerProvider = ({ children }) => {
   const seekBy = (seconds) => {
     const audio = audioRef.current;
 
-    if (!audio || !currentTrack) {
+    if (!audio || !currentTrack || playerModeRef.current === PLAYER_MODE_AD) {
       return;
     }
 
@@ -2148,6 +2289,17 @@ export const PlayerProvider = ({ children }) => {
     });
   };
 
+  const skipCurrentAd = async () => {
+    const ad = currentAdDecisionRef.current?.advertisement;
+    const audio = audioRef.current;
+    if (
+      playerModeRef.current !== PLAYER_MODE_AD ||
+      !ad?.skipEnabled ||
+      (Number(audio?.currentTime) || 0) < (Number(ad.skipAfterSeconds) || 0)
+    ) return;
+    await finishAdvertisementRef.current?.("skip");
+  };
+
   const activeFreeSkipWindow = getActiveFreeSkipWindow(freeSkipWindow, Date.now());
   const freeSkipsRemaining = Math.max(
     FREE_SKIP_LIMIT - activeFreeSkipWindow.skipCount,
@@ -2158,7 +2310,10 @@ export const PlayerProvider = ({ children }) => {
     queue,
     currentIndex,
     currentTrack,
+    playerMode,
     currentMedia: currentTrack,
+    currentAd,
+    canSkipAd,
     isPlaying,
     isBuffering,
     currentTime,
@@ -2173,7 +2328,8 @@ export const PlayerProvider = ({ children }) => {
     isLyricsLoading,
     lyricsErrorMessage,
     isPremium,
-    canSeek: isPremium,
+    canSeek: playerMode !== PLAYER_MODE_AD && isPremium,
+    controlsLockedByAd: playerMode === PLAYER_MODE_AD,
     availableAudioQualities,
     selectedQualityLabel,
     selectedQualityBitrate,
@@ -2196,6 +2352,7 @@ export const PlayerProvider = ({ children }) => {
     cycleRepeatMode,
     seekTo,
     seekBy,
+    skipCurrentAd,
     changeAudioQuality,
     setVolumeLevel,
     removeTrackFromQueue,
