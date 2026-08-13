@@ -3,6 +3,10 @@ export const routePaths = {
   login: "/login",
   systemTracks: "/system-tracks",
   podcasts: "/podcasts",
+  advertisements: "/advertisements",
+  advertisementNew: "/advertisements/new",
+  advertisementDetail: (id = ":id") => `/advertisements/${id}`,
+  advertisementEdit: (id = ":id") => `/advertisements/${id}/edit`,
   podcastDetail: (podcastId = ":id") => `/podcasts/${podcastId}`,
   systemAlbums: "/system-albums",
   trackModeration: "/system-tracks/moderation",
@@ -32,8 +36,6 @@ export const routePaths = {
   notificationEdit: (notificationId = ":id") => `/notifications/${notificationId}/edit`,
   revenue: "/revenue",
   revenueHistory: "/revenue/history",
-  revenuePeriodDetail: (year = ":year", month = ":month") =>
-    `/revenue/history/${year}/${month}`,
   withdrawals: "/withdrawals",
   withdrawalRequestDetail: (withdrawalRequestId = ":id") =>
     `/withdrawal-requests/${withdrawalRequestId}`,
