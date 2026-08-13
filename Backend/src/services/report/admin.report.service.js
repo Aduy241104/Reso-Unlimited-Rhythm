@@ -5,6 +5,7 @@ import Album from "../../models/Album.js";
 import Artist from "../../models/Artist.js";
 import Notification from "../../models/Notification.js";
 import { AppError } from "../../utils/AppError.js";
+import { syncArtistContentVisibility } from "../artist/admin.artist.service.js";
 
 const VALID_STATUSES = ["pending", "reviewing", "resolved", "rejected"];
 
@@ -487,20 +488,30 @@ const resolveGroupedReport = async (targetType, targetId, body, adminId) => {
                 notifContent = `Tài khoản nghệ sĩ của bạn đã bị KHÓA bởi Quản trị viên.${extraInfo}`;
             }
 
+            if (newArtistStatus === "blocked") {
+                await syncArtistContentVisibility(
+                    artist._id,
+                    "blocked",
+                    resolutionNote || "Artist blocked after report review."
+                );
+            }
+
             await artist.save();
 
             if (artist.userId) {
                 await Notification.create({
-                    recipient: artist.userId,
+                    userId: artist.userId,
                     type: "system",
                     title: notifTitle,
                     content: notifContent,
-                    data: {
-                        targetType,
-                        targetId,
-                        violationsCount: updatedViolationsCount,
-                        artistActiveStatus: newArtistStatus,
-                    },
+                    actorId: adminId || null,
+                    actorType: "admin",
+                    targetId,
+                    targetType,
+                    targetName: targetTitle,
+                    receiverType: "single",
+                    sourceType: "admin_manual",
+                    createdBy: adminId || null,
                 });
             }
         }

@@ -17,6 +17,7 @@ import redisClient from "../../config/redisConfig.js";
 import { AppError } from "../../utils/AppError.js";
 import { buildReleasedTrackFilter } from "../../utils/trackRelease.js";
 import { getAnalyticsTimezone } from "../analytics/trackStatAggregation.service.js";
+import { publicArtistMatch } from "../artist/artist.status.helper.js";
 import {
     formatArtistAlbum,
     formatArtistComingRelease,
@@ -75,6 +76,7 @@ const getValidArtistIds = async (artistIds) => {
     const validArtists = await Artist.find({
         _id: { $in: artistIds },
         activeStatus: "active",
+        isDeleted: { $ne: true },
     })
         .select("_id")
         .lean();
@@ -119,6 +121,7 @@ const validateAndGetArtist = async (artistId, options = {}) => {
     let query = Artist.findOne({
         _id: artistId,
         activeStatus: "active",
+        isDeleted: { $ne: true },
     });
 
     if (lean) {
@@ -246,6 +249,7 @@ const hydrateArtistRankingEntries = async (rankings) => {
     const artists = await Artist.find({
         _id: { $in: artistIds },
         activeStatus: "active",
+        isDeleted: { $ne: true },
     })
         .select("_id name avatar activeStatus")
         .lean();
@@ -281,7 +285,7 @@ const resolveDailyRankingEntries = async ({ dateKey, startDate, endDate }) => {
         .populate({
             path: "rankings.artistId",
             select: "_id name avatar activeStatus",
-            match: { activeStatus: "active" },
+            match: { ...publicArtistMatch },
         })
         .lean();
 
@@ -308,7 +312,7 @@ const resolveMonthlyRankingEntries = async ({ year, month, startDate, endDate })
         .populate({
             path: "rankings.artistId",
             select: "_id name avatar activeStatus",
-            match: { activeStatus: "active" },
+            match: { ...publicArtistMatch },
         })
         .lean();
 
@@ -347,6 +351,7 @@ const getArtistProfile = async (artistId) => {
         Album.find({
             artistId,
             status: "active",
+            isDeleted: { $ne: true },
         })
             .sort({ releaseDate: -1, totalDuration: -1, createdAt: -1, _id: -1 })
             .lean(),
@@ -354,13 +359,14 @@ const getArtistProfile = async (artistId) => {
             artist_artistId: artistId,
             activeStatus: "active",
             approvalStatus: "approved",
+            isDeleted: { $ne: true },
             ...buildReleasedTrackFilter(),
         })
             .sort({ releaseDate: -1, "stats.totalPlay": -1, createdAt: -1, _id: -1 })
             .populate({
                 path: "album_albumId",
                 select: "title coverImage releaseDate",
-                match: { status: "active" },
+                match: { status: "active", isDeleted: { $ne: true } },
             })
             .lean(),
     ]);
@@ -387,6 +393,7 @@ const getArtistTracks = async (artistId, query = {}) => {
         artist_artistId: artistId,
         activeStatus: "active",
         approvalStatus: "approved",
+        isDeleted: { $ne: true },
         ...buildReleasedTrackFilter(),
     };
 
@@ -398,7 +405,7 @@ const getArtistTracks = async (artistId, query = {}) => {
             .populate({
                 path: "album_albumId",
                 select: "title coverImage releaseDate",
-                match: { status: "active" },
+                match: { status: "active", isDeleted: { $ne: true } },
             })
             .lean(),
         Track.countDocuments(filter),
@@ -426,6 +433,7 @@ const getArtistAlbums = async (artistId, query = {}) => {
     const filter = {
         artistId,
         status: "active",
+        isDeleted: { $ne: true },
     };
 
     const [albums, total] = await Promise.all([
@@ -486,12 +494,14 @@ const getArtistComingReleases = async (artistId, query = {}) => {
             ? Album.find({
                 _id: { $in: albumIds },
                 artistId,
+                isDeleted: { $ne: true },
             }).lean()
             : [],
         trackIds.length > 0
             ? Track.find({
                 _id: { $in: trackIds },
                 artist_artistId: artistId,
+                isDeleted: { $ne: true },
             }).lean()
             : [],
     ]);

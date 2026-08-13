@@ -5,6 +5,7 @@ import trackService from "../../services/trackService";
 import genreService from "../../services/genreService";
 import { routePaths } from "../../routes/routePaths";
 import { ARTIST_INPUT_LIMITS } from "../../constants/artistInputLimits";
+import { getApiErrorFullMessage } from "../../utils/apiError";
 import { showArtistError } from "../../utils/artistNotification";
 import {
   IMAGE_FILE_ACCEPT,
@@ -12,6 +13,7 @@ import {
   getImageFilesValidationError,
 } from "../../utils/imageFileValidation";
 import {
+  getCopyrightValidationErrors,
   MAX_GENRE_IDS,
   TITLE_MAX_LENGTH,
   mapTrackCopyrightToForm,
@@ -85,6 +87,7 @@ const CreateTrackForm = () => {
   const [coverImages, setCoverImages] = useState([]);
   const [avatarFile, setAvatarFile] = useState(null);
   const [lyricsSyncFile, setLyricsSyncFile] = useState(null);
+  const [copyrightEvidenceFiles, setCopyrightEvidenceFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [uploadingQualities, setUploadingQualities] = useState(false);
   const [uploadedQualities, setUploadedQualities] = useState([]);
@@ -144,6 +147,19 @@ const CreateTrackForm = () => {
       genres.filter((genre) => formData.genreIds.includes(String(genre._id))),
     [formData.genreIds, genres]
   );
+  const copyrightValidationErrors = useMemo(
+    () => getCopyrightValidationErrors(copyrightForm),
+    [copyrightForm]
+  );
+
+  const handleCopyrightChange = (nextCopyright) => {
+    setCopyrightForm(nextCopyright);
+    setFieldErrors((current) => Object.fromEntries(
+      Object.entries(current).filter(([field]) => (
+        !(field in (copyrightForm || {})) && !field.startsWith("licenseDocumentUrls.")
+      ))
+    ));
+  };
 
   const readinessItems = [
     {
@@ -160,7 +176,7 @@ const CreateTrackForm = () => {
     },
     {
       label: "Đã xác nhận bản quyền",
-      ready: Boolean(copyrightForm.declarationAccepted),
+      ready: Boolean(copyrightForm.declarationAccepted && copyrightForm.rightsConfirmed),
     },
   ];
 
@@ -264,17 +280,13 @@ const CreateTrackForm = () => {
       errors.media = "Vui lòng thêm ảnh đại diện hoặc ít nhất một ảnh bìa.";
     }
 
-    if (!copyrightForm.copyrightOwner?.trim()) {
-      errors.copyrightOwner = "Vui lòng nhập chủ sở hữu bản quyền.";
+    const copyrightErrors = getCopyrightValidationErrors(copyrightForm);
+    // Evidence selected in this form is uploaded immediately after the track
+    // is created, so it is valid to defer only this one check until then.
+    if (copyrightEvidenceFiles.length > 0) {
+      delete copyrightErrors.copyrightEvidenceDocuments;
     }
-
-    if (!copyrightForm.recordingOwner?.trim()) {
-      errors.recordingOwner = "Vui lòng nhập chủ sở hữu bản ghi.";
-    }
-
-    if (!copyrightForm.declarationAccepted) {
-      errors.declarationAccepted = "Vui lòng xác nhận cam kết bản quyền.";
-    }
+    Object.assign(errors, copyrightErrors);
 
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
@@ -326,14 +338,18 @@ const CreateTrackForm = () => {
       });
 
       if (response?.success) {
+        const createdTrackId = response?.data?.track?._id || response?.track?._id;
+        if (createdTrackId && copyrightEvidenceFiles.length > 0) {
+          await trackService.uploadCopyrightEvidence(createdTrackId, copyrightEvidenceFiles);
+        }
         navigate(routePaths.artistMusic, {
           state: {
             message: "Đã tạo bản nháp bài hát thành công.",
           },
         });
       }
-    } catch {
-      showArtistError("Không thể tạo bài hát vào lúc này.");
+    } catch (error) {
+      showArtistError(getApiErrorFullMessage(error, "Không thể tạo bài hát vào lúc này."));
       setUploadingQualities(false);
     } finally {
       setLoading(false);
@@ -566,10 +582,24 @@ const CreateTrackForm = () => {
         >
           <TrackCopyrightFields
             value={copyrightForm}
-            onChange={setCopyrightForm}
+            onChange={handleCopyrightChange}
             disabled={loading}
             errors={fieldErrors}
           />
+          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <label className="block text-sm font-semibold text-amber-950">Tài liệu cấp phép / bằng chứng *</label>
+            <p className="mt-1 text-xs leading-5 text-amber-800">Bắt buộc ít nhất một tệp trước khi gửi duyệt. Có thể dùng giấy chứng nhận, hợp đồng, giấy phép, project/stem hoặc tài liệu quá trình tạo bản ghi; audio thành phẩm đơn lẻ không tự chứng minh quyền sở hữu. Tối đa 5 tệp, mỗi tệp 25 MB.</p>
+            <input
+              type="file"
+              multiple
+              accept=".pdf,.zip,.mp3,.wav,.flac,.m4a,image/*,application/pdf,application/zip,audio/*"
+              onChange={(event) => setCopyrightEvidenceFiles(Array.from(event.target.files || []))}
+              disabled={loading}
+              className="mt-3 block h-11 w-full rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm text-[#241b45] file:mr-3 file:rounded-lg file:border-0 file:bg-amber-100 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-amber-800"
+            />
+            {copyrightEvidenceFiles.length > 0 ? <p className="mt-2 text-xs font-medium text-amber-900">Đang chờ tải lên: {copyrightEvidenceFiles.map((file) => file.name).join(", ")}</p> : null}
+            {copyrightEvidenceFiles.length === 0 && copyrightValidationErrors.copyrightEvidenceDocuments ? <p className="mt-2 text-xs font-medium text-rose-600">{copyrightValidationErrors.copyrightEvidenceDocuments}</p> : null}
+          </div>
         </SectionCard>
       </form>
 

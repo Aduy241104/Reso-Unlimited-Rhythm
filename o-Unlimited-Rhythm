@@ -1,0 +1,123 @@
+[33ma0852fc[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/admin-System-Track-Management[m[33m, [m[1;31morigin/feature/admin-System-Track-Management[m[33m)[m HEAD@{Mon Aug 10 12:01:01 2026}: reset: moving to 74ab178bf9b7387f82922c90674302f492e7d3d5^1
+[33ma0852fc[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/admin-System-Track-Management[m[33m, [m[1;31morigin/feature/admin-System-Track-Management[m[33m)[m HEAD@{Mon Aug 10 12:00:59 2026}: reset: moving to HEAD
+[33ma0852fc[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/admin-System-Track-Management[m[33m, [m[1;31morigin/feature/admin-System-Track-Management[m[33m)[m refs/remotes/origin/feature/admin-System-Track-Management@{Fri Aug 7 10:26:03 2026}: update by push
+[33ma0852fc[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/admin-System-Track-Management[m[33m, [m[1;31morigin/feature/admin-System-Track-Management[m[33m)[m refs/heads/feature/admin-System-Track-Management@{Fri Aug 7 10:25:58 2026}: commit (merge): Merge branch 'main' into feature/admin-System-Track-Management
+[33ma0852fc[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/admin-System-Track-Management[m[33m, [m[1;31morigin/feature/admin-System-Track-Management[m[33m)[m HEAD@{Fri Aug 7 10:25:58 2026}: commit (merge): Merge branch 'main' into feature/admin-System-Track-Management
+[33mfb80265[m HEAD@{Fri Aug 7 10:22:39 2026}: checkout: moving from main to feature/admin-System-Track-Management
+[33mfa77648[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m refs/heads/main@{Fri Aug 7 10:22:20 2026}: pull: Fast-forward
+[33mfa77648[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{Fri Aug 7 10:22:20 2026}: pull: Fast-forward
+[33mad1e89d[m[33m ([m[1;31morigin/feature/admin-Withdrawal-Request-Management[m[33m, [m[1;32mfeature/admin-Withdrawal-Request-Management[m[33m)[m refs/remotes/origin/feature/admin-Withdrawal-Request-Management@{Fri Aug 7 10:22:19 2026}: pull: storing head
+[33mfa77648[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m refs/remotes/origin/main@{Fri Aug 7 10:22:19 2026}: pull: fast-forward
+[33m822257e[m[33m ([m[1;31morigin/mobile/Authentication-Management[m[33m)[m refs/remotes/origin/mobile/Authentication-Management@{Fri Aug 7 10:22:19 2026}: pull: storing head
+[33m2ed4386[m[33m ([m[1;31morigin/mobile/content-discovery[m[33m)[m refs/remotes/origin/mobile/content-discovery@{Fri Aug 7 10:22:19 2026}: pull: fast-forward
+[33mafc7b56[m[33m ([m[1;31morigin/mobile/library-management[m[33m)[m refs/remotes/origin/mobile/library-management@{Fri Aug 7 10:22:19 2026}: pull: storing head
+[33mbcdb9ad[m HEAD@{Fri Aug 7 10:22:10 2026}: checkout: moving from feature/admin-System-Track-Management to main
+[33mfb80265[m refs/remotes/origin/feature/admin-System-Track-Management@{Thu Aug 6 19:42:48 2026}: update by push
+[33mfb80265[m refs/heads/feature/admin-System-Track-Management@{Thu Aug 6 19:42:41 2026}: commit: fix: sum Stream Plays not dislay UI
+[33mfb80265[m HEAD@{Thu Aug 6 19:42:41 2026}: commit: fix: sum Stream Plays not dislay UI
+[33mbcdb9ad[m refs/heads/feature/admin-System-Track-Management@{Thu Aug 6 19:34:07 2026}: merge main: Fast-forward
+[33mbcdb9ad[m HEAD@{Thu Aug 6 19:34:07 2026}: merge main: Fast-forward
+[33mabaf395[m HEAD@{Thu Aug 6 19:34:01 2026}: checkout: moving from main to feature/admin-System-Track-Management
+[33mbcdb9ad[m refs/heads/main@{Thu Aug 6 19:33:34 2026}: pull: Fast-forward
+[33mb19c3fe[m[33m ([m[1;31morigin/feature/Artist-browse[m[33m)[m refs/remotes/origin/feature/Artist-browse@{Thu Aug 6 19:33:34 2026}: pull: fast-forward
+[33m2a4d9e3[m refs/remotes/origin/feature/admin-Withdrawal-Request-Management@{Thu Aug 6 19:33:34 2026}: pull: storing head
+[33m3669929[m[33m ([m[1;31morigin/fix/search-report[m[33m)[m refs/remotes/origin/fix/search-report@{Thu Aug 6 19:33:34 2026}: pull: storing head
+[33m6773078[m[33m ([m[1;31morigin/fix/system-playlist[m[33m)[m refs/remotes/origin/fix/system-playlist@{Thu Aug 6 19:33:34 2026}: pull: storing head
+[33mbcdb9ad[m refs/remotes/origin/main@{Thu Aug 6 19:33:34 2026}: pull: fast-forward
+[33m2bd7ea3[m[33m ([m[1;32mmobile/authentication-management[m[33m)[m refs/remotes/origin/mobile/Authentication-Management@{Thu Aug 6 19:33:34 2026}: pull: storing head
+[33m196e3ef[m refs/remotes/origin/mobile/content-discovery@{Thu Aug 6 19:33:34 2026}: pull: fast-forward
+[33maf18023[m refs/remotes/origin/mobile/library-management@{Thu Aug 6 19:33:34 2026}: pull: storing head
+[33mbcdb9ad[m HEAD@{Thu Aug 6 19:33:34 2026}: pull: Fast-forward
+[33m87658ee[m HEAD@{Thu Aug 6 19:03:03 2026}: checkout: moving from feature/admin-System-Track-Management to main
+[33mabaf395[m refs/remotes/origin/feature/admin-System-Track-Management@{Wed Aug 5 11:29:52 2026}: update by push
+[33mabaf395[m refs/heads/feature/admin-System-Track-Management@{Wed Aug 5 11:29:31 2026}: commit: Fix: dislay ban/unban on system playlist page UI
+[33mabaf395[m HEAD@{Wed Aug 5 11:29:31 2026}: commit: Fix: dislay ban/unban on system playlist page UI
+[33m87658ee[m refs/heads/feature/admin-System-Track-Management@{Wed Aug 5 10:50:22 2026}: merge main: Fast-forward
+[33m87658ee[m HEAD@{Wed Aug 5 10:50:22 2026}: merge main: Fast-forward
+[33m21296bf[m HEAD@{Wed Aug 5 10:49:55 2026}: checkout: moving from main to feature/admin-System-Track-Management
+[33mad1e89d[m[33m ([m[1;31morigin/feature/admin-Withdrawal-Request-Management[m[33m, [m[1;32mfeature/admin-Withdrawal-Request-Management[m[33m)[m refs/remotes/origin/feature/admin-Withdrawal-Request-Management@{Wed Aug 5 10:49:40 2026}: pull: storing head
+[33m822257e[m[33m ([m[1;31morigin/mobile/Authentication-Management[m[33m)[m refs/remotes/origin/mobile/Authentication-Management@{Wed Aug 5 10:49:40 2026}: pull: storing head
+[33m87658ee[m refs/heads/main@{Tue Aug 4 14:18:35 2026}: pull: Fast-forward
+[33m2a4d9e3[m refs/remotes/origin/feature/admin-Withdrawal-Request-Management@{Tue Aug 4 14:18:35 2026}: pull: storing head
+[33m87658ee[m refs/remotes/origin/main@{Tue Aug 4 14:18:35 2026}: pull: fast-forward
+[33m2bd7ea3[m[33m ([m[1;32mmobile/authentication-management[m[33m)[m refs/remotes/origin/mobile/Authentication-Management@{Tue Aug 4 14:18:35 2026}: pull: storing head
+[33m704ed31[m refs/remotes/origin/mobile/content-discovery@{Tue Aug 4 14:18:35 2026}: pull: fast-forward
+[33m2d9558f[m refs/remotes/origin/mobile/library-management@{Tue Aug 4 14:18:35 2026}: pull: storing head
+[33m87658ee[m HEAD@{Tue Aug 4 14:18:35 2026}: pull: Fast-forward
+[33me2de450[m[33m ([m[1;32mdevelop[m[33m)[m HEAD@{Tue Aug 4 14:18:03 2026}: checkout: moving from develop to main
+[33me2de450[m[33m ([m[1;32mdevelop[m[33m)[m refs/heads/develop@{Tue Aug 4 13:12:07 2026}: branch: Created from HEAD
+[33me2de450[m[33m ([m[1;32mdevelop[m[33m)[m HEAD@{Tue Aug 4 13:12:07 2026}: checkout: moving from main to develop
+[33me2de450[m[33m ([m[1;32mdevelop[m[33m)[m refs/heads/main@{Mon Aug 3 14:03:16 2026}: pull: Fast-forward
+[33m073714c[m[33m ([m[1;31morigin/UnitTest[m[33m)[m refs/remotes/origin/UnitTest@{Mon Aug 3 14:03:16 2026}: pull: fast-forward
+[33m4b155ee[m refs/remotes/origin/feature/Artist-browse@{Mon Aug 3 14:03:16 2026}: pull: fast-forward
+[33mad1e89d[m[33m ([m[1;31morigin/feature/admin-Withdrawal-Request-Management[m[33m, [m[1;32mfeature/admin-Withdrawal-Request-Management[m[33m)[m refs/remotes/origin/feature/admin-Withdrawal-Request-Management@{Mon Aug 3 14:03:16 2026}: pull: storing head
+[33m2af3a9a[m[33m ([m[1;31morigin/feature/user-payment-history-management[m[33m)[m refs/remotes/origin/feature/user-payment-history-management@{Mon Aug 3 14:03:16 2026}: pull: fast-forward
+[33m4b81e9f[m[33m ([m[1;31morigin/feature/user-playlist-prenium[m[33m)[m refs/remotes/origin/feature/user-playlist-prenium@{Mon Aug 3 14:03:16 2026}: pull: fast-forward
+[33m56e8da1[m[33m ([m[1;31morigin/fix/report[m[33m)[m refs/remotes/origin/fix/report@{Mon Aug 3 14:03:16 2026}: pull: storing head
+[33me2de450[m[33m ([m[1;32mdevelop[m[33m)[m refs/remotes/origin/main@{Mon Aug 3 14:03:16 2026}: pull: fast-forward
+[33m822257e[m[33m ([m[1;31morigin/mobile/Authentication-Management[m[33m)[m refs/remotes/origin/mobile/Authentication-Management@{Mon Aug 3 14:03:16 2026}: pull: storing head
+[33m7ad2ec4[m refs/remotes/origin/mobile/content-discovery@{Mon Aug 3 14:03:16 2026}: pull: fast-forward
+[33m9994db8[m refs/remotes/origin/mobile/library-management@{Mon Aug 3 14:03:16 2026}: pull: storing head
+[33me2de450[m[33m ([m[1;32mdevelop[m[33m)[m HEAD@{Mon Aug 3 14:03:16 2026}: pull: Fast-forward
+[33m4ec5e93[m HEAD@{Mon Aug 3 14:03:09 2026}: checkout: moving from feature/admin-System-Track-Management to main
+[33m21296bf[m refs/remotes/origin/feature/admin-System-Track-Management@{Thu Jul 30 18:04:31 2026}: update by push
+[33m21296bf[m refs/heads/feature/admin-System-Track-Management@{Thu Jul 30 18:04:15 2026}: commit: feat: implement edit trackpage UI
+[33m21296bf[m HEAD@{Thu Jul 30 18:04:15 2026}: commit: feat: implement edit trackpage UI
+[33m49d6802[m refs/heads/feature/admin-System-Track-Management@{Thu Jul 30 18:03:54 2026}: commit: feat: implement edit trackpage API
+[33m49d6802[m HEAD@{Thu Jul 30 18:03:54 2026}: commit: feat: implement edit trackpage API
+[33m3df9bd0[m refs/heads/feature/admin-System-Track-Management@{Thu Jul 30 18:03:03 2026}: commit: fix: resetpassword send link and otp to otp UI
+[33m3df9bd0[m HEAD@{Thu Jul 30 18:03:03 2026}: commit: fix: resetpassword send link and otp to otp UI
+[33mb8156b4[m refs/heads/feature/admin-System-Track-Management@{Thu Jul 30 18:02:57 2026}: commit: fix: resetpassword send link and otp to otp UI
+[33mb8156b4[m HEAD@{Thu Jul 30 18:02:57 2026}: commit: fix: resetpassword send link and otp to otp UI
+[33m4ec5e93[m refs/heads/feature/admin-System-Track-Management@{Thu Jul 30 16:41:50 2026}: merge main: Fast-forward
+[33m4ec5e93[m HEAD@{Thu Jul 30 16:41:50 2026}: merge main: Fast-forward
+[33m7fed3ab[m HEAD@{Thu Jul 30 16:41:45 2026}: checkout: moving from main to feature/admin-System-Track-Management
+[33m4ec5e93[m refs/heads/main@{Thu Jul 30 16:41:07 2026}: pull: Fast-forward
+[33m4ec5e93[m HEAD@{Thu Jul 30 16:41:07 2026}: pull: Fast-forward
+[33m1f714b5[m refs/remotes/origin/UnitTest@{Thu Jul 30 16:41:06 2026}: pull: fast-forward
+[33m2a4d9e3[m refs/remotes/origin/feature/admin-Withdrawal-Request-Management@{Thu Jul 30 16:41:06 2026}: pull: storing head
+[33md7b2347[m[33m ([m[1;31morigin/feature/admin-violation[m[33m)[m refs/remotes/origin/feature/admin-violation@{Thu Jul 30 16:41:06 2026}: pull: storing head
+[33m52040d1[m[33m ([m[1;31morigin/fix/gioi-han-ky-tu[m[33m)[m refs/remotes/origin/fix/gioi-han-ky-tu@{Thu Jul 30 16:41:06 2026}: pull: storing head
+[33m4ec5e93[m refs/remotes/origin/main@{Thu Jul 30 16:41:06 2026}: pull: fast-forward
+[33m2bd7ea3[m[33m ([m[1;32mmobile/authentication-management[m[33m)[m refs/remotes/origin/mobile/Authentication-Management@{Thu Jul 30 16:41:06 2026}: pull: storing head
+[33m5af2746[m refs/remotes/origin/mobile/content-discovery@{Thu Jul 30 16:41:06 2026}: pull: fast-forward
+[33m40bbd10[m refs/remotes/origin/mobile/library-management@{Thu Jul 30 16:41:06 2026}: pull: storing head
+[33m351240b[m HEAD@{Thu Jul 30 16:41:02 2026}: checkout: moving from feature/admin-System-Track-Management to main
+[33m7fed3ab[m refs/remotes/origin/feature/admin-System-Track-Management@{Wed Jul 29 14:17:47 2026}: update by push
+[33m7fed3ab[m refs/heads/feature/admin-System-Track-Management@{Wed Jul 29 14:17:17 2026}: commit: fix: hide dralf into system track list UI
+[33m7fed3ab[m HEAD@{Wed Jul 29 14:17:17 2026}: commit: fix: hide dralf into system track list UI
+[33mef2c18d[m HEAD@{Wed Jul 29 12:57:09 2026}: checkout: moving from main to feature/admin-System-Track-Management
+[33m351240b[m refs/heads/main@{Wed Jul 29 12:57:03 2026}: pull: Fast-forward
+[33m351240b[m HEAD@{Wed Jul 29 12:57:03 2026}: pull: Fast-forward
+[33ma42b8b2[m refs/remotes/origin/UnitTest@{Wed Jul 29 12:57:02 2026}: pull: fast-forward
+[33mad1e89d[m[33m ([m[1;31morigin/feature/admin-Withdrawal-Request-Management[m[33m, [m[1;32mfeature/admin-Withdrawal-Request-Management[m[33m)[m refs/remotes/origin/feature/admin-Withdrawal-Request-Management@{Wed Jul 29 12:57:02 2026}: pull: storing head
+[33m822257e[m[33m ([m[1;31morigin/mobile/Authentication-Management[m[33m)[m refs/remotes/origin/mobile/Authentication-Management@{Wed Jul 29 12:57:02 2026}: pull: storing head
+[33mef2c18d[m HEAD@{Wed Jul 29 12:56:55 2026}: checkout: moving from feature/admin-System-Track-Management to main
+[33mef2c18d[m HEAD@{Wed Jul 29 12:56:02 2026}: checkout: moving from UnitTest to feature/admin-System-Track-Management
+[33m2a4d9e3[m refs/remotes/origin/feature/admin-Withdrawal-Request-Management@{Wed Jul 29 11:59:39 2026}: pull: storing head
+[33m2bd7ea3[m[33m ([m[1;32mmobile/authentication-management[m[33m)[m refs/remotes/origin/mobile/Authentication-Management@{Wed Jul 29 11:59:39 2026}: pull: storing head
+[33mfe02a01[m[33m ([m[1;32mUnitTest[m[33m)[m refs/heads/UnitTest@{Wed Jul 29 11:59:26 2026}: pull: Merge made by the 'ort' strategy.
+[33mad1e89d[m[33m ([m[1;31morigin/feature/admin-Withdrawal-Request-Management[m[33m, [m[1;32mfeature/admin-Withdrawal-Request-Management[m[33m)[m refs/remotes/origin/feature/admin-Withdrawal-Request-Management@{Wed Jul 29 11:59:26 2026}: pull: storing head
+[33m7f84a18[m[33m ([m[1;31morigin/feature/artist-followers-mnagement[m[33m)[m refs/remotes/origin/feature/artist-followers-mnagement@{Wed Jul 29 11:59:26 2026}: pull: fast-forward
+[33m351240b[m refs/remotes/origin/main@{Wed Jul 29 11:59:26 2026}: pull: fast-forward
+[33m822257e[m[33m ([m[1;31morigin/mobile/Authentication-Management[m[33m)[m refs/remotes/origin/mobile/Authentication-Management@{Wed Jul 29 11:59:26 2026}: pull: storing head
+[33m15ccbd8[m refs/remotes/origin/mobile/content-discovery@{Wed Jul 29 11:59:26 2026}: pull: fast-forward
+[33m81584ee[m refs/remotes/origin/mobile/library-management@{Wed Jul 29 11:59:26 2026}: pull: storing head
+[33mfe02a01[m[33m ([m[1;32mUnitTest[m[33m)[m HEAD@{Wed Jul 29 11:59:26 2026}: pull: Merge made by the 'ort' strategy.
+[33mb0a3b16[m HEAD@{Wed Jul 29 11:32:24 2026}: checkout: moving from main to UnitTest
+[33mef2c18d[m HEAD@{Wed Jul 29 11:31:32 2026}: checkout: moving from UnitTest to main
+[33mb0a3b16[m refs/heads/UnitTest@{Wed Jul 29 11:31:26 2026}: commit: fix : npm i
+[33mb0a3b16[m HEAD@{Wed Jul 29 11:31:26 2026}: commit: fix : npm i
+[33m3537ef1[m HEAD@{Wed Jul 29 11:28:04 2026}: checkout: moving from feature/admin-System-Track-Management to UnitTest
+[33mef2c18d[m HEAD@{Tue Jul 28 14:24:53 2026}: checkout: moving from main to feature/admin-System-Track-Management
+[33mef2c18d[m refs/heads/main@{Tue Jul 28 14:24:44 2026}: merge feature/admin-System-Track-Management: Fast-forward
+[33mef2c18d[m HEAD@{Tue Jul 28 14:24:44 2026}: merge feature/admin-System-Track-Management: Fast-forward
+[33m61fb83d[m HEAD@{Tue Jul 28 14:24:36 2026}: checkout: moving from feature/admin-System-Track-Management to main
+[33mef2c18d[m refs/remotes/origin/feature/admin-System-Track-Management@{Tue Jul 28 14:22:34 2026}: update by push
+[33mef2c18d[m refs/heads/feature/admin-System-Track-Management@{Tue Jul 28 14:22:09 2026}: commit: feat: implement unlock Track UI
+[33mef2c18d[m HEAD@{Tue Jul 28 14:22:09 2026}: commit: feat: implement unlock Track UI
+[33m806f610[m refs/heads/feature/admin-System-Track-Management@{Tue Jul 28 14:21:44 2026}: commit: feat: implement unlock track API
+[33m806f610[m HEAD@{Tue Jul 28 14:21:44 2026}: commit: feat: implement unlock track API
+[33m0c87bcf[m refs/heads/feature/admin-System-Track-Management@{Tue Jul 28 14:02:51 2026}: merge main: Merge made by the 'ort' strategy.
+[33m0c87bcf[m HEAD@{Tue Jul 28 14:02:51 2026}: merge main: Merge made by the 'ort' strategy.
+[33mf6561d3[m HEAD@{Tue Jul 28 14:01:59 2026}: checkout: moving from main to feature/admin-System-Track-Management

@@ -2,6 +2,7 @@ import cron from "node-cron";
 import mongoose from "mongoose";
 import redisClient from "../config/redisConfig.js";
 import ListenEvent from "../models/ListenEvent.js";
+import Podcast from "../models/Podcast.js";
 import Track from "../models/Track.js";
 import { getAnalyticsTimezone } from "../services/analytics/trackStatAggregation.service.js";
 import {
@@ -17,6 +18,7 @@ const LISTEN_EVENT_SYNC_BATCH_SIZE = Number(process.env.LISTEN_EVENT_SYNC_BATCH_
 let isListenEventSyncCronStarted = false;
 
 const toObjectId = (value) => new mongoose.Types.ObjectId(String(value));
+const toOptionalObjectId = (value) => (value ? toObjectId(value) : null);
 
 const normalizeGuestId = (value) => {
     const guestId = typeof value === "string" ? value.trim().toLowerCase() : "";
@@ -55,12 +57,15 @@ const parseQueuedEventPayload = (entry) => {
 const transformQueuedEntryToDocument = (entry) => {
     const message = parseQueuedEventPayload(entry);
     const userId = message.userId ? toObjectId(message.userId) : undefined;
+    const contentType = message.contentType === "podcast" ? "podcast" : "track";
 
     return {
         userId,
         guestId: userId ? undefined : normalizeGuestId(message.guestId),
-        trackId: toObjectId(message.trackId),
-        artistId: toObjectId(message.artistId),
+        contentType,
+        trackId: contentType === "track" ? toObjectId(message.trackId) : null,
+        podcastId: contentType === "podcast" ? toObjectId(message.podcastId) : null,
+        artistId: toOptionalObjectId(message.artistId),
         listenedAt: message.listenedAt ? new Date(message.listenedAt) : new Date(),
         trackDuration: toNumber(message.trackDuration, null),
         listenedDuration: toNumber(message.listenedDuration, null),
@@ -79,7 +84,11 @@ const buildTrackTotalPlayBulkOperations = (documents = []) => {
     const trackPlayCountMap = new Map();
 
     documents.forEach((document) => {
-        if (!document?.trackId || document.isValidStream !== true) {
+        if (
+            document?.contentType !== "track" ||
+            !document?.trackId ||
+            document.isValidStream !== true
+        ) {
             return;
         }
 
@@ -93,6 +102,37 @@ const buildTrackTotalPlayBulkOperations = (documents = []) => {
             update: {
                 $inc: {
                     "stats.totalPlay": playCount,
+                },
+            },
+        },
+    }));
+};
+
+const buildPodcastTotalListenBulkOperations = (documents = []) => {
+    const podcastListenCountMap = new Map();
+
+    documents.forEach((document) => {
+        if (
+            document?.contentType !== "podcast" ||
+            !document?.podcastId ||
+            document.isValidStream !== true
+        ) {
+            return;
+        }
+
+        const podcastId = String(document.podcastId);
+        podcastListenCountMap.set(
+            podcastId,
+            (podcastListenCountMap.get(podcastId) || 0) + 1
+        );
+    });
+
+    return Array.from(podcastListenCountMap.entries()).map(([podcastId, listenCount]) => ({
+        updateOne: {
+            filter: { _id: new mongoose.Types.ObjectId(podcastId) },
+            update: {
+                $inc: {
+                    "stats.totalListen": listenCount,
                 },
             },
         },
@@ -124,11 +164,16 @@ export const syncListenEventsFromRedis = async (batchSize = LISTEN_EVENT_SYNC_BA
 
     const documents = queueEntries.map(transformQueuedEntryToDocument);
     const trackTotalPlayOperations = buildTrackTotalPlayBulkOperations(documents);
+    const podcastTotalListenOperations = buildPodcastTotalListenBulkOperations(documents);
 
     await ListenEvent.insertMany(documents, { ordered: true });
 
     if (trackTotalPlayOperations.length > 0) {
         await Track.bulkWrite(trackTotalPlayOperations, { ordered: false });
+    }
+
+    if (podcastTotalListenOperations.length > 0) {
+        await Podcast.bulkWrite(podcastTotalListenOperations, { ordered: false });
     }
 
     await redisClient.lTrim(
@@ -141,6 +186,7 @@ export const syncListenEventsFromRedis = async (batchSize = LISTEN_EVENT_SYNC_BA
         success: true,
         syncedCount: documents.length,
         updatedTrackCount: trackTotalPlayOperations.length,
+        updatedPodcastCount: podcastTotalListenOperations.length,
         message: "Queued listen events synced successfully.",
     };
 };

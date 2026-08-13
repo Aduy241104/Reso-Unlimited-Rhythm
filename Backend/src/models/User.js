@@ -83,9 +83,16 @@ const UserSchema = new Schema(
             totalListeningTime: { type: Number, default: 0, min: 0 },
             totalTracksPlayed: { type: Number, default: 0, min: 0 },
         },
+
+        isDeleted: { type: Boolean, default: false, index: true },
+        deletedAt: { type: Date },
+        deletedBy: { type: Schema.Types.ObjectId, ref: "User" },
+        deleteReason: { type: String, default: "", trim: true },
     },
     { timestamps: true }
 );
+
+UserSchema.index({ role: 1, activeStatus: 1, isDeleted: 1 });
 
 const User = model("User", UserSchema);
 export default User;

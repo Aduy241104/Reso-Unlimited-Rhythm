@@ -5,7 +5,7 @@ const getTransactionsByUserId = async (req, res, next) => {
     try {
         const { userId } = req.params;
 
-        const transactions = await transactionService.getByUserId(userId);
+        const transactions = await transactionService.getByUserId(userId, req.user);
 
         return formatResponse.success(
             res,

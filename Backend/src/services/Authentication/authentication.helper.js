@@ -36,6 +36,10 @@ export const ensureActiveUser = async (user) => {
         throw new AppError("User does not exist.", 404);
     }
 
+    if (user.isDeleted === true) {
+        throw new AppError("Your account no longer exists.", 403);
+    }
+
     if (user.activeStatus === "blocked") {
         throw new AppError("Your account has been blocked.", 403);
     }

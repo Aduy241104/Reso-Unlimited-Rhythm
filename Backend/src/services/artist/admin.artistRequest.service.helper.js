@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Artist from "../../models/Artist.js";
 import ArtistRequest from "../../models/ArtistRequest.js";
 import { AppError } from "../../utils/AppError.js";
+import { normalizeArtistName } from "./artist.name.normalizer.js";
 
 const CHECKLIST_KEYS = [
     "profileComplete",
@@ -65,9 +66,10 @@ export const assertApprovalChecklist = (checklist) => {
     }
 };
 
-export const buildArtistPayloadFromRequest = (artistRequest) => ({
+export const buildArtistPayloadFromRequest = (artistRequest, reviewedBy = null) => ({
     userId: artistRequest.userId,
     name: artistRequest.stageName,
+    nameKey: normalizeArtistName(artistRequest.stageName),
     bio: artistRequest.bio || "",
     avatar: artistRequest.avatar || "",
     socialLinks: {
@@ -76,6 +78,12 @@ export const buildArtistPayloadFromRequest = (artistRequest) => ({
         youtube: artistRequest.socialLinks?.youtube || "",
     },
     activeStatus: "active",
+    identityVerification: {
+        status: "verified",
+        verifiedAt: new Date(),
+        verifiedBy: reviewedBy,
+        sourceRequestId: artistRequest._id,
+    },
 });
 
 export default {

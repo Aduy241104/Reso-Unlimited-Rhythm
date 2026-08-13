@@ -50,8 +50,18 @@ const changeMyPassword = async (req, res, next) => {
     }
 };
 
+const deleteMyAccount = async (req, res, next) => {
+    try {
+        await userService.softDeleteMyAccountByUserId(req.user.id);
+        return formatResponse.success(res, null, "Account deleted successfully");
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     getMyProfile,
     updateMyProfile,
     changeMyPassword,
+    deleteMyAccount,
 };

@@ -29,11 +29,22 @@ const AlbumSchema = new Schema(
             default: null,
         },
         totalDuration: { type: Number, default: 0, min: 0 },
+        isDeleted: { type: Boolean, default: false, index: true },
+        deletedAt: { type: Date },
+        deletedBy: { type: Schema.Types.ObjectId, ref: "User" },
+        deleteReason: { type: String, default: "", trim: true },
+        previousStatusBeforeArtistBlock: {
+            type: String,
+            enum: ["draft", "active", "hidden", null],
+            default: null,
+        },
+        blockedByArtistId: { type: Schema.Types.ObjectId, ref: "Artist", default: null, index: true },
     },
     { timestamps: true }
 );
 
 AlbumSchema.index({ artistId: 1, title: 1 });
+AlbumSchema.index({ artistId: 1, isDeleted: 1, status: 1 });
 
 const Album = model("Album", AlbumSchema);
 export default Album;

@@ -17,9 +17,14 @@ export const getUserService = async (id) => {
 	return res.data?.data?.user ?? null;
 };
 
+export const getUserModerationAuditService = async (id) => {
+	const res = await axiosClient.get(`/api/admin/users/${id}/moderation-audit`);
+	return res.data?.data?.auditLogs ?? [];
+};
+
 export const updateUserService = async (id, data) => {
 	const res = await axiosClient.patch(`/api/admin/users/${id}`, data);
 	return res.data?.data?.user ?? res.data;
 };
 
-export default { getUsersService, getUserService, updateUserService };
+export default { getUsersService, getUserService, getUserModerationAuditService, updateUserService };

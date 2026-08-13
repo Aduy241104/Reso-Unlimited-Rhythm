@@ -31,7 +31,7 @@ const TRACK_POPULATE = [
     {
         path: "artist_artistId",
         select: "name avatar activeStatus",
-        match: { activeStatus: "active" },
+        match: { activeStatus: "active", isDeleted: { $ne: true } },
     },
     {
         path: "genreIds",
@@ -56,6 +56,7 @@ const fetchValidTracksByIds = async (trackIds) => {
         _id: { $in: trackIds },
         activeStatus: "active",
         approvalStatus: "approved",
+        isDeleted: { $ne: true },
         ...buildReleasedTrackFilter(),
     })
         .select(
@@ -1072,6 +1073,7 @@ const buildSimilarCandidates = async ({
         _id: { $nin: excludedTrackIds },
         activeStatus: "active",
         approvalStatus: "approved",
+        isDeleted: { $ne: true },
         $and: [
             buildReleasedTrackFilter(),
             {

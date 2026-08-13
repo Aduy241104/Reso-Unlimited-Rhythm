@@ -1,4 +1,6 @@
+import mongoose from "mongoose";
 import Transaction from "../../models/Transaction.js";
+import { AppError } from "../../utils/AppError.js";
 
 const normalizePlanSnapshot = (planSnapshot) => {
     if (!planSnapshot) {
@@ -32,7 +34,24 @@ const normalizeLegacyPlan = (plan) => {
     };
 };
 
-const getByUserId = async (userId) => {
+const assertCanReadTransactions = (targetUserId, actor) => {
+    if (!mongoose.Types.ObjectId.isValid(targetUserId)) {
+        throw new AppError("User id is invalid.", 400, { field: "userId" });
+    }
+
+    if (!actor) {
+        throw new AppError("Authentication is required.", 401);
+    }
+
+    const actorId = actor.id || actor._id;
+    if (actor.role !== "admin" && String(actorId) !== String(targetUserId)) {
+        throw new AppError("You do not have permission to view these transactions.", 403);
+    }
+};
+
+const getByUserId = async (userId, actor) => {
+    assertCanReadTransactions(userId, actor);
+
     const transactions = await Transaction.find({ userId })
         .populate("subscriptionId", "planSnapshot planId")
         .populate("planId", "name price durationDays description features status")
