@@ -59,3 +59,37 @@ export const createArtistRegistrationRequestService = async (payload = {}) => {
 
     return response?.data?.data?.artistRequest ?? null;
 };
+
+export const checkArtistStageNameAvailabilityService = async (
+    stageName,
+    options = {}
+) => {
+    const response = await axiosClient.get(
+        `${ARTIST_REGISTRATION_API_PREFIX}/artist-registration-requests/stage-name-availability`,
+        {
+            params: {
+                stageName: typeof stageName === "string" ? stageName.trim() : "",
+            },
+            signal: options.signal,
+        }
+    );
+
+    return response?.data?.data ?? null;
+};
+
+export const checkArtistIdNumberAvailabilityService = async (
+    idNumber,
+    options = {}
+) => {
+    const response = await axiosClient.get(
+        `${ARTIST_REGISTRATION_API_PREFIX}/artist-registration-requests/id-number-availability`,
+        {
+            params: {
+                idNumber: typeof idNumber === "string" ? idNumber.trim() : "",
+            },
+            signal: options.signal,
+        }
+    );
+
+    return response?.data?.data ?? null;
+};

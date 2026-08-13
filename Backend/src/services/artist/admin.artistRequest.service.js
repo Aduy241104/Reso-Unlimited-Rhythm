@@ -11,6 +11,17 @@ import {
     buildArtistRequestDetailQuery,
 } from "./admin.artistRequest.service.helper.js";
 
+const normalizeString = (value) =>
+    typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
+
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const buildExactStageNameRegex = (value) => {
+    const normalized = normalizeString(value);
+    const pattern = escapeRegex(normalized).replace(/\s+/g, "\\s+");
+    return new RegExp(`^${pattern}$`, "i");
+};
+
 const getArtistRequests = async (query) => {
     const page = Math.max(1, parseInt(query.page, 10) || 1);
     const limit = Math.max(1, parseInt(query.limit, 10) || 20);
@@ -111,6 +122,22 @@ const reviewArtistRequest = async (artistRequestId, payload = {}, adminUserId) =
                 409,
                 {
                     field: "userId",
+                }
+            );
+        }
+
+        const conflictingStageNameArtist = await Artist.findOne({
+            name: buildExactStageNameRegex(artistRequest.stageName),
+        })
+            .select("_id name")
+            .lean();
+
+        if (conflictingStageNameArtist) {
+            throw new AppError(
+                "Tên nghệ sĩ này đã thuộc về một nghệ sĩ khác.",
+                409,
+                {
+                    field: "stageName",
                 }
             );
         }

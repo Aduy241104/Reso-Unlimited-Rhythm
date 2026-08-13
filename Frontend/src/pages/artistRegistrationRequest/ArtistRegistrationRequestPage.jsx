@@ -18,6 +18,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { routePaths } from "../../routes/routePaths";
 import { USER_INPUT_LIMITS } from "../../constants/userInputLimits";
 import {
+  applyApiFieldErrors,
   getApiErrorDetailsText,
   getApiErrorFullMessage,
 } from "../../utils/apiError";
@@ -25,7 +26,11 @@ import {
   IMAGE_FILE_ACCEPT,
   getImageFileValidationError,
 } from "../../utils/imageFileValidation";
-import { createArtistRegistrationRequestService } from "../../services/artist/artistRegistrationRequestService";
+import {
+  checkArtistIdNumberAvailabilityService,
+  checkArtistStageNameAvailabilityService,
+  createArtistRegistrationRequestService,
+} from "../../services/artist/artistRegistrationRequestService";
 import { getMyArtistRegistrationRequestsService } from "../../services/artist/userArtistRegistrationListService";
 
 const GENRE_OPTIONS = [
@@ -85,6 +90,22 @@ const sectionCardClassName =
   "rounded-[20px] border border-white/10 bg-white/[0.03] p-5 sm:p-6";
 
 const MAX_PORTFOLIO_LINKS = 4;
+const MIN_ARTIST_AGE = 16;
+const ID_NUMBER_REGEX = /^[0-9]{9,12}$/;
+const STAGE_NAME_CHECK_DEBOUNCE_MS = 500;
+const ERROR_FIELD_ORDER = [
+  "stageName",
+  "fullName",
+  "idNumber",
+  "dateOfBirth",
+  "frontImage",
+  "backImage",
+  "demoTrackUrls",
+  "musicLinks",
+  "acceptedTerms",
+  "copyrightCommitment",
+  "truthfulInformationCommitment",
+];
 
 const createInitialFormState = () => ({
   stageName: "",
@@ -116,6 +137,60 @@ const createInitialFormState = () => ({
 
 const normalizeText = (value) =>
   typeof value === "string" ? value.trim() : "";
+
+const parseDateInputValue = (value) => {
+  const normalized = normalizeText(value);
+
+  if (!normalized) {
+    return null;
+  }
+
+  const match = normalized.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+  if (!match) {
+    return null;
+  }
+
+  const [, yearText, monthText, dayText] = match;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const parsedDate = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    Number.isNaN(parsedDate.getTime()) ||
+    parsedDate.getUTCFullYear() !== year ||
+    parsedDate.getUTCMonth() !== month - 1 ||
+    parsedDate.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  return parsedDate;
+};
+
+const calculateAge = (dateOfBirth, now = new Date()) => {
+  let age = now.getUTCFullYear() - dateOfBirth.getUTCFullYear();
+  const monthOffset = now.getUTCMonth() - dateOfBirth.getUTCMonth();
+
+  if (
+    monthOffset < 0 ||
+    (monthOffset === 0 && now.getUTCDate() < dateOfBirth.getUTCDate())
+  ) {
+    age -= 1;
+  }
+
+  return age;
+};
+
+const getTodayDateValue = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
 
 const FieldLabel = ({ children, required = false, countText }) => (
   <div className="mb-2 flex items-center justify-between">
@@ -882,11 +957,176 @@ const ArtistRegistrationRequestPage = () => {
     copyrightCommitment: false,
     truthfulInformationCommitment: false,
   });
+  const [isCheckingStageName, setIsCheckingStageName] = useState(false);
+  const [isCheckingIdNumber, setIsCheckingIdNumber] = useState(false);
+  const fieldContainerRefs = useRef({});
+  const stageNameCheckRequestIdRef = useRef(0);
+  const idNumberCheckRequestIdRef = useRef(0);
 
   const hasReachedDemoLinkLimit =
     formData.demoTrackUrls.length >= MAX_PORTFOLIO_LINKS;
   const hasReachedMusicLinkLimit =
     formData.musicLinks.length >= MAX_PORTFOLIO_LINKS;
+  const todayDateValue = useMemo(() => getTodayDateValue(), []);
+  const normalizedStageName = useMemo(
+    () => normalizeText(formData.stageName),
+    [formData.stageName]
+  );
+  const normalizedIdNumber = useMemo(
+    () => normalizeText(formData.idNumber),
+    [formData.idNumber]
+  );
+
+  const getPortfolioLinkErrorMessage = (
+    demoTrackUrlsValue = formData.demoTrackUrls,
+    musicLinksValue = formData.musicLinks,
+  ) =>
+    Array.isArray(demoTrackUrlsValue) && demoTrackUrlsValue.length > 0
+      ? ""
+      : Array.isArray(musicLinksValue) && musicLinksValue.length > 0
+        ? ""
+        : "Vui lòng thêm ít nhất 1 link demo bài hát hoặc 1 link sản phẩm âm nhạc đã phát hành.";
+
+  const getFieldErrorMessage = (fieldName, fieldValue) => {
+    if (fieldName === "demoTrackUrls") {
+      return getPortfolioLinkErrorMessage(fieldValue, formData.musicLinks);
+    }
+
+    if (fieldName === "musicLinks") {
+      return getPortfolioLinkErrorMessage(formData.demoTrackUrls, fieldValue);
+    }
+
+    switch (fieldName) {
+      case "stageName": {
+        const normalized = normalizeText(fieldValue);
+
+        if (!normalized) {
+          return "Tên nghệ sĩ là bắt buộc.";
+        }
+
+        if (normalized.length > USER_INPUT_LIMITS.stageName) {
+          return `Tên nghệ sĩ không được vượt quá ${USER_INPUT_LIMITS.stageName} ký tự.`;
+        }
+
+        return "";
+      }
+
+      case "fullName": {
+        const normalized = normalizeText(fieldValue);
+
+        if (!normalized) {
+          return "Họ và tên thật là bắt buộc.";
+        }
+
+        if (normalized.length > USER_INPUT_LIMITS.fullName) {
+          return `Họ và tên thật không được vượt quá ${USER_INPUT_LIMITS.fullName} ký tự.`;
+        }
+
+        return "";
+      }
+
+      case "idNumber": {
+        const normalized = normalizeText(fieldValue);
+
+        if (!normalized) {
+          return "Số CCCD/CMND là bắt buộc.";
+        }
+
+        if (normalized.length > USER_INPUT_LIMITS.identityNumber) {
+          return `Số CCCD/CMND không được vượt quá ${USER_INPUT_LIMITS.identityNumber} ký tự.`;
+        }
+
+        if (!ID_NUMBER_REGEX.test(normalized)) {
+          return "Số CCCD/CMND phải gồm từ 9 đến 12 chữ số.";
+        }
+
+        return "";
+      }
+
+      case "dateOfBirth": {
+        const normalized = normalizeText(fieldValue);
+
+        if (!normalized) {
+          return "Ngày sinh là bắt buộc.";
+        }
+
+        const parsedDate = parseDateInputValue(normalized);
+        if (!parsedDate) {
+          return "Ngày sinh không hợp lệ.";
+        }
+
+        const today = parseDateInputValue(todayDateValue);
+        if (today && parsedDate > today) {
+          return "Ngày sinh không được ở tương lai.";
+        }
+
+        if (calculateAge(parsedDate, new Date()) < MIN_ARTIST_AGE) {
+          return `Bạn phải đủ ${MIN_ARTIST_AGE} tuổi để đăng ký nghệ sĩ.`;
+        }
+
+        return "";
+      }
+
+      case "frontImage":
+        return fieldValue ? "" : "Vui lòng tải ảnh mặt trước giấy tờ.";
+
+      case "backImage":
+        return fieldValue ? "" : "Vui lòng tải ảnh mặt sau giấy tờ.";
+
+      case "demoTrackUrls":
+        return Array.isArray(fieldValue) && fieldValue.length > 0
+          ? ""
+          : "Vui lòng thêm ít nhất 1 link demo bài hát.";
+
+      case "musicLinks":
+        return Array.isArray(fieldValue) && fieldValue.length > 0
+          ? ""
+          : "Vui lòng thêm ít nhất 1 link sản phẩm âm nhạc đã phát hành.";
+
+      default:
+        return "";
+    }
+  };
+
+  const registerFieldContainer = (fieldName) => (node) => {
+    if (node) {
+      fieldContainerRefs.current[fieldName] = node;
+    }
+  };
+
+  const scrollToField = (fieldName) => {
+    const targetNode =
+      fieldContainerRefs.current[fieldName] ||
+      document.querySelector(`[data-error-field="${fieldName}"]`) ||
+      document.querySelector(`[name="${fieldName}"]`);
+
+    if (!targetNode) {
+      return;
+    }
+
+    targetNode.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+
+    const focusTarget =
+      typeof targetNode.matches === "function" &&
+      targetNode.matches("input, textarea, button")
+        ? targetNode
+        : targetNode.querySelector?.(
+            'input:not([type="hidden"]), textarea, button, [role="button"]'
+          );
+
+    focusTarget?.focus?.({ preventScroll: true });
+  };
+
+  const scrollToFirstErrorField = (fieldErrors = {}) => {
+    const firstFieldName = ERROR_FIELD_ORDER.find((fieldName) => fieldErrors[fieldName]);
+
+    if (firstFieldName) {
+      scrollToField(firstFieldName);
+    }
+  };
 
   useEffect(() => {
     if (
@@ -937,6 +1177,109 @@ const ArtistRegistrationRequestPage = () => {
     return () => controller.abort();
   }, [authLoading, userId, userRole]);
 
+  useEffect(() => {
+    const localStageNameError = getFieldErrorMessage("stageName", formData.stageName);
+
+    if (!normalizedStageName || localStageNameError || !userId || userRole !== "user") {
+      setIsCheckingStageName(false);
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    const requestId = ++stageNameCheckRequestIdRef.current;
+    const timeoutId = setTimeout(async () => {
+      setIsCheckingStageName(true);
+
+      try {
+        const result = await checkArtistStageNameAvailabilityService(
+          normalizedStageName,
+          { signal: controller.signal }
+        );
+
+        if (stageNameCheckRequestIdRef.current !== requestId) {
+          return;
+        }
+
+        setErrors((previous) => ({
+          ...previous,
+          stageName: result?.available
+            ? undefined
+            : result?.message || "Tên nghệ sĩ đã tồn tại. Vui lòng chọn tên khác.",
+        }));
+      } catch (error) {
+        if (error.name !== "CanceledError" && stageNameCheckRequestIdRef.current === requestId) {
+          setErrors((previous) => ({
+            ...previous,
+            stageName:
+              previous.stageName ||
+              "Không thể kiểm tra tên nghệ sĩ lúc này. Vui lòng thử lại.",
+          }));
+        }
+      } finally {
+        if (stageNameCheckRequestIdRef.current === requestId) {
+          setIsCheckingStageName(false);
+        }
+      }
+    }, STAGE_NAME_CHECK_DEBOUNCE_MS);
+
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [formData.stageName, normalizedStageName, userId, userRole]);
+
+  useEffect(() => {
+    const localIdNumberError = getFieldErrorMessage("idNumber", formData.idNumber);
+
+    if (!normalizedIdNumber || localIdNumberError || !userId || userRole !== "user") {
+      setIsCheckingIdNumber(false);
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    const requestId = ++idNumberCheckRequestIdRef.current;
+    const timeoutId = setTimeout(async () => {
+      setIsCheckingIdNumber(true);
+
+      try {
+        const result = await checkArtistIdNumberAvailabilityService(
+          normalizedIdNumber,
+          { signal: controller.signal }
+        );
+
+        if (idNumberCheckRequestIdRef.current !== requestId) {
+          return;
+        }
+
+        setErrors((previous) => ({
+          ...previous,
+          idNumber: result?.available
+            ? undefined
+            : result?.message ||
+              "Số CCCD/CMND này đã được dùng trong một hồ sơ đăng ký nghệ sĩ khác.",
+        }));
+      } catch (error) {
+        if (error.name !== "CanceledError" && idNumberCheckRequestIdRef.current === requestId) {
+          setErrors((previous) => ({
+            ...previous,
+            idNumber:
+              previous.idNumber ||
+              "Không thể kiểm tra số CCCD/CMND lúc này. Vui lòng thử lại.",
+          }));
+        }
+      } finally {
+        if (idNumberCheckRequestIdRef.current === requestId) {
+          setIsCheckingIdNumber(false);
+        }
+      }
+    }, STAGE_NAME_CHECK_DEBOUNCE_MS);
+
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [formData.idNumber, normalizedIdNumber, userId, userRole]);
+
   const selectedGenreText = useMemo(() => {
     if (formData.genres.length === 0) {
       return "Chưa chọn thể loại nào";
@@ -948,19 +1291,26 @@ const ArtistRegistrationRequestPage = () => {
   const handleChange = (event) => {
     const { name, value, type, checked, files } = event.target;
 
-    setErrors((previous) => ({ ...previous, [name]: undefined }));
-
     if (type === "checkbox") {
       setFormData((previous) => ({ ...previous, [name]: checked }));
       return;
     }
 
     if (type === "file") {
-      setFormData((previous) => ({ ...previous, [name]: files?.[0] || null }));
+      const nextFile = files?.[0] || null;
+      setFormData((previous) => ({ ...previous, [name]: nextFile }));
+      setErrors((previous) => ({
+        ...previous,
+        [name]: getFieldErrorMessage(name, nextFile) || undefined,
+      }));
       return;
     }
 
     setFormData((previous) => ({ ...previous, [name]: value }));
+    setErrors((previous) => ({
+      ...previous,
+      [name]: getFieldErrorMessage(name, value) || undefined,
+    }));
   };
 
   const handleFileSelect = (name, file) => {
@@ -971,9 +1321,22 @@ const ArtistRegistrationRequestPage = () => {
       return false;
     }
 
-    setErrors((previous) => ({ ...previous, [name]: undefined }));
+    const fieldError = getFieldErrorMessage(name, file);
+    setErrors((previous) => ({
+      ...previous,
+      [name]: fieldError || undefined,
+    }));
     setFormData((previous) => ({ ...previous, [name]: file }));
     return true;
+  };
+
+  const handleFieldBlur = (event) => {
+    const { name, value } = event.target;
+
+    setErrors((previous) => ({
+      ...previous,
+      [name]: getFieldErrorMessage(name, value) || undefined,
+    }));
   };
 
   const handleSocialLinkChange = (event) => {
@@ -1012,7 +1375,17 @@ const ArtistRegistrationRequestPage = () => {
       return;
     }
 
-    setErrors((previous) => ({ ...previous, demoTrackUrls: undefined }));
+    const nextDemoTrackUrls = [...formData.demoTrackUrls, normalized];
+    const portfolioLinkErrorMessage = getPortfolioLinkErrorMessage(
+      nextDemoTrackUrls,
+      formData.musicLinks,
+    );
+
+    setErrors((previous) => ({
+      ...previous,
+      demoTrackUrls: portfolioLinkErrorMessage || undefined,
+      musicLinks: portfolioLinkErrorMessage || undefined,
+    }));
     setFormData((previous) => ({
       ...previous,
       demoTrackUrls: [...previous.demoTrackUrls, normalized],
@@ -1035,7 +1408,17 @@ const ArtistRegistrationRequestPage = () => {
       return;
     }
 
-    setErrors((previous) => ({ ...previous, musicLinks: undefined }));
+    const nextMusicLinks = [...formData.musicLinks, normalized];
+    const portfolioLinkErrorMessage = getPortfolioLinkErrorMessage(
+      formData.demoTrackUrls,
+      nextMusicLinks,
+    );
+
+    setErrors((previous) => ({
+      ...previous,
+      demoTrackUrls: portfolioLinkErrorMessage || undefined,
+      musicLinks: portfolioLinkErrorMessage || undefined,
+    }));
     setFormData((previous) => ({
       ...previous,
       musicLinks: [...previous.musicLinks, normalized],
@@ -1044,15 +1427,45 @@ const ArtistRegistrationRequestPage = () => {
   };
 
   const removePortfolioLink = (fieldName, item) => {
+    const nextValues = formData[fieldName].filter((url) => url !== item);
+    const nextDemoTrackUrls =
+      fieldName === "demoTrackUrls" ? nextValues : formData.demoTrackUrls;
+    const nextMusicLinks =
+      fieldName === "musicLinks" ? nextValues : formData.musicLinks;
+    const portfolioLinkErrorMessage = getPortfolioLinkErrorMessage(
+      nextDemoTrackUrls,
+      nextMusicLinks,
+    );
+
     setFormData((previous) => ({
       ...previous,
-      [fieldName]: previous[fieldName].filter((url) => url !== item),
+      [fieldName]: nextValues,
     }));
-    setErrors((previous) => ({ ...previous, [fieldName]: undefined }));
+    setErrors((previous) => ({
+      ...previous,
+      demoTrackUrls: portfolioLinkErrorMessage || undefined,
+      musicLinks: portfolioLinkErrorMessage || undefined,
+    }));
   };
 
   const validateForm = () => {
     const nextErrors = {};
+    [
+      "stageName",
+      "fullName",
+      "idNumber",
+      "dateOfBirth",
+      "frontImage",
+      "backImage",
+      "demoTrackUrls",
+      "musicLinks",
+    ].forEach((fieldName) => {
+      const validationMessage = getFieldErrorMessage(fieldName, formData[fieldName]);
+
+      if (validationMessage) {
+        nextErrors[fieldName] = validationMessage;
+      }
+    });
 
     if (!normalizeText(formData.stageName)) {
       nextErrors.stageName = "Tên nghệ sĩ là bắt buộc.";
@@ -1109,6 +1522,78 @@ const ArtistRegistrationRequestPage = () => {
     return Object.keys(nextErrors).length === 0;
   };
 
+  const validateStageNameAvailability = async () => {
+    const localStageNameError = getFieldErrorMessage("stageName", formData.stageName);
+
+    if (localStageNameError) {
+      return {
+        available: false,
+        message: localStageNameError,
+      };
+    }
+
+    setIsCheckingStageName(true);
+
+    try {
+      const result = await checkArtistStageNameAvailabilityService(normalizedStageName);
+
+      return {
+        available: Boolean(result?.available),
+        message:
+          result?.message ||
+          (result?.available
+            ? ""
+            : "Tên nghệ sĩ đã tồn tại. Vui lòng chọn tên khác."),
+      };
+    } catch (error) {
+      return {
+        available: false,
+        message: getApiErrorFullMessage(
+          error,
+          "Không thể kiểm tra tên nghệ sĩ lúc này. Vui lòng thử lại."
+        ),
+      };
+    } finally {
+      setIsCheckingStageName(false);
+    }
+  };
+
+  const validateIdNumberAvailability = async () => {
+    const localIdNumberError = getFieldErrorMessage("idNumber", formData.idNumber);
+
+    if (localIdNumberError) {
+      return {
+        available: false,
+        message: localIdNumberError,
+      };
+    }
+
+    setIsCheckingIdNumber(true);
+
+    try {
+      const result = await checkArtistIdNumberAvailabilityService(normalizedIdNumber);
+
+      return {
+        available: Boolean(result?.available),
+        message:
+          result?.message ||
+          (result?.available
+            ? ""
+            : "Số CCCD/CMND này đã được dùng trong một hồ sơ đăng ký nghệ sĩ khác."),
+      };
+    } catch (error) {
+      return {
+        available: false,
+        message: getApiErrorFullMessage(
+          error,
+          "Không thể kiểm tra số CCCD/CMND lúc này. Vui lòng thử lại."
+        ),
+      };
+    } finally {
+      setIsCheckingIdNumber(false);
+    }
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -1120,6 +1605,31 @@ const ArtistRegistrationRequestPage = () => {
     }
 
     if (!validateForm()) {
+      const nextErrors = {
+        stageName: getFieldErrorMessage("stageName", formData.stageName),
+        fullName: getFieldErrorMessage("fullName", formData.fullName),
+        idNumber: getFieldErrorMessage("idNumber", formData.idNumber),
+        dateOfBirth: getFieldErrorMessage("dateOfBirth", formData.dateOfBirth),
+        frontImage: getFieldErrorMessage("frontImage", formData.frontImage),
+        backImage: getFieldErrorMessage("backImage", formData.backImage),
+        demoTrackUrls: getFieldErrorMessage("demoTrackUrls", formData.demoTrackUrls),
+        musicLinks: getFieldErrorMessage("musicLinks", formData.musicLinks),
+        acceptedTerms: !readTerms.acceptedTerms
+          ? "Báº¡n cáº§n Ä‘á»c háº¿t Ä‘iá»u khoáº£n trÆ°á»›c khi Ä‘á»“ng Ă½."
+          : !formData.acceptedTerms
+            ? "Báº¡n cáº§n Ä‘á»“ng Ă½ vá»›i Ä‘iá»u khoáº£n nghá»‡ sÄ©."
+            : "",
+        copyrightCommitment: !readTerms.copyrightCommitment
+          ? "Báº¡n cáº§n Ä‘á»c háº¿t cam káº¿t báº£n quyá»n trÆ°á»›c khi xĂ¡c nháº­n."
+          : !formData.copyrightCommitment
+            ? "Báº¡n cáº§n xĂ¡c nháº­n trĂ¡ch nhiá»‡m báº£n quyá»n."
+            : "",
+        truthfulInformationCommitment: !formData.truthfulInformationCommitment
+          ? "Báº¡n cáº§n xĂ¡c nháº­n thĂ´ng tin lĂ  chĂ­nh xĂ¡c."
+          : "",
+      };
+
+      scrollToFirstErrorField(nextErrors);
       return;
     }
 
@@ -1127,6 +1637,36 @@ const ArtistRegistrationRequestPage = () => {
     setSubmitError("");
 
     try {
+      const stageNameAvailability = await validateStageNameAvailability();
+
+      if (!stageNameAvailability.available) {
+        const nextErrors = {
+          stageName: stageNameAvailability.message,
+        };
+
+        setErrors((previous) => ({
+          ...previous,
+          ...nextErrors,
+        }));
+        scrollToFirstErrorField(nextErrors);
+        return;
+      }
+
+      const idNumberAvailability = await validateIdNumberAvailability();
+
+      if (!idNumberAvailability.available) {
+        const nextErrors = {
+          idNumber: idNumberAvailability.message,
+        };
+
+        setErrors((previous) => ({
+          ...previous,
+          ...nextErrors,
+        }));
+        scrollToFirstErrorField(nextErrors);
+        return;
+      }
+
       await createArtistRegistrationRequestService(formData);
       setHasPendingRequest(true);
       setIsSubmitted(true);
@@ -1135,35 +1675,53 @@ const ArtistRegistrationRequestPage = () => {
         getApiErrorFullMessage(error, "Không thể gửi yêu cầu đăng kí nghệ sĩ.")
       );
 
-      const detailsText = getApiErrorDetailsText(error);
-      if (detailsText) {
-        const mappedErrors = {};
-        const knownFields = [
-          "stageName",
-          "fullName",
-          "idNumber",
-          "frontImage",
-          "backImage",
-          "acceptedTerms",
-          "copyrightCommitment",
-          "truthfulInformationCommitment",
-        ];
+      const hasAppliedFieldErrors = applyApiFieldErrors({
+        error,
+        setError: (fieldName, validationError) => {
+          setErrors((previous) => ({
+            ...previous,
+            [fieldName]: validationError?.message || "Giá trị không hợp lệ.",
+          }));
+        },
+        fieldMap: {
+          stageName: "stageName",
+          fullName: "fullName",
+          idNumber: "idNumber",
+          dateOfBirth: "dateOfBirth",
+          frontImage: "frontImage",
+          backImage: "backImage",
+          acceptedTerms: "acceptedTerms",
+          copyrightCommitment: "copyrightCommitment",
+          truthfulInformationCommitment: "truthfulInformationCommitment",
+        },
+        strictFieldMap: true,
+      });
 
-        detailsText
-          .split("\n")
-          .filter(Boolean)
-          .forEach((line) => {
-            const matchedField = knownFields.find((fieldName) =>
-              line.toLowerCase().includes(fieldName.toLowerCase())
-            );
+      if (hasAppliedFieldErrors) {
+        setSubmitError("");
 
-            if (matchedField) {
-              mappedErrors[matchedField] = line;
-            }
-          });
+        const apiErrors = error?.response?.data?.errors;
+        const normalizedErrors = Array.isArray(apiErrors)
+          ? apiErrors
+          : apiErrors?.field && apiErrors?.message
+            ? [apiErrors]
+            : [];
 
-        if (Object.keys(mappedErrors).length > 0) {
-          setErrors((previous) => ({ ...previous, ...mappedErrors }));
+        const mappedFieldErrors = normalizedErrors.reduce((result, detail) => {
+          if (detail?.field) {
+            result[detail.field] = detail.message || "GiĂ¡ trá»‹ khĂ´ng há»£p lá»‡.";
+          }
+
+          return result;
+        }, {});
+
+        scrollToFirstErrorField(mappedFieldErrors);
+      }
+
+      if (!hasAppliedFieldErrors) {
+        const detailsText = getApiErrorDetailsText(error);
+        if (detailsText) {
+          setSubmitError(detailsText);
         }
       }
     } finally {
@@ -1254,21 +1812,28 @@ const ArtistRegistrationRequestPage = () => {
                   icon={Sparkles}
                 >
                   <div className="grid gap-5 lg:grid-cols-2">
-                    <div>
+                    <div
+                      ref={registerFieldContainer("stageName")}
+                      data-error-field="stageName"
+                    >
                       <FieldLabel
                         required
                         countText={`${formData.stageName.length}/${USER_INPUT_LIMITS.stageName} ký tự`}
                       >
-                        Tên nghệ sĩ (Stage name)
+                        Tên nghệ sĩ
                       </FieldLabel>
                       <TextInput
                         name="stageName"
                         maxLength={USER_INPUT_LIMITS.stageName}
                         value={formData.stageName}
                         onChange={handleChange}
+                        onBlur={handleFieldBlur}
                         placeholder="Tên bạn muốn hiển thị trên nền tảng"
                         error={errors.stageName}
                       />
+                      {isCheckingStageName && !errors.stageName ? (
+                        <FieldHint>Đang kiểm tra tên nghệ sĩ...</FieldHint>
+                      ) : null}
                       <FieldError>{errors.stageName}</FieldError>
                     </div>
 
@@ -1306,7 +1871,10 @@ const ArtistRegistrationRequestPage = () => {
                   icon={ShieldCheck}
                 >
                   <div className="grid gap-5 lg:grid-cols-2">
-                    <div>
+                    <div
+                      ref={registerFieldContainer("fullName")}
+                      data-error-field="fullName"
+                    >
                       <FieldLabel
                         required
                         countText={`${formData.fullName.length}/${USER_INPUT_LIMITS.fullName} ký tự`}
@@ -1318,13 +1886,17 @@ const ArtistRegistrationRequestPage = () => {
                         maxLength={USER_INPUT_LIMITS.fullName}
                         value={formData.fullName}
                         onChange={handleChange}
+                        onBlur={handleFieldBlur}
                         placeholder="Theo giấy tờ tùy thân"
                         error={errors.fullName}
                       />
                       <FieldError>{errors.fullName}</FieldError>
                     </div>
 
-                    <div>
+                    <div
+                      ref={registerFieldContainer("idNumber")}
+                      data-error-field="idNumber"
+                    >
                       <FieldLabel
                         required
                         countText={`${formData.idNumber.length}/${USER_INPUT_LIMITS.identityNumber} ký tự`}
@@ -1336,25 +1908,40 @@ const ArtistRegistrationRequestPage = () => {
                         maxLength={USER_INPUT_LIMITS.identityNumber}
                         value={formData.idNumber}
                         onChange={handleChange}
+                        onBlur={handleFieldBlur}
+                        inputMode="numeric"
                         placeholder="Nhập số giấy tờ tùy thân"
                         error={errors.idNumber}
                       />
+                      {isCheckingIdNumber && !errors.idNumber ? (
+                        <FieldHint>Đang kiểm tra số CCCD/CMND...</FieldHint>
+                      ) : null}
                       <FieldError>{errors.idNumber}</FieldError>
                     </div>
 
-                    <div className="lg:col-span-2">
+                    <div
+                      className="lg:col-span-2"
+                      ref={registerFieldContainer("dateOfBirth")}
+                      data-error-field="dateOfBirth"
+                    >
                       <FieldLabel required>Ngày sinh</FieldLabel>
                       <DateInput
                         name="dateOfBirth"
                         type="date"
                         value={formData.dateOfBirth}
                         onChange={handleChange}
+                        onBlur={handleFieldBlur}
+                        max={todayDateValue}
                         error={errors.dateOfBirth}
                       />
                       <FieldError>{errors.dateOfBirth}</FieldError>
                     </div>
 
                     <div className="lg:col-span-2 grid gap-5 sm:grid-cols-2 items-start">
+                      <div
+                        ref={registerFieldContainer("frontImage")}
+                        data-error-field="frontImage"
+                      >
                       <UploadField
                         name="frontImage"
                         title="Ảnh mặt trước giấy tờ"
@@ -1363,7 +1950,12 @@ const ArtistRegistrationRequestPage = () => {
                         error={errors.frontImage}
                         onFileSelect={handleFileSelect}
                       />
+                      </div>
 
+                      <div
+                        ref={registerFieldContainer("backImage")}
+                        data-error-field="backImage"
+                      >
                       <UploadField
                         name="backImage"
                         title="Ảnh mặt sau giấy tờ"
@@ -1372,6 +1964,7 @@ const ArtistRegistrationRequestPage = () => {
                         error={errors.backImage}
                         onFileSelect={handleFileSelect}
                       />
+                      </div>
                     </div>
                   </div>
                 </SectionCard>
@@ -1445,6 +2038,10 @@ const ArtistRegistrationRequestPage = () => {
                   icon={FileCheck2}
                 >
                   <div className="space-y-6">
+                    <div
+                      ref={registerFieldContainer("demoTrackUrls")}
+                      data-error-field="demoTrackUrls"
+                    >
                     <UrlListEditor
                       label="Link demo bài hát"
                       value={formData.demoTrackUrls}
@@ -1459,7 +2056,12 @@ const ArtistRegistrationRequestPage = () => {
                     />
 
                     <FieldError>{errors.demoTrackUrls}</FieldError>
+                    </div>
 
+                    <div
+                      ref={registerFieldContainer("musicLinks")}
+                      data-error-field="musicLinks"
+                    >
                     <UrlListEditor
                       label="Link sản phẩm âm nhạc đã phát hành"
                       value={formData.musicLinks}
@@ -1474,6 +2076,7 @@ const ArtistRegistrationRequestPage = () => {
                     />
 
                     <FieldError>{errors.musicLinks}</FieldError>
+                    </div>
 
                     <div>
                       <FieldLabel

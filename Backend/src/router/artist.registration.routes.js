@@ -62,4 +62,16 @@ router.post(
     artistRegistrationController.requestArtistRegistration
 );
 
+router.get(
+    "/artist-registration-requests/stage-name-availability",
+    authenticate("user"),
+    artistRegistrationController.checkArtistStageNameAvailability
+);
+
+router.get(
+    "/artist-registration-requests/id-number-availability",
+    authenticate("user"),
+    artistRegistrationController.checkArtistIdNumberAvailability
+);
+
 export default router;
