@@ -40,6 +40,7 @@ import adminCopyrightClaimRoutes from "./admin.copyrightClaim.routes.js";
 import artistPodcastRoutes from "./artist.podcast.routes.js";
 import adminPodcastRoutes from "./admin.podcast.routes.js";
 import podcastRoutes from "./podcast.routes.js";
+import advertisementRoutes from "./advertisement.routes.js";
 
 function route(app) {
     app.use("/api/auth", authenticationRoutes);
@@ -62,6 +63,7 @@ function route(app) {
     app.use("/api/artist/podcasts", artistPodcastRoutes);
     app.use("/api/tracks", trackRoutes);
     app.use("/api/podcasts", podcastRoutes);
+    app.use("/api/ads", advertisementRoutes);
     app.use("/api/listen-events", listenEventRoutes);
     app.use("/api/artist/lyrics", lyricsRoutes);
     app.use("/api/admin/transactions", adminTransactionRoutes);

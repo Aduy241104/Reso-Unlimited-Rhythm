@@ -18,6 +18,7 @@
     "migrate:fingerprint-match-versions": "node src/migrations/migrateFingerprintMatchVersions.js",
     "migrate:track-indexes": "node scripts/repairTrackIndexes.js",
     "seed:comprehensive": "node seedComprehensive.js",
+    "seed:advertisements": "node scripts/seedAdvertisements.js",
     "repair:top-track-visibility": "node scripts/repairTopTrackVisibility.js",
     "repair:track-ownership": "node scripts/repairTrackOwnership.js",
     "fingerprint:backfill": "node scripts/backfillAudioFingerprints.js",
