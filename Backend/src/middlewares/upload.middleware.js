@@ -37,7 +37,7 @@ const fileFilter = (req, file, cb) => {
 
   // Accept audio files (for audioFiles)
   if (
-    (file.fieldname === "audioFiles" || file.fieldname === "audio") &&
+    (file.fieldname === "audioFiles" || file.fieldname === "audio" || file.fieldname === "media") &&
     (hasAllowedAudioMimeType || hasAllowedAudioExtension)
   ) {
     cb(null, true);
@@ -58,7 +58,7 @@ const fileFilter = (req, file, cb) => {
   }
   // Accept image files (for avatar and coverImages)
   else if (
-    (file.fieldname === "avatar" || file.fieldname === "coverImages" || file.fieldname === "coverImage") &&
+    (file.fieldname === "avatar" || file.fieldname === "coverImages" || file.fieldname === "coverImage" || file.fieldname === "media") &&
     file.mimetype.startsWith("image/")
   ) {
     cb(null, true);

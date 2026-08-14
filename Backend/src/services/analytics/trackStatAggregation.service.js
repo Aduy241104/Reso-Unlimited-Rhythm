@@ -147,7 +147,10 @@ const invalidateTrackRankingCaches = async (pattern) => {
         return 0;
     }
 
-    let cursor = "0";
+    // node-redis may return the SCAN cursor as either a number or a numeric
+    // string. Keep it numeric so the termination check cannot loop forever
+    // when Redis returns `0` instead of `"0"`.
+    let cursor = 0;
     let deletedKeys = 0;
 
     do {
@@ -156,13 +159,19 @@ const invalidateTrackRankingCaches = async (pattern) => {
             COUNT: 100,
         });
 
-        cursor = result.cursor;
+        const nextCursor = Number(result.cursor);
+
+        if (!Number.isInteger(nextCursor) || nextCursor < 0) {
+            throw new Error(`Redis SCAN returned an invalid cursor: ${result.cursor}`);
+        }
+
+        cursor = nextCursor;
 
         if (result.keys.length > 0) {
             deletedKeys += result.keys.length;
             await redisClient.del(result.keys);
         }
-    } while (cursor !== "0");
+    } while (cursor !== 0);
 
     return deletedKeys;
 };

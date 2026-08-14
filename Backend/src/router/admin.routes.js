@@ -14,10 +14,12 @@ import upload from "../middlewares/upload.middleware.js";
 import adminUserValidation from "../middlewares/Admin/admin.user.validation.js";
 import validate from "../middlewares/validate.middleware.js";
 import adminTrackReviewAppealRoutes from "./admin.trackReviewAppeal.routes.js";
+import adminAdvertisementRoutes from "./admin.advertisement.routes.js";
 
 const router = express.Router();
 
 router.use(requireAdmin);
+router.use("/advertisements", adminAdvertisementRoutes);
 
 router.get("/users", adminUserController.getUsers);
 router.get("/users/:id/moderation-audit", adminUserController.getUserModerationAudit);

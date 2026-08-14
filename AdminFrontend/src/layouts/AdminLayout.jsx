@@ -16,6 +16,7 @@ import {
   UserCheck,
   Users,
   MessageSquareReply,
+  Megaphone,
 } from "lucide-react";
 import AdminSidebar from "../components/layout/AdminSidebar";
 import { useAuth } from "../hooks/useAuth";
@@ -58,6 +59,12 @@ const navigationItems = [
     to: routePaths.podcasts,
     label: "Podcast",
     icon: Mic2,
+    end: false,
+  },
+  {
+    to: routePaths.advertisements,
+    label: "Quảng cáo",
+    icon: Megaphone,
     end: false,
   },
   {

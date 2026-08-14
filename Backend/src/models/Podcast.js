@@ -44,6 +44,16 @@ const PodcastSchema = new Schema(
             index: true,
         },
 
+        // Artist-level moderation is kept separate from a direct Podcast
+        // block so unblocking the artist can restore the previous visibility
+        // without accidentally unblocking a Podcast moderated on its own.
+        blockedByArtistId: { type: Schema.Types.ObjectId, ref: "Artist", default: null, index: true },
+        previousVisibilityBeforeArtistBlock: {
+            type: String,
+            enum: ["public", "hidden", null],
+            default: null,
+        },
+
         isBlocked: { type: Boolean, default: false, index: true },
         blockedReason: { type: String, default: null, trim: true },
         blockedAt: { type: Date, default: null },
