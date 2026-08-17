@@ -16,6 +16,7 @@ const LISTEN_EVENT_SYNC_CRON_SCHEDULE =
 const LISTEN_EVENT_SYNC_BATCH_SIZE = Number(process.env.LISTEN_EVENT_SYNC_BATCH_SIZE) || 100;
 
 let isListenEventSyncCronStarted = false;
+let isListenEventSyncRunning = false;
 
 const toObjectId = (value) => new mongoose.Types.ObjectId(String(value));
 const toOptionalObjectId = (value) => (value ? toObjectId(value) : null);
@@ -144,10 +145,12 @@ export const syncListenEventsFromRedis = async (batchSize = LISTEN_EVENT_SYNC_BA
         return {
             success: false,
             syncedCount: 0,
+            queueLengthBeforeSync: null,
             message: "Redis is not connected. Listen event sync skipped.",
         };
     }
 
+    const queueLengthBeforeSync = await redisClient.lLen(VALID_STREAM_EVENT_QUEUE_KEY);
     const queueEntries = await redisClient.lRange(
         VALID_STREAM_EVENT_QUEUE_KEY,
         0,
@@ -158,6 +161,8 @@ export const syncListenEventsFromRedis = async (batchSize = LISTEN_EVENT_SYNC_BA
         return {
             success: true,
             syncedCount: 0,
+            queueLengthBeforeSync,
+            batchSize,
             message: "No queued listen events found.",
         };
     }
@@ -185,6 +190,8 @@ export const syncListenEventsFromRedis = async (batchSize = LISTEN_EVENT_SYNC_BA
     return {
         success: true,
         syncedCount: documents.length,
+        queueLengthBeforeSync,
+        batchSize,
         updatedTrackCount: trackTotalPlayOperations.length,
         updatedPodcastCount: podcastTotalListenOperations.length,
         message: "Queued listen events synced successfully.",
@@ -201,13 +208,31 @@ export const startListenEventSyncCron = () => {
     cron.schedule(
         LISTEN_EVENT_SYNC_CRON_SCHEDULE,
         async () => {
+            if (isListenEventSyncRunning) {
+                console.warn("[Cron] Listen event sync is already running; skipping this tick.");
+                return;
+            }
+
+            isListenEventSyncRunning = true;
+            const startedAt = Date.now();
+
             try {
                 const result = await syncListenEventsFromRedis();
-                if (result.syncedCount > 0) {
-                    console.log("[Cron] Listen event sync completed:", result);
-                }
+                console.log("[Cron] Listen event sync tick:", {
+                    ...result,
+                    redisConnected: Boolean(redisClient?.isOpen),
+                    durationMs: Date.now() - startedAt,
+                });
             } catch (error) {
-                console.error("[Cron] Listen event sync failed:", error);
+                console.error("[Cron] Listen event sync failed:", {
+                    name: error?.name,
+                    message: error?.message,
+                    code: error?.code,
+                    stack: error?.stack,
+                    durationMs: Date.now() - startedAt,
+                });
+            } finally {
+                isListenEventSyncRunning = false;
             }
         },
         {

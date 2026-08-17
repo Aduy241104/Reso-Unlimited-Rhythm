@@ -1,6 +1,8 @@
 import mongoose from "mongoose";
 import Podcast from "../../models/Podcast.js";
+import Artist from "../../models/Artist.js";
 import { AppError } from "../../utils/AppError.js";
+import { publicArtistMatch } from "../artist/artist.status.helper.js";
 import { publicFilter } from "./podcast.public.service.js";
 
 const LISTEN_WINDOW_MS = 30 * 60 * 1000;
@@ -17,8 +19,12 @@ const pruneRecentKeys = (now) => {
 
 const recordPodcastListen = async ({ podcastId, listenedDuration = 0, userId, sessionId, ip }) => {
     if (!mongoose.isValidObjectId(podcastId)) throw new AppError("Podcast not found.", 404, { code: "PODCAST_NOT_FOUND" });
-    const podcast = await Podcast.findOne({ _id: podcastId, ...publicFilter() }).select("duration stats.totalListen").lean();
+    const podcast = await Podcast.findOne({ _id: podcastId, ...publicFilter() }).select("creator duration stats.totalListen").lean();
     if (!podcast) throw new AppError("Podcast not found.", 404, { code: "PODCAST_NOT_FOUND" });
+    const creatorIsPublic = await Artist.findOne({ _id: podcast.creator, ...publicArtistMatch })
+        .select("_id")
+        .lean();
+    if (!creatorIsPublic) throw new AppError("Podcast not found.", 404, { code: "PODCAST_NOT_FOUND" });
 
     const threshold = Math.min(30, Number(podcast.duration || 0) * 0.25);
     const listened = Number(listenedDuration || 0);

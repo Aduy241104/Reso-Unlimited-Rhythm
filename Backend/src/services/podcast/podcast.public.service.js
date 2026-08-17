@@ -78,7 +78,7 @@ const listPublicPodcasts = async (query = {}) => {
 const getPublicPodcast = async (podcastId) => {
     if (!mongoose.isValidObjectId(podcastId)) throw new AppError("Podcast not found.", 404, { code: "PODCAST_NOT_FOUND" });
     const podcast = await Podcast.findOne({ _id: podcastId, ...publicFilter() })
-        .populate({ path: "creator", select: "name avatar", match: publicArtistMatch })
+        .populate({ path: "creator", match: publicArtistMatch, select: "name avatar" })
         .lean();
     if (!podcast || !podcast.creator) throw new AppError("Podcast not found.", 404, { code: "PODCAST_NOT_FOUND" });
     return normalizePodcast(podcast);

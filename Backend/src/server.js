@@ -74,7 +74,6 @@ const startServer = async () => {
 
         await runReleaseSchedulePublication();
         await runSubscriptionMaintenance();
-        await runStartupAnalyticsCatchup();
 
         startDailyArtistOverviewStatCron();
         startDailyTopArtistCron();
@@ -91,6 +90,18 @@ const startServer = async () => {
         startSubscriptionMaintenanceCron();
         startRevenueAggregationCron();
         startAudioFingerprintCron();
+
+        // Startup analytics repair must not prevent recurring jobs (especially
+        // listen-event sync) from being registered if a catch-up operation is
+        // slow or temporarily blocked by an external dependency.
+        void runStartupAnalyticsCatchup().catch((error) => {
+            console.error("[Startup Catch-up] Failed:", {
+                name: error?.name,
+                message: error?.message,
+                code: error?.code,
+                stack: error?.stack,
+            });
+        });
     } catch (error) {
         console.error("💥 Failed to start server:", error);
         process.exit(1);

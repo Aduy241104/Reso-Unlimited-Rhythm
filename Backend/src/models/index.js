@@ -41,6 +41,8 @@ import TrackModerationReview from "./TrackModerationReview.js";
 import CopyrightFingerprintBlocklist from "./CopyrightFingerprintBlocklist.js";
 import RevenuePeriod from "./RevenuePeriod.js"; 
 import TrackReviewAppeal from "./TrackReviewAppeal.js";
+import Advertisement from "./Advertisement.js";
+import AdEvent from "./AdEvent.js";
 
 export default {
     Album,
@@ -89,4 +91,6 @@ export default {
     CopyrightFingerprintBlocklist,
     RevenuePeriod,
     TrackReviewAppeal,
+    Advertisement,
+    AdEvent,
 };

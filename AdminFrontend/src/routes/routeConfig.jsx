@@ -45,6 +45,9 @@ import CreateSubscriptionPlanPage from "../pages/subscriptions/CreateSubscriptio
 import EditSubscriptionPlanPage from "../pages/subscriptions/EditSubscriptionPlanPage";
 import TransactionDetail from "../pages/transactions/TransactionDetail";
 import TransactionList from "../pages/transactions/TransactionList";
+import AdvertisementManagementPage from "../pages/advertisements/AdvertisementManagementPage";
+import AdvertisementFormPage from "../pages/advertisements/AdvertisementFormPage";
+import AdvertisementDetailPage from "../pages/advertisements/AdvertisementDetailPage";
 import TrackAppealsPage from "../pages/trackAppeals/TrackAppealsPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
@@ -151,6 +154,22 @@ export const appRoutes = [
               {
                 path: "podcasts",
                 element: <PodcastManagementPage />,
+              },
+              {
+                path: "advertisements",
+                element: <AdvertisementManagementPage />,
+              },
+              {
+                path: "advertisements/new",
+                element: <AdvertisementFormPage />,
+              },
+              {
+                path: "advertisements/:id/edit",
+                element: <AdvertisementFormPage />,
+              },
+              {
+                path: "advertisements/:id",
+                element: <AdvertisementDetailPage />,
               },
               {
                 path: "podcasts/:id",
