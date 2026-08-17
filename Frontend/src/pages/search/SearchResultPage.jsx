@@ -27,6 +27,7 @@ import {
 } from "../../services/searchService";
 import { getApiErrorMessage } from "../../utils/apiError";
 import { mapPodcastToContentCard } from "../../utils/podcastContent";
+import AdBanner from "../../components/advertisement/AdBanner";
 
 const EMPTY_RESULTS = {
   songs: [],
@@ -601,6 +602,8 @@ const SearchResultPage = () => {
               ))}
             </div>
           </SearchSection>
+
+          <AdBanner placement="search" />
 
           {results.songs.length > 0 ? (
             <SearchSection

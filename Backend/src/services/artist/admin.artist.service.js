@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Track from "../../models/Track.js";
 import Artist from "../../models/Artist.js";
 import Album from "../../models/Album.js";
+import Podcast from "../../models/Podcast.js";
 import ArtistMonthlyStat from "../../models/ArtistMonthlyStat.js";
 import ArtistStat from "../../models/ArtistStat.js";
 import ArtistRevenueSummary from "../../models/ArtistRevenueSummary.js";
@@ -47,12 +48,28 @@ export const syncArtistContentVisibility = async (artistId, activeStatus, reason
                 },
             }]
         );
+
+        await Podcast.updateMany(
+            {
+                creator: artistId,
+                isDeleted: { $ne: true },
+                blockedByArtistId: { $ne: artistId },
+            },
+            [{
+                $set: {
+                    previousVisibilityBeforeArtistBlock: "$visibility",
+                    visibility: "hidden",
+                    blockedByArtistId: artistId,
+                },
+            }]
+        );
         return;
     }
 
-    const [blockedAlbums, blockedTracks] = await Promise.all([
+    const [blockedAlbums, blockedTracks, blockedPodcasts] = await Promise.all([
         Album.find({ blockedByArtistId: artistId }).select("_id status previousStatusBeforeArtistBlock"),
         Track.find({ blockedByArtistId: artistId }).select("_id activeStatus approvalStatus previousActiveStatusBeforeArtistBlock"),
+        Podcast.find({ blockedByArtistId: artistId }).select("_id visibility previousVisibilityBeforeArtistBlock"),
     ]);
 
     if (blockedAlbums.length > 0) {
@@ -82,6 +99,21 @@ export const syncArtistContentVisibility = async (artistId, activeStatus, reason
                         blockedReason: "",
                         blockedByArtistId: null,
                         previousActiveStatusBeforeArtistBlock: null,
+                    },
+                },
+            },
+        })));
+    }
+
+    if (blockedPodcasts.length > 0) {
+        await Podcast.bulkWrite(blockedPodcasts.map((podcast) => ({
+            updateOne: {
+                filter: { _id: podcast._id, blockedByArtistId: artistId },
+                update: {
+                    $set: {
+                        visibility: podcast.previousVisibilityBeforeArtistBlock || "hidden",
+                        blockedByArtistId: null,
+                        previousVisibilityBeforeArtistBlock: null,
                     },
                 },
             },

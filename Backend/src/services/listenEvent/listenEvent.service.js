@@ -392,7 +392,11 @@ const getTrackListenContext = async (trackId) => {
 const getPodcastListenContext = async (podcastId) => {
     const podcast = await Podcast.findById(podcastId)
         .select("title creator duration audioUrl coverImageUrl approvalStatus visibility isBlocked releaseDate")
-        .populate({ path: "creator", select: "name avatar" })
+        .populate({
+            path: "creator",
+            match: { activeStatus: "active", isDeleted: { $ne: true } },
+            select: "name avatar",
+        })
         .lean();
 
     if (!podcast) {
@@ -402,7 +406,8 @@ const getPodcastListenContext = async (podcastId) => {
     if (
         podcast.approvalStatus !== "approved" ||
         podcast.visibility !== "public" ||
-        podcast.isBlocked
+        podcast.isBlocked ||
+        !podcast.creator
     ) {
         throw new AppError("Podcast is not available for streaming.", 400);
     }

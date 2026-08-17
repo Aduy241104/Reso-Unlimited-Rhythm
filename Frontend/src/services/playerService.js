@@ -318,11 +318,12 @@ export const recordListenService = async ({
     return null;
   }
 
-  try {
-    return await axiosClient.post(`${LISTEN_EVENT_API_PREFIX}/complete`, {
-      trackId,
-      listenedDuration: normalizedListenedDuration,
-      source: normalizeListenSource(source),
+    try {
+      return await axiosClient.post(`${LISTEN_EVENT_API_PREFIX}/complete`, {
+        trackId,
+        contentType: "track",
+        listenedDuration: normalizedListenedDuration,
+        source: normalizeListenSource(source),
       ...(guestId ? { guestId } : {}),
     });
   } catch (error) {

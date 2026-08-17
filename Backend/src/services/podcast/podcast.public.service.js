@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Podcast from "../../models/Podcast.js";
 import Artist from "../../models/Artist.js";
 import { AppError } from "../../utils/AppError.js";
+import { publicArtistMatch } from "../artist/artist.status.helper.js";
 import { normalizePodcast } from "./podcast.service.js";
 
 const publicFilter = () => ({
@@ -19,28 +20,55 @@ const pagination = (query = {}) => {
     return { page, limit };
 };
 
-const buildSearchFilter = async (query = {}) => {
-    const filter = publicFilter();
+const buildPublicPodcastPipeline = (query = {}) => {
+    const pipeline = [
+        { $match: publicFilter() },
+        {
+            $lookup: {
+                from: Artist.collection.name,
+                localField: "creator",
+                foreignField: "_id",
+                as: "creator",
+            },
+        },
+        { $unwind: "$creator" },
+        {
+            $match: {
+                "creator.activeStatus": publicArtistMatch.activeStatus,
+                "creator.isDeleted": publicArtistMatch.isDeleted,
+            },
+        },
+    ];
+
     if (query.q?.trim()) {
         const regex = new RegExp(query.q.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
-        const artists = await Artist.find({ name: regex, isDeleted: { $ne: true } }).select("_id").lean();
-        filter.$or = [{ title: regex }, { creator: { $in: artists.map((artist) => artist._id) } }];
+        pipeline.push({
+            $match: {
+                $or: [{ title: regex }, { "creator.name": regex }],
+            },
+        });
     }
-    return filter;
+
+    return pipeline;
 };
 
 const listPublicPodcasts = async (query = {}) => {
     const { page, limit } = pagination(query);
-    const filter = await buildSearchFilter(query);
-    const [items, total] = await Promise.all([
-        Podcast.find(filter)
-            .populate({ path: "creator", select: "name avatar" })
-            .sort({ createdAt: -1 })
-            .skip((page - 1) * limit)
-            .limit(limit)
-            .lean(),
-        Podcast.countDocuments(filter),
+    const [result] = await Podcast.aggregate([
+        ...buildPublicPodcastPipeline(query),
+        { $sort: { createdAt: -1 } },
+        {
+            $facet: {
+                items: [
+                    { $skip: (page - 1) * limit },
+                    { $limit: limit },
+                ],
+                meta: [{ $count: "total" }],
+            },
+        },
     ]);
+    const items = result?.items || [];
+    const total = result?.meta?.[0]?.total || 0;
     return {
         podcasts: items.map(normalizePodcast),
         pagination: { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) },
@@ -50,9 +78,9 @@ const listPublicPodcasts = async (query = {}) => {
 const getPublicPodcast = async (podcastId) => {
     if (!mongoose.isValidObjectId(podcastId)) throw new AppError("Podcast not found.", 404, { code: "PODCAST_NOT_FOUND" });
     const podcast = await Podcast.findOne({ _id: podcastId, ...publicFilter() })
-        .populate({ path: "creator", select: "name avatar" })
+        .populate({ path: "creator", match: publicArtistMatch, select: "name avatar" })
         .lean();
-    if (!podcast) throw new AppError("Podcast not found.", 404, { code: "PODCAST_NOT_FOUND" });
+    if (!podcast || !podcast.creator) throw new AppError("Podcast not found.", 404, { code: "PODCAST_NOT_FOUND" });
     return normalizePodcast(podcast);
 };
 

@@ -20,6 +20,7 @@ import {
   mapRecommendationMixesToContentCards,
 } from "../../utils/recommendation";
 import { filterPlayableTracks } from "../../utils/trackStatus";
+import AdBanner from "../../components/advertisement/AdBanner";
 
 const SHOW_RECOMMENDATION_MIXES = false;
 
@@ -183,6 +184,8 @@ const HomePage = () => {
         actionLabel="Xem thêm"
         actionHref={ routePaths.monthlyTopTracks }
       />
+
+      <AdBanner placement="home" />
 
       <TrackChartSection
         label="Nghệ sĩ nổi bật"

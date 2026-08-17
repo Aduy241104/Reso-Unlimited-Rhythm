@@ -108,7 +108,7 @@ const TrackInformationModal = ({ isOpen, onClose, track, image, artistHref }) =>
 
   const title = getTrackDisplayTitle(track, "Bài hát chưa có tên");
   const artistName = track?.artist?.name || "Nghệ sĩ chưa xác định";
-  const albumTitle = track?.album?.title || "Không thuộc album";
+  const albumTitle = track?.album?.title || "Đĩa đơn";
   const copyright = track?.copyright || {};
   const genres = getGenres(track);
   const trackTypes = getTrackTypes(copyright);

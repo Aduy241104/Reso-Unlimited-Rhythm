@@ -38,7 +38,9 @@ import {
   getTrackApprovalStatusMeta,
   getTrackDisplayDuration,
   getTrackGenreLabel,
-  resolveTrackArtwork,
+  getTrackVisibilityActionErrorMessage,
+  resolveTrackAvatarArtwork,
+  TRACK_SCHEDULED_VISIBILITY_ERROR_MESSAGE,
 } from "../../utils/artistTrackPresentation";
 import ArtistReleaseSchedulePage from "./ArtistReleaseSchedulePage";
 import { getApiErrorFullMessage } from "../../utils/apiError";
@@ -217,7 +219,7 @@ const PreviewSidebar = ({
     );
   }
 
-  const artwork = resolveTrackArtwork(track);
+  const artwork = resolveTrackAvatarArtwork(track);
   const submitIssues = getSubmitReadinessIssues(track);
 
   return (
@@ -305,7 +307,7 @@ const PreviewSidebar = ({
             }
             title={
               track?.releaseStatus === "scheduled"
-                ? "Hãy hủy lịch phát hành trước khi thay đổi trạng thái hiển thị."
+                ? TRACK_SCHEDULED_VISIBILITY_ERROR_MESSAGE
                 : undefined
             }
             className="inline-flex items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
@@ -542,9 +544,7 @@ export const MyMusicPage = () => {
     }
 
     if (track.releaseStatus === "scheduled") {
-      showArtistError(
-        "Bài hát đang có lịch phát hành. Hãy hủy lịch trước khi thay đổi trạng thái hiển thị."
-      );
+      showArtistError(TRACK_SCHEDULED_VISIBILITY_ERROR_MESSAGE);
       return;
     }
 
@@ -559,8 +559,13 @@ export const MyMusicPage = () => {
           )
         );
         showArtistSuccess("Đã hiển thị lại bài hát thành công.");
-      } catch {
-        showArtistError("Không thể hiển thị lại bài hát này vào lúc này.");
+      } catch (error) {
+        showArtistError(
+          getTrackVisibilityActionErrorMessage(
+            error,
+            "Không thể hiển thị lại bài hát này vào lúc này."
+          )
+        );
       } finally {
         setIsActionLoading(false);
       }
@@ -576,8 +581,13 @@ export const MyMusicPage = () => {
         currentTracks.map((item) => (item._id === updatedTrack?._id ? updatedTrack : item))
       );
       showArtistSuccess("Đã ẩn bài hát thành công.");
-    } catch {
-      showArtistError("Không thể ẩn bài hát này vào lúc này.");
+    } catch (error) {
+      showArtistError(
+        getTrackVisibilityActionErrorMessage(
+          error,
+          "Không thể ẩn bài hát này vào lúc này."
+        )
+      );
     } finally {
       setIsActionLoading(false);
     }
@@ -882,7 +892,7 @@ export const MyMusicPage = () => {
                           <td className="px-5 py-4">
                             <div className="flex items-center gap-3">
                               <img
-                                src={resolveTrackArtwork(track)}
+                                src={resolveTrackAvatarArtwork(track)}
                                 alt={track?.title || "Bài hát"}
                                 className="h-12 w-12 rounded-2xl object-cover"
                               />
