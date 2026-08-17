@@ -211,7 +211,7 @@ const TrackDetailPage = () => {
     [track]
   );
   const artistName = track?.artist?.name || "Ngh\u1ec7 s\u0129 kh\u00f4ng x\u00e1c \u0111\u1ecbnh";
-  const albumTitle = track?.album?.title || "Album kh\u00f4ng x\u00e1c \u0111\u1ecbnh";
+  const albumTitle = track?.album?.title || "\u0110\u0129a \u0111\u01a1n";
   const releaseYear = formatReleaseYear(track?.releaseDate);
   const duration = formatTrackDuration(track?.duration);
   const listensLabel = formatListenCount(track?.stats?.totalPlay);

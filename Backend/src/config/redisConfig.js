@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-dotenv.config(); 
+dotenv.config({ quiet: true }); 
 import { createClient } from "redis";
 
 const redisClient = createClient({

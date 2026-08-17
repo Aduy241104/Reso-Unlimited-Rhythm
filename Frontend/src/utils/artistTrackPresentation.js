@@ -1,4 +1,65 @@
 import { createPlaceholderImage, formatTrackDuration } from "./albumDetail";
+import { getApiErrorFullMessage } from "./apiError";
+
+export const TRACK_SCHEDULED_VISIBILITY_ERROR_MESSAGE =
+  "Không thể thay đổi trạng thái hiển thị vì bài hát đang có lịch phát hành. Hãy hủy lịch phát hành trước, sau đó thử lại.";
+
+const TRACK_SCHEDULED_VISIBILITY_ERROR_CODES = new Set([
+  "RELEASE_SCHEDULE_CANCELLATION_REQUIRED",
+]);
+
+const getErrorPayload = (error) => error?.response?.data || error || {};
+
+const getErrorDetails = (error) => {
+  const details = getErrorPayload(error)?.errors;
+
+  if (Array.isArray(details)) {
+    return details;
+  }
+
+  if (details && typeof details === "object") {
+    return [details];
+  }
+
+  return [];
+};
+
+const isReleaseScheduleVisibilityError = (error) => {
+  const payload = getErrorPayload(error);
+  const details = getErrorDetails(error);
+  const errorCode = payload?.code || payload?.errorCode;
+
+  if (TRACK_SCHEDULED_VISIBILITY_ERROR_CODES.has(errorCode)) {
+    return true;
+  }
+
+  if (
+    details.some((detail) =>
+      TRACK_SCHEDULED_VISIBILITY_ERROR_CODES.has(detail?.code || detail?.errorCode)
+    )
+  ) {
+    return true;
+  }
+
+  const messageText = [
+    payload?.message,
+    error?.message,
+    ...details.map((detail) => detail?.message),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return (
+    messageText.includes("lịch phát hành") &&
+    (messageText.includes("hiển thị") || messageText.includes("ẩn"))
+  );
+};
+
+export const getTrackVisibilityActionErrorMessage = (error, fallbackMessage) =>
+  isReleaseScheduleVisibilityError(error)
+    ? TRACK_SCHEDULED_VISIBILITY_ERROR_MESSAGE
+    : getApiErrorFullMessage(error, fallbackMessage);
 
 export const ACTIVE_STATUS_META = {
   active: {
@@ -114,10 +175,27 @@ export const formatTrackReleaseLabel = (value) => {
   return value;
 };
 
+const getFirstImageUrl = (value) => {
+  if (Array.isArray(value)) {
+    return value.find(Boolean) || "";
+  }
+
+  return value || "";
+};
+
 export const resolveTrackArtwork = (track, fallbackLabel = "Bài hát") =>
-  track?.coverImage?.[0] ||
-  track?.avatar ||
-  track?.album?.avatar ||
+  getFirstImageUrl(track?.coverImage) ||
+  getFirstImageUrl(track?.avatar) ||
+  getFirstImageUrl(track?.album?.avatar) ||
+  createPlaceholderImage(
+    track?.title || fallbackLabel,
+    "#8b5cf6",
+    "#221b4d"
+  );
+
+export const resolveTrackAvatarArtwork = (track, fallbackLabel = "Bài hát") =>
+  getFirstImageUrl(track?.avatar) ||
+  getFirstImageUrl(track?.album?.avatar) ||
   createPlaceholderImage(
     track?.title || fallbackLabel,
     "#8b5cf6",
