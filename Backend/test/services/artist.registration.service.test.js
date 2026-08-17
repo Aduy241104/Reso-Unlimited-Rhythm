@@ -3,10 +3,12 @@ import { jest } from "@jest/globals";
 
 const mockArtistModel = {
     findOne: jest.fn(),
+    find: jest.fn(),
 };
 
 const mockArtistRequestModel = {
     findOne: jest.fn(),
+    find: jest.fn(),
     create: jest.fn(),
 };
 
@@ -25,6 +27,9 @@ const createValidPayload = (overrides = {}) => ({
     fullName: "Nguyen Van A",
     idNumber: "123456789",
     dateOfBirth: "2000-08-09",
+    socialLinks: {
+        website: "https://example.com/artist-profile",
+    },
     demoTrackUrls: ["https://example.com/demo-track"],
     musicLinks: ["https://example.com/released-track"],
     acceptedTerms: true,
@@ -65,6 +70,8 @@ describe("artistRegistrationService validation", () => {
         mockUploadImageBuffer.mockResolvedValue({
             secure_url: "https://cdn.example.com/image.jpg",
         });
+        mockArtistModel.find.mockReturnValue(createLeanQuery([]));
+        mockArtistRequestModel.find.mockReturnValue(createLeanQuery([]));
         mockArtistRequestModel.create.mockImplementation(async (payload) => ({
             toObject: () => ({
                 _id: new mongoose.Types.ObjectId().toString(),
@@ -206,6 +213,27 @@ describe("artistRegistrationService validation", () => {
             details: expect.arrayContaining([
                 expect.objectContaining({ field: "demoTrackUrls" }),
                 expect.objectContaining({ field: "musicLinks" }),
+            ]),
+        });
+
+        expect(mockArtistRequestModel.create).not.toHaveBeenCalled();
+    });
+
+    test("rejects when no social or website link is provided", async () => {
+        const { artistRegistrationService } = await loadArtistRegistrationService();
+
+        await expect(
+            artistRegistrationService.createArtistRegistrationRequestByUserId(
+                validUserId,
+                createValidPayload({
+                    socialLinks: {},
+                }),
+                createValidFiles()
+            )
+        ).rejects.toMatchObject({
+            statusCode: 400,
+            details: expect.arrayContaining([
+                expect.objectContaining({ field: "socialLinks" }),
             ]),
         });
 

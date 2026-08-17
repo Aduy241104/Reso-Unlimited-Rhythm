@@ -121,6 +121,8 @@ const normalizeSelectedImage = (asset, fallbackName) => {
   };
 };
 
+const sanitizeIdNumberInput = (value) => String(value ?? '').replace(/\D/g, '');
+
 const getStatusColor = (status) => {
   if (status === 'approved') {
     return '#1ed760';
@@ -304,7 +306,9 @@ export default function ArtistRegistrationRequestMobileScreen() {
   }, []);
 
   const handleDraftChange = useCallback((field, value) => {
-    setDraft((prev) => ({ ...prev, [field]: value }));
+    const nextValue = field === 'idNumber' ? sanitizeIdNumberInput(value) : value;
+
+    setDraft((prev) => ({ ...prev, [field]: nextValue }));
     clearFieldError(field);
     setSubmitError('');
     setSubmitSuccess('');
@@ -318,9 +322,10 @@ export default function ArtistRegistrationRequestMobileScreen() {
         [field]: value,
       },
     }));
+    clearFieldError('socialLinks');
     setSubmitError('');
     setSubmitSuccess('');
-  }, []);
+  }, [clearFieldError]);
 
   const toggleGenre = useCallback((genre) => {
     setDraft((prev) => {
@@ -669,6 +674,7 @@ export default function ArtistRegistrationRequestMobileScreen() {
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="number-pad"
+                maxLength={20}
                 error={fieldErrors.idNumber}
               />
 
@@ -753,6 +759,9 @@ export default function ArtistRegistrationRequestMobileScreen() {
                     autoCorrect={false}
                   />
                 ))}
+                {fieldErrors.socialLinks ? (
+                  <Text style={styles.fieldErrorText}>{fieldErrors.socialLinks}</Text>
+                ) : null}
               </View>
 
               <AppInput

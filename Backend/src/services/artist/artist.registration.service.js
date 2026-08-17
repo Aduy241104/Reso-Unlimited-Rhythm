@@ -25,6 +25,20 @@ const normalizeStringArray = (value) => {
     return normalizedSingleValue ? [normalizedSingleValue] : [];
 };
 
+const normalizeSocialLinks = (value = {}) => ({
+    spotify: normalizeString(value.spotify),
+    youtube: normalizeString(value.youtube),
+    tiktok: normalizeString(value.tiktok),
+    facebook: normalizeString(value.facebook),
+    instagram: normalizeString(value.instagram),
+    soundcloud: normalizeString(value.soundcloud),
+    website: normalizeString(value.website),
+    other: normalizeString(value.other),
+});
+
+const hasAtLeastOneSocialLink = (socialLinks = {}) =>
+    Object.values(socialLinks).some((value) => Boolean(normalizeString(value)));
+
 const buildDefaultChecklist = () => ({
     profileComplete: false,
     identityVerified: false,
@@ -150,6 +164,7 @@ const validateRequiredFields = (payload = {}, files = {}) => {
     const idNumber = normalizeString(payload.idNumber);
     const dateOfBirth = normalizeString(payload.dateOfBirth);
     const parsedDateOfBirth = parseDateOnly(dateOfBirth);
+    const socialLinks = normalizeSocialLinks(payload.socialLinks);
     const demoTrackUrls = normalizeStringArray(payload.demoTrackUrls);
     const musicLinks = normalizeStringArray(payload.musicLinks);
     const acceptedTerms =
@@ -244,6 +259,14 @@ const validateRequiredFields = (payload = {}, files = {}) => {
         });
     }
 
+    if (!hasAtLeastOneSocialLink(socialLinks)) {
+        fieldErrors.push({
+            field: "socialLinks",
+            message:
+                "Vui lĂ²ng nháº­p Ă­t nháº¥t 1 liĂªn káº¿t Website, LiĂªn káº¿t khĂ¡c, TikTok, Instagram, SoundCloud, Facebook, YouTube hoáº·c Spotify.",
+        });
+    }
+
     if (demoTrackUrls.length === 0 && musicLinks.length === 0) {
         const portfolioLinkRequiredMessage =
             "Vui lòng thêm ít nhất 1 link demo bài hát hoặc 1 link sản phẩm âm nhạc đã phát hành.";
@@ -289,6 +312,7 @@ const validateRequiredFields = (payload = {}, files = {}) => {
         idNumber,
         dateOfBirth,
         parsedDateOfBirth,
+        socialLinks,
         demoTrackUrls,
         musicLinks,
         acceptedTerms,
@@ -480,16 +504,7 @@ const createArtistRegistrationRequestByUserId = async (userId, payload = {}, fil
         bio: normalizeString(payload.bio),
         avatar: avatarUrl || normalizeString(payload.avatar),
         genres: normalizeStringArray(payload.genres),
-        socialLinks: {
-            spotify: normalizeString(payload.socialLinks?.spotify),
-            youtube: normalizeString(payload.socialLinks?.youtube),
-            tiktok: normalizeString(payload.socialLinks?.tiktok),
-            facebook: normalizeString(payload.socialLinks?.facebook),
-            instagram: normalizeString(payload.socialLinks?.instagram),
-            soundcloud: normalizeString(payload.socialLinks?.soundcloud),
-            website: normalizeString(payload.socialLinks?.website),
-            other: normalizeString(payload.socialLinks?.other),
-        },
+        socialLinks: validated.socialLinks,
         identityInfo: {
             idNumber: validated.idNumber,
             fullName: validated.fullName,

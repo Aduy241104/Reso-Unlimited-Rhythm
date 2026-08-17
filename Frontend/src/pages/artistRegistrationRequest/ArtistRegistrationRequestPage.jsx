@@ -93,6 +93,9 @@ const MAX_PORTFOLIO_LINKS = 4;
 const MIN_ARTIST_AGE = 16;
 const ID_NUMBER_REGEX = /^[0-9]{9,12}$/;
 const STAGE_NAME_CHECK_DEBOUNCE_MS = 500;
+const SOCIAL_LINK_KEYS = [...SOCIAL_PLATFORM_FIELDS.map(({ key }) => key), "other"];
+const SOCIAL_LINK_REQUIRED_MESSAGE =
+  "Vui lòng nhập ít nhất 1 liên kết Website, Liên kết khác, TikTok, Instagram, SoundCloud, Facebook, YouTube hoặc Spotify.";
 const ERROR_FIELD_ORDER = [
   "stageName",
   "fullName",
@@ -100,6 +103,7 @@ const ERROR_FIELD_ORDER = [
   "dateOfBirth",
   "frontImage",
   "backImage",
+  "socialLinks",
   "demoTrackUrls",
   "musicLinks",
   "acceptedTerms",
@@ -137,6 +141,14 @@ const createInitialFormState = () => ({
 
 const normalizeText = (value) =>
   typeof value === "string" ? value.trim() : "";
+
+const hasAtLeastOneSocialLink = (socialLinks = {}) =>
+  SOCIAL_LINK_KEYS.some((key) => Boolean(normalizeText(socialLinks?.[key])));
+
+const sanitizeIdNumberInput = (value) =>
+  String(value ?? "")
+    .replace(/\D/g, "")
+    .slice(0, USER_INPUT_LIMITS.identityNumber);
 
 const parseDateInputValue = (value) => {
   const normalized = normalizeText(value);
@@ -996,6 +1008,12 @@ const ArtistRegistrationRequestPage = () => {
       return getPortfolioLinkErrorMessage(formData.demoTrackUrls, fieldValue);
     }
 
+    if (fieldName === "socialLinks") {
+      return hasAtLeastOneSocialLink(fieldValue)
+        ? ""
+        : SOCIAL_LINK_REQUIRED_MESSAGE;
+    }
+
     switch (fieldName) {
       case "stageName": {
         const normalized = normalizeText(fieldValue);
@@ -1306,10 +1324,12 @@ const ArtistRegistrationRequestPage = () => {
       return;
     }
 
-    setFormData((previous) => ({ ...previous, [name]: value }));
+    const nextValue = name === "idNumber" ? sanitizeIdNumberInput(value) : value;
+
+    setFormData((previous) => ({ ...previous, [name]: nextValue }));
     setErrors((previous) => ({
       ...previous,
-      [name]: getFieldErrorMessage(name, value) || undefined,
+      [name]: getFieldErrorMessage(name, nextValue) || undefined,
     }));
   };
 
@@ -1342,12 +1362,18 @@ const ArtistRegistrationRequestPage = () => {
   const handleSocialLinkChange = (event) => {
     const { name, value } = event.target;
 
+    const nextSocialLinks = {
+      ...formData.socialLinks,
+      [name]: value,
+    };
+
     setFormData((previous) => ({
       ...previous,
-      socialLinks: {
-        ...previous.socialLinks,
-        [name]: value,
-      },
+      socialLinks: nextSocialLinks,
+    }));
+    setErrors((previous) => ({
+      ...previous,
+      socialLinks: getFieldErrorMessage("socialLinks", nextSocialLinks) || undefined,
     }));
   };
 
@@ -1457,6 +1483,7 @@ const ArtistRegistrationRequestPage = () => {
       "dateOfBirth",
       "frontImage",
       "backImage",
+      "socialLinks",
       "demoTrackUrls",
       "musicLinks",
     ].forEach((fieldName) => {
@@ -1612,6 +1639,7 @@ const ArtistRegistrationRequestPage = () => {
         dateOfBirth: getFieldErrorMessage("dateOfBirth", formData.dateOfBirth),
         frontImage: getFieldErrorMessage("frontImage", formData.frontImage),
         backImage: getFieldErrorMessage("backImage", formData.backImage),
+        socialLinks: getFieldErrorMessage("socialLinks", formData.socialLinks),
         demoTrackUrls: getFieldErrorMessage("demoTrackUrls", formData.demoTrackUrls),
         musicLinks: getFieldErrorMessage("musicLinks", formData.musicLinks),
         acceptedTerms: !readTerms.acceptedTerms
@@ -1690,6 +1718,7 @@ const ArtistRegistrationRequestPage = () => {
           dateOfBirth: "dateOfBirth",
           frontImage: "frontImage",
           backImage: "backImage",
+          socialLinks: "socialLinks",
           acceptedTerms: "acceptedTerms",
           copyrightCommitment: "copyrightCommitment",
           truthfulInformationCommitment: "truthfulInformationCommitment",
@@ -1862,7 +1891,7 @@ const ArtistRegistrationRequestPage = () => {
                         hint="Không bắt buộc, nhưng nên có để hồ sơ nhìn chuyên nghiệp và đầy đủ hơn."
                       />
                     </div>
-                  </div>
+                    </div>
                 </SectionCard>
 
                 <SectionCard
@@ -2004,7 +2033,12 @@ const ArtistRegistrationRequestPage = () => {
                     </div>
                   </div>
 
-                  <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                  <div
+                    ref={registerFieldContainer("socialLinks")}
+                    data-error-field="socialLinks"
+                    className="mt-6"
+                  >
+                    <div className="grid gap-4 sm:grid-cols-2">
                     {SOCIAL_PLATFORM_FIELDS.map((field) => (
                       <div key={field.key}>
                         <FieldLabel>{field.label}</FieldLabel>
@@ -2030,7 +2064,9 @@ const ArtistRegistrationRequestPage = () => {
                       />
                     </div>
                   </div>
-                </SectionCard>
+                  <FieldError>{errors.socialLinks}</FieldError>
+                </div>
+              </SectionCard>
 
                 <SectionCard
                   title="Portfolio và bằng chứng hoạt động"
