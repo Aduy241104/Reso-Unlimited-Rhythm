@@ -380,8 +380,13 @@ const ArtistTrackDetailPage = () => {
     setIsActionLoading(true);
 
     try {
-      await trackService.deleteArtistTrack(track._id);
-      showArtistSuccess("Đã xóa bài hát thành công.");
+      const result = await trackService.deleteArtistTrack(track._id);
+      const hasCleanupWarnings = (result?.data?.cleanupWarnings || []).length > 0;
+      showArtistSuccess(
+        hasCleanupWarnings
+          ? "Đã xóa bài hát. Một số dữ liệu liên quan chưa dọn dẹp xong."
+          : "Đã xóa bài hát thành công."
+      );
       navigate(routePaths.artistMusic, { replace: true });
     } catch {
       showArtistError("Không thể xóa bài hát này vào lúc này.");

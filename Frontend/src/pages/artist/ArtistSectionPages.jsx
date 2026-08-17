@@ -609,9 +609,14 @@ export const MyMusicPage = () => {
     setIsActionLoading(true);
 
     try {
-      await trackService.deleteArtistTrack(track._id);
+      const result = await trackService.deleteArtistTrack(track._id);
       setTracks((currentTracks) => currentTracks.filter((item) => item._id !== track._id));
-      showArtistSuccess("Đã xóa bài hát thành công.");
+      const hasCleanupWarnings = (result?.data?.cleanupWarnings || []).length > 0;
+      showArtistSuccess(
+        hasCleanupWarnings
+          ? "Đã xóa bài hát. Một số dữ liệu liên quan chưa dọn dẹp xong."
+          : "Đã xóa bài hát thành công."
+      );
     } catch {
       showArtistError("Không thể xóa bài hát này vào lúc này.");
     } finally {

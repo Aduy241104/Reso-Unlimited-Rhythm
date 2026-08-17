@@ -1285,53 +1285,109 @@ const deleteArtistTrack = async (userId, trackId) => {
 
     const alreadyDeleted = track.isDeleted === true;
     if (!alreadyDeleted) {
-        await Track.updateOne(
-            { _id: track._id, artist_artistId: artist._id, isDeleted: { $ne: true } },
-            {
-                $set: {
-                    isDeleted: true,
-                    deletedAt: new Date(),
-                    deletedBy: artist.userId,
-                    deleteReason: "Deleted by artist",
-                    activeStatus: "hidden",
+        try {
+            await Track.updateOne(
+                { _id: track._id, artist_artistId: artist._id, isDeleted: { $ne: true } },
+                {
+                    $set: {
+                        isDeleted: true,
+                        deletedAt: new Date(),
+                        deletedBy: artist.userId,
+                        deleteReason: "Deleted by artist",
+                        activeStatus: "hidden",
+                    },
                 },
-            }
-        );
+            );
+        } catch (error) {
+            console.error("[deleteArtistTrack] soft-delete: Không thể đánh dấu track đã xóa.", error);
+            throw new AppError(
+                "Không thể xóa track lúc này, vui lòng thử lại.",
+                StatusCodes.INTERNAL_SERVER_ERROR
+            );
+        }
     }
 
-    // Mark the Track deleted before cleaning fingerprint data. A worker that
-    // races this request will then stop instead of recreating an orphan record.
-    const fingerprintLifecycle = await cleanupTrackFingerprintLifecycle(
-        { ...track.toObject(), isDeleted: true, deletedAt: new Date() },
-        { actorUserId: artist.userId }
-    );
+    // Mark the Track deleted before cleaning related data. Once this succeeds,
+    // cleanup failures must not make the API report a false delete failure.
+    const cleanupWarnings = [];
+    const reportCleanupFailure = (step, message, error) => {
+        cleanupWarnings.push({ step, message });
+        console.error(`[deleteArtistTrack] ${step}: ${message}`, error);
+    };
+
+    let fingerprintLifecycle = null;
+    try {
+        fingerprintLifecycle = await cleanupTrackFingerprintLifecycle(
+            { ...track.toObject(), isDeleted: true, deletedAt: new Date() },
+            { actorUserId: artist.userId }
+        );
+    } catch (error) {
+        reportCleanupFailure(
+            "fingerprint",
+            "Track đã được xóa nhưng dữ liệu fingerprint chưa dọn dẹp xong.",
+            error
+        );
+    }
 
     if (track.album_albumId) {
-        await Album.updateOne(
-            { _id: track.album_albumId, "trackList.trackId": track._id },
-            { $pull: { trackList: { trackId: track._id } } }
+        try {
+            await Album.updateOne(
+                { _id: track.album_albumId, "trackList.trackId": track._id },
+                { $pull: { trackList: { trackId: track._id } } }
+            );
+        } catch (error) {
+            reportCleanupFailure(
+                "album",
+                "Track đã được xóa nhưng chưa thể cập nhật album.",
+                error
+            );
+        }
+    }
+
+    try {
+        await ReleaseSchedule.updateMany(
+            { type: "track", targetId: track._id, status: "scheduled" },
+            { $set: { status: "cancelled" } }
+        );
+    } catch (error) {
+        reportCleanupFailure(
+            "releaseSchedule",
+            "Track đã được xóa nhưng chưa thể hủy lịch phát hành.",
+            error
         );
     }
 
-    await ReleaseSchedule.updateMany(
-        { type: "track", targetId: track._id, status: "scheduled" },
-        { $set: { status: "cancelled" } }
-    );
-
-    // Keep the source/variants for copyright or duplicate enforcement cases
-    // so an admin can still investigate the retained evidence. Operational
-    // drafts and ordinary historical deletes are safe to clean from storage.
-    const storageUrlsToDelete = fingerprintLifecycle.mode === "retain_enforcement"
+    // Only delete assets that are no longer shared with another track.
+    const storageUrlsToDelete = fingerprintLifecycle?.mode === "retain_enforcement"
         ? assetUrlsToDelete.filter((url) => !trackAssets.audioUrls.includes(url))
         : assetUrlsToDelete;
     if (storageUrlsToDelete.length > 0) {
-        await deleteCloudinaryAssetsByUrls(await getUnsharedTrackAssetUrls(track._id, storageUrlsToDelete));
+        try {
+            const unsharedAssetUrls = await getUnsharedTrackAssetUrls(track._id, storageUrlsToDelete);
+            const deletionResults = await deleteCloudinaryAssetsByUrls(unsharedAssetUrls);
+            const failedDeletions = deletionResults.filter((result) => result.status === "rejected");
+
+            if (failedDeletions.length > 0) {
+                reportCleanupFailure(
+                    "cloudinary",
+                    `Track đã được xóa nhưng ${failedDeletions.length} file trên Cloudinary chưa dọn dẹp xong.`,
+                    failedDeletions[0].reason
+                );
+            }
+        } catch (error) {
+            reportCleanupFailure(
+                "cloudinary",
+                "Track đã được xóa nhưng file trên Cloudinary chưa dọn dẹp xong.",
+                error
+            );
+        }
     }
 
     return {
         deletedId: trackId,
         alreadyDeleted,
         fingerprintLifecycle,
+        cleanupWarnings,
     };
 };
 
