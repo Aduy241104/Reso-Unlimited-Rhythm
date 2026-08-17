@@ -38,6 +38,7 @@ const EMPTY_FINGERPRINT_COMPARISON = Object.freeze({
     historicalExactFileMatchCount: 0,
     highestActiveCandidateSimilarity: 0,
     highestActiveCandidateClassification: "none",
+    highestActiveCandidate: null,
 });
 
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -46,6 +47,22 @@ const toId = (value) => {
     if (!value) return null;
     return value.toString();
 };
+
+const formatFingerprintCandidateSummary = (track, comparison = null) => ({
+    id: toId(track?._id),
+    title: track?.title || "",
+    versionTitle: track?.versionTitle || "",
+    artist: track?.artist_artistId
+        ? {
+            id: toId(track.artist_artistId?._id || track.artist_artistId),
+            name:
+                typeof track.artist_artistId === "object"
+                    ? track.artist_artistId.name || ""
+                    : "",
+        }
+        : null,
+    matchStrategy: comparison?.matchStrategy || "chromaprint",
+});
 
 const formatGenreReferences = (genres = []) =>
     genres.map((genre) => ({
@@ -268,11 +285,15 @@ const buildFingerprintComparisonSummary = async (trackId, fingerprint) => {
     const activeTracks = await Track.find({
         _id: { $in: candidates.map((candidate) => candidate.trackId) },
         isDeleted: { $ne: true },
-    }).select("_id").lean();
-    const activeTrackIds = new Set(activeTracks.map((candidate) => String(candidate._id)));
+    })
+        .select("_id title versionTitle artist_artistId")
+        .populate({ path: "artist_artistId", select: "name" })
+        .lean();
+    const activeTrackMap = new Map(activeTracks.map((candidate) => [String(candidate._id), candidate]));
 
     for (const candidate of candidates) {
-        const isActive = activeTrackIds.has(String(candidate.trackId));
+        const activeTrack = activeTrackMap.get(String(candidate.trackId));
+        const isActive = Boolean(activeTrack);
         const isExactFile = Boolean(
             fingerprint.sourceAudioHash &&
             candidate.sourceAudioHash === fingerprint.sourceAudioHash
@@ -281,8 +302,11 @@ const buildFingerprintComparisonSummary = async (trackId, fingerprint) => {
             summary.comparedCandidateCount += 1;
             if (isExactFile) {
                 summary.activeExactFileMatchCount += 1;
-                summary.highestActiveCandidateSimilarity = 1;
-                summary.highestActiveCandidateClassification = "high";
+                if (summary.highestActiveCandidateSimilarity < 1) {
+                    summary.highestActiveCandidateSimilarity = 1;
+                    summary.highestActiveCandidateClassification = "high";
+                    summary.highestActiveCandidate = formatFingerprintCandidateSummary(activeTrack);
+                }
                 continue;
             }
             const comparison = compareFingerprints(
@@ -296,6 +320,7 @@ const buildFingerprintComparisonSummary = async (trackId, fingerprint) => {
             ) {
                 summary.highestActiveCandidateSimilarity = Number(comparison.similarityScore || 0);
                 summary.highestActiveCandidateClassification = comparison.classification || "none";
+                summary.highestActiveCandidate = formatFingerprintCandidateSummary(activeTrack, comparison);
             }
         } else {
             summary.excludedCandidateCount += 1;

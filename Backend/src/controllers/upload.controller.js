@@ -4,10 +4,45 @@ import { AppError } from "../utils/AppError.js";
 import { StatusCodes } from "http-status-codes";
 import audioTranscodeService from "../services/audioTranscode.service.js";
 import { hashAudioBuffer } from "../services/fingerprint/audioFingerprint.service.js";
+import Artist from "../models/Artist.js";
+import {
+  assertTrackTitleVersionAvailable,
+  normalizeTrackVersionTitle,
+} from "../services/Track/track.duplicate.validation.js";
+import {
+  resolveArtistIdForCreate,
+  validateDraftTitle,
+} from "../services/Track/track.draft.validation.js";
+
+const assertUploadTrackTitleVersionAvailable = async (req) => {
+  const rawTitle = req.body?.title;
+
+  if (rawTitle === undefined || rawTitle === null || String(rawTitle).trim() === "") {
+    return;
+  }
+
+  const artist = await Artist.findOne({ userId: req.user.id });
+
+  if (!artist) {
+    throw new AppError("Không tìm thấy hồ sơ nghệ sĩ.", StatusCodes.NOT_FOUND);
+  }
+
+  const title = validateDraftTitle(rawTitle);
+  const artistId = resolveArtistIdForCreate(req.body || {}, artist);
+  const versionTitle = normalizeTrackVersionTitle(req.body?.versionTitle);
+
+  await assertTrackTitleVersionAvailable({
+    artistId,
+    title,
+    versionTitle,
+  });
+};
 
 const uploadFiles = async (req, res, next) => {
   const uploadedAssetUrls = [];
   try {
+    await assertUploadTrackTitleVersionAvailable(req);
+
     const requestedOperationId = String(req.get("x-upload-operation-id") || "")
       .replace(/[^a-zA-Z0-9_-]/g, "")
       .slice(0, 80);
@@ -168,6 +203,11 @@ const uploadFiles = async (req, res, next) => {
     await deleteCloudinaryAssetsByUrls(uploadedAssetUrls).catch((cleanupError) => {
       console.error("Upload rollback failed:", cleanupError.message);
     });
+    if (error instanceof AppError) {
+      next(error);
+      return;
+    }
+
     next(
       new AppError(
         `File upload failed: ${error.message}`,

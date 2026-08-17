@@ -306,7 +306,11 @@ const CreateTrackForm = () => {
         audioFile,
         avatarFile,
         coverImages,
-        lyricsSyncFile
+        lyricsSyncFile,
+        {
+          title,
+          versionTitle: formData.versionTitle.trim(),
+        }
       );
 
       if (!uploadResponse?.success) {
