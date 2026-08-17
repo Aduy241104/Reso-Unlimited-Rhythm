@@ -94,9 +94,9 @@ const normalizeTracks = (response) => {
   return items.map((track) => ({
     id: track?._id || track?.id || "",
     title: track?.title || "Chưa có tên",
-    coverImage: Array.isArray(track?.coverImage)
-      ? track.coverImage.find(Boolean) || ""
-      : track?.coverImage || track?.avatar || "",
+    coverImage: Array.isArray(track?.avatar)
+      ? track.avatar.find(Boolean) || ""
+      : track?.avatar || "",
     duration: Number(track?.duration) || 0,
     approvalStatus: track?.approvalStatus || "",
     releaseStatus: track?.releaseStatus || "unreleased",

@@ -38,7 +38,7 @@ import {
 import { startRevenueAggregationCron } from "./jobs/revenueAggregation.cron.js";
 import { startAudioFingerprintCron } from "./jobs/audioFingerprint.cron.js";
 
-dotenv.config();
+dotenv.config({ quiet: true });
 const app = express();
 const server = http.createServer(app);
 
