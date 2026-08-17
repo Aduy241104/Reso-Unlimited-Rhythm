@@ -30,6 +30,7 @@ import {
 import {
   canArtistEditTrack,
   canArtistSubmitTrack,
+  getDraftCopyrightValidationErrors,
   getCopyrightValidationErrors,
   getArtistTrackReviewStatus,
   getSubmitReadinessIssues,
@@ -502,6 +503,8 @@ const ArtistTrackEditPage = () => {
       }
 
       Object.assign(errors, copyrightErrors);
+    } else {
+      Object.assign(errors, getDraftCopyrightValidationErrors(copyrightForm));
     }
 
     return errors;

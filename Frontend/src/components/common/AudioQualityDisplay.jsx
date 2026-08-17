@@ -84,7 +84,7 @@ const AudioQualityDisplay = ({
         <div className="flex items-center gap-3">
           <div className="h-5 w-5 animate-spin rounded-full border-2 border-amber-400 border-t-amber-600" />
           <p className="text-sm font-medium text-amber-900">
-            Dang phan tich file nguon va tao cac muc chat luong audio...
+            Đang phân tích file nguồn và tạo các mức chất lượng audio...
           </p>
         </div>
       </div>

@@ -64,6 +64,7 @@ export const isHttpUrl = (value) => {
 const hasOwn = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
 
 const normalizeString = (value) => typeof value === "string" ? value.trim() : value;
+const hasNumericValue = (value) => value !== undefined && value !== null && value !== "" && Number.isFinite(Number(value));
 
 export const normalizeISRC = (value) => {
     if (value === undefined || value === null || value === "") return "";
@@ -319,7 +320,7 @@ export const validateCopyrightForSubmit = (input = {}) => {
         if (copyright.sampleEndTime !== undefined && copyright.sampleEndTime !== null && (!Number.isFinite(Number(copyright.sampleEndTime)) || Number(copyright.sampleEndTime) < 0)) {
             addError(errors, "copyright.sampleEndTime", "Thời điểm kết thúc sample không hợp lệ.", "INVALID_VALUE");
         }
-        if (Number.isFinite(Number(copyright.sampleStartTime)) && Number.isFinite(Number(copyright.sampleEndTime)) && Number(copyright.sampleEndTime) <= Number(copyright.sampleStartTime)) {
+        if (hasNumericValue(copyright.sampleStartTime) && hasNumericValue(copyright.sampleEndTime) && Number(copyright.sampleEndTime) <= Number(copyright.sampleStartTime)) {
             addError(errors, "copyright.sampleEndTime", "Thời điểm kết thúc sample phải lớn hơn thời điểm bắt đầu.", "INVALID_VALUE");
         }
     }

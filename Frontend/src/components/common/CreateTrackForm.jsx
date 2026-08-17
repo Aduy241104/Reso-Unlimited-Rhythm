@@ -13,7 +13,7 @@ import {
   getImageFilesValidationError,
 } from "../../utils/imageFileValidation";
 import {
-  getCopyrightValidationErrors,
+  getDraftCopyrightValidationErrors,
   MAX_GENRE_IDS,
   TITLE_MAX_LENGTH,
   mapTrackCopyrightToForm,
@@ -148,7 +148,7 @@ const CreateTrackForm = () => {
     [formData.genreIds, genres]
   );
   const copyrightValidationErrors = useMemo(
-    () => getCopyrightValidationErrors(copyrightForm),
+    () => getDraftCopyrightValidationErrors(copyrightForm),
     [copyrightForm]
   );
 
@@ -280,7 +280,7 @@ const CreateTrackForm = () => {
       errors.media = "Vui lòng thêm ảnh đại diện hoặc ít nhất một ảnh bìa.";
     }
 
-    const copyrightErrors = getCopyrightValidationErrors(copyrightForm);
+    const copyrightErrors = getDraftCopyrightValidationErrors(copyrightForm);
     // Evidence selected in this form is uploaded immediately after the track
     // is created, so it is valid to defer only this one check until then.
     if (copyrightEvidenceFiles.length > 0) {
@@ -290,6 +290,7 @@ const CreateTrackForm = () => {
 
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
+      showArtistError(Object.values(errors)[0] || "Vui lòng kiểm tra lại thông tin bài hát.");
       return;
     }
 

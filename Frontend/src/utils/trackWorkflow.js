@@ -158,6 +158,7 @@ const addCopyrightError = (errors, field, message) => {
 };
 
 const normalizeText = (value) => typeof value === "string" ? value.trim() : "";
+const hasNumericValue = (value) => value !== undefined && value !== null && value !== "" && Number.isFinite(Number(value));
 
 const validateRequiredCopyrightText = (errors, copyright, field, label, { rejectPlaceholder = false } = {}) => {
   const value = copyright[field];
@@ -248,7 +249,7 @@ export const getCopyrightValidationErrors = (input = {}) => {
     if (copyright.sampleEndTime !== undefined && copyright.sampleEndTime !== null && copyright.sampleEndTime !== "" && (!Number.isFinite(Number(copyright.sampleEndTime)) || Number(copyright.sampleEndTime) < 0)) {
       addCopyrightError(errors, "sampleEndTime", "Thời điểm kết thúc sample không hợp lệ.");
     }
-    if (Number.isFinite(Number(copyright.sampleStartTime)) && Number.isFinite(Number(copyright.sampleEndTime)) && Number(copyright.sampleEndTime) <= Number(copyright.sampleStartTime)) {
+    if (hasNumericValue(copyright.sampleStartTime) && hasNumericValue(copyright.sampleEndTime) && Number(copyright.sampleEndTime) <= Number(copyright.sampleStartTime)) {
       addCopyrightError(errors, "sampleEndTime", "Thời điểm kết thúc sample phải lớn hơn thời điểm bắt đầu.");
     }
   }
@@ -282,6 +283,70 @@ export const getCopyrightValidationErrors = (input = {}) => {
     if (validDocuments.length === 0) {
       addCopyrightError(errors, "copyrightEvidenceDocuments", "Phải tải lên ít nhất một tài liệu chứng minh quyền sở hữu hoặc quyền sử dụng hợp lệ.");
     }
+  }
+
+  return errors;
+};
+
+export const getDraftCopyrightValidationErrors = (input = {}) => {
+  const copyright = mapTrackCopyrightToForm(input);
+  const errors = {};
+  const primary = resolvePrimaryType(copyright);
+
+  validateOptionalCopyrightText(errors, copyright, "copyrightOwner", "chủ sở hữu bản quyền");
+  validateOptionalCopyrightText(errors, copyright, "recordingOwner", "chủ sở hữu bản ghi");
+  validateOptionalCopyrightText(errors, copyright, "composer", "nhạc sĩ / composer");
+  validateOptionalCopyrightText(errors, copyright, "lyricist", "người viết lời");
+  validateOptionalCopyrightText(errors, copyright, "producer", "nhà sản xuất");
+  validateOptionalCopyrightText(errors, copyright, "copyrightNote", "ghi chú bản quyền", COPYRIGHT_NOTE_MAX_LENGTH);
+  validateOptionalCopyrightText(errors, copyright, "copyrightNotes", "ghi chú bản quyền", COPYRIGHT_NOTE_MAX_LENGTH);
+
+  validateOptionalIdentifier(errors, copyright, "isrc", "ISRC", isValidISRCValue);
+  validateOptionalIdentifier(errors, copyright, "iswc", "ISWC", isValidISWCValue);
+
+  if (["cover", "remix"].includes(primary)) {
+    validateOptionalCopyrightText(errors, copyright, "originalTrackTitle", "tên tác phẩm gốc");
+    validateOptionalCopyrightText(errors, copyright, "originalArtistName", "nghệ sĩ gốc");
+    validateOptionalIdentifier(errors, copyright, "originalISRC", "ISRC tác phẩm gốc", isValidISRCValue);
+    validateOptionalIdentifier(errors, copyright, "originalISWC", "ISWC tác phẩm gốc", isValidISWCValue);
+  }
+
+  if (copyright.usesSample) {
+    validateOptionalCopyrightText(errors, copyright, "sampleSourceTitle", "tên nguồn sample");
+    validateOptionalCopyrightText(errors, copyright, "sampleSourceArtist", "nghệ sĩ nguồn sample");
+    validateOptionalIdentifier(errors, copyright, "sampleSourceISRC", "ISRC nguồn sample", isValidISRCValue);
+    if (copyright.sampleStartTime !== undefined && copyright.sampleStartTime !== null && copyright.sampleStartTime !== "" && (!Number.isFinite(Number(copyright.sampleStartTime)) || Number(copyright.sampleStartTime) < 0)) {
+      addCopyrightError(errors, "sampleStartTime", "Thời điểm bắt đầu sample không hợp lệ.");
+    }
+    if (copyright.sampleEndTime !== undefined && copyright.sampleEndTime !== null && copyright.sampleEndTime !== "" && (!Number.isFinite(Number(copyright.sampleEndTime)) || Number(copyright.sampleEndTime) < 0)) {
+      addCopyrightError(errors, "sampleEndTime", "Thời điểm kết thúc sample không hợp lệ.");
+    }
+    if (hasNumericValue(copyright.sampleStartTime) && hasNumericValue(copyright.sampleEndTime) && Number(copyright.sampleEndTime) <= Number(copyright.sampleStartTime)) {
+      addCopyrightError(errors, "sampleEndTime", "Thời điểm kết thúc sample phải lớn hơn thời điểm bắt đầu.");
+    }
+  }
+
+  if (copyright.usesThirdPartyBeat) {
+    validateOptionalCopyrightText(errors, copyright, "beatTitle", "tên beat");
+    validateOptionalCopyrightText(errors, copyright, "beatProducer", "nhà sản xuất beat");
+    if (copyright.licenseType && !LICENSE_TYPES.includes(copyright.licenseType)) {
+      addCopyrightError(errors, "licenseType", "Vui lòng chọn loại giấy phép beat hợp lệ.");
+    }
+    if (copyright.beatSourceUrl && !isHttpUrl(copyright.beatSourceUrl)) {
+      addCopyrightError(errors, "beatSourceUrl", "URL beat phải dùng http hoặc https.");
+    }
+  }
+
+  const licenseUrls = Array.isArray(copyright.licenseDocumentUrls) ? copyright.licenseDocumentUrls : [];
+  licenseUrls.forEach((url, index) => {
+    if (!isHttpUrl(url)) addCopyrightError(errors, `licenseDocumentUrls.${index}`, "Mỗi URL tài liệu phải dùng http hoặc https.");
+  });
+
+  const documents = Array.isArray(copyright.copyrightEvidenceDocuments)
+    ? copyright.copyrightEvidenceDocuments
+    : [];
+  if (documents.length > 5) {
+    addCopyrightError(errors, "copyrightEvidenceDocuments", "Chỉ được tải lên tối đa 5 tài liệu.");
   }
 
   return errors;
