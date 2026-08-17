@@ -6,6 +6,10 @@ import {
   getUserService,
   updateUserService,
 } from "../../services/userService";
+import {
+  searchAdminArtistsService,
+  updateAdminArtistStatusService,
+} from "../../services/artistService";
 import { useAuth } from "../../hooks/useAuth";
 
 // Danh sách tùy chọn lý do khóa tài khoản Thành viên/Người dùng đồng bộ hệ thống SaaS
@@ -34,6 +38,20 @@ const formatDuration = (minutes) => {
   return hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
 };
 
+const getEntityId = (entity) => entity?._id || entity?.id || entity;
+
+const findArtistProfileForUser = (artists = [], userData) => {
+  const targetUserId = String(getEntityId(userData) || "");
+  if (!targetUserId) return null;
+
+  return (
+    artists.find((artist) => {
+      const artistUserId = getEntityId(artist?.userId);
+      return artistUserId && String(artistUserId) === targetUserId;
+    }) || null
+  );
+};
+
 const UserDetailPage = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
@@ -48,6 +66,8 @@ const UserDetailPage = () => {
   const [adminNote, setAdminNote] = useState("");
   const [selectedReasons, setSelectedReasons] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [linkedArtistProfile, setLinkedArtistProfile] = useState(null);
+  const [artistProfileBlockModalOpen, setArtistProfileBlockModalOpen] = useState(false);
 
   // 2. States cho Modal Xác nhận đổi quyền thông thường (User <-> Admin)
   const [roleModalOpen, setRoleModalOpen] = useState(false);
@@ -74,6 +94,20 @@ const UserDetailPage = () => {
     try {
       const userData = await getUserService(userId);
       setUser(userData);
+      setLinkedArtistProfile(null);
+
+      if (userData?.role === "artist" && userData?.email) {
+        try {
+          const artistResult = await searchAdminArtistsService({
+            q: userData.email,
+            limit: 50,
+          });
+          setLinkedArtistProfile(findArtistProfileForUser(artistResult?.artists, userData));
+        } catch {
+          setLinkedArtistProfile(null);
+        }
+      }
+
       setModerationAudit(
         userData?.role === "admin"
           ? await getUserModerationAuditService(userId)
@@ -162,7 +196,21 @@ const UserDetailPage = () => {
   };
 
   // Thực thi lệnh khóa tài khoản diện rộng
-  const handleConfirmBlockEnforcement = async () => {
+  const buildCombinedBlockReason = () => {
+    const selectedLabels = selectedReasons.map(
+      (r) => BLOCK_REASON_OPTIONS.find((o) => o.value === r)?.label || r
+    );
+    return selectedLabels.length > 0
+      ? `[${selectedLabels.join(", ")}] ${adminNote}`.trim()
+      : adminNote.trim();
+  };
+
+  const shouldPromptArtistProfileBlock = () =>
+    user?.role === "artist" &&
+    linkedArtistProfile &&
+    linkedArtistProfile.activeStatus !== "blocked";
+
+  const executeBlockEnforcement = async ({ blockArtistProfile = false } = {}) => {
     if (!user) return;
     if (isViewingOwnAccount) {
       preventSelfLock();
@@ -170,25 +218,48 @@ const UserDetailPage = () => {
     }
     setIsProcessing(true);
     try {
-      const selectedLabels = selectedReasons.map(
-        (r) => BLOCK_REASON_OPTIONS.find((o) => o.value === r)?.label || r
-      );
-      const combinedReason = selectedLabels.length > 0
-        ? `[${selectedLabels.join(", ")}] ${adminNote}`.trim()
-        : adminNote.trim();
+      const combinedReason = buildCombinedBlockReason();
 
       const updated = await updateUserService(user._id, {
         activeStatus: "blocked",
         blockReason: combinedReason,
       });
+
+      if (blockArtistProfile && linkedArtistProfile) {
+        const artistId = linkedArtistProfile.id || linkedArtistProfile._id;
+        const updatedArtist = await updateAdminArtistStatusService(artistId, {
+          activeStatus: "blocked",
+          blockedReason: combinedReason,
+        });
+        setLinkedArtistProfile((prev) => ({
+          ...prev,
+          activeStatus: updatedArtist?.activeStatus || "blocked",
+          blockedReason: updatedArtist?.blockedReason || combinedReason,
+        }));
+      }
+
       setUser(updated);
       setModalOpen(false);
-      toast.success("Tài khoản đã bị khóa.");
+      setArtistProfileBlockModalOpen(false);
+      toast.success(
+        blockArtistProfile
+          ? "Tài khoản và hồ sơ nghệ sĩ đã bị khóa."
+          : "Tài khoản đã bị khóa."
+      );
     } catch (error) {
       toast.error(error?.message || "Không thể thực thi lệnh khóa tài khoản.");
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleConfirmBlockEnforcement = () => {
+    if (shouldPromptArtistProfileBlock()) {
+      setArtistProfileBlockModalOpen(true);
+      return;
+    }
+
+    void executeBlockEnforcement({ blockArtistProfile: false });
   };
 
   const handleReasonCheckboxToggle = (reasonValue) => {
@@ -610,6 +681,49 @@ const UserDetailPage = () => {
                 className="rounded-xl px-5 py-2 text-xs font-bold text-white shadow-sm transition bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {isProcessing ? "Đang xử lý..." : "Xác nhận khóa"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {artistProfileBlockModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl border border-slate-100 space-y-4 animate-scale-up">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Hồ sơ nghệ sĩ liên kết</p>
+              <h2 className="mt-0.5 text-lg font-bold text-slate-900 uppercase">Khóa luôn artist profile?</h2>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs font-bold">
+              <p className="text-slate-900 uppercase">
+                {linkedArtistProfile?.name || user?.profile?.fullName || "Artist profile"}
+              </p>
+              <p className="mt-1 text-[10px] text-slate-400 uppercase font-mono">
+                Artist ID: {linkedArtistProfile?.id || linkedArtistProfile?._id || "-"}
+              </p>
+            </div>
+
+            <p className="text-xs font-medium leading-relaxed text-slate-600">
+              Tài khoản này có hồ sơ nghệ sĩ riêng. Bạn có muốn khóa luôn hồ sơ nghệ sĩ và các nội dung liên quan của người dùng này không?
+            </p>
+
+            <div className="flex flex-col-reverse gap-2.5 pt-3 border-t border-slate-100 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => void executeBlockEnforcement({ blockArtistProfile: false })}
+                disabled={isProcessing}
+                className="rounded-xl border border-slate-200 bg-white px-5 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 transition disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Chỉ khóa user
+              </button>
+              <button
+                type="button"
+                onClick={() => void executeBlockEnforcement({ blockArtistProfile: true })}
+                disabled={isProcessing}
+                className="rounded-xl px-5 py-2 text-xs font-bold text-white shadow-sm transition bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {isProcessing ? "Đang xử lý..." : "Khóa cả artist profile"}
               </button>
             </div>
           </div>
