@@ -263,7 +263,7 @@ const validateRequiredFields = (payload = {}, files = {}) => {
         fieldErrors.push({
             field: "socialLinks",
             message:
-                "Vui lĂ²ng nháº­p Ă­t nháº¥t 1 liĂªn káº¿t Website, LiĂªn káº¿t khĂ¡c, TikTok, Instagram, SoundCloud, Facebook, YouTube hoáº·c Spotify.",
+                "Vui lòng nhập ít nhất 1 liên kết Website, Liên kết khác, TikTok, Instagram, SoundCloud, Facebook, YouTube hoặc Spotify.",
         });
     }
 

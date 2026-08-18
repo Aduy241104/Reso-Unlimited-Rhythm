@@ -29,6 +29,7 @@ import {
   resolveGroupedReportService,
 } from "../../services/reportService";
 import { routePaths } from "../../routes/routePaths";
+import { useAuth } from "../../hooks/useAuth";
 
 const reasonLabels = {
   copyright_infringement: "Vi phạm bản quyền",
@@ -115,6 +116,7 @@ const getTargetTypeBadge = (type) => {
 const ReportDetailPage = () => {
   const params = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [detail, setDetail] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -130,7 +132,6 @@ const ReportDetailPage = () => {
   // Modal form states
   const [modalViolationType, setModalViolationType] = useState("copyright_infringement");
   const [modalTitle, setModalTitle] = useState("");
-  const [modalDate, setModalDate] = useState(new Date().toISOString().slice(0, 16));
   const [modalDescription, setModalDescription] = useState("");
 
   // Preview Image Modal state
@@ -277,7 +278,6 @@ const ReportDetailPage = () => {
 
     const contentTitle = detail?.targetInfo?.title || detail?.targetInfo?.name || "Nội dung";
     setModalTitle(`Báo cáo vi phạm đối với ${contentTitle}`);
-    setModalDate(new Date().toISOString().slice(0, 16));
     setModalDescription(resolutionNote.trim() || pendingReportsForDecision[0]?.description || "");
 
     setIsConfirmModalOpen(true);
@@ -404,6 +404,8 @@ const ReportDetailPage = () => {
     (selectedAction === "hide"
       ? getHideActionLabel(detail.targetType)
       : ACTION_LABELS[selectedAction]) || "Không xác định";
+  const currentAdminName = user?.profile?.fullName || user?.email || "Quản trị viên";
+  const currentAdminEmail = user?.email || "";
 
   return (
     <section className="min-h-screen space-y-6 bg-slate-50/50 p-3 lg:p-5 font-sans text-slate-800 antialiased">
@@ -824,6 +826,7 @@ const ReportDetailPage = () => {
                             {reporterEmail ? <span>{reporterEmail}</span> : null}
                             <span>Người dùng gửi lúc: {reportDate}</span>
                             <span>Đã xử lý lúc: {handledDate}</span>
+                            <span>Admin xử lý: {handledByName}</span>
                           </div>
                         </div>
 
@@ -1285,35 +1288,37 @@ const ReportDetailPage = () => {
                 </select>
               </div>
 
-              {/* 3. Title & Date */}
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div className="sm:col-span-2 space-y-1.5">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Tiêu đề vụ vi phạm
-                  </label>
-                  <input
-                    type="text"
-                    value={modalTitle}
-                    onChange={(e) => setModalTitle(e.target.value)}
-                    placeholder="VD: Vi phạm quy định nội dung trên tác phẩm..."
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-semibold outline-none transition focus:border-slate-400"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Thời gian
-                  </label>
-                  <input
-                    type="datetime-local"
-                    value={modalDate}
-                    onChange={(e) => setModalDate(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none transition focus:border-slate-400"
-                  />
+              {/* 3. Admin Account */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Tài khoản admin xử lý
+                </label>
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3">
+                  <p className="text-sm font-semibold text-slate-900">{currentAdminName}</p>
+                  {currentAdminEmail ? (
+                    <p className="mt-1 text-xs text-slate-500">{currentAdminEmail}</p>
+                  ) : null}
                 </div>
               </div>
 
-              {/* 4. Description */}
+              {/* 4. Title */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Tiêu đề vụ vi phạm
+                </label>
+                <input
+                  type="text"
+                  value={modalTitle}
+                  onChange={(e) => setModalTitle(e.target.value)}
+                  placeholder="VD: Vi phạm quy định nội dung trên tác phẩm..."
+                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-semibold outline-none transition focus:border-slate-400"
+                />
+                <p className="text-xs text-slate-500">
+                  Thời gian xử lý sẽ được hệ thống ghi nhận tự động ngay lúc bạn bấm xác nhận và ghi nhận vi phạm.
+                </p>
+              </div>
+
+              {/* 5. Description */}
               <div className="space-y-1.5">
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
                   Mô tả chi tiết vi phạm
@@ -1327,7 +1332,7 @@ const ReportDetailPage = () => {
                 />
               </div>
 
-              {/* 5. Penalty / Action */}
+              {/* 6. Penalty / Action */}
               <div className="space-y-1.5">
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
                   Hình thức xử lý / Áp phạt

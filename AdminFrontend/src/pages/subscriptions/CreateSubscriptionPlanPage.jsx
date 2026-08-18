@@ -17,6 +17,8 @@ const ALL_FEATURES = [
   "EXCLUSIVE_CONTENT",
 ];
 
+const DUPLICATE_PLAN_NAME_MESSAGE = "Tên gói đăng ký đã tồn tại.";
+
 const PRESET_DAYS = [
   { value: 7, label: "7 ngày" },
   { value: 30, label: "30 ngày" },
@@ -175,6 +177,10 @@ const CreateSubscriptionPlanPage = () => {
         error?.response?.data?.message ||
         error?.message ||
         "Tạo gói đăng ký thất bại.";
+      if (errorMessage === DUPLICATE_PLAN_NAME_MESSAGE) {
+        setErrors((prev) => ({ ...prev, name: DUPLICATE_PLAN_NAME_MESSAGE }));
+      }
+
       setMessage({ type: "error", text: errorMessage });
     } finally {
       setIsSubmitting(false);

@@ -96,14 +96,14 @@ const ImagePickerField = ({ title, helperText, image, onPick, onClear, error }) 
       ) : (
         <View style={styles.imagePlaceholder}>
           <Ionicons name="image-outline" size={24} color="#8f8f8f" />
-          <Text style={styles.imagePlaceholderTitle}>Chá»n áº£nh</Text>
+          <Text style={styles.imagePlaceholderTitle}>Chọn ảnh</Text>
           <Text style={styles.imagePlaceholderText}>{helperText}</Text>
         </View>
       )}
     </TouchableOpacity>
     <View style={styles.imageActionRow}>
-      <AppButton title={image?.uri ? 'Äá»•i áº£nh' : 'Chá»n áº£nh'} onPress={onPick} style={styles.secondaryActionButton} />
-      {image?.uri ? <AppButton title="XĂ³a" onPress={onClear} style={styles.clearImageButton} /> : null}
+      <AppButton title={image?.uri ? 'Đổi ảnh' : 'Chọn ảnh'} onPress={onPick} style={styles.secondaryActionButton} />
+      {image?.uri ? <AppButton title="Xóa" onPress={onClear} style={styles.clearImageButton} /> : null}
     </View>
     {error ? <Text style={styles.fieldErrorText}>{error}</Text> : null}
   </View>
@@ -111,48 +111,48 @@ const ImagePickerField = ({ title, helperText, image, onPick, onClear, error }) 
 
 const DECLARATION_CONTENT = {
   acceptedTerms: {
-    title: 'Äiá»u khoáº£n dĂ nh cho nghá»‡ sÄ©',
-    description: 'Báº¡n cáº§n Ä‘á»c ká»¹ Ä‘iá»u khoáº£n trÆ°á»›c khi xĂ¡c nháº­n tham gia vá»›i vai trĂ² nghá»‡ sÄ©.',
-    acceptLabel: 'TĂ´i Ä‘Ă£ Ä‘á»c vĂ  Ä‘á»“ng Ă½',
+    title: 'Điều khoản dành cho nghệ sĩ',
+    description: 'Bạn cần đọc kỹ điều khoản trước khi xác nhận tham gia với vai trò nghệ sĩ.',
+    acceptLabel: 'Tôi đã đọc và đồng ý',
     sections: [
       {
-        heading: '1. TrĂ¡ch nhiá»‡m há»“ sÆ¡ nghá»‡ sÄ©',
-        body: 'Báº¡n chá»‹u trĂ¡ch nhiá»‡m duy trĂ¬ há»“ sÆ¡ nghá»‡ sÄ© chĂ­nh xĂ¡c, Ä‘áº§y Ä‘á»§ vĂ  luĂ´n cáº­p nháº­t. Má»i thĂ´ng tin sai lá»‡ch vá» danh tĂ­nh, hĂ¬nh áº£nh Ä‘áº¡i diá»‡n, tiá»ƒu sá»­ hoáº·c liĂªn káº¿t giá»›i thiá»‡u Ä‘á»u cĂ³ thá»ƒ khiáº¿n yĂªu cáº§u bá»‹ tá»« chá»‘i hoáº·c bá»‹ thu há»“i quyá»n nghá»‡ sÄ© sau nĂ y.',
+        heading: '1. Trách nhiệm hồ sơ nghệ sĩ',
+        body: 'Bạn chịu trách nhiệm duy trì hồ sơ nghệ sĩ chính xác, đầy đủ và luôn cập nhật. Mọi thông tin sai lệch về danh tính, hình ảnh đại diện, tiểu sử hoặc liên kết giới thiệu đều có thể khiến yêu cầu bị từ chối hoặc bị thu hồi quyền nghệ sĩ sau này.',
       },
       {
-        heading: '2. Quy chuáº©n ná»™i dung cĂ´ng khai',
-        body: 'Ná»™i dung báº¡n xuáº¥t hiá»‡n vá»›i vai trĂ² nghá»‡ sÄ© khĂ´ng Ä‘Æ°á»£c vi pháº¡m phĂ¡p luáº­t, khĂ´ng chá»©a yáº¿u tá»‘ giáº£ máº¡o, xĂºc pháº¡m, kĂ­ch Ä‘á»™ng thĂ¹ ghĂ©t hoáº·c gĂ¢y hiá»ƒu nháº§m cho ngÆ°á»i nghe. Ná»n táº£ng cĂ³ quyá»n yĂªu cáº§u chá»‰nh sá»­a hoáº·c táº¡m áº©n ná»™i dung náº¿u phĂ¡t hiá»‡n rá»§i ro.',
+        heading: '2. Quy chuẩn nội dung công khai',
+        body: 'Nội dung bạn xuất hiện với vai trò nghệ sĩ không được vi phạm pháp luật, không chứa yếu tố giả mạo, xúc phạm, kích động thù ghét hoặc gây hiểu nhầm cho người nghe. Nền tảng có quyền yêu cầu chỉnh sửa hoặc tạm ẩn nội dung nếu phát hiện rủi ro.',
       },
       {
-        heading: '3. Há»£p tĂ¡c vá»›i quĂ¡ trĂ¬nh xĂ©t duyá»‡t',
-        body: 'Trong quĂ¡ trĂ¬nh xĂ©t duyá»‡t, báº¡n cĂ³ thá»ƒ Ä‘Æ°á»£c yĂªu cáº§u bá»• sung thĂ´ng tin, hĂ¬nh áº£nh xĂ¡c minh hoáº·c giáº£i trĂ¬nh thĂªm. Náº¿u khĂ´ng pháº£n há»“i trong thá»i gian há»£p lĂ½, yĂªu cáº§u Ä‘Äƒng kĂ½ cĂ³ thá»ƒ bá»‹ dá»«ng hoáº·c tá»« chá»‘i.',
+        heading: '3. Hợp tác với quá trình xét duyệt',
+        body: 'Trong quá trình xét duyệt, bạn có thể được yêu cầu bổ sung thông tin, hình ảnh xác minh hoặc giải trình thêm. Nếu không phản hồi trong thời gian hợp lý, yêu cầu đăng ký có thể bị dừng hoặc từ chối.',
       },
       {
-        heading: '4. Quyá»n kiá»ƒm tra vĂ  xá»­ lĂ½',
-        body: 'Ná»n táº£ng cĂ³ quyá»n kiá»ƒm tra láº¡i há»“ sÆ¡ nghá»‡ sÄ© báº¥t ká»³ lĂºc nĂ o Ä‘á»ƒ báº£o Ä‘áº£m an toĂ n cho cá»™ng Ä‘á»“ng. Náº¿u phĂ¡t hiá»‡n há»“ sÆ¡ khĂ´ng cĂ²n phĂ¹ há»£p, quyá»n nghá»‡ sÄ© cĂ³ thá»ƒ bá»‹ giá»›i háº¡n, táº¡m khĂ³a hoáº·c thu há»“i theo chĂ­nh sĂ¡ch quáº£n trá»‹.',
+        heading: '4. Quyền kiểm tra và xử lý',
+        body: 'Nền tảng có quyền kiểm tra lại hồ sơ nghệ sĩ bất kỳ lúc nào để bảo đảm an toàn cho cộng đồng. Nếu phát hiện hồ sơ không còn phù hợp, quyền nghệ sĩ có thể bị giới hạn, tạm khóa hoặc thu hồi theo chính sách quản trị.',
       },
     ],
   },
   copyrightCommitment: {
-    title: 'Cam káº¿t báº£n quyá»n ná»™i dung',
-    description: 'Báº¡n chá»‰ nĂªn xĂ¡c nháº­n khi tháº­t sá»± hiá»ƒu rĂµ trĂ¡ch nhiá»‡m báº£n quyá»n cá»§a mĂ¬nh.',
-    acceptLabel: 'TĂ´i cam káº¿t chá»‹u trĂ¡ch nhiá»‡m',
+    title: 'Cam kết bản quyền nội dung',
+    description: 'Bạn chỉ nên xác nhận khi thật sự hiểu rõ trách nhiệm bản quyền của mình.',
+    acceptLabel: 'Tôi cam kết chịu trách nhiệm',
     sections: [
       {
-        heading: '1. Quyá»n sá»Ÿ há»¯u hoáº·c quyá»n sá»­ dá»¥ng há»£p phĂ¡p',
-        body: 'Báº¡n xĂ¡c nháº­n ráº±ng má»i ná»™i dung Ă¢m nháº¡c, hĂ¬nh áº£nh, báº£n ghi, lá»i bĂ i hĂ¡t, artwork hoáº·c tĂ i liá»‡u quáº£ng bĂ¡ do báº¡n cung cáº¥p Ä‘á»u thuá»™c quyá»n sá»Ÿ há»¯u cá»§a báº¡n hoáº·c báº¡n Ä‘Ă£ Ä‘Æ°á»£c cho phĂ©p sá»­ dá»¥ng há»£p phĂ¡p.',
+        heading: '1. Quyền sở hữu hoặc quyền sử dụng hợp pháp',
+        body: 'Bạn xác nhận rằng mọi nội dung âm nhạc, hình ảnh, bản ghi, lời bài hát, artwork hoặc tài liệu quảng bá do bạn cung cấp đều thuộc quyền sở hữu của bạn hoặc bạn đã được cho phép sử dụng hợp pháp.',
       },
       {
-        heading: '2. KhĂ´ng Ä‘Äƒng táº£i ná»™i dung xĂ¢m pháº¡m',
-        body: 'Báº¡n khĂ´ng Ä‘Æ°á»£c sá»­ dá»¥ng ná»™i dung cá»§a cĂ¡ nhĂ¢n, tá»• chá»©c hay nghá»‡ sÄ© khĂ¡c khi chÆ°a cĂ³ quyá»n rĂµ rĂ ng. Äiá»u nĂ y bao gá»“m báº£n thu, beat, phá»‘i khĂ­, áº£nh, logo, thiáº¿t káº¿, video, tĂ i khoáº£n máº¡ng xĂ£ há»™i vĂ  má»i tĂ i sáº£n trĂ­ tuá»‡ liĂªn quan.',
+        heading: '2. Không đăng tải nội dung xâm phạm',
+        body: 'Bạn không được sử dụng nội dung của cá nhân, tổ chức hay nghệ sĩ khác khi chưa có quyền rõ ràng. Điều này bao gồm bản thu, beat, phối khí, ảnh, logo, thiết kế, video, tài khoản mạng xã hội và mọi tài sản trí tuệ liên quan.',
       },
       {
-        heading: '3. Chá»‹u trĂ¡ch nhiá»‡m khi cĂ³ khiáº¿u náº¡i',
-        body: 'Náº¿u cĂ³ tranh cháº¥p, khiáº¿u náº¡i hoáº·c yĂªu cáº§u gá»¡ bá» liĂªn quan Ä‘áº¿n báº£n quyá»n, báº¡n pháº£i phá»‘i há»£p cung cáº¥p chá»©ng cá»© vĂ  tá»± chá»‹u trĂ¡ch nhiá»‡m trÆ°á»›c phĂ¡p luáº­t cÅ©ng nhÆ° trÆ°á»›c bĂªn thá»© ba vá» ná»™i dung Ä‘Ă£ Ä‘Äƒng táº£i.',
+        heading: '3. Chịu trách nhiệm khi có khiếu nại',
+        body: 'Nếu có tranh chấp, khiếu nại hoặc yêu cầu gỡ bỏ liên quan đến bản quyền, bạn phải phối hợp cung cấp chứng cứ và tự chịu trách nhiệm trước pháp luật cũng như trước bên thứ ba về nội dung đã đăng tải.',
       },
       {
-        heading: '4. Biá»‡n phĂ¡p xá»­ lĂ½ vi pháº¡m',
-        body: 'Khi phĂ¡t hiá»‡n dáº¥u hiá»‡u vi pháº¡m báº£n quyá»n, ná»n táº£ng cĂ³ thá»ƒ táº¡m áº©n ná»™i dung, Ä‘Ă³ng bÄƒng quyá»n nghá»‡ sÄ©, tá»« chá»‘i yĂªu cáº§u hiá»‡n táº¡i hoáº·c Ă¡p dá»¥ng biá»‡n phĂ¡p quáº£n trá»‹ cáº§n thiáº¿t Ä‘á»ƒ báº£o vá»‡ cá»™ng Ä‘á»“ng vĂ  chá»§ sá»Ÿ há»¯u quyá»n há»£p phĂ¡p.',
+        heading: '4. Biện pháp xử lý vi phạm',
+        body: 'Khi phát hiện dấu hiệu vi phạm bản quyền, nền tảng có thể tạm ẩn nội dung, đóng băng quyền nghệ sĩ, từ chối yêu cầu hiện tại hoặc áp dụng biện pháp quản trị cần thiết để bảo vệ cộng đồng và chủ sở hữu quyền hợp pháp.',
       },
     ],
   },
@@ -205,7 +205,7 @@ export default function ArtistRegistrationRequestScreen() {
       setScreenError(
         artistRegistrationRequestService.translateArtistRegistrationError(
           error,
-          'KhĂ´ng thá»ƒ táº£i thĂ´ng tin Ä‘Äƒng kĂ½ nghá»‡ sÄ© lĂºc nĂ y.'
+          'Không thể tải thông tin đăng ký nghệ sĩ lúc này.'
         )
       );
     } finally {
@@ -278,7 +278,7 @@ export default function ArtistRegistrationRequestScreen() {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
       if (!permission.granted) {
-        Alert.alert('ChÆ°a cĂ³ quyá»n truy cáº­p', 'Vui lĂ²ng cáº¥p quyá»n thÆ° viá»‡n áº£nh Ä‘á»ƒ chá»n hĂ¬nh.');
+        Alert.alert('Chưa có quyền truy cập', 'Vui lòng cấp quyền thư viện ảnh để chọn hình.');
         return;
       }
 
@@ -295,13 +295,13 @@ export default function ArtistRegistrationRequestScreen() {
       const nextImage = normalizeSelectedImage(result.assets?.[0], fallbackName);
 
       if (!nextImage) {
-        Alert.alert('KhĂ´ng thá»ƒ chá»n áº£nh', 'áº¢nh Ä‘Ă£ chá»n khĂ´ng há»£p lá»‡. Vui lĂ²ng thá»­ láº¡i.');
+        Alert.alert('Không thể chọn ảnh', 'Ảnh đã chọn không hợp lệ. Vui lòng thử lại.');
         return;
       }
 
       handleDraftChange(field, nextImage);
     } catch {
-      Alert.alert('KhĂ´ng thá»ƒ chá»n áº£nh', 'ÄĂ£ cĂ³ lá»—i xáº£y ra khi má»Ÿ thÆ° viá»‡n áº£nh.');
+      Alert.alert('Không thể chọn ảnh', 'Đã có lỗi xảy ra khi mở thư viện ảnh.');
     }
   }, [handleDraftChange]);
 
@@ -315,25 +315,25 @@ export default function ArtistRegistrationRequestScreen() {
     }
 
     Alert.alert(
-      'Há»§y yĂªu cáº§u Ä‘Äƒng kĂ½',
-      'Báº¡n cĂ³ cháº¯c muá»‘n há»§y yĂªu cáº§u Ä‘Äƒng kĂ½ nghá»‡ sÄ© Ä‘ang chá» duyá»‡t khĂ´ng?',
+      'Hủy yêu cầu đăng ký',
+      'Bạn có chắc muốn hủy yêu cầu đăng ký nghệ sĩ đang chờ duyệt không?',
       [
-        { text: 'KhĂ´ng', style: 'cancel' },
+        { text: 'Không', style: 'cancel' },
         {
-          text: 'Há»§y yĂªu cáº§u',
+          text: 'Hủy yêu cầu',
           style: 'destructive',
           onPress: async () => {
             try {
               setIsCancelling(true);
               setSubmitError('');
               await artistRegistrationRequestService.cancelRequest(latestRequest.id);
-              setSubmitSuccess('ÄĂ£ há»§y yĂªu cáº§u Ä‘Äƒng kĂ½ nghá»‡ sÄ©.');
+              setSubmitSuccess('Đã hủy yêu cầu đăng ký nghệ sĩ.');
               await loadRequests({ refresh: true });
             } catch (error) {
               setSubmitError(
                 artistRegistrationRequestService.translateArtistRegistrationError(
                   error,
-                  'KhĂ´ng thá»ƒ há»§y yĂªu cáº§u lĂºc nĂ y.'
+                  'Không thể hủy yêu cầu lúc này.'
                 )
               );
             } finally {
@@ -350,7 +350,7 @@ export default function ArtistRegistrationRequestScreen() {
 
     if (Object.keys(validationErrors).length > 0) {
       setFieldErrors(validationErrors);
-      setSubmitError('Vui lĂ²ng kiá»ƒm tra láº¡i thĂ´ng tin Ä‘Äƒng kĂ½.');
+      setSubmitError('Vui lòng kiểm tra lại thông tin đăng ký.');
       setSubmitSuccess('');
       return;
     }
@@ -363,7 +363,7 @@ export default function ArtistRegistrationRequestScreen() {
       await artistRegistrationRequestService.submitRequest(draft);
       setDraft(artistRegistrationRequestService.createArtistRegistrationDraft());
       setFieldErrors({});
-      setSubmitSuccess('ÄĂ£ gá»­i yĂªu cáº§u Ä‘Äƒng kĂ½ nghá»‡ sÄ© thĂ nh cĂ´ng.');
+      setSubmitSuccess('Đã gửi yêu cầu đăng ký nghệ sĩ thành công.');
       await loadRequests({ refresh: true });
     } catch (error) {
       const nextFieldErrors = artistRegistrationRequestService.extractArtistRegistrationFieldErrors(error);
@@ -425,16 +425,16 @@ export default function ArtistRegistrationRequestScreen() {
 
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} activeOpacity={0.8}>
-          <Text style={styles.backButtonText}>Quay láº¡i</Text>
+          <Text style={styles.backButtonText}>Quay lại</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>ÄÄƒng kĂ½ nghá»‡ sÄ©</Text>
+        <Text style={styles.headerTitle}>Đăng ký nghệ sĩ</Text>
         <View style={styles.headerSpacer} />
       </View>
 
       {screenError ? (
         <View style={styles.centerState}>
           <ErrorState message={screenError} />
-          <AppButton title="Thá»­ láº¡i" onPress={() => loadRequests()} style={styles.retryButton} />
+          <AppButton title="Thử lại" onPress={() => loadRequests()} style={styles.retryButton} />
         </View>
       ) : (
         <ScrollView
@@ -450,20 +450,20 @@ export default function ArtistRegistrationRequestScreen() {
         >
           <View style={styles.heroCard}>
             <Text style={styles.heroEyebrow}>ARTIST REQUEST</Text>
-            <Text style={styles.heroTitle}>Gá»­i yĂªu cáº§u trá»Ÿ thĂ nh nghá»‡ sÄ©</Text>
+            <Text style={styles.heroTitle}>Gửi yêu cầu trở thành nghệ sĩ</Text>
             <Text style={styles.heroText}>
-              Äiá»n thĂ´ng tin xĂ¡c minh vĂ  gá»­i yĂªu cáº§u Ä‘á»ƒ Ä‘á»™i ngÅ© quáº£n trá»‹ xĂ©t duyá»‡t tĂ i khoáº£n nghá»‡ sÄ© cá»§a báº¡n.
+              Điền thông tin xác minh và gửi yêu cầu để đội ngũ quản trị xét duyệt tài khoản nghệ sĩ của bạn.
             </Text>
           </View>
 
           {latestRequest ? (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Tráº¡ng thĂ¡i yĂªu cáº§u gáº§n nháº¥t</Text>
+              <Text style={styles.sectionTitle}>Trạng thái yêu cầu gần nhất</Text>
               <View style={styles.statusCard}>
                 <View style={styles.statusHeader}>
                   <View>
-                    <Text style={styles.statusName}>{latestRequest.stageName || 'YĂªu cáº§u Ä‘Äƒng kĂ½ nghá»‡ sÄ©'}</Text>
-                    <Text style={styles.statusDate}>Gá»­i ngĂ y {formatDateLabel(latestRequest.createdAt) || '--'}</Text>
+                    <Text style={styles.statusName}>{latestRequest.stageName || 'Yêu cầu đăng ký nghệ sĩ'}</Text>
+                    <Text style={styles.statusDate}>Gửi ngày {formatDateLabel(latestRequest.createdAt) || '--'}</Text>
                   </View>
                   <View style={[styles.statusBadge, { borderColor: getStatusColor(latestRequest.status) }]}>
                     <Text style={[styles.statusBadgeText, { color: getStatusColor(latestRequest.status) }]}>
@@ -474,14 +474,14 @@ export default function ArtistRegistrationRequestScreen() {
 
                 {latestRequest.rejectReason ? (
                   <View style={styles.noteBox}>
-                    <Text style={styles.noteTitle}>LĂ½ do tá»« chá»‘i</Text>
+                    <Text style={styles.noteTitle}>Lý do từ chối</Text>
                     <Text style={styles.noteText}>{latestRequest.rejectReason}</Text>
                   </View>
                 ) : null}
 
                 {latestRequest.status === 'pending' ? (
                   <AppButton
-                    title="Há»§y yĂªu cáº§u Ä‘ang chá» duyá»‡t"
+                    title="Hủy yêu cầu đang chờ duyệt"
                     onPress={handleCancelPendingRequest}
                     isLoading={isCancelling}
                     style={styles.cancelRequestButton}
@@ -497,53 +497,53 @@ export default function ArtistRegistrationRequestScreen() {
           {!isListenerAccount ? (
             <View style={styles.section}>
               <View style={styles.infoCard}>
-                <Text style={styles.infoTitle}>TĂ i khoáº£n hiá»‡n khĂ´ng phĂ¹ há»£p</Text>
-                <Text style={styles.infoText}>Chá»‰ tĂ i khoáº£n ngÆ°á»i dĂ¹ng thÆ°á»ng má»›i cĂ³ thá»ƒ gá»­i yĂªu cáº§u Ä‘Äƒng kĂ½ nghá»‡ sÄ©.</Text>
+                <Text style={styles.infoTitle}>Tài khoản hiện không phù hợp</Text>
+                <Text style={styles.infoText}>Chỉ tài khoản người dùng thường mới có thể gửi yêu cầu đăng ký nghệ sĩ.</Text>
               </View>
             </View>
           ) : isArtistAccount ? (
             <View style={styles.section}>
               <View style={styles.infoCard}>
-                <Text style={styles.infoTitle}>TĂ i khoáº£n Ä‘Ă£ lĂ  nghá»‡ sÄ©</Text>
-                <Text style={styles.infoText}>Báº¡n khĂ´ng cáº§n gá»­i thĂªm yĂªu cáº§u Ä‘Äƒng kĂ½ nghá»‡ sÄ© cho tĂ i khoáº£n nĂ y.</Text>
+                <Text style={styles.infoTitle}>Tài khoản đã là nghệ sĩ</Text>
+                <Text style={styles.infoText}>Bạn không cần gửi thêm yêu cầu đăng ký nghệ sĩ cho tài khoản này.</Text>
               </View>
             </View>
           ) : hasApprovedRequest ? (
             <View style={styles.section}>
               <View style={styles.infoCard}>
-                <Text style={styles.infoTitle}>YĂªu cáº§u Ä‘Ă£ Ä‘Æ°á»£c duyá»‡t</Text>
-                <Text style={styles.infoText}>YĂªu cáº§u Ä‘Äƒng kĂ½ nghá»‡ sÄ© cá»§a báº¡n Ä‘Ă£ Ä‘Æ°á»£c cháº¥p thuáº­n. Vui lĂ²ng Ä‘Äƒng nháº­p láº¡i náº¿u quyá»n nghá»‡ sÄ© chÆ°a cáº­p nháº­t.</Text>
+                <Text style={styles.infoTitle}>Yêu cầu đã được duyệt</Text>
+                <Text style={styles.infoText}>Yêu cầu đăng ký nghệ sĩ của bạn đã được chấp thuận. Vui lòng đăng nhập lại nếu quyền nghệ sĩ chưa cập nhật.</Text>
               </View>
             </View>
           ) : canSubmitRequest ? (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>ThĂ´ng tin Ä‘Äƒng kĂ½</Text>
+              <Text style={styles.sectionTitle}>Thông tin đăng ký</Text>
 
               <AppInput
-                label="Nghá»‡ danh"
+                label="Nghệ danh"
                 value={draft.stageName}
                 onChangeText={(value) => handleDraftChange('stageName', value)}
-                placeholder="VĂ­ dá»¥: Luna Echo"
+                placeholder="Ví dụ: Luna Echo"
                 autoCapitalize="words"
                 autoCorrect={false}
                 error={fieldErrors.stageName}
               />
 
               <AppInput
-                label="Há» tĂªn trĂªn CCCD"
+                label="Họ tên trên CCCD"
                 value={draft.fullName}
                 onChangeText={(value) => handleDraftChange('fullName', value)}
-                placeholder="Nháº­p há» tĂªn Ä‘áº§y Ä‘á»§"
+                placeholder="Nhập họ tên đầy đủ"
                 autoCapitalize="words"
                 autoCorrect={false}
                 error={fieldErrors.fullName}
               />
 
               <AppInput
-                label="Sá»‘ CCCD"
+                label="Số CCCD"
                 value={draft.idNumber}
                 onChangeText={(value) => handleDraftChange('idNumber', value)}
-                placeholder="Nháº­p sá»‘ CCCD"
+                placeholder="Nhập số CCCD"
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="number-pad"
@@ -551,7 +551,7 @@ export default function ArtistRegistrationRequestScreen() {
               />
 
               <View style={styles.dateFieldGroup}>
-                <Text style={styles.fieldTitle}>NgĂ y sinh</Text>
+                <Text style={styles.fieldTitle}>Ngày sinh</Text>
                 <TouchableOpacity
                   style={[styles.dateFieldButton, fieldErrors.dateOfBirth ? styles.dateFieldButtonError : null]}
                   onPress={handleOpenDatePicker}
@@ -564,25 +564,25 @@ export default function ArtistRegistrationRequestScreen() {
                       !displayDateOfBirth ? styles.dateFieldValuePlaceholder : null,
                     ]}
                   >
-                    {displayDateOfBirth || 'Chá»n ngĂ y sinh theo Ä‘á»‹nh dáº¡ng dd-mm-yyyy'}
+                    {displayDateOfBirth || 'Chọn ngày sinh theo định dạng dd-mm-yyyy'}
                   </Text>
                   <Ionicons name="chevron-down" size={18} color="#8f8f8f" />
                 </TouchableOpacity>
-                <Text style={styles.dateFieldHelper}>Báº¡n cĂ³ thá»ƒ chá»n nhanh ngĂ y, thĂ¡ng, nÄƒm trong popup.</Text>
+                <Text style={styles.dateFieldHelper}>Bạn có thể chọn nhanh ngày, tháng, năm trong popup.</Text>
                 {fieldErrors.dateOfBirth ? <Text style={styles.fieldErrorText}>{fieldErrors.dateOfBirth}</Text> : null}
               </View>
 
               <AppInput
-                label="Tiá»ƒu sá»­ ngáº¯n"
+                label="Tiểu sử ngắn"
                 value={draft.bio}
                 onChangeText={(value) => handleDraftChange('bio', value)}
-                placeholder="Giá»›i thiá»‡u ngáº¯n vá» báº¡n"
+                placeholder="Giới thiệu ngắn về bạn"
                 autoCapitalize="sentences"
                 autoCorrect={false}
               />
 
               <AppInput
-                label="Thá»ƒ loáº¡i"
+                label="Thể loại"
                 value={draft.genresText}
                 onChangeText={(value) => handleDraftChange('genresText', value)}
                 placeholder="Pop, Indie, Ballad"
@@ -591,10 +591,10 @@ export default function ArtistRegistrationRequestScreen() {
               />
 
               <AppInput
-                label="Link nháº¡c / máº¡ng xĂ£ há»™i"
+                label="Link nhạc / mạng xã hội"
                 value={draft.musicLinksText}
                 onChangeText={(value) => handleDraftChange('musicLinksText', value)}
-                placeholder="Má»—i link cĂ¡ch nhau báº±ng dáº¥u pháº©y"
+                placeholder="Mỗi link cách nhau bằng dấu phẩy"
                 autoCapitalize="none"
                 autoCorrect={false}
               />
@@ -603,18 +603,18 @@ export default function ArtistRegistrationRequestScreen() {
                 label="Link demo track"
                 value={draft.demoTrackUrlsText}
                 onChangeText={(value) => handleDraftChange('demoTrackUrlsText', value)}
-                placeholder="Má»—i link cĂ¡ch nhau báº±ng dáº¥u pháº©y"
+                placeholder="Mỗi link cách nhau bằng dấu phẩy"
                 autoCapitalize="none"
                 autoCorrect={false}
               />
 
               <View style={styles.textAreaGroup}>
-                <Text style={styles.fieldTitle}>MĂ´ táº£ portfolio</Text>
+                <Text style={styles.fieldTitle}>Mô tả portfolio</Text>
                 <View style={styles.textAreaWrap}>
                   <TextInput
                     value={draft.portfolioDescription}
                     onChangeText={(value) => handleDraftChange('portfolioDescription', value)}
-                    placeholder="MĂ´ táº£ thĂªm vá» hĂ nh trĂ¬nh Ă¢m nháº¡c hoáº·c hoáº¡t Ä‘á»™ng nghá»‡ thuáº­t cá»§a báº¡n"
+                    placeholder="Mô tả thêm về hành trình âm nhạc hoặc hoạt động nghệ thuật của bạn"
                     placeholderTextColor="#7d7d7d"
                     style={styles.textArea}
                     multiline
@@ -624,16 +624,16 @@ export default function ArtistRegistrationRequestScreen() {
               </View>
 
               <ImagePickerField
-                title="áº¢nh Ä‘áº¡i diá»‡n nghá»‡ sÄ©"
-                helperText="KhĂ´ng báº¯t buá»™c"
+                title="Ảnh đại diện nghệ sĩ"
+                helperText="Không bắt buộc"
                 image={draft.avatar}
                 onPick={() => handlePickImage('avatar', 'artist-avatar')}
                 onClear={() => handleClearImage('avatar')}
               />
 
               <ImagePickerField
-                title="áº¢nh máº·t trÆ°á»›c CCCD"
-                helperText="Báº¯t buá»™c Ä‘á»ƒ xĂ¡c minh danh tĂ­nh"
+                title="Ảnh mặt trước CCCD"
+                helperText="Bắt buộc để xác minh danh tính"
                 image={draft.frontImage}
                 onPick={() => handlePickImage('frontImage', 'identity-front')}
                 onClear={() => handleClearImage('frontImage')}
@@ -641,8 +641,8 @@ export default function ArtistRegistrationRequestScreen() {
               />
 
               <ImagePickerField
-                title="áº¢nh máº·t sau CCCD"
-                helperText="Báº¯t buá»™c Ä‘á»ƒ xĂ¡c minh danh tĂ­nh"
+                title="Ảnh mặt sau CCCD"
+                helperText="Bắt buộc để xác minh danh tính"
                 image={draft.backImage}
                 onPick={() => handlePickImage('backImage', 'identity-back')}
                 onClear={() => handleClearImage('backImage')}
@@ -650,26 +650,26 @@ export default function ArtistRegistrationRequestScreen() {
               />
 
               <DeclarationToggle
-                label="TĂ´i Ä‘á»“ng Ă½ vá»›i Ä‘iá»u khoáº£n dĂ nh cho nghá»‡ sÄ©."
+                label="Tôi đồng ý với điều khoản dành cho nghệ sĩ."
                 value={draft.acceptedTerms}
                 onPress={() => handleDeclarationPress('acceptedTerms')}
                 error={fieldErrors.acceptedTerms}
               />
               <DeclarationToggle
-                label="TĂ´i cam káº¿t chá»‹u trĂ¡ch nhiá»‡m vá» báº£n quyá»n ná»™i dung."
+                label="Tôi cam kết chịu trách nhiệm về bản quyền nội dung."
                 value={draft.copyrightCommitment}
                 onPress={() => handleDeclarationPress('copyrightCommitment')}
                 error={fieldErrors.copyrightCommitment}
               />
               <DeclarationToggle
-                label="TĂ´i xĂ¡c nháº­n má»i thĂ´ng tin cung cáº¥p lĂ  trung thá»±c."
+                label="Tôi xác nhận mọi thông tin cung cấp là trung thực."
                 value={draft.truthfulInformationCommitment}
                 onPress={() => handleToggleDeclaration('truthfulInformationCommitment')}
                 error={fieldErrors.truthfulInformationCommitment}
               />
 
               <AppButton
-                title="Gá»­i yĂªu cáº§u Ä‘Äƒng kĂ½ nghá»‡ sÄ©"
+                title="Gửi yêu cầu đăng ký nghệ sĩ"
                 onPress={handleSubmitRequest}
                 isLoading={isSubmitting}
                 style={styles.submitButton}
@@ -678,9 +678,9 @@ export default function ArtistRegistrationRequestScreen() {
           ) : (
             <View style={styles.section}>
               <View style={styles.infoCard}>
-                <Text style={styles.infoTitle}>ChÆ°a thá»ƒ gá»­i yĂªu cáº§u má»›i</Text>
+                <Text style={styles.infoTitle}>Chưa thể gửi yêu cầu mới</Text>
                 <Text style={styles.infoText}>
-                  Báº¡n Ä‘ang cĂ³ má»™t yĂªu cáº§u Ä‘Äƒng kĂ½ nghá»‡ sÄ© chá» duyá»‡t. Vui lĂ²ng Ä‘á»£i káº¿t quáº£ hoáº·c há»§y yĂªu cáº§u hiá»‡n táº¡i.
+                  Bạn đang có một yêu cầu đăng ký nghệ sĩ chờ duyệt. Vui lòng đợi kết quả hoặc hủy yêu cầu hiện tại.
                 </Text>
               </View>
             </View>
@@ -700,7 +700,7 @@ export default function ArtistRegistrationRequestScreen() {
         title={activeDeclarationConfig?.title || ''}
         description={activeDeclarationConfig?.description || ''}
         sections={activeDeclarationConfig?.sections || []}
-        acceptLabel={activeDeclarationConfig?.acceptLabel || 'XĂ¡c nháº­n'}
+        acceptLabel={activeDeclarationConfig?.acceptLabel || 'Xác nhận'}
         onClose={handleCloseDeclarationModal}
         onAccept={handleAcceptDeclaration}
         bottomInset={insets.bottom}

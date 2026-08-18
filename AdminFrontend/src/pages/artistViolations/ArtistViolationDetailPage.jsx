@@ -21,7 +21,6 @@ import {
   Loader2,
 } from "lucide-react";
 import { getGroupedReportDetailService, resolveGroupedReportService } from "../../services/reportService";
-import { updateAdminArtistStatusService } from "../../services/artistService";
 import { routePaths } from "../../routes/routePaths";
 
 const reasonLabels = {
@@ -160,21 +159,6 @@ export default function ArtistViolationDetailPage() {
     setSuccessMessage("");
 
     try {
-      const artistId =
-        detail.artistInfo?._id ||
-        detail.targetInfo?.artist_artistId?._id ||
-        detail.targetInfo?.artistId?._id ||
-        (targetType === "artist" ? targetId : null);
-
-      // If action is block, suspend artist account
-      if (selectedAction === "block" && artistId) {
-        await updateAdminArtistStatusService(artistId, {
-          activeStatus: "blocked",
-          blockedReason: resolutionNote || "Tài khoản vi phạm nghiêm trọng chính sách cộng đồng.",
-        });
-      }
-
-      // Resolve report in DB
       const evaluations = (detail.reports || []).map((r) => ({
         reportId: r._id,
         isValid: selectedAction !== "reject",

@@ -1643,17 +1643,17 @@ const ArtistRegistrationRequestPage = () => {
         demoTrackUrls: getFieldErrorMessage("demoTrackUrls", formData.demoTrackUrls),
         musicLinks: getFieldErrorMessage("musicLinks", formData.musicLinks),
         acceptedTerms: !readTerms.acceptedTerms
-          ? "Báº¡n cáº§n Ä‘á»c háº¿t Ä‘iá»u khoáº£n trÆ°á»›c khi Ä‘á»“ng Ă½."
+          ? "Bạn cần đọc hết điều khoản trước khi đồng ý."
           : !formData.acceptedTerms
-            ? "Báº¡n cáº§n Ä‘á»“ng Ă½ vá»›i Ä‘iá»u khoáº£n nghá»‡ sÄ©."
+            ? "Bạn cần đồng ý với điều khoản nghệ sĩ."
             : "",
         copyrightCommitment: !readTerms.copyrightCommitment
-          ? "Báº¡n cáº§n Ä‘á»c háº¿t cam káº¿t báº£n quyá»n trÆ°á»›c khi xĂ¡c nháº­n."
+          ? "Bạn cần đọc hết cam kết bản quyền trước khi xác nhận."
           : !formData.copyrightCommitment
-            ? "Báº¡n cáº§n xĂ¡c nháº­n trĂ¡ch nhiá»‡m báº£n quyá»n."
+            ? "Bạn cần xác nhận trách nhiệm bản quyền."
             : "",
         truthfulInformationCommitment: !formData.truthfulInformationCommitment
-          ? "Báº¡n cáº§n xĂ¡c nháº­n thĂ´ng tin lĂ  chĂ­nh xĂ¡c."
+          ? "Bạn cần xác nhận thông tin là chính xác."
           : "",
       };
 
@@ -1738,7 +1738,7 @@ const ArtistRegistrationRequestPage = () => {
 
         const mappedFieldErrors = normalizedErrors.reduce((result, detail) => {
           if (detail?.field) {
-            result[detail.field] = detail.message || "GiĂ¡ trá»‹ khĂ´ng há»£p lá»‡.";
+            result[detail.field] = detail.message || "Giá trị không hợp lệ.";
           }
 
           return result;

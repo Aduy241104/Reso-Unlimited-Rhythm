@@ -219,7 +219,7 @@ export default function EntityDetailScreen() {
           if (followError?.status === 401) {
             setIsArtistFollowing(false);
           } else {
-            console.log('KhĂ´ng thá»ƒ táº£i tráº¡ng thĂ¡i theo dĂµi nghá»‡ sÄ©.', followError?.message || followError);
+            console.log('Không thể tải trạng thái theo dõi nghệ sĩ.', followError?.message || followError);
           }
         }
       } else {
