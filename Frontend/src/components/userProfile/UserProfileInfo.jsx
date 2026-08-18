@@ -101,7 +101,7 @@ const Notice = ({ children }) => {
   );
 };
 
-const UserProfileInfo = ({ fullName, email, gender, country }) => {
+const UserProfileInfo = ({ fullName, email, gender, dateOfBirth }) => {
   const { profile, setProfile } = useUserProfileCard();
   const [isEditing, setIsEditing] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -115,10 +115,10 @@ const UserProfileInfo = ({ fullName, email, gender, country }) => {
         fullName,
         email,
         gender,
-        country,
+        dateOfBirth,
       })
     );
-  }, [country, email, fullName, gender, setProfile]);
+  }, [dateOfBirth, email, fullName, gender, setProfile]);
 
   useEffect(() => {
     let isMounted = true;
@@ -164,7 +164,7 @@ const UserProfileInfo = ({ fullName, email, gender, country }) => {
     fullName,
     email,
     gender,
-    country,
+    dateOfBirth,
   });
   const profileSnapshot = mergeUserProfileSnapshot(baseProfile, profile);
   const displayFields = [
@@ -185,7 +185,7 @@ const UserProfileInfo = ({ fullName, email, gender, country }) => {
     },
     {
       label: "Ngày sinh",
-      value: getPreferredText(profileSnapshot.country, country),
+      value: getPreferredText(profileSnapshot.dateOfBirth, dateOfBirth),
       icon: CalendarDays,
     },
   ];
@@ -241,12 +241,13 @@ const UserProfileInfo = ({ fullName, email, gender, country }) => {
     profile?.authProvider ||
     profile?.provider
   ).toLowerCase();
-
-  const avatarUrl = normalizeText(profileSnapshot?.avatar || profile?.avatar).toLowerCase();
-
-  const isGoogleAccount =
-    authProvider === "google" ||
-    avatarUrl.includes("googleusercontent.com");
+  const canChangePassword =
+    typeof profileSnapshot?.canChangePassword === "boolean"
+      ? profileSnapshot.canChangePassword
+      : typeof profile?.canChangePassword === "boolean"
+        ? profile.canChangePassword
+        : authProvider === "local";
+  const isGoogleAccount = authProvider === "google";
 
   const accountTypeLabel = isGoogleAccount ? "Google Sign-In" : "Email & Password";
   const securityLabel = isGoogleAccount ? "Xác thực qua Google" : "Bảo mật nội bộ";
@@ -302,7 +303,7 @@ const UserProfileInfo = ({ fullName, email, gender, country }) => {
       {formError ? <Notice>{formError}</Notice> : null}
 
       <div className="mt-8 flex flex-col gap-3 border-t border-white/10 pt-6 sm:flex-row sm:justify-end">
-        {!isGoogleAccount ? (
+        {canChangePassword ? (
           <button
             type="button"
             onClick={handleOpenPasswordForm}

@@ -112,6 +112,7 @@ export const formatCreatedPlaylist = (playlist) => {
         type: playlist.type,
         isPublic: playlist.isPublic,
         isHidden: playlist.isHidden,
+        isLockedByPlan: Boolean(playlist.isLockedByPlan),
         trackCount: playlist.trackCount,
         totalDuration: playlist.totalDuration,
         createdAt: playlist.createdAt,
@@ -129,6 +130,7 @@ export const formatPlaylistAfterTrackChange = (playlist) => {
         description: playlist.description || "",
         coverImage: playlist.coverImage || "",
         type: playlist.type,
+        isLockedByPlan: Boolean(playlist.isLockedByPlan),
         trackCount: playlist.trackCount || 0,
         totalDuration: playlist.totalDuration || 0,
         tracks: (playlist.tracks || []).map((track) => ({
@@ -152,6 +154,7 @@ export const formatUserPlaylist = (playlist) => {
         type: playlist.type,
         isPublic: playlist.isPublic,
         isHidden: playlist.isHidden,
+        isLockedByPlan: Boolean(playlist.isLockedByPlan),
         createdAt: playlist.createdAt,
     };
 };
@@ -222,17 +225,58 @@ const formatPlaylistTrack = (playlistTrack) => {
     };
 };
 
-export const formatPlaylistDetail = (playlist) => {
-    const visibleTracks = (playlist.tracks || [])
+const buildPlaylistTrackVisibility = (playlist) => {
+    const sortedActiveTracks = (playlist.tracks || [])
         .sort((firstTrack, secondTrack) => firstTrack.order - secondTrack.order)
         .filter((playlistTrack) => isActiveTrack(playlistTrack?.trackId))
         .map(formatPlaylistTrack)
         .filter(Boolean);
 
-    const totalDuration = visibleTracks.reduce(
+    const rawTrackLimit = Number(playlist.trackLimit);
+    const hasTrackLimit =
+        Number.isInteger(rawTrackLimit) && rawTrackLimit > 0;
+    const limitedTracks = hasTrackLimit
+        ? sortedActiveTracks.slice(0, rawTrackLimit)
+        : sortedActiveTracks;
+    const visibleTracks = limitedTracks.map((track, index) => ({
+        ...track,
+        order: index + 1,
+    }));
+    const trackCount = sortedActiveTracks.length;
+    const visibleTrackCount = visibleTracks.length;
+    const trackLimit = hasTrackLimit ? rawTrackLimit : null;
+    const totalDuration = sortedActiveTracks.reduce(
         (sum, item) => sum + Number(item?.track?.duration || 0),
         0
     );
+    const visibleTotalDuration = visibleTracks.reduce(
+        (sum, item) => sum + Number(item?.track?.duration || 0),
+        0
+    );
+
+    return {
+        trackCount,
+        visibleTrackCount,
+        trackLimit,
+        totalDuration,
+        visibleTotalDuration,
+        isTrackLimitedByPlan:
+            Boolean(playlist.isTrackLimitedByPlan) ||
+            (hasTrackLimit && visibleTrackCount < trackCount),
+        visibleTracks,
+    };
+};
+
+export const formatPlaylistDetail = (playlist) => {
+    const {
+        trackCount,
+        visibleTrackCount,
+        trackLimit,
+        totalDuration,
+        visibleTotalDuration,
+        isTrackLimitedByPlan,
+        visibleTracks,
+    } = buildPlaylistTrackVisibility(playlist);
 
     return {
         id: toId(playlist._id),
@@ -242,8 +286,13 @@ export const formatPlaylistDetail = (playlist) => {
         coverImage: playlist.coverImage || "",
         isPublic: playlist.isPublic,
         isHidden: playlist.isHidden,
-        trackCount: visibleTracks.length,
+        isLockedByPlan: Boolean(playlist.isLockedByPlan),
+        trackCount,
+        visibleTrackCount,
+        trackLimit,
+        isTrackLimitedByPlan,
         totalDuration,
+        visibleTotalDuration,
         aiPrompt: playlist.aiPrompt || "",
         aiGeneratedAt: playlist.aiGeneratedAt,
         owner: playlist.userId
