@@ -25,6 +25,8 @@ const MAX_LIMIT = 50;
 const FREE_PLAYLIST_LIMIT = 5;
 const FREE_TRACK_LIMIT_PER_PLAYLIST = 10;
 const PREMIUM_TRACK_LIMIT_PER_PLAYLIST = 30;
+const PLAYLIST_PLAN_LOCKED_MESSAGE =
+    "This playlist is unavailable on the Free plan. Upgrade to Premium to manage it.";
 
 const throwPlaylistValidationError = (error) => {
     if (error instanceof AppError) {
@@ -91,6 +93,14 @@ const throwPlaylistTrackLimitError = (isPremium) => {
     });
 };
 
+const throwPlaylistPlanLockedError = (playlistId, limit) => {
+    throw new AppError(PLAYLIST_PLAN_LOCKED_MESSAGE, 403, {
+        playlistId: String(playlistId),
+        limit,
+        reason: "plan_limit",
+    });
+};
+
 const getPlaylistLimitByUserId = async (userId) => {
     const now = new Date();
 
@@ -122,6 +132,85 @@ const getPlaylistLimitByUserId = async (userId) => {
             ? PREMIUM_TRACK_LIMIT_PER_PLAYLIST
             : FREE_TRACK_LIMIT_PER_PLAYLIST,
     };
+};
+
+const getFreeAccessiblePlaylistIdsByUserId = async (userId, limit = FREE_PLAYLIST_LIMIT) => {
+    if (!userId || limit <= 0) {
+        return [];
+    }
+
+    const playlists = await Playlist.find({
+        userId,
+        type: "user",
+    })
+        .select("_id")
+        .sort({ createdAt: 1, _id: 1 })
+        .limit(limit)
+        .lean();
+
+    return playlists.map((playlist) => String(playlist._id));
+};
+
+const getPlaylistPlanAccessByUserId = async (userId) => {
+    const playlistLimits = await getPlaylistLimitByUserId(userId);
+
+    if (playlistLimits.isPremium) {
+        return {
+            ...playlistLimits,
+            accessiblePlaylistIds: null,
+            accessiblePlaylistIdSet: null,
+        };
+    }
+
+    const accessiblePlaylistIds = await getFreeAccessiblePlaylistIdsByUserId(
+        userId,
+        playlistLimits.playlistLimit
+    );
+
+    return {
+        ...playlistLimits,
+        accessiblePlaylistIds,
+        accessiblePlaylistIdSet: new Set(accessiblePlaylistIds),
+    };
+};
+
+const isPlaylistLockedByPlan = (playlist, playlistPlanAccess) => {
+    if (
+        !playlist ||
+        playlist?.type !== "user" ||
+        !playlistPlanAccess ||
+        playlistPlanAccess.isPremium
+    ) {
+        return false;
+    }
+
+    return !playlistPlanAccess.accessiblePlaylistIdSet?.has(String(playlist._id));
+};
+
+const assertPlaylistEditableByCurrentPlan = async (
+    userId,
+    playlistId,
+    playlistPlanAccess = null
+) => {
+    const resolvedPlaylistPlanAccess =
+        playlistPlanAccess ?? (await getPlaylistPlanAccessByUserId(userId));
+
+    if (resolvedPlaylistPlanAccess.isPremium) {
+        return resolvedPlaylistPlanAccess;
+    }
+
+    if (
+        !resolvedPlaylistPlanAccess.accessiblePlaylistIdSet?.has(
+            String(playlistId)
+        )
+    ) {
+        throwPlaylistPlanLockedError(
+            playlistId,
+            resolvedPlaylistPlanAccess.playlistLimit
+        );
+    }
+
+    return resolvedPlaylistPlanAccess;
 };
 
 const createMyPlaylistByUserId = async (userId, body = {}, file = null) => {
@@ -194,6 +283,8 @@ const updateMyPlaylistByUserId = async (
         throw new AppError("Playlist not found.", 404);
     }
 
+    await assertPlaylistEditableByCurrentPlan(userId, playlist._id);
+
     if (payload.title !== undefined) {
         playlist.title = payload.title;
     }
@@ -236,16 +327,16 @@ const addTrackToMyPlaylistByUserId = async (userId, playlistId, trackId) => {
         throw new AppError("Playlist not found.", 404);
     }
 
-    const [track, { isPremium, trackLimitPerPlaylist }] = await Promise.all([
-        Track.findOne({
-            _id: normalizedTrackId,
-            activeStatus: "active",
-            approvalStatus: "approved",
-            isDeleted: { $ne: true },
-            ...buildReleasedTrackFilter(),
-        }).lean(),
-        getPlaylistLimitByUserId(userId),
-    ]);
+    const { isPremium, trackLimitPerPlaylist } =
+        await assertPlaylistEditableByCurrentPlan(userId, playlist._id);
+
+    const track = await Track.findOne({
+        _id: normalizedTrackId,
+        activeStatus: "active",
+        approvalStatus: "approved",
+        isDeleted: { $ne: true },
+        ...buildReleasedTrackFilter(),
+    }).lean();
 
     if (!track) {
         throw new AppError("Bài hát không tồn tại hoặc hiện không khả dụng.", 404);
@@ -297,6 +388,8 @@ const removeTrackFromMyPlaylistByUserId = async (userId, playlistId, trackId) =>
     if (!playlist) {
         throw new AppError("Playlist not found.", 404);
     }
+
+    await assertPlaylistEditableByCurrentPlan(userId, playlist._id);
 
     const existingTrackIndex = playlist.tracks.findIndex(
         (item) => String(item.trackId) === String(normalizedTrackId)
@@ -378,28 +471,44 @@ const getMyPlaylistsByUserId = async (userId, query = {}) => {
     const page = normalizePositiveInteger(query.page, DEFAULT_PAGE);
     const requestedLimit = normalizePositiveInteger(query.limit, DEFAULT_LIMIT);
     const limit = Math.min(requestedLimit, MAX_LIMIT);
-    const skip = (page - 1) * limit;
-
+    const playlistPlanAccess = await getPlaylistPlanAccessByUserId(userId);
     const filter = {
         userId,
     };
 
-    const [playlists, total] = await Promise.all([
-        Playlist.find(filter)
-            .sort({ createdAt: -1, _id: -1 })
-            .skip(skip)
-            .limit(limit)
-            .populate({
-                path: "userId",
-                select: "profile.fullName",
-            })
-            .lean(),
+    let total;
 
-        Playlist.countDocuments(filter),
-    ]);
+    if (!playlistPlanAccess.isPremium) {
+        filter._id = {
+            $in: playlistPlanAccess.accessiblePlaylistIds,
+        };
+        total = playlistPlanAccess.accessiblePlaylistIds.length;
+    } else {
+        total = await Playlist.countDocuments(filter);
+    }
+
+    const skip = (page - 1) * limit;
+
+    const playlists = await Playlist.find(filter)
+        .sort({ createdAt: -1, _id: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate({
+            path: "userId",
+            select: "profile.fullName",
+        })
+        .lean();
 
     return {
-        playlists: playlists.map(formatUserPlaylist),
+        playlists: playlists.map((playlist) =>
+            formatUserPlaylist({
+                ...playlist,
+                isLockedByPlan: isPlaylistLockedByPlan(
+                    playlist,
+                    playlistPlanAccess
+                ),
+            })
+        ),
         pagination: {
             page,
             limit,
@@ -489,7 +598,27 @@ const getPlaylistDetail = async (playlistId, options = {}) => {
         throw new AppError("Playlist not found.", 404);
     }
 
-    return formatPlaylistDetail(playlist);
+    const ownerId = playlist.userId?._id || playlist.userId;
+    const isOwnedUserPlaylist =
+        playlist.type === "user" &&
+        Boolean(options.currentUserId) &&
+        String(ownerId) === String(options.currentUserId);
+    let isLockedByPlan = false;
+    let trackLimit = null;
+
+    if (isOwnedUserPlaylist) {
+        const playlistPlanAccess = await getPlaylistPlanAccessByUserId(
+            options.currentUserId
+        );
+        isLockedByPlan = isPlaylistLockedByPlan(playlist, playlistPlanAccess);
+        trackLimit = playlistPlanAccess.trackLimitPerPlaylist;
+    }
+
+    return formatPlaylistDetail({
+        ...playlist,
+        isLockedByPlan,
+        trackLimit,
+    });
 };
 
 export default {
@@ -500,4 +629,7 @@ export default {
     deleteMyPlaylistByUserId,
     getMyPlaylistsByUserId,
     getPlaylistDetail,
+    getPlaylistLimitByUserId,
+    getFreeAccessiblePlaylistIdsByUserId,
+    assertPlaylistEditableByCurrentPlan,
 };

@@ -574,7 +574,7 @@ const UserProfilePage = () => {
                 fullName={profileDetail.fullName}
                 email={profileDetail.email}
                 gender={profileDetail.gender}
-                country={formatDateOfBirth(profileDetail.dateOfBirth)}
+                dateOfBirth={formatDateOfBirth(profileDetail.dateOfBirth)}
               />
             </div>
           </UserProfileCard>

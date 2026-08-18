@@ -11,6 +11,7 @@ import {
     createRefreshToken,
     getRefreshExpireDate,
 } from "../../utils/tokenUtils.js";
+import { formatDateOnly } from "../../utils/date.util.js";
 
 const GOOGLE_ISSUERS = new Set([
     "accounts.google.com",
@@ -23,9 +24,14 @@ export const sanitizeUser = (user) => ({
     email: user.email,
     username: user.username,
     avatar: user.avatar,
+    authProvider: user.authProvider || "local",
+    canChangePassword: (user.authProvider || "local") === "local",
     role: user.role,
     activeStatus: user.activeStatus,
-    profile: user.profile,
+    profile: {
+        ...(user.profile || {}),
+        dateOfBirth: formatDateOnly(user.profile?.dateOfBirth),
+    },
     subscription: user.subscription,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
