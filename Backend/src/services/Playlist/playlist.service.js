@@ -19,6 +19,7 @@ const getSystemPlaylists = async (query = {}) => {
     const filter = {
         type: "system",
         isHidden: false,
+        isPublic: true,
     };
 
     const [playlists, total] = await Promise.all([
@@ -54,7 +55,7 @@ const buildPlaylistDetailFilter = (playlistId, mode) => {
         _id: playlistId,
         isHidden: false,
         $or: [
-            { type: "system" },
+            { type: "system", isPublic: true },
             { isPublic: true },
         ],
     };
