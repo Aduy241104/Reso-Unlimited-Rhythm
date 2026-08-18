@@ -19,6 +19,7 @@ import {
     getCandidateContext,
     isDuplicateAutomaticRejection,
     isPerfectFingerprintMatch,
+    isSameTitleAudioDuplicate,
     MODERATION_DECISIONS,
 } from "./moderationDecision.service.js";
 
@@ -40,6 +41,29 @@ const getTargetVersions = (track) => {
         copyrightVersion: Number(pending ? track.pendingUpdate.copyrightVersion : track.copyrightVersion) || 1,
         evidenceVersion: Number(pending ? track.pendingUpdate.evidenceVersion : track.evidenceVersion) || 1,
     };
+};
+
+const normalizeTitleForComparison = (value) => String(value || "")
+    .normalize("NFKC")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLocaleLowerCase("vi-VN");
+
+const getModerationTitle = (track) => {
+    const target = getTarget(track);
+    return target?.title || track?.title || "";
+};
+
+const getSameArtistTitleAudioMatch = (track, matchResult) => {
+    const candidate = matchResult?.candidateTrack;
+    if (!candidate || getCandidateContext(candidate) !== "approved_active") return null;
+
+    const sameArtist = String(track?.artist_artistId || "") === String(candidate?.artist_artistId || "");
+    const sameTitle = normalizeTitleForComparison(getModerationTitle(track)) ===
+        normalizeTitleForComparison(getModerationTitle(candidate));
+    if (!sameArtist || !sameTitle || !isSameTitleAudioDuplicate(matchResult.match)) return null;
+
+    return matchResult;
 };
 
 const isCurrentModerationVersion = async (track, versions, { requirePending = true, pendingUpdate = null } = {}) => {
@@ -214,7 +238,7 @@ const findEligibleMatch = async ({ track, query, sort }) => {
         const otherTrackId = getOtherTrackId(match, track._id);
         if (!otherTrackId) continue;
         const candidateTrack = await Track.findById(otherTrackId)
-            .select("_id artist_artistId approvalStatus activeStatus pendingUpdate isDeleted")
+            .select("_id title artist_artistId approvalStatus activeStatus pendingUpdate isDeleted")
             .lean();
         if (!candidateTrack || getCandidateContext(candidateTrack) === "historical_deleted") continue;
         if (isOwnDraftCandidate(track, candidateTrack)) continue;
@@ -489,6 +513,7 @@ const evaluateAutomaticTrackModerationOnce = async (trackId, { force = false } =
     const highMatch = await findHighConfidenceMatch(track, versions.audioVersion);
     const reviewMatch = await findReviewConfidenceMatch(track, versions.audioVersion);
     const perfectCandidate = getPerfectCandidateForDecision(track, highMatch || reviewMatch);
+    const sameArtistTitleMatch = getSameArtistTitleAudioMatch(track, highMatch);
     const providers = await getProviderResults(track._id, versions);
     const decision = evaluateModerationDecision({
         fingerprint: { status: fingerprint.status, complete: true },
@@ -496,6 +521,7 @@ const evaluateAutomaticTrackModerationOnce = async (trackId, { force = false } =
         copyright: target?.copyright || {},
         exactCandidate: getCandidateForDecision(exactDuplicate),
         perfectCandidate,
+        sameArtistTitleMatch,
         highMatch,
         reviewMatch,
         acoustId: providers.acoustId,

@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { StatusCodes } from "http-status-codes";
 import { AppError } from "../../utils/AppError.js";
+import Track from "../../models/Track.js";
 import {
     assertArtistCanCreateTrack,
     LYRICS_STATIC_MAX_LENGTH,
@@ -61,6 +62,40 @@ export const validateRequiredGenreIds = async (genreIds) => {
 
 export const validateCopyrightForSubmit = (copyright = {}) =>
     validateCopyrightDeclaration(copyright);
+
+const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+export const assertTrackTitleIsAvailable = async (title, artistId, excludedTrackId = null) => {
+    const normalizedTitle = typeof title === "string" ? title.trim() : "";
+    if (!normalizedTitle || !artistId) return;
+
+    const titlePattern = new RegExp(`^${escapeRegExp(normalizedTitle)}$`, "i");
+    const query = {
+        artist_artistId: artistId,
+        isDeleted: { $ne: true },
+        $or: [
+            { title: titlePattern },
+            { "pendingUpdate.data.title": titlePattern },
+        ],
+    };
+
+    if (excludedTrackId) {
+        query._id = { $ne: excludedTrackId };
+    }
+
+    const duplicate = await Track.findOne(query);
+    if (!duplicate) return;
+    if (excludedTrackId && String(duplicate._id || "") === String(excludedTrackId)) return;
+
+    throw new AppError(
+        "Tên bài hát này đã tồn tại trong kho nhạc của bạn. Vui lòng chọn tên khác.",
+        StatusCodes.CONFLICT,
+        {
+            code: "TRACK_TITLE_EXISTS",
+            field: "title",
+        },
+    );
+};
 
 // The edit screen can display a rejected/pending version from pendingUpdate.data.
 // Submission must validate that same version instead of the currently published
@@ -149,6 +184,7 @@ export const validateTrackForSubmit = async (track, artist) => {
     const submissionData = getTrackSubmissionData(track);
 
     validateDraftTitle(submissionData.title);
+    await assertTrackTitleIsAvailable(submissionData.title, artist._id, track._id);
 
     await validateRequiredGenreIds(submissionData.genreIds);
     validateRequiredAudioFiles(submissionData.audioFiles);
