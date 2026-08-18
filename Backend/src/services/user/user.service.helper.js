@@ -3,6 +3,7 @@ import { AppError } from "../../utils/AppError.js";
 import { uploadImageBuffer, deleteImageByPublicId } from "../cloudinaryService.js";
 import { extractPublicIdFromUrl } from "../../utils/uploadCloud.js";
 import { resolveUserPremiumState } from "../../utils/premiumAccess.js";
+import { formatDateOnly, parseDateOnlyToUtcDate } from "../../utils/date.util.js";
 
 const ALLOWED_GENDERS = new Set([
     "male",
@@ -10,11 +11,12 @@ const ALLOWED_GENDERS = new Set([
     "other",
 ]);
 const CLOUDINARY_USER_FOLDER = "reso/users";
+const FULL_NAME_PATTERN = /^[\p{L}\s]+$/u;
 
 const normalizeProfile = (profile = {}) => ({
     fullName: profile.fullName ?? "",
     gender: profile.gender ?? "prefer_not_to_say",
-    dateOfBirth: profile.dateOfBirth ?? null,
+    dateOfBirth: formatDateOnly(profile.dateOfBirth),
 });
 
 const normalizeId = (user = {}) => {
@@ -34,6 +36,8 @@ export const formatCurrentUserProfile = async (user = {}) => ({
     email: user.email ?? "",
     username: user.username ?? "",
     avatar: user.avatar ?? "",
+    authProvider: user.authProvider ?? "local",
+    canChangePassword: (user.authProvider ?? "local") === "local",
     role: user.role ?? "",
     activeStatus: user.activeStatus ?? "",
     isPremium: await resolveUserPremiumState(user),
@@ -132,6 +136,14 @@ const sanitizeFullName = (value) => {
         );
     }
 
+    if (!FULL_NAME_PATTERN.test(trimmed)) {
+        throw new AppError(
+            "fullName must contain letters and spaces only.",
+            StatusCodes.BAD_REQUEST,
+            { field: "fullName" }
+        );
+    }
+
     return trimmed;
 };
 
@@ -163,9 +175,9 @@ export const buildMyProfileUpdates = (payload = {}) => {
     }
 
     if (typeof dateOfBirth !== "undefined") {
-        const parsedDate = new Date(dateOfBirth);
+        const parsedDate = parseDateOnlyToUtcDate(dateOfBirth);
 
-        if (Number.isNaN(parsedDate.getTime())) {
+        if (!parsedDate || Number.isNaN(parsedDate.getTime())) {
             throw new AppError(
                 "dateOfBirth must be a valid date.",
                 StatusCodes.BAD_REQUEST,
@@ -175,13 +187,16 @@ export const buildMyProfileUpdates = (payload = {}) => {
 
         const today = new Date();
         const maximumDateOfBirth = new Date(
-            today.getFullYear() - 13,
-            today.getMonth(),
-            today.getDate()
+            Date.UTC(
+                today.getUTCFullYear() - 13,
+                today.getUTCMonth(),
+                today.getUTCDate(),
+                0,
+                0,
+                0,
+                0
+            )
         );
-
-        parsedDate.setHours(0, 0, 0, 0);
-        maximumDateOfBirth.setHours(0, 0, 0, 0);
 
         if (parsedDate > maximumDateOfBirth) {
             throw new AppError(

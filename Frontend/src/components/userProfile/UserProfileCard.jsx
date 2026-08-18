@@ -7,6 +7,9 @@ const EMPTY_PROFILE = {
   fullName: "",
   gender: "",
   country: "",
+  dateOfBirth: "",
+  authProvider: "",
+  canChangePassword: null,
 };
 
 const normalizeText = (value) => {
@@ -31,12 +34,30 @@ const normalizeGenderValue = (value) => {
   return normalizedValue === "other" ? "other" : normalizedValue;
 };
 
+const normalizeBoolean = (value) => {
+  if (typeof value !== "boolean") {
+    return null;
+  }
+
+  return value;
+};
+
 export const createUserProfileSnapshot = (source) => {
   if (!source) {
     return { ...EMPTY_PROFILE };
   }
 
   const nestedProfile = source.profile ?? {};
+  const authProvider = normalizeText(
+    source.authProvider ?? source.provider ?? nestedProfile.authProvider
+  ).toLowerCase();
+  const explicitCanChangePassword = normalizeBoolean(source.canChangePassword);
+  const canChangePassword =
+    explicitCanChangePassword !== null
+      ? explicitCanChangePassword
+      : authProvider
+        ? authProvider === "local"
+        : null;
 
   return {
     email: normalizeText(source.email),
@@ -49,6 +70,9 @@ export const createUserProfileSnapshot = (source) => {
     ),
     gender: normalizeGenderValue(source.gender ?? nestedProfile.gender),
     country: normalizeText(source.country ?? nestedProfile.country),
+    dateOfBirth: normalizeText(source.dateOfBirth ?? nestedProfile.dateOfBirth),
+    authProvider,
+    canChangePassword,
   };
 };
 
@@ -62,6 +86,12 @@ export const mergeUserProfileSnapshot = (current, incoming) => {
     fullName: incomingSnapshot.fullName || currentSnapshot.fullName,
     gender: incomingSnapshot.gender || currentSnapshot.gender,
     country: incomingSnapshot.country || currentSnapshot.country,
+    dateOfBirth: incomingSnapshot.dateOfBirth || currentSnapshot.dateOfBirth,
+    authProvider: incomingSnapshot.authProvider || currentSnapshot.authProvider,
+    canChangePassword:
+      incomingSnapshot.canChangePassword !== null
+        ? incomingSnapshot.canChangePassword
+        : currentSnapshot.canChangePassword,
   };
 };
 
