@@ -642,20 +642,12 @@ export const PlayerProvider = ({ children }) => {
   const ignoreNextListenDeltaRef = useRef(true);
   const queueMutationCounterRef = useRef(0);
   const isRestoringPlaybackRef = useRef(false);
-  const podcastListenSessionIdRef = useRef(null);
   const playerModeRef = useRef(PLAYER_MODE_TRACK);
   const currentAdDecisionRef = useRef(null);
   const adEventStartedRef = useRef(false);
   const pendingAfterAdRef = useRef(null);
   const finishAdvertisementRef = useRef(null);
   const maybePlayAdvertisementRef = useRef(null);
-
-  if (!podcastListenSessionIdRef.current) {
-    podcastListenSessionIdRef.current =
-      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-        ? crypto.randomUUID()
-        : `podcast-session-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  }
 
   const isPremium = useMemo(() => hasPremiumAccess(user), [user]);
 
@@ -928,19 +920,30 @@ export const PlayerProvider = ({ children }) => {
     }
 
     const podcastDuration = Number(activeListen.duration) || 0;
-    const threshold = Math.min(30, podcastDuration * 0.25);
+    const threshold = podcastDuration * 0.5;
 
     if (threshold <= 0 || Number(nextTime) < threshold) {
+      return;
+    }
+
+    const listenedDuration = Math.floor(
+      Math.min(
+        Math.max(Number(listenedDurationRef.current) || 0, 0),
+        podcastDuration
+      )
+    );
+
+    if (listenedDuration < threshold) {
       return;
     }
 
     activeListen.isReporting = true;
 
     try {
-      const result = await podcastService.listen(
+      const result = await podcastService.stream(
         activeListen.trackId,
-        Math.floor(Number(nextTime) || 0),
-        podcastListenSessionIdRef.current
+        listenedDuration,
+        activeListen.source
       );
       if (result) activeListen.hasReported = true;
     } catch (error) {
