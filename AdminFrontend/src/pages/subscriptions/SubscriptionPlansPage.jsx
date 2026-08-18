@@ -191,11 +191,11 @@ const SubscriptionPlansPage = () => {
           </h1>
         </div>
 
-        <div className="flex flex-wrap items-center gap-4 self-start lg:self-auto">
+        <div className="flex w-full flex-col gap-4 self-start lg:w-auto lg:items-end">
           <SubscriptionManagementStatsSection stats={stats} />
           <Link
             to={routePaths.subscriptionNew}
-            className="flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+            className="ml-auto flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
           >
             <Plus size={16} /> Thêm gói mới
           </Link>
@@ -268,7 +268,7 @@ const SubscriptionPlansPage = () => {
 
             <button
               type="submit"
-              className="rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+              className="rounded-lg bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
             >
               Tìm kiếm
             </button>
@@ -406,7 +406,7 @@ const SubscriptionPlansPage = () => {
                   pageClassName="flex h-9 w-9 items-center justify-center rounded-lg text-sm font-semibold transition hover:bg-slate-100"
                   previousClassName="flex h-9 w-9 items-center justify-center rounded-lg text-sm font-semibold transition hover:bg-slate-100"
                   nextClassName="flex h-9 w-9 items-center justify-center rounded-lg text-sm font-semibold transition hover:bg-slate-100"
-                  activeClassName="bg-blue-600 text-white hover:bg-blue-700"
+                  activeClassName="bg-slate-900 text-white hover:bg-slate-800"
                   disabledClassName="cursor-not-allowed opacity-40"
                 />
               ) : null}

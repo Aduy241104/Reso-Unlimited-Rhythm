@@ -184,7 +184,7 @@ const getGroupedReports = async (query) => {
                     targetType: "artist",
                     targetId: artistIdStr,
                     targetInfo: artistDoc || { _id: artistIdStr, name: "Nghệ sĩ", activeStatus: "active", violations: [] },
-                    violationsCount: artistDoc?.violations?.length || (artistDoc?.activeStatus === "blocked" ? 5 : 1),
+                    violationsCount: artistDoc?.violations?.length || 0,
                     totalReports: 0,
                     pendingReports: 0,
                     resolvedReports: 0,
@@ -390,14 +390,18 @@ const resolveGroupedReport = async (targetType, targetId, body, adminId) => {
         throw new AppError("Không có báo cáo mới nào đang chờ duyệt. Đợt báo cáo này đã được xử lý hoàn tất.", 400);
     }
 
-    for (const report of groupReports) {
+    const handledAt = new Date();
+    const resolutionBatchId = new mongoose.Types.ObjectId().toString();
+
+    for (const report of pendingGroupReports) {
         const isValid = evaluationMap.has(String(report._id))
             ? evaluationMap.get(String(report._id))
             : false;
 
         report.isValidReason = isValid;
         report.handledBy = adminId;
-        report.handledAt = new Date();
+        report.handledAt = handledAt;
+        report.resolutionBatchId = resolutionBatchId;
         report.resolutionNote = resolutionNote;
 
         if (normalizedAction === "reject") {
@@ -411,7 +415,10 @@ const resolveGroupedReport = async (targetType, targetId, body, adminId) => {
         await report.save();
     }
 
-    const shouldIncrementViolation = normalizedAction !== "reject";
+    const hasValidViolationReport =
+        normalizedAction !== "reject" &&
+        pendingGroupReports.some((report) => evaluationMap.get(String(report._id)) === true);
+    const shouldIncrementViolation = hasValidViolationReport;
 
     let updatedViolationsCount = 0;
     let newArtistStatus = "active";
@@ -448,7 +455,7 @@ const resolveGroupedReport = async (targetType, targetId, body, adminId) => {
             const validReasons = evaluations
                 .filter((e) => e.isValid)
                 .map((e) => {
-                    const found = groupReports.find((r) => String(r._id) === String(e.reportId));
+                    const found = pendingGroupReports.find((r) => String(r._id) === String(e.reportId));
                     return found?.reason;
                 })
                 .filter(Boolean);
