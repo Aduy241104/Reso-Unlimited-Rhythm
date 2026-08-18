@@ -6,12 +6,13 @@ const artistId = new mongoose.Types.ObjectId();
 const adminId = new mongoose.Types.ObjectId();
 const podcastId = new mongoose.Types.ObjectId();
 
-const mockArtist = { findOne: jest.fn(), find: jest.fn() };
+const mockArtist = { findOne: jest.fn(), find: jest.fn(), collection: { name: "artists" } };
 const mockPodcast = {
     create: jest.fn(),
     findOne: jest.fn(),
     findById: jest.fn(),
     find: jest.fn(),
+    aggregate: jest.fn(),
     countDocuments: jest.fn(),
     findOneAndUpdate: jest.fn(),
 };
@@ -72,6 +73,7 @@ describe("Podcast V1 workflow authorization and moderation", () => {
         jest.clearAllMocks();
         mockArtist.findOne.mockReturnValue(queryWith(artist));
         mockArtist.find.mockReturnValue(queryWith([]));
+        mockPodcast.aggregate.mockReset();
         mockPodcast.countDocuments.mockResolvedValue(0);
         mockPodcastReview.findOne.mockReset();
         mockPodcastReview.create.mockReset();
@@ -192,6 +194,25 @@ describe("Podcast V1 workflow authorization and moderation", () => {
     test("public filter keeps approval, visibility, block, delete and release dimensions independent", () => {
         const filter = publicService.publicFilter();
         expect(filter).toMatchObject({ approvalStatus: "approved", visibility: "public", isBlocked: false, isDeleted: { $ne: true } });
+    });
+
+    test("public list excludes podcasts whose creator artist is not public", async () => {
+        const publicPodcast = basePodcast({ approvalStatus: "approved", visibility: "public", creator: artist });
+        mockPodcast.aggregate.mockResolvedValue([{ items: [publicPodcast], meta: [{ total: 1 }] }]);
+
+        const result = await publicService.listPublicPodcasts({ page: 1, limit: 10 });
+
+        expect(result.podcasts).toHaveLength(1);
+        expect(result.pagination.total).toBe(1);
+        const pipeline = mockPodcast.aggregate.mock.calls[0][0];
+        expect(pipeline).toEqual(expect.arrayContaining([
+            expect.objectContaining({
+                $match: expect.objectContaining({
+                    "creator.activeStatus": "active",
+                    "creator.isDeleted": { $ne: true },
+                }),
+            }),
+        ]));
     });
 
     test("does not count detail reads or playback below threshold, and de-duplicates completed listens", async () => {

@@ -56,9 +56,21 @@ const normalizeTopTrackItem = (item, index) => {
 };
 
 export const trackService = {
-  uploadFiles: async (audioFile, avatar, coverImages, lyricsSyncFile) => {
+  uploadFiles: async (
+    audioFile,
+    avatar,
+    coverImages,
+    lyricsSyncFile,
+    metadata = {}
+  ) => {
     try {
       const formData = new FormData();
+
+      Object.entries(metadata || {}).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && String(value).trim() !== "") {
+          formData.append(key, String(value));
+        }
+      });
 
       if (audioFile) {
         formData.append("audioFiles", audioFile);

@@ -102,6 +102,15 @@ const listenPodcastSchema = Joi.object({
     sessionId: Joi.string().trim().max(200).allow(""),
 });
 
+const podcastStreamSchema = Joi.object({
+    listenedDuration: Joi.number().positive().required(),
+    guestId: Joi.string().trim().guid({ version: ["uuidv4"] }),
+    source: Joi.string()
+        .trim()
+        .valid("podcast_detail", "search", "unknown")
+        .default("podcast_detail"),
+});
+
 export {
     createPodcastSchema,
     updatePodcastSchema,
@@ -115,4 +124,5 @@ export {
     visibilitySchema,
     publicPodcastQuerySchema,
     listenPodcastSchema,
+    podcastStreamSchema,
 };

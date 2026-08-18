@@ -9,6 +9,9 @@ const STATUS_LABELS = {
   rejected: 'Đã bị từ chối',
 };
 
+const SOCIAL_LINK_REQUIRED_MESSAGE =
+  'Vui lòng nhập ít nhất 1 liên kết Website, Liên kết khác, TikTok, Instagram, SoundCloud, Facebook, YouTube hoặc Spotify.';
+
 const normalizeSocialLinks = (socialLinks = {}) => ({
   spotify: typeof socialLinks.spotify === 'string' ? socialLinks.spotify : '',
   youtube: typeof socialLinks.youtube === 'string' ? socialLinks.youtube : '',
@@ -43,6 +46,10 @@ const normalizeString = (value) => (typeof value === 'string' ? value.trim() : '
 const normalizeMessage = (value) => String(value || '').trim().toLowerCase();
 const asArray = (value) => (Array.isArray(value) ? value : []);
 const getPayload = (response) => response?.data || response || {};
+const sanitizeIdNumber = (value) => String(value ?? '').replace(/\D/g, '');
+const hasAtLeastOneSocialLink = (socialLinks = {}) => (
+  Object.values(normalizeSocialLinks(socialLinks)).some((value) => Boolean(normalizeString(value)))
+);
 
 const getFileExtension = (uri = '') => {
   const match = String(uri).match(/\.([a-zA-Z0-9]+)(?:\?|$)/);
@@ -114,6 +121,8 @@ const validateArtistRegistrationDraft = (draft = {}) => {
 
   if (!normalizeString(draft.idNumber)) {
     errors.idNumber = 'Vui lòng nhập số CCCD.';
+  } else if (sanitizeIdNumber(draft.idNumber) !== normalizeString(draft.idNumber)) {
+    errors.idNumber = 'Số CCCD chỉ được nhập số.';
   }
 
   if (!normalizeString(draft.dateOfBirth)) {
@@ -128,6 +137,10 @@ const validateArtistRegistrationDraft = (draft = {}) => {
 
   if (!draft.backImage?.uri) {
     errors.backImage = 'Vui lòng chọn ảnh mặt sau CCCD.';
+  }
+
+  if (!hasAtLeastOneSocialLink(draft.socialLinks)) {
+    errors.socialLinks = SOCIAL_LINK_REQUIRED_MESSAGE;
   }
 
   if (!draft.acceptedTerms) {
@@ -216,7 +229,7 @@ export const artistRegistrationRequestService = {
     appendStringField(formData, 'stageName', draft.stageName);
     appendStringField(formData, 'bio', draft.bio);
     appendStringField(formData, 'fullName', draft.fullName);
-    appendStringField(formData, 'idNumber', draft.idNumber);
+    appendStringField(formData, 'idNumber', sanitizeIdNumber(draft.idNumber));
     appendStringField(formData, 'dateOfBirth', toApiDateValue(draft.dateOfBirth));
     appendStringField(formData, 'portfolioDescription', draft.portfolioDescription);
     appendBooleanField(formData, 'acceptedTerms', draft.acceptedTerms);

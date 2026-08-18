@@ -5,6 +5,9 @@ export const getGroupedReportsService = async (filters = {}) => {
     if (filters.search) params.q = filters.search;
     if (filters.status) params.status = filters.status;
     if (filters.targetType) params.targetType = filters.targetType;
+    if (typeof filters.onlyViolations !== "undefined") {
+        params.onlyViolations = filters.onlyViolations;
+    }
     if (filters.page) params.page = filters.page;
     if (filters.limit) params.limit = filters.limit;
 

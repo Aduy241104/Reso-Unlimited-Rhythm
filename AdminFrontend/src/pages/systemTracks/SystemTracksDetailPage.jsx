@@ -1117,6 +1117,34 @@ const TrackDetailPage = () => {
                                     "Chưa có ứng viên"
                                 )}
                             </span>
+                            {track.fingerprint?.comparison?.highestActiveCandidate?.title ? (
+                                <span className="mt-1 block text-[10px] text-slate-500">
+                                    <span>Cao nhất với </span>
+                                    {track.fingerprint.comparison.highestActiveCandidate.id ? (
+                                        <Link
+                                            to={routePaths.trackDetail(track.fingerprint.comparison.highestActiveCandidate.id)}
+                                            className="font-semibold text-sky-700 transition hover:text-sky-900 hover:underline"
+                                        >
+                                            {`${track.fingerprint.comparison.highestActiveCandidate.title}${
+                                                track.fingerprint.comparison.highestActiveCandidate.versionTitle
+                                                    ? ` - ${track.fingerprint.comparison.highestActiveCandidate.versionTitle}`
+                                                    : ""
+                                            }`}
+                                        </Link>
+                                    ) : (
+                                        <span>
+                                            {`${track.fingerprint.comparison.highestActiveCandidate.title}${
+                                                track.fingerprint.comparison.highestActiveCandidate.versionTitle
+                                                    ? ` - ${track.fingerprint.comparison.highestActiveCandidate.versionTitle}`
+                                                    : ""
+                                            }`}
+                                        </span>
+                                    )}
+                                    {track.fingerprint.comparison.highestActiveCandidate.artist?.name ? (
+                                        <span>{` • ${track.fingerprint.comparison.highestActiveCandidate.artist.name}`}</span>
+                                    ) : null}
+                                </span>
+                            ) : null}
                         </div>
                     </div>
                     <div className="mt-3 grid gap-3 sm:grid-cols-3 text-xs">

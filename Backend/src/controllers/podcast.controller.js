@@ -4,6 +4,7 @@ import { inspectPodcastAudio } from "../services/podcast/podcast.audio.service.j
 import podcastService from "../services/podcast/podcast.service.js";
 import { listPublicPodcasts, getPublicPodcast } from "../services/podcast/podcast.public.service.js";
 import { recordPodcastListen } from "../services/podcast/podcast.listen.service.js";
+import { recordPodcastStream } from "../services/podcast/podcast.stream.service.js";
 import formatResponse from "../utils/formatResponse.js";
 import { AppError } from "../utils/AppError.js";
 
@@ -121,6 +122,19 @@ const listen = async (req, res, next) => {
     } catch (error) { next(error); }
 };
 
+const stream = async (req, res, next) => {
+    try {
+        const result = await recordPodcastStream({
+            podcastId: req.params.id,
+            listenedDuration: req.body.listenedDuration,
+            userId: req.user?.id,
+            guestId: req.user ? undefined : req.body.guestId || req.get("x-guest-id"),
+            source: req.body.source,
+        });
+        return formatResponse.success(res, result, "Podcast stream event processed.");
+    } catch (error) { next(error); }
+};
+
 export default {
     createPodcast,
     listArtistPodcasts,
@@ -133,4 +147,5 @@ export default {
     listPodcasts,
     getPodcast,
     listen,
+    stream,
 };

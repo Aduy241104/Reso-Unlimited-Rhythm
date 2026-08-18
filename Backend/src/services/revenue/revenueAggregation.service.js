@@ -104,8 +104,10 @@ const aggregateEligibleStreamCount = async ({ periodStart, periodEnd }) => {
             $match: {
                 listenedAt: { $gte: periodStart, $lt: periodEnd },
                 isValidStream: true,
-                trackId: { $exists: true, $ne: null },
-                artistId: { $exists: true, $ne: null },
+                $or: [
+                    { trackId: { $exists: true, $ne: null } },
+                    { podcastId: { $exists: true, $ne: null } },
+                ],
             },
         },
         {

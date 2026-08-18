@@ -20,6 +20,10 @@ import {
     assertTrackTitleIsAvailable,
     validateTrackForSubmit,
 } from "../track.submit.validation.js";
+import {
+    assertTrackTitleVersionAvailable,
+    normalizeTrackVersionTitle,
+} from "../track.duplicate.validation.js";
 import Artist from "../../../models/Artist.js";
 import Album from "../../../models/Album.js";
 import ReleaseSchedule from "../../../models/ReleaseSchedule.js";
@@ -496,6 +500,7 @@ const createTrack = async (userId, trackData) => {
     const title = validateDraftTitle(trackData.title);
     const artistId = resolveArtistIdForCreate(trackData, artist);
     await assertTrackTitleIsAvailable(title, artistId);
+
     const audioFiles = validateOptionalAudioFiles(trackData.audioFiles);
     const duration = validateDurationFromAudioAnalysis(
         trackData.audioAnalysis,
@@ -532,10 +537,7 @@ const createTrack = async (userId, trackData) => {
 
     const newTrack = new Track({
         title,
-        versionTitle:
-            typeof trackData.versionTitle === "string"
-                ? trackData.versionTitle.trim()
-                : "",
+        versionTitle,
         description,
         tags,
         artist_artistId: artistId,

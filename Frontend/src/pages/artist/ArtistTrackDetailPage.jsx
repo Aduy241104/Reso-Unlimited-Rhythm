@@ -47,7 +47,9 @@ import {
   getTrackDisplayDuration,
   getTrackGenreLabel,
   getTrackReleaseStatusMeta,
+  getTrackVisibilityActionErrorMessage,
   resolveTrackArtwork,
+  TRACK_SCHEDULED_VISIBILITY_ERROR_MESSAGE,
 } from "../../utils/artistTrackPresentation";
 
 const VIOLATION_FLAG_LABELS = {
@@ -319,9 +321,7 @@ const ArtistTrackDetailPage = () => {
     }
 
     if (track.releaseStatus === "scheduled") {
-      showArtistError(
-        "Bài hát đang có lịch phát hành. Hãy hủy lịch trước khi thay đổi trạng thái hiển thị."
-      );
+      showArtistError(TRACK_SCHEDULED_VISIBILITY_ERROR_MESSAGE);
       return;
     }
 
@@ -332,8 +332,13 @@ const ArtistTrackDetailPage = () => {
         const updatedTrack = await trackService.unhideArtistTrack(track._id);
         setTrack(updatedTrack);
         showArtistSuccess("Đã hiển thị lại bài hát thành công.");
-      } catch {
-        showArtistError("Không thể hiển thị lại bài hát này vào lúc này.");
+      } catch (error) {
+        showArtistError(
+          getTrackVisibilityActionErrorMessage(
+            error,
+            "Không thể hiển thị lại bài hát này vào lúc này."
+          )
+        );
       } finally {
         setIsActionLoading(false);
       }
@@ -347,8 +352,13 @@ const ArtistTrackDetailPage = () => {
       const updatedTrack = await trackService.hideArtistTrack(track._id);
       setTrack(updatedTrack);
       showArtistSuccess("Đã ẩn bài hát thành công.");
-    } catch {
-      showArtistError("Không thể ẩn bài hát này vào lúc này.");
+    } catch (error) {
+      showArtistError(
+        getTrackVisibilityActionErrorMessage(
+          error,
+          "Không thể ẩn bài hát này vào lúc này."
+        )
+      );
     } finally {
       setIsActionLoading(false);
     }
@@ -726,7 +736,7 @@ const ArtistTrackDetailPage = () => {
                 }
                 title={
                   track?.releaseStatus === "scheduled"
-                    ? "Hãy hủy lịch phát hành trước khi thay đổi trạng thái hiển thị."
+                    ? TRACK_SCHEDULED_VISIBILITY_ERROR_MESSAGE
                     : undefined
                 }
                 className="inline-flex items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"

@@ -57,7 +57,7 @@ const getOverlayBounds = (container) => {
   };
 };
 
-const FOLLOW_LOGIN_NOTICE = "Vui lĂ²ng Ä‘Äƒng nháº­p Ä‘á»ƒ theo dĂµi nghá»‡ sÄ© nĂ y.";
+const FOLLOW_LOGIN_NOTICE = "Vui lòng đăng nhập để theo dõi nghệ sĩ này.";
 
 const hasResolvedFollowState = (value) => typeof value === "boolean";
 
@@ -177,7 +177,7 @@ const ArtistProfileView = () => {
         setErrorMessage(
           getApiErrorMessage(
             error,
-            "KhĂ´ng thá»ƒ táº£i há»“ sÆ¡ nghá»‡ sÄ© lĂºc nĂ y."
+            "Không thể tải hồ sơ nghệ sĩ lúc này."
           )
         );
       } finally {
@@ -246,7 +246,7 @@ const ArtistProfileView = () => {
         }
 
         setFollowErrorMessage(
-          getApiErrorMessage(error, "KhĂ´ng thá»ƒ táº£i tráº¡ng thĂ¡i theo dĂµi lĂºc nĂ y.")
+          getApiErrorMessage(error, "Không thể tải trạng thái theo dõi lúc này.")
         );
       } finally {
         if (isMounted) {
@@ -406,8 +406,8 @@ const ArtistProfileView = () => {
         getApiErrorMessage(
           error,
           isFollowing
-            ? "KhĂ´ng thá»ƒ bá» theo dĂµi nghá»‡ sÄ© lĂºc nĂ y."
-            : "KhĂ´ng thá»ƒ theo dĂµi nghá»‡ sÄ© lĂºc nĂ y."
+            ? "Không thể bỏ theo dõi nghệ sĩ lúc này."
+            : "Không thể theo dõi nghệ sĩ lúc này."
         )
       );
     } finally {

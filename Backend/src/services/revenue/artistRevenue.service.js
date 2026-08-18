@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import Artist from "../../models/Artist.js";
 import ArtistRevenueSummary from "../../models/ArtistRevenueSummary.js";
 import RevenuePeriod from "../../models/RevenuePeriod.js";
+import PodcastMonthlyStat from "../../models/PodcastMonthlyStat.js";
 import TrackMonthlyStat from "../../models/TrackMonthlyStat.js";
 import { normalizePositiveInteger } from "../Playlist/playlist.helper.js";
 import { AppError } from "../../utils/AppError.js";
@@ -226,6 +227,110 @@ const findArtistTrackRevenuesByPeriod = async ({ artistId, year, month }) =>
         })
     );
 
+const buildPodcastRevenueAggregationPipeline = ({
+    artistId,
+    year,
+    month,
+    groupByPeriod = false,
+}) => {
+    const pipeline = [
+        { $match: { year: Number(year), month: Number(month) } },
+        {
+            $lookup: {
+                from: "podcasts",
+                localField: "podcastId",
+                foreignField: "_id",
+                as: "podcast",
+            },
+        },
+        { $unwind: "$podcast" },
+        { $match: { "podcast.creator": artistId } },
+        {
+            $addFields: {
+                artistRevenueAmount: {
+                    $ifNull: ["$revenue.artistRevenueAmount", "$revenue.revenueAmount"],
+                },
+                eligibleStreams: {
+                    $ifNull: ["$revenue.eligibleStreams", "$eligibleStreams"],
+                },
+                revenueCalculatedAt: { $ifNull: ["$revenue.calculatedAt", null] },
+            },
+        },
+        {
+            $match: {
+                $or: [
+                    { artistRevenueAmount: { $gt: 0 } },
+                    { eligibleStreams: { $gt: 0 } },
+                ],
+            },
+        },
+    ];
+
+    if (groupByPeriod) {
+        pipeline.push({
+            $group: {
+                _id: { year: "$year", month: "$month" },
+                podcastCount: { $sum: 1 },
+                totalPodcastRevenueAmount: { $sum: "$artistRevenueAmount" },
+            },
+        });
+        return pipeline;
+    }
+
+    pipeline.push(
+        {
+            $project: {
+                _id: 0,
+                podcastId: "$podcast._id",
+                title: "$podcast.title",
+                coverImageUrl: "$podcast.coverImageUrl",
+                releaseDate: "$podcast.releaseDate",
+                approvalStatus: "$podcast.approvalStatus",
+                visibility: "$podcast.visibility",
+                artistRevenueAmount: 1,
+                eligibleStreams: 1,
+                revenueCalculatedAt: 1,
+                listenCount: 1,
+            },
+        },
+        {
+            $sort: {
+                artistRevenueAmount: -1,
+                eligibleStreams: -1,
+                listenCount: -1,
+                podcastId: 1,
+            },
+        }
+    );
+    return pipeline;
+};
+
+const findArtistPodcastRevenuesByPeriod = async ({ artistId, year, month }) =>
+    PodcastMonthlyStat.aggregate(
+        buildPodcastRevenueAggregationPipeline({ artistId, year, month })
+    );
+
+const findArtistPodcastRevenueCountsByPeriods = async ({ artistId, periods }) => {
+    if (!periods.length) return [];
+
+    return PodcastMonthlyStat.aggregate([
+        {
+            $match: {
+                $or: periods.map(({ year, month }) => ({
+                    year: Number(year),
+                    month: Number(month),
+                })),
+            },
+        },
+        ...buildPodcastRevenueAggregationPipeline({
+            artistId,
+            year: periods[0].year,
+            month: periods[0].month,
+            groupByPeriod: true,
+        }).slice(1),
+    ]);
+};
+
 const findArtistTrackRevenueCountsByPeriods = async ({ artistId, periods }) => {
     if (!periods.length) {
         return [];
@@ -278,6 +383,7 @@ const getLatestArtistRevenueDashboard = async (userId) => {
             summary: null,
             revenueChart: [],
             trackRevenues: [],
+            podcastRevenues: [],
         };
     }
 
@@ -288,7 +394,7 @@ const getLatestArtistRevenueDashboard = async (userId) => {
 
     const monthConditions = monthSeries.map(({ year, month }) => ({ year, month }));
 
-    const [chartSummaries, trackRevenues] = await Promise.all([
+    const [chartSummaries, trackRevenues, podcastRevenues] = await Promise.all([
         ArtistRevenueSummary.find({
             artistId: artist._id,
             $or: monthConditions,
@@ -297,6 +403,11 @@ const getLatestArtistRevenueDashboard = async (userId) => {
             .select("year month artistRevenueAmount totalEligibleStreams status")
             .lean(),
         findArtistTrackRevenuesByPeriod({
+            artistId: artist._id,
+            year: latestSummary.year,
+            month: latestSummary.month,
+        }),
+        findArtistPodcastRevenuesByPeriod({
             artistId: artist._id,
             year: latestSummary.year,
             month: latestSummary.month,
@@ -331,6 +442,15 @@ const getLatestArtistRevenueDashboard = async (userId) => {
             artistRevenueAmount: roundCurrency(track.artistRevenueAmount),
             eligibleStreams: Number(track.eligibleStreams || 0),
             playCount: Number(track.playCount || 0),
+        })),
+        podcastRevenues: podcastRevenues.map((podcast) => ({
+            podcastId: toId(podcast.podcastId),
+            title: podcast.title || "",
+            coverImageUrl: podcast.coverImageUrl || "",
+            artistRevenueAmount: roundCurrency(podcast.artistRevenueAmount),
+            eligibleStreams: Number(podcast.eligibleStreams || 0),
+            listenCount: Number(podcast.listenCount || 0),
+            calculatedAt: podcast.revenueCalculatedAt || null,
         })),
     };
 };
@@ -387,13 +507,17 @@ const getArtistRevenuePeriods = async (userId, query = {}) => {
         month: Number(summary.month),
     }));
 
-    const [revenuePeriods, trackStats] = await Promise.all([
+    const [revenuePeriods, trackStats, podcastStats] = await Promise.all([
         RevenuePeriod.find({
             $or: periodFilters,
         })
             .select("_id year month status periodStart periodEnd")
             .lean(),
         findArtistTrackRevenueCountsByPeriods({
+            artistId: artist._id,
+            periods: periodFilters,
+        }),
+        findArtistPodcastRevenueCountsByPeriods({
             artistId: artist._id,
             periods: periodFilters,
         }),
@@ -411,12 +535,19 @@ const getArtistRevenuePeriods = async (userId, query = {}) => {
             trackStat,
         ])
     );
+    const podcastStatsMap = new Map(
+        podcastStats.map((podcastStat) => [
+            `${podcastStat._id.year}-${podcastStat._id.month}`,
+            podcastStat,
+        ])
+    );
 
     return {
         revenuePeriods: revenueSummaries.map((summary) => {
             const periodKey = `${summary.year}-${summary.month}`;
             const revenuePeriod = revenuePeriodMap.get(periodKey) || null;
             const periodTrackStats = trackStatsMap.get(periodKey);
+            const periodPodcastStats = podcastStatsMap.get(periodKey);
 
             return {
                 id: toId(revenuePeriod?._id || summary._id),
@@ -426,6 +557,10 @@ const getArtistRevenuePeriods = async (userId, query = {}) => {
                 trackCount: Number(periodTrackStats?.trackCount || 0),
                 totalTrackRevenueAmount: roundCurrency(
                     periodTrackStats?.totalTrackRevenueAmount
+                ),
+                podcastCount: Number(periodPodcastStats?.podcastCount || 0),
+                totalPodcastRevenueAmount: roundCurrency(
+                    periodPodcastStats?.totalPodcastRevenueAmount
                 ),
             };
         }),
@@ -478,11 +613,18 @@ const getArtistRevenuePeriodDetail = async (userId, artistRevenueSummaryId) => {
         });
     }
 
-    const trackRevenues = await findArtistTrackRevenuesByPeriod({
-        artistId: artist._id,
-        year: artistRevenueSummary.year,
-        month: artistRevenueSummary.month,
-    });
+    const [trackRevenues, podcastRevenues] = await Promise.all([
+        findArtistTrackRevenuesByPeriod({
+            artistId: artist._id,
+            year: artistRevenueSummary.year,
+            month: artistRevenueSummary.month,
+        }),
+        findArtistPodcastRevenuesByPeriod({
+            artistId: artist._id,
+            year: artistRevenueSummary.year,
+            month: artistRevenueSummary.month,
+        }),
+    ]);
 
     if (!revenuePeriod) {
         revenuePeriod = await RevenuePeriod.findOne({
@@ -508,10 +650,22 @@ const getArtistRevenuePeriodDetail = async (userId, artistRevenueSummaryId) => {
                     0
                 )
             ),
+            podcastCount: podcastRevenues.length,
+            totalPodcastRevenueAmount: roundCurrency(
+                podcastRevenues.reduce(
+                    (totalAmount, podcast) =>
+                        totalAmount + Number(podcast.artistRevenueAmount || 0),
+                    0
+                )
+            ),
             totalEligibleStreams: trackRevenues.reduce(
                 (totalStreams, track) =>
                     totalStreams + Number(track.eligibleStreams || 0),
-                0
+                podcastRevenues.reduce(
+                    (totalStreams, podcast) =>
+                        totalStreams + Number(podcast.eligibleStreams || 0),
+                    0
+                )
             ),
         },
         trackRevenues: trackRevenues.map((track) => ({
@@ -534,6 +688,23 @@ const getArtistRevenuePeriodDetail = async (userId, artistRevenueSummaryId) => {
             playCount: Number(track.playCount || 0),
             uniqueListeners: Number(track.uniqueListeners || 0),
             calculatedAt: track.revenueCalculatedAt || null,
+        })),
+        podcastRevenues: podcastRevenues.map((podcast) => ({
+            podcastId: toId(podcast.podcastId),
+            title: podcast.title || "",
+            coverImageUrl: podcast.coverImageUrl || "",
+            releaseDate: podcast.releaseDate || null,
+            approvalStatus: podcast.approvalStatus || null,
+            visibility: podcast.visibility || null,
+            artistRevenueAmount: roundCurrency(podcast.artistRevenueAmount),
+            grossRevenueAmount: resolveTrackGrossRevenueAmount(podcast),
+            platformRevenueAmount: resolveTrackPlatformRevenueAmount(podcast),
+            revenueSharePercent: podcast.artistRevenueAmount
+                ? ARTIST_REVENUE_SHARE_PERCENT
+                : 0,
+            eligibleStreams: Number(podcast.eligibleStreams || 0),
+            listenCount: Number(podcast.listenCount || 0),
+            calculatedAt: podcast.revenueCalculatedAt || null,
         })),
     };
 };

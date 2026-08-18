@@ -20,6 +20,44 @@ const requestArtistRegistration = async (req, res, next) => {
     }
 };
 
+const checkArtistStageNameAvailability = async (req, res, next) => {
+    try {
+        const result =
+            await artistRegistrationService.checkStageNameAvailabilityByUserId(
+                req.user.id,
+                req.query.stageName
+            );
+
+        return formatResponse.success(
+            res,
+            result,
+            result.message
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+const checkArtistIdNumberAvailability = async (req, res, next) => {
+    try {
+        const result =
+            await artistRegistrationService.checkIdNumberAvailabilityByUserId(
+                req.user.id,
+                req.query.idNumber
+            );
+
+        return formatResponse.success(
+            res,
+            result,
+            result.message
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export default {
     requestArtistRegistration,
+    checkArtistStageNameAvailability,
+    checkArtistIdNumberAvailability,
 };

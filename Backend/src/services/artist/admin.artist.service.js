@@ -60,6 +60,10 @@ export const syncArtistContentVisibility = async (artistId, activeStatus, reason
                     previousVisibilityBeforeArtistBlock: "$visibility",
                     visibility: "hidden",
                     blockedByArtistId: artistId,
+                    isBlocked: true,
+                    blockedReason: reason || "Nội dung bị khóa do tài khoản nghệ sĩ bị khóa.",
+                    blockedAt: "$$NOW",
+                    blockedBy: null,
                 },
             }]
         );
@@ -114,6 +118,10 @@ export const syncArtistContentVisibility = async (artistId, activeStatus, reason
                         visibility: podcast.previousVisibilityBeforeArtistBlock || "hidden",
                         blockedByArtistId: null,
                         previousVisibilityBeforeArtistBlock: null,
+                        isBlocked: false,
+                        blockedReason: null,
+                        blockedAt: null,
+                        blockedBy: null,
                     },
                 },
             },

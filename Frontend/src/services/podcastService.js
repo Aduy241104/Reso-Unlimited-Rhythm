@@ -1,4 +1,6 @@
 import axiosClient from "../axios/axiosClient";
+import { getStoredAccessToken } from "./authStorage";
+import { getOrCreateGuestId } from "./guestIdentity";
 
 const unwrap = (response, key) => response?.data?.data?.[key] ?? response?.data?.[key] ?? null;
 const unwrapError = (error) => error?.response?.data || error;
@@ -58,6 +60,23 @@ const podcastService = {
   async listen(id, listenedDuration, sessionId) {
     try {
       const response = await axiosClient.post(`/api/podcasts/${id}/listen`, { listenedDuration, sessionId });
+      return response.data?.data ?? {};
+    } catch (error) { throw unwrapError(error); }
+  },
+  async stream(id, listenedDuration, source = "podcast_detail") {
+    try {
+      const payload = {
+        listenedDuration: Math.max(Math.floor(Number(listenedDuration) || 0), 0),
+        source,
+      };
+      const accessToken = getStoredAccessToken();
+      const guestId = accessToken ? null : getOrCreateGuestId();
+
+      if (!accessToken && guestId) {
+        payload.guestId = guestId;
+      }
+
+      const response = await axiosClient.post(`/api/podcasts/${id}/stream`, payload);
       return response.data?.data ?? {};
     } catch (error) { throw unwrapError(error); }
   },
