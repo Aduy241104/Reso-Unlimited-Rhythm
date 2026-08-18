@@ -45,7 +45,17 @@ const normalizeText = (value) => {
   return value.trim();
 };
 
+const FULL_NAME_PATTERN = /^[\p{L}\s]+$/u;
+
 const normalizeDateInputValue = (value) => {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    const year = value.getUTCFullYear();
+    const month = String(value.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(value.getUTCDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  }
+
   const normalizedValue = normalizeText(value);
 
   if (!normalizedValue) {
@@ -62,7 +72,17 @@ const normalizeDateInputValue = (value) => {
     return "";
   }
 
-  return parsedDate.toISOString().split("T")[0];
+  const matchedDate = normalizedValue.match(/^(\d{4}-\d{2}-\d{2})T/);
+
+  if (matchedDate) {
+    return matchedDate[1];
+  }
+
+  const year = parsedDate.getUTCFullYear();
+  const month = String(parsedDate.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(parsedDate.getUTCDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 };
 
 const getMaximumDateOfBirth = () => {
@@ -85,9 +105,7 @@ const createFormState = (profile) => {
   return {
     fullName: snapshot.fullName,
     gender: snapshot.gender,
-    dateOfBirth: normalizeDateInputValue(
-      profile?.dateOfBirth ?? profile?.profile?.dateOfBirth
-    ),
+    dateOfBirth: normalizeDateInputValue(snapshot.dateOfBirth),
   };
 };
 
@@ -230,6 +248,8 @@ const EditUserProfileForm = ({ profile, onCancel, onSaved }) => {
 
     if (!normalizeText(formValues.fullName)) {
       nextErrors.fullName = "Vui lòng nhập họ và tên.";
+    } else if (!FULL_NAME_PATTERN.test(normalizeText(formValues.fullName))) {
+      nextErrors.fullName = "Họ và tên chỉ được chứa chữ cái và khoảng trắng.";
     }
 
     if (!normalizeText(formValues.gender)) {
