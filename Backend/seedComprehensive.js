@@ -11,6 +11,10 @@ dotenv.config();
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
+const ARTIST_REVENUE_SHARE_PERCENT = 60;
+const ARTIST_REVENUE_SHARE_RATIO = ARTIST_REVENUE_SHARE_PERCENT / 100;
+const PLATFORM_REVENUE_SHARE_RATIO = 1 - ARTIST_REVENUE_SHARE_RATIO;
+
 const {
     Album,
     Artist,
@@ -53,7 +57,7 @@ const ANALYTICS_TIMEZONE =
     "Asia/Ho_Chi_Minh";
 const SEED_PASSWORD = process.env.SEED_PASSWORD || "Seed@123";
 const HISTORY_DAYS = 14;
-const FUTURE_DAYS = 7;
+const FUTURE_DAYS = 12;
 const DEMO_MONTHS = 12;
 const RANKING_TRACK_COUNT = 3;
 const DRY_RUN = process.argv.includes("--dry-run");
@@ -717,7 +721,7 @@ const buildSeedData = async () => {
         });
     });
 
-    for (let dayOffset = -(HISTORY_DAYS - 1); dayOffset <= FUTURE_DAYS; dayOffset += 1) {
+    for (let dayOffset = -(HISTORY_DAYS - 1); dayOffset <= 0; dayOffset += 1) {
         rankingTracks.forEach((track, rankingIndex) => {
             const boostCount = Math.max(
                 1,
@@ -743,6 +747,37 @@ const buildSeedData = async () => {
             }
         });
     }
+
+    // Add a small, evenly distributed future listening history for every playable track.
+    // With the current seed anchor (18/08), offsets 1..12 cover 19/08 through 30/08.
+    playableTracks.forEach((track, trackIndex) => {
+        const futureEventOffsets = trackIndex % 2 === 0
+            ? [1, 6, FUTURE_DAYS]
+            : [1, 5, 9, FUTURE_DAYS];
+
+        futureEventOffsets.forEach((dayOffset, eventIndex) => {
+            const user = audienceUsers[
+                (trackIndex * 3 + eventIndex * 7) % audienceUsers.length
+            ];
+            const listenedAt = dates
+                .at(
+                    dayOffset,
+                    9 + ((trackIndex + eventIndex * 2) % 11),
+                    (trackIndex * 13 + eventIndex * 17) % 60
+                )
+                .toDate();
+
+            registerListenEvent({
+                user,
+                track,
+                listenedAt,
+                isValidStream: true,
+                sourceIndex: trackIndex + eventIndex + 40,
+                requiredPercent: 80,
+                listenPercent: 90 + ((trackIndex + eventIndex) % 11),
+            });
+        });
+    });
 
     const interactions = [];
     let interactionIndex = 0;
@@ -1421,7 +1456,7 @@ const buildSeedData = async () => {
                 revenue: {
                     eligibleStreams,
                     revenueAmount,
-                    artistRevenueAmount: Math.round(revenueAmount * 0.7),
+                    artistRevenueAmount: Math.round(revenueAmount * ARTIST_REVENUE_SHARE_RATIO),
                     calculatedAt: monthOffset < 0 ? month.endOf("month").toDate() : dates.anchor.toDate(),
                 },
             };
@@ -1535,7 +1570,7 @@ const buildSeedData = async () => {
         const year = month.year();
         const monthNumber = month.month() + 1;
         const premiumRevenue = 128000000 + (monthOffset + 2) * 18500000;
-        const artistPool = Math.round(premiumRevenue * 0.7);
+        const artistPool = Math.round(premiumRevenue * ARTIST_REVENUE_SHARE_RATIO);
         const platformRevenue = premiumRevenue - artistPool;
         const monthlyArtist = artistMonthlyStats.filter((item) => item.year === year && item.month === monthNumber);
         const totalEligibleStreams = monthlyArtist.reduce((sum, item) => sum + Math.round(item.totalStreams * 0.91), 0);
@@ -1547,8 +1582,8 @@ const buildSeedData = async () => {
                 day: dayIndex + 1,
                 date: month.date(dayIndex + 1).toDate(),
                 premiumRevenue: dailyRevenue,
-                artistPool: Math.round(dailyRevenue * 0.7),
-                platformRevenue: Math.round(dailyRevenue * 0.3),
+                artistPool: Math.round(dailyRevenue * ARTIST_REVENUE_SHARE_RATIO),
+                platformRevenue: Math.round(dailyRevenue * PLATFORM_REVENUE_SHARE_RATIO),
                 successfulTransactions: 30 + ((dayIndex * 3) % 17),
             };
         });
@@ -1583,9 +1618,9 @@ const buildSeedData = async () => {
                 year,
                 month: monthNumber,
                 totalEligibleStreams: eligibleStreams,
-                grossRevenueAmount: Math.round(artistRevenueAmount / 0.7),
+                grossRevenueAmount: Math.round(artistRevenueAmount / ARTIST_REVENUE_SHARE_RATIO),
                 artistRevenueAmount,
-                platformRevenueAmount: Math.round(artistRevenueAmount / 0.7) - artistRevenueAmount,
+                platformRevenueAmount: Math.round(artistRevenueAmount / ARTIST_REVENUE_SHARE_RATIO) - artistRevenueAmount,
                 withdrawnAmount,
                 availableAmount: artistRevenueAmount - withdrawnAmount,
                 status: monthOffset === 0 ? "calculated" : "confirmed",
@@ -1635,7 +1670,7 @@ const buildSeedData = async () => {
             0
         );
         const totalEligibleStreams = validMonthEvents.length;
-        const totalArtistPool = Math.round(totalPremiumRevenue * 0.7);
+        const totalArtistPool = Math.round(totalPremiumRevenue * ARTIST_REVENUE_SHARE_RATIO);
         const totalPlatformRevenue = totalPremiumRevenue - totalArtistPool;
 
         const monthlyTrackDocuments = tracks.map((track) => {
@@ -1653,7 +1688,7 @@ const buildSeedData = async () => {
                 ? Math.round(totalArtistPool * (playCount / totalEligibleStreams))
                 : 0;
             const revenueAmount = artistRevenueAmount
-                ? Math.round(artistRevenueAmount / 0.7)
+                ? Math.round(artistRevenueAmount / ARTIST_REVENUE_SHARE_RATIO)
                 : 0;
 
             return {
@@ -1795,8 +1830,8 @@ const buildSeedData = async () => {
                 day: Number(item.date.slice(-2)),
                 date: dayjs.tz(item.date, ANALYTICS_TIMEZONE).toDate(),
                 premiumRevenue: dailyRevenue,
-                artistPool: Math.round(dailyRevenue * 0.7),
-                platformRevenue: dailyRevenue - Math.round(dailyRevenue * 0.7),
+                artistPool: Math.round(dailyRevenue * ARTIST_REVENUE_SHARE_RATIO),
+                platformRevenue: dailyRevenue - Math.round(dailyRevenue * ARTIST_REVENUE_SHARE_RATIO),
                 successfulTransactions: successMonthTransactions.filter(
                     (transaction) =>
                         dayjs(transaction.paidAt).tz(ANALYTICS_TIMEZONE).format("YYYY-MM-DD") === item.date
@@ -1851,7 +1886,7 @@ const buildSeedData = async () => {
                 ? Math.round(artistRevenueAmount * 0.2)
                 : 0;
             const grossRevenueAmount = artistRevenueAmount
-                ? Math.round(artistRevenueAmount / 0.7)
+                ? Math.round(artistRevenueAmount / ARTIST_REVENUE_SHARE_RATIO)
                 : 0;
             revenueSummaries.push({
                 _id: ids.revenueSummaries[revenueSummaryIndex++],

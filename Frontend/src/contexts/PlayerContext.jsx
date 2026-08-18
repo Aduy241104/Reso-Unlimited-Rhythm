@@ -642,20 +642,12 @@ export const PlayerProvider = ({ children }) => {
   const ignoreNextListenDeltaRef = useRef(true);
   const queueMutationCounterRef = useRef(0);
   const isRestoringPlaybackRef = useRef(false);
-  const podcastListenSessionIdRef = useRef(null);
   const playerModeRef = useRef(PLAYER_MODE_TRACK);
   const currentAdDecisionRef = useRef(null);
   const adEventStartedRef = useRef(false);
   const pendingAfterAdRef = useRef(null);
   const finishAdvertisementRef = useRef(null);
   const maybePlayAdvertisementRef = useRef(null);
-
-  if (!podcastListenSessionIdRef.current) {
-    podcastListenSessionIdRef.current =
-      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-        ? crypto.randomUUID()
-        : `podcast-session-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  }
 
   const isPremium = useMemo(() => hasPremiumAccess(user), [user]);
 
@@ -928,19 +920,30 @@ export const PlayerProvider = ({ children }) => {
     }
 
     const podcastDuration = Number(activeListen.duration) || 0;
-    const threshold = Math.min(30, podcastDuration * 0.25);
+    const threshold = podcastDuration * 0.5;
 
     if (threshold <= 0 || Number(nextTime) < threshold) {
+      return;
+    }
+
+    const listenedDuration = Math.floor(
+      Math.min(
+        Math.max(Number(listenedDurationRef.current) || 0, 0),
+        podcastDuration
+      )
+    );
+
+    if (listenedDuration < threshold) {
       return;
     }
 
     activeListen.isReporting = true;
 
     try {
-      const result = await podcastService.listen(
+      const result = await podcastService.stream(
         activeListen.trackId,
-        Math.floor(Number(nextTime) || 0),
-        podcastListenSessionIdRef.current
+        listenedDuration,
+        activeListen.source
       );
       if (result) activeListen.hasReported = true;
     } catch (error) {
@@ -1820,6 +1823,79 @@ export const PlayerProvider = ({ children }) => {
   };
 
   const playTrack = async (track, options = {}) => {
+    if (options.preserveQueue && queueRef.current.length > 0) {
+      const selectedTrackId = getTrackId(track);
+      const matchesSelectedTrack = (queueTrack) =>
+        String(getTrackId(queueTrack) || "") === String(selectedTrackId || "");
+      const currentQueue = queueRef.current;
+      const currentQueueIndex = currentIndexRef.current;
+      const currentQueueItemId = getQueueItemId(
+        currentQueue[currentQueueIndex]
+      );
+      const orderedCurrentQueueIndexBeforeRemoval = currentQueueItemId
+        ? findQueueTrackIndex(orderedQueueRef.current, currentQueueItemId)
+        : -1;
+      const selectedTrackIndex = currentQueue.findIndex(matchesSelectedTrack);
+      const queueWithoutSelectedTrack =
+        selectedTrackIndex >= 0
+          ? removeQueueTrack(
+              currentQueue,
+              getQueueItemId(currentQueue[selectedTrackIndex])
+            )
+          : currentQueue;
+      const orderedQueueWithoutSelectedTrack =
+        selectedTrackIndex >= 0
+          ? orderedQueueRef.current.filter(
+              (queueTrack) => !matchesSelectedTrack(queueTrack)
+            )
+          : orderedQueueRef.current;
+      const adjustedCurrentQueueIndex =
+        currentQueueIndex >= 0 && selectedTrackIndex >= 0 &&
+        selectedTrackIndex <= currentQueueIndex
+          ? currentQueueIndex - 1
+          : currentQueueIndex;
+      const nextQueueIndex =
+        adjustedCurrentQueueIndex >= 0
+          ? adjustedCurrentQueueIndex + 1
+          : 0;
+      const nextTrack = createManualQueueTrack(track, options);
+      const nextQueue = [
+        ...queueWithoutSelectedTrack.slice(0, nextQueueIndex),
+        nextTrack,
+        ...queueWithoutSelectedTrack.slice(nextQueueIndex),
+      ];
+      const orderedCurrentQueueIndex = currentQueueItemId
+        ? findQueueTrackIndex(
+            orderedQueueWithoutSelectedTrack,
+            currentQueueItemId
+          )
+        : -1;
+      let nextOrderedQueueIndex = Math.min(
+        Math.max(nextQueueIndex, 0),
+        orderedQueueWithoutSelectedTrack.length
+      );
+
+      if (orderedCurrentQueueIndex >= 0) {
+        nextOrderedQueueIndex = orderedCurrentQueueIndex + 1;
+      } else if (orderedCurrentQueueIndexBeforeRemoval >= 0) {
+        nextOrderedQueueIndex = orderedCurrentQueueIndexBeforeRemoval;
+      }
+      const nextOrderedQueue = [
+        ...orderedQueueWithoutSelectedTrack.slice(0, nextOrderedQueueIndex),
+        nextTrack,
+        ...orderedQueueWithoutSelectedTrack.slice(nextOrderedQueueIndex),
+      ];
+
+      syncQueueState(nextQueue);
+      syncOrderedQueueState(nextOrderedQueue);
+      setActiveCollection(options.collection || activeCollection);
+      setErrorMessage("");
+      setRestrictionMessage("");
+
+      await playTrackByIndexRef.current?.(nextQueueIndex, nextQueue);
+      return;
+    }
+
     const queueToPlay =
       Array.isArray(options.queue) && options.queue.length > 0
         ? options.queue

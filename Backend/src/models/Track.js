@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { normalizeTrackTitle } from "../services/track/track.title.normalizer.js";
 
 const { Schema, model } = mongoose;
 
@@ -173,6 +174,9 @@ const pendingTrackUpdateSchema = new Schema(
 const TrackSchema = new Schema(
     {
         title: { type: String, required: true, trim: true, index: true },
+        // Used for case/whitespace-insensitive duplicate-title protection.
+        // The migration backfills this key for legacy Track documents.
+        titleKey: { type: String, trim: true },
         versionTitle: { type: String, default: "", trim: true },
         description: { type: String, default: "" },
         tags: [{ type: String, trim: true }],
@@ -344,6 +348,13 @@ const TrackSchema = new Schema(
     { timestamps: true, optimisticConcurrency: true }
 );
 
+TrackSchema.pre("validate", function setTrackTitleKey(next) {
+    if (this.isModified("title") || !this.titleKey) {
+        this.titleKey = normalizeTrackTitle(this.title);
+    }
+    next();
+});
+
 TrackSchema.index({ artist_artistId: 1, title: 1 });
 // Titles remain unique for visible/live tracks, but a soft-deleted track must
 // not reserve the artist's title/version forever.
@@ -353,6 +364,17 @@ TrackSchema.index(
         unique: true,
         partialFilterExpression: { isDeleted: false },
         name: "unique_active_track_title_version",
+    }
+);
+TrackSchema.index(
+    { artist_artistId: 1, titleKey: 1 },
+    {
+        unique: true,
+        name: "unique_active_track_title_key",
+        partialFilterExpression: {
+            isDeleted: false,
+            titleKey: { $type: "string" },
+        },
     }
 );
 TrackSchema.index({ artist_artistId: 1, isDeleted: 1, activeStatus: 1, approvalStatus: 1 });

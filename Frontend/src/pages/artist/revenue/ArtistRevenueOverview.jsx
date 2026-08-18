@@ -11,6 +11,7 @@ import artistRevenueService from "../../../services/artistRevenueService";
 import RevenueBarChart from "../../../components/artist/revenue/RevenueBarChart";
 import RevenueStatCard from "../../../components/artist/revenue/RevenueStatCard";
 import TrackRevenueTable from "../../../components/artist/revenue/TrackRevenueTable";
+import PodcastRevenueTable from "../../../components/artist/revenue/PodcastRevenueTable";
 import {
     formatCurrency,
     formatNumber,
@@ -94,6 +95,7 @@ const ArtistRevenueOverview = () => {
     const summary = revenueData?.summary;
     const revenueChart = revenueData?.revenueChart || [];
     const trackRevenues = revenueData?.trackRevenues || [];
+    const podcastRevenues = revenueData?.podcastRevenues || [];
 
     const statusConfig = useMemo(() => {
         return STATUS_CONFIG[summary?.status] || {
@@ -246,6 +248,26 @@ const ArtistRevenueOverview = () => {
                     </div>
 
                     <TrackRevenueTable tracks={ trackRevenues } />
+                </section>
+
+                <section className="space-y-4">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                        <div>
+                            <h2 className="text-base font-semibold text-zinc-950">
+                                Doanh thu theo podcast
+                            </h2>
+
+                            <p className="mt-1 text-sm text-zinc-500">
+                                Danh sach podcast co stream hop le va phat sinh doanh thu trong ky moi nhat.
+                            </p>
+                        </div>
+
+                        <p className="text-sm text-zinc-500">
+                            { formatNumber(podcastRevenues.length) } podcast
+                        </p>
+                    </div>
+
+                    <PodcastRevenueTable podcasts={ podcastRevenues } />
                 </section>
             </div>
         </main>
