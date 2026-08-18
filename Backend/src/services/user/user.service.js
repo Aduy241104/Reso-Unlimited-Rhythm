@@ -9,6 +9,8 @@ import userServiceHelper from "./user.service.helper.js";
 import { recordAuditEvent } from "../audit/auditLog.service.js";
 
 const SALT_ROUNDS = 10;
+const GOOGLE_PASSWORD_CHANGE_FORBIDDEN_MESSAGE =
+    "Password change is not available for Google accounts.";
 
 const getMyProfileByUserId = async (userId) => {
     const user = await User.findById(userId)
@@ -76,6 +78,13 @@ const changeMyPasswordByUserId = async (userId, payload) => {
 
     if (!user) {
         throw new AppError("User does not exist.", 404);
+    }
+
+    if (user.authProvider !== "local" || !user.password) {
+        throw new AppError(
+            GOOGLE_PASSWORD_CHANGE_FORBIDDEN_MESSAGE,
+            StatusCodes.FORBIDDEN
+        );
     }
 
     const { currentPassword, newPassword } =

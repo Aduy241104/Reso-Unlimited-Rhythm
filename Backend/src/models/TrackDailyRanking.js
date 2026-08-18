@@ -24,7 +24,8 @@ const TrackDailyRankingItemSchema = new Schema(
 const TrackDailyRankingSchema = new Schema(
     {
         dateKey: { type: String, required: true, trim: true, index: true },
-        date: { type: Date, required: true, index: true },
+        // The unique schema index below already indexes this field.
+        date: { type: Date, required: true },
         rankings: {
             type: [TrackDailyRankingItemSchema],
             default: [],
