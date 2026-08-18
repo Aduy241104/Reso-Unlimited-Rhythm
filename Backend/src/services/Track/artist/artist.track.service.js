@@ -17,6 +17,7 @@ import {
 } from "../track.draft.validation.js";
 import {
     assertTrackEditableByArtist,
+    assertTrackTitleIsAvailable,
     validateTrackForSubmit,
 } from "../track.submit.validation.js";
 import {
@@ -498,13 +499,7 @@ const createTrack = async (userId, trackData) => {
 
     const title = validateDraftTitle(trackData.title);
     const artistId = resolveArtistIdForCreate(trackData, artist);
-    const versionTitle = normalizeTrackVersionTitle(trackData.versionTitle);
-
-    await assertTrackTitleVersionAvailable({
-        artistId,
-        title,
-        versionTitle,
-    });
+    await assertTrackTitleIsAvailable(title, artistId);
 
     const audioFiles = validateOptionalAudioFiles(trackData.audioFiles);
     const duration = validateDurationFromAudioAnalysis(
@@ -704,6 +699,10 @@ const updateArtistTrack = async (userId, trackId, trackData) => {
     if (trackData.lyricsSyncUrl !== undefined) {
         nextTrackData.lyricsSyncUrl = trackData.lyricsSyncUrl || "";
         nextAssets.lyricsSyncUrl = nextTrackData.lyricsSyncUrl;
+    }
+
+    if (trackData.title !== undefined) {
+        await assertTrackTitleIsAvailable(nextTrackData.title, artist._id, track._id);
     }
 
     if (trackData.copyright !== undefined) {
@@ -1301,10 +1300,21 @@ const deleteArtistTrack = async (userId, trackId) => {
 
     // Mark the Track deleted before cleaning fingerprint data. A worker that
     // races this request will then stop instead of recreating an orphan record.
-    const fingerprintLifecycle = await cleanupTrackFingerprintLifecycle(
-        { ...track.toObject(), isDeleted: true, deletedAt: new Date() },
-        { actorUserId: artist.userId }
-    );
+    let fingerprintLifecycle = {
+        mode: "cleanup_pending",
+        reason: "Track was deleted before fingerprint cleanup completed.",
+    };
+
+    try {
+        fingerprintLifecycle = await cleanupTrackFingerprintLifecycle(
+            { ...track.toObject(), isDeleted: true, deletedAt: new Date() },
+            { actorUserId: artist.userId }
+        );
+    } catch (error) {
+        // The track is already marked deleted. Cleanup is secondary work and
+        // must not turn a successful delete into a false error response.
+        console.error("[ArtistTrackDelete] Fingerprint cleanup failed:", error.message);
+    }
 
     if (track.album_albumId) {
         await Album.updateOne(
@@ -1325,7 +1335,13 @@ const deleteArtistTrack = async (userId, trackId) => {
         ? assetUrlsToDelete.filter((url) => !trackAssets.audioUrls.includes(url))
         : assetUrlsToDelete;
     if (storageUrlsToDelete.length > 0) {
-        await deleteCloudinaryAssetsByUrls(await getUnsharedTrackAssetUrls(track._id, storageUrlsToDelete));
+        try {
+            await deleteCloudinaryAssetsByUrls(await getUnsharedTrackAssetUrls(track._id, storageUrlsToDelete));
+        } catch (error) {
+            // Cloudinary cleanup can be retried independently; it should not
+            // make the artist think that the database delete failed.
+            console.error("[ArtistTrackDelete] Media cleanup failed:", error.message);
+        }
     }
 
     return {

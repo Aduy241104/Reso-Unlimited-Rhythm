@@ -2,6 +2,7 @@ import {
     evaluateModerationDecision,
     getDisplayRejectionReason,
     isPerfectFingerprintMatch,
+    isSameTitleAudioDuplicate,
     MODERATION_DECISIONS,
 } from "../../src/services/fingerprint/moderationDecision.service.js";
 
@@ -97,6 +98,31 @@ describe("central automatic moderation decision policy", () => {
                 reasonCodes: ["SAME_ARTIST_PERFECT_FINGERPRINT_DUPLICATE"],
             },
         )).toContain("trùng với một bài hát đã phát hành khác của cùng nghệ sĩ");
+    });
+
+    test("same artist and same title with a near-identical recording is AUTO_REJECT", () => {
+        expect(isSameTitleAudioDuplicate({
+            matchType: "chromaprint",
+            similarityScore: 0.993869,
+            overlapRatio: 1,
+        })).toBe(true);
+
+        expect(evaluateModerationDecision(cleanInput({
+            sameArtistTitleMatch: {
+                candidateTrack: {
+                    approvalStatus: "approved",
+                    activeStatus: "active",
+                },
+                match: {
+                    matchType: "chromaprint",
+                    similarityScore: 0.993869,
+                    overlapRatio: 1,
+                },
+            },
+        }))).toMatchObject({
+            decision: MODERATION_DECISIONS.AUTO_REJECT,
+            reasonCodes: ["SAME_ARTIST_TITLE_AUDIO_DUPLICATE"],
+        });
     });
 
     test("pending A/B exact duplicate is MANUAL_REVIEW_HIGH", () => {

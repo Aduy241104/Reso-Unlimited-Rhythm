@@ -21,6 +21,7 @@ export const MODERATION_PRIORITIES = Object.freeze({
 
 const PERFECT_FINGERPRINT_SIMILARITY = 0.999999;
 const PERFECT_FINGERPRINT_OVERLAP = 0.99;
+const SAME_TITLE_DUPLICATE_SIMILARITY = 0.99;
 
 const unique = (values = []) => [...new Set(values.filter(Boolean))];
 
@@ -35,11 +36,18 @@ export const isPerfectFingerprintMatch = (match) => Boolean(
     Number(match.overlapRatio || 0) >= PERFECT_FINGERPRINT_OVERLAP
 );
 
+export const isSameTitleAudioDuplicate = (match) => Boolean(
+    match?.matchType === "chromaprint" &&
+    Number(match.similarityScore || 0) >= SAME_TITLE_DUPLICATE_SIMILARITY &&
+    Number(match.overlapRatio || 0) >= PERFECT_FINGERPRINT_OVERLAP
+);
+
 const DUPLICATE_REJECTION_CODES = new Set([
     "SAME_ARTIST_EXACT_DUPLICATE",
     "APPROVED_EXACT_CONFLICT_NO_EVIDENCE",
     "SAME_ARTIST_PERFECT_FINGERPRINT_DUPLICATE",
     "APPROVED_PERFECT_FINGERPRINT_DUPLICATE",
+    "SAME_ARTIST_TITLE_AUDIO_DUPLICATE",
 ]);
 
 export const isDuplicateAutomaticRejection = (decision) => (
@@ -49,7 +57,11 @@ export const isDuplicateAutomaticRejection = (decision) => (
 
 export const getAutomaticRejectionReason = (decision) => {
     const reasonCodes = new Set(decision?.reasonCodes || []);
-    if (reasonCodes.has("SAME_ARTIST_EXACT_DUPLICATE") || reasonCodes.has("SAME_ARTIST_PERFECT_FINGERPRINT_DUPLICATE")) {
+    if (
+        reasonCodes.has("SAME_ARTIST_EXACT_DUPLICATE") ||
+        reasonCodes.has("SAME_ARTIST_PERFECT_FINGERPRINT_DUPLICATE") ||
+        reasonCodes.has("SAME_ARTIST_TITLE_AUDIO_DUPLICATE")
+    ) {
         return "Bản ghi âm trùng với một bài hát đã phát hành khác của cùng nghệ sĩ. Bài hát bị từ chối tự động; vui lòng sử dụng bản ghi âm hoặc phiên bản khác rồi gửi lại.";
     }
     if ([...DUPLICATE_REJECTION_CODES].some((code) => reasonCodes.has(code))) {
@@ -396,6 +408,7 @@ export const evaluateModerationDecision = ({
     copyright = {},
     exactCandidate = null,
     perfectCandidate = null,
+    sameArtistTitleMatch = null,
     highMatch = null,
     reviewMatch = null,
     acoustId = null,
@@ -496,6 +509,15 @@ export const evaluateModerationDecision = ({
         addSignal(MODERATION_DECISIONS.MANUAL_REVIEW, ["HIGH_SIMILARITY_NO_EXACT_DUPLICATE"], "Fingerprint có độ tương đồng cao nhưng chưa xác định là cùng file; cần kiểm tra thủ công.", "high");
     } else if (reviewMatch) {
         addSignal(MODERATION_DECISIONS.MANUAL_REVIEW, ["SIMILARITY_REQUIRES_REVIEW"], "Fingerprint có tín hiệu tương đồng cần Admin kiểm tra thêm.", "medium");
+    }
+
+    if (sameArtistTitleMatch) {
+        addSignal(
+            MODERATION_DECISIONS.AUTO_REJECT,
+            ["SAME_ARTIST_TITLE_AUDIO_DUPLICATE"],
+            "Audio gần như trùng với bài hát cùng tên đã phát hành của cùng nghệ sĩ; bài hát bị từ chối tự động.",
+            "high",
+        );
     }
 
     const acoustIdentity = Boolean(
