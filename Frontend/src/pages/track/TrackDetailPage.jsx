@@ -253,6 +253,7 @@ const TrackDetailPage = () => {
     await playTrack(track, {
       queue: playbackQueue,
       startIndex,
+      preserveQueue: true,
       collection: {
         id: track?.album?.id || track?.id,
         type: track?.album?.id ? "album" : "track",
