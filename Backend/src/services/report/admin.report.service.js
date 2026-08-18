@@ -9,6 +9,24 @@ import { syncArtistContentVisibility } from "../artist/admin.artist.service.js";
 
 const VALID_STATUSES = ["pending", "reviewing", "resolved", "rejected"];
 
+const normalizeResolutionAction = (action) => {
+    const normalizedAction = String(action || "").trim().toLowerCase();
+
+    if (["reject", "rejected"].includes(normalizedAction)) {
+        return "reject";
+    }
+
+    if (["block", "block_artist"].includes(normalizedAction)) {
+        return "block_artist";
+    }
+
+    if (["hide", "hide_content", "hide7"].includes(normalizedAction)) {
+        return "hide_content";
+    }
+
+    return "warning";
+};
+
 // Helper to populate target item info (Track, Album, or Artist)
 const populateTargetInfo = async (targetType, targetId) => {
     if (!targetId || !mongoose.Types.ObjectId.isValid(targetId)) return null;
@@ -344,6 +362,7 @@ const resolveGroupedReport = async (targetType, targetId, body, adminId) => {
     }
 
     const { evaluations = [], action = "warn", resolutionNote = "" } = body;
+    const normalizedAction = normalizeResolutionAction(action);
 
     const targetInfo = await populateTargetInfo(targetType, targetId);
     let artistId = null;
@@ -381,22 +400,22 @@ const resolveGroupedReport = async (targetType, targetId, body, adminId) => {
         report.handledAt = new Date();
         report.resolutionNote = resolutionNote;
 
-        if (action === "reject") {
+        if (normalizedAction === "reject") {
             report.status = "rejected";
             report.resolution = "reject";
         } else {
             report.status = "resolved";
-            report.resolution = action === "hide" || action === "hide7" ? "hide_content" : action === "block" ? "block_artist" : "warning";
+            report.resolution = normalizedAction;
         }
 
         await report.save();
     }
 
-    const shouldIncrementViolation = action !== "reject";
+    const shouldIncrementViolation = normalizedAction !== "reject";
 
     let updatedViolationsCount = 0;
     let newArtistStatus = "active";
-    let penaltyAppliedMessage = action === "reject" ? "Đã từ chối báo cáo. Không tăng số lần vi phạm." : "";
+    let penaltyAppliedMessage = normalizedAction === "reject" ? "Đã từ chối báo cáo. Không tăng số lần vi phạm." : "";
 
     if (shouldIncrementViolation && artistId && mongoose.Types.ObjectId.isValid(artistId)) {
         const artist = await Artist.findById(artistId);
@@ -440,10 +459,10 @@ const resolveGroupedReport = async (targetType, targetId, body, adminId) => {
 
             let extraInfo = "";
             if (reasonSummary) {
-                extraInfo += `\n• Lý do vi phạm xác nhận: ${reasonSummary}`;
+                extraInfo += `\n- Lý do vi phạm xác nhận: ${reasonSummary}`;
             }
             if (resolutionNote && resolutionNote.trim()) {
-                extraInfo += `\n• Ghi chú từ Quản trị viên: "${resolutionNote.trim()}"`;
+                extraInfo += `\n- Ghi chú từ Quản trị viên: "${resolutionNote.trim()}"`;
             }
 
             let notifTitle = "";
@@ -460,17 +479,17 @@ const resolveGroupedReport = async (targetType, targetId, body, adminId) => {
             } else if (updatedViolationsCount === 3) {
                 penaltyAppliedMessage = "Đã tích lũy 3 lần vi phạm: Gửi cảnh báo mức nghiêm trọng (Lần 3) tới nghệ sĩ.";
                 notifTitle = "Cảnh báo vi phạm nghiêm trọng (Lần 3)";
-                notifContent = `Nội dung [${targetTitle}] tiếp tục bị xác nhận vi phạm.${extraInfo}\n\nĐây là cảnh báo nghiêm trọng lần 3. Nếu vi phạm lần thứ 4, nội dung sẽ bị ẩn khỏi hệ thống.`;
+                notifContent = `Nội dung [${targetTitle}] tiếp tục bị xác nhận vi phạm.${extraInfo}\n\nĐây là cảnh báo nghiêm trọng lần 3. Nếu vi phạm lần thứ 4, toàn bộ bài nhạc, album và podcast của nghệ sĩ sẽ bị khóa.`;
             } else if (updatedViolationsCount === 4) {
-                penaltyAppliedMessage = "Đã tích lũy 4 lần vi phạm: Tự động ẩn nội dung bị báo cáo.";
-                notifTitle = "Thông báo ẩn nội dung (Lần 4)";
-                notifContent = `Nội dung [${targetTitle}] đã tích lũy 4 lần vi phạm và bị ẩn trên hệ thống.${extraInfo}`;
+                penaltyAppliedMessage = "Đã tích lũy 4 lần vi phạm: tự động khóa toàn bộ bài nhạc, album và podcast của nghệ sĩ.";
+                notifTitle = "Thông báo khóa toàn bộ nội dung (Lần 4)";
+                notifContent = `Tài khoản của bạn đã tích lũy 4 lần vi phạm. Toàn bộ bài nhạc, album và podcast của bạn đã bị khóa trên hệ thống.${extraInfo}`;
 
-                if (targetType === "track") {
-                    await Track.findByIdAndUpdate(targetId, { activeStatus: "hidden" });
-                } else if (targetType === "album") {
-                    await Album.findByIdAndUpdate(targetId, { status: "hidden" });
-                }
+                await syncArtistContentVisibility(
+                    artist._id,
+                    "blocked",
+                    resolutionNote || "Toàn bộ nội dung bị khóa sau lần vi phạm thứ 4."
+                );
             } else if (updatedViolationsCount >= 5) {
                 penaltyAppliedMessage = `Đã tích lũy ${updatedViolationsCount} lần vi phạm: Khóa tài khoản nghệ sĩ.`;
                 notifTitle = "Thông báo khóa tài khoản nghệ sĩ (Lần 5)";
@@ -480,7 +499,7 @@ const resolveGroupedReport = async (targetType, targetId, body, adminId) => {
                 newArtistStatus = "blocked";
             }
 
-            if (action === "block") {
+            if (normalizedAction === "block_artist") {
                 artist.activeStatus = "blocked";
                 newArtistStatus = "blocked";
                 penaltyAppliedMessage = "Quản trị viên đã khóa tài khoản nghệ sĩ thủ công.";

@@ -19,7 +19,7 @@ import {
   Mic2,
 } from "lucide-react";
 import { getGroupedReportsService, getGroupedReportDetailService, resolveGroupedReportService } from "../../services/reportService";
-import { searchAdminArtistsService, updateAdminArtistStatusService } from "../../services/artistService";
+import { searchAdminArtistsService } from "../../services/artistService";
 import { routePaths } from "../../routes/routePaths";
 
 const statusOptions = [
@@ -330,20 +330,6 @@ export default function ArtistViolationHistoryPage() {
     setIsSubmitting(true);
     try {
       const { targetType, targetId } = selectedGroup;
-      if (actionType === "block") {
-        const artistId =
-          targetType === "artist"
-            ? targetId
-            : selectedGroup.targetInfo?.artist_artistId?._id || selectedGroup.targetInfo?.artistId?._id;
-
-        if (artistId) {
-          await updateAdminArtistStatusService(artistId, {
-            activeStatus: "blocked",
-            blockedReason: adminNote || "Vi phạm chính sách tiêu chuẩn cộng đồng.",
-          });
-        }
-      }
-
       await resolveGroupedReportService(targetType, targetId, {
         action: actionType,
         resolutionNote: adminNote || "Đã kiểm duyệt bởi Admin",
@@ -408,12 +394,6 @@ export default function ArtistViolationHistoryPage() {
             <HeaderStat label="Tổng hồ sơ" value={total} />
             <HeaderStat label="Trang" value={pageLabel} />
           </div>
-          <Link
-            to={routePaths.createArtistViolation || "/artist-violations/new"}
-            className="bg-slate-950 hover:bg-slate-800 text-white px-5 py-3 text-sm font-semibold rounded-xl transition whitespace-nowrap inline-block text-center shadow-sm"
-          >
-            + Ghi nhận vi phạm
-          </Link>
         </div>
       </div>
 
