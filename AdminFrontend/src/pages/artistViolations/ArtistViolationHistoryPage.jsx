@@ -159,34 +159,34 @@ export default function ArtistViolationHistoryPage() {
       let name = "";
       let avatar = "";
       let artistId = "";
-      let violationsCount = 1;
+      let violationsCount = 0;
       let activeStatus = "active";
 
       if (g.targetType === "artist" && g.targetInfo?.name) {
         name = g.targetInfo.name;
         avatar = g.targetInfo.avatar;
         artistId = g.targetId || g.targetInfo._id || name;
-        violationsCount = g.targetInfo.violationsCount ?? (Array.isArray(g.targetInfo.violations) ? g.targetInfo.violations.length : 1);
+        violationsCount = Array.isArray(g.targetInfo.violations) ? g.targetInfo.violations.length : (g.targetInfo.violationsCount ?? g.violationsCount ?? 0);
         activeStatus = g.targetInfo.activeStatus || "active";
       } else if (g.targetInfo?.artist_artistId?.name) {
         const a = g.targetInfo.artist_artistId;
         name = a.name;
         avatar = a.avatar;
         artistId = a._id || a.id || name;
-        violationsCount = a.violationsCount ?? (Array.isArray(a.violations) ? a.violations.length : 1);
+        violationsCount = Array.isArray(a.violations) ? a.violations.length : (a.violationsCount ?? g.violationsCount ?? 0);
         activeStatus = a.activeStatus || "active";
       } else if (g.targetInfo?.artistId?.name) {
         const a = g.targetInfo.artistId;
         name = a.name;
         avatar = a.avatar;
         artistId = a._id || a.id || name;
-        violationsCount = a.violationsCount ?? (Array.isArray(a.violations) ? a.violations.length : 1);
+        violationsCount = Array.isArray(a.violations) ? a.violations.length : (a.violationsCount ?? g.violationsCount ?? 0);
         activeStatus = a.activeStatus || "active";
       } else if (g.targetInfo?.name) {
         name = g.targetInfo.name;
         avatar = g.targetInfo.avatar;
         artistId = g.targetId || g.targetInfo._id || name;
-        violationsCount = g.violationsCount || g.targetInfo?.violationsCount || 1;
+        violationsCount = Array.isArray(g.targetInfo?.violations) ? g.targetInfo.violations.length : (g.targetInfo?.violationsCount ?? g.violationsCount ?? 0);
         activeStatus = g.targetInfo?.activeStatus || "active";
       } else {
         name = "Nghệ sĩ";
