@@ -110,6 +110,34 @@ describe("adminSubscriptionService pending payment cancellation", () => {
         expect(mockPlanModel.create).not.toHaveBeenCalled();
     });
 
+    test.each([0, -1])("rejects when creating a plan with price %s", async (price) => {
+        const service = await loadAdminSubscriptionService();
+
+        await expect(
+            service.createPlan({
+                name: "Premium Monthly",
+                price,
+                durationDays: 30,
+                description: "",
+                features: [],
+                status: "active",
+            })
+        ).rejects.toThrow("Subscription plan price must be greater than 0.");
+
+        expect(mockPlanModel.create).not.toHaveBeenCalled();
+    });
+
+    test.each([0, -1])("rejects when updating a plan to price %s", async (price) => {
+        const service = await loadAdminSubscriptionService();
+        const planId = "507f1f77bcf86cd799439012";
+
+        await expect(service.updatePlan(planId, { price })).rejects.toThrow(
+            "Subscription plan price must be greater than 0."
+        );
+
+        expect(mockPlanModel.findByIdAndUpdate).not.toHaveBeenCalled();
+    });
+
     test("rejects when updating a plan to another plan's duplicate name", async () => {
         const service = await loadAdminSubscriptionService();
         const planId = "507f1f77bcf86cd799439012";

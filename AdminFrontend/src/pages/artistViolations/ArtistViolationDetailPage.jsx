@@ -61,7 +61,7 @@ const getResolutionDisplay = (resolution, violationNumber) => {
   if (resolution === "hide_content") {
     return {
       label: "Khóa nội dung",
-      action: "Ẩn nội dung vi phạm",
+      action: "Khóa nội dung vi phạm",
     };
   }
 
@@ -75,7 +75,7 @@ const getResolutionDisplay = (resolution, violationNumber) => {
   if (violationNumber >= 4) {
     return {
       label: "Cảnh báo",
-      action: "Khóa nội dung",
+      action: "+1 lần vi phạm",
     };
   }
 
@@ -96,8 +96,8 @@ const actionOptions = [
   },
   {
     value: "hide",
-    label: "Tạm ẩn / Gỡ tác phẩm",
-    desc: "Tạm ẩn tác phẩm bị báo cáo khỏi hệ thống phát",
+    label: "Khóa tác phẩm",
+    desc: "Khóa tác phẩm bị báo cáo khỏi hệ thống phát",
     bg: "bg-orange-600 hover:bg-orange-700 text-white",
     icon: AlertTriangle,
   },
@@ -138,7 +138,9 @@ export default function ArtistViolationDetailPage() {
     setIsLoading(true);
     setError("");
     try {
-      const data = await getGroupedReportDetailService(targetType, targetId);
+      const data = await getGroupedReportDetailService(targetType, targetId, {
+        includeRelatedArtistContent: true,
+      });
       if (data) {
         setDetail(data);
       } else {
@@ -216,6 +218,8 @@ export default function ArtistViolationDetailPage() {
         action: selectedAction,
         resolutionNote: resolutionNote.trim() || "Admin đã hoàn tất kiểm duyệt vi phạm.",
         evaluations,
+      }, {
+        includeRelatedArtistContent: true,
       });
 
       setSuccessMessage(`Đã xử lý vi phạm thành công theo hình thức "${selectedAction.toUpperCase()}"!`);
