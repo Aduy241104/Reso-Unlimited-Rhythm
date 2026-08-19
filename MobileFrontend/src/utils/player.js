@@ -1,5 +1,5 @@
 import { getApiBaseUrl } from '../config/api';
-import { formatTrackDuration, resolveImageUri } from './media';
+import { formatTrackDuration, resolveTrackAvatarUri } from './media';
 
 const fallbackDuration = 30;
 
@@ -133,7 +133,7 @@ export const normalizePlayerTrack = (item, index = 0) => {
     id: item?.id || item?.entityId || `track-${index}`,
     title: item?.title || 'Bài hát không xác định',
     artistName: item?.artistName || item?.subtitle || item?.artist?.name || item?.artist || 'Nghệ sĩ không xác định',
-    image: resolveImageUri(item?.image || item?.coverImage || item?.avatar),
+    image: resolveTrackAvatarUri(item),
     duration,
     durationLabel: formatTrackDuration(duration || fallbackDuration),
     description: item?.description || '',

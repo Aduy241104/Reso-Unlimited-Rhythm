@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import ReactPaginate from "react-paginate";
 import { Link } from "react-router-dom";
 import { Search, ArrowUpRight } from "lucide-react";
-import { getUsersService } from "../../services/userService";
+import { getUsersPageService } from "../../services/userService";
 import { routePaths } from "../../routes/routePaths";
 
 // Gỡ bỏ hoàn toàn 'admin' khỏi bộ lọc tìm kiếm cục bộ
@@ -101,22 +101,23 @@ const UserListPage = () => {
     setIsLoading(true);
     setMessage("");
     try {
-      const result = await getUsersService({
-        q: params.search,
+      const result = await getUsersPageService({
+        search: params.search,
         role: params.role,
-        status: params.status
-      });
-
-      // Lọc sạch Admin hệ thống ngay tại Frontend tầng hiển thị
-      const cleanUsers = (result ?? []).filter((u) => u.role !== "admin");
-      setUsers(cleanUsers);
-
-      const totalItems = cleanUsers.length;
-      const totalPages = Math.ceil(totalItems / params.limit) || 1;
-
-      setPagination({
+        status: params.status,
+        excludeRole: "admin",
         page: params.page,
         limit: params.limit,
+      });
+
+      setUsers(result.users);
+
+      const totalItems = result.meta?.total ?? result.users.length;
+      const totalPages = result.meta?.totalPages ?? (Math.ceil(totalItems / params.limit) || 1);
+
+      setPagination({
+        page: result.meta?.page ?? params.page,
+        limit: result.meta?.limit ?? params.limit,
         total: totalItems,
         totalPages: totalPages
       });
@@ -236,7 +237,7 @@ const UserListPage = () => {
             ) : users.length === 0 ? (
               <div className="p-12 text-center text-slate-400 italic">Không tìm thấy tài khoản người dùng phù hợp điều kiện lọc.</div>
             ) : (
-              users.slice((query.page - 1) * query.limit, query.page * query.limit).map((user) => (
+              users.map((user) => (
                 <article key={user._id} className="relative grid grid-cols-[minmax(0,1.5fr)_minmax(0,1.2fr)_120px_160px_180px_120px] gap-4 px-6 py-4 transition hover:bg-slate-50/60 items-center">
 
                   {/* Vạch màu chỉ thị rìa trái đồng bộ trạng thái */}

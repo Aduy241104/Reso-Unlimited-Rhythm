@@ -58,7 +58,7 @@ import {
     getCopyrightChangeFlags,
     getTrackRejectionSnapshot,
     hashTrackMutableData,
-} from "../../track/track.rejection.js";
+} from "../track.rejection.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 50;
@@ -498,8 +498,13 @@ const createTrack = async (userId, trackData) => {
     assertArtistCanCreateTrack(artist);
 
     const title = validateDraftTitle(trackData.title);
+    const versionTitle = normalizeTrackVersionTitle(trackData.versionTitle);
     const artistId = resolveArtistIdForCreate(trackData, artist);
-    await assertTrackTitleIsAvailable(title, artistId);
+    await assertTrackTitleVersionAvailable({
+        artistId,
+        title,
+        versionTitle,
+    });
 
     const audioFiles = validateOptionalAudioFiles(trackData.audioFiles);
     const duration = validateDurationFromAudioAnalysis(
