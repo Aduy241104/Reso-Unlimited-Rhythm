@@ -3,6 +3,7 @@ import artistService from './artistService';
 import playlistService from './playlistService';
 import recommendationService from './recommendationService';
 import trackService from './trackService';
+import podcastService from './podcastService';
 
 const formatLocalDate = (date) => {
   const year = date.getFullYear();
@@ -34,6 +35,7 @@ const getPreviousLocalMonth = (date) => {
 
 const getErrorMessage = (error, fallback) => error?.message || fallback;
 const getItems = (result) => (result.status === 'fulfilled' ? result.value.items : []);
+const getPodcasts = (result) => (result.status === 'fulfilled' ? result.value.podcasts : []);
 
 export const homeService = {
   async getHomepageData(options = {}) {
@@ -54,6 +56,7 @@ export const homeService = {
       monthlyTopArtists,
       systemPlaylists,
       recentAlbums,
+      podcasts,
       recommendedPlaylists,
     ] = await Promise.allSettled([
       trackService.getDailyTopTracks({ date, limit: topTrackLimit }),
@@ -62,6 +65,7 @@ export const homeService = {
       artistService.getMonthlyTopArtists({ month, limit: topArtistLimit }),
       playlistService.getSystemPlaylists({ page: 1, limit: playlistLimit }),
       albumService.getRecentAlbums({ page: 1, limit: albumLimit }),
+      podcastService.listPublic({ page: 1, limit: 5 }),
       includeRecommendations
         ? recommendationService.getDailyMixes()
         : Promise.resolve({ items: [] }),
@@ -75,6 +79,7 @@ export const homeService = {
       monthlyTopArtists: getItems(monthlyTopArtists),
       systemPlaylists: getItems(systemPlaylists),
       recentAlbums: getItems(recentAlbums),
+      podcasts: getPodcasts(podcasts),
       recommendedPlaylists: getItems(recommendedPlaylists),
       sectionErrors,
       query: { date, month, monthlyTrackMonth },
@@ -122,6 +127,13 @@ export const homeService = {
       );
     }
 
+    if (podcasts.status === 'rejected') {
+      sectionErrors.podcasts = getErrorMessage(
+        podcasts.reason,
+        'Không thể tải Podcast nổi bật.'
+      );
+    }
+
     if (includeRecommendations && recommendedPlaylists.status === 'rejected') {
       sectionErrors.recommendedPlaylists = getErrorMessage(
         recommendedPlaylists.reason,
@@ -137,6 +149,7 @@ export const homeService = {
       result.systemPlaylists.length === 0 &&
       result.recommendedPlaylists.length === 0 &&
       result.recentAlbums.length === 0 &&
+      result.podcasts.length === 0 &&
       Object.keys(sectionErrors).length > 0
     ) {
       throw new Error('Không thể tải dữ liệu trang chủ.');

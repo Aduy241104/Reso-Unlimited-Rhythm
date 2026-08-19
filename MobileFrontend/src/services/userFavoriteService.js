@@ -1,6 +1,6 @@
 import axiosClient from '../api/axiosClient';
 import { API_ENDPOINTS } from '../api/apiEndpoints';
-import { formatDateLabel, formatTrackDuration, resolveImageUri } from '../utils/media';
+import { formatDateLabel, formatTrackDuration, resolveTrackAvatarUri } from '../utils/media';
 import { resolveTrackAudioUri } from '../utils/player';
 
 const getPayload = (response) => response?.data || response || {};
@@ -21,12 +21,7 @@ const normalizeFavoriteTrack = (item, index = 0) => ({
   title: pickFirstDefined(item?.title, 'Bài hát không xác định'),
   subtitle: pickFirstDefined(item?.artist?.name, 'Nghệ sĩ không xác định'),
   artistName: pickFirstDefined(item?.artist?.name, 'Nghệ sĩ không xác định'),
-  image: pickFirstDefined(
-    resolveImageUri(item?.avatar),
-    resolveImageUri(item?.coverImage),
-    resolveImageUri(item?.image),
-    ''
-  ),
+  image: pickFirstDefined(resolveTrackAvatarUri(item), ''),
   duration: Number(item?.duration) || 0,
   audioUri: pickFirstDefined(item?.audioUri, resolveTrackAudioUri(item), ''),
   meta: Number(item?.duration) > 0 ? formatTrackDuration(item.duration) : '',

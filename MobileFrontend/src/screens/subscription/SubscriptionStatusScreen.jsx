@@ -197,12 +197,6 @@ export default function SubscriptionStatusScreen() {
     [subscriptionDetails]
   );
 
-  const shouldShowFreeCta = !subscriptionDetails.hasSubscription;
-
-  const handleOpenPremiumScreen = useCallback(() => {
-    navigation.navigate('PremiumOverview');
-  }, [navigation]);
-
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
@@ -251,24 +245,16 @@ export default function SubscriptionStatusScreen() {
 
           {errorMessage ? <Text style={styles.errorBanner}>{errorMessage}</Text> : null}
 
-          {shouldShowFreeCta ? (
-            <AppButton
-              title="Xem các gói Premium"
-              onPress={handleOpenPremiumScreen}
-              style={styles.premiumButton}
-            />
-          ) : (
-            <View style={styles.infoCard}>
-              {infoRows.map((item, index) => (
-                <InfoRow
-                  key={`${item.label}-${index}`}
-                  label={item.label}
-                  value={item.value}
-                  isLast={index === infoRows.length - 1}
-                />
-              ))}
-            </View>
-          )}
+          <View style={styles.infoCard}>
+            {infoRows.map((item, index) => (
+              <InfoRow
+                key={`${item.label}-${index}`}
+                label={item.label}
+                value={item.value}
+                isLast={index === infoRows.length - 1}
+              />
+            ))}
+          </View>
         </ScrollView>
       )}
     </View>
@@ -389,10 +375,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1a1a',
     borderWidth: 1,
     borderColor: '#2c2c2c',
-  },
-  premiumButton: {
-    marginTop: 18,
-    backgroundColor: '#f0c15d',
   },
 });
 

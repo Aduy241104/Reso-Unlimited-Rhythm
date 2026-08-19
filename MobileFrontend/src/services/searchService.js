@@ -1,6 +1,6 @@
 import axiosClient from '../api/axiosClient';
 import { API_ENDPOINTS } from '../api/apiEndpoints';
-import { resolveImageUri } from '../utils/media';
+import { resolveImageUri, resolveTrackAvatarUri } from '../utils/media';
 
 const getPayload = (response) => response?.data || response || {};
 const asArray = (value) => (Array.isArray(value) ? value : []);
@@ -15,17 +15,12 @@ const normalizeTrackItem = (item, index = 0) => {
   return {
     ...rawItem,
     id: pickFirstDefined(rawItem.id, rawItem._id, `track-${index}`),
+    entityType: 'track',
     title: pickFirstDefined(rawItem.title, rawItem.name, 'Bài hát không xác định'),
     artistName: pickFirstDefined(rawItem.artistName, artist?.name, 'Nghệ sĩ không xác định'),
     subtitle: `Bài hát • ${pickFirstDefined(rawItem.artistName, artist?.name, 'Nghệ sĩ không xác định')}`,
     image: pickFirstDefined(
-      resolveImageUri(rawItem.coverImage),
-      resolveImageUri(rawItem.image),
-      resolveImageUri(rawItem.avatar),
-      resolveImageUri(artist?.avatar),
-      rawItem.coverImage,
-      rawItem.image,
-      rawItem.avatar,
+      resolveTrackAvatarUri({ ...rawItem, artist }),
       ''
     ),
   };

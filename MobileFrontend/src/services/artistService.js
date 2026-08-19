@@ -1,6 +1,6 @@
 import axiosClient from '../api/axiosClient';
 import { API_ENDPOINTS } from '../api/apiEndpoints';
-import { formatCompactNumber, resolveImageUri } from '../utils/media';
+import { formatCompactNumber, resolveImageUri, resolveTrackAvatarUri } from '../utils/media';
 import { resolveTrackAudioUri } from '../utils/player';
 
 const TOP_ARTIST_LIMIT = 20;
@@ -52,7 +52,7 @@ const normalizeArtistTrack = (item, index = 0) => {
     artistName: artist?.name || 'Nghệ sĩ không xác định',
     albumId: album?.id || album?._id || '',
     albumTitle: album?.title || '',
-    image: resolveImageUri(track?.coverImage || track?.avatar || artist?.avatar),
+    image: resolveTrackAvatarUri({ ...track, artist }),
     entityType: 'track',
     entityId: track?.id || track?._id || '',
     duration: Number(track?.duration) || 0,

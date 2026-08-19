@@ -333,16 +333,13 @@ export default function EntityDetailScreen() {
       Alert.alert(
         'Phát ngẫu nhiên đang được bật',
         'Album và playlist mặc định phát ngẫu nhiên. Chỉ tài khoản Premium mới có thể tắt chế độ này.',
-        [
-          { text: 'Để sau', style: 'cancel' },
-          { text: 'Xem gói Premium', onPress: () => navigation.navigate('PremiumOverview') },
-        ]
+        [{ text: 'Đóng', style: 'cancel' }]
       );
       return;
     }
 
     toggleShuffle();
-  }, [isPremium, navigation, toggleShuffle]);
+  }, [isPremium, toggleShuffle]);
 
   const openTrackActions = useCallback((track, index = 0) => {
     if (!track) {
