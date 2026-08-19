@@ -6,6 +6,7 @@ import {
   formatTrackDuration,
   formatMonthLabel,
   resolveImageUri,
+  resolveTrackAvatarUri,
 } from '../utils/media';
 import {
   resolveTrackAudioUri,
@@ -84,9 +85,7 @@ const normalizeTrackRanking = (item) => {
     albumId: pickFirstDefined(rawItem.albumId, album?.id, album?._id, ''),
     albumTitle: pickFirstDefined(rawItem.albumTitle, album?.title, ''),
     image: pickFirstDefined(
-      rawItem.image,
-      rawItem.coverImage,
-      resolveImageUri(track.coverImage || track.avatar || artist?.avatar || artist?.coverImage),
+      resolveTrackAvatarUri({ ...track, ...rawItem }),
       ''
     ),
     duration: pickNumber(rawItem.duration, track.duration),
@@ -120,9 +119,7 @@ const normalizeTrackItem = (item, index = 0) => {
     albumId: pickFirstDefined(rawItem.albumId, album?.id, album?._id, ''),
     albumTitle: pickFirstDefined(rawItem.albumTitle, album?.title, ''),
     image: pickFirstDefined(
-      rawItem.image,
-      rawItem.coverImage,
-      resolveImageUri(track.coverImage || track.avatar || album?.coverImage || artist?.avatar),
+      resolveTrackAvatarUri({ ...track, ...rawItem }),
       ''
     ),
     duration: pickNumber(rawItem.duration, track.duration),
@@ -145,7 +142,7 @@ const normalizeTopTrackDetailItem = (item, index = 0) => {
     artistName: pickFirstDefined(rawItem.artistName, 'Nghệ sĩ không xác định'),
     albumId: pickFirstDefined(rawItem.albumId, ''),
     albumTitle: pickFirstDefined(rawItem.albumTitle, ''),
-    image: pickFirstDefined(rawItem.image, rawItem.coverImage, ''),
+    image: pickFirstDefined(resolveTrackAvatarUri(rawItem), ''),
     entityType: pickFirstDefined(rawItem.entityType, 'track'),
     entityId: pickFirstDefined(rawItem.entityId, rawItem.id, rawItem._id, ''),
     duration: pickNumber(rawItem.duration),
@@ -178,9 +175,7 @@ const normalizeTrackDetail = (item) => {
     albumId: pickFirstDefined(track.albumId, album?.id, album?._id, ''),
     albumTitle: pickFirstDefined(track.albumTitle, album?.title, ''),
     image: pickFirstDefined(
-      track.image,
-      track.coverImage,
-      resolveImageUri(track?.coverImage || track?.avatar || album?.coverImage || artist?.avatar || artist?.coverImage),
+      resolveTrackAvatarUri(track),
       ''
     ),
     duration: pickNumber(track.duration),
@@ -233,9 +228,7 @@ const normalizeTrackPlayback = (item, trackId = '') => {
     albumId: pickFirstDefined(playback.albumId, album?.id, album?._id, ''),
     albumTitle: pickFirstDefined(playback.albumTitle, album?.title, ''),
     image: pickFirstDefined(
-      playback.image,
-      playback.coverImage,
-      resolveImageUri(playback.coverImage || playback.avatar || artist?.avatar || artist?.coverImage),
+      resolveTrackAvatarUri(playback),
       ''
     ),
     audioUri: pickFirstDefined(playback.audioUri, audioSource, ''),
@@ -342,6 +335,14 @@ export const trackService = {
     const playbackTrack = payload?.track || payload?.data?.track || payload?.playback || payload?.data || payload;
 
     return normalizeTrackPlayback(playbackTrack, trackId);
+  },
+
+  async getRandomTrackPlayback() {
+    const response = await axiosClient.get(`${API_ENDPOINTS.TRACKS.PLAYBACK}/playback`);
+    const payload = getPayload(response);
+    const playbackTrack = payload?.track || payload?.data?.track || payload?.playback || payload?.data || payload;
+
+    return normalizeTrackPlayback(playbackTrack);
   },
 
   async getTrackSyncedLyrics(trackOrUrl) {

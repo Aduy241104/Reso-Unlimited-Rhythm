@@ -2,7 +2,7 @@ import React from 'react';
 import { Image, Pressable, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import TrackFavoriteButton from '../../components/detail/TrackFavoriteButton';
-import { getInitials, resolveImageUri } from '../../utils/media';
+import { getInitials, resolveImageUri, resolveTrackAvatarUri } from '../../utils/media';
 import styles from './EntityDetailScreen.styles';
 
 const getDisplayText = (value, fallback = '') => {
@@ -96,7 +96,7 @@ export function TrackListItem({
       ) : null}
 
       <Artwork
-        uri={item?.image || item?.coverImage}
+        uri={resolveTrackAvatarUri(item)}
         label={artworkLabel}
         style={[styles.listArtwork, artworkStyle]}
         textStyle={styles.listArtworkText}

@@ -271,16 +271,13 @@ export default function PlaylistDetailScreen() {
       Alert.alert(
         'Phát ngẫu nhiên đang được bật',
         'Playlist mặc định phát ngẫu nhiên. Chỉ tài khoản Premium mới có thể tắt chế độ này.',
-        [
-          { text: 'Để sau', style: 'cancel' },
-          { text: 'Xem gói Premium', onPress: () => navigation.navigate('PremiumOverview') },
-        ]
+        [{ text: 'Đóng', style: 'cancel' }]
       );
       return;
     }
 
     toggleShuffle();
-  }, [isPremium, navigation, toggleShuffle]);
+  }, [isPremium, toggleShuffle]);
 
   const handleTrackPress = useCallback((track, index) => {
     const trackId = String(track?.entityId || track?.id || '');

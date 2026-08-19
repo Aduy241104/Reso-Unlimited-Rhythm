@@ -5,21 +5,13 @@ import { useAuth } from '../hooks/useAuth';
 import { MainNavigator } from './MainNavigator';
 import AppLoader from '../components/common/AppLoader';
 import { navigationRef } from './navigationRef';
-import { APP_LINK_PREFIX, PAYMENT_FAILED_PATH, PAYMENT_SUCCESS_PATH } from '../config/linking';
+import { APP_LINK_PREFIX } from '../config/linking';
 import theme from '../theme';
 
 export const RootNavigator = () => {
   const { isLoading } = useAuth();
 
-  const linking = {
-    prefixes: [APP_LINK_PREFIX],
-    config: {
-      screens: {
-        PremiumPaymentSuccess: PAYMENT_SUCCESS_PATH,
-        PremiumPaymentFailed: PAYMENT_FAILED_PATH,
-      },
-    },
-  };
+  const linking = { prefixes: [APP_LINK_PREFIX] };
 
   if (isLoading) {
     return (

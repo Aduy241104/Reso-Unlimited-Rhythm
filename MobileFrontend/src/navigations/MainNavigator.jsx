@@ -5,13 +5,7 @@ import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 import EntityDetailScreen from '../screens/detail/EntityDetailScreen';
-import PremiumOverviewScreen from '../screens/premium/PremiumOverviewScreen';
-import PremiumPlanDetailScreen from '../screens/premium/PremiumPlanDetailScreen';
-import PremiumCheckoutScreen from '../screens/premium/PremiumCheckoutScreen';
 import NotificationsScreen from '../screens/notifications/NotificationsScreen';
-import PremiumPaymentResultScreen from '../screens/premium/PremiumPaymentResultScreen';
-import PaymentHistoryScreen from '../screens/Payment/PaymentHistoryScreen';
-import PaymentDetailScreen from '../screens/Payment/PaymentDetailScreen';
 import TrackLyricsScreen from '../screens/player/TrackLyricsScreen';
 import theme from '../theme';
 
@@ -91,62 +85,6 @@ export const MainNavigator = () => {
       <Stack.Screen
         name="TrackLyrics"
         component={TrackLyricsScreen}
-        options={{
-          headerShown: false,
-          animation: 'slide_from_right',
-        }}
-      />
-      <Stack.Screen
-        name="PremiumOverview"
-        component={PremiumOverviewScreen}
-        options={{
-          headerShown: false,
-          animation: 'slide_from_right',
-        }}
-      />
-      <Stack.Screen
-        name="PremiumPlanDetail"
-        component={PremiumPlanDetailScreen}
-        options={{
-          headerShown: false,
-          animation: 'slide_from_right',
-        }}
-      />
-      <Stack.Screen
-        name="PremiumCheckout"
-        component={PremiumCheckoutScreen}
-        options={{
-          headerShown: false,
-          animation: 'slide_from_right',
-        }}
-      />
-      <Stack.Screen
-        name="PremiumPaymentSuccess"
-        component={PremiumPaymentResultScreen}
-        options={{
-          headerShown: false,
-          animation: 'fade_from_bottom',
-        }}
-      />
-      <Stack.Screen
-        name="PremiumPaymentFailed"
-        component={PremiumPaymentResultScreen}
-        options={{
-          headerShown: false,
-          animation: 'fade_from_bottom',
-        }}
-      />
-      <Stack.Screen
-        name="PaymentHistory"
-        component={PaymentHistoryScreen}
-        options={{
-          headerShown: false,
-          animation: 'slide_from_right',
-        }}
-      />
-      <Stack.Screen
-        name="PaymentDetail"
-        component={PaymentDetailScreen}
         options={{
           headerShown: false,
           animation: 'slide_from_right',
