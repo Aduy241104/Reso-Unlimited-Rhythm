@@ -27,6 +27,10 @@ const getUsers = async (query) => {
         filter.role = query.role;
     }
 
+    if (query.excludeRole && !query.role) {
+        filter.role = { $ne: query.excludeRole };
+    }
+
     if (query.activeStatus) {
         filter.activeStatus = query.activeStatus;
     }

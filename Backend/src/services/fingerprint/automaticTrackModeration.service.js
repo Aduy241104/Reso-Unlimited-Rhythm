@@ -173,8 +173,8 @@ const isOwnDraftCandidate = (sourceTrack, candidateTrack) => (
 
 const getExactCandidatePriority = (candidateTrack) => {
     switch (getCandidateContext(candidateTrack)) {
-        // An already-approved active recording is conclusive evidence for an
-        // automatic duplicate rejection. A pending A/B upload is still
+        // An already-approved, non-blocked recording is conclusive evidence
+        // for an automatic duplicate rejection. A pending A/B upload is still
         // reviewable, but must not hide an approved duplicate when both are
         // present in the fingerprint catalog.
         case "approved_active": return 50;

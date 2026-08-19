@@ -18,7 +18,10 @@ import { assertReviewCanApprove } from "../../track/moderationReview.service.js"
 import { getMusicBrainzResultForTrack } from "../../external/musicbrainz.service.js";
 import { getAcoustIdResultForTrack } from "../../external/acoustid.service.js";
 import { recordAuditEvent } from "../../audit/auditLog.service.js";
-import { getDisplayRejectionReason } from "../../fingerprint/moderationDecision.service.js";
+import {
+    getCandidateContext,
+    getDisplayRejectionReason,
+} from "../../fingerprint/moderationDecision.service.js";
 import {
     resolveTrackReleasedAt,
     resolveTrackReleaseStatus,
@@ -31,14 +34,18 @@ const MAX_LIMIT = 50;
 
 const EMPTY_FINGERPRINT_COMPARISON = Object.freeze({
     scope: "internal_catalog",
-    externalAudioCompared: false,
     comparedCandidateCount: 0,
+    pendingCandidateCount: 0,
     excludedCandidateCount: 0,
     activeExactFileMatchCount: 0,
+    pendingExactFileMatchCount: 0,
     historicalExactFileMatchCount: 0,
     highestActiveCandidateSimilarity: 0,
     highestActiveCandidateClassification: "none",
     highestActiveCandidate: null,
+    highestPendingCandidateSimilarity: 0,
+    highestPendingCandidateClassification: "none",
+    highestPendingCandidate: null,
 });
 
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -282,30 +289,32 @@ const buildFingerprintComparisonSummary = async (trackId, fingerprint) => {
     ];
     if (candidates.length === 0) return summary;
 
-    const activeTracks = await Track.find({
+    const candidateTracks = await Track.find({
         _id: { $in: candidates.map((candidate) => candidate.trackId) },
         isDeleted: { $ne: true },
     })
-        .select("_id title versionTitle artist_artistId")
+        .select("_id title versionTitle artist_artistId approvalStatus activeStatus pendingUpdate isDeleted")
         .populate({ path: "artist_artistId", select: "name" })
         .lean();
-    const activeTrackMap = new Map(activeTracks.map((candidate) => [String(candidate._id), candidate]));
+    const candidateTrackMap = new Map(candidateTracks.map((candidate) => [String(candidate._id), candidate]));
 
     for (const candidate of candidates) {
-        const activeTrack = activeTrackMap.get(String(candidate.trackId));
-        const isActive = Boolean(activeTrack);
+        const candidateTrack = candidateTrackMap.get(String(candidate.trackId));
+        const candidateContext = candidateTrack
+            ? getCandidateContext(candidateTrack)
+            : "historical_deleted";
         const isExactFile = Boolean(
             fingerprint.sourceAudioHash &&
             candidate.sourceAudioHash === fingerprint.sourceAudioHash
         );
-        if (isActive) {
+        if (candidateContext === "approved_active") {
             summary.comparedCandidateCount += 1;
             if (isExactFile) {
                 summary.activeExactFileMatchCount += 1;
                 if (summary.highestActiveCandidateSimilarity < 1) {
                     summary.highestActiveCandidateSimilarity = 1;
                     summary.highestActiveCandidateClassification = "high";
-                    summary.highestActiveCandidate = formatFingerprintCandidateSummary(activeTrack);
+                    summary.highestActiveCandidate = formatFingerprintCandidateSummary(candidateTrack);
                 }
                 continue;
             }
@@ -320,11 +329,38 @@ const buildFingerprintComparisonSummary = async (trackId, fingerprint) => {
             ) {
                 summary.highestActiveCandidateSimilarity = Number(comparison.similarityScore || 0);
                 summary.highestActiveCandidateClassification = comparison.classification || "none";
-                summary.highestActiveCandidate = formatFingerprintCandidateSummary(activeTrack, comparison);
+                summary.highestActiveCandidate = formatFingerprintCandidateSummary(candidateTrack, comparison);
+            }
+        } else if (candidateContext === "pending") {
+            summary.pendingCandidateCount += 1;
+            if (isExactFile) {
+                summary.pendingExactFileMatchCount += 1;
+                if (summary.highestPendingCandidateSimilarity < 1) {
+                    summary.highestPendingCandidateSimilarity = 1;
+                    summary.highestPendingCandidateClassification = "high";
+                    summary.highestPendingCandidate = formatFingerprintCandidateSummary(candidateTrack);
+                }
+                continue;
+            }
+
+            const comparison = compareFingerprints(
+                fingerprint.rawFingerprint || [],
+                candidate.rawFingerprint || [],
+                { durationA: fingerprint.duration, durationB: candidate.duration }
+            );
+            if (
+                comparison &&
+                Number(comparison.similarityScore || 0) > summary.highestPendingCandidateSimilarity
+            ) {
+                summary.highestPendingCandidateSimilarity = Number(comparison.similarityScore || 0);
+                summary.highestPendingCandidateClassification = comparison.classification || "none";
+                summary.highestPendingCandidate = formatFingerprintCandidateSummary(candidateTrack, comparison);
             }
         } else {
             summary.excludedCandidateCount += 1;
-            if (isExactFile) summary.historicalExactFileMatchCount += 1;
+            if (isExactFile && candidateContext === "historical_deleted") {
+                summary.historicalExactFileMatchCount += 1;
+            }
         }
     }
 
