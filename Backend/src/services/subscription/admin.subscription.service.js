@@ -10,6 +10,7 @@ const ADMIN_DISABLED_PLAN_REASON =
 const ADMIN_DELETED_PLAN_REASON =
     "Payment order cancelled because the subscription plan was deleted by an administrator.";
 const DUPLICATE_PLAN_NAME_MESSAGE = "Tên gói đăng ký đã tồn tại.";
+const INVALID_PLAN_PRICE_MESSAGE = "Subscription plan price must be greater than 0.";
 
 const normalizePlanName = (value) => String(value || "").trim();
 
@@ -36,6 +37,16 @@ const findPlanByExactName = async (name, excludePlanId = null) => {
 
 const isDuplicatePlanNameError = (error) =>
     error?.code === 11000 && (error?.keyPattern?.name || error?.keyValue?.name);
+
+const normalizePlanPrice = (price) => {
+    const normalizedPrice = Number(price);
+
+    if (!Number.isFinite(normalizedPrice) || normalizedPrice <= 0) {
+        throw new AppError(INVALID_PLAN_PRICE_MESSAGE, 400);
+    }
+
+    return normalizedPrice;
+};
 
 const cancelPendingOrdersForPlan = async (planId, reason) => {
     const now = new Date();
@@ -151,7 +162,7 @@ const createPlan = async (data) => {
 
     const planData = {
         name: normalizedName,
-        price: Number(price) || 0,
+        price: normalizePlanPrice(price),
         durationDays: Number(durationDays) || 30,
         description: description?.trim() || "",
         features: features || [],
@@ -191,8 +202,8 @@ const updatePlan = async (id, data) => {
         updates.name = normalizedName;
     }
 
-    if (typeof data.price === "number" && data.price >= 0) {
-        updates.price = data.price;
+    if (Object.prototype.hasOwnProperty.call(data, "price")) {
+        updates.price = normalizePlanPrice(data.price);
     }
 
     if (typeof data.durationDays === "number" && data.durationDays > 0) {

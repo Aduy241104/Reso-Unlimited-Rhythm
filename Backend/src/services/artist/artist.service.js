@@ -240,13 +240,18 @@ const getMyViolationsByUserId = async (userId) => {
         Album.find({ artistId: artist._id, isDeleted: { $ne: true } }).select("_id title").lean(),
     ]);
 
-    const trackIds = tracks.map((t) => t._id);
-    const albumIds = albums.map((a) => a._id);
+    const trackIds = tracks.map((track) => track._id);
+    const albumIds = albums.map((album) => album._id);
 
-    const targetTitleMap = {};
-    targetTitleMap[String(artist._id)] = artist.name;
-    tracks.forEach((t) => { targetTitleMap[String(t._id)] = t.title; });
-    albums.forEach((a) => { targetTitleMap[String(a._id)] = a.title; });
+    const targetTitleMap = {
+        [String(artist._id)]: artist.name,
+    };
+    tracks.forEach((track) => {
+        targetTitleMap[String(track._id)] = track.title;
+    });
+    albums.forEach((album) => {
+        targetTitleMap[String(album._id)] = album.title;
+    });
 
     const reports = await Report.find({
         $or: [
@@ -258,7 +263,7 @@ const getMyViolationsByUserId = async (userId) => {
         .sort({ createdAt: -1 })
         .lean();
 
-    const REASON_LABEL_MAP = {
+    const reasonLabelMap = {
         copyright_infringement: "Vi phạm bản quyền",
         harassment_or_hate: "Quấy rối / Phát ngôn thù ghét",
         nudity_or_sexual_content: "Nội dung đồi trụy / Nhạy cảm",
@@ -269,7 +274,7 @@ const getMyViolationsByUserId = async (userId) => {
         other: "Vi phạm quy định",
     };
 
-    const PENALTY_LABEL_MAP = {
+    const penaltyLabelMap = {
         warning: "Cảnh báo chính thức (+1 vi phạm)",
         hide_content: "Tạm ẩn / Gỡ nội dung",
         remove_content: "Gỡ bỏ tác phẩm",
@@ -279,35 +284,122 @@ const getMyViolationsByUserId = async (userId) => {
         "": "Chưa áp dụng",
     };
 
-    const violationItems = reports.map((r) => ({
-        id: r._id,
-        violationDate: r.handledAt || r.createdAt,
-        createdAt: r.createdAt,
-        violationType: REASON_LABEL_MAP[r.reason] || r.reason || "Vi phạm quy định",
-        rawType: r.reason,
-        description: r.description || "Báo cáo vi phạm nội dung",
-        penalty: PENALTY_LABEL_MAP[r.resolution] || (r.status === "rejected" ? "Báo cáo bị từ chối" : "Đang xem xét"),
-        rawPenalty: r.resolution,
-        status: r.status,
-        adminNotes: r.resolutionNote || "",
-        images: r.images || [],
-        targetType: r.targetType,
-        targetTitle: targetTitleMap[String(r.targetId)] || (r.targetType === "artist" ? artist.name : r.targetType.toUpperCase()),
-    }));
+    const dedupeNonEmptyStrings = (items = []) =>
+        [...new Set(
+            items
+                .filter((item) => typeof item === "string")
+                .map((item) => item.trim())
+                .filter(Boolean)
+        )];
+
+    const sortNewestFirst = (items) =>
+        [...items].sort((a, b) => {
+            const dateA = new Date(a.violationDate || a.createdAt || 0).getTime();
+            const dateB = new Date(b.violationDate || b.createdAt || 0).getTime();
+            return dateB - dateA;
+        });
+
+    const reportBackedViolations = (() => {
+        const groupedReports = new Map();
+
+        reports
+            .filter((report) => report.status === "resolved" && report.isValidReason === true)
+            .forEach((report) => {
+                const fallbackBatchKey = [
+                    report.targetType,
+                    String(report.targetId),
+                    report.handledAt ? new Date(report.handledAt).toISOString() : "",
+                ].join(":");
+                const batchKey = report.resolutionBatchId || fallbackBatchKey;
+                const bucket = groupedReports.get(batchKey) || [];
+                bucket.push(report);
+                groupedReports.set(batchKey, bucket);
+            });
+
+        return [...groupedReports.entries()].map(([batchKey, groupedItems]) => {
+            const sortedGroup = [...groupedItems].sort((a, b) => {
+                const timeA = new Date(a.handledAt || a.createdAt || 0).getTime();
+                const timeB = new Date(b.handledAt || b.createdAt || 0).getTime();
+                return timeB - timeA;
+            });
+            const primaryReport = sortedGroup[0];
+            const reasonLabels = dedupeNonEmptyStrings(
+                sortedGroup.map((item) => reasonLabelMap[item.reason] || item.reason)
+            );
+            const descriptions = dedupeNonEmptyStrings(
+                sortedGroup.map((item) => item.description || "Báo cáo vi phạm nội dung")
+            );
+            const adminNotes = dedupeNonEmptyStrings(
+                sortedGroup.map((item) => item.resolutionNote || "")
+            );
+            const images = [...new Set(
+                sortedGroup
+                    .flatMap((item) => (Array.isArray(item.images) ? item.images : []))
+                    .filter(Boolean)
+            )];
+            const reportDetails = sortedGroup.map((item) => ({
+                id: item._id,
+                reason: item.reason || "other",
+                reasonLabel: reasonLabelMap[item.reason] || item.reason || "Vi phạm quy định",
+                description: item.description || "Báo cáo vi phạm nội dung",
+                createdAt: item.createdAt,
+                handledAt: item.handledAt,
+                resolution: item.resolution || "",
+                resolutionNote: item.resolutionNote || "",
+                isValidReason: item.isValidReason === true,
+                targetType: item.targetType,
+                targetId: item.targetId,
+                targetTitle:
+                    targetTitleMap[String(item.targetId)] ||
+                    (item.targetType === "artist" ? artist.name : item.targetType.toUpperCase()),
+                images: Array.isArray(item.images) ? item.images : [],
+            }));
+
+            return {
+                id: `resolved-${batchKey}`,
+                violationDate: primaryReport.handledAt || primaryReport.createdAt,
+                createdAt: primaryReport.createdAt,
+                violationType: reasonLabels.join(", ") || "Vi phạm quy định",
+                rawType: primaryReport.reason || "other",
+                description: descriptions.join("\n\n"),
+                penalty: penaltyLabelMap[primaryReport.resolution] || penaltyLabelMap.warning,
+                rawPenalty: primaryReport.resolution || "warning",
+                status: "resolved",
+                adminNotes: adminNotes.join("\n\n"),
+                images,
+                reportCount: reportDetails.length,
+                reports: reportDetails,
+                targetType: primaryReport.targetType,
+                targetTitle:
+                    targetTitleMap[String(primaryReport.targetId)] ||
+                    (primaryReport.targetType === "artist" ? artist.name : primaryReport.targetType.toUpperCase()),
+            };
+        });
+    })();
 
     const parseManualContent = (content) => {
-        if (!content) return { targetType: "artist", targetTitle: artist.name, description: "Ghi nhận vi phạm kiểm duyệt" };
+        if (!content) {
+            return {
+                targetType: "artist",
+                targetTitle: artist.name,
+                description: "Ghi nhận vi phạm kiểm duyệt",
+            };
+        }
+
         const match = content.match(/\[(TRACK|ALBUM|ARTIST)\]:\s*(.*)/i);
         if (match) {
             const rawType = match[1].toLowerCase();
             const rawTitle = match[2].trim();
-            const targetTypeName = rawType === "track" ? "bài hát" : rawType === "album" ? "album" : "hồ sơ nghệ sĩ";
+            const targetTypeName =
+                rawType === "track" ? "bài hát" : rawType === "album" ? "album" : "hồ sơ nghệ sĩ";
+
             return {
                 targetType: rawType,
                 targetTitle: rawTitle || artist.name,
                 description: `Báo cáo vi phạm quy định đối với ${targetTypeName} "${rawTitle || artist.name}"`,
             };
         }
+
         return {
             targetType: "artist",
             targetTitle: artist.name,
@@ -315,16 +407,16 @@ const getMyViolationsByUserId = async (userId) => {
         };
     };
 
-    const manualViolations = (artist.violations || []).map((v, index) => {
-        const parsed = parseManualContent(v.content);
+    const manualViolations = (artist.violations || []).map((violation, index) => {
+        const parsed = parseManualContent(violation.content);
         return {
-            id: `manual-${v._id || index}`,
-            violationDate: v.violatedAt || artist.updatedAt,
-            createdAt: v.violatedAt || artist.updatedAt,
+            id: `manual-${violation._id || index}`,
+            violationDate: violation.violatedAt || artist.updatedAt,
+            createdAt: violation.violatedAt || artist.updatedAt,
             violationType: "Vi phạm quy định nghệ sĩ",
             rawType: "other",
             description: parsed.description,
-            penalty: "Cảnh báo chính thức (+1 vi phạm)",
+            penalty: penaltyLabelMap.warning,
             rawPenalty: "warning",
             status: "resolved",
             adminNotes: "Ghi nhận vi phạm trực tiếp bởi Ban quản trị",
@@ -334,24 +426,14 @@ const getMyViolationsByUserId = async (userId) => {
         };
     });
 
-    let combinedViolations = [];
-    if (violationItems.length > 0) {
-        combinedViolations = [...violationItems];
-        const resolvedReportsCount = violationItems.filter((r) => r.status === "resolved").length;
-        if (manualViolations.length > resolvedReportsCount) {
-            const extraManuals = manualViolations.slice(resolvedReportsCount);
-            combinedViolations.push(...extraManuals);
-        }
-    } else {
-        combinedViolations = manualViolations;
-    }
+    const violationsCount = artist.violations?.length || 0;
+    const combinedViolations = sortNewestFirst(reportBackedViolations).slice(0, violationsCount);
 
-    // Sort strictly newest first (mới nhất lên đầu)
-    combinedViolations.sort((a, b) => {
-        const dateA = new Date(a.violationDate || a.createdAt).getTime();
-        const dateB = new Date(b.violationDate || b.createdAt).getTime();
-        return dateB - dateA;
-    });
+    if (combinedViolations.length < violationsCount) {
+        combinedViolations.push(
+            ...sortNewestFirst(manualViolations).slice(0, violationsCount - combinedViolations.length)
+        );
+    }
 
     return {
         artistInfo: {
@@ -360,10 +442,10 @@ const getMyViolationsByUserId = async (userId) => {
             avatar: artist.avatar,
             activeStatus: artist.activeStatus,
             blockedReason: artist.blockedReason || "",
-            violationsCount: artist.violations?.length || 0,
+            violationsCount,
             maxAllowedViolations: 5,
         },
-        violations: combinedViolations,
+        violations: sortNewestFirst(combinedViolations),
     };
 };
 

@@ -99,22 +99,42 @@ const getHideActionDescription = (targetType) => {
 
 const getResolutionResultLabel = (resolution, status, isValidReason) => {
   if (status === "rejected" || resolution === "reject") {
-    return "Tá»« chá»‘i bĂ¡o cĂ¡o";
+    return "T\u1eeb ch\u1ed1i b\u00e1o c\u00e1o";
   }
 
   if (resolution === "block_artist") {
-    return "KhĂ³a nghá»‡ sÄ©";
+    return "Kh\u00f3a ngh\u1ec7 s\u0129";
   }
 
   if (resolution === "hide_content") {
-    return "KhĂ³a ná»™i dung";
+    return "Kh\u00f3a n\u1ed9i dung";
   }
 
   if (isValidReason === true || resolution === "warning") {
-    return "Cáº£nh bĂ¡o";
+    return "C\u1ea3nh b\u00e1o";
   }
 
-  return "ÄĂ£ xá»­ lĂ½";
+  return "\u0110\u00e3 x\u1eed l\u00fd";
+};
+
+const getResolutionResultLabelSafe = (resolution, status, isValidReason) => {
+  if (status === "rejected" || resolution === "reject") {
+    return "Từ chối báo cáo";
+  }
+
+  if (resolution === "block_artist") {
+    return "Khóa nghệ sĩ";
+  }
+
+  if (resolution === "hide_content") {
+    return "Khóa nội dung";
+  }
+
+  if (isValidReason === true || resolution === "warning") {
+    return "Cảnh báo";
+  }
+
+  return "Đã xử lý";
 };
 
 const getTargetTypeBadge = (type) => {
@@ -818,7 +838,7 @@ const ReportDetailPage = () => {
                         .filter(Boolean)
                     )
                   );
-                  const resultLabel = getResolutionResultLabel(
+                  const resultLabel = getResolutionResultLabelSafe(
                     batch.resolution,
                     batch.status,
                     batch.validReportCount > 0
@@ -887,6 +907,7 @@ const ReportDetailPage = () => {
                             const reporterName =
                               report.userId?.profile?.fullName || report.userId?.email || "Người dùng ẩn danh";
                             const reporterEmail = report.userId?.email || "";
+                            const wasValid = report.isValidReason === true;
                             const reportDate = report.createdAt
                               ? new Date(report.createdAt).toLocaleString("vi-VN", {
                                   year: "numeric",
@@ -914,9 +935,24 @@ const ReportDetailPage = () => {
                                     </div>
                                   </div>
 
-                                  <span className="inline-flex items-center rounded-lg bg-red-50 px-2.5 py-1 text-[10px] font-semibold text-red-600 border border-red-100">
-                                    {reasonLabels[report.reason] || report.reason}
-                                  </span>
+                                  <div className="flex flex-wrap items-center justify-end gap-2">
+                                    <span
+                                      className={`inline-flex items-center rounded-lg px-2.5 py-1 text-[10px] font-bold border ${wasValid
+                                        ? "bg-red-50 text-red-700 border-red-200"
+                                        : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                        }`}
+                                    >
+                                      {wasValid ? "Vi phạm hợp lệ" : "Không vi phạm"}
+                                    </span>
+                                    <span
+                                      className={`inline-flex items-center rounded-lg px-2.5 py-1 text-[10px] font-semibold border ${wasValid
+                                        ? "bg-red-50 text-red-600 border-red-100"
+                                        : "bg-slate-50 text-slate-500 border-slate-200"
+                                        }`}
+                                    >
+                                      {reasonLabels[report.reason] || report.reason}
+                                    </span>
+                                  </div>
                                 </div>
 
                                 <p className="text-sm text-slate-600">
@@ -1172,7 +1208,7 @@ const ReportDetailPage = () => {
                       <li><strong>1 lần:</strong> Cảnh báo lần 1</li>
                       <li><strong>2 lần:</strong> Cảnh báo mức cao hơn (Lần 2)</li>
                       <li><strong>3 lần:</strong> Cảnh báo mức nghiêm trọng (Lần 3)</li>
-                      <li><strong>4 lần:</strong> Khóa nội dung bị báo cáo</li>
+                      <li><strong>4 lần:</strong> Cảnh báo cuối cùng (Lần 4)</li>
                       <li><strong>5 lần:</strong> Khóa tài khoản nghệ sĩ</li>
                     </ul>
                   </div>
@@ -1540,7 +1576,7 @@ const ReportDetailPage = () => {
                 <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3.5 text-xs text-amber-900 font-medium">
                   Hình thức đã chọn: <strong className="text-amber-950 font-bold uppercase">{selectedActionLabel}</strong>
                   {selectedAction === "warn" && " — Gửi cảnh báo chính thức (+1 Lượt vi phạm của Nghệ sĩ)"}
-                  {selectedAction === "hide" && ` — Gỡ/Tạm ẩn ${getTargetTypeLabel(detail.targetType)} khỏi hệ thống`}
+                  {selectedAction === "hide" && ` — Khóa ${getTargetTypeLabel(detail.targetType)} khỏi hệ thống`}
                   {selectedAction === "block" && " — Khóa/Đình chỉ trực tiếp tài khoản Nghệ sĩ"}
                 </div>
               </div>
