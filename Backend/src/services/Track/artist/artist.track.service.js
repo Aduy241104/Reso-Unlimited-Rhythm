@@ -58,7 +58,7 @@ import {
     getCopyrightChangeFlags,
     getTrackRejectionSnapshot,
     hashTrackMutableData,
-} from "../../track/track.rejection.js";
+} from "../track.rejection.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 50;
