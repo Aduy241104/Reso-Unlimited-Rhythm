@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import ReactPaginate from "react-paginate";
 import { Link } from "react-router-dom";
 import { Search, ArrowUpRight, ShieldCheck, ArrowLeft } from "lucide-react";
-import { getUsersService } from "../../services/userService";
+import { getUsersPageService } from "../../services/userService";
 import { routePaths } from "../../routes/routePaths";
 
 const statuses = ["", "active", "inactive", "blocked"];
@@ -81,21 +81,22 @@ const AdminListPage = () => {
     setIsLoading(true);
     setMessage("");
     try {
-      const result = await getUsersService({
-        q: params.search,
+      const result = await getUsersPageService({
+        search: params.search,
         role: "admin",
-        status: params.status
-      });
-
-      const cleanAdmins = (result ?? []).filter((u) => u.role === "admin");
-      setAdmins(cleanAdmins);
-
-      const totalItems = cleanAdmins.length;
-      const totalPages = Math.ceil(totalItems / params.limit) || 1;
-
-      setPagination({
+        status: params.status,
         page: params.page,
         limit: params.limit,
+      });
+
+      setAdmins(result.users);
+
+      const totalItems = result.meta?.total ?? result.users.length;
+      const totalPages = result.meta?.totalPages ?? (Math.ceil(totalItems / params.limit) || 1);
+
+      setPagination({
+        page: result.meta?.page ?? params.page,
+        limit: result.meta?.limit ?? params.limit,
         total: totalItems,
         totalPages: totalPages
       });
@@ -212,7 +213,7 @@ const AdminListPage = () => {
             ) : admins.length === 0 ? (
               <div className="p-12 text-center text-slate-400 italic">Không tìm thấy tài khoản quản trị nào phù hợp.</div>
             ) : (
-              admins.slice((query.page - 1) * query.limit, query.page * query.limit).map((admin) => (
+              admins.map((admin) => (
                 <article key={admin._id} className="relative grid grid-cols-[minmax(0,1.5fr)_minmax(0,1.2fr)_120px_160px_180px_120px] gap-4 px-6 py-4 transition hover:bg-slate-50/60 items-center">
                   
                   {/* Vạch chỉ thị trạng thái */}

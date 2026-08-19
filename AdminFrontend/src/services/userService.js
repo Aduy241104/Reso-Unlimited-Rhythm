@@ -1,15 +1,28 @@
 import axiosClient from "../axios/axiosClient";
 
-export const getUsersService = async (filters = {}) => {
+const buildUserParams = (filters = {}) => {
 	const params = {};
-	if (filters.search) params.q = filters.search;
+	const search = filters.search ?? filters.q;
+	if (search) params.q = search;
 	if (filters.role) params.role = filters.role;
 	if (filters.status) params.activeStatus = filters.status;
+	if (filters.excludeRole) params.excludeRole = filters.excludeRole;
 	if (filters.page) params.page = filters.page;
 	if (filters.limit) params.limit = filters.limit;
+	return params;
+};
 
-	const res = await axiosClient.get("/api/admin/users", { params });
-	return res.data?.data?.users ?? [];
+export const getUsersPageService = async (filters = {}) => {
+	const res = await axiosClient.get("/api/admin/users", { params: buildUserParams(filters) });
+	return {
+		users: res.data?.data?.users ?? [],
+		meta: res.data?.meta ?? null,
+	};
+};
+
+export const getUsersService = async (filters = {}) => {
+	const result = await getUsersPageService(filters);
+	return result.users;
 };
 
 export const getUserService = async (id) => {
@@ -27,4 +40,4 @@ export const updateUserService = async (id, data) => {
 	return res.data?.data?.user ?? res.data;
 };
 
-export default { getUsersService, getUserService, getUserModerationAuditService, updateUserService };
+export default { getUsersService, getUsersPageService, getUserService, getUserModerationAuditService, updateUserService };
