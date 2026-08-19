@@ -75,8 +75,6 @@ export default function ArtistViolationsPage() {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
 
-  // Filters
-  const [statusFilter, setStatusFilter] = useState("all");
   const [selectedViolation, setSelectedViolation] = useState(null);
 
   useEffect(() => {
@@ -100,14 +98,9 @@ export default function ArtistViolationsPage() {
   const violationsList = data?.violations || [];
   const artistInfo = data?.artistInfo || {};
 
-  // Filtered & Sorted List (Newest first)
+  // Sorted list (newest first)
   const filteredViolations = useMemo(() => {
-    const list = violationsList.filter((item) => {
-      const matchesStatus =
-        statusFilter === "all" || item.status === statusFilter;
-
-      return matchesStatus;
-    });
+    const list = [...violationsList];
 
     // Sort strictly newest to oldest
     return list.sort((a, b) => {
@@ -115,7 +108,7 @@ export default function ArtistViolationsPage() {
       const timeB = new Date(b.violationDate || b.createdAt || 0).getTime();
       return timeB - timeA;
     });
-  }, [violationsList, statusFilter]);
+  }, [violationsList]);
 
   const formatDate = (dateStr) => {
     if (!dateStr) return "--";
@@ -241,31 +234,6 @@ export default function ArtistViolationsPage() {
         </div>
       ) : null}
 
-      {/* Status Filter Bar Section */}
-      <section className="flex flex-wrap items-center gap-2 rounded-[18px] border border-[#e7e1ff] bg-white p-4 shadow-sm">
-        {[
-          { key: "all", label: "Tất cả" },
-          { key: "pending", label: "Đang chờ" },
-          { key: "reviewing", label: "Đang xem xét" },
-          { key: "resolved", label: "Đã xử lý" },
-          { key: "rejected", label: "Bị từ chối" },
-        ].map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => setStatusFilter(tab.key)}
-            className={[
-              "rounded-full border px-3.5 py-2 text-sm font-medium transition",
-              statusFilter === tab.key
-                ? "border-[#6f5cf1] bg-[#6f5cf1] text-white"
-                : "border-[#e7e1ff] bg-[#f8f6ff] text-[#645d86] hover:border-[#b7abff] hover:text-[#2f2747]",
-            ].join(" ")}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </section>
-
       {/* Violations List Container */}
       <section className="space-y-3">
         {filteredViolations.length === 0 ? (
@@ -275,9 +243,7 @@ export default function ArtistViolationsPage() {
             </div>
             <h3 className="text-base font-semibold text-[#2f2747]">Không có vi phạm nào</h3>
             <p className="mt-1 text-xs text-[#7c7891] max-w-md">
-              {statusFilter !== "all"
-                ? "Không có hồ sơ nào khớp với bộ lọc trạng thái được chọn."
-                : "Chúc mừng! Bạn hiện tại không có vi phạm hoặc báo cáo nào được ghi nhận."}
+              Chúc mừng! Bạn hiện tại không có vi phạm hoặc báo cáo nào được ghi nhận.
             </p>
           </div>
         ) : (
@@ -316,6 +282,12 @@ export default function ArtistViolationsPage() {
                       <span className="rounded-lg border border-[#e7e1ff] bg-[#f8f6ff] px-2.5 py-0.5 text-xs font-semibold text-[#645d86]">
                         {item.violationType}
                       </span>
+
+                      {item.reportCount > 1 ? (
+                        <span className="rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-0.5 text-xs font-semibold text-sky-700">
+                          {item.reportCount} báo cáo
+                        </span>
+                      ) : null}
 
                       {/* Status Badge */}
                       <span
@@ -424,14 +396,57 @@ export default function ArtistViolationsPage() {
             </div>
 
             {/* Event Description */}
-            <div className="space-y-1.5">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-[#7c7891]">
-                Mô tả chi tiết sự việc
-              </h4>
-              <div className="rounded-[14px] border border-[#efeaff] bg-white p-3.5 text-xs leading-relaxed text-[#2f2747] font-medium">
-                {cleanText(selectedViolation.description)}
+            {selectedViolation.reports?.length > 0 ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#7c7891]">
+                    Nội dung các báo cáo đã xác nhận
+                  </h4>
+                  <span className="text-xs font-semibold text-[#7c7891]">
+                    {selectedViolation.reports.length} báo cáo
+                  </span>
+                </div>
+
+                {selectedViolation.reports.map((report, reportIndex) => (
+                  <div
+                    key={report.id || reportIndex}
+                    className="rounded-[14px] border border-[#efeaff] bg-[#faf9ff] p-4 space-y-3"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-700">
+                          Vi phạm hợp lệ
+                        </span>
+                        <span className="rounded-lg border border-[#e7e1ff] bg-white px-2.5 py-1 text-xs font-semibold text-[#645d86]">
+                          {report.reasonLabel || report.reason}
+                        </span>
+                      </div>
+                      <span className="text-xs font-medium text-[#8c86ab]">
+                        {formatDate(report.createdAt)}
+                      </span>
+                    </div>
+
+                    <div>
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-[#7c7891]">
+                        Nội dung báo cáo #{reportIndex + 1}
+                      </p>
+                      <div className="mt-1.5 rounded-xl border border-[#efeaff] bg-white p-3 text-xs font-medium leading-relaxed text-[#2f2747]">
+                        {cleanText(report.description)}
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
+            ) : (
+              <div className="space-y-1.5">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-[#7c7891]">
+                  Mô tả chi tiết sự việc
+                </h4>
+                <div className="rounded-[14px] border border-[#efeaff] bg-white p-3.5 text-xs leading-relaxed text-[#2f2747] font-medium">
+                  {cleanText(selectedViolation.description)}
+                </div>
+              </div>
+            )}
 
             {/* Admin Decision Notes */}
             <div className="space-y-1.5">

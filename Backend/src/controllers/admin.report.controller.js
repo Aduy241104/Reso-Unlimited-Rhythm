@@ -19,7 +19,11 @@ const getGroupedReports = async (req, res, next) => {
 const getGroupedReportDetail = async (req, res, next) => {
     try {
         const { targetType, targetId } = req.params;
-        const detail = await adminReportService.getGroupedReportDetail(targetType, targetId);
+        const detail = await adminReportService.getGroupedReportDetail(targetType, targetId, {
+            includeRelatedArtistContent:
+                req.query.includeRelatedArtistContent === "true" ||
+                req.query.includeRelatedArtistContent === true,
+        });
 
         return formatResponse.success(
             res,
@@ -39,7 +43,12 @@ const resolveGroupedReport = async (req, res, next) => {
             targetType,
             targetId,
             req.body,
-            adminId
+            adminId,
+            {
+                includeRelatedArtistContent:
+                    req.query.includeRelatedArtistContent === "true" ||
+                    req.query.includeRelatedArtistContent === true,
+            }
         );
 
         return formatResponse.success(

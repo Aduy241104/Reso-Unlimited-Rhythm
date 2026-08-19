@@ -334,6 +334,8 @@ export default function ArtistViolationHistoryPage() {
         action: actionType,
         resolutionNote: adminNote || "Đã kiểm duyệt bởi Admin",
         evaluations: [{ isValid: actionType !== "reject" }],
+      }, {
+        includeRelatedArtistContent: true,
       });
 
       setToastMsg(`Đã xử lý "${actionType.toUpperCase()}" thành công!`);
@@ -351,7 +353,9 @@ export default function ArtistViolationHistoryPage() {
   const handleOpenDetail = async (group) => {
     setSelectedGroup(group);
     try {
-      const detail = await getGroupedReportDetailService(group.targetType, group.targetId);
+      const detail = await getGroupedReportDetailService(group.targetType, group.targetId, {
+        includeRelatedArtistContent: true,
+      });
       if (detail) {
         setSelectedGroup({
           ...group,
