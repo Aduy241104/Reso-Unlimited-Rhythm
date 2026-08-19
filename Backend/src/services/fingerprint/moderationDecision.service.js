@@ -62,10 +62,10 @@ export const getAutomaticRejectionReason = (decision) => {
         reasonCodes.has("SAME_ARTIST_PERFECT_FINGERPRINT_DUPLICATE") ||
         reasonCodes.has("SAME_ARTIST_TITLE_AUDIO_DUPLICATE")
     ) {
-        return "Bản ghi âm trùng với một bài hát đã phát hành khác của cùng nghệ sĩ. Bài hát bị từ chối tự động; vui lòng sử dụng bản ghi âm hoặc phiên bản khác rồi gửi lại.";
+        return "Bản ghi âm trùng với một bài hát đã được duyệt khác của cùng nghệ sĩ. Bài hát bị từ chối tự động; vui lòng sử dụng bản ghi âm hoặc phiên bản khác rồi gửi lại.";
     }
     if ([...DUPLICATE_REJECTION_CODES].some((code) => reasonCodes.has(code))) {
-        return "Bản ghi âm trùng với một bài hát đã phát hành trong hệ thống. Bài hát bị từ chối tự động; vui lòng bổ sung bản ghi âm có quyền sử dụng hợp lệ hoặc gửi một phiên bản khác.";
+        return "Bản ghi âm trùng với một bài hát đã được duyệt trong hệ thống. Bài hát bị từ chối tự động; vui lòng bổ sung bản ghi âm có quyền sử dụng hợp lệ hoặc gửi một phiên bản khác.";
     }
     if (reasonCodes.has("AUDIO_OR_METADATA_INVALID")) {
         return "Audio hoặc thông tin bài hát chưa hợp lệ. Vui lòng bổ sung lại trước khi gửi duyệt.";
@@ -97,6 +97,9 @@ export const getCandidateContext = (track) => {
         return "pending";
     }
     if (track.approvalStatus === "draft") return "draft";
+    // Approval is the catalog gate for duplicate moderation. A track does not
+    // need to be released/public yet; hidden approved tracks still protect
+    // their audio fingerprint from a duplicate upload.
     if (track.approvalStatus === "approved" && track.activeStatus !== "blocked") {
         return "approved_active";
     }
@@ -317,20 +320,20 @@ const evaluateModerationDecisionLegacy = ({
                 return result(
                     MODERATION_DECISIONS.AUTO_REJECT,
                     ["SAME_ARTIST_PERFECT_FINGERPRINT_DUPLICATE"],
-                    "Fingerprint Chromaprint trùng hoàn toàn với Track đã phát hành của cùng nghệ sĩ; bài hát bị từ chối tự động.",
+                    "Fingerprint Chromaprint trùng hoàn toàn với Track đã được duyệt của cùng nghệ sĩ; bài hát bị từ chối tự động.",
                 );
             }
             if (declaration.hasEvidence) {
                 return result(
                     MODERATION_DECISIONS.MANUAL_REVIEW_HIGH,
                     ["APPROVED_PERFECT_FINGERPRINT_WITH_EVIDENCE"],
-                    "Fingerprint Chromaprint trùng hoàn toàn với Track đã phát hành và hồ sơ có bằng chứng quyền sử dụng; cần Admin xác minh.",
+                    "Fingerprint Chromaprint trùng hoàn toàn với Track đã được duyệt và hồ sơ có bằng chứng quyền sử dụng; cần Admin xác minh.",
                 );
             }
             return result(
                 MODERATION_DECISIONS.AUTO_REJECT,
                 ["APPROVED_PERFECT_FINGERPRINT_DUPLICATE"],
-                "Fingerprint Chromaprint trùng hoàn toàn với Track đã phát hành; bài hát bị từ chối tự động.",
+                "Fingerprint Chromaprint trùng hoàn toàn với Track đã được duyệt; bài hát bị từ chối tự động.",
             );
         }
     }
@@ -497,11 +500,11 @@ export const evaluateModerationDecision = ({
         if (perfectCandidateContext === "pending") {
             addSignal(MODERATION_DECISIONS.MANUAL_REVIEW_HIGH, ["PENDING_PERFECT_FINGERPRINT_DUPLICATE"], "Fingerprint Chromaprint trùng hoàn toàn với bản ghi đang chờ duyệt; cần xác minh thứ tự và quyền sở hữu.", "high");
         } else if (perfectCandidateContext === "approved_active" && perfectCandidate.sameArtist) {
-            addSignal(MODERATION_DECISIONS.AUTO_REJECT, ["SAME_ARTIST_PERFECT_FINGERPRINT_DUPLICATE"], "Fingerprint Chromaprint trùng hoàn toàn với Track đã phát hành của cùng nghệ sĩ; bài hát bị từ chối tự động.", "high");
+            addSignal(MODERATION_DECISIONS.AUTO_REJECT, ["SAME_ARTIST_PERFECT_FINGERPRINT_DUPLICATE"], "Fingerprint Chromaprint trùng hoàn toàn với Track đã được duyệt của cùng nghệ sĩ; bài hát bị từ chối tự động.", "high");
         } else if (perfectCandidateContext === "approved_active" && declaration.hasEvidence) {
-            addSignal(MODERATION_DECISIONS.MANUAL_REVIEW_HIGH, ["APPROVED_PERFECT_FINGERPRINT_WITH_EVIDENCE"], "Fingerprint Chromaprint trùng hoàn toàn với Track đã phát hành nhưng hồ sơ có bằng chứng quyền sử dụng; cần Admin xác minh.", "high");
+            addSignal(MODERATION_DECISIONS.MANUAL_REVIEW_HIGH, ["APPROVED_PERFECT_FINGERPRINT_WITH_EVIDENCE"], "Fingerprint Chromaprint trùng hoàn toàn với Track đã được duyệt nhưng hồ sơ có bằng chứng quyền sử dụng; cần Admin xác minh.", "high");
         } else if (perfectCandidateContext === "approved_active") {
-            addSignal(MODERATION_DECISIONS.AUTO_REJECT, ["APPROVED_PERFECT_FINGERPRINT_DUPLICATE"], "Fingerprint Chromaprint trùng hoàn toàn với Track đã phát hành; bài hát bị từ chối tự động.", "high");
+            addSignal(MODERATION_DECISIONS.AUTO_REJECT, ["APPROVED_PERFECT_FINGERPRINT_DUPLICATE"], "Fingerprint Chromaprint trùng hoàn toàn với Track đã được duyệt; bài hát bị từ chối tự động.", "high");
         }
     }
 
@@ -515,7 +518,7 @@ export const evaluateModerationDecision = ({
         addSignal(
             MODERATION_DECISIONS.AUTO_REJECT,
             ["SAME_ARTIST_TITLE_AUDIO_DUPLICATE"],
-            "Audio gần như trùng với bài hát cùng tên đã phát hành của cùng nghệ sĩ; bài hát bị từ chối tự động.",
+            "Audio gần như trùng với bài hát cùng tên đã được duyệt của cùng nghệ sĩ; bài hát bị từ chối tự động.",
             "high",
         );
     }

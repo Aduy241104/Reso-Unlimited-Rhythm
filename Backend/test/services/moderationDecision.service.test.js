@@ -1,5 +1,6 @@
 import {
     evaluateModerationDecision,
+    getCandidateContext,
     getDisplayRejectionReason,
     isPerfectFingerprintMatch,
     isSameTitleAudioDuplicate,
@@ -38,6 +39,14 @@ const cleanInput = (overrides = {}) => ({
 });
 
 describe("central automatic moderation decision policy", () => {
+    test("approved hidden tracks remain duplicate candidates before release", () => {
+        expect(getCandidateContext({
+            approvalStatus: "approved",
+            activeStatus: "hidden",
+            releaseStatus: "unreleased",
+        })).toBe("approved_active");
+    });
+
     test("clean submission becomes AUTO_CLEAR without publishing", () => {
         expect(evaluateModerationDecision(cleanInput()).decision).toBe(MODERATION_DECISIONS.AUTO_CLEAR);
     });
@@ -97,7 +106,7 @@ describe("central automatic moderation decision policy", () => {
                 decision: MODERATION_DECISIONS.AUTO_REJECT,
                 reasonCodes: ["SAME_ARTIST_PERFECT_FINGERPRINT_DUPLICATE"],
             },
-        )).toContain("trùng với một bài hát đã phát hành khác của cùng nghệ sĩ");
+        )).toContain("trùng với một bài hát đã được duyệt khác của cùng nghệ sĩ");
     });
 
     test("same artist and same title with a near-identical recording is AUTO_REJECT", () => {

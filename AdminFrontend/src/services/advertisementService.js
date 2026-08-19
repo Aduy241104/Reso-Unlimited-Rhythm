@@ -11,7 +11,6 @@ const advertisementService = {
   async create(payload) { return unwrap(await axiosClient.post("/api/admin/advertisements", payload), "advertisement"); },
   async update(id, payload) { return unwrap(await axiosClient.patch(`/api/admin/advertisements/${id}`, payload), "advertisement"); },
   async archive(id) { return unwrap(await axiosClient.delete(`/api/admin/advertisements/${id}`), "advertisement"); },
-  async analytics(id) { return unwrap(await axiosClient.get(`/api/admin/advertisements/${id}/analytics`), "analytics"); },
   async upload(file, type) {
     const form = new FormData();
     form.append("media", file);

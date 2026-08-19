@@ -498,9 +498,8 @@ const createTrack = async (userId, trackData) => {
     assertArtistCanCreateTrack(artist);
 
     const title = validateDraftTitle(trackData.title);
-    const artistId = resolveArtistIdForCreate(trackData, artist);
     const versionTitle = normalizeTrackVersionTitle(trackData.versionTitle);
-    await assertTrackTitleIsAvailable(title, artistId);
+    const artistId = resolveArtistIdForCreate(trackData, artist);
     await assertTrackTitleVersionAvailable({
         artistId,
         title,
