@@ -499,7 +499,13 @@ const createTrack = async (userId, trackData) => {
 
     const title = validateDraftTitle(trackData.title);
     const artistId = resolveArtistIdForCreate(trackData, artist);
+    const versionTitle = normalizeTrackVersionTitle(trackData.versionTitle);
     await assertTrackTitleIsAvailable(title, artistId);
+    await assertTrackTitleVersionAvailable({
+        artistId,
+        title,
+        versionTitle,
+    });
 
     const audioFiles = validateOptionalAudioFiles(trackData.audioFiles);
     const duration = validateDurationFromAudioAnalysis(
