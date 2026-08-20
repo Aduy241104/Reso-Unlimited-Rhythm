@@ -11,6 +11,7 @@ import { recordAuditEvent } from "../audit/auditLog.service.js";
 const ACTIVE_CACHE_KEY = "ads:active:v1";
 const SESSION_TTL_SECONDS = 60 * 60 * 25;
 const ACTIVE_CACHE_SECONDS = 30;
+const MIN_AUDIO_TRACKS_BETWEEN_ADS = 3;
 const memorySessions = new Map();
 let memoryActiveCache = { expiresAt: 0, ads: [] };
 
@@ -57,7 +58,7 @@ const normalizeAdvertisementPayload = (payload = {}, current = null) => {
         endAt,
         priority: Math.min(Math.max(Number(payload.priority ?? current?.priority ?? 1) || 1, 1), 100),
         targeting: {
-            placements: ["between_tracks"],
+            placements: ["between_tracks", "before_track"],
         },
         frequencyCap: {
             maxPerHour: Math.min(Math.max(Number(payload.frequencyCap?.maxPerHour ?? current?.frequencyCap?.maxPerHour ?? 4) || 4, 1), 60),
@@ -167,7 +168,12 @@ const targetMatches = (ad, { country, genreIds, placement }) => {
     const placements = ad.targeting?.placements || [];
     if (countries.length && (!country || !countries.includes(String(country).toUpperCase()))) return false;
     if (genres.length && !genreIds.some((id) => genres.includes(String(id)))) return false;
-    if (placements.length && (!placement || !placements.includes(String(placement).toLowerCase()))) return false;
+    if (placements.length) {
+        const normalizedPlacement = String(placement || "").toLowerCase();
+        const supportsPlacement = placements.includes(normalizedPlacement)
+            || (normalizedPlacement === "before_track" && placements.includes("between_tracks"));
+        if (!normalizedPlacement || !supportsPlacement) return false;
+    }
     return true;
 };
 
@@ -176,8 +182,12 @@ export const filterEligibleAds = (ads, state, context, at = nowMs()) => ads.filt
     const cap = ad.frequencyCap || {};
     const hourCount = (state.impressions || []).filter((item) => item.type === ad.type && item.at > at - 3600000).length;
     if (hourCount >= (Number(cap.maxPerHour) || 4)) return false;
-    if (ad.type === "audio") {
-        if ((state.tracksSinceAudio || 0) < (Number(cap.minTracksBetweenAds) || 0)) return false;
+    if (ad.type === "audio" && context.placement !== "before_track") {
+        const minTracksBetweenAds = Math.max(
+            MIN_AUDIO_TRACKS_BETWEEN_ADS,
+            Number(cap.minTracksBetweenAds) || 0,
+        );
+        if ((state.tracksSinceAudio || 0) < minTracksBetweenAds) return false;
         if (state.lastAudioAt && at - state.lastAudioAt < (Number(cap.minMinutesBetweenAds) || 0) * 60000) return false;
     }
     return true;
@@ -208,12 +218,16 @@ export const decideAdvertisement = async ({ user, sessionId, type, placement = "
         if (!normalizedTransition) throw new AppError("transitionId is required for audio decisions.", 400);
         if (state.transitions.includes(normalizedTransition)) return { shouldPlay: false, advertisement: null, ad: null, reason: "duplicate_transition" };
         state.transitions.push(normalizedTransition);
-        state.tracksSinceAudio = (state.tracksSinceAudio || 0) + 1;
+        if (placement === "between_tracks") {
+            state.tracksSinceAudio = (state.tracksSinceAudio || 0) + 1;
+        }
     }
 
     const activeAds = await loadActiveAds(type);
     let eligible = filterEligibleAds(activeAds, state, { country, genreIds, placement });
-    eligible = excludeRecentlyPlayedAds(eligible, state.recentAdIds);
+    if (placement !== "before_track") {
+        eligible = excludeRecentlyPlayedAds(eligible, state.recentAdIds);
+    }
     const selected = chooseWeightedAd(eligible);
     state = await saveSession(sessionHash, state);
     if (!selected) return { shouldPlay: false, advertisement: null, ad: null, reason: "not_eligible" };
