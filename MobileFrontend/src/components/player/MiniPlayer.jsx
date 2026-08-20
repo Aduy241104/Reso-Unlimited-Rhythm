@@ -19,6 +19,7 @@ const Artwork = ({ track }) => {
 export default function MiniPlayer({ onPress }) {
   const {
     currentTrack,
+    currentAdvertisement,
     currentError,
     isBuffering,
     isPlaying,
@@ -26,6 +27,7 @@ export default function MiniPlayer({ onPress }) {
     togglePlayback,
     playNext,
     hasNext,
+    isAdvertisementPlaying,
   } = usePlayer();
 
   if (!currentTrack) {
@@ -53,9 +55,9 @@ export default function MiniPlayer({ onPress }) {
           <Artwork track={currentTrack} />
 
           <View style={styles.content}>
-            <Text style={styles.title} numberOfLines={1}>{currentTrack.title}</Text>
+            <Text style={styles.title} numberOfLines={1}>{isAdvertisementPlaying ? (currentAdvertisement?.title || 'Quảng cáo') : currentTrack.title}</Text>
             <Text style={styles.subtitle} numberOfLines={1}>
-              {currentError || (isBuffering ? 'Đang tải âm thanh...' : currentTrack.artistName)}
+              {isAdvertisementPlaying ? 'Đang phát quảng cáo' : (currentError || (isBuffering ? 'Đang tải âm thanh...' : currentTrack.artistName))}
             </Text>
           </View>
 
