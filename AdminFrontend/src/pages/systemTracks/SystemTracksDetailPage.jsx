@@ -1099,7 +1099,12 @@ const TrackDetailPage = () => {
                         <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
                             <span className="block text-[10px] font-bold uppercase tracking-wide text-slate-400">Mức rủi ro nội bộ</span>
                             <span className="mt-1 block font-semibold text-slate-800">
-                                {translateStatus(FINGERPRINT_RISK_LABELS, track.fingerprintScreening?.riskLevel, "Chưa xác định")}
+                                {translateStatus(
+                                    FINGERPRINT_RISK_LABELS,
+                                    track.fingerprint?.comparison?.internalRiskLevel
+                                        ?? track.fingerprintScreening?.riskLevel,
+                                    "Chưa xác định"
+                                )}
                             </span>
                         </div>
                         <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">

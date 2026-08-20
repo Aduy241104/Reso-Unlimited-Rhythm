@@ -34,6 +34,7 @@ const MAX_LIMIT = 50;
 
 const EMPTY_FINGERPRINT_COMPARISON = Object.freeze({
     scope: "internal_catalog",
+    internalRiskLevel: "none",
     comparedCandidateCount: 0,
     pendingCandidateCount: 0,
     excludedCandidateCount: 0,
@@ -47,6 +48,14 @@ const EMPTY_FINGERPRINT_COMPARISON = Object.freeze({
     highestPendingCandidateClassification: "none",
     highestPendingCandidate: null,
 });
+
+const raiseInternalFingerprintRisk = (summary, classification) => {
+    if (classification === "high") {
+        summary.internalRiskLevel = "high";
+    } else if (classification === "review" && summary.internalRiskLevel !== "high") {
+        summary.internalRiskLevel = "medium";
+    }
+};
 
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -311,6 +320,7 @@ const buildFingerprintComparisonSummary = async (trackId, fingerprint) => {
             summary.comparedCandidateCount += 1;
             if (isExactFile) {
                 summary.activeExactFileMatchCount += 1;
+                summary.internalRiskLevel = "high";
                 if (summary.highestActiveCandidateSimilarity < 1) {
                     summary.highestActiveCandidateSimilarity = 1;
                     summary.highestActiveCandidateClassification = "high";
@@ -331,10 +341,12 @@ const buildFingerprintComparisonSummary = async (trackId, fingerprint) => {
                 summary.highestActiveCandidateClassification = comparison.classification || "none";
                 summary.highestActiveCandidate = formatFingerprintCandidateSummary(candidateTrack, comparison);
             }
+            if (comparison) raiseInternalFingerprintRisk(summary, comparison.classification);
         } else if (candidateContext === "pending") {
             summary.pendingCandidateCount += 1;
             if (isExactFile) {
                 summary.pendingExactFileMatchCount += 1;
+                summary.internalRiskLevel = "high";
                 if (summary.highestPendingCandidateSimilarity < 1) {
                     summary.highestPendingCandidateSimilarity = 1;
                     summary.highestPendingCandidateClassification = "high";
@@ -356,6 +368,7 @@ const buildFingerprintComparisonSummary = async (trackId, fingerprint) => {
                 summary.highestPendingCandidateClassification = comparison.classification || "none";
                 summary.highestPendingCandidate = formatFingerprintCandidateSummary(candidateTrack, comparison);
             }
+            if (comparison) raiseInternalFingerprintRisk(summary, comparison.classification);
         } else {
             summary.excludedCandidateCount += 1;
             if (isExactFile && candidateContext === "historical_deleted") {
