@@ -69,7 +69,7 @@ describe("adminPlaylistService", () => {
         jest.clearAllMocks();
     });
 
-    test("only accepts approved visible tracks when adding one track", async () => {
+    test("only accepts approved released visible tracks when adding one track", async () => {
         const { default: adminPlaylistService } = await loadAdminPlaylistService();
         const playlist = mockPlaylistDocument();
 
@@ -82,6 +82,7 @@ describe("adminPlaylistService", () => {
         expect(mockTrackModel.findOne).toHaveBeenCalledWith({
             _id: approvedTrackId,
             approvalStatus: "approved",
+            releaseStatus: "released",
             activeStatus: { $nin: ["blocked", "hidden"] },
             isDeleted: { $ne: true },
         });
@@ -105,6 +106,7 @@ describe("adminPlaylistService", () => {
         const batchFilter = mockTrackModel.find.mock.calls[0][0];
         expect(batchFilter).toMatchObject({
             approvalStatus: "approved",
+            releaseStatus: "released",
             activeStatus: { $nin: ["blocked", "hidden"] },
             isDeleted: { $ne: true },
         });

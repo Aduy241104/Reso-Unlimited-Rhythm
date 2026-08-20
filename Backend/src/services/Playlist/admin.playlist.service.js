@@ -10,6 +10,7 @@ import { extractPublicIdFromUrl } from "../../utils/uploadCloud.js";
 const CLOUDINARY_PLAYLIST_FOLDER = "reso/playlists";
 const SYSTEM_PLAYLIST_TRACK_FILTER = Object.freeze({
     approvalStatus: "approved",
+    releaseStatus: "released",
     activeStatus: { $nin: ["blocked", "hidden"] },
     isDeleted: { $ne: true },
 });
@@ -170,7 +171,7 @@ const addTrackToSystemPlaylist = async (playlistId, trackId) => {
         ...SYSTEM_PLAYLIST_TRACK_FILTER,
     }).select("_id").lean();
     if (!track) {
-        throw new AppError("Only approved and visible tracks can be added to a system playlist.", 404, { field: "trackId" });
+        throw new AppError("Only approved, released, and visible tracks can be added to a system playlist.", 404, { field: "trackId" });
     }
 
     const playlist = await findSystemPlaylist(playlistId);
