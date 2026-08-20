@@ -9,6 +9,7 @@ import {
     buildRevenuePeriodRange,
     getRevenueDashboardTimezone,
 } from "../../helpers/revenuePeriod.helper.js";
+import { buildRevenueRecognitionPipeline } from "../../helpers/revenueRecognition.helper.js";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -28,19 +29,30 @@ const roundCurrency = (value) => Math.max(0, Math.round(Number(value) || 0));
 const calculateArtistPool = (premiumRevenue) =>
     roundCurrency(premiumRevenue * (ARTIST_REVENUE_SHARE_PERCENT / 100));
 
-const aggregateMonthlyPremiumRevenue = async ({ periodStart, periodEnd }) => {
+const aggregateMonthlyPremiumRevenue = async ({
+    periodStart,
+    periodEnd,
+    year,
+    month,
+    timezoneName,
+}) => {
     const summary = await Transaction.aggregate([
-        {
-            $match: {
-                status: "success",
-                paidAt: { $gte: periodStart, $lt: periodEnd },
-            },
-        },
+        ...buildRevenueRecognitionPipeline({
+            periodStart,
+            periodEnd,
+            year,
+            month,
+            timezoneName,
+        }),
         {
             $group: {
                 _id: null,
-                premiumRevenue: { $sum: "$amount" },
-                successfulTransactions: { $sum: 1 },
+                premiumRevenue: { $sum: "$recognizedRevenue" },
+                successfulTransactions: {
+                    $sum: {
+                        $cond: [{ $eq: ["$monthOffset", 0] }, 1, 0],
+                    },
+                },
             },
         },
     ]);
@@ -54,28 +66,35 @@ const aggregateMonthlyPremiumRevenue = async ({ periodStart, periodEnd }) => {
 const aggregateDailyRevenueStats = async ({
     periodStart,
     periodEnd,
+    year,
+    month,
     timezoneName,
 }) => {
     const dailyStats = await Transaction.aggregate([
-        {
-            $match: {
-                status: "success",
-                paidAt: { $gte: periodStart, $lt: periodEnd },
-            },
-        },
+        ...buildRevenueRecognitionPipeline({
+            periodStart,
+            periodEnd,
+            year,
+            month,
+            timezoneName,
+        }),
         {
             $group: {
                 _id: {
                     dateKey: {
                         $dateToString: {
                             format: "%Y-%m-%d",
-                            date: "$paidAt",
+                            date: "$recognizedDate",
                             timezone: timezoneName,
                         },
                     },
                 },
-                premiumRevenue: { $sum: "$amount" },
-                successfulTransactions: { $sum: 1 },
+                premiumRevenue: { $sum: "$recognizedRevenue" },
+                successfulTransactions: {
+                    $sum: {
+                        $cond: [{ $eq: ["$monthOffset", 0] }, 1, 0],
+                    },
+                },
             },
         },
         { $sort: { "_id.dateKey": 1 } },
@@ -186,9 +205,21 @@ export const syncRevenueForMonth = async (targetDateInput) => {
     const now = new Date();
 
     const [transactionSummary, totalEligibleStreams, dailyStats] = await Promise.all([
-        aggregateMonthlyPremiumRevenue({ periodStart, periodEnd }),
+        aggregateMonthlyPremiumRevenue({
+            periodStart,
+            periodEnd,
+            year,
+            month,
+            timezoneName,
+        }),
         aggregateEligibleStreamCount({ periodStart, periodEnd }),
-        aggregateDailyRevenueStats({ periodStart, periodEnd, timezoneName }),
+        aggregateDailyRevenueStats({
+            periodStart,
+            periodEnd,
+            year,
+            month,
+            timezoneName,
+        }),
     ]);
 
     const premiumRevenue = transactionSummary.premiumRevenue;

@@ -71,7 +71,10 @@ const startServer = async () => {
             console.log(`🚀 Server + Socket.IO đang chạy tại port ${PORT}`);
             console.log("📡 Server đang mở cổng mạng nội bộ tại mọi IP");
         });
-
+        
+        app.use("/health", (req, res) => {
+            res.status(200).json({ status: "ok" });
+        });
         await runReleaseSchedulePublication();
         await runSubscriptionMaintenance();
 
