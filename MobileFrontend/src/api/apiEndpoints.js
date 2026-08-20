@@ -33,6 +33,10 @@ export const API_ENDPOINTS = {
   LISTEN_EVENTS: {
     COMPLETE: '/listen-events/complete',
   },
+  ADVERTISEMENTS: {
+    DECISION: '/ads/decision',
+    EVENTS: '/ads/events',
+  },
   ARTISTS: {
     DETAIL: '/browse/artists',
     TOP_DAILY: '/browse/artists/top/daily',

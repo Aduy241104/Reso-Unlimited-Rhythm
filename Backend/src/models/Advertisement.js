@@ -31,7 +31,7 @@ const AdvertisementSchema = new Schema(
         targeting: {
             genres: [{ type: Schema.Types.ObjectId, ref: "Genre" }],
             countries: [{ type: String, trim: true, uppercase: true, maxlength: 2 }],
-            placements: [{ type: String, enum: ["between_tracks"], trim: true, lowercase: true, maxlength: 60 }],
+            placements: [{ type: String, enum: ["between_tracks", "before_track"], trim: true, lowercase: true, maxlength: 60 }],
         },
         frequencyCap: { type: FrequencyCapSchema, default: () => ({}) },
         skipEnabled: { type: Boolean, default: true },

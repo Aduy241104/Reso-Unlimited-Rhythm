@@ -86,7 +86,7 @@ const AdvertisementFormPage = () => {
       skipAfterSeconds: Number(form.skipAfterSeconds),
       frequencyCap: {
         maxPerHour: Number(form.maxPerHour),
-        minTracksBetweenAds: Number(form.minTracksBetweenAds),
+        minTracksBetweenAds: Math.max(3, Number(form.minTracksBetweenAds) || 0),
         minMinutesBetweenAds: Number(form.minMinutesBetweenAds),
       },
     };
@@ -151,7 +151,7 @@ const AdvertisementFormPage = () => {
 
           <label><span className="mb-2 block text-sm font-semibold text-slate-700">Trạng thái</span><select value={form.status} onChange={(event) => set("status", event.target.value)} className="h-11 w-full rounded-xl border border-slate-200 px-3"><option value="draft">Draft</option><option value="active">Active</option><option value="paused">Paused</option></select></label>
           {[['Bắt đầu', 'startAt'], ['Kết thúc', 'endAt']].map(([label, key]) => <label key={key}><span className="mb-2 block text-sm font-semibold text-slate-700">{label}</span><input required type="datetime-local" value={form[key]} onChange={(event) => set(key, event.target.value)} className="h-11 w-full rounded-xl border border-slate-200 px-3" /></label>)}
-          {numberFields.map(([label, key]) => <label key={key}><span className="mb-2 block text-sm font-semibold text-slate-700">{label}</span><input type="number" min="0" value={form[key]} onChange={(event) => set(key, event.target.value)} className="h-11 w-full rounded-xl border border-slate-200 px-3" /></label>)}
+          {numberFields.map(([label, key]) => <label key={key}><span className="mb-2 block text-sm font-semibold text-slate-700">{label}</span><input type="number" min={key === "minTracksBetweenAds" ? 3 : 0} value={form[key]} onChange={(event) => set(key, event.target.value)} className="h-11 w-full rounded-xl border border-slate-200 px-3" /></label>)}
           <label className="flex items-center gap-3 rounded-xl border border-slate-200 p-4"><input type="checkbox" checked={form.skipEnabled} onChange={(event) => set("skipEnabled", event.target.checked)} /><span className="text-sm font-semibold">Cho phép bỏ qua</span></label>
           <label><span className="mb-2 block text-sm font-semibold text-slate-700">Bỏ qua sau (giây)</span><input type="number" min="0" value={form.skipAfterSeconds} onChange={(event) => set("skipAfterSeconds", event.target.value)} className="h-11 w-full rounded-xl border border-slate-200 px-3" /></label>
         </div>
