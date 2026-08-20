@@ -11,7 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AppModal from '../common/AppModal';
 import AppLoader from '../common/AppLoader';
 import ErrorState from '../common/ErrorState';
-import { formatDuration, getInitials, resolveImageUri } from '../../utils/media';
+import { formatDuration, getInitials, resolveImageUri, resolveTrackAvatarUri } from '../../utils/media';
 
 const readText = (value, fallback = '') => {
   if (typeof value === 'string' || typeof value === 'number') {
@@ -54,7 +54,7 @@ const PlaylistRow = ({ item, isSubmitting, onPress }) => {
       disabled={isSubmitting}
       onPress={onPress}
     >
-      <Artwork uri={item?.coverImage || item?.image} label={title} />
+      <Artwork uri={resolveTrackAvatarUri(item)} label={title} />
 
       <View style={styles.rowContent}>
         <Text style={styles.rowTitle} numberOfLines={1}>{title}</Text>

@@ -30,6 +30,7 @@ import {
 } from "../../services/reportService";
 import { routePaths } from "../../routes/routePaths";
 import { useAuth } from "../../hooks/useAuth";
+import { groupProcessedReportsByBatch, normalizeResolutionNote } from "../../utils/reportResolutionGroups";
 
 const reasonLabels = {
   copyright_infringement: "Vi phạm bản quyền",
@@ -96,6 +97,46 @@ const getHideActionDescription = (targetType) => {
   return "Khóa nội dung này khỏi hệ thống công khai.";
 };
 
+const getResolutionResultLabel = (resolution, status, isValidReason) => {
+  if (status === "rejected" || resolution === "reject") {
+    return "T\u1eeb ch\u1ed1i b\u00e1o c\u00e1o";
+  }
+
+  if (resolution === "block_artist") {
+    return "Kh\u00f3a ngh\u1ec7 s\u0129";
+  }
+
+  if (resolution === "hide_content") {
+    return "Kh\u00f3a n\u1ed9i dung";
+  }
+
+  if (isValidReason === true || resolution === "warning") {
+    return "C\u1ea3nh b\u00e1o";
+  }
+
+  return "\u0110\u00e3 x\u1eed l\u00fd";
+};
+
+const getResolutionResultLabelSafe = (resolution, status, isValidReason) => {
+  if (status === "rejected" || resolution === "reject") {
+    return "Từ chối báo cáo";
+  }
+
+  if (resolution === "block_artist") {
+    return "Khóa nghệ sĩ";
+  }
+
+  if (resolution === "hide_content") {
+    return "Khóa nội dung";
+  }
+
+  if (isValidReason === true || resolution === "warning") {
+    return "Cảnh báo";
+  }
+
+  return "Đã xử lý";
+};
+
 const getTargetTypeBadge = (type) => {
   const colors = {
     track: "bg-violet-50 text-violet-700 border-violet-200",
@@ -137,7 +178,7 @@ const ReportDetailPage = () => {
   // Preview Image Modal state
   const [previewImage, setPreviewImage] = useState(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-  const [expandedProcessedReportIds, setExpandedProcessedReportIds] = useState([]);
+  const [expandedProcessedBatchKeys, setExpandedProcessedBatchKeys] = useState([]);
 
   const pendingReportsForDecision = (detail?.reports || []).filter(
     (r) => r.status === "pending" || r.status === "reviewing"
@@ -239,11 +280,11 @@ const ReportDetailPage = () => {
     });
   };
 
-  const toggleProcessedReportDetails = (reportId) => {
-    setExpandedProcessedReportIds((prev) =>
-      prev.includes(reportId)
-        ? prev.filter((id) => id !== reportId)
-        : [...prev, reportId]
+  const toggleProcessedReportDetails = (batchKey) => {
+    setExpandedProcessedBatchKeys((prev) =>
+      prev.includes(batchKey)
+        ? prev.filter((id) => id !== batchKey)
+        : [...prev, batchKey]
     );
   };
 
@@ -278,7 +319,7 @@ const ReportDetailPage = () => {
 
     const contentTitle = detail?.targetInfo?.title || detail?.targetInfo?.name || "Nội dung";
     setModalTitle(`Báo cáo vi phạm đối với ${contentTitle}`);
-    setModalDescription(resolutionNote.trim() || pendingReportsForDecision[0]?.description || "");
+    setModalDescription(resolutionNote.trim());
 
     setIsConfirmModalOpen(true);
   };
@@ -296,9 +337,13 @@ const ReportDetailPage = () => {
     try {
       setIsConfirmModalOpen(false);
 
-      const finalResolutionNote = modalTitle.trim()
-        ? `${modalTitle.trim()}: ${modalDescription.trim() || resolutionNote.trim()}`
-        : resolutionNote.trim();
+      const trimmedTitle = modalTitle.trim();
+      const trimmedDescription = modalDescription.trim() || resolutionNote.trim();
+      const finalResolutionNote = trimmedTitle
+        ? trimmedDescription
+          ? `${trimmedTitle}: ${trimmedDescription}`
+          : trimmedTitle
+        : trimmedDescription;
 
       const payload = {
         evaluations: pendingReportsForDecision.map((report) => ({
@@ -390,6 +435,8 @@ const ReportDetailPage = () => {
       const timeB = new Date(b.handledAt || b.updatedAt || b.createdAt || 0).getTime();
       return timeB - timeA;
     });
+  const processedReportBatches = groupProcessedReportsByBatch(processedReports);
+  const expandedProcessedReportIds = expandedProcessedBatchKeys;
 
   // Group pending reports by violation reason
   const groupedPendingReports = pendingReports.reduce((acc, report) => {
@@ -758,8 +805,197 @@ const ReportDetailPage = () => {
             )}
           </div>
 
+          {processedReportBatches.length > 0 && (
+            <div className="space-y-4 pt-4">
+              <div className="flex items-center justify-between px-1 border-b border-slate-200 pb-2">
+                <h2 className="text-base font-bold text-slate-700 flex items-center gap-2">
+                  <History size={18} className="text-slate-500" />
+                  <span>Lịch sử các đợt xử lý trước đây ({processedReportBatches.length})</span>
+                </h2>
+                <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+                  {processedReports.length} báo cáo đã xử lý
+                </span>
+              </div>
+
+              <div className="space-y-3 opacity-80 hover:opacity-100 transition">
+                {processedReportBatches.map((batch) => {
+                  const handledDate = batch.handledAt
+                    ? new Date(batch.handledAt).toLocaleString("vi-VN", {
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "—";
+                  const handledByName =
+                    batch.handledBy?.profile?.fullName || batch.handledBy?.email || "Quản trị viên";
+                  const isExpanded = expandedProcessedBatchKeys.includes(batch.batchKey);
+                  const reasonSummary = Array.from(
+                    new Set(
+                      batch.reports
+                        .map((report) => reasonLabels[report.reason] || report.reason)
+                        .filter(Boolean)
+                    )
+                  );
+                  const resultLabel = getResolutionResultLabelSafe(
+                    batch.resolution,
+                    batch.status,
+                    batch.validReportCount > 0
+                  );
+
+                  return (
+                    <div
+                      key={batch.batchKey}
+                      className="rounded-2xl bg-white p-4 shadow-sm border border-slate-200 space-y-3"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="space-y-2 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="inline-flex items-center rounded-full bg-slate-900 px-2.5 py-0.5 text-[10px] font-bold text-white">
+                              {batch.reportCount} báo cáo
+                            </span>
+                            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
+                              {resultLabel}
+                            </span>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
+                            <span>Đã xử lý lúc: {handledDate}</span>
+                            <span>Admin xử lý: {handledByName}</span>
+                            <span>Vi phạm hợp lệ: {batch.validReportCount}/{batch.reportCount}</span>
+                          </div>
+
+                          {reasonSummary.length > 0 ? (
+                            <div className="flex flex-wrap items-center gap-2">
+                              {reasonSummary.map((reason) => (
+                                <span
+                                  key={`${batch.batchKey}-${reason}`}
+                                  className="inline-flex items-center rounded-lg bg-red-50 px-2.5 py-1 text-[10px] font-semibold text-red-600 border border-red-100"
+                                >
+                                  {reason}
+                                </span>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => toggleProcessedReportDetails(batch.batchKey)}
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-100"
+                        >
+                          {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                          {isExpanded ? "Thu gọn" : "Xem chi tiết"}
+                        </button>
+                      </div>
+
+                      {batch.resolutionNote ? (
+                        <div className="rounded-xl bg-slate-50/70 px-3 py-3 border border-slate-200">
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                            Ghi chú xử lý chung cho cả đợt
+                          </p>
+                          <p className="mt-2 text-sm leading-relaxed text-slate-700">
+                            {normalizeResolutionNote(batch.resolutionNote)}
+                          </p>
+                        </div>
+                      ) : null}
+
+                      {isExpanded ? (
+                        <div className="space-y-3 rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+                          {batch.reports.map((report, reportIndex) => {
+                            const reporterName =
+                              report.userId?.profile?.fullName || report.userId?.email || "Người dùng ẩn danh";
+                            const reporterEmail = report.userId?.email || "";
+                            const wasValid = report.isValidReason === true;
+                            const reportDate = report.createdAt
+                              ? new Date(report.createdAt).toLocaleString("vi-VN", {
+                                  year: "numeric",
+                                  month: "2-digit",
+                                  day: "2-digit",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })
+                              : "—";
+
+                            return (
+                              <div
+                                key={report._id}
+                                className="rounded-xl bg-white px-4 py-4 border border-slate-200 space-y-3"
+                              >
+                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                  <div className="space-y-1">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <span className="text-sm font-bold text-slate-800">Báo cáo</span>
+                                      <span className="text-sm font-medium text-slate-700">{reporterName}</span>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
+                                      {reporterEmail ? <span>{reporterEmail}</span> : null}
+                                      <span>Gửi lúc: {reportDate}</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex flex-wrap items-center justify-end gap-2">
+                                    <span
+                                      className={`inline-flex items-center rounded-lg px-2.5 py-1 text-[10px] font-bold border ${wasValid
+                                        ? "bg-red-50 text-red-700 border-red-200"
+                                        : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                        }`}
+                                    >
+                                      {wasValid ? "Vi phạm hợp lệ" : "Không vi phạm"}
+                                    </span>
+                                    <span
+                                      className={`inline-flex items-center rounded-lg px-2.5 py-1 text-[10px] font-semibold border ${wasValid
+                                        ? "bg-red-50 text-red-600 border-red-100"
+                                        : "bg-slate-50 text-slate-500 border-slate-200"
+                                        }`}
+                                    >
+                                      {reasonLabels[report.reason] || report.reason}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <p className="text-sm text-slate-600">
+                                  {report.description || "Không có mô tả chi tiết."}
+                                </p>
+
+                                {report.images && report.images.length > 0 ? (
+                                  <div>
+                                    <p className="text-xs font-semibold text-slate-400 mb-2 flex items-center gap-1">
+                                      <ImageIcon size={14} /> Ảnh minh chứng đã gửi ({report.images.length})
+                                    </p>
+                                    <div className="flex flex-wrap gap-2">
+                                      {report.images.map((imgUrl, imgIdx) => (
+                                        <button
+                                          key={imgIdx}
+                                          type="button"
+                                          onClick={() => setPreviewImage(imgUrl)}
+                                          className="group relative overflow-hidden rounded-xl border border-slate-200 hover:border-blue-500 transition"
+                                        >
+                                          <img
+                                            src={imgUrl}
+                                            alt="Ảnh minh chứng báo cáo đã xử lý"
+                                            className="h-16 w-16 object-cover transition group-hover:scale-105"
+                                          />
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ) : null}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* SECTION 2: Processed Historical Reports */}
-          {processedReports.length > 0 && (
+          {false && processedReports.length > 0 && (
             <div className="space-y-4 pt-4">
               <div className="flex items-center justify-between px-1 border-b border-slate-200 pb-2">
                 <h2 className="text-base font-bold text-slate-700 flex items-center gap-2">
@@ -876,7 +1112,7 @@ const ReportDetailPage = () => {
                                 Ghi chú xử lý
                               </p>
                               <p className="mt-2 text-sm leading-relaxed text-slate-700">
-                                {report.resolutionNote}
+                                {normalizeResolutionNote(report.resolutionNote)}
                               </p>
                             </div>
                           ) : null}
@@ -972,7 +1208,7 @@ const ReportDetailPage = () => {
                       <li><strong>1 lần:</strong> Cảnh báo lần 1</li>
                       <li><strong>2 lần:</strong> Cảnh báo mức cao hơn (Lần 2)</li>
                       <li><strong>3 lần:</strong> Cảnh báo mức nghiêm trọng (Lần 3)</li>
-                      <li><strong>4 lần:</strong> Khóa nội dung bị báo cáo</li>
+                      <li><strong>4 lần:</strong> Cảnh báo cuối cùng (Lần 4)</li>
                       <li><strong>5 lần:</strong> Khóa tài khoản nghệ sĩ</li>
                     </ul>
                   </div>
@@ -1340,7 +1576,7 @@ const ReportDetailPage = () => {
                 <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3.5 text-xs text-amber-900 font-medium">
                   Hình thức đã chọn: <strong className="text-amber-950 font-bold uppercase">{selectedActionLabel}</strong>
                   {selectedAction === "warn" && " — Gửi cảnh báo chính thức (+1 Lượt vi phạm của Nghệ sĩ)"}
-                  {selectedAction === "hide" && ` — Gỡ/Tạm ẩn ${getTargetTypeLabel(detail.targetType)} khỏi hệ thống`}
+                  {selectedAction === "hide" && ` — Khóa ${getTargetTypeLabel(detail.targetType)} khỏi hệ thống`}
                   {selectedAction === "block" && " — Khóa/Đình chỉ trực tiếp tài khoản Nghệ sĩ"}
                 </div>
               </div>

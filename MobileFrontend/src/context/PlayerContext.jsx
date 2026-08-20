@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { AuthContext } from './AuthContext';
 import listenEventService from '../services/listenEventService';
+import podcastService from '../services/podcastService';
 import trackService from '../services/trackService';
 import { tokenStorage } from '../storage/tokenStorage';
 import { hasPremiumAccess } from '../utils/premium';
@@ -23,7 +24,7 @@ import {
 } from '../utils/player';
 
 const REPEAT_MODE_SEQUENCE = ['off', 'all', 'one'];
-const SHUFFLE_COLLECTION_TYPES = new Set(['album', 'playlist']);
+const SHUFFLE_COLLECTION_TYPES = new Set(['album', 'playlist', 'ranking']);
 const PLAYER_MODE_TRACK = 'track';
 const PLAYER_MODE_AD = 'ad';
 
@@ -80,6 +81,15 @@ const findSelectedQuality = (qualityOptions, track, preferredQuality = null) => 
 
 const getQueueIdentity = (track) => String(
   track?.queueItemId || track?.entityId || track?.id || ''
+);
+
+const isPodcastTrack = (track) => (
+  track?.entityType === 'podcast' ||
+  track?.contentType === 'podcast' ||
+  track?.type === 'podcast' ||
+  track?.raw?.entityType === 'podcast' ||
+  track?.raw?.contentType === 'podcast' ||
+  track?.raw?.type === 'podcast'
 );
 
 export const PlayerContext = createContext({
@@ -176,8 +186,12 @@ export const PlayerProvider = ({ children }) => {
   const hasPreviousTrack = currentIndex > 0;
   const hasNextTrack = currentIndex >= 0 && currentIndex < queue.length - 1;
   const isAdvertisementPlaying = playerMode === PLAYER_MODE_AD;
-  const hasPrevious = !isAdvertisementPlaying && (hasPreviousTrack || (repeatMode === 'all' && queue.length > 0));
-  const hasNext = !isAdvertisementPlaying && (hasNextTrack || (repeatMode === 'all' && queue.length > 0));
+  const hasPrevious = !isAdvertisementPlaying && Boolean(currentTrack);
+  const hasNext = !isAdvertisementPlaying && Boolean(currentTrack) && (
+    !isPodcastTrack(currentTrack) ||
+    hasNextTrack ||
+    (repeatMode === 'all' && queue.length > 0)
+  );
   const progressSeconds = Number(status?.currentTime) || 0;
   const progressRatio = currentTrack && currentDuration > 0 ? Math.min(progressSeconds / currentDuration, 1) : 0;
   const isPlaying = Boolean(status?.playing);
@@ -250,6 +264,22 @@ export const PlayerProvider = ({ children }) => {
       return Promise.resolve(null);
     }
 
+    if (activeAttempt.contentType === 'podcast') {
+      const requiredListenedDuration = trackDuration * 0.5;
+
+      if (trackDuration <= 0 || listenedDuration < requiredListenedDuration) {
+        return Promise.resolve(null);
+      }
+
+      activeAttempt.hasReported = true;
+
+      return podcastService.stream(
+        activeAttempt.trackId,
+        listenedDuration,
+        activeAttempt.source
+      ).catch(() => null);
+    }
+
     activeAttempt.hasReported = true;
 
     return listenEventService.recordCompletedListenAttempt({
@@ -262,6 +292,7 @@ export const PlayerProvider = ({ children }) => {
   const startListenAttempt = useCallback((track) => {
     listenAttemptRef.current = {
       trackId: track?.trackId || track?.entityId || track?.id || '',
+      contentType: isPodcastTrack(track) ? 'podcast' : 'track',
       duration: Math.max(0, Number(track?.duration) || 0),
       source: track?.listenSource || 'unknown',
       hasReported: false,
@@ -339,6 +370,11 @@ export const PlayerProvider = ({ children }) => {
 
   const resolveTrackForPlayback = useCallback(async (track) => {
     const normalizedTrack = normalizePlayerTrack(track);
+
+    if (isPodcastTrack(normalizedTrack)) {
+      return normalizedTrack;
+    }
+
     const trackId = normalizedTrack.entityId || normalizedTrack.id;
     const playbackTrack = trackId ? await trackService.getTrackPlayback(trackId) : null;
     const mergedTrack = normalizePlayerTrack({
@@ -398,7 +434,9 @@ export const PlayerProvider = ({ children }) => {
     setIsPreparing(true);
 
     try {
-      const resolvedTrack = await resolveTrackForPlayback(queuedTrack);
+      const resolvedTrack = options.skipTrackResolution
+        ? normalizePlayerTrack(queuedTrack)
+        : await resolveTrackForPlayback(queuedTrack);
 
       if (loadRequestRef.current !== requestId) {
         return false;
@@ -707,6 +745,34 @@ export const PlayerProvider = ({ children }) => {
         return;
       }
 
+      if (!isPodcastTrack(currentTrack)) {
+        void (async () => {
+          try {
+            const randomTrack = await trackService.getRandomTrackPlayback();
+            const nextTrack = normalizePlayerTrack({
+              ...randomTrack,
+              entityType: 'track',
+              listenSource: 'unknown',
+            });
+            const nextQueue = [...queueRef.current, nextTrack];
+
+            queueRef.current = nextQueue;
+            orderedQueueRef.current = [...orderedQueueRef.current, nextTrack];
+            setQueue(nextQueue);
+            setCurrentIndex(nextQueue.length - 1);
+            currentIndexRef.current = nextQueue.length - 1;
+            await loadTrackAtIndex(
+              nextQueue.length - 1,
+              { autoPlay: true, skipTrackResolution: true },
+              nextQueue
+            );
+          } catch (error) {
+            setCurrentError(error?.message || 'Không thể tải bài hát tiếp theo.');
+          }
+        })();
+        return;
+      }
+
       player.pause();
       trackListenProgress(progressSeconds, Boolean(status?.playing));
       void flushCurrentListenAttempt();
@@ -718,6 +784,7 @@ export const PlayerProvider = ({ children }) => {
     currentIndex,
     flushCurrentListenAttempt,
     hasNextTrack,
+    currentTrack,
     loadTrackAtIndex,
     player,
     progressSeconds,
@@ -802,10 +869,6 @@ export const PlayerProvider = ({ children }) => {
   }, [loadTrackAtIndex]);
 
   const toggleShuffle = useCallback(() => {
-    if (!isPremium && isShuffleEnabledRef.current) {
-      return false;
-    }
-
     const nextValue = !isShuffleEnabledRef.current;
     isShuffleEnabledRef.current = nextValue;
     setIsShuffleEnabled(nextValue);
@@ -838,7 +901,7 @@ export const PlayerProvider = ({ children }) => {
     }
 
     return true;
-  }, [isPremium]);
+  }, []);
 
   const cycleRepeatMode = useCallback(() => {
     if (!isPremium) {
@@ -1046,6 +1109,23 @@ export const PlayerProvider = ({ children }) => {
     void recordAdvertisementEvent({ decisionToken, eventType: 'started' });
     void recordAdvertisementEvent({ decisionToken, eventType: 'impression' });
   }, [isAdvertisementPlaying, status?.playing]);
+
+  useEffect(() => {
+    if (!isPodcastTrack(currentTrack) || listenAttemptRef.current.hasReported) {
+      return;
+    }
+
+    const podcastDuration = Math.max(
+      Number(listenAttemptRef.current.duration) || 0,
+      Number(currentDuration) || 0
+    );
+    const listenedDuration = Math.max(0, Math.floor(listenedDurationRef.current));
+
+    if (podcastDuration > 0 && listenedDuration >= podcastDuration * 0.5) {
+      listenAttemptRef.current.duration = podcastDuration;
+      void flushCurrentListenAttempt();
+    }
+  }, [currentDuration, currentTrack, flushCurrentListenAttempt, progressSeconds, status?.playing]);
 
   useEffect(() => {
     const didJustFinish = Boolean(status?.didJustFinish);

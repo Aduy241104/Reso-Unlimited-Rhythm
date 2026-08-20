@@ -53,6 +53,11 @@ export const API_ENDPOINTS = {
     ARTISTS: '/search/artists',
     ALBUMS: '/search/albums',
   },
+  PODCASTS: {
+    LIST: '/podcasts',
+    DETAIL: '/podcasts',
+    STREAM: '/podcasts',
+  },
   PLAYLISTS: {
     DETAIL: '/playlists/detail',
     SYSTEM: '/playlists/system',

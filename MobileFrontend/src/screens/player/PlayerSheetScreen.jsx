@@ -142,19 +142,25 @@ export default function PlayerSheetScreen() {
     setIsLyricsVisible(true);
   }, [currentTrack, hasTimedLyrics]);
 
+  const handleOpenTrackDetail = useCallback(() => {
+    if (!trackId) {
+      return;
+    }
+
+    navigation.replace('EntityDetail', {
+      entityType: 'track',
+      entityId: trackId,
+      initialTitle: currentTrack?.title || 'Chi tiết bài hát',
+    });
+  }, [currentTrack?.title, navigation, trackId]);
+
   const handlePremiumRequired = useCallback((feature = 'Tính năng này') => {
     Alert.alert(
       'Dành cho tài khoản Premium',
       `${feature} chỉ khả dụng khi tài khoản đang có Premium.`,
-      [
-        { text: 'Để sau', style: 'cancel' },
-        {
-          text: 'Xem gói Premium',
-          onPress: () => navigation.navigate('PremiumOverview'),
-        },
-      ]
+      [{ text: 'Đóng', style: 'cancel' }]
     );
-  }, [navigation]);
+  }, []);
 
   const handleSeek = useCallback((nextPosition) => {
     if (!isPremium) {
@@ -166,13 +172,8 @@ export default function PlayerSheetScreen() {
   }, [handlePremiumRequired, isPremium, seekTo]);
 
   const handleToggleShuffle = useCallback(() => {
-    if (!isPremium) {
-      handlePremiumRequired('Tắt chế độ phát ngẫu nhiên');
-      return;
-    }
-
     toggleShuffle();
-  }, [handlePremiumRequired, isPremium, toggleShuffle]);
+  }, [toggleShuffle]);
 
   const handleCycleRepeat = useCallback(() => {
     if (!isPremium) {
@@ -218,6 +219,7 @@ export default function PlayerSheetScreen() {
         isDetailLoading={isDetailLoading}
         onClose={() => navigation.goBack()}
         onOpenLyrics={handleOpenLyrics}
+        onOpenTrackDetail={handleOpenTrackDetail}
         onOpenQueue={() => setIsQueueVisible(true)}
         onPlayNext={playNext}
         onPlayPrevious={playPrevious}

@@ -17,9 +17,13 @@ import {
     ARTIST_REVENUE_SHARE_RATIO,
     PLATFORM_REVENUE_SHARE_PERCENT,
     buildRevenuePeriodRange,
+    getRevenueDashboardTimezone,
     normalizeRevenueDashboardPeriod,
     resolveRevenuePeriodStatus,
 } from "../../helpers/revenuePeriod.helper.js";
+import {
+    buildRevenueRecognitionPipeline,
+} from "../../helpers/revenueRecognition.helper.js";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -70,17 +74,22 @@ const buildRevenuePeriodDateRange = (revenuePeriod) => ({
 
 const aggregateRevenuePeriodTransactions = async (revenuePeriod) => {
     const summary = await Transaction.aggregate([
-        {
-            $match: {
-                status: "success",
-                paidAt: buildRevenuePeriodDateRange(revenuePeriod),
-            },
-        },
+        ...buildRevenueRecognitionPipeline({
+            periodStart: revenuePeriod.periodStart,
+            periodEnd: revenuePeriod.periodEnd,
+            year: revenuePeriod.year,
+            month: revenuePeriod.month,
+            timezoneName: getRevenueDashboardTimezone(),
+        }),
         {
             $group: {
                 _id: null,
-                totalPremiumRevenue: { $sum: "$amount" },
-                successfulTransactions: { $sum: 1 },
+                totalPremiumRevenue: { $sum: "$recognizedRevenue" },
+                successfulTransactions: {
+                    $sum: {
+                        $cond: [{ $eq: ["$monthOffset", 0] }, 1, 0],
+                    },
+                },
             },
         },
     ]);

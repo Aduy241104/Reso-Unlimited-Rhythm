@@ -2,7 +2,7 @@ import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import AppLoader from '../common/AppLoader';
 import theme from '../../theme';
-import { getInitials, resolveImageUri } from '../../utils/media';
+import { getInitials, resolveImageUri, resolveTrackAvatarUri } from '../../utils/media';
 
 const Section = ({ title, items, onPressItem }) => {
   if (!Array.isArray(items) || items.length === 0) {
@@ -14,7 +14,9 @@ const Section = ({ title, items, onPressItem }) => {
       <Text style={styles.sectionTitle}>{title}</Text>
 
       {items.map((item, index) => {
-        const imageUri = resolveImageUri(item?.image || item?.coverImage || item?.avatar);
+        const imageUri = item?.entityType === 'track'
+          ? resolveTrackAvatarUri(item)
+          : resolveImageUri(item?.image || item?.coverImage || item?.avatar);
         const itemKey = `${item?.id || item?._id || title}-${index}`;
         const displayTitle = item?.title || item?.name || 'Không xác định';
 

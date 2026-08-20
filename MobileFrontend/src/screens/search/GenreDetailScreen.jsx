@@ -6,7 +6,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import AppLoader from '../../components/common/AppLoader';
 import genreService from '../../services/genreService';
 import theme from '../../theme';
-import { getInitials, resolveImageUri } from '../../utils/media';
+import { getInitials, resolveImageUri, resolveTrackAvatarUri } from '../../utils/media';
 
 const FALLBACK_GENRE_COLORS = [
   '#E13300',
@@ -78,7 +78,7 @@ const TrackRow = ({ item, index, onPress, accentColor }) => {
         <Text style={[styles.trackIndex, { color: accentColor }]}>{index + 1}</Text>
       </View>
 
-      <Artwork uri={item?.image || item?.coverImage || item?.avatar} label={title} />
+      <Artwork uri={resolveTrackAvatarUri(item)} label={title} />
 
       <View style={styles.trackContent}>
         <Text numberOfLines={1} style={styles.trackTitle}>

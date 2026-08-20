@@ -19,7 +19,8 @@ import NotificationsScreen from '../screens/notifications/NotificationsScreen';
 import RankingListScreen from '../screens/ranking/RankingListScreen';
 import RecentListeningScreen from '../screens/recentListening/RecentListeningScreen';
 
-import PremiumScreen from '../screens/premium/PremiumScreen';
+import PodcastScreen from '../screens/podcast/PodcastScreen';
+import PodcastDetailScreen from '../screens/podcast/PodcastDetailScreen';
 
 import ArtistRegistrationRequestDetailScreen from '../screens/profile/ArtistRegistrationRequestDetailScreen';
 import UserProfileScreen from '../screens/profile/UserProfileScreen';
@@ -40,7 +41,7 @@ const tabIcons = {
   Home: { active: 'home', inactive: 'home-outline' },
   Search: { active: 'search', inactive: 'search-outline' },
   Library: { active: 'library', inactive: 'library-outline' },
-  Premium: { active: 'star', inactive: 'star-outline' },
+  Podcast: { active: 'mic', inactive: 'mic-outline' },
   CreateForMe: { active: 'sparkles', inactive: 'sparkles-outline' },
 };
 
@@ -91,6 +92,14 @@ function SharedTabStack({ rootName, component: RootComponent }) {
       <Stack.Screen
         name="PlaylistDetail"
         component={PlaylistDetailScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="PodcastDetail"
+        component={PodcastDetailScreen}
         options={{
           headerShown: false,
           animation: 'slide_from_right',
@@ -202,6 +211,7 @@ const HomeStack = () => <SharedTabStack rootName="HomeScreen" component={HomeScr
 const SearchStack = () => <SharedTabStack rootName="SearchScreen" component={SearchScreen} />;
 const LibraryStack = () => <SharedTabStack rootName="LibraryScreen" component={LibraryScreen} />;
 const CreateForMeStack = () => <SharedTabStack rootName="CreateForMeScreen" component={CreateForMeScreen} />;
+const PodcastStack = () => <SharedTabStack rootName="PodcastScreen" component={PodcastScreen} />;
 
 export const BottomTabNavigator = () => {
   return (
@@ -243,9 +253,9 @@ export const BottomTabNavigator = () => {
         options={{ tabBarLabel: 'Thư viện' }}
       />
       <Tab.Screen
-        name="Premium"
-        component={PremiumScreen}
-        options={{ tabBarLabel: 'Premium' }}
+        name="Podcast"
+        component={PodcastStack}
+        options={{ tabBarLabel: 'Podcast' }}
       />
     </Tab.Navigator>
   );

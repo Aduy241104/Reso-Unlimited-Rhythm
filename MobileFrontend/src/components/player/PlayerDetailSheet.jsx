@@ -204,6 +204,7 @@ export default function PlayerDetailSheet({
   isPlaying = false,
   onClose,
   onOpenLyrics,
+  onOpenTrackDetail,
   onOpenQueue,
   onPlayNext,
   onPlayPrevious,
@@ -460,7 +461,17 @@ export default function PlayerDetailSheet({
                       </Text>
                     </Pressable>
                   ) : null}
-                </View>
+                 </View>
+              ) : null}
+              {currentTrack?.entityType !== 'podcast' && currentTrack?.contentType !== 'podcast' ? (
+                <Pressable
+                  style={styles.trackDetailButton}
+                  onPress={onOpenTrackDetail}
+                  disabled={!currentTrack?.entityId && !currentTrack?.id}
+                >
+                  <Ionicons name="open-outline" size={16} color="#C4B5FD" />
+                  <Text style={styles.trackDetailButtonText}>Xem chi tiết bài hát</Text>
+                </Pressable>
               ) : null}
               {currentError ? <Text style={styles.statusTextError}>{currentError}</Text> : null}
               {!currentError && isBuffering ? <Text style={styles.statusText}>Đang tải âm thanh...</Text> : null}
@@ -514,13 +525,12 @@ export default function PlayerDetailSheet({
                     style={[
                       styles.modeControlButton,
                       isShuffleEnabled && styles.modeControlButtonActive,
-                      !isPremium && styles.premiumControlLocked,
                     ]}
                     onPress={onToggleShuffle}
                   >
                     <View style={[styles.modeControlIcon, isShuffleEnabled && styles.modeControlIconActive]}>
                       <Ionicons
-                        name={isPremium ? 'shuffle' : 'lock-closed'}
+                        name="shuffle"
                         size={18}
                         color={isShuffleEnabled ? '#ffffff' : '#8F8994'}
                       />
@@ -589,12 +599,11 @@ export default function PlayerDetailSheet({
                   style={[
                     styles.modeButton,
                     isShuffleEnabled && styles.modeButtonActive,
-                    !isPremium && styles.premiumControlLocked,
                   ]}
                   onPress={onToggleShuffle}
                 >
                   <Ionicons
-                    name={isPremium ? 'shuffle' : 'lock-closed'}
+                    name="shuffle"
                     size={17}
                     color={isShuffleEnabled ? '#C4B5FD' : '#77717D'}
                   />
@@ -935,6 +944,24 @@ const styles = StyleSheet.create({
     marginTop: 24,
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  trackDetailButton: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(167, 139, 250, 0.12)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(167, 139, 250, 0.3)',
+  },
+  trackDetailButtonText: {
+    marginLeft: 7,
+    color: '#C4B5FD',
+    fontSize: 12,
+    fontWeight: '700',
   },
   trackCopy: {
     flex: 1,

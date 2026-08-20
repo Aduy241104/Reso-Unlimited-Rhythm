@@ -1,6 +1,6 @@
 import axiosClient from '../api/axiosClient';
 import { API_ENDPOINTS } from '../api/apiEndpoints';
-import { resolveImageUri } from '../utils/media';
+import { resolveImageUri, resolveTrackAvatarUri } from '../utils/media';
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
 const toNumber = (value) => {
@@ -45,7 +45,7 @@ const normalizeRecentTrack = (item = {}, index = 0) => ({
   track: {
     id: item?.track?.id || '',
     title: item?.track?.title || 'Bài hát chưa có tên',
-    image: resolveImageUri(item?.track?.image),
+    image: resolveTrackAvatarUri(item?.track),
     duration: Math.max(0, toNumber(item?.track?.duration)),
   },
   artist: {
