@@ -44,13 +44,16 @@ const resolveGenreColor = (genre, index) => {
 export default function SearchScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const [searchText, setSearchText] = useState('');
+  const [submittedQuery, setSubmittedQuery] = useState('');
   const [genres, setGenres] = useState([]);
   const [isLoadingGenres, setIsLoadingGenres] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState(initialSearchResults);
+  const [hasEditedSinceSubmit, setHasEditedSinceSubmit] = useState(false);
 
   const trimmedSearchText = searchText.trim();
-  const isSearchMode = trimmedSearchText.length > 0;
+  const hasSubmittedQuery = submittedQuery.length > 0;
+  const isSearchMode = hasSubmittedQuery && !hasEditedSinceSubmit;
 
   const loadGenres = useCallback(async () => {
     setIsLoadingGenres(true);
@@ -68,17 +71,24 @@ export default function SearchScreen({ navigation }) {
   }, [loadGenres]);
 
   useEffect(() => {
-    if (!trimmedSearchText) {
+    if (!submittedQuery) {
       setIsSearching(false);
       setSearchResults(initialSearchResults);
       return undefined;
     }
 
-    setIsSearching(true);
+    let isCancelled = false;
 
-    const timer = setTimeout(async () => {
+    setIsSearching(true);
+    setSearchResults(initialSearchResults);
+
+    const runSearch = async () => {
       try {
-        const result = await searchService.searchAll(trimmedSearchText);
+        const result = await searchService.searchAll(submittedQuery);
+
+        if (isCancelled) {
+          return;
+        }
 
         setSearchResults({
           tracks: Array.isArray(result?.tracks) ? result.tracks : [],
@@ -86,15 +96,25 @@ export default function SearchScreen({ navigation }) {
           albums: Array.isArray(result?.albums) ? result.albums : [],
         });
       } catch (error) {
+        if (isCancelled) {
+          return;
+        }
+
         console.log('Search failed:', error);
         setSearchResults(initialSearchResults);
       } finally {
-        setIsSearching(false);
+        if (!isCancelled) {
+          setIsSearching(false);
+        }
       }
-    }, 400);
+    };
 
-    return () => clearTimeout(timer);
-  }, [trimmedSearchText]);
+    runSearch();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [submittedQuery]);
 
   const availableRouteNames = navigation?.getState?.()?.routeNames || [];
 
@@ -178,6 +198,34 @@ export default function SearchScreen({ navigation }) {
     [availableRouteNames, navigation]
   );
 
+  const handleChangeSearchText = useCallback(
+    (value) => {
+      setSearchText(value);
+
+      if (!submittedQuery) {
+        return;
+      }
+
+      setHasEditedSinceSubmit(true);
+    },
+    [submittedQuery]
+  );
+
+  const handleSubmitSearch = useCallback(() => {
+    const nextQuery = searchText.trim();
+
+    if (!nextQuery) {
+      setSubmittedQuery('');
+      setHasEditedSinceSubmit(false);
+      setIsSearching(false);
+      setSearchResults(initialSearchResults);
+      return;
+    }
+
+    setSubmittedQuery(nextQuery);
+    setHasEditedSinceSubmit(false);
+  }, [searchText]);
+
   const renderGenreCard = useCallback(
     ({ item, index }) => {
       const genreColor = resolveGenreColor(item, index);
@@ -202,9 +250,11 @@ export default function SearchScreen({ navigation }) {
       <View style={styles.searchBar}>
         <Ionicons color="#111111" name="search" size={22} />
         <TextInput
-          onChangeText={setSearchText}
+          onChangeText={handleChangeSearchText}
+          onSubmitEditing={handleSubmitSearch}
           placeholder="Bạn muốn nghe gì?"
           placeholderTextColor="#6B7280"
+          returnKeyType="search"
           selectionColor="#111111"
           style={styles.searchInput}
           value={searchText}
