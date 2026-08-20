@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Activity, CalendarDays, TrendingUp } from "lucide-react";
+import { CalendarDays, TrendingUp } from "lucide-react";
 import {
   CategoryScale,
   Chart,
@@ -12,7 +12,7 @@ import {
   Tooltip,
 } from "chart.js";
 import { DashboardCard } from "./RevenueShared";
-import { formatCompactCurrency, formatCurrency, formatNumber } from "../utils";
+import { formatCompactCurrency, formatCurrency } from "../utils";
 
 Chart.register(
   CategoryScale,
@@ -191,11 +191,6 @@ const RevenueOverviewCharts = ({ charts }) => {
     (total, item) => total + Number(item.premiumRevenue || 0),
     0
   );
-  const dailyTransactionTotal = dailyData.reduce(
-    (total, item) => total + Number(item.successfulTransactions || 0),
-    0
-  );
-
   useEffect(() => {
     const monthlyCanvas = monthlyRef.current;
     const dailyCanvas = dailyRef.current;
@@ -323,22 +318,6 @@ const RevenueOverviewCharts = ({ charts }) => {
             pointBorderWidth: 2,
             yAxisID: "revenue",
           },
-          {
-            label: "Giao dịch thành công",
-            data: dailyData.map((item) => Number(item.successfulTransactions || 0)),
-            borderColor: "#f59e0b",
-            backgroundColor: "rgba(245,158,11,0.08)",
-            fill: false,
-            tension: 0.4,
-            borderWidth: 2,
-            borderDash: [5, 5],
-            pointRadius: 0,
-            pointHoverRadius: 5,
-            pointBackgroundColor: "#f59e0b",
-            pointBorderColor: "#ffffff",
-            pointBorderWidth: 2,
-            yAxisID: "transactions",
-          },
         ],
       },
       options: {
@@ -356,9 +335,7 @@ const RevenueOverviewCharts = ({ charts }) => {
             ...tooltipOptions,
             callbacks: {
               label: (context) =>
-                context.dataset.yAxisID === "transactions"
-                  ? `${context.dataset.label}: ${formatNumber(context.parsed.y)}`
-                  : `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`,
+                `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`,
             },
           },
         },
@@ -383,20 +360,6 @@ const RevenueOverviewCharts = ({ charts }) => {
               ...baseTickStyle,
               maxTicksLimit: 5,
               callback: (value) => formatCompactCurrency(value),
-            },
-          },
-          transactions: {
-            type: "linear",
-            position: "right",
-            beginAtZero: true,
-            grid: {
-              display: false,
-            },
-            border: { display: false },
-            ticks: {
-              ...baseTickStyle,
-              maxTicksLimit: 5,
-              callback: (value) => formatNumber(value),
             },
           },
         },
@@ -443,7 +406,7 @@ const RevenueOverviewCharts = ({ charts }) => {
               Toàn cảnh biến động doanh thu
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              So sánh hiệu quả theo kỳ và theo dõi nhịp giao dịch gần nhất.
+              So sánh hiệu quả theo kỳ và theo dõi xu hướng doanh thu gần nhất.
             </p>
           </div>
 
@@ -481,19 +444,14 @@ const RevenueOverviewCharts = ({ charts }) => {
 
       <ChartShell
         eyebrow="14 ngày gần nhất"
-        title="Biến động doanh thu và giao dịch"
-        description="Theo dõi song song xu hướng doanh thu và giao dịch thành công mỗi ngày."
-        icon={<Activity size={19} />}
+        title="Biến động doanh thu"
+        description="Theo dõi xu hướng doanh thu premium trong 14 ngày gần nhất."
+        icon={<TrendingUp size={19} />}
         iconClassName="bg-violet-600 text-white"
         metrics={[
           {
             label: "Doanh thu",
             value: `${formatCompactCurrency(dailyRevenueTotal)} ₫`,
-          },
-          {
-            label: "Giao dịch",
-            value: formatNumber(dailyTransactionTotal),
-            valueClassName: "text-amber-600",
           },
         ]}
         className="border-violet-100 bg-[linear-gradient(145deg,#faf5ff_0%,#fcfaff_48%,#fff7ed_100%)]"
