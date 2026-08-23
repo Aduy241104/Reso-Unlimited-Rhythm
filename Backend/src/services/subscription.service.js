@@ -500,15 +500,6 @@ const createVnpayOrder = async ({
     const expireDate = new Date(
         createDate.getTime() + vnpayConfig.expiryMinutes * 60 * 1000
     );
-    const paymentUrl = vnpayService.buildPaymentUrl({
-        amount: totalAmount,
-        invoiceNumber,
-        orderInfo: `Thanh toan goi Premium: ${plan.name}`,
-        ipAddr,
-        createDate,
-        expireDate,
-    });
-
     try {
         subscription = await Subscription.create({
             userId: user._id,
@@ -532,9 +523,26 @@ const createVnpayOrder = async ({
             clientPlatform: normalizedClientPlatform,
             invoiceNumber,
             status: "pending",
+            paymentUrl: "",
+            paymentExpiresAt: expireDate,
+        });
+
+        const paymentUrl = vnpayService.buildPaymentUrl({
+            amount: totalAmount,
+            invoiceNumber,
+            orderInfo: `Thanh toan goi Premium: ${plan.name}`,
+            ipAddr,
+            createDate,
+            expireDate,
+        });
+
+        await Transaction.findByIdAndUpdate(transaction._id, {
             paymentUrl,
             paymentExpiresAt: expireDate,
         });
+
+        transaction.paymentUrl = paymentUrl;
+        transaction.paymentExpiresAt = expireDate;
 
         return buildVnpayOrderResponse({
             transaction,
