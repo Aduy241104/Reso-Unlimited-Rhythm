@@ -1,6 +1,12 @@
 import axiosClient from '../api/axiosClient';
 import { API_ENDPOINTS } from '../api/apiEndpoints';
-import { formatDateLabel, formatDuration, formatTrackDuration, resolveImageUri } from '../utils/media';
+import {
+  formatDateLabel,
+  formatDuration,
+  formatTrackDuration,
+  resolveImageUri,
+  resolveTrackAvatarUri,
+} from '../utils/media';
 import { resolveTrackAudioUri } from '../utils/player';
 
 const getPayload = (response) => response?.data || response || {};
@@ -78,9 +84,7 @@ const normalizePlaylistTrack = (item, index = 0) => {
     albumId: pickFirstDefined(rawItem.albumId, album?.id, album?._id, ''),
     albumTitle: pickFirstDefined(rawItem.albumTitle, album?.title, ''),
     image: pickFirstDefined(
-      rawItem.image,
-      rawItem.coverImage,
-      resolveImageUri(track?.coverImage || track?.avatar || album?.coverImage || artist?.avatar),
+      resolveTrackAvatarUri({ ...track, ...rawItem, artist }),
       ''
     ),
     entityType: pickFirstDefined(rawItem.entityType, 'track'),

@@ -115,6 +115,15 @@ const resolveMediaUri = (value) => {
 
 export const resolveImageUri = (value) => resolveMediaUri(value);
 
+export const resolveTrackAvatarUri = (track) => resolveImageUri(
+  track?.avatar ||
+  track?.artist?.avatar ||
+  track?.artist_artistId?.avatar ||
+  track?.raw?.avatar ||
+  track?.raw?.artist?.avatar ||
+  track?.raw?.artist_artistId?.avatar
+);
+
 export const resolveTrackAudioUri = (track) => {
   if (!track || typeof track !== 'object') {
     return '';

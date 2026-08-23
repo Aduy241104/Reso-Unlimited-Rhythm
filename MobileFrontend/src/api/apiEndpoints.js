@@ -33,6 +33,10 @@ export const API_ENDPOINTS = {
   LISTEN_EVENTS: {
     COMPLETE: '/listen-events/complete',
   },
+  ADVERTISEMENTS: {
+    DECISION: '/ads/decision',
+    EVENTS: '/ads/events',
+  },
   ARTISTS: {
     DETAIL: '/browse/artists',
     TOP_DAILY: '/browse/artists/top/daily',
@@ -48,6 +52,11 @@ export const API_ENDPOINTS = {
     SONGS: '/search/songs',
     ARTISTS: '/search/artists',
     ALBUMS: '/search/albums',
+  },
+  PODCASTS: {
+    LIST: '/podcasts',
+    DETAIL: '/podcasts',
+    STREAM: '/podcasts',
   },
   PLAYLISTS: {
     DETAIL: '/playlists/detail',

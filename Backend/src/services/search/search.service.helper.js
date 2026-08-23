@@ -141,7 +141,7 @@ const buildPlaylistsSearchFilter = (keyword) => ({
     $and: [
         {
             isHidden: false,
-            $or: [{ type: "system" }, { isPublic: true }],
+            isPublic: true,
         },
         buildTextCandidateFilter(["title"], keyword),
     ],

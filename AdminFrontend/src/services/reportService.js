@@ -5,6 +5,9 @@ export const getGroupedReportsService = async (filters = {}) => {
     if (filters.search) params.q = filters.search;
     if (filters.status) params.status = filters.status;
     if (filters.targetType) params.targetType = filters.targetType;
+    if (typeof filters.onlyViolations !== "undefined") {
+        params.onlyViolations = filters.onlyViolations;
+    }
     if (filters.page) params.page = filters.page;
     if (filters.limit) params.limit = filters.limit;
 
@@ -15,15 +18,28 @@ export const getGroupedReportsService = async (filters = {}) => {
     };
 };
 
-export const getGroupedReportDetailService = async (targetType, targetId) => {
-    const res = await axiosClient.get(`/api/admin/reports/grouped/${targetType}/${targetId}`);
+export const getGroupedReportDetailService = async (targetType, targetId, options = {}) => {
+    const params = {};
+    if (typeof options.includeRelatedArtistContent !== "undefined") {
+        params.includeRelatedArtistContent = options.includeRelatedArtistContent;
+    }
+
+    const res = await axiosClient.get(`/api/admin/reports/grouped/${targetType}/${targetId}`, {
+        params,
+    });
     return res.data?.data?.detail ?? null;
 };
 
-export const resolveGroupedReportService = async (targetType, targetId, data) => {
+export const resolveGroupedReportService = async (targetType, targetId, data, options = {}) => {
+    const params = {};
+    if (typeof options.includeRelatedArtistContent !== "undefined") {
+        params.includeRelatedArtistContent = options.includeRelatedArtistContent;
+    }
+
     const res = await axiosClient.post(
         `/api/admin/reports/grouped/${targetType}/${targetId}/resolve`,
-        data
+        data,
+        { params }
     );
     return res.data?.data?.result ?? res.data;
 };

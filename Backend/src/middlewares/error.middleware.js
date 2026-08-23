@@ -96,6 +96,18 @@ const globalErrorHandler = (error, req, res, next) => {
                 message,
             });
         // Trùng tên + phiên bản bài hát của cùng nghệ sĩ
+        } else if (duplicatedField === "titleKey" || indexName.includes("title_key")) {
+            normalizedError = new AppError(
+                "Bài hát cùng tên đã tồn tại. Vui lòng đổi tên bài hát.",
+                409,
+                {
+                    code: "TRACK_TITLE_EXISTS",
+                    resourceType,
+                    field: duplicatedField,
+                    fields: ["artist_artistId", "title"],
+                    message: "Bài hát cùng tên đã tồn tại.",
+                }
+            );
         } else if (
             indexName.includes("title") &&
             indexName.includes("versiontitle")

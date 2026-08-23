@@ -14,6 +14,7 @@ const ReportSchema = new Schema(
         isValidReason: { type: Boolean, default: null },
         handledBy: { type: Schema.Types.ObjectId, ref: "User" },
         handledAt: { type: Date },
+        resolutionBatchId: { type: String, default: "", index: true },
         resolution: { type: String, enum: ["remove_content", "hide_content", "block_artist", "ignore", "warning", "reject", ""], default: "" },
         resolutionNote: { type: String, default: "" },
     },

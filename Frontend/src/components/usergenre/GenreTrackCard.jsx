@@ -95,7 +95,7 @@ const GenreTrackCard = ({ track }) => {
         { duration || totalPlay ? (
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[#8c8c8c]">
             { duration ? <span>{ duration }</span> : null }
-            { duration && totalPlay ? <span>•</span> : null }
+            { duration && totalPlay ? <span>?</span> : null }
             { totalPlay ? <span>{ formatPlayCount(totalPlay) }</span> : null }
           </div>
         ) : null }

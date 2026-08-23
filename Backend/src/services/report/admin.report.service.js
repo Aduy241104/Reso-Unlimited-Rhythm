@@ -9,6 +9,100 @@ import { syncArtistContentVisibility } from "../artist/admin.artist.service.js";
 
 const VALID_STATUSES = ["pending", "reviewing", "resolved", "rejected"];
 
+const normalizeResolutionAction = (action) => {
+    const normalizedAction = String(action || "").trim().toLowerCase();
+
+    if (["reject", "rejected"].includes(normalizedAction)) {
+        return "reject";
+    }
+
+    if (["block", "block_artist"].includes(normalizedAction)) {
+        return "block_artist";
+    }
+
+    if (["hide", "hide_content", "hide7"].includes(normalizedAction)) {
+        return "hide_content";
+    }
+
+    return "warning";
+};
+
+const buildGroupedReportScopeFilter = async (
+    targetType,
+    targetId,
+    { includeRelatedArtistContent = false } = {}
+) => {
+    if (targetType === "artist" && includeRelatedArtistContent) {
+        const [trackIds, albumIds] = await Promise.all([
+            Track.find({ artist_artistId: targetId }).select("_id").lean(),
+            Album.find({ artistId: targetId }).select("_id").lean(),
+        ]);
+
+        return {
+            $or: [
+                { targetType: "artist", targetId },
+                { targetType: "track", targetId: { $in: trackIds.map((item) => item._id) } },
+                { targetType: "album", targetId: { $in: albumIds.map((item) => item._id) } },
+            ],
+        };
+    }
+
+    return { targetType, targetId };
+};
+
+const blockReportedContent = async (targetType, targetId, resolutionNote = "") => {
+    const reason = (
+        resolutionNote ||
+        "Nội dung bị khóa bởi quản trị viên sau khi xử lý báo cáo."
+    ).trim();
+
+    if (targetType === "track") {
+        const track = await Track.findByIdAndUpdate(
+            targetId,
+            {
+                $set: {
+                    activeStatus: "blocked",
+                    blockedReason: reason,
+                    hiddenReason: "",
+                    hiddenAt: null,
+                    blockedByAlbumId: null,
+                },
+            },
+            { new: true }
+        );
+
+        if (!track) {
+            throw new AppError("Không tìm thấy bài hát cần khóa.", 404);
+        }
+
+        return;
+    }
+
+    if (targetType === "album") {
+        const album = await Album.findByIdAndUpdate(
+            targetId,
+            {
+                $set: {
+                    status: "blocked",
+                    blockedReason: reason,
+                },
+            },
+            { new: true }
+        );
+
+        if (!album) {
+            throw new AppError("Không tìm thấy album cần khóa.", 404);
+        }
+
+        return;
+    }
+
+    throw new AppError(
+        "Chỉ có thể khóa riêng bài hát hoặc album đang được xử lý.",
+        400
+    );
+};
+
 // Helper to populate target item info (Track, Album, or Artist)
 const populateTargetInfo = async (targetType, targetId) => {
     if (!targetId || !mongoose.Types.ObjectId.isValid(targetId)) return null;
@@ -166,7 +260,7 @@ const getGroupedReports = async (query) => {
                     targetType: "artist",
                     targetId: artistIdStr,
                     targetInfo: artistDoc || { _id: artistIdStr, name: "Nghệ sĩ", activeStatus: "active", violations: [] },
-                    violationsCount: artistDoc?.violations?.length || (artistDoc?.activeStatus === "blocked" ? 5 : 1),
+                    violationsCount: artistDoc?.violations?.length || 0,
                     totalReports: 0,
                     pendingReports: 0,
                     resolvedReports: 0,
@@ -247,35 +341,22 @@ const getGroupedReports = async (query) => {
 };
 
 // 2. GET GROUPED REPORT DETAIL
-const getGroupedReportDetail = async (targetType, targetId) => {
+const getGroupedReportDetail = async (targetType, targetId, options = {}) => {
     if (!mongoose.Types.ObjectId.isValid(targetId)) {
         throw new Error("ID nội dung bị báo cáo không hợp lệ");
     }
 
-    let reports = [];
+    const reportScopeFilter = await buildGroupedReportScopeFilter(
+        targetType,
+        targetId,
+        options
+    );
 
-    if (targetType === "artist") {
-        const trackIds = (await Track.find({ artist_artistId: targetId }).select("_id").lean()).map((t) => t._id);
-        const albumIds = (await Album.find({ artistId: targetId }).select("_id").lean()).map((a) => a._id);
-
-        reports = await Report.find({
-            $or: [
-                { targetType: "artist", targetId },
-                { targetType: "track", targetId: { $in: trackIds } },
-                { targetType: "album", targetId: { $in: albumIds } },
-            ],
-        })
-            .populate("userId", "email profile.fullName avatar")
-            .populate("handledBy", "email profile.fullName")
-            .sort({ createdAt: -1 })
-            .lean();
-    } else {
-        reports = await Report.find({ targetType, targetId })
-            .populate("userId", "email profile.fullName avatar")
-            .populate("handledBy", "email profile.fullName")
-            .sort({ createdAt: -1 })
-            .lean();
-    }
+    let reports = await Report.find(reportScopeFilter)
+        .populate("userId", "email profile.fullName avatar")
+        .populate("handledBy", "email profile.fullName")
+        .sort({ createdAt: -1 })
+        .lean();
 
     reports = await Promise.all(
         reports.map(async (r) => {
@@ -338,12 +419,20 @@ const getGroupedReportDetail = async (targetType, targetId) => {
 };
 
 // 3. RESOLVE GROUPED REPORT & APPLY PENALTY
-const resolveGroupedReport = async (targetType, targetId, body, adminId) => {
+const resolveGroupedReport = async (targetType, targetId, body, adminId, options = {}) => {
     if (!mongoose.Types.ObjectId.isValid(targetId)) {
         throw new Error("ID nội dung bị báo cáo không hợp lệ");
     }
 
     const { evaluations = [], action = "warn", resolutionNote = "" } = body;
+    const normalizedAction = normalizeResolutionAction(action);
+
+    if (normalizedAction === "hide_content" && !["track", "album"].includes(targetType)) {
+        throw new AppError(
+            "Chỉ có thể khóa riêng bài hát hoặc album đang được xử lý.",
+            400
+        );
+    }
 
     const targetInfo = await populateTargetInfo(targetType, targetId);
     let artistId = null;
@@ -361,7 +450,14 @@ const resolveGroupedReport = async (targetType, targetId, body, adminId) => {
         if (e.reportId) evaluationMap.set(String(e.reportId), Boolean(e.isValid));
     });
 
-    const groupReports = await Report.find({ targetType, targetId });
+    const reportScopeFilter = await buildGroupedReportScopeFilter(
+        targetType,
+        targetId,
+        normalizedAction === "hide_content"
+            ? { ...options, includeRelatedArtistContent: false }
+            : options
+    );
+    const groupReports = await Report.find(reportScopeFilter);
 
     const pendingGroupReports = groupReports.filter(
         (r) => r.status === "pending" || r.status === "reviewing"
@@ -371,32 +467,43 @@ const resolveGroupedReport = async (targetType, targetId, body, adminId) => {
         throw new AppError("Không có báo cáo mới nào đang chờ duyệt. Đợt báo cáo này đã được xử lý hoàn tất.", 400);
     }
 
-    for (const report of groupReports) {
+    const handledAt = new Date();
+    const resolutionBatchId = new mongoose.Types.ObjectId().toString();
+
+    for (const report of pendingGroupReports) {
         const isValid = evaluationMap.has(String(report._id))
             ? evaluationMap.get(String(report._id))
             : false;
 
         report.isValidReason = isValid;
         report.handledBy = adminId;
-        report.handledAt = new Date();
+        report.handledAt = handledAt;
+        report.resolutionBatchId = resolutionBatchId;
         report.resolutionNote = resolutionNote;
 
-        if (action === "reject") {
+        if (normalizedAction === "reject") {
             report.status = "rejected";
             report.resolution = "reject";
         } else {
             report.status = "resolved";
-            report.resolution = action === "hide" || action === "hide7" ? "hide_content" : action === "block" ? "block_artist" : "warning";
+            report.resolution = normalizedAction;
         }
 
         await report.save();
     }
 
-    const shouldIncrementViolation = action !== "reject";
+    const hasValidViolationReport =
+        normalizedAction !== "reject" &&
+        pendingGroupReports.some((report) => evaluationMap.get(String(report._id)) === true);
+    const shouldIncrementViolation = hasValidViolationReport;
+
+    if (normalizedAction === "hide_content" && shouldIncrementViolation) {
+        await blockReportedContent(targetType, targetId, resolutionNote);
+    }
 
     let updatedViolationsCount = 0;
     let newArtistStatus = "active";
-    let penaltyAppliedMessage = action === "reject" ? "Đã từ chối báo cáo. Không tăng số lần vi phạm." : "";
+    let penaltyAppliedMessage = normalizedAction === "reject" ? "Đã từ chối báo cáo. Không tăng số lần vi phạm." : "";
 
     if (shouldIncrementViolation && artistId && mongoose.Types.ObjectId.isValid(artistId)) {
         const artist = await Artist.findById(artistId);
@@ -429,7 +536,7 @@ const resolveGroupedReport = async (targetType, targetId, body, adminId) => {
             const validReasons = evaluations
                 .filter((e) => e.isValid)
                 .map((e) => {
-                    const found = groupReports.find((r) => String(r._id) === String(e.reportId));
+                    const found = pendingGroupReports.find((r) => String(r._id) === String(e.reportId));
                     return found?.reason;
                 })
                 .filter(Boolean);
@@ -440,10 +547,10 @@ const resolveGroupedReport = async (targetType, targetId, body, adminId) => {
 
             let extraInfo = "";
             if (reasonSummary) {
-                extraInfo += `\n• Lý do vi phạm xác nhận: ${reasonSummary}`;
+                extraInfo += `\n- Lý do vi phạm xác nhận: ${reasonSummary}`;
             }
             if (resolutionNote && resolutionNote.trim()) {
-                extraInfo += `\n• Ghi chú từ Quản trị viên: "${resolutionNote.trim()}"`;
+                extraInfo += `\n- Ghi chú từ Quản trị viên: "${resolutionNote.trim()}"`;
             }
 
             let notifTitle = "";
@@ -460,17 +567,11 @@ const resolveGroupedReport = async (targetType, targetId, body, adminId) => {
             } else if (updatedViolationsCount === 3) {
                 penaltyAppliedMessage = "Đã tích lũy 3 lần vi phạm: Gửi cảnh báo mức nghiêm trọng (Lần 3) tới nghệ sĩ.";
                 notifTitle = "Cảnh báo vi phạm nghiêm trọng (Lần 3)";
-                notifContent = `Nội dung [${targetTitle}] tiếp tục bị xác nhận vi phạm.${extraInfo}\n\nĐây là cảnh báo nghiêm trọng lần 3. Nếu vi phạm lần thứ 4, nội dung sẽ bị ẩn khỏi hệ thống.`;
+                notifContent = `Nội dung [${targetTitle}] tiếp tục bị xác nhận vi phạm.${extraInfo}\n\nĐây là cảnh báo nghiêm trọng lần 3. Nếu vi phạm thêm 2 lần nữa, tài khoản nghệ sĩ sẽ bị khóa.`;
             } else if (updatedViolationsCount === 4) {
-                penaltyAppliedMessage = "Đã tích lũy 4 lần vi phạm: Tự động ẩn nội dung bị báo cáo.";
-                notifTitle = "Thông báo ẩn nội dung (Lần 4)";
-                notifContent = `Nội dung [${targetTitle}] đã tích lũy 4 lần vi phạm và bị ẩn trên hệ thống.${extraInfo}`;
-
-                if (targetType === "track") {
-                    await Track.findByIdAndUpdate(targetId, { activeStatus: "hidden" });
-                } else if (targetType === "album") {
-                    await Album.findByIdAndUpdate(targetId, { status: "hidden" });
-                }
+                penaltyAppliedMessage = "Đã tích lũy 4 lần vi phạm: Gửi cảnh báo cuối cùng (Lần 4) tới nghệ sĩ.";
+                notifTitle = "Cảnh báo vi phạm cuối cùng (Lần 4)";
+                notifContent = `Nội dung [${targetTitle}] tiếp tục bị xác nhận vi phạm.${extraInfo}\n\nĐây là cảnh báo lần 4. Nếu vi phạm thêm 1 lần nữa, tài khoản nghệ sĩ sẽ bị khóa.`;
             } else if (updatedViolationsCount >= 5) {
                 penaltyAppliedMessage = `Đã tích lũy ${updatedViolationsCount} lần vi phạm: Khóa tài khoản nghệ sĩ.`;
                 notifTitle = "Thông báo khóa tài khoản nghệ sĩ (Lần 5)";
@@ -480,7 +581,7 @@ const resolveGroupedReport = async (targetType, targetId, body, adminId) => {
                 newArtistStatus = "blocked";
             }
 
-            if (action === "block") {
+            if (normalizedAction === "block_artist") {
                 artist.activeStatus = "blocked";
                 newArtistStatus = "blocked";
                 penaltyAppliedMessage = "Quản trị viên đã khóa tài khoản nghệ sĩ thủ công.";

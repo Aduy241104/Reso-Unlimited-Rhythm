@@ -158,10 +158,10 @@ const AUTOMATIC_DECISION_LABELS = {
 const AUTOMATIC_REASON_LABELS = {
     FINGERPRINT_CLEAN: "Fingerprint không phát hiện trùng",
     COPYRIGHT_DECLARATION_VALID: "Khai báo bản quyền hợp lệ",
-    SAME_ARTIST_EXACT_DUPLICATE: "Trùng bản ghi âm với bài đã phát hành của cùng nghệ sĩ",
-    APPROVED_EXACT_CONFLICT_NO_EVIDENCE: "Trùng bản ghi đã phát hành, chưa có bằng chứng quyền sử dụng",
-    SAME_ARTIST_PERFECT_FINGERPRINT_DUPLICATE: "Fingerprint trùng hoàn toàn với bài đã phát hành của cùng nghệ sĩ",
-    APPROVED_PERFECT_FINGERPRINT_DUPLICATE: "Fingerprint trùng hoàn toàn với bài đã phát hành",
+    SAME_ARTIST_EXACT_DUPLICATE: "Trùng bản ghi âm với bài đã được duyệt của cùng nghệ sĩ",
+    APPROVED_EXACT_CONFLICT_NO_EVIDENCE: "Trùng bản ghi đã được duyệt, chưa có bằng chứng quyền sử dụng",
+    SAME_ARTIST_PERFECT_FINGERPRINT_DUPLICATE: "Fingerprint trùng hoàn toàn với bài đã được duyệt của cùng nghệ sĩ",
+    APPROVED_PERFECT_FINGERPRINT_DUPLICATE: "Fingerprint trùng hoàn toàn với bài đã được duyệt",
     HIGH_SIMILARITY_NO_EXACT_DUPLICATE: "Fingerprint có độ tương đồng cao, cần kiểm tra",
     SIMILARITY_REQUIRES_REVIEW: "Fingerprint có dấu hiệu tương đồng, cần kiểm tra",
     PENDING_EXACT_DUPLICATE: "Có bản ghi trùng đang chờ duyệt",
@@ -183,7 +183,7 @@ const AUTOMATIC_REASON_LABELS = {
     MUSICBRAINZ_RECORDING_MISMATCH: "Thông tin bản ghi không khớp MusicBrainz",
     MUSICBRAINZ_METADATA_CONFLICT: "Có xung đột metadata cần kiểm tra",
     MUSICBRAINZ_STRONG_METADATA_CONFLICT: "Có xung đột metadata mạnh",
-    APPROVED_EXACT_CONFLICT_WITH_EVIDENCE: "Trùng bản ghi đã phát hành nhưng có bằng chứng quyền sử dụng",
+    APPROVED_EXACT_CONFLICT_WITH_EVIDENCE: "Trùng bản ghi đã được duyệt nhưng có bằng chứng quyền sử dụng",
     APPROVED_PERFECT_FINGERPRINT_WITH_EVIDENCE: "Fingerprint trùng hoàn toàn nhưng có bằng chứng quyền sử dụng",
     COVER_MISSING_ORIGINAL_WORK: "Thiếu thông tin tác phẩm gốc cho bản cover",
     REMIX_MISSING_RIGHTS: "Thiếu bằng chứng quyền sử dụng cho bản remix",
@@ -1066,7 +1066,7 @@ const TrackDetailPage = () => {
                     <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
                             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Dấu vân tay âm thanh và sàng lọc nội bộ</h3>
-                            <p className="mt-1 text-[11px] text-slate-500">Chromaprint phân tích nội dung âm thanh và so với các bài đang hoạt động trong hệ thống.</p>
+                            <p className="mt-1 text-[11px] text-slate-500">Chromaprint phân tích nội dung âm thanh và so với các bài đã duyệt hoặc đang chờ duyệt trong hệ thống.</p>
                         </div>
                         {isPendingApproval ? (
                             <button
@@ -1099,11 +1099,16 @@ const TrackDetailPage = () => {
                         <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
                             <span className="block text-[10px] font-bold uppercase tracking-wide text-slate-400">Mức rủi ro nội bộ</span>
                             <span className="mt-1 block font-semibold text-slate-800">
-                                {translateStatus(FINGERPRINT_RISK_LABELS, track.fingerprintScreening?.riskLevel, "Chưa xác định")}
+                                {translateStatus(
+                                    FINGERPRINT_RISK_LABELS,
+                                    track.fingerprint?.comparison?.internalRiskLevel
+                                        ?? track.fingerprintScreening?.riskLevel,
+                                    "Chưa xác định"
+                                )}
                             </span>
                         </div>
                         <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
-                            <span className="block text-[10px] font-bold uppercase tracking-wide text-slate-400">Tương đồng cao nhất trong kho nội bộ</span>
+                            <span className="block text-[10px] font-bold uppercase tracking-wide text-slate-400">Tương đồng cao nhất với bài đã duyệt</span>
                             <span className="mt-1 block font-semibold text-slate-800">
                                 {formatSimilarityPercent(
                                     track.fingerprint?.comparison?.highestActiveCandidateSimilarity
@@ -1147,25 +1152,68 @@ const TrackDetailPage = () => {
                             ) : null}
                         </div>
                     </div>
-                    <div className="mt-3 grid gap-3 sm:grid-cols-3 text-xs">
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-xs">
                         <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
                             <span className="block text-[10px] font-bold uppercase tracking-wide text-slate-400">Phạm vi đối chiếu</span>
                             <span className="mt-1 block font-semibold text-slate-800">Kho dấu vân tay âm thanh nội bộ</span>
                         </div>
                         <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
-                            <span className="block text-[10px] font-bold uppercase tracking-wide text-slate-400">Ứng viên nội bộ đủ điều kiện</span>
+                            <span className="block text-[10px] font-bold uppercase tracking-wide text-slate-400">Ứng viên bài đã duyệt</span>
                             <span className="mt-1 block font-semibold text-slate-800">{Number(track.fingerprint?.comparison?.comparedCandidateCount || 0).toLocaleString("vi-VN")} bản ghi</span>
                         </div>
                         <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
-                            <span className="block text-[10px] font-bold uppercase tracking-wide text-slate-400">Kho âm thanh bên ngoài</span>
+                            <span className="block text-[10px] font-bold uppercase tracking-wide text-slate-400">Tương đồng cao nhất với bài đang chờ duyệt</span>
                             <span className="mt-1 block font-semibold text-slate-800">
-                                {track.fingerprint?.comparison?.externalAudioCompared ? "Đã đối chiếu" : "Không nằm trong phạm vi kiểm tra"}
+                                {formatSimilarityPercent(track.fingerprint?.comparison?.highestPendingCandidateSimilarity)}
                             </span>
+                            <span className="mt-1 block font-semibold text-slate-800">
+                                {translateStatus(
+                                    FINGERPRINT_CLASSIFICATION_LABELS,
+                                    track.fingerprint?.comparison?.highestPendingCandidateClassification,
+                                    "Chưa có ứng viên"
+                                )}
+                            </span>
+                            <span className="mt-1 block text-[10px] text-slate-500">
+                                {Number(track.fingerprint?.comparison?.pendingCandidateCount || 0).toLocaleString("vi-VN")} ứng viên đang chờ duyệt
+                            </span>
+                            {track.fingerprint?.comparison?.highestPendingCandidate?.title ? (
+                                <span className="mt-1 block text-[10px] text-slate-500">
+                                    <span>Cao nhất với </span>
+                                    {track.fingerprint.comparison.highestPendingCandidate.id ? (
+                                        <Link
+                                            to={routePaths.trackDetail(track.fingerprint.comparison.highestPendingCandidate.id)}
+                                            className="font-semibold text-sky-700 transition hover:text-sky-900 hover:underline"
+                                        >
+                                            {`${track.fingerprint.comparison.highestPendingCandidate.title}${
+                                                track.fingerprint.comparison.highestPendingCandidate.versionTitle
+                                                    ? ` - ${track.fingerprint.comparison.highestPendingCandidate.versionTitle}`
+                                                    : ""
+                                            }`}
+                                        </Link>
+                                    ) : (
+                                        <span>
+                                            {`${track.fingerprint.comparison.highestPendingCandidate.title}${
+                                                track.fingerprint.comparison.highestPendingCandidate.versionTitle
+                                                    ? ` - ${track.fingerprint.comparison.highestPendingCandidate.versionTitle}`
+                                                    : ""
+                                            }`}
+                                        </span>
+                                    )}
+                                    {track.fingerprint.comparison.highestPendingCandidate.artist?.name ? (
+                                        <span>{` • ${track.fingerprint.comparison.highestPendingCandidate.artist.name}`}</span>
+                                    ) : null}
+                                </span>
+                            ) : null}
                         </div>
                     </div>
                     {Number(track.fingerprint?.comparison?.activeExactFileMatchCount || 0) > 0 ? (
                         <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs leading-relaxed text-rose-900">
-                            <span className="font-bold">Trùng bản ghi âm hoàn toàn:</span> Tìm thấy {Number(track.fingerprint.comparison.activeExactFileMatchCount).toLocaleString("vi-VN")} bản ghi đang hoạt động. Khi nghệ sĩ gửi duyệt, hệ thống sẽ tự động từ chối nếu bản trùng đã được phát hành.
+                            <span className="font-bold">Trùng bản ghi âm hoàn toàn:</span> Tìm thấy {Number(track.fingerprint.comparison.activeExactFileMatchCount).toLocaleString("vi-VN")} bài đã được duyệt. Khi nghệ sĩ gửi duyệt, hệ thống có thể tự động từ chối nếu không có bằng chứng quyền sử dụng hợp lệ.
+                        </div>
+                    ) : null}
+                    {Number(track.fingerprint?.comparison?.pendingExactFileMatchCount || 0) > 0 ? (
+                        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-relaxed text-amber-900">
+                            <span className="font-bold">Trùng với bài đang chờ duyệt:</span> Tìm thấy {Number(track.fingerprint.comparison.pendingExactFileMatchCount).toLocaleString("vi-VN")} bản ghi âm trùng hoàn toàn. Tình huống này cần Admin kiểm tra thứ tự gửi và quyền sở hữu thủ công.
                         </div>
                     ) : null}
                     {Number(track.fingerprint?.comparison?.historicalExactFileMatchCount || 0) > 0 ? (

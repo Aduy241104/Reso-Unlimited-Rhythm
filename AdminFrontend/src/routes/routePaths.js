@@ -5,7 +5,6 @@ export const routePaths = {
   podcasts: "/podcasts",
   advertisements: "/advertisements",
   advertisementNew: "/advertisements/new",
-  advertisementDetail: (id = ":id") => `/advertisements/${id}`,
   advertisementEdit: (id = ":id") => `/advertisements/${id}/edit`,
   podcastDetail: (podcastId = ":id") => `/podcasts/${podcastId}`,
   systemAlbums: "/system-albums",

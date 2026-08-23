@@ -1,5 +1,4 @@
 export const ALBUM_STATUS_OPTIONS = [
-  { value: "", label: "Tất cả trạng thái" },
   { value: "draft", label: "Nháp" },
   { value: "active", label: "Đang hiển thị" },
   { value: "hidden", label: "Đã ẩn" },

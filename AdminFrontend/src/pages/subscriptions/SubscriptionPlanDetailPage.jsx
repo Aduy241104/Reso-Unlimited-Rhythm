@@ -311,10 +311,6 @@ const SubscriptionPlanDetailPage = () => {
             <h3 className="mb-4 text-sm font-semibold text-slate-700">Thông tin hệ thống</h3>
             <div className="space-y-3">
               <div>
-                <p className="text-xs text-slate-400">ID</p>
-                <p className="truncate font-mono text-sm text-slate-600">{plan._id}</p>
-              </div>
-              <div>
                 <p className="text-xs text-slate-400">Ngày tạo</p>
                 <p className="text-sm text-slate-700">{formatDate(plan.createdAt)}</p>
               </div>

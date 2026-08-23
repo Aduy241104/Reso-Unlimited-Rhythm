@@ -79,8 +79,8 @@ export const artistNavigation = [
 ];
 
 export const artistPageTitles = {
-  [routePaths.artistPodcasts]: "Podcast cÃ¹a tÃ´i",
-  [routePaths.artistCreatePodcast]: "Táº¡o Podcast",
+  [routePaths.artistPodcasts]: "Podcast của tôi",
+  [routePaths.artistCreatePodcast]: "Tạo Podcast",
   [routePaths.artistRoot]: "Tổng quan nghệ sĩ",
   [routePaths.artistMusic]: "Nhạc của tôi",
   [routePaths.artistTrackDetail()]: "Chi tiết bài hát",

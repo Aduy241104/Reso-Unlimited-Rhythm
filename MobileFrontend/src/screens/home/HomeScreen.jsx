@@ -21,7 +21,12 @@ import FeaturedCollectionCard from '../../components/home/FeaturedCollectionCard
 import { useAuth } from '../../hooks/useAuth';
 import { usePlayQueue } from '../../hooks/usePlayer';
 import homeService from '../../services/homeService';
-import { formatCompactNumber, formatDateLabel, resolveImageUri } from '../../utils/media';
+import {
+  formatCompactNumber,
+  formatDateLabel,
+  formatTrackDuration,
+  resolveImageUri,
+} from '../../utils/media';
 
 const SIDEBAR_CLOSE_DELAY = 180;
 const CARD_WIDTH = 104;
@@ -36,6 +41,7 @@ const initialHomeState = {
   systemPlaylists: [],
   recommendedPlaylists: [],
   recentAlbums: [],
+  podcasts: [],
   sectionErrors: {},
   query: {
     date: '',
@@ -78,6 +84,7 @@ const HomeSection = memo(({
   emptyMessage,
   actionLabel,
   onActionPress,
+  onPlayPress,
 }) => (
   <View style={styles.sectionContainer}>
     <View style={styles.sectionHeadingRow}>
@@ -85,16 +92,30 @@ const HomeSection = memo(({
         <Text style={styles.sectionTitle}>{title}</Text>
       </View>
 
-      {actionLabel && onActionPress ? (
-        <TouchableOpacity
-          style={styles.sectionAction}
-          activeOpacity={0.7}
-          onPress={onActionPress}
-        >
-          <Text style={styles.sectionActionText}>{actionLabel}</Text>
-          <Ionicons name="chevron-forward" size={14} color="#ffffff" />
-        </TouchableOpacity>
-      ) : null}
+      <View style={styles.sectionActions}>
+        {onPlayPress && data.length > 0 ? (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={`Phát ${title}`}
+            style={styles.sectionPlayButton}
+            activeOpacity={0.75}
+            onPress={onPlayPress}
+          >
+            <Ionicons name="play" size={13} color="#000000" />
+          </TouchableOpacity>
+        ) : null}
+
+        {actionLabel && onActionPress ? (
+          <TouchableOpacity
+            style={styles.sectionAction}
+            activeOpacity={0.7}
+            onPress={onActionPress}
+          >
+            <Text style={styles.sectionActionText}>{actionLabel}</Text>
+            <Ionicons name="chevron-forward" size={14} color="#ffffff" />
+          </TouchableOpacity>
+        ) : null}
+      </View>
     </View>
 
     {errorMessage ? (
@@ -247,6 +268,10 @@ export default function HomeScreen() {
     navigation,
   ]);
 
+  const handleOpenPodcast = useCallback(() => {
+    navigation.navigate('Podcast');
+  }, [navigation]);
+
   const handlePlayRecommendation = useCallback((mix) => {
     if (!Array.isArray(mix?.tracks) || mix.tracks.length === 0) {
       return;
@@ -364,6 +389,31 @@ export default function HomeScreen() {
     />
   ), [handleOpenDetail]);
 
+  const handlePlayPodcast = useCallback((podcast) => {
+    const podcastIndex = homeData.podcasts.findIndex(
+      (item) => String(item?.id || '') === String(podcast?.id || '')
+    );
+
+    if (podcastIndex < 0) {
+      return;
+    }
+
+    playQueue(homeData.podcasts, podcastIndex, {
+      collectionType: 'podcast',
+      shuffle: false,
+    });
+  }, [homeData.podcasts, playQueue]);
+
+  const renderPodcastCard = useCallback(({ item }) => (
+    <FeaturedCollectionCard
+      title={item.title}
+      description={`${item.artistName || 'Nghệ sĩ'} · ${formatTrackDuration(item.duration)}`}
+      image={item.image}
+      style={styles.cardItem}
+      onPress={() => handlePlayPodcast(item)}
+    />
+  ), [handlePlayPodcast]);
+
   const renderPlaylistCard = useCallback(({ item }) => (
     <FeaturedCollectionCard
       title={item.title}
@@ -405,6 +455,14 @@ export default function HomeScreen() {
     );
   }, [handleOpenDetail]);
 
+  const handlePlayTopTracks = useCallback((tracks) => {
+    if (!Array.isArray(tracks) || tracks.length === 0) {
+      return;
+    }
+
+    playQueue(tracks, 0, { collectionType: 'ranking', shuffle: false });
+  }, [playQueue]);
+
   const homeSections = useMemo(() => [
     {
       sectionKey: 'daily-tracks',
@@ -414,6 +472,7 @@ export default function HomeScreen() {
       renderItem: renderTrackCard,
       emptyMessage: 'Hiện chưa có dữ liệu bảng xếp hạng bài hát theo ngày.',
       actionLabel: 'Xem thêm',
+      onPlayPress: () => handlePlayTopTracks(homeData.dailyTopTracks),
       onActionPress: () => handleOpenRanking('track', 'daily'),
     },
     {
@@ -424,7 +483,19 @@ export default function HomeScreen() {
       renderItem: renderTrackCard,
       emptyMessage: 'Hiện chưa có dữ liệu bảng xếp hạng bài hát theo tháng.',
       actionLabel: 'Xem thêm',
+      onPlayPress: () => handlePlayTopTracks(homeData.monthlyTopTracks),
       onActionPress: () => handleOpenRanking('track', 'monthly'),
+    },
+    {
+      sectionKey: 'podcasts',
+      title: 'Podcast nổi bật',
+      data: homeData.podcasts,
+      errorMessage: homeData.sectionErrors.podcasts,
+      renderItem: renderPodcastCard,
+      emptyMessage: 'Chưa có Podcast nổi bật.',
+      actionLabel: 'Xem thêm',
+      onActionPress: handleOpenPodcast,
+      onPlayPress: () => handlePlayPodcast(homeData.podcasts[0]),
     },
     {
       sectionKey: 'daily-artists',
@@ -475,11 +546,15 @@ export default function HomeScreen() {
   ].filter(Boolean), [
     displayName,
     handleOpenRanking,
+    handleOpenPodcast,
+    handlePlayPodcast,
+    handlePlayTopTracks,
     homeData,
     isAuthenticated,
     renderAlbumCard,
     renderArtistCard,
     renderPlaylistCard,
+    renderPodcastCard,
     renderRecommendationCard,
     renderTrackCard,
   ]);
@@ -689,6 +764,11 @@ const styles = StyleSheet.create({
     minWidth: 0,
     marginRight: 12,
   },
+  sectionActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
@@ -704,6 +784,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     marginRight: 2,
+  },
+  sectionPlayButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#A78BFA',
   },
   horizontalListViewport: {
     marginHorizontal: 12,

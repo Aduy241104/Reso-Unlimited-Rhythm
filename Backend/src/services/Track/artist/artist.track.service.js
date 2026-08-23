@@ -17,10 +17,13 @@ import {
 } from "../track.draft.validation.js";
 import {
     assertTrackEditableByArtist,
+    assertTrackTitleIsAvailable,
     validateTrackForSubmit,
 } from "../track.submit.validation.js";
 import {
+    assertTrackAudioFingerprintAvailable,
     assertTrackTitleVersionAvailable,
+    normalizeTrackSourceAudioHash,
     normalizeTrackVersionTitle,
 } from "../track.duplicate.validation.js";
 import Artist from "../../../models/Artist.js";
@@ -57,7 +60,7 @@ import {
     getCopyrightChangeFlags,
     getTrackRejectionSnapshot,
     hashTrackMutableData,
-} from "../../track/track.rejection.js";
+} from "../track.rejection.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 50;
@@ -497,9 +500,8 @@ const createTrack = async (userId, trackData) => {
     assertArtistCanCreateTrack(artist);
 
     const title = validateDraftTitle(trackData.title);
-    const artistId = resolveArtistIdForCreate(trackData, artist);
     const versionTitle = normalizeTrackVersionTitle(trackData.versionTitle);
-
+    const artistId = resolveArtistIdForCreate(trackData, artist);
     await assertTrackTitleVersionAvailable({
         artistId,
         title,
@@ -507,6 +509,13 @@ const createTrack = async (userId, trackData) => {
     });
 
     const audioFiles = validateOptionalAudioFiles(trackData.audioFiles);
+    const sourceAudioHash = normalizeTrackSourceAudioHash(
+        trackData.audioAnalysis?.sourceAudioHash
+    );
+    await assertTrackAudioFingerprintAvailable({
+        artistId,
+        sourceAudioHash,
+    });
     const duration = validateDurationFromAudioAnalysis(
         trackData.audioAnalysis,
         audioFiles.length > 0
@@ -563,6 +572,15 @@ const createTrack = async (userId, trackData) => {
             totalLike: 0,
             totalPlay: 0,
         },
+        ...(sourceAudioHash
+            ? {
+                fingerprintScreening: {
+                    status: "pending",
+                    audioHash: sourceAudioHash,
+                    audioVersion: 1,
+                },
+            }
+            : {}),
         ...(sanitizedCopyright !== undefined ? { copyright: sanitizedCopyright } : {}),
     });
 
@@ -704,6 +722,10 @@ const updateArtistTrack = async (userId, trackId, trackData) => {
     if (trackData.lyricsSyncUrl !== undefined) {
         nextTrackData.lyricsSyncUrl = trackData.lyricsSyncUrl || "";
         nextAssets.lyricsSyncUrl = nextTrackData.lyricsSyncUrl;
+    }
+
+    if (trackData.title !== undefined) {
+        await assertTrackTitleIsAvailable(nextTrackData.title, artist._id, track._id);
     }
 
     if (trackData.copyright !== undefined) {
@@ -1307,15 +1329,18 @@ const deleteArtistTrack = async (userId, trackId) => {
         }
     }
 
-    // Mark the Track deleted before cleaning related data. Once this succeeds,
-    // cleanup failures must not make the API report a false delete failure.
+    // Mark the Track deleted before cleaning fingerprint data. A worker that
+    // races this request will then stop instead of recreating an orphan record.
+    let fingerprintLifecycle = {
+        mode: "cleanup_pending",
+        reason: "Track was deleted before fingerprint cleanup completed.",
+    };
     const cleanupWarnings = [];
     const reportCleanupFailure = (step, message, error) => {
         cleanupWarnings.push({ step, message });
         console.error(`[deleteArtistTrack] ${step}: ${message}`, error);
     };
 
-    let fingerprintLifecycle = null;
     try {
         fingerprintLifecycle = await cleanupTrackFingerprintLifecycle(
             { ...track.toObject(), isDeleted: true, deletedAt: new Date() },

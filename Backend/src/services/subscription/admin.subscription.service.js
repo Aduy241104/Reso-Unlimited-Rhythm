@@ -9,6 +9,44 @@ const ADMIN_DISABLED_PLAN_REASON =
     "Payment order cancelled because the subscription plan was disabled by an administrator.";
 const ADMIN_DELETED_PLAN_REASON =
     "Payment order cancelled because the subscription plan was deleted by an administrator.";
+const DUPLICATE_PLAN_NAME_MESSAGE = "Tên gói đăng ký đã tồn tại.";
+const INVALID_PLAN_PRICE_MESSAGE = "Subscription plan price must be greater than 0.";
+
+const normalizePlanName = (value) => String(value || "").trim();
+
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const findPlanByExactName = async (name, excludePlanId = null) => {
+    const normalizedName = normalizePlanName(name);
+
+    if (!normalizedName) {
+        return null;
+    }
+
+    const filter = {
+        name: new RegExp(`^${escapeRegex(normalizedName)}$`, "i"),
+    };
+
+    if (excludePlanId) {
+        filter._id = { $ne: excludePlanId };
+    }
+
+    const query = Plan.findOne(filter);
+    return typeof query?.lean === "function" ? query.lean() : query;
+};
+
+const isDuplicatePlanNameError = (error) =>
+    error?.code === 11000 && (error?.keyPattern?.name || error?.keyValue?.name);
+
+const normalizePlanPrice = (price) => {
+    const normalizedPrice = Number(price);
+
+    if (!Number.isFinite(normalizedPrice) || normalizedPrice <= 0) {
+        throw new AppError(INVALID_PLAN_PRICE_MESSAGE, 400);
+    }
+
+    return normalizedPrice;
+};
 
 const cancelPendingOrdersForPlan = async (planId, reason) => {
     const now = new Date();
@@ -114,17 +152,34 @@ const getPlanDetail = async (id) => {
 
 const createPlan = async (data) => {
     const { name, price, durationDays, description, features, status } = data;
+    const normalizedName = normalizePlanName(name);
+
+    const existingPlan = await findPlanByExactName(normalizedName);
+
+    if (existingPlan) {
+        throw new AppError(DUPLICATE_PLAN_NAME_MESSAGE, 409);
+    }
 
     const planData = {
-        name: name?.trim(),
-        price: Number(price) || 0,
+        name: normalizedName,
+        price: normalizePlanPrice(price),
         durationDays: Number(durationDays) || 30,
         description: description?.trim() || "",
         features: features || [],
         status: VALID_STATUSES.includes(status) ? status : "active",
     };
 
-    const plan = await Plan.create(planData);
+    let plan;
+
+    try {
+        plan = await Plan.create(planData);
+    } catch (error) {
+        if (isDuplicatePlanNameError(error)) {
+            throw new AppError(DUPLICATE_PLAN_NAME_MESSAGE, 409);
+        }
+
+        throw error;
+    }
 
     return plan;
 };
@@ -137,11 +192,18 @@ const updatePlan = async (id, data) => {
     const updates = {};
 
     if (typeof data.name === "string" && data.name.trim() !== "") {
-        updates.name = data.name.trim();
+        const normalizedName = normalizePlanName(data.name);
+        const existingPlan = await findPlanByExactName(normalizedName, id);
+
+        if (existingPlan) {
+            throw new AppError(DUPLICATE_PLAN_NAME_MESSAGE, 409);
+        }
+
+        updates.name = normalizedName;
     }
 
-    if (typeof data.price === "number" && data.price >= 0) {
-        updates.price = data.price;
+    if (Object.prototype.hasOwnProperty.call(data, "price")) {
+        updates.price = normalizePlanPrice(data.price);
     }
 
     if (typeof data.durationDays === "number" && data.durationDays > 0) {
@@ -160,7 +222,17 @@ const updatePlan = async (id, data) => {
         updates.status = data.status;
     }
 
-    const plan = await Plan.findByIdAndUpdate(id, updates, { new: true, lean: true });
+    let plan;
+
+    try {
+        plan = await Plan.findByIdAndUpdate(id, updates, { new: true, lean: true });
+    } catch (error) {
+        if (isDuplicatePlanNameError(error)) {
+            throw new AppError(DUPLICATE_PLAN_NAME_MESSAGE, 409);
+        }
+
+        throw error;
+    }
 
     if (!plan) {
         throw new AppError("Plan not found", 404);

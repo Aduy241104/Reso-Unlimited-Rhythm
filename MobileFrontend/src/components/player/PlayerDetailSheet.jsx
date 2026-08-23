@@ -189,6 +189,8 @@ export default function PlayerDetailSheet({
   currentError,
   currentIndex = -1,
   currentTrack,
+  currentAdvertisement = null,
+  canSkipAdvertisement = false,
   duration = 0,
   detailErrorMessage = '',
   hasNext = false,
@@ -197,13 +199,16 @@ export default function PlayerDetailSheet({
   isDetailLoading = false,
   isBuffering = false,
   isPremium = false,
+  isAdvertisementPlaying = false,
   isShuffleEnabled = true,
   isPlaying = false,
   onClose,
   onOpenLyrics,
+  onOpenTrackDetail,
   onOpenQueue,
   onPlayNext,
   onPlayPrevious,
+  onSkipAdvertisement,
   onPremiumRequired,
   onOpenQualityMenu,
   onRetryDetail,
@@ -437,6 +442,37 @@ export default function PlayerDetailSheet({
                   <Ionicons name="musical-notes" size={15} color="#C4B5FD" />
                 </View>
               </View>
+              {isAdvertisementPlaying && currentAdvertisement ? (
+                <View style={styles.advertisementBanner}>
+                  <View style={styles.advertisementCopy}>
+                    <Text style={styles.advertisementLabel}>QUẢNG CÁO</Text>
+                    <Text style={styles.advertisementTitle} numberOfLines={1}>
+                      {currentAdvertisement.title || currentAdvertisement.advertiserName || 'Quảng cáo'}
+                    </Text>
+                  </View>
+                  {currentAdvertisement.skipEnabled ? (
+                    <Pressable
+                      style={[styles.advertisementSkipButton, !canSkipAdvertisement && styles.advertisementSkipButtonDisabled]}
+                      onPress={onSkipAdvertisement}
+                      disabled={!canSkipAdvertisement}
+                    >
+                      <Text style={styles.advertisementSkipText}>
+                        {canSkipAdvertisement ? 'Bỏ qua' : `Chờ ${Math.max(Math.ceil((Number(currentAdvertisement.skipAfterSeconds) || 0) - progressSeconds), 0)}s`}
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                 </View>
+              ) : null}
+              {currentTrack?.entityType !== 'podcast' && currentTrack?.contentType !== 'podcast' ? (
+                <Pressable
+                  style={styles.trackDetailButton}
+                  onPress={onOpenTrackDetail}
+                  disabled={!currentTrack?.entityId && !currentTrack?.id}
+                >
+                  <Ionicons name="open-outline" size={16} color="#C4B5FD" />
+                  <Text style={styles.trackDetailButtonText}>Xem chi tiết bài hát</Text>
+                </Pressable>
+              ) : null}
               {currentError ? <Text style={styles.statusTextError}>{currentError}</Text> : null}
               {!currentError && isBuffering ? <Text style={styles.statusText}>Đang tải âm thanh...</Text> : null}
 
@@ -489,13 +525,12 @@ export default function PlayerDetailSheet({
                     style={[
                       styles.modeControlButton,
                       isShuffleEnabled && styles.modeControlButtonActive,
-                      !isPremium && styles.premiumControlLocked,
                     ]}
                     onPress={onToggleShuffle}
                   >
                     <View style={[styles.modeControlIcon, isShuffleEnabled && styles.modeControlIconActive]}>
                       <Ionicons
-                        name={isPremium ? 'shuffle' : 'lock-closed'}
+                        name="shuffle"
                         size={18}
                         color={isShuffleEnabled ? '#ffffff' : '#8F8994'}
                       />
@@ -564,12 +599,11 @@ export default function PlayerDetailSheet({
                   style={[
                     styles.modeButton,
                     isShuffleEnabled && styles.modeButtonActive,
-                    !isPremium && styles.premiumControlLocked,
                   ]}
                   onPress={onToggleShuffle}
                 >
                   <Ionicons
-                    name={isPremium ? 'shuffle' : 'lock-closed'}
+                    name="shuffle"
                     size={17}
                     color={isShuffleEnabled ? '#C4B5FD' : '#77717D'}
                   />
@@ -911,6 +945,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  trackDetailButton: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(167, 139, 250, 0.12)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(167, 139, 250, 0.3)',
+  },
+  trackDetailButtonText: {
+    marginLeft: 7,
+    color: '#C4B5FD',
+    fontSize: 12,
+    fontWeight: '700',
+  },
   trackCopy: {
     flex: 1,
     minWidth: 0,
@@ -938,6 +990,51 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(139, 92, 246, 0.14)',
     borderWidth: 1,
     borderColor: 'rgba(167, 139, 250, 0.22)',
+  },
+  advertisementBanner: {
+    marginTop: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+  },
+  advertisementCopy: {
+    flex: 1,
+    minWidth: 0,
+    marginRight: 12,
+  },
+  advertisementLabel: {
+    color: '#FCD34D',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  advertisementTitle: {
+    color: '#FFF7ED',
+    fontSize: 13,
+    fontWeight: '700',
+    marginTop: 4,
+  },
+  advertisementSkipButton: {
+    minWidth: 72,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 9,
+    alignItems: 'center',
+    backgroundColor: '#F59E0B',
+  },
+  advertisementSkipButtonDisabled: {
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  advertisementSkipText: {
+    color: '#1C1204',
+    fontSize: 11,
+    fontWeight: '800',
   },
   statusText: {
     color: '#A78BFA',

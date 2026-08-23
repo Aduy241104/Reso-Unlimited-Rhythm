@@ -8,6 +8,12 @@ import { uploadImageBuffer, deleteImageByPublicId } from "../cloudinaryService.j
 import { extractPublicIdFromUrl } from "../../utils/uploadCloud.js";
 
 const CLOUDINARY_PLAYLIST_FOLDER = "reso/playlists";
+const SYSTEM_PLAYLIST_TRACK_FILTER = Object.freeze({
+    approvalStatus: "approved",
+    releaseStatus: "released",
+    activeStatus: { $nin: ["blocked", "hidden"] },
+    isDeleted: { $ne: true },
+});
 
 const assertObjectId = (playlistId) => {
     if (!mongoose.Types.ObjectId.isValid(playlistId)) {
@@ -160,9 +166,12 @@ const addTrackToSystemPlaylist = async (playlistId, trackId) => {
         throw new AppError("Track id is invalid.", 400, { field: "trackId" });
     }
 
-    const track = await Track.findById(trackId).select("_id").lean();
+    const track = await Track.findOne({
+        _id: trackId,
+        ...SYSTEM_PLAYLIST_TRACK_FILTER,
+    }).select("_id").lean();
     if (!track) {
-        throw new AppError("Track not found.", 404, { field: "trackId" });
+        throw new AppError("Only approved, released, and visible tracks can be added to a system playlist.", 404, { field: "trackId" });
     }
 
     const playlist = await findSystemPlaylist(playlistId);
@@ -245,7 +254,7 @@ const addTracksToSystemPlaylistBatch = async (playlistId, trackIds) => {
     const objectIds = uniqueOrdered.map((id) => new mongoose.Types.ObjectId(id));
     const foundDocs = await Track.find({
         _id: { $in: objectIds },
-        activeStatus: { $nin: ["blocked", "hidden"] },
+        ...SYSTEM_PLAYLIST_TRACK_FILTER,
     }).select("_id").lean();
     const foundSet = new Set(foundDocs.map((doc) => doc._id.toString()));
 

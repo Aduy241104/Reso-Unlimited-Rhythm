@@ -24,9 +24,12 @@ export default function PlayerSheetScreen() {
   const {
     currentTrack,
     currentError,
+    currentAdvertisement,
+    canSkipAdvertisement,
     duration,
     isBuffering,
     isPremium,
+    isAdvertisementPlaying,
     isShuffleEnabled,
     queue,
     currentIndex,
@@ -41,6 +44,7 @@ export default function PlayerSheetScreen() {
     togglePlayback,
     playNext,
     playPrevious,
+    skipAdvertisement,
     seekTo,
     toggleShuffle,
     cycleRepeatMode,
@@ -138,19 +142,25 @@ export default function PlayerSheetScreen() {
     setIsLyricsVisible(true);
   }, [currentTrack, hasTimedLyrics]);
 
+  const handleOpenTrackDetail = useCallback(() => {
+    if (!trackId) {
+      return;
+    }
+
+    navigation.replace('EntityDetail', {
+      entityType: 'track',
+      entityId: trackId,
+      initialTitle: currentTrack?.title || 'Chi tiết bài hát',
+    });
+  }, [currentTrack?.title, navigation, trackId]);
+
   const handlePremiumRequired = useCallback((feature = 'Tính năng này') => {
     Alert.alert(
       'Dành cho tài khoản Premium',
       `${feature} chỉ khả dụng khi tài khoản đang có Premium.`,
-      [
-        { text: 'Để sau', style: 'cancel' },
-        {
-          text: 'Xem gói Premium',
-          onPress: () => navigation.navigate('PremiumOverview'),
-        },
-      ]
+      [{ text: 'Đóng', style: 'cancel' }]
     );
-  }, [navigation]);
+  }, []);
 
   const handleSeek = useCallback((nextPosition) => {
     if (!isPremium) {
@@ -162,13 +172,8 @@ export default function PlayerSheetScreen() {
   }, [handlePremiumRequired, isPremium, seekTo]);
 
   const handleToggleShuffle = useCallback(() => {
-    if (!isPremium) {
-      handlePremiumRequired('Tắt chế độ phát ngẫu nhiên');
-      return;
-    }
-
     toggleShuffle();
-  }, [handlePremiumRequired, isPremium, toggleShuffle]);
+  }, [toggleShuffle]);
 
   const handleCycleRepeat = useCallback(() => {
     if (!isPremium) {
@@ -196,6 +201,8 @@ export default function PlayerSheetScreen() {
     <View style={styles.container}>
       <PlayerDetailSheet
         currentError={currentError}
+        currentAdvertisement={currentAdvertisement}
+        canSkipAdvertisement={canSkipAdvertisement}
         currentIndex={currentIndex}
         currentTrack={currentTrack}
         duration={duration}
@@ -204,6 +211,7 @@ export default function PlayerSheetScreen() {
         hasSyncedLyrics={hasTimedLyrics}
         isBuffering={isBuffering}
         isPremium={isPremium}
+        isAdvertisementPlaying={isAdvertisementPlaying}
         isShuffleEnabled={isShuffleEnabled}
         isPlaying={isPlaying}
         artistProfileResponse={artistProfileResponse}
@@ -211,9 +219,11 @@ export default function PlayerSheetScreen() {
         isDetailLoading={isDetailLoading}
         onClose={() => navigation.goBack()}
         onOpenLyrics={handleOpenLyrics}
+        onOpenTrackDetail={handleOpenTrackDetail}
         onOpenQueue={() => setIsQueueVisible(true)}
         onPlayNext={playNext}
         onPlayPrevious={playPrevious}
+        onSkipAdvertisement={skipAdvertisement}
         onPremiumRequired={handlePremiumRequired}
         onOpenQualityMenu={() => setIsQualityMenuVisible(true)}
         onRetryDetail={loadPlayerDetail}

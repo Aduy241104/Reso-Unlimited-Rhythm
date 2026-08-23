@@ -219,7 +219,7 @@ export default function EntityDetailScreen() {
           if (followError?.status === 401) {
             setIsArtistFollowing(false);
           } else {
-            console.log('KhĂ´ng thá»ƒ táº£i tráº¡ng thĂ¡i theo dĂµi nghá»‡ sÄ©.', followError?.message || followError);
+            console.log('Không thể tải trạng thái theo dõi nghệ sĩ.', followError?.message || followError);
           }
         }
       } else {
@@ -333,16 +333,13 @@ export default function EntityDetailScreen() {
       Alert.alert(
         'Phát ngẫu nhiên đang được bật',
         'Album và playlist mặc định phát ngẫu nhiên. Chỉ tài khoản Premium mới có thể tắt chế độ này.',
-        [
-          { text: 'Để sau', style: 'cancel' },
-          { text: 'Xem gói Premium', onPress: () => navigation.navigate('PremiumOverview') },
-        ]
+        [{ text: 'Đóng', style: 'cancel' }]
       );
       return;
     }
 
     toggleShuffle();
-  }, [isPremium, navigation, toggleShuffle]);
+  }, [isPremium, toggleShuffle]);
 
   const openTrackActions = useCallback((track, index = 0) => {
     if (!track) {

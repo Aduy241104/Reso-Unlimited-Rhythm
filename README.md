@@ -26,7 +26,7 @@ npm run fingerprint:lifecycle
 npm run fingerprint:lifecycle -- --apply
 ```
 
-If this is an existing database that was created before soft-delete index support, repair the old Track unique index once. The first command is read-only; apply only when it reports no active title/version duplicates:
+If this is an existing database that was created before soft-delete or case-insensitive title-key support, repair the Track unique indexes once. The first command is read-only; apply only when it reports no active title/version or normalized-title duplicates:
 
 ```powershell
 cd Backend

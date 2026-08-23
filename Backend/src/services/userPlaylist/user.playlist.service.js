@@ -529,12 +529,17 @@ const buildPlaylistDetailFilter = (playlistId, mode, currentUserId) => {
     return {
         _id: playlistId,
         $or: [
-            { type: "system" },
+            {
+                type: "system",
+                isHidden: false,
+                isPublic: true,
+            },
             {
                 isHidden: false,
                 isPublic: true,
             },
             {
+                type: "user",
                 userId: currentUserId,
             },
         ],

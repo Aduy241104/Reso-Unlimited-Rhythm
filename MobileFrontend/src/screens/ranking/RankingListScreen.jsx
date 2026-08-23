@@ -15,6 +15,7 @@ import AppButton from '../../components/common/AppButton';
 import AppLoader from '../../components/common/AppLoader';
 import ErrorState from '../../components/common/ErrorState';
 import { Artwork } from '../detail/EntityDetailComponents';
+import { usePlayQueue } from '../../hooks/usePlayer';
 import artistService from '../../services/artistService';
 import trackService from '../../services/trackService';
 import { formatCompactNumber, formatDateLabel, formatMonthLabel } from '../../utils/media';
@@ -68,6 +69,7 @@ export default function RankingListScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const insets = useSafeAreaInsets();
+  const playQueue = usePlayQueue();
   const contentType = route.params?.contentType === 'artist' ? 'artist' : 'track';
   const period = route.params?.period === 'monthly' ? 'monthly' : 'daily';
   const date = route.params?.date || '';
@@ -132,6 +134,14 @@ export default function RankingListScreen() {
     });
   }, [contentType, navigation]);
 
+  const handlePlayAll = useCallback(() => {
+    if (contentType !== 'track' || items.length === 0) {
+      return;
+    }
+
+    playQueue(items, 0, { collectionType: 'ranking', shuffle: false });
+  }, [contentType, items, playQueue]);
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
@@ -148,7 +158,17 @@ export default function RankingListScreen() {
           <Text style={styles.headerTitle} numberOfLines={1}>{title}</Text>
           <Text style={styles.headerSubtitle} numberOfLines={1}>{periodLabel}</Text>
         </View>
-        <View style={styles.headerSpacer} />
+        {contentType === 'track' && items.length > 0 ? (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Phát danh sách top bài hát"
+            style={styles.headerPlayButton}
+            activeOpacity={0.78}
+            onPress={handlePlayAll}
+          >
+            <Ionicons name="play" size={16} color="#000000" />
+          </TouchableOpacity>
+        ) : <View style={styles.headerSpacer} />}
       </View>
 
       {isLoading ? (
@@ -242,6 +262,14 @@ const styles = StyleSheet.create({
   },
   headerSpacer: {
     width: 40,
+  },
+  headerPlayButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 20,
+    backgroundColor: '#A78BFA',
   },
   centerState: {
     flex: 1,

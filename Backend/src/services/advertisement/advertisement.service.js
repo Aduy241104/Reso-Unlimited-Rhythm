@@ -11,6 +11,7 @@ import { recordAuditEvent } from "../audit/auditLog.service.js";
 const ACTIVE_CACHE_KEY = "ads:active:v1";
 const SESSION_TTL_SECONDS = 60 * 60 * 25;
 const ACTIVE_CACHE_SECONDS = 30;
+const MIN_AUDIO_TRACKS_BETWEEN_ADS = 3;
 const memorySessions = new Map();
 let memoryActiveCache = { expiresAt: 0, ads: [] };
 
@@ -35,7 +36,7 @@ const normalizeAdvertisementPayload = (payload = {}, current = null) => {
     const type = payload.type ?? current?.type;
     const startAt = new Date(payload.startAt ?? current?.startAt ?? Date.now());
     const endAt = new Date(payload.endAt ?? current?.endAt ?? Date.now());
-    if (!["banner", "audio"].includes(type)) throw new AppError("Invalid advertisement type.", 400);
+    if (type !== "audio") throw new AppError("Only audio advertisements are supported.", 400);
     if (!Number.isFinite(startAt.getTime()) || !Number.isFinite(endAt.getTime()) || endAt <= startAt) {
         throw new AppError("endAt must be later than startAt.", 400);
     }
@@ -43,21 +44,6 @@ const normalizeAdvertisementPayload = (payload = {}, current = null) => {
     const status = payload.status ?? current?.status ?? "draft";
     if (!["draft", "active", "paused", "expired", "archived"].includes(status)) {
         throw new AppError("Invalid advertisement status.", 400);
-    }
-
-    const placements = Array.isArray(payload.targeting?.placements)
-        ? payload.targeting.placements.map((value) => String(value).trim().toLowerCase()).filter(Boolean)
-        : current?.targeting?.placements || [];
-    const allowedPlacements = type === "audio"
-        ? new Set(["between_tracks"])
-        : new Set(["home", "search"]);
-    if (placements.some((placement) => !allowedPlacements.has(placement))) {
-        throw new AppError(
-            type === "audio"
-                ? "Audio advertisements only support the between_tracks placement."
-                : "Banner advertisements only support home and search placements.",
-            400
-        );
     }
 
     return {
@@ -72,13 +58,7 @@ const normalizeAdvertisementPayload = (payload = {}, current = null) => {
         endAt,
         priority: Math.min(Math.max(Number(payload.priority ?? current?.priority ?? 1) || 1, 1), 100),
         targeting: {
-            genres: Array.isArray(payload.targeting?.genres)
-                ? payload.targeting.genres.filter((id) => mongoose.isValidObjectId(id))
-                : current?.targeting?.genres || [],
-            countries: Array.isArray(payload.targeting?.countries)
-                ? payload.targeting.countries.map((value) => String(value).trim().toUpperCase()).filter((value) => /^[A-Z]{2}$/.test(value))
-                : current?.targeting?.countries || [],
-            placements,
+            placements: ["between_tracks", "before_track"],
         },
         frequencyCap: {
             maxPerHour: Math.min(Math.max(Number(payload.frequencyCap?.maxPerHour ?? current?.frequencyCap?.maxPerHour ?? 4) || 4, 1), 60),
@@ -188,7 +168,12 @@ const targetMatches = (ad, { country, genreIds, placement }) => {
     const placements = ad.targeting?.placements || [];
     if (countries.length && (!country || !countries.includes(String(country).toUpperCase()))) return false;
     if (genres.length && !genreIds.some((id) => genres.includes(String(id)))) return false;
-    if (placements.length && (!placement || !placements.includes(String(placement).toLowerCase()))) return false;
+    if (placements.length) {
+        const normalizedPlacement = String(placement || "").toLowerCase();
+        const supportsPlacement = placements.includes(normalizedPlacement)
+            || (normalizedPlacement === "before_track" && placements.includes("between_tracks"));
+        if (!normalizedPlacement || !supportsPlacement) return false;
+    }
     return true;
 };
 
@@ -197,8 +182,12 @@ export const filterEligibleAds = (ads, state, context, at = nowMs()) => ads.filt
     const cap = ad.frequencyCap || {};
     const hourCount = (state.impressions || []).filter((item) => item.type === ad.type && item.at > at - 3600000).length;
     if (hourCount >= (Number(cap.maxPerHour) || 4)) return false;
-    if (ad.type === "audio") {
-        if ((state.tracksSinceAudio || 0) < (Number(cap.minTracksBetweenAds) || 0)) return false;
+    if (ad.type === "audio" && context.placement !== "before_track") {
+        const minTracksBetweenAds = Math.max(
+            MIN_AUDIO_TRACKS_BETWEEN_ADS,
+            Number(cap.minTracksBetweenAds) || 0,
+        );
+        if ((state.tracksSinceAudio || 0) < minTracksBetweenAds) return false;
         if (state.lastAudioAt && at - state.lastAudioAt < (Number(cap.minMinutesBetweenAds) || 0) * 60000) return false;
     }
     return true;
@@ -216,7 +205,7 @@ export const chooseWeightedAd = (ads, random = Math.random) => {
 };
 
 export const decideAdvertisement = async ({ user, sessionId, type, placement = "", country = "", genreIds = [], transitionId = "" }) => {
-    if (!["banner", "audio"].includes(type)) throw new AppError("Invalid advertisement type.", 400);
+    if (type !== "audio") throw new AppError("Only audio advertisements are supported.", 400);
     if (!sessionId || String(sessionId).length < 8 || String(sessionId).length > 160) throw new AppError("A valid ad session is required.", 400);
     if (user && await resolveUserPremiumState(user)) return { shouldPlay: false, advertisement: null, ad: null, reason: "premium" };
 
@@ -229,12 +218,16 @@ export const decideAdvertisement = async ({ user, sessionId, type, placement = "
         if (!normalizedTransition) throw new AppError("transitionId is required for audio decisions.", 400);
         if (state.transitions.includes(normalizedTransition)) return { shouldPlay: false, advertisement: null, ad: null, reason: "duplicate_transition" };
         state.transitions.push(normalizedTransition);
-        state.tracksSinceAudio = (state.tracksSinceAudio || 0) + 1;
+        if (placement === "between_tracks") {
+            state.tracksSinceAudio = (state.tracksSinceAudio || 0) + 1;
+        }
     }
 
     const activeAds = await loadActiveAds(type);
     let eligible = filterEligibleAds(activeAds, state, { country, genreIds, placement });
-    eligible = excludeRecentlyPlayedAds(eligible, state.recentAdIds);
+    if (placement !== "before_track") {
+        eligible = excludeRecentlyPlayedAds(eligible, state.recentAdIds);
+    }
     const selected = chooseWeightedAd(eligible);
     state = await saveSession(sessionHash, state);
     if (!selected) return { shouldPlay: false, advertisement: null, ad: null, reason: "not_eligible" };
@@ -291,14 +284,13 @@ export const recordAdvertisementEvent = async ({ token, eventType, playedSeconds
     return { recorded: true, duplicate: false };
 };
 
-export const listAdvertisements = async ({ page = 1, limit = 20, status, type, search } = {}) => {
+export const listAdvertisements = async ({ page = 1, limit = 20, status, search } = {}) => {
     const safePage = Math.max(Number(page) || 1, 1);
     const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
-    const query = {};
+    const query = { type: "audio" };
     if (status === "expired") query.$or = [{ status: "expired" }, { status: "active", endAt: { $lte: new Date() } }];
     else if (status === "active") Object.assign(query, { status: "active", endAt: { $gt: new Date() } });
     else if (status) query.status = status;
-    if (type) query.type = type;
     if (search) {
         const searchConditions = ["title", "advertiserName"].map((field) => ({ [field]: { $regex: String(search).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" } }));
         if (query.$or) {
@@ -312,22 +304,10 @@ export const listAdvertisements = async ({ page = 1, limit = 20, status, type, s
         Advertisement.countDocuments(query),
     ]);
     const now = new Date();
-    const ids = items.map((item) => item._id);
-    const eventRows = ids.length ? await AdEvent.aggregate([
-        { $match: { advertisementId: { $in: ids } } },
-        { $group: { _id: { adId: "$advertisementId", type: "$type" }, count: { $sum: 1 } } },
-    ]) : [];
-    const analyticsById = eventRows.reduce((result, row) => {
-        const id = String(row._id.adId);
-        result[id] ||= {};
-        result[id][row._id.type] = row.count;
-        return result;
-    }, {});
     return {
         advertisements: items.map((item) => ({
             ...item,
             effectiveStatus: item.status === "active" && new Date(item.endAt) <= now ? "expired" : item.status,
-            analytics: calculateAnalytics(analyticsById[String(item._id)]),
         })),
         pagination: { page: safePage, limit: safeLimit, total, totalPages: Math.max(Math.ceil(total / safeLimit), 1) },
     };
@@ -372,72 +352,4 @@ export const archiveAdvertisement = async (id, admin) => {
     return advertisement.toObject();
 };
 
-export const getAdvertisementAnalytics = async (id, { startAt, endAt, type } = {}) => {
-    if (id) await getAdvertisement(id);
-    const match = {};
-    if (id) match.advertisementId = new mongoose.Types.ObjectId(id);
-    if (type && !["banner", "audio"].includes(type)) throw new AppError("Invalid advertisement type filter.", 400);
-    if (type) match.adType = type;
-    if (startAt || endAt) {
-        const startDate = startAt ? new Date(startAt) : null;
-        const endDate = endAt ? new Date(endAt) : null;
-        if ((startDate && !Number.isFinite(startDate.getTime())) || (endDate && !Number.isFinite(endDate.getTime()))) throw new AppError("Invalid analytics date range.", 400);
-        match.occurredAt = {};
-        if (startDate) match.occurredAt.$gte = startDate;
-        if (endDate) match.occurredAt.$lte = endDate;
-    }
-    const [rows, dailyRows] = await Promise.all([
-        AdEvent.aggregate([
-            { $match: match },
-            { $group: { _id: "$type", count: { $sum: 1 } } },
-        ]),
-        AdEvent.aggregate([
-            { $match: match },
-            {
-                $group: {
-                    _id: {
-                        date: {
-                            $dateToString: {
-                                format: "%Y-%m-%d",
-                                date: "$occurredAt",
-                                timezone: "Asia/Ho_Chi_Minh",
-                            },
-                        },
-                        type: "$type",
-                    },
-                    count: { $sum: 1 },
-                },
-            },
-            { $sort: { "_id.date": 1 } },
-        ]),
-    ]);
-    const counts = Object.fromEntries(rows.map((row) => [row._id, row.count]));
-    const timeline = dailyRows.reduce((result, row) => {
-        const date = row._id.date;
-        result[date] ||= {
-            date,
-            started: 0,
-            impressions: 0,
-            clicks: 0,
-            completes: 0,
-            skips: 0,
-        };
-        const field = {
-            started: "started",
-            impression: "impressions",
-            click: "clicks",
-            complete: "completes",
-            skip: "skips",
-        }[row._id.type];
-        if (field) result[date][field] = row.count;
-        return result;
-    }, {});
-
-    return {
-        ...calculateAnalytics(counts),
-        eventBreakdown: counts,
-        timeline: Object.values(timeline),
-    };
-};
-
-export default { decideAdvertisement, recordAdvertisementEvent, listAdvertisements, getAdvertisement, createAdvertisement, updateAdvertisement, archiveAdvertisement, getAdvertisementAnalytics, invalidateActiveAdCache };
+export default { decideAdvertisement, recordAdvertisementEvent, listAdvertisements, getAdvertisement, createAdvertisement, updateAdvertisement, archiveAdvertisement, invalidateActiveAdCache };

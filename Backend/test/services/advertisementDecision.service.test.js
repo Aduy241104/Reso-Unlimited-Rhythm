@@ -18,6 +18,39 @@ describe("advertisement decision engine", () => {
         expect(filterEligibleAds([ad], { impressions: [], tracksSinceAudio: 3, lastAudioAt: now - 9 * 60000, recentAdIds: [] }, { country: "", genreIds: [], placement: "between_tracks" }, now)).toHaveLength(1);
     });
 
+    test("never allows an audio advertisement before three track transitions", () => {
+        const now = Date.now();
+        const ad = audioAd({ frequencyCap: { maxPerHour: 4, minTracksBetweenAds: 0, minMinutesBetweenAds: 0 } });
+        const context = { country: "", genreIds: [], placement: "between_tracks" };
+
+        expect(filterEligibleAds([ad], { impressions: [], tracksSinceAudio: 2, lastAudioAt: 0, recentAdIds: [] }, context, now)).toHaveLength(0);
+        expect(filterEligibleAds([ad], { impressions: [], tracksSinceAudio: 3, lastAudioAt: 0, recentAdIds: [] }, context, now)).toHaveLength(1);
+    });
+
+    test("allows a pre-roll advertisement without waiting for track transitions", () => {
+        const now = Date.now();
+        const ad = audioAd({ frequencyCap: { maxPerHour: 4, minTracksBetweenAds: 3, minMinutesBetweenAds: 8 } });
+
+        expect(filterEligibleAds(
+            [ad],
+            { impressions: [], tracksSinceAudio: 0, lastAudioAt: now, recentAdIds: [] },
+            { country: "", genreIds: [], placement: "before_track" },
+            now,
+        )).toHaveLength(1);
+    });
+
+    test("does not suppress a pre-roll when the same ad was recently played", () => {
+        const now = Date.now();
+        const ad = audioAd({ frequencyCap: { maxPerHour: 4, minTracksBetweenAds: 3, minMinutesBetweenAds: 8 } });
+
+        expect(filterEligibleAds(
+            [ad],
+            { impressions: [], tracksSinceAudio: 0, lastAudioAt: now, recentAdIds: [String(ad._id)] },
+            { country: "", genreIds: [], placement: "before_track" },
+            now,
+        )).toHaveLength(1);
+    });
+
     test("enforces per-ad hourly impression cap", () => {
         const now = Date.now();
         const ad = audioAd({ frequencyCap: { maxPerHour: 2, minTracksBetweenAds: 0, minMinutesBetweenAds: 0 } });

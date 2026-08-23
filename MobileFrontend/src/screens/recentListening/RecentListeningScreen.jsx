@@ -127,7 +127,7 @@ const RecentTrackRow = ({ item, isLast, onPress }) => {
       onPress={onPress}
       disabled={!track?.id}
     >
-      <Artwork uri={track?.image || item?.album?.coverImage} label={track?.title} />
+      <Artwork uri={track?.avatar || track?.image} label={track?.title} />
 
       <View style={styles.trackCopy}>
         <Text style={styles.trackTitle} numberOfLines={1}>
@@ -308,14 +308,6 @@ export default function RecentListeningScreen() {
           <Text style={styles.stateText}>
             Nâng cấp Premium để xem lượt nghe, thời gian nghe và những bài hát nổi bật trong 7 ngày qua.
           </Text>
-          <TouchableOpacity
-            style={styles.primaryButton}
-            activeOpacity={0.82}
-            onPress={() => navigation.navigate('PremiumOverview')}
-          >
-            <Text style={styles.primaryButtonText}>Xem các gói Premium</Text>
-            <Ionicons name="arrow-forward" size={18} color="#000000" />
-          </TouchableOpacity>
         </View>
       </View>
     );

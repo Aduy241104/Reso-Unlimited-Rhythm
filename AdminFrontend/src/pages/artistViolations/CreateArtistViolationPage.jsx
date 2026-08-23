@@ -10,7 +10,7 @@ import {
   Search,
   UserCheck,
 } from "lucide-react";
-import { searchAdminArtistsService, updateAdminArtistStatusService } from "../../services/artistService";
+import { searchAdminArtistsService } from "../../services/artistService";
 import { resolveGroupedReportService } from "../../services/reportService";
 import { routePaths } from "../../routes/routePaths";
 
@@ -137,15 +137,6 @@ export default function CreateArtistViolationPage() {
     setMessage({ type: "", text: "" });
 
     try {
-      // 1. If penalty is block, block artist directly
-      if (formData.penalty === "block" && selectedArtist) {
-        await updateAdminArtistStatusService(selectedArtist._id || selectedArtist.id, {
-          activeStatus: "blocked",
-          blockedReason: formData.description,
-        });
-      }
-
-      // 2. Submit grouped report / violation record
       await resolveGroupedReportService("artist", selectedArtist._id || selectedArtist.id, {
         action: formData.penalty,
         resolutionNote: `${formData.title}: ${formData.description}`,

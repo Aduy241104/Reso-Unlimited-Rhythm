@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Check, ChevronDown, Loader2, Save, X } from "lucide-react";
 import { getPlanDetailService, updatePlanService } from "../../services/subscriptionService";
 import { routePaths } from "../../routes/routePaths";
+import { formatVndInput, handleSyncVndInputChange, parseVndInput } from "./utils";
 
 const ALL_FEATURES = [
   "NO_ADS",
@@ -16,6 +17,8 @@ const ALL_FEATURES = [
   "EARLY_ACCESS",
   "EXCLUSIVE_CONTENT",
 ];
+
+const DUPLICATE_PLAN_NAME_MESSAGE = "Tên gói đăng ký đã tồn tại.";
 
 const PRESET_DAYS = [
   { value: 7, label: "7 ngày" },
@@ -59,18 +62,26 @@ const IntegratedDurationPicker = ({ value, onChange, error }) => {
           }}
           onFocus={() => setIsOpen(true)}
           placeholder="30"
-          className={`w-full rounded-xl border pl-4 pr-16 py-3 text-sm font-semibold text-slate-900 outline-none transition shadow-sm ${error
-            ? "border-red-300 bg-red-50 focus:border-red-500"
-            : "border-slate-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-            }`}
+          className={`w-full rounded-xl border pl-4 pr-16 py-3 text-sm font-semibold text-slate-900 outline-none transition shadow-sm ${
+            error
+              ? "border-red-300 bg-red-50 focus:border-red-500"
+              : "border-slate-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          }`}
         />
         <button
           type="button"
           onClick={() => setIsOpen((prev) => !prev)}
           className="absolute right-3 flex items-center gap-1 text-slate-400 hover:text-slate-600 transition"
         >
-          <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">ngày</span>
-          <ChevronDown size={16} className={`transition-transform duration-200 ${isOpen ? "rotate-180 text-blue-600" : ""}`} />
+          <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+            ngày
+          </span>
+          <ChevronDown
+            size={16}
+            className={`transition-transform duration-200 ${
+              isOpen ? "rotate-180 text-blue-600" : ""
+            }`}
+          />
         </button>
       </div>
 
@@ -88,10 +99,11 @@ const IntegratedDurationPicker = ({ value, onChange, error }) => {
                   onChange(preset.value);
                   setIsOpen(false);
                 }}
-                className={`flex items-center justify-between w-full rounded-lg px-3 py-2 text-xs font-semibold transition ${Number(value) === preset.value
-                  ? "bg-blue-50 text-blue-600 font-bold"
-                  : "text-slate-700 hover:bg-slate-50 hover:text-slate-900"
-                  }`}
+                className={`flex items-center justify-between w-full rounded-lg px-3 py-2 text-xs font-semibold transition ${
+                  Number(value) === preset.value
+                    ? "bg-blue-50 text-blue-600 font-bold"
+                    : "text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+                }`}
               >
                 <span>{preset.label}</span>
                 {Number(value) === preset.value ? (
@@ -131,7 +143,7 @@ const EditSubscriptionPlanPage = () => {
         if (plan) {
           setFormData({
             name: plan.name || "",
-            price: plan.price?.toString() || "",
+            price: formatVndInput(plan.price),
             durationDays: plan.durationDays || 30,
             description: plan.description || "",
             status: plan.status || "active",
@@ -159,11 +171,11 @@ const EditSubscriptionPlanPage = () => {
       newErrors.name = "Tên gói phải có ít nhất 3 ký tự";
     }
 
-    const price = Number(formData.price);
+    const price = parseVndInput(formData.price);
     if (!formData.price || Number.isNaN(price)) {
       newErrors.price = "Giá là bắt buộc";
-    } else if (price < 0) {
-      newErrors.price = "Giá không được âm";
+    } else if (price <= 0) {
+      newErrors.price = "Giá phải lớn hơn 0";
     }
 
     if (!formData.durationDays) {
@@ -176,7 +188,9 @@ const EditSubscriptionPlanPage = () => {
 
   const handleChange = (event) => {
     const { name, value } = event.target;
+
     setFormData((prev) => ({ ...prev, [name]: value }));
+
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
@@ -192,7 +206,7 @@ const EditSubscriptionPlanPage = () => {
     try {
       await updatePlanService(planId, {
         name: formData.name.trim(),
-        price: Number(formData.price),
+        price: parseVndInput(formData.price),
         durationDays: Number(formData.durationDays),
         description: formData.description.trim(),
         features: ALL_FEATURES,
@@ -206,6 +220,10 @@ const EditSubscriptionPlanPage = () => {
         error?.response?.data?.message ||
         error?.message ||
         "Cập nhật gói đăng ký thất bại.";
+      if (errorMessage === DUPLICATE_PLAN_NAME_MESSAGE) {
+        setErrors((prev) => ({ ...prev, name: DUPLICATE_PLAN_NAME_MESSAGE }));
+      }
+
       setMessage({ type: "error", text: errorMessage });
     } finally {
       setIsSubmitting(false);
@@ -248,10 +266,11 @@ const EditSubscriptionPlanPage = () => {
 
       {message.text ? (
         <div
-          className={`rounded-xl border px-4 py-3 text-sm ${message.type === "success"
-            ? "border-emerald-100 bg-emerald-50 text-emerald-600"
-            : "border-red-100 bg-red-50 text-red-600"
-            }`}
+          className={`rounded-xl border px-4 py-3 text-sm ${
+            message.type === "success"
+              ? "border-emerald-100 bg-emerald-50 text-emerald-600"
+              : "border-red-100 bg-red-50 text-red-600"
+          }`}
         >
           {message.text}
         </div>
@@ -277,10 +296,11 @@ const EditSubscriptionPlanPage = () => {
             value={formData.name}
             onChange={handleChange}
             placeholder="VD: Premium, Basic, VIP..."
-            className={`w-full rounded-lg border px-4 py-3 text-sm outline-none transition ${errors.name
-              ? "border-red-300 bg-red-50 focus:border-red-500"
-              : "border-slate-200 focus:border-blue-500"
-              }`}
+            className={`w-full rounded-lg border px-4 py-3 text-sm outline-none transition ${
+              errors.name
+                ? "border-red-300 bg-red-50 focus:border-red-500"
+                : "border-slate-200 focus:border-blue-500"
+            }`}
           />
           {errors.name ? <p className="text-xs text-red-500">{errors.name}</p> : null}
         </div>
@@ -291,16 +311,30 @@ const EditSubscriptionPlanPage = () => {
               Giá (VND) <span className="text-red-500">*</span>
             </label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9.]*"
               name="price"
               value={formData.price}
-              onChange={handleChange}
-              placeholder="VD: 99000"
-              min="0"
-              className={`w-full rounded-lg border px-4 py-3 text-sm outline-none transition ${errors.price
-                ? "border-red-300 bg-red-50 focus:border-red-500"
-                : "border-slate-200 focus:border-blue-500"
-                }`}
+              onChange={(e) => {
+                handleSyncVndInputChange(e, (val) => {
+                  setFormData((prev) => ({ ...prev, price: val }));
+                  if (errors.price) {
+                    setErrors((prev) => ({ ...prev, price: undefined }));
+                  }
+                });
+              }}
+              onKeyDown={(event) => {
+                if (["e", "E", "+", "-", ","].includes(event.key)) {
+                  event.preventDefault();
+                }
+              }}
+              placeholder="VD: 99.000"
+              className={`w-full rounded-lg border px-4 py-3 text-sm outline-none transition ${
+                errors.price
+                  ? "border-red-300 bg-red-50 focus:border-red-500"
+                  : "border-slate-200 focus:border-blue-500"
+              }`}
             />
             {errors.price ? <p className="text-xs text-red-500">{errors.price}</p> : null}
           </div>

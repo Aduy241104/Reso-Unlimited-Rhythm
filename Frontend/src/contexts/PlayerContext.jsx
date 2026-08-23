@@ -26,9 +26,6 @@ import {
 } from "../utils/trackStatus";
 
 const DEFAULT_VOLUME = 0.75;
-const FREE_SKIP_LIMIT = 6;
-const FREE_SKIP_WINDOW_MS = 5 * 60 * 60 * 1000;
-const FREE_SKIP_STORAGE_KEY = "capstone.player.free_skip_window";
 const PLAYBACK_STORAGE_KEY = "capstone.player.playback_state";
 const REPEAT_MODE_SEQUENCE = ["off", "all", "one"];
 const MANUAL_QUEUE_SOURCE = "manual";
@@ -342,55 +339,6 @@ const createStoredQueueTrack = (track) => ({
   streamUrl: isPodcastMedia(track) ? String(track?.streamUrl || "") : "",
 });
 
-const createFreeSkipWindow = (startedAt = Date.now()) => ({
-  startedAt,
-  skipCount: 0,
-});
-
-const getActiveFreeSkipWindow = (value, now = Date.now()) => {
-  const startedAt = Number(value?.startedAt);
-  const skipCount = Math.max(Math.floor(Number(value?.skipCount) || 0), 0);
-
-  if (!Number.isFinite(startedAt) || startedAt <= 0) {
-    return createFreeSkipWindow(now);
-  }
-
-  if (now - startedAt >= FREE_SKIP_WINDOW_MS) {
-    return createFreeSkipWindow(now);
-  }
-
-  return {
-    startedAt,
-    skipCount,
-  };
-};
-
-const loadStoredFreeSkipWindow = () => {
-  if (typeof window === "undefined") {
-    return createFreeSkipWindow();
-  }
-
-  try {
-    const rawValue = window.localStorage.getItem(FREE_SKIP_STORAGE_KEY);
-
-    if (!rawValue) {
-      return createFreeSkipWindow();
-    }
-
-    return getActiveFreeSkipWindow(JSON.parse(rawValue));
-  } catch {
-    return createFreeSkipWindow();
-  }
-};
-
-const persistFreeSkipWindow = (value) => {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.setItem(FREE_SKIP_STORAGE_KEY, JSON.stringify(value));
-};
-
 const clearStoredPlaybackState = () => {
   if (typeof window === "undefined") {
     return;
@@ -605,9 +553,6 @@ export const PlayerProvider = ({ children }) => {
   const [repeatMode, setRepeatMode] = useState(
     initialStoredPlaybackStateRef.current?.repeatMode ?? "off"
   );
-  const [freeSkipWindow, setFreeSkipWindow] = useState(() =>
-    loadStoredFreeSkipWindow()
-  );
   const [playerMode, setPlayerMode] = useState(PLAYER_MODE_TRACK);
   const [currentAd, setCurrentAd] = useState(null);
   const [canSkipAd, setCanSkipAd] = useState(false);
@@ -628,7 +573,6 @@ export const PlayerProvider = ({ children }) => {
   const isPremiumRef = useRef(false);
   const isShuffleEnabledRef = useRef(false);
   const repeatModeRef = useRef("off");
-  const freeSkipWindowRef = useRef(freeSkipWindow);
   const listenTrackRef = useRef({
     trackId: null,
     mediaType: "track",
@@ -772,46 +716,6 @@ export const PlayerProvider = ({ children }) => {
     setPlayerMode(PLAYER_MODE_TRACK);
     setCurrentAd(null);
     setCanSkipAd(false);
-  };
-
-  const getLatestFreeSkipWindow = (now = Date.now()) => {
-    const nextWindow = getActiveFreeSkipWindow(freeSkipWindowRef.current, now);
-
-    if (
-      nextWindow.startedAt !== freeSkipWindowRef.current.startedAt ||
-      nextWindow.skipCount !== freeSkipWindowRef.current.skipCount
-    ) {
-      freeSkipWindowRef.current = nextWindow;
-      setFreeSkipWindow(nextWindow);
-    }
-
-    return nextWindow;
-  };
-
-  const consumeFreeSkip = () => {
-    if (isPremiumRef.current) {
-      setRestrictionMessage("");
-      return true;
-    }
-
-    const currentWindow = getLatestFreeSkipWindow();
-
-    if (currentWindow.skipCount >= FREE_SKIP_LIMIT) {
-      setRestrictionMessage(
-        "Free listeners can skip up to 6 tracks every 5 hours. Upgrade to Premium for unlimited skips."
-      );
-      return false;
-    }
-
-    const nextWindow = {
-      ...currentWindow,
-      skipCount: currentWindow.skipCount + 1,
-    };
-
-    freeSkipWindowRef.current = nextWindow;
-    setFreeSkipWindow(nextWindow);
-    setRestrictionMessage("");
-    return true;
   };
 
   const resetLyricsState = () => {
@@ -1040,11 +944,6 @@ export const PlayerProvider = ({ children }) => {
   useEffect(() => {
     repeatModeRef.current = repeatMode;
   }, [repeatMode]);
-
-  useEffect(() => {
-    freeSkipWindowRef.current = freeSkipWindow;
-    persistFreeSkipWindow(freeSkipWindow);
-  }, [freeSkipWindow]);
 
   // Keep one audio engine/listener set for the provider lifetime. Adding the
   // recreated queue helper here would tear down and recreate the engine.
@@ -1743,7 +1642,7 @@ export const PlayerProvider = ({ children }) => {
     if (typeof nextAction === "function") await nextAction();
   };
 
-  maybePlayAdvertisementRef.current = async (nextAction) => {
+  maybePlayAdvertisementRef.current = async (nextAction, placement = "between_tracks") => {
     if (isPremiumRef.current || playerModeRef.current === PLAYER_MODE_AD) {
       await nextAction();
       return;
@@ -1751,7 +1650,7 @@ export const PlayerProvider = ({ children }) => {
     try {
       const decision = await requestAdvertisementDecision({
         type: "audio",
-        placement: "between_tracks",
+        placement,
         transitionId: typeof crypto !== "undefined" && crypto.randomUUID
           ? crypto.randomUUID()
           : `transition-${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -1823,6 +1722,79 @@ export const PlayerProvider = ({ children }) => {
   };
 
   const playTrack = async (track, options = {}) => {
+    if (options.preserveQueue && queueRef.current.length > 0) {
+      const selectedTrackId = getTrackId(track);
+      const matchesSelectedTrack = (queueTrack) =>
+        String(getTrackId(queueTrack) || "") === String(selectedTrackId || "");
+      const currentQueue = queueRef.current;
+      const currentQueueIndex = currentIndexRef.current;
+      const currentQueueItemId = getQueueItemId(
+        currentQueue[currentQueueIndex]
+      );
+      const orderedCurrentQueueIndexBeforeRemoval = currentQueueItemId
+        ? findQueueTrackIndex(orderedQueueRef.current, currentQueueItemId)
+        : -1;
+      const selectedTrackIndex = currentQueue.findIndex(matchesSelectedTrack);
+      const queueWithoutSelectedTrack =
+        selectedTrackIndex >= 0
+          ? removeQueueTrack(
+              currentQueue,
+              getQueueItemId(currentQueue[selectedTrackIndex])
+            )
+          : currentQueue;
+      const orderedQueueWithoutSelectedTrack =
+        selectedTrackIndex >= 0
+          ? orderedQueueRef.current.filter(
+              (queueTrack) => !matchesSelectedTrack(queueTrack)
+            )
+          : orderedQueueRef.current;
+      const adjustedCurrentQueueIndex =
+        currentQueueIndex >= 0 && selectedTrackIndex >= 0 &&
+        selectedTrackIndex <= currentQueueIndex
+          ? currentQueueIndex - 1
+          : currentQueueIndex;
+      const nextQueueIndex =
+        adjustedCurrentQueueIndex >= 0
+          ? adjustedCurrentQueueIndex + 1
+          : 0;
+      const nextTrack = createManualQueueTrack(track, options);
+      const nextQueue = [
+        ...queueWithoutSelectedTrack.slice(0, nextQueueIndex),
+        nextTrack,
+        ...queueWithoutSelectedTrack.slice(nextQueueIndex),
+      ];
+      const orderedCurrentQueueIndex = currentQueueItemId
+        ? findQueueTrackIndex(
+            orderedQueueWithoutSelectedTrack,
+            currentQueueItemId
+          )
+        : -1;
+      let nextOrderedQueueIndex = Math.min(
+        Math.max(nextQueueIndex, 0),
+        orderedQueueWithoutSelectedTrack.length
+      );
+
+      if (orderedCurrentQueueIndex >= 0) {
+        nextOrderedQueueIndex = orderedCurrentQueueIndex + 1;
+      } else if (orderedCurrentQueueIndexBeforeRemoval >= 0) {
+        nextOrderedQueueIndex = orderedCurrentQueueIndexBeforeRemoval;
+      }
+      const nextOrderedQueue = [
+        ...orderedQueueWithoutSelectedTrack.slice(0, nextOrderedQueueIndex),
+        nextTrack,
+        ...orderedQueueWithoutSelectedTrack.slice(nextOrderedQueueIndex),
+      ];
+
+      syncQueueState(nextQueue);
+      syncOrderedQueueState(nextOrderedQueue);
+      setActiveCollection(options.collection || activeCollection);
+      setErrorMessage("");
+      setRestrictionMessage("");
+
+      await playTrackByIndexRef.current?.(nextQueueIndex, nextQueue);
+      return;
+    }
+
     const queueToPlay =
       Array.isArray(options.queue) && options.queue.length > 0
         ? options.queue
@@ -1975,20 +1947,12 @@ export const PlayerProvider = ({ children }) => {
       if (repeatModeRef.current === "all" && queueRef.current.length > 0) {
         nextIndex = 0;
       } else {
-        if (!consumeFreeSkip()) {
-          return;
-        }
-
-        await playRandomPlaybackTrack();
+        await maybePlayAdvertisementRef.current?.(() => playRandomPlaybackTrack());
         return;
       }
     }
 
-    if (!consumeFreeSkip()) {
-      return;
-    }
-
-    await playTrackByIndexRef.current?.(nextIndex);
+    await maybePlayAdvertisementRef.current?.(() => playTrackByIndexRef.current?.(nextIndex));
   };
 
   const playPrevious = async () => {
@@ -2010,10 +1974,6 @@ export const PlayerProvider = ({ children }) => {
 
     if (previousIndex < 0) {
       if (repeatModeRef.current === "all" && queueRef.current.length > 0) {
-        if (!consumeFreeSkip()) {
-          return;
-        }
-
         await playTrackByIndexRef.current?.(queueRef.current.length - 1);
         return;
       }
@@ -2021,10 +1981,6 @@ export const PlayerProvider = ({ children }) => {
       audio.currentTime = 0;
       setCurrentTime(0);
       syncLyricsRef.current?.(0, true);
-      return;
-    }
-
-    if (!consumeFreeSkip()) {
       return;
     }
 
@@ -2306,12 +2262,6 @@ export const PlayerProvider = ({ children }) => {
     await finishAdvertisementRef.current?.("skip");
   };
 
-  const activeFreeSkipWindow = getActiveFreeSkipWindow(freeSkipWindow, Date.now());
-  const freeSkipsRemaining = Math.max(
-    FREE_SKIP_LIMIT - activeFreeSkipWindow.skipCount,
-    0
-  );
-
   const value = {
     queue,
     currentIndex,
@@ -2341,9 +2291,6 @@ export const PlayerProvider = ({ children }) => {
     selectedQualityBitrate,
     isShuffleEnabled,
     repeatMode,
-    freeSkipsRemaining,
-    freeSkipLimit: FREE_SKIP_LIMIT,
-    freeSkipWindowEndsAt: activeFreeSkipWindow.startedAt + FREE_SKIP_WINDOW_MS,
     playTrack,
     playPodcast,
     playAlbum,

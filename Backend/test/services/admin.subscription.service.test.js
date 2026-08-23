@@ -1,6 +1,8 @@
 import { jest } from "@jest/globals";
 
 const mockPlanModel = {
+    findOne: jest.fn(),
+    create: jest.fn(),
     findByIdAndUpdate: jest.fn(),
     deleteOne: jest.fn(),
 };
@@ -39,6 +41,11 @@ const loadAdminSubscriptionService = async () => {
 describe("adminSubscriptionService pending payment cancellation", () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        mockPlanModel.findOne.mockResolvedValue(null);
+        mockPlanModel.create.mockResolvedValue({
+            _id: "507f1f77bcf86cd799439099",
+            name: "Premium Monthly",
+        });
         mockTransactionModel.updateMany.mockResolvedValue({ modifiedCount: 1 });
         mockSubscriptionModel.updateMany.mockResolvedValue({ modifiedCount: 1 });
         mockPlanModel.deleteOne.mockResolvedValue({ deletedCount: 1 });
@@ -80,6 +87,70 @@ describe("adminSubscriptionService pending payment cancellation", () => {
 
         expect(mockTransactionModel.updateMany).not.toHaveBeenCalled();
         expect(mockSubscriptionModel.updateMany).not.toHaveBeenCalled();
+    });
+
+    test("rejects when creating a plan with a duplicate name", async () => {
+        const service = await loadAdminSubscriptionService();
+        mockPlanModel.findOne.mockResolvedValue({
+            _id: "507f1f77bcf86cd799439088",
+            name: "Premium Monthly",
+        });
+
+        await expect(
+            service.createPlan({
+                name: " premium monthly ",
+                price: 59000,
+                durationDays: 30,
+                description: "",
+                features: [],
+                status: "active",
+            })
+        ).rejects.toThrow("Tên gói đăng ký đã tồn tại.");
+
+        expect(mockPlanModel.create).not.toHaveBeenCalled();
+    });
+
+    test.each([0, -1])("rejects when creating a plan with price %s", async (price) => {
+        const service = await loadAdminSubscriptionService();
+
+        await expect(
+            service.createPlan({
+                name: "Premium Monthly",
+                price,
+                durationDays: 30,
+                description: "",
+                features: [],
+                status: "active",
+            })
+        ).rejects.toThrow("Subscription plan price must be greater than 0.");
+
+        expect(mockPlanModel.create).not.toHaveBeenCalled();
+    });
+
+    test.each([0, -1])("rejects when updating a plan to price %s", async (price) => {
+        const service = await loadAdminSubscriptionService();
+        const planId = "507f1f77bcf86cd799439012";
+
+        await expect(service.updatePlan(planId, { price })).rejects.toThrow(
+            "Subscription plan price must be greater than 0."
+        );
+
+        expect(mockPlanModel.findByIdAndUpdate).not.toHaveBeenCalled();
+    });
+
+    test("rejects when updating a plan to another plan's duplicate name", async () => {
+        const service = await loadAdminSubscriptionService();
+        const planId = "507f1f77bcf86cd799439012";
+        mockPlanModel.findOne.mockResolvedValue({
+            _id: "507f1f77bcf86cd799439013",
+            name: "Premium Monthly",
+        });
+
+        await expect(
+            service.updatePlan(planId, { name: "PREMIUM MONTHLY" })
+        ).rejects.toThrow("Tên gói đăng ký đã tồn tại.");
+
+        expect(mockPlanModel.findByIdAndUpdate).not.toHaveBeenCalled();
     });
 
     test("cancels pending orders before permanently deleting a plan", async () => {
