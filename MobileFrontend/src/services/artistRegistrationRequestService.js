@@ -1,7 +1,12 @@
-﻿import axiosClient from '../api/axiosClient';
-import { isDateDisplayValueValid, toApiDateValue } from '../utils/artistRegistrationDate';
+import axiosClient from '../api/axiosClient';
+import { isDateDisplayValueValid, parseDateDisplayValue, toApiDateValue } from '../utils/artistRegistrationDate';
 
 const ARTIST_REGISTRATION_ENDPOINT = '/users/artist-registration-requests';
+const MAX_STAGE_NAME_LENGTH = 60;
+const MAX_FULL_NAME_LENGTH = 100;
+const MAX_ID_NUMBER_LENGTH = 12;
+const ID_NUMBER_REGEX = /^[0-9]{9,12}$/;
+const MIN_ARTIST_AGE = 16;
 
 const STATUS_LABELS = {
   pending: 'Đang chờ duyệt',
@@ -50,6 +55,27 @@ const sanitizeIdNumber = (value) => String(value ?? '').replace(/\D/g, '');
 const hasAtLeastOneSocialLink = (socialLinks = {}) => (
   Object.values(normalizeSocialLinks(socialLinks)).some((value) => Boolean(normalizeString(value)))
 );
+
+const calculateAgeFromDisplayDate = (displayDateValue) => {
+  const parts = parseDateDisplayValue(displayDateValue);
+  if (!parts?.year || !parts?.month || !parts?.day) {
+    return 0;
+  }
+
+  const now = new Date();
+  const year = Number(parts.year);
+  const month = Number(parts.month);
+  const day = Number(parts.day);
+
+  let age = now.getFullYear() - year;
+  const monthOffset = (now.getMonth() + 1) - month;
+
+  if (monthOffset < 0 || (monthOffset === 0 && now.getDate() < day)) {
+    age -= 1;
+  }
+
+  return age;
+};
 
 const getFileExtension = (uri = '') => {
   const match = String(uri).match(/\.([a-zA-Z0-9]+)(?:\?|$)/);
@@ -110,27 +136,52 @@ const normalizeRequestItem = (item = {}) => ({
 
 const validateArtistRegistrationDraft = (draft = {}) => {
   const errors = {};
+  const stageName = normalizeString(draft.stageName);
+  const fullName = normalizeString(draft.fullName);
+  const idNumber = normalizeString(draft.idNumber);
+  const sanitizedId = sanitizeIdNumber(draft.idNumber);
+  const dateOfBirth = normalizeString(draft.dateOfBirth);
+  const demoUrls = splitLinesToArray(draft.demoTrackUrlsText);
+  const musicUrls = splitLinesToArray(draft.musicLinksText);
 
-  if (!normalizeString(draft.stageName)) {
+  // Stage name validation
+  if (!stageName) {
     errors.stageName = 'Vui lòng nhập nghệ danh.';
+  } else if (stageName.length > MAX_STAGE_NAME_LENGTH) {
+    errors.stageName = `Tên nghệ sĩ không được vượt quá ${MAX_STAGE_NAME_LENGTH} ký tự.`;
   }
 
-  if (!normalizeString(draft.fullName)) {
+  // Full name validation
+  if (!fullName) {
     errors.fullName = 'Vui lòng nhập họ tên trên CCCD.';
+  } else if (fullName.length > MAX_FULL_NAME_LENGTH) {
+    errors.fullName = `Họ và tên thật không được vượt quá ${MAX_FULL_NAME_LENGTH} ký tự.`;
   }
 
-  if (!normalizeString(draft.idNumber)) {
+  // ID Number validation
+  if (!idNumber) {
     errors.idNumber = 'Vui lòng nhập số CCCD.';
-  } else if (sanitizeIdNumber(draft.idNumber) !== normalizeString(draft.idNumber)) {
+  } else if (sanitizedId !== idNumber) {
     errors.idNumber = 'Số CCCD chỉ được nhập số.';
+  } else if (idNumber.length > MAX_ID_NUMBER_LENGTH) {
+    errors.idNumber = `Số CCCD/CMND không được vượt quá ${MAX_ID_NUMBER_LENGTH} ký tự.`;
+  } else if (!ID_NUMBER_REGEX.test(idNumber)) {
+    errors.idNumber = 'Số CCCD/CMND phải gồm từ 9 đến 12 chữ số.';
   }
 
-  if (!normalizeString(draft.dateOfBirth)) {
+  // Date of birth validation
+  if (!dateOfBirth) {
     errors.dateOfBirth = 'Vui lòng chọn ngày sinh.';
-  } else if (!isDateDisplayValueValid(draft.dateOfBirth)) {
+  } else if (!isDateDisplayValueValid(dateOfBirth)) {
     errors.dateOfBirth = 'Ngày sinh phải đúng định dạng dd-mm-yyyy và không lớn hơn ngày hiện tại.';
+  } else {
+    const age = calculateAgeFromDisplayDate(dateOfBirth);
+    if (age < MIN_ARTIST_AGE) {
+      errors.dateOfBirth = `Bạn phải đủ ${MIN_ARTIST_AGE} tuổi để đăng ký nghệ sĩ.`;
+    }
   }
 
+  // Identity images validation
   if (!draft.frontImage?.uri) {
     errors.frontImage = 'Vui lòng chọn ảnh mặt trước CCCD.';
   }
@@ -139,10 +190,19 @@ const validateArtistRegistrationDraft = (draft = {}) => {
     errors.backImage = 'Vui lòng chọn ảnh mặt sau CCCD.';
   }
 
+  // Social links validation
   if (!hasAtLeastOneSocialLink(draft.socialLinks)) {
     errors.socialLinks = SOCIAL_LINK_REQUIRED_MESSAGE;
   }
 
+  // Portfolio link requirement (at least 1 demo link OR 1 music link)
+  if (demoUrls.length === 0 && musicUrls.length === 0) {
+    const portfolioMsg = 'Vui lòng nhập ít nhất 1 link demo bài hát hoặc 1 link sản phẩm âm nhạc đã phát hành.';
+    errors.demoTrackUrlsText = portfolioMsg;
+    errors.musicLinksText = portfolioMsg;
+  }
+
+  // Declarations & Commitments
   if (!draft.acceptedTerms) {
     errors.acceptedTerms = 'Bạn cần đồng ý điều khoản dành cho nghệ sĩ.';
   }
@@ -200,6 +260,10 @@ const translateArtistRegistrationError = (error, fallback = 'Không thể gửi 
     'only pending requests can be cancelled': 'Chỉ có thể hủy yêu cầu đang chờ duyệt.',
     'image file is too large.': 'Ảnh tải lên quá lớn.',
     'image file is too large': 'Ảnh tải lên quá lớn.',
+    'stage name already exists. please choose another name.': 'Tên nghệ sĩ đã tồn tại. Vui lòng chọn tên khác.',
+    'stage name already exists': 'Tên nghệ sĩ đã tồn tại. Vui lòng chọn tên khác.',
+    'identity number already exists in the system.': 'Số CCCD/CMND đã tồn tại trong hệ thống.',
+    'identity number already exists': 'Số CCCD/CMND đã tồn tại trong hệ thống.',
   };
 
   return dictionary[normalizedMessage] || backendMessage || fallback;
@@ -212,6 +276,28 @@ export const artistRegistrationRequestService = {
   validateArtistRegistrationDraft,
   splitLinesToArray,
   normalizeSocialLinks,
+
+  async checkArtistStageNameAvailability(stageName, options = {}) {
+    const response = await axiosClient.get(`${ARTIST_REGISTRATION_ENDPOINT}/stage-name-availability`, {
+      params: {
+        stageName: typeof stageName === 'string' ? stageName.trim() : '',
+      },
+      signal: options.signal,
+    });
+    const payload = getPayload(response);
+    return payload?.data || payload || null;
+  },
+
+  async checkArtistIdNumberAvailability(idNumber, options = {}) {
+    const response = await axiosClient.get(`${ARTIST_REGISTRATION_ENDPOINT}/id-number-availability`, {
+      params: {
+        idNumber: typeof idNumber === 'string' ? idNumber.trim() : '',
+      },
+      signal: options.signal,
+    });
+    const payload = getPayload(response);
+    return payload?.data || payload || null;
+  },
 
   async getMyRequests() {
     const response = await axiosClient.get(ARTIST_REGISTRATION_ENDPOINT, {
