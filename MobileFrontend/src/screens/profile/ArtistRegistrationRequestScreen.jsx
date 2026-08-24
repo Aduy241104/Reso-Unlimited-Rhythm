@@ -174,6 +174,9 @@ export default function ArtistRegistrationRequestScreen() {
   const [isCancelling, setIsCancelling] = useState(false);
   const [isDatePickerVisible, setIsDatePickerVisible] = useState(false);
   const [activeDeclarationKey, setActiveDeclarationKey] = useState('');
+  const [isCheckingStageName, setIsCheckingStageName] = useState(false);
+  const [isCheckingIdNumber, setIsCheckingIdNumber] = useState(false);
+  const stageNameCheckRequestIdRef = useRef(React.useRef ? undefined : 0);
 
   const latestRequest = useMemo(() => getLatestRequest(requests), [requests]);
   const isListenerAccount = user?.role === 'user';
@@ -189,6 +192,56 @@ export default function ArtistRegistrationRequestScreen() {
       setDraft((prev) => ({ ...prev, dateOfBirth: displayDateOfBirth }));
     }
   }, [displayDateOfBirth, draft.dateOfBirth]);
+
+  useEffect(() => {
+    const normalizedStageName = String(draft.stageName || '').trim();
+    if (!normalizedStageName || !isListenerAccount) {
+      setIsCheckingStageName(false);
+      return undefined;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsCheckingStageName(true);
+      try {
+        const result = await artistRegistrationRequestService.checkArtistStageNameAvailability(normalizedStageName);
+        setFieldErrors((prev) => ({
+          ...prev,
+          stageName: result?.available ? undefined : result?.message || 'Tên nghệ sĩ đã tồn tại. Vui lòng chọn tên khác.',
+        }));
+      } catch {
+        // Silent catch
+      } finally {
+        setIsCheckingStageName(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [draft.stageName, isListenerAccount]);
+
+  useEffect(() => {
+    const normalizedIdNumber = String(draft.idNumber || '').trim();
+    if (!normalizedIdNumber || normalizedIdNumber.length < 9 || !isListenerAccount) {
+      setIsCheckingIdNumber(false);
+      return undefined;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsCheckingIdNumber(true);
+      try {
+        const result = await artistRegistrationRequestService.checkArtistIdNumberAvailability(normalizedIdNumber);
+        setFieldErrors((prev) => ({
+          ...prev,
+          idNumber: result?.available ? undefined : result?.message || 'Số CCCD/CMND đã tồn tại trong hệ thống.',
+        }));
+      } catch {
+        // Silent catch
+      } finally {
+        setIsCheckingIdNumber(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [draft.idNumber, isListenerAccount]);
 
   const loadRequests = useCallback(async ({ refresh = false } = {}) => {
     if (refresh) {

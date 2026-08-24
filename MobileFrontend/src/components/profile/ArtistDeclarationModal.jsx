@@ -96,7 +96,7 @@ export default function ArtistDeclarationModal({
 
           <View style={styles.actionRow}>
             <TouchableOpacity style={styles.secondaryButton} onPress={onClose} activeOpacity={0.85}>
-              <Text style={styles.secondaryButtonText}>Hủy</Text>
+              <Text style={styles.secondaryButtonText} numberOfLines={1}>Hủy</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.primaryButton, !hasReadToEnd ? styles.primaryButtonDisabled : null]}
@@ -104,7 +104,12 @@ export default function ArtistDeclarationModal({
               activeOpacity={0.85}
               disabled={!hasReadToEnd}
             >
-              <Text style={[styles.primaryButtonText, !hasReadToEnd ? styles.primaryButtonTextDisabled : null]}>
+              <Text
+                style={[styles.primaryButtonText, !hasReadToEnd ? styles.primaryButtonTextDisabled : null]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.7}
+              >
                 {acceptLabel}
               </Text>
             </TouchableOpacity>
@@ -220,9 +225,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     marginTop: 14,
+    alignItems: 'center',
   },
   secondaryButton: {
-    flex: 1,
+    minWidth: 84,
     height: 48,
     borderRadius: 999,
     backgroundColor: '#1a1c21',
@@ -230,11 +236,13 @@ const styles = StyleSheet.create({
     borderColor: '#2c2f36',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 16,
   },
   secondaryButtonText: {
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '700',
+    textAlign: 'center',
   },
   primaryButton: {
     flex: 1,
@@ -243,14 +251,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#f3c26b',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 12,
   },
   primaryButtonDisabled: {
     backgroundColor: '#403629',
   },
   primaryButtonText: {
     color: '#201507',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
+    textAlign: 'center',
   },
   primaryButtonTextDisabled: {
     color: '#9c8c73',

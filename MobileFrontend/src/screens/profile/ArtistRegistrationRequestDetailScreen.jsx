@@ -287,6 +287,18 @@ export default function ArtistRegistrationRequestDetailScreen() {
           </View>
         </View>
 
+        {requestDetail?.status === 'approved' ? (
+          <View style={[styles.noticeCard, styles.noticeSuccess]}>
+            <View style={styles.noticeHeaderRow}>
+              <Ionicons name="sparkles" size={18} color="#1ed760" style={styles.noticeIcon} />
+              <Text style={styles.noticeTitleSuccess}>Tài khoản đã được phê duyệt làm Nghệ sĩ</Text>
+            </View>
+            <Text style={styles.noticeTextSuccess}>
+              Vui lòng sử dụng bản Website để sử dụng các tính năng dành riêng cho nghệ sĩ (như phát hành bài hát, quản lý album, thống kê lượt nghe & doanh thu).
+            </Text>
+          </View>
+        ) : null}
+
         {requestDetail?.rejectReason ? (
           <View style={[styles.noticeCard, styles.noticeDanger]}>
             <Text style={styles.noticeTitle}>Lý do từ chối</Text>
@@ -580,6 +592,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#2d2d2d',
   },
+  noticeSuccess: {
+    borderColor: '#1ed760',
+    backgroundColor: '#0c2415',
+  },
   noticeDanger: {
     borderColor: '#5b2c2c',
     backgroundColor: '#1a1111',
@@ -587,6 +603,25 @@ const styles = StyleSheet.create({
   noticeWarning: {
     borderColor: '#4d4123',
     backgroundColor: '#1a1610',
+  },
+  noticeHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  noticeIcon: {
+    marginTop: -1,
+  },
+  noticeTitleSuccess: {
+    color: '#1ed760',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  noticeTextSuccess: {
+    color: '#e2e2e2',
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 6,
   },
   noticeTitle: {
     color: '#ffffff',
