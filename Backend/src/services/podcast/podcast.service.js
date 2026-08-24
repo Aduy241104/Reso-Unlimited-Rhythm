@@ -64,9 +64,32 @@ const buildDraftData = (payload = {}) => ({
     copyrightConfirmed: payload.copyrightConfirmed === true,
 });
 
+const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const assertPodcastTitleAvailable = async (artistId, title) => {
+    const normalizedTitle = typeof title === "string" ? title.trim() : "";
+    if (!normalizedTitle) return;
+
+    const duplicate = await Podcast.findOne({
+        creator: artistId,
+        title: new RegExp(`^${escapeRegExp(normalizedTitle)}$`, "i"),
+        isDeleted: { $ne: true },
+    });
+
+    if (duplicate) {
+        throw new AppError(
+            "A podcast with this title already exists for this artist.",
+            409,
+            { code: "PODCAST_TITLE_EXISTS", field: "title" }
+        );
+    }
+};
+
 const createArtistPodcast = async (userId, payload = {}) => {
     const artist = await findArtistForUser(userId);
-    const podcast = await Podcast.create({ creator: artist._id, ...buildDraftData(payload) });
+    const draftData = buildDraftData(payload);
+    await assertPodcastTitleAvailable(artist._id, draftData.title);
+    const podcast = await Podcast.create({ creator: artist._id, ...draftData });
     return normalizePodcast(await Podcast.findById(podcast._id).populate(artistQuery()));
 };
 
