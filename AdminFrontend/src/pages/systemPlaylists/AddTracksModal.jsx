@@ -129,6 +129,8 @@ const AddTracksModal = ({
           q: debouncedQuery,
           page,
           limit: PAGE_SIZE,
+          approvalStatus: "approved",
+          releaseStatus: "released",
         });
         if (cancelled) return;
         setTracks(result.tracks ?? []);

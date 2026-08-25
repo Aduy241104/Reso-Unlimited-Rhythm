@@ -21,7 +21,9 @@ import {
     validateTrackForSubmit,
 } from "../track.submit.validation.js";
 import {
+    assertTrackAudioFingerprintAvailable,
     assertTrackTitleVersionAvailable,
+    normalizeTrackSourceAudioHash,
     normalizeTrackVersionTitle,
 } from "../track.duplicate.validation.js";
 import Artist from "../../../models/Artist.js";
@@ -527,6 +529,13 @@ const createTrack = async (userId, trackData) => {
     });
 
     const audioFiles = validateOptionalAudioFiles(trackData.audioFiles);
+    const sourceAudioHash = normalizeTrackSourceAudioHash(
+        trackData.audioAnalysis?.sourceAudioHash
+    );
+    await assertTrackAudioFingerprintAvailable({
+        artistId,
+        sourceAudioHash,
+    });
     const duration = validateDurationFromAudioAnalysis(
         trackData.audioAnalysis,
         audioFiles.length > 0
@@ -583,6 +592,15 @@ const createTrack = async (userId, trackData) => {
             totalLike: 0,
             totalPlay: 0,
         },
+        ...(sourceAudioHash
+            ? {
+                fingerprintScreening: {
+                    status: "pending",
+                    audioHash: sourceAudioHash,
+                    audioVersion: 1,
+                },
+            }
+            : {}),
         ...(sanitizedCopyright !== undefined ? { copyright: sanitizedCopyright } : {}),
     });
 

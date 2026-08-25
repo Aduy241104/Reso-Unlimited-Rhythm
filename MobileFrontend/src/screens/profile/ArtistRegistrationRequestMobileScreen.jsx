@@ -208,6 +208,10 @@ export default function ArtistRegistrationRequestMobileScreen() {
   const [isCancelling, setIsCancelling] = useState(false);
   const [isDatePickerVisible, setIsDatePickerVisible] = useState(false);
   const [activeDeclarationKey, setActiveDeclarationKey] = useState('');
+  const [isCheckingStageName, setIsCheckingStageName] = useState(false);
+  const [isCheckingIdNumber, setIsCheckingIdNumber] = useState(false);
+  const stageNameCheckRequestIdRef = useRef(0);
+  const idNumberCheckRequestIdRef = useRef(0);
   const [activeView, setActiveView] = useState(
     route?.params?.initialView === 'history' ? 'history' : 'form'
   );
@@ -234,6 +238,64 @@ export default function ArtistRegistrationRequestMobileScreen() {
       setDraft((prev) => ({ ...prev, dateOfBirth: displayDateOfBirth }));
     }
   }, [displayDateOfBirth, draft.dateOfBirth]);
+
+  useEffect(() => {
+    const normalizedStageName = String(draft.stageName || '').trim();
+    if (!normalizedStageName || !isListenerAccount) {
+      setIsCheckingStageName(false);
+      return undefined;
+    }
+
+    const requestId = ++stageNameCheckRequestIdRef.current;
+    const timer = setTimeout(async () => {
+      setIsCheckingStageName(true);
+      try {
+        const result = await artistRegistrationRequestService.checkArtistStageNameAvailability(normalizedStageName);
+        if (stageNameCheckRequestIdRef.current !== requestId) return;
+        setFieldErrors((prev) => ({
+          ...prev,
+          stageName: result?.available ? undefined : result?.message || 'Tên nghệ sĩ đã tồn tại. Vui lòng chọn tên khác.',
+        }));
+      } catch {
+        // Silent catch
+      } finally {
+        if (stageNameCheckRequestIdRef.current === requestId) {
+          setIsCheckingStageName(false);
+        }
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [draft.stageName, isListenerAccount]);
+
+  useEffect(() => {
+    const normalizedIdNumber = String(draft.idNumber || '').trim();
+    if (!normalizedIdNumber || normalizedIdNumber.length < 9 || !isListenerAccount) {
+      setIsCheckingIdNumber(false);
+      return undefined;
+    }
+
+    const requestId = ++idNumberCheckRequestIdRef.current;
+    const timer = setTimeout(async () => {
+      setIsCheckingIdNumber(true);
+      try {
+        const result = await artistRegistrationRequestService.checkArtistIdNumberAvailability(normalizedIdNumber);
+        if (idNumberCheckRequestIdRef.current !== requestId) return;
+        setFieldErrors((prev) => ({
+          ...prev,
+          idNumber: result?.available ? undefined : result?.message || 'Số CCCD/CMND đã tồn tại trong hệ thống.',
+        }));
+      } catch {
+        // Silent catch
+      } finally {
+        if (idNumberCheckRequestIdRef.current === requestId) {
+          setIsCheckingIdNumber(false);
+        }
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [draft.idNumber, isListenerAccount]);
 
   useEffect(() => {
     setActiveView(route?.params?.initialView === 'history' ? 'history' : 'form');
@@ -636,8 +698,12 @@ export default function ArtistRegistrationRequestMobileScreen() {
                 placeholder="Nhập nghệ danh của bạn"
                 autoCapitalize="words"
                 autoCorrect={false}
+                maxLength={60}
                 error={fieldErrors.stageName}
               />
+              {isCheckingStageName ? (
+                <Text style={styles.checkingText}>Đang kiểm tra tên nghệ sĩ...</Text>
+              ) : null}
 
               <AppInput
                 label="Tiểu sử nghệ sĩ"
@@ -663,6 +729,7 @@ export default function ArtistRegistrationRequestMobileScreen() {
                 placeholder="Theo giấy tờ tùy thân"
                 autoCapitalize="words"
                 autoCorrect={false}
+                maxLength={100}
                 error={fieldErrors.fullName}
               />
 
@@ -670,13 +737,16 @@ export default function ArtistRegistrationRequestMobileScreen() {
                 label="Số CCCD/CMND"
                 value={draft.idNumber}
                 onChangeText={(value) => handleDraftChange('idNumber', value)}
-                placeholder="Nhập số giấy tờ tùy thân"
+                placeholder="Nhập số giấy tờ tùy thân (9-12 chữ số)"
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="number-pad"
-                maxLength={20}
+                maxLength={12}
                 error={fieldErrors.idNumber}
               />
+              {isCheckingIdNumber ? (
+                <Text style={styles.checkingText}>Đang kiểm tra số CCCD...</Text>
+              ) : null}
 
               <View style={styles.dateFieldGroup}>
                 <Text style={styles.fieldTitle}>Ngày sinh</Text>
@@ -701,7 +771,7 @@ export default function ArtistRegistrationRequestMobileScreen() {
                   </View>
                   <Ionicons name="chevron-forward" size={18} color="#8f8f8f" />
                 </TouchableOpacity>
-                <Text style={styles.dateFieldHelper}>Chọn bằng lịch và điều chỉnh nhanh tháng, năm trong popup.</Text>
+                <Text style={styles.dateFieldHelper}>Chọn bằng lịch và điều chỉnh nhanh tháng, năm trong popup. (Bắt buộc đủ 16 tuổi)</Text>
                 {fieldErrors.dateOfBirth ? <Text style={styles.fieldErrorText}>{fieldErrors.dateOfBirth}</Text> : null}
               </View>
 
@@ -771,6 +841,7 @@ export default function ArtistRegistrationRequestMobileScreen() {
                 placeholder="Mỗi link cách nhau bằng dấu phẩy hoặc xuống dòng"
                 autoCapitalize="none"
                 autoCorrect={false}
+                error={fieldErrors.demoTrackUrlsText}
               />
 
               <AppInput
@@ -780,6 +851,7 @@ export default function ArtistRegistrationRequestMobileScreen() {
                 placeholder="Mỗi link cách nhau bằng dấu phẩy hoặc xuống dòng"
                 autoCapitalize="none"
                 autoCorrect={false}
+                error={fieldErrors.musicLinksText}
               />
 
               <View style={styles.textAreaGroup}>
@@ -1217,6 +1289,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     marginTop: 6,
+  },
+  checkingText: {
+    color: '#f3c26b',
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 4,
+    marginBottom: 8,
   },
   errorBanner: {
     color: '#ff8e8e',

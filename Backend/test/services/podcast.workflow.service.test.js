@@ -91,6 +91,22 @@ describe("Podcast V1 workflow authorization and moderation", () => {
         expect(result.visibility).toBe("hidden");
     });
 
+    test("rejects a duplicate podcast title for the same Artist", async () => {
+        mockPodcast.findOne.mockReturnValue(queryWith(basePodcast()));
+
+        await expect(artistService.createArtistPodcast(userId, { title: "PODCAST DEMO" }))
+            .rejects.toMatchObject({
+                statusCode: 409,
+                details: { code: "PODCAST_TITLE_EXISTS", field: "title" },
+            });
+
+        expect(mockPodcast.create).not.toHaveBeenCalled();
+        expect(mockPodcast.findOne.mock.calls[0][0]).toMatchObject({
+            creator: artistId,
+            isDeleted: { $ne: true },
+        });
+    });
+
     test("does not allow an owner to access another Artist's Podcast", async () => {
         mockPodcast.findOne.mockReturnValue(queryWith(null));
         await expect(artistService.updateArtistPodcast(userId, podcastId, { title: "Nope" }))
