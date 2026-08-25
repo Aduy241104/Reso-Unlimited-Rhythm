@@ -182,8 +182,15 @@ const ArtistEditAlbumPage = () => {
       await editAlbumService(albumId, payload);
       showArtistSuccess("Đã cập nhật album thành công.");
       navigate(routePaths.artistAlbumDetail(albumId));
-    } catch {
-      showArtistError("Không thể cập nhật album. Vui lòng thử lại.");
+    } catch (error) {
+      const message =
+        error?.response?.data?.message ||
+        "Không thể cập nhật album. Vui lòng thử lại.";
+
+      if (error?.response?.data?.errors?.field === "title") {
+        setFormErrors((current) => ({ ...current, title: message }));
+      }
+      showArtistError(message);
     } finally {
       setIsSaving(false);
     }

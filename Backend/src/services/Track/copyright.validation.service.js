@@ -77,11 +77,11 @@ export const isValidISRC = (value) => /^[A-Z]{2}-[A-Z0-9]{3}-\d{2}-\d{5}$/.test(
 export const normalizeISWC = (value) => {
     if (value === undefined || value === null || value === "") return "";
     const compact = String(value).trim().toUpperCase().replace(/[\s.-]/g, "");
-    if (!/^T\d{9}[A-Z]$/.test(compact)) return String(value).trim().toUpperCase();
+    if (!/^T\d{10}$/.test(compact)) return String(value).trim().toUpperCase();
     return `T-${compact.slice(1, 4)}.${compact.slice(4, 7)}.${compact.slice(7, 10)}-${compact.slice(10)}`;
 };
 
-export const isValidISWC = (value) => /^T-\d{3}\.\d{3}\.\d{3}-[A-Z]$/.test(String(value || ""));
+export const isValidISWC = (value) => /^T-\d{3}\.\d{3}\.\d{3}-\d$/.test(String(value || ""));
 
 const getLegacyPrimaryFlags = (copyright = {}) => [
     ["isOriginal", "original"],

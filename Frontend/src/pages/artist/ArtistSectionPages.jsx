@@ -45,6 +45,8 @@ import {
 import ArtistReleaseSchedulePage from "./ArtistReleaseSchedulePage";
 import { getApiErrorFullMessage } from "../../utils/apiError";
 
+const SHOW_ADVANCED_TRACK_FILTERS = false;
+
 const LIST_TABS = [
   { key: "all", label: "Tất cả bài hát" },
   { key: "active", label: "Đang phát hành" },
@@ -772,7 +774,7 @@ export const MyMusicPage = () => {
           </div>
         </div>
 
-        {false && (
+        {SHOW_ADVANCED_TRACK_FILTERS && (
           <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_170px_170px_160px_auto]">
           <label className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9e98b8]" />
@@ -913,7 +915,12 @@ export const MyMusicPage = () => {
                             {getTrackDisplayDuration(track?.duration)}
                           </td>
                           <td className="px-5 py-4">
-                            <StatusPill value={track?.activeStatus} />
+                            <div className="flex flex-wrap gap-2">
+                              <StatusPill value={getArtistTrackReviewStatus(track)} variant="approval" />
+                              {["hidden", "blocked"].includes(track?.activeStatus) ? (
+                                <StatusPill value={track.activeStatus} />
+                              ) : null}
+                            </div>
                           </td>
                           <td className="px-5 py-4 text-[#5e5678]">
                             {formatTrackCount(track?.stats?.totalPlay)}

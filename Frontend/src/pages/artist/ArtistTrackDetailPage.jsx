@@ -18,7 +18,6 @@ import {
   X,
 } from "lucide-react";
 import PlayButton from "../../components/common/PlayButton";
-import TrackReviewAppealModal from "../../components/artist/TrackReviewAppealModal";
 import ConfirmActionModal from "../../components/common/ConfirmActionModal";
 import { usePlayer } from "../../hooks/usePlayer";
 import { routePaths } from "../../routes/routePaths";
@@ -124,8 +123,6 @@ const ArtistTrackDetailPage = () => {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [isSubmitConfirmOpen, setIsSubmitConfirmOpen] = useState(false);
   const [isLyricsModalOpen, setIsLyricsModalOpen] = useState(false);
-  const [isAppealModalOpen, setIsAppealModalOpen] = useState(false);
-  const [latestAppeal, setLatestAppeal] = useState(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -142,10 +139,6 @@ const ArtistTrackDetailPage = () => {
         }
 
         setTrack(detail);
-        if (detail?.approvalStatus === "rejected") {
-          const appeals = await trackService.getTrackReviewAppeals(id).catch(() => []);
-          if (isMounted) setLatestAppeal(appeals[0] || null);
-        }
       } catch (error) {
         if (!isMounted) {
           return;
@@ -210,8 +203,6 @@ const ArtistTrackDetailPage = () => {
     track.audioFiles.length > 0;
   const canEdit = canArtistEditTrack(track);
   const canSubmit = canArtistSubmitTrack(track);
-  const isEnforcement = track?.moderation?.automatic?.decision === "enforcement_block";
-  const hasCurrentAppeal = latestAppeal?.rejectionSnapshot?.rejectionId && latestAppeal.rejectionSnapshot.rejectionId === track?.moderation?.lastRejection?.rejectionId;
   const submitIssues = useMemo(() => getSubmitReadinessIssues(track), [track]);
   const hasLyrics = Boolean(track?.lyricsStatic?.trim());
   const activeMeta = getTrackActiveStatusMeta(track?.activeStatus);
@@ -815,14 +806,11 @@ const ArtistTrackDetailPage = () => {
               {track.approvalStatus === "rejected" ? (
                 <div className="mt-4 flex flex-wrap gap-3">
                   <button type="button" onClick={handleEditTrack} className="rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-semibold text-rose-800">Chỉnh sửa &amp; gửi lại</button>
-                  <button type="button" onClick={() => setIsAppealModalOpen(true)} disabled={Boolean(hasCurrentAppeal)} className="rounded-xl bg-rose-700 px-3 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">{isEnforcement ? "Gửi khiếu nại" : "Phản hồi quyết định"}</button>
                 </div>
               ) : null}
-              {latestAppeal?.status === "pending" ? <p className="mt-3 text-xs font-semibold text-rose-700">Đang chờ Admin xem xét phản hồi.</p> : null}
-              {latestAppeal?.status === "rejected" && latestAppeal.adminResponse ? <p className="mt-3 rounded-xl bg-white/70 p-3 text-xs leading-5"><strong>Phản hồi của Admin:</strong> {latestAppeal.adminResponse}</p> : null}
             </div>
           ) : null}
-          {track?.approvalStatus === "rejected" && !canSubmit && latestAppeal?.status !== "pending" ? (
+          {track?.approvalStatus === "rejected" && !canSubmit ? (
             <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
               Bạn cần chỉnh sửa ít nhất một thông tin hoặc bổ sung bằng chứng trước khi gửi duyệt lại.
             </div>
@@ -847,19 +835,6 @@ const ArtistTrackDetailPage = () => {
         onCancel={() => setIsSubmitConfirmOpen(false)}
         onConfirm={handleSubmitForApproval}
       />
-
-      {isAppealModalOpen && track?.approvalStatus === "rejected" ? (
-        <TrackReviewAppealModal
-          track={track}
-          reviewTarget={isEnforcement ? "enforcement" : "track_submission"}
-          onClose={() => setIsAppealModalOpen(false)}
-          onCreated={(appeal) => {
-            setLatestAppeal(appeal);
-            setIsAppealModalOpen(false);
-            showArtistSuccess("Đã gửi phản hồi. Đang chờ Admin xem xét.");
-          }}
-        />
-      ) : null}
 
       {isLyricsModalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">

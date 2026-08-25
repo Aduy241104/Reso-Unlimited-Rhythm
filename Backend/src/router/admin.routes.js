@@ -13,7 +13,6 @@ import { requireAdmin } from "../middlewares/Authentication/authentication.middl
 import upload from "../middlewares/upload.middleware.js";
 import adminUserValidation from "../middlewares/Admin/admin.user.validation.js";
 import validate from "../middlewares/validate.middleware.js";
-import adminTrackReviewAppealRoutes from "./admin.trackReviewAppeal.routes.js";
 import adminAdvertisementRoutes from "./admin.advertisement.routes.js";
 
 const router = express.Router();
@@ -30,7 +29,6 @@ router.post("/genres", adminGenreController.createGenre);
 router.use("/artist-requests", adminArtistRequestRouter);
 router.delete('/genres/:id', adminGenreController.deleteGenre);
 router.use("/tracks", adminTrackRouter);
-router.use("/track-appeals", adminTrackReviewAppealRoutes);
 router.use("/albums", adminAlbumRouter);
 router.post(
     "/genres/upload",

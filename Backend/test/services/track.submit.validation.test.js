@@ -60,4 +60,12 @@ describe("artist track edit guards", () => {
             pendingUpdate: { status: "pending" },
         })).toThrow("bản cập nhật đang được xem xét");
     });
+
+    test("allows a rejected blocked track to be edited and resubmitted", () => {
+        expect(() => assertTrackEditableByArtist({
+            approvalStatus: "rejected",
+            activeStatus: "blocked",
+            pendingUpdate: { status: "none" },
+        })).not.toThrow();
+    });
 });

@@ -9,6 +9,12 @@ import AuthField from "../../components/auth/AuthField";
 import { routePaths } from "../../routes/routePaths";
 import { USER_INPUT_LIMITS } from "../../constants/userInputLimits";
 import { resetPasswordService } from "../../services/authService";
+import {
+  getVietnamesePasswordMessage,
+  hasPasswordWhitespace,
+  PASSWORD_WHITESPACE_MESSAGES,
+  removePasswordWhitespace,
+} from "../../utils/passwordFeedback";
 import { resetPasswordSchema } from "./passwordRecoverySchema";
 
 const getNormalizedErrorDetails = (error) => {
@@ -31,6 +37,7 @@ const ResetPasswordPage = () => {
   const token = searchParams.get("token")?.trim() || "";
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [whitespaceWarnings, setWhitespaceWarnings] = useState({});
   const [apiError, setApiError] = useState(
     token ? "" : "Liên kết đặt lại mật khẩu không hợp lệ."
   );
@@ -52,6 +59,7 @@ const ResetPasswordPage = () => {
     }
 
     setApiError("");
+    setWhitespaceWarnings({});
 
     try {
       const response = await resetPasswordService({
@@ -70,20 +78,36 @@ const ResetPasswordPage = () => {
       const details = getNormalizedErrorDetails(error);
       let hasRenderableFieldError = false;
 
+      const fieldMap = {
+        password: "password",
+        newPassword: "password",
+        confirmPassword: "confirmPassword",
+      };
+
       details.forEach((detail) => {
-        if (detail.field !== "password" && detail.field !== "confirmPassword") {
+        const fieldName = fieldMap[detail.field];
+
+        if (!fieldName) {
           return;
         }
 
-        form.setError(detail.field, {
+        form.setError(fieldName, {
           type: "server",
-          message: detail.message || "Giá trị không hợp lệ.",
+          message: getVietnamesePasswordMessage(detail.message, { fieldName }),
         });
         hasRenderableFieldError = true;
       });
 
       if (!hasRenderableFieldError) {
-        setApiError(error?.response?.data?.message || error?.message || "");
+        setApiError(
+          getVietnamesePasswordMessage(
+            error?.response?.data?.message || error?.message,
+            {
+              fallbackMessage:
+                "Không thể đặt lại mật khẩu. Vui lòng thử lại hoặc yêu cầu liên kết mới.",
+            }
+          )
+        );
       }
     }
   };
@@ -93,6 +117,36 @@ const ResetPasswordPage = () => {
     handleSubmit,
     formState: { errors, isSubmitting },
   } = form;
+
+  const registerWithoutWhitespace = (fieldName) => {
+    const registration = register(fieldName);
+
+    return {
+      ...registration,
+      onChange: (event) => {
+        const rawValue = event.target.value;
+        const containsWhitespace = hasPasswordWhitespace(rawValue);
+
+        setWhitespaceWarnings((current) => {
+          const nextMessage = containsWhitespace
+            ? PASSWORD_WHITESPACE_MESSAGES[fieldName]
+            : "";
+
+          if (current[fieldName] === nextMessage) {
+            return current;
+          }
+
+          return {
+            ...current,
+            [fieldName]: nextMessage,
+          };
+        });
+
+        event.target.value = removePasswordWhitespace(rawValue);
+        registration.onChange(event);
+      },
+    };
+  };
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#0a0a0a] text-white">
@@ -150,7 +204,7 @@ const ResetPasswordPage = () => {
                   placeholder="Nhập mật khẩu mới"
                   autoComplete="new-password"
                   helperText="Mật khẩu cần có từ 6 đến 128 ký tự."
-                  error={errors.password?.message}
+                  error={whitespaceWarnings.password || errors.password?.message}
                   startAdornment={<LockKeyhole className="h-4 w-4" />}
                   endAdornment={
                     <button
@@ -166,7 +220,7 @@ const ResetPasswordPage = () => {
                     </button>
                   }
                   inputClassName="min-h-[46px] rounded-[14px] border-slate-200 bg-white shadow-none"
-                  {...register("password")}
+                  {...registerWithoutWhitespace("password")}
                 />
 
                 <AuthField
@@ -176,7 +230,10 @@ const ResetPasswordPage = () => {
                   type={showConfirmPassword ? "text" : "password"}
                   placeholder="Nhập lại mật khẩu mới"
                   autoComplete="new-password"
-                  error={errors.confirmPassword?.message}
+                  error={
+                    whitespaceWarnings.confirmPassword ||
+                    errors.confirmPassword?.message
+                  }
                   startAdornment={<LockKeyhole className="h-4 w-4" />}
                   endAdornment={
                     <button
@@ -192,7 +249,7 @@ const ResetPasswordPage = () => {
                     </button>
                   }
                   inputClassName="min-h-[46px] rounded-[14px] border-slate-200 bg-white shadow-none"
-                  {...register("confirmPassword")}
+                  {...registerWithoutWhitespace("confirmPassword")}
                 />
 
                 <button

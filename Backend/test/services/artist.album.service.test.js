@@ -6,6 +6,7 @@ const artistId = new mongoose.Types.ObjectId();
 const albumId = new mongoose.Types.ObjectId();
 const otherAlbumId = new mongoose.Types.ObjectId();
 const trackId = new mongoose.Types.ObjectId();
+const secondTrackId = new mongoose.Types.ObjectId();
 
 const mockAlbumModel = {
     exists: jest.fn(),
@@ -164,6 +165,107 @@ describe("artistAlbumService track assignment", () => {
             statusCode: 409,
             details: {
                 code: "TRACK_NOT_APPROVED",
+            },
+        });
+
+        expect(mockTrackModel.updateOne).not.toHaveBeenCalled();
+        expect(album.save).not.toHaveBeenCalled();
+    });
+
+    test("rejects a duplicate album title for the same artist", async () => {
+        const album = createAlbumDocument();
+
+        mockAlbumModel.findOne.mockResolvedValue(album);
+        mockAlbumModel.exists.mockResolvedValue({ _id: otherAlbumId });
+
+        const { default: service } = await loadArtistAlbumService();
+
+        await expect(
+            service.updateAlbum(userId, albumId, { title: "  ALBUM  " }, null)
+        ).rejects.toMatchObject({
+            statusCode: 409,
+            details: {
+                field: "title",
+                code: "ALBUM_TITLE_ALREADY_EXISTS",
+            },
+        });
+
+        expect(mockAlbumModel.exists).toHaveBeenCalledWith({
+            artistId,
+            isDeleted: { $ne: true },
+            title: { $regex: "^ALBUM$", $options: "i" },
+            _id: { $ne: albumId },
+        });
+        expect(album.save).not.toHaveBeenCalled();
+    });
+
+    test("requires at least two tracks before an album can be published", async () => {
+        const album = createAlbumDocument();
+        album.trackList = [{ trackId, order: 1 }];
+        mockAlbumModel.findOne.mockResolvedValue(album);
+
+        const { default: service } = await loadArtistAlbumService();
+
+        await expect(
+            service.updateAlbum(userId, albumId, { status: "active" }, null)
+        ).rejects.toMatchObject({
+            statusCode: 400,
+            details: {
+                field: "status",
+            },
+        });
+
+        expect(album.save).not.toHaveBeenCalled();
+    });
+
+    test("removes a track from a draft album and clears its album assignment", async () => {
+        const album = createAlbumDocument();
+        album.trackList = [
+            { trackId, order: 1 },
+            { trackId: secondTrackId, order: 2 },
+        ];
+        mockAlbumModel.findOne.mockResolvedValue(album);
+        mockTrackModel.updateOne.mockResolvedValue({
+            matchedCount: 1,
+            modifiedCount: 1,
+        });
+
+        const { default: service } = await loadArtistAlbumService();
+
+        await service.removeTrackFromAlbum(userId, albumId, trackId);
+
+        expect(mockTrackModel.updateOne).toHaveBeenCalledWith(
+            {
+                _id: trackId,
+                artist_artistId: artistId,
+                album_albumId: albumId,
+            },
+            { $unset: { album_albumId: "" } }
+        );
+        expect(album.trackList).toEqual([
+            { trackId: secondTrackId, order: 1 },
+        ]);
+        expect(album.save).toHaveBeenCalledTimes(1);
+    });
+
+    test("does not remove a track when a released album would have fewer than two tracks", async () => {
+        const album = createAlbumDocument();
+        album.status = "active";
+        album.trackList = [
+            { trackId, order: 1 },
+            { trackId: secondTrackId, order: 2 },
+        ];
+        mockAlbumModel.findOne.mockResolvedValue(album);
+
+        const { default: service } = await loadArtistAlbumService();
+
+        await expect(
+            service.removeTrackFromAlbum(userId, albumId, trackId)
+        ).rejects.toMatchObject({
+            statusCode: 409,
+            details: {
+                field: "trackId",
+                code: "RELEASED_ALBUM_MIN_TRACKS_REQUIRED",
             },
         });
 

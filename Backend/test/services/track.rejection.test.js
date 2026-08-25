@@ -95,3 +95,40 @@ test("rejected resubmission guard blocks unchanged state and accepts an artist e
     }));
     expect(() => assertRejectedTrackHasMeaningfulChanges(track, { ...baseTrack, title: "Updated" })).not.toThrow();
 });
+
+test("legacy automatic rejection uses moderation versions when lastRejection is missing", () => {
+    const unchangedTrack = {
+        ...baseTrack,
+        approvalStatus: "rejected",
+        submissionVersion: 3,
+        audioVersion: 1,
+        copyrightVersion: 1,
+        evidenceVersion: 2,
+        moderation: {
+            lastRejection: null,
+            automatic: {
+                decision: "auto_reject",
+                submissionVersion: 3,
+                audioVersion: 1,
+                copyrightVersion: 1,
+                evidenceVersion: 2,
+            },
+        },
+    };
+
+    expect(() => assertRejectedTrackHasMeaningfulChanges(unchangedTrack, unchangedTrack)).toThrow(
+        expect.objectContaining({
+            statusCode: 409,
+            details: { code: "TRACK_RESUBMIT_REQUIRES_CHANGES" },
+        })
+    );
+
+    expect(() => assertRejectedTrackHasMeaningfulChanges({
+        ...unchangedTrack,
+        submissionVersion: 4,
+        title: "Updated title",
+    }, {
+        ...unchangedTrack,
+        title: "Updated title",
+    })).not.toThrow();
+});

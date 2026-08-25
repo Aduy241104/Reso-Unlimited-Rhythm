@@ -22,6 +22,40 @@ const MIN_TRACKS_TO_PUBLISH_ALBUM = 2;
 const getAlbumTrackCount = (album) =>
     Array.isArray(album?.trackList) ? album.trackList.length : 0;
 
+const normalizeAlbumTitle = (value) => String(value || "")
+    .normalize("NFKC")
+    .trim()
+    .replace(/\s+/g, " ");
+
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const ensureAlbumTitleIsUnique = async ({ artistId, title, excludeAlbumId = null }) => {
+    const normalizedTitle = normalizeAlbumTitle(title);
+    const titlePattern = normalizedTitle
+        .split(" ")
+        .map(escapeRegex)
+        .join("\\s+");
+    const filter = {
+        artistId,
+        isDeleted: { $ne: true },
+        title: { $regex: `^${titlePattern}$`, $options: "i" },
+        ...(excludeAlbumId ? { _id: { $ne: excludeAlbumId } } : {}),
+    };
+
+    if (await Album.exists(filter)) {
+        throw new AppError(
+            "Bạn đã có một album với tên này.",
+            StatusCodes.CONFLICT,
+            {
+                field: "title",
+                code: "ALBUM_TITLE_ALREADY_EXISTS",
+            }
+        );
+    }
+
+    return normalizedTitle;
+};
+
 const ensureAlbumCanBePublished = (album) => {
     if (getAlbumTrackCount(album) < MIN_TRACKS_TO_PUBLISH_ALBUM) {
         throw new AppError(
@@ -243,11 +277,18 @@ const createAlbum = async (userId, payload, file) => {
         );
     }
 
-    if (!payload.title || !payload.title.trim()) {
+    const normalizedTitle = normalizeAlbumTitle(payload.title);
+
+    if (!normalizedTitle) {
         throw new AppError("Tên album là bắt buộc.", StatusCodes.BAD_REQUEST, {
             field: "title",
         });
     }
+
+    await ensureAlbumTitleIsUnique({
+        artistId: artist._id,
+        title: normalizedTitle,
+    });
 
     let coverImageUrl = "";
 
@@ -270,7 +311,7 @@ const createAlbum = async (userId, payload, file) => {
     }
 
     const album = new Album({
-        title: payload.title.trim(),
+        title: normalizedTitle,
         artistId: artist._id,
         coverImage: coverImageUrl,
         releaseDate: payload.releaseDate || null,
@@ -316,12 +357,19 @@ const updateAlbum = async (userId, albumId, payload, file) => {
 
     // Validate title if provided
     if (payload.title !== undefined) {
-        if (!payload.title.trim()) {
+        const normalizedTitle = normalizeAlbumTitle(payload.title);
+
+        if (!normalizedTitle) {
             throw new AppError("Tên album là bắt buộc.", StatusCodes.BAD_REQUEST, {
                 field: "title",
             });
         }
-        album.title = payload.title.trim();
+
+        album.title = await ensureAlbumTitleIsUnique({
+            artistId: artist._id,
+            title: normalizedTitle,
+            excludeAlbumId: album._id,
+        });
     }
 
     // Update releaseDate if provided

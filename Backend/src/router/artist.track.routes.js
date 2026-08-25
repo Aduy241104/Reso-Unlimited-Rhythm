@@ -9,8 +9,6 @@ import validate from "../middlewares/validate.middleware.js";
 import { requireArtist } from "../middlewares/Authentication/authentication.middleware.js";
 import upload from "../middlewares/upload.middleware.js";
 import { runArtistCopyrightEvidenceUpload } from "../middlewares/artist/artist.copyrightEvidenceUpload.middleware.js";
-import appealController from "../controllers/artist.trackReviewAppeal.controller.js";
-import appealValidation from "../middlewares/trackReviewAppeal.validation.js";
 
 const router = express.Router();
 
@@ -42,32 +40,6 @@ artistMeRouter.get(
     "/me/:id",
     validate(trackValidation.trackIdParamSchema, "params"),
     artistTrackController.getMyTrackDetail
-);
-
-artistMeRouter.post(
-    "/me/:id/appeals",
-    validate(trackValidation.trackIdParamSchema, "params"),
-    validate(appealValidation.createTrackReviewAppealSchema, "body"),
-    appealController.createAppeal
-);
-
-artistMeRouter.post(
-    "/me/:id/appeals/evidence",
-    validate(trackValidation.trackIdParamSchema, "params"),
-    runArtistCopyrightEvidenceUpload,
-    appealController.uploadEvidence
-);
-
-artistMeRouter.get(
-    "/me/:id/appeals",
-    validate(trackValidation.trackIdParamSchema, "params"),
-    appealController.listAppeals
-);
-
-artistMeRouter.get(
-    "/me/:id/appeals/latest",
-    validate(trackValidation.trackIdParamSchema, "params"),
-    appealController.latestAppeal
 );
 
 artistMeRouter.patch(

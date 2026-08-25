@@ -3,7 +3,6 @@ import ReactPaginate from "react-paginate";
 import { Link, useNavigate } from "react-router-dom";
 import { Search, ArrowUpRight } from "lucide-react";
 import { searchAdminTracksService } from "../../services/trackService";
-import { listTrackReviewAppealsService } from "../../services/trackReviewAppealService";
 import { routePaths } from "../../routes/routePaths";
 
 const formatDuration = (seconds) => {
@@ -44,15 +43,6 @@ const MODERATION_COPY = {
   },
 };
 
-const APPEAL_COPY = {
-  eyebrow: "Phản hồi quyết định",
-  title: "Hàng chờ duyệt bài kháng nghị",
-  searchPlaceholder: "Tìm bài hát, nghệ sĩ hoặc nội dung kháng nghị...",
-  emptyTitle: "Không có bài kháng nghị nào đang chờ xử lý.",
-  emptyDescription: "Các phản hồi của nghệ sĩ sẽ hiển thị tại đây.",
-  itemLabel: "Kháng nghị",
-};
-
 const AUTOMATIC_DECISION_BADGES = {
   auto_clear: { label: "Hồ sơ sạch", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
   manual_review: { label: "Cần kiểm tra", className: "border-amber-200 bg-amber-50 text-amber-700" },
@@ -73,10 +63,8 @@ const SystemTracksModerationPage = () => {
   const navigate = useNavigate();
   const requestIdRef = useRef(0);
   const [activeQueue, setActiveQueue] = useState("track_release");
-  const pageCopy =
-    (activeQueue === "track_appeal" ? APPEAL_COPY : MODERATION_COPY[activeQueue]) || MODERATION_COPY.track_release;
+  const pageCopy = MODERATION_COPY[activeQueue] || MODERATION_COPY.track_release;
   const [tracks, setTracks] = useState([]);
-  const [appeals, setAppeals] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [query, setQuery] = useState({
     q: "",
@@ -96,22 +84,6 @@ const SystemTracksModerationPage = () => {
     setIsLoading(true);
     setLoadError("");
     try {
-      if (params.reviewSource === "track_appeal") {
-        const result = await listTrackReviewAppealsService({
-          q: params.q,
-          status: "pending",
-          page: params.page,
-          limit: params.limit,
-        });
-
-        if (requestId !== requestIdRef.current) return;
-
-        setAppeals(result.appeals ?? []);
-        setTracks([]);
-        setPagination(result.pagination ?? null);
-        return;
-      }
-
       const cleanParams = Object.fromEntries(Object.entries(params).filter(([, value]) => value !== ""));
       const result = await searchAdminTracksService(cleanParams);
 
@@ -122,7 +94,6 @@ const SystemTracksModerationPage = () => {
     } catch (error) {
       if (requestId !== requestIdRef.current) return;
       setTracks([]);
-      setAppeals([]);
       setPagination(null);
       setLoadError(error?.response?.data?.message || error?.message || "Không thể tải hàng đợi kiểm duyệt.");
     } finally {
@@ -150,7 +121,6 @@ const SystemTracksModerationPage = () => {
     setActiveQueue(nextQueue);
     setSearchTerm("");
     setTracks([]);
-    setAppeals([]);
     setPagination(null);
     setLoadError("");
     setQuery({
@@ -168,7 +138,7 @@ const SystemTracksModerationPage = () => {
   const totalPages = pagination?.totalPages ?? 0;
   const currentPage = total === 0 ? 0 : (pagination?.page ?? 1);
   const pageLabel = `${currentPage}/${totalPages}`;
-  const visibleItemCount = activeQueue === "track_appeal" ? appeals.length : tracks.length;
+  const visibleItemCount = tracks.length;
 
   return (
     <section className="space-y-8 max-w-[1400px] mx-auto p-6 bg-slate-50/50 min-h-screen text-slate-800 font-sans antialiased">
@@ -229,20 +199,6 @@ const SystemTracksModerationPage = () => {
         >
           Bản chỉnh sửa
         </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeQueue === "track_appeal"}
-          onClick={() => handleQueueChange("track_appeal")}
-          className={[
-            "inline-flex h-10 flex-1 items-center justify-center whitespace-nowrap rounded-lg px-5 text-sm font-semibold transition-colors sm:min-w-[180px]",
-            activeQueue === "track_appeal"
-              ? "bg-blue-600 text-white shadow-sm"
-              : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-          ].join(" ")}
-        >
-          Bài kháng nghị
-        </button>
       </div>
 
       {/* Khung 2: Tìm kiếm */}
@@ -255,57 +211,7 @@ const SystemTracksModerationPage = () => {
       </form>
 
       {/* Khung 3: Danh sách hàng Spaced Rows */}
-      {activeQueue === "track_appeal" ? (
-        loadError ? (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-6 py-16 text-center shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
-            <p className="text-base font-semibold text-rose-900">Không thể tải hàng đợi kháng nghị</p>
-            <p className="mt-2 text-sm text-rose-700">{loadError}</p>
-            <button type="button" onClick={() => void loadPendingTracks(query)} className="mt-4 rounded-lg border border-rose-300 bg-white px-4 py-2 text-sm font-semibold text-rose-800 transition hover:bg-rose-100">Thử lại</button>
-          </div>
-        ) : isLoading && appeals.length === 0 ? (
-          <div className="rounded-2xl bg-white px-6 py-20 text-center text-sm font-semibold text-slate-500 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">Đang tải danh sách bài kháng nghị...</div>
-        ) : appeals.length === 0 ? (
-          <div className="rounded-2xl bg-white px-6 py-20 text-center shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
-            <p className="text-base font-semibold text-slate-900">{pageCopy.emptyTitle}</p>
-            <p className="mt-1 text-sm text-slate-400">{pageCopy.emptyDescription}</p>
-          </div>
-        ) : (
-          <div className="overflow-hidden rounded-2xl bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
-            <div className="grid min-w-[1120px] grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)_minmax(0,1.4fr)_150px_100px_150px] gap-4 border-b border-slate-200 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-              <span>Bài hát kháng nghị</span>
-              <span>Nghệ sĩ</span>
-              <span>Lý do từ chối</span>
-              <span>Ngày gửi</span>
-              <span>Bằng chứng</span>
-              <span className="text-center">Hành động</span>
-            </div>
-            <div className="overflow-x-auto">
-              <div className="min-w-[1120px] divide-y divide-slate-100">
-                {isLoading ? <div className="p-12 text-center text-sm font-medium uppercase tracking-wider text-slate-400">Đang tải danh sách kháng nghị...</div> : appeals.map((appeal) => (
-                  <article key={appeal._id} className="relative grid grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)_minmax(0,1.4fr)_150px_100px_150px] items-center gap-4 px-6 py-4 transition hover:bg-slate-50/60">
-                    <div className="absolute inset-y-2 left-0 w-1 rounded-r bg-orange-500" />
-                    <div className="min-w-0 pl-2">
-                      <p className="truncate text-sm font-semibold text-slate-950">{appeal.trackId?.title || "Track"}</p>
-                      <span className="mt-1 inline-flex rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[10px] font-semibold text-orange-700">
-                        {appeal.reviewTarget === "enforcement" ? "Enforcement" : "Kháng nghị reject"}
-                      </span>
-                    </div>
-                    <p className="truncate text-sm font-medium text-slate-600">{appeal.artistId?.name || "—"}</p>
-                    <p className="truncate text-sm text-slate-600" title={appeal.rejectionSnapshot?.rejectReason || ""}>{appeal.rejectionSnapshot?.rejectReason || "—"}</p>
-                    <p className="text-sm text-slate-500">{appeal.submittedAt ? new Date(appeal.submittedAt).toLocaleDateString("vi-VN") : "—"}</p>
-                    <p className="text-sm font-medium text-slate-500">{appeal.evidenceDocuments?.length || 0} file</p>
-                    <div className="flex justify-center">
-                      <Link to={routePaths.trackAppealDetail(appeal._id)} className="inline-flex h-9 w-[140px] items-center justify-center gap-1.5 whitespace-nowrap rounded-xl bg-blue-600 px-4 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-700">
-                        Xem kháng nghị <ArrowUpRight size={14} />
-                      </Link>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </div>
-          </div>
-        )
-      ) : loadError ? (
+      {loadError ? (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 px-6 py-16 text-center shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
           <p className="text-base font-semibold text-rose-900">Không thể tải hàng đợi kiểm duyệt</p>
           <p className="mt-2 text-sm text-rose-700">{loadError}</p>
