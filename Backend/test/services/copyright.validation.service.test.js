@@ -1,4 +1,7 @@
-import { validateCopyrightForSubmit } from "../../src/services/Track/copyright.validation.service.js";
+import {
+    normalizeISWC,
+    validateCopyrightForSubmit,
+} from "../../src/services/Track/copyright.validation.service.js";
 import Track from "../../src/models/Track.js";
 
 const validOriginal = () => ({
@@ -84,5 +87,16 @@ describe("server-side copyright declaration validation", () => {
     test("does not treat a clean fingerprint declaration as legal verification", () => {
         const result = validateCopyrightForSubmit(validOriginal());
         expect(result.rightsConfirmed).toBe(true);
+    });
+
+    test("normalizes an ISWC with a numeric check digit", () => {
+        expect(normalizeISWC("T0345246801")).toBe("T-034.524.680-1");
+    });
+
+    test("rejects an ISWC whose check digit is a letter", () => {
+        expect(() => validateCopyrightForSubmit({
+            ...validOriginal(),
+            iswc: "T-034.524.680-A",
+        })).toThrow("Thông tin bản quyền chưa hợp lệ.");
     });
 });

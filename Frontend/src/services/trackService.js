@@ -200,44 +200,6 @@ export const trackService = {
     }
   },
 
-  uploadTrackReviewAppealEvidence: async (trackId, files = []) => {
-    try {
-      const formData = new FormData();
-      files.forEach((file) => formData.append("evidence", file));
-      const response = await axiosClient.post(
-        `${ARTIST_ME_TRACKS_API_PREFIX}/${trackId}/appeals/evidence`,
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
-      return response?.data?.data?.evidenceDocuments || [];
-    } catch (error) {
-      throw error.response?.data || error;
-    }
-  },
-
-  createTrackReviewAppeal: async (trackId, payload = {}) => {
-    try {
-      const response = await axiosClient.post(
-        `${ARTIST_ME_TRACKS_API_PREFIX}/${trackId}/appeals`,
-        payload
-      );
-      return response?.data?.data?.appeal || null;
-    } catch (error) {
-      throw error.response?.data || error;
-    }
-  },
-
-  getTrackReviewAppeals: async (trackId) => {
-    try {
-      const response = await axiosClient.get(
-        `${ARTIST_ME_TRACKS_API_PREFIX}/${trackId}/appeals`
-      );
-      return response?.data?.data?.appeals || [];
-    } catch (error) {
-      throw error.response?.data || error;
-    }
-  },
-
   hideArtistTrack: async (trackId) => {
     try {
       const response = await axiosClient.patch(

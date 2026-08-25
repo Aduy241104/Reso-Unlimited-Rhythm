@@ -135,8 +135,15 @@ const ArtistCreateAlbumPage = () => {
         "Đã tạo album nháp thành công. Hãy thêm ít nhất 2 bài hát trước khi phát hành."
       );
       navigate(routePaths.artistAlbumDetail(newAlbum.id));
-    } catch {
-      showArtistError("Không thể tạo album. Vui lòng thử lại.");
+    } catch (error) {
+      const message =
+        error?.response?.data?.message ||
+        "Không thể tạo album. Vui lòng thử lại.";
+
+      if (error?.response?.data?.errors?.field === "title") {
+        setFormErrors((current) => ({ ...current, title: message }));
+      }
+      showArtistError(message);
     } finally {
       setIsLoading(false);
     }

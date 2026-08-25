@@ -442,12 +442,32 @@ const clearTrackModerationForResubmission = (track) => {
 export const assertRejectedTrackHasMeaningfulChanges = (track, candidateData) => {
     if (track?.approvalStatus !== "rejected") return;
 
+    const lastRejection = track?.moderation?.lastRejection;
+    const automaticRejection = track?.moderation?.automatic;
+    const isLegacyAutomaticRejection = !lastRejection?.rejectionId && [
+        "auto_reject",
+        "enforcement_block",
+    ].includes(automaticRejection?.decision);
+
+    if (isLegacyAutomaticRejection) {
+        const hasVersionChange = [
+            ["submissionVersion", "submissionVersion"],
+            ["audioVersion", "audioVersion"],
+            ["copyrightVersion", "copyrightVersion"],
+            ["evidenceVersion", "evidenceVersion"],
+        ].some(([currentKey, rejectedKey]) => (
+            Number(track?.[currentKey] || 1) > Number(automaticRejection?.[rejectedKey] || 1)
+        ));
+
+        if (hasVersionChange) return;
+    }
+
     const rejection = getTrackRejectionSnapshot(track);
     const candidateHash = hashTrackMutableData(candidateData);
 
     if (!rejection.mutableSnapshotHash || rejection.mutableSnapshotHash === candidateHash) {
         throw new AppError(
-            "Bạn chưa thay đổi nội dung kể từ lần bị từ chối. Hãy chỉnh sửa hồ sơ hoặc gửi phản hồi quyết định nếu bạn cho rằng kết quả xét duyệt chưa phù hợp.",
+            "Bạn chưa thay đổi nội dung kể từ lần bị từ chối. Hãy chỉnh sửa hồ sơ trước khi gửi duyệt lại.",
             StatusCodes.CONFLICT,
             { code: "TRACK_RESUBMIT_REQUIRES_CHANGES" }
         );

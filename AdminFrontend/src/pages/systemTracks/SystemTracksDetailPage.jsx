@@ -91,36 +91,6 @@ const FINGERPRINT_CLASSIFICATION_LABELS = {
     high: "Tương đồng cao",
 };
 
-const MUSICBRAINZ_STATUS_LABELS = {
-    pending: "Đang chờ đối chiếu",
-    matched: "Tìm thấy bản ghi phù hợp",
-    possible_match: "Đã tìm thấy dữ liệu tham khảo",
-    not_found: "Không tìm thấy bản ghi phù hợp",
-    failed: "Không thể đối chiếu với MusicBrainz",
-};
-
-const MUSICBRAINZ_FLAG_LABELS = {
-    possible_existing_work: "Có thể đã tồn tại tác phẩm tương ứng",
-    external_metadata_conflict: "Thông tin khai báo khác dữ liệu MusicBrainz",
-    cover_source_mismatch: "Nguồn của bản hát lại không khớp",
-    remix_isrc_mismatch: "Mã ISRC của bản phối lại không khớp",
-    musicbrainz_unavailable: "Dịch vụ MusicBrainz không khả dụng",
-};
-
-const MUSICBRAINZ_REASON_LABELS = {
-    MUSICBRAINZ_ARTIST_MISMATCH: "Nghệ sĩ khai báo không khớp",
-    MUSICBRAINZ_RECORDING_MISMATCH: "Thông tin bản ghi không khớp",
-    MUSICBRAINZ_METADATA_CONFLICT: "Có xung đột metadata cần kiểm tra",
-    MUSICBRAINZ_STRONG_METADATA_CONFLICT: "Có xung đột metadata mạnh",
-};
-
-const MUSICBRAINZ_RISK_LABELS = {
-    none: "Không phát hiện rủi ro",
-    low: "Thấp",
-    medium: "Trung bình",
-    high: "Cao",
-};
-
 const ACOUSTID_STATUS_LABELS = {
     pending: "Đang chờ đối chiếu âm thanh",
     matched: "Đã nhận diện bản ghi âm",
@@ -212,44 +182,6 @@ const getAcoustIdSuggestedAction = (result) => {
 
 const translateStatus = (labels, value, fallback) => labels[value] || fallback || value || "Chưa có dữ liệu";
 
-const getMusicBrainzNotice = (result, declaredData) => {
-    const flags = Array.isArray(result?.flags) ? result.flags : [];
-    const reasonCodes = Array.isArray(result?.reasonCodes) ? result.reasonCodes : [];
-    if (!flags.length && !reasonCodes.length) return null;
-    if (flags.includes("musicbrainz_unavailable")) {
-        return {
-            level: "error",
-            title: "Không thể cập nhật dữ liệu MusicBrainz",
-            message: "Dịch vụ MusicBrainz đang không khả dụng. Bạn có thể thử đối chiếu lại sau.",
-        };
-    }
-
-    const declaredArtist = declaredData?.artist;
-    const referencedArtists = Array.isArray(result?.recording?.artists)
-        ? result.recording.artists.filter(Boolean).join(", ")
-        : "";
-    if (flags.includes("external_metadata_conflict") || reasonCodes.some((code) => String(code).startsWith("MUSICBRAINZ_"))) {
-        const artistDetail = declaredArtist && referencedArtists
-            ? ` Nghệ sĩ khai báo: ${declaredArtist}; MusicBrainz: ${referencedArtists}.`
-            : "";
-        const similarity = Number(result?.metadataSimilarity ?? result?.confidence ?? 0);
-        const similarityPercent = formatSimilarityPercent(similarity);
-        const riskLevel = result?.riskLevel || (similarity >= 0.85 ? "high" : "medium");
-        const signals = reasonCodes.map((code) => MUSICBRAINZ_REASON_LABELS[code]).filter(Boolean).join("; ");
-        return {
-            level: "review",
-            title: `Mức rủi ro: ${MUSICBRAINZ_RISK_LABELS[riskLevel] || "Cần kiểm tra"}`,
-            message: `Phát hiện metadata cần kiểm tra.${artistDetail} Mức tương đồng metadata: ${similarityPercent}. ${signals ? `Tín hiệu: ${signals}. ` : ""}Kết quả này không tự xác nhận vi phạm bản quyền nhưng làm tăng mức rủi ro của hồ sơ.`,
-        };
-    }
-
-    return {
-        level: "review",
-        title: "Thông tin cần kiểm tra thêm",
-        message: [...flags.map((flag) => MUSICBRAINZ_FLAG_LABELS[flag] || flag), ...reasonCodes.map((code) => MUSICBRAINZ_REASON_LABELS[code] || "Có tín hiệu metadata cần kiểm tra")].join(". "),
-    };
-};
-
 const formatSimilarityPercent = (value) => `${((Number(value || 0) > 1 ? Number(value || 0) : Number(value || 0) * 100)).toLocaleString("vi-VN", {
     minimumFractionDigits: 1,
     maximumFractionDigits: 1,
@@ -267,8 +199,6 @@ const REVIEW_MISSING_LABELS = {
     fingerprint_viewed: "xem dấu vân tay nội bộ",
     acoustid_result_viewed: "xem kết quả AcoustID",
     acoustid_result: "có kết quả AcoustID hợp lệ",
-    musicbrainz_result_viewed: "xem kết quả MusicBrainz",
-    musicbrainz_result: "có kết quả MusicBrainz hợp lệ",
     lyrics_reviewed: "xem lời bài hát",
     lrc_reviewed: "xem lời đồng bộ LRC",
     copyright_evidence: "có tài liệu bản quyền",
@@ -584,16 +514,36 @@ const TrackDetailPage = () => {
         }
     }, [recordReviewEvent]);
 
-    const musicBrainzResult = review?.checklist?.musicBrainzResult
-        || track?.musicBrainz?.externalResult
-        || null;
-    const musicBrainzNotice = getMusicBrainzNotice(
-        musicBrainzResult,
-        track?.musicBrainz?.artistDeclaredData
-    );
     const acoustIdResult = review?.checklist?.acoustIdResult
         || track?.acoustId?.result
         || null;
+    const musicBrainzReferenceResult = review?.checklist?.musicBrainzResult
+        || track?.musicBrainz?.externalResult
+        || null;
+    const acoustIdRecording = acoustIdResult?.match || null;
+    const musicBrainzReferenceRecording = musicBrainzReferenceResult?.recording || null;
+    const identifiedRecording = acoustIdRecording?.title
+        ? acoustIdRecording
+        : musicBrainzReferenceRecording?.title
+            ? musicBrainzReferenceRecording
+            : null;
+    const identifiedRecordingSource = acoustIdRecording?.title
+        ? "Liên kết trực tiếp từ dấu vân tay AcoustID"
+        : musicBrainzReferenceRecording?.title
+            ? "MusicBrainz tìm theo metadata khai báo, không phải nhận diện âm thanh"
+            : "";
+    const identifiedRecordingId = acoustIdRecording?.mbid
+        || acoustIdResult?.musicBrainzRecordingIds?.[0]
+        || "";
+    const acoustIdTrackId = acoustIdResult?.acoustIdTrackId || "";
+    const declaredIsrc = String(track?.copyright?.isrc || "").trim().toUpperCase();
+    const compactDeclaredIsrc = declaredIsrc.replace(/[\s-]/g, "");
+    const ifpiIsrcLookupUrl = declaredIsrc
+        ? `https://isrcsearch.ifpi.org/?isrcCode=${encodeURIComponent(compactDeclaredIsrc)}&showReleases=true&tab=code`
+        : "";
+    const musicBrainzIsrcLookupUrl = declaredIsrc
+        ? `https://musicbrainz.org/search?query=${encodeURIComponent(`isrc:${compactDeclaredIsrc}`)}&type=recording&method=indexed`
+        : "";
     const acoustIdUnavailable = Boolean(
         acoustIdResult?.providerUnavailable ||
         acoustIdResult?.status === "unavailable" ||
@@ -685,9 +635,6 @@ const TrackDetailPage = () => {
                 { type: "OPEN_FINGERPRINT_RESULT" },
                 ...(track.lyricsStatic ? [{ type: "OPEN_LYRICS" }] : []),
                 ...(track.lyricsSyncUrl ? [{ type: "OPEN_LRC" }] : []),
-                ...(track.musicBrainz?.externalResult?.status && track.musicBrainz.externalResult.status !== "pending"
-                    ? [{ type: "OPEN_MUSICBRAINZ_RESULT" }]
-                    : []),
             ];
             const existingEvents = new Set((review?.events || []).map((event) => event.type));
             for (const event of events) {
@@ -947,8 +894,6 @@ const TrackDetailPage = () => {
                                 ["fingerprintViewed", "Đã xem dấu vân tay âm thanh"],
                                 ["acoustIdViewed", "Đã xem kết quả AcoustID"],
                                 ["acoustIdReady", "Đã có kết quả AcoustID"],
-                                ["musicBrainzViewed", "Đã xem kết quả MusicBrainz"],
-                                ["musicBrainzReady", "Đã có kết quả MusicBrainz"],
                                 ["evidenceReviewed", "Đã mở đủ tài liệu"],
                                 ["lyricsReviewed", "Đã xem lời bài hát"],
                                 ["lrcReviewed", "Đã xem lời đồng bộ LRC"],
@@ -1256,24 +1201,51 @@ const TrackDetailPage = () => {
                             <span className="mt-1 block font-semibold text-slate-800">{translateStatus(ACOUSTID_STATUS_LABELS, acoustIdResult?.status, "Đang chờ đối chiếu")}</span>
                         </div>
                         <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
-                            <span className="block text-[10px] font-bold uppercase tracking-wide text-slate-400">Điểm nhận dạng</span>
+                            <span className="block text-[10px] font-bold uppercase tracking-wide text-slate-400">Độ khớp dấu vân tay</span>
                             <span className="mt-1 block font-semibold text-slate-800">
                                 {["matched", "possible_match"].includes(acoustIdResult?.status)
                                     ? `${Math.round(Number(acoustIdResult?.score || 0) * 100)}%`
                                     : "—"}
                             </span>
+                            {["matched", "possible_match"].includes(acoustIdResult?.status) ? (
+                                <span className="mt-1 block text-[10px] text-slate-500">Điểm khớp Chromaprint, không phải độ chính xác của tên bài</span>
+                            ) : null}
                             {acoustIdResult?.status === "not_found" ? (
                                 <span className="mt-1 block text-[10px] text-slate-500">Không có kết quả để chấm điểm</span>
                             ) : null}
                         </div>
                         <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
-                            <span className="block text-[10px] font-bold uppercase tracking-wide text-slate-400">Bản ghi nhận diện</span>
-                            <span className="mt-1 block font-semibold text-slate-800">{acoustIdResult?.match?.title || "—"}</span>
-                            <span className="mt-1 block text-[10px] text-slate-500">{acoustIdResult?.match?.artists?.join(", ") || "Chưa có nghệ sĩ"}</span>
+                            <span className="block text-[10px] font-bold uppercase tracking-wide text-slate-400">Bản ghi tìm được</span>
+                            {identifiedRecording?.mbid ? (
+                                <a
+                                    href={`https://musicbrainz.org/recording/${encodeURIComponent(identifiedRecording.mbid)}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="mt-1 block font-semibold text-indigo-700 underline underline-offset-2"
+                                >
+                                    {identifiedRecording.title}
+                                </a>
+                            ) : (
+                                <span className="mt-1 block font-semibold text-slate-800">{identifiedRecording?.title || "Chưa xác định"}</span>
+                            )}
+                            <span className="mt-1 block text-[10px] text-slate-500">{identifiedRecording?.artists?.join(", ") || "Chưa có metadata nghệ sĩ"}</span>
+                            {identifiedRecording ? (
+                                <span className={`mt-1 block text-[10px] font-medium ${acoustIdRecording?.title ? "text-indigo-600" : "text-amber-700"}`}>Nguồn: {identifiedRecordingSource}</span>
+                            ) : null}
                         </div>
                         <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
-                            <span className="block text-[10px] font-bold uppercase tracking-wide text-slate-400">MusicBrainz Recording ID</span>
-                            <span className="mt-1 block break-all font-mono text-[11px] font-semibold text-slate-800">{acoustIdResult?.match?.mbid || acoustIdResult?.musicBrainzRecordingIds?.[0] || "—"}</span>
+                            <span className="block text-[10px] font-bold uppercase tracking-wide text-slate-400">MusicBrainz Recording ID từ AcoustID</span>
+                            <span className="mt-1 block break-all font-mono text-[11px] font-semibold text-slate-800">{identifiedRecordingId || "—"}</span>
+                            {acoustIdTrackId ? (
+                                <a
+                                    href={`https://acoustid.org/track/${encodeURIComponent(acoustIdTrackId)}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="mt-2 block break-all text-[10px] font-medium text-indigo-600 underline underline-offset-2"
+                                >
+                                    Mở AcoustID Track ID: {acoustIdTrackId}
+                                </a>
+                            ) : null}
                         </div>
                     </div>
                     {acoustIdResult ? (
@@ -1286,67 +1258,6 @@ const TrackDetailPage = () => {
                             <p><span className="font-bold">Kết quả:</span> {acoustIdReasonText || "Chưa có cảnh báo bổ sung."}</p>
                             <p className="mt-1"><span className="font-bold">Đề xuất:</span> {getAcoustIdSuggestedAction(acoustIdResult)}</p>
                             {acoustIdResult?.error ? <p className="mt-1"><span className="font-bold">Lỗi đã rút gọn:</span> {String(acoustIdResult.error)}</p> : null}
-                        </div>
-                    ) : null}
-                </div>
-
-                {/* 2d. MusicBrainz chỉ là tham chiếu siêu dữ liệu */}
-                <div className="border-t border-slate-100 pt-6">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Đối chiếu siêu dữ liệu MusicBrainz</h3>
-                            <p className="mt-1 text-[11px] text-slate-500">Chỉ so tên bài, nghệ sĩ, mã định danh và thời lượng; không nghe hoặc so sánh tệp âm thanh.</p>
-                        </div>
-                        {isPendingApproval ? (
-                            <button
-                                type="button"
-                                onClick={() => void handleManualReviewEvent("OPEN_MUSICBRAINZ_RESULT")}
-                                disabled={
-                                    !review ||
-                                    reviewEventLoading === "OPEN_MUSICBRAINZ_RESULT"
-                                }
-                                className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-[11px] font-bold text-indigo-700 disabled:cursor-not-allowed disabled:border-emerald-200 disabled:bg-emerald-50 disabled:text-emerald-700 disabled:opacity-80"
-                            >
-                                {reviewEventLoading === "OPEN_MUSICBRAINZ_RESULT"
-                                    ? "Đang đối chiếu..."
-                                    : review?.checklist?.musicBrainzViewed && review?.checklist?.musicBrainzReady
-                                        ? "Đối chiếu lại"
-                                        : review?.checklist?.musicBrainzReady
-                                            ? "Đánh dấu đã xem kết quả"
-                                            : "Đối chiếu lại và đánh dấu"}
-                            </button>
-                        ) : null}
-                    </div>
-                    <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5 text-xs">
-                        <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
-                            <span className="block text-[10px] font-bold uppercase tracking-wide text-slate-400">Trạng thái</span>
-                            <span className="mt-1 block font-semibold text-slate-800">
-                                {translateStatus(MUSICBRAINZ_STATUS_LABELS, musicBrainzResult?.status, "Đang chờ đối chiếu")}
-                            </span>
-                        </div>
-                        <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
-                            <span className="block text-[10px] font-bold uppercase tracking-wide text-slate-400">Mức tương đồng metadata</span>
-                            <span className="mt-1 block font-semibold text-slate-800">{formatSimilarityPercent(musicBrainzResult?.metadataSimilarity ?? musicBrainzResult?.confidence)}</span>
-                        </div>
-                        <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
-                            <span className="block text-[10px] font-bold uppercase tracking-wide text-slate-400">Mức rủi ro</span>
-                            <span className="mt-1 block font-semibold text-slate-800">{MUSICBRAINZ_RISK_LABELS[musicBrainzResult?.riskLevel || "none"] || "Chưa đánh giá"}</span>
-                        </div>
-                        <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
-                            <span className="block text-[10px] font-bold uppercase tracking-wide text-slate-400">Mã bản ghi MusicBrainz</span>
-                            <span className="mt-1 block break-all font-mono text-[11px] font-semibold text-slate-800">{musicBrainzResult?.recording?.mbid || "—"}</span>
-                        </div>
-                        <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
-                            <span className="block text-[10px] font-bold uppercase tracking-wide text-slate-400">Mã tác phẩm MusicBrainz</span>
-                            <span className="mt-1 block break-all font-mono text-[11px] font-semibold text-slate-800">{musicBrainzResult?.work?.mbid || "—"}</span>
-                        </div>
-                    </div>
-                    {musicBrainzNotice ? (
-                        <div className={`mt-3 rounded-xl border p-4 text-xs leading-relaxed ${musicBrainzNotice.level === "error"
-                            ? "border-rose-200 bg-rose-50 text-rose-900"
-                            : "border-amber-200 bg-amber-50 text-amber-900"
-                            }`}>
-                            <span className="font-bold">{musicBrainzNotice.title}:</span> {musicBrainzNotice.message}
                         </div>
                     ) : null}
                 </div>
@@ -1375,6 +1286,27 @@ const TrackDetailPage = () => {
                         <div className="p-4 bg-slate-50/60 border border-slate-100 space-y-1 rounded-xl">
                             <span className="text-slate-400 block text-[10px] uppercase tracking-wide">Chủ sở hữu bản ghi âm</span>
                             <span className="text-sm font-semibold text-slate-800 block">{track.copyright?.recordingOwner || "—"}</span>
+                        </div>
+                        <div className="p-4 bg-slate-50/60 border border-slate-100 space-y-1 rounded-xl">
+                            <span className="text-slate-400 block text-[10px] uppercase tracking-wide">ISRC khai báo</span>
+                            {declaredIsrc ? (
+                                <>
+                                    <a
+                                        href={ifpiIsrcLookupUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="block break-all font-mono text-sm font-semibold text-indigo-700 underline underline-offset-2"
+                                    >
+                                        {declaredIsrc}
+                                    </a>
+                                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] font-medium">
+                                        <a href={ifpiIsrcLookupUrl} target="_blank" rel="noreferrer" className="text-indigo-600 underline underline-offset-2">Tra cứu IFPI</a>
+                                        <a href={musicBrainzIsrcLookupUrl} target="_blank" rel="noreferrer" className="text-indigo-600 underline underline-offset-2">Tra cứu MusicBrainz</a>
+                                    </div>
+                                </>
+                            ) : (
+                                <span className="text-sm font-semibold text-slate-800 block">—</span>
+                            )}
                         </div>
                         <div className="p-4 bg-slate-50/60 border border-slate-100 flex flex-wrap gap-1.5 items-center rounded-xl">
                             <span className="px-2 py-0.5 border font-bold text-[9px] uppercase tracking-wider rounded-md bg-emerald-50 text-emerald-700 border-emerald-200">

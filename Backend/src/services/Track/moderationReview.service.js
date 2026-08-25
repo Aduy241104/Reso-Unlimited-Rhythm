@@ -291,8 +291,6 @@ const buildChecklist = async (track, review) => {
     if (!checklist.fingerprintViewed) missing.push("fingerprint_viewed");
     if (!checklist.acoustIdViewed) missing.push("acoustid_result_viewed");
     if (!checklist.acoustIdReady) missing.push("acoustid_result");
-    if (!checklist.musicBrainzViewed) missing.push("musicbrainz_result_viewed");
-    if (!checklist.musicBrainzReady) missing.push("musicbrainz_result");
     if (!checklist.lyricsReviewed) missing.push("lyrics_reviewed");
     if (!checklist.lrcReviewed) missing.push("lrc_reviewed");
     if (!checklist.evidenceAvailable) missing.push("copyright_evidence");
@@ -460,7 +458,7 @@ export const recordReviewEvent = async (adminId, trackId, payload = {}) => {
     }
     if (payload.type === "OPEN_ACOUSTID_RESULT") {
         try {
-            await runAcoustIdVerification(track._id, { retryFailed: true });
+            await runAcoustIdVerification(track._id, { force: true, retryFailed: true });
         } catch (error) {
             console.error("AcoustID review lookup unavailable:", error.message);
         }

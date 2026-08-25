@@ -193,13 +193,13 @@ const isValidISRCValue = (value) => /^[A-Z]{2}[A-Z0-9]{3}\d{7}$/.test(
   String(value || "").trim().toUpperCase().replace(/[\s-]/g, "")
 );
 
-const isValidISWCValue = (value) => /^T\d{9}[A-Z]$/.test(
+const isValidISWCValue = (value) => /^T\d{10}$/.test(
   String(value || "").trim().toUpperCase().replace(/[\s.-]/g, "")
 );
 
-const validateOptionalIdentifier = (errors, copyright, field, label, validator) => {
+const validateOptionalIdentifier = (errors, copyright, field, label, validator, example) => {
   if (copyright[field] === undefined || copyright[field] === null || copyright[field] === "") return;
-  if (!validator(copyright[field])) addCopyrightError(errors, field, `${label} không đúng định dạng.`);
+  if (!validator(copyright[field])) addCopyrightError(errors, field, `${label} không đúng định dạng. Ví dụ: ${example}.`);
 };
 
 export const getCopyrightValidationErrors = (input = {}) => {
@@ -226,22 +226,22 @@ export const getCopyrightValidationErrors = (input = {}) => {
     addCopyrightError(errors, "declarationAccepted", "Bạn phải chấp nhận chính sách bản quyền.");
   }
 
-  validateOptionalIdentifier(errors, copyright, "isrc", "ISRC", isValidISRCValue);
-  validateOptionalIdentifier(errors, copyright, "iswc", "ISWC", isValidISWCValue);
+  validateOptionalIdentifier(errors, copyright, "isrc", "ISRC", isValidISRCValue, "AA-6QZ-20-00047");
+  validateOptionalIdentifier(errors, copyright, "iswc", "ISWC", isValidISWCValue, "T-034.524.680-1");
 
   if (["cover", "remix"].includes(primary)) {
     validateOptionalCopyrightText(errors, copyright, "originalTrackTitle", "tên tác phẩm gốc");
     validateOptionalCopyrightText(errors, copyright, "originalArtistName", "nghệ sĩ gốc");
     if (!normalizeText(copyright.originalTrackTitle)) addCopyrightError(errors, "originalTrackTitle", "Vui lòng nhập tên tác phẩm gốc.");
     if (!normalizeText(copyright.originalArtistName)) addCopyrightError(errors, "originalArtistName", "Vui lòng nhập nghệ sĩ gốc.");
-    validateOptionalIdentifier(errors, copyright, "originalISRC", "ISRC tác phẩm gốc", isValidISRCValue);
-    validateOptionalIdentifier(errors, copyright, "originalISWC", "ISWC tác phẩm gốc", isValidISWCValue);
+    validateOptionalIdentifier(errors, copyright, "originalISRC", "ISRC tác phẩm gốc", isValidISRCValue, "AA-6QZ-20-00047");
+    validateOptionalIdentifier(errors, copyright, "originalISWC", "ISWC tác phẩm gốc", isValidISWCValue, "T-034.524.680-1");
   }
 
   if (copyright.usesSample) {
     validateRequiredCopyrightText(errors, copyright, "sampleSourceTitle", "tên nguồn sample", { rejectPlaceholder: true });
     validateRequiredCopyrightText(errors, copyright, "sampleSourceArtist", "nghệ sĩ nguồn sample", { rejectPlaceholder: true });
-    validateOptionalIdentifier(errors, copyright, "sampleSourceISRC", "ISRC nguồn sample", isValidISRCValue);
+    validateOptionalIdentifier(errors, copyright, "sampleSourceISRC", "ISRC nguồn sample", isValidISRCValue, "AA-6QZ-20-00047");
     if (copyright.sampleStartTime !== undefined && copyright.sampleStartTime !== null && copyright.sampleStartTime !== "" && (!Number.isFinite(Number(copyright.sampleStartTime)) || Number(copyright.sampleStartTime) < 0)) {
       addCopyrightError(errors, "sampleStartTime", "Thời điểm bắt đầu sample không hợp lệ.");
     }
@@ -320,11 +320,20 @@ export const getSubmitReadinessIssues = (track) => {
   return issues;
 };
 
-export const canArtistEditTrack = (track) => Boolean(track) && track?.approvalStatus !== "pending" && track?.pendingUpdate?.status !== "pending" && track?.activeStatus !== "blocked";
+export const canArtistEditTrack = (track) => Boolean(track)
+  && track?.approvalStatus !== "pending"
+  && track?.pendingUpdate?.status !== "pending"
+  && (track?.activeStatus !== "blocked" || track?.approvalStatus === "rejected");
 export const hasMeaningfulChangeSinceRejection = (track) => {
   if (track?.approvalStatus !== "rejected") return true;
-  const snapshot = track?.moderation?.lastRejection;
-  if (!snapshot?.rejectionId) return false;
+  const lastRejection = track?.moderation?.lastRejection;
+  const automaticRejection = track?.moderation?.automatic;
+  const snapshot = lastRejection?.rejectionId
+    ? lastRejection
+    : ["auto_reject", "enforcement_block"].includes(automaticRejection?.decision)
+      ? automaticRejection
+      : null;
+  if (!snapshot) return false;
   return [
     ["submissionVersion", "submissionVersion"],
     ["audioVersion", "audioVersion"],

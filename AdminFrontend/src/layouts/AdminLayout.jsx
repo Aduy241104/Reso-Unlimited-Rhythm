@@ -15,7 +15,6 @@ import {
   Tags,
   UserCheck,
   Users,
-  MessageSquareReply,
   Megaphone,
 } from "lucide-react";
 import AdminSidebar from "../components/layout/AdminSidebar";
@@ -65,12 +64,6 @@ const navigationItems = [
     to: routePaths.advertisements,
     label: "Quảng cáo",
     icon: Megaphone,
-    end: false,
-  },
-  {
-    to: routePaths.trackAppeals,
-    label: "Phản hồi từ nghệ sĩ",
-    icon: MessageSquareReply,
     end: false,
   },
   {

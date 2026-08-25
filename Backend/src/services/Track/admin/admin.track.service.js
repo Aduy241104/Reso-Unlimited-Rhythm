@@ -9,6 +9,7 @@ import Artist from "../../../models/Artist.js";
 import User from "../../../models/User.js";
 import Notification from "../../../models/Notification.js";
 import AudioFingerprint from "../../../models/AudioFingerprint.js";
+import TrackReviewAppeal from "../../../models/TrackReviewAppeal.js";
 import { normalizePositiveInteger } from "../../Playlist/playlist.helper.js";
 import { AppError } from "../../../utils/AppError.js";
 import { scheduleTrackAudioFingerprint } from "../../fingerprint/audioFingerprint.job.js";
@@ -723,10 +724,22 @@ const listTracksForAdmin = async (query = {}) => {
         if (query.moderationDecision) {
             conditions.push({ "moderation.automatic.decision": query.moderationDecision });
         } else {
+            const acceptedAppealTrackIds = await TrackReviewAppeal.distinct("trackId", {
+                status: "accepted",
+                "resolution.action": "return_to_moderation",
+            });
             conditions.push({
-                "moderation.automatic.decision": {
-                    $in: ["manual_review_high", "manual_review", "auto_clear"],
-                },
+                $or: [
+                    {
+                        "moderation.automatic.decision": {
+                            $in: ["manual_review_high", "manual_review", "auto_clear"],
+                        },
+                    },
+                    {
+                        _id: { $in: acceptedAppealTrackIds },
+                        approvalStatus: "pending",
+                    },
+                ],
             });
         }
     } else if (query.moderationDecision) {

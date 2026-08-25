@@ -22,6 +22,7 @@ import {
     isSameTitleAudioDuplicate,
     MODERATION_DECISIONS,
 } from "./moderationDecision.service.js";
+import { hashTrackMutableData } from "../track/track.rejection.js";
 
 const isEnabled = () => process.env.FINGERPRINT_AUTO_MODERATION !== "false";
 const isValidTrackId = (trackId) => mongoose.Types.ObjectId.isValid(trackId);
@@ -365,10 +366,12 @@ const returnSubmissionToArtist = async (track, decision, versions) => {
     const targetIsPendingUpdate = track.pendingUpdate?.status === "pending";
     const rejectionReason = getAutomaticRejectionReason(decision);
     const isDuplicateRejection = isDuplicateAutomaticRejection(decision);
+    const rejectedAt = new Date();
+    const violationFlags = isDuplicateRejection ? ["copyright", "duplicate_track"] : [];
     if (targetIsPendingUpdate) {
         track.pendingUpdate.status = "rejected";
         track.pendingUpdate.reviewedBy = null;
-        track.pendingUpdate.reviewedAt = new Date();
+        track.pendingUpdate.reviewedAt = rejectedAt;
         track.pendingUpdate.adminNote = rejectionReason;
         track.pendingUpdate.rejectReason = rejectionReason;
     } else {
@@ -381,9 +384,23 @@ const returnSubmissionToArtist = async (track, decision, versions) => {
     track.moderation = {
         ...getModerationObject(track),
         reviewedBy: null,
-        reviewedAt: new Date(),
+        reviewedAt: rejectedAt,
         adminNote: rejectionReason,
-        violationFlags: isDuplicateRejection ? ["copyright", "duplicate_track"] : [],
+        violationFlags,
+        ...(targetIsPendingUpdate ? {} : {
+            lastRejection: {
+                rejectionId: new mongoose.Types.ObjectId().toString(),
+                rejectedAt,
+                rejectedBy: null,
+                submissionVersion: versions.submissionVersion,
+                audioVersion: versions.audioVersion,
+                copyrightVersion: versions.copyrightVersion,
+                evidenceVersion: versions.evidenceVersion,
+                rejectReason: rejectionReason,
+                violationFlags,
+                mutableSnapshotHash: hashTrackMutableData(track),
+            },
+        }),
     };
     setScreening(track, {
         status: isDuplicateRejection ? "flagged" : "passed",

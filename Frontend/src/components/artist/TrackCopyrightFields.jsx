@@ -205,11 +205,34 @@ export const CopyrightPolicyModal = ({ isOpen, accepted, onClose, onAccept }) =>
   );
 };
 
-const Field = ({ label, value, onChange, error, disabled, type = "text", required = false }) => (
+const Field = ({
+  label,
+  value,
+  onChange,
+  error,
+  disabled,
+  type = "text",
+  required = false,
+  placeholder = "",
+  hint = "",
+  lookupUrl = "",
+  lookupLabel = "",
+}) => (
   <div>
     <label className="block text-sm font-medium text-[#241b15]">{label}{required ? " *" : ""}</label>
-    <input type={type} value={value || ""} onChange={(event) => onChange(event.target.value)} disabled={disabled} maxLength={ARTIST_INPUT_LIMITS.copyrightParty} className={`mt-2 w-full rounded-md border px-3 py-2 text-sm ${error ? "border-red-500" : "border-neutral-200"}`} />
+    <input type={type} value={value || ""} onChange={(event) => onChange(event.target.value)} disabled={disabled} placeholder={placeholder} maxLength={ARTIST_INPUT_LIMITS.copyrightParty} className={`mt-2 w-full rounded-md border px-3 py-2 text-sm ${error ? "border-red-500" : "border-neutral-200"}`} />
     {error ? <p className="mt-1 text-xs text-red-500">{error}</p> : null}
+    {hint || lookupUrl ? (
+      <p className="mt-1 text-xs leading-5 text-neutral-500">
+        {hint}
+        {hint && lookupUrl ? " " : null}
+        {lookupUrl ? (
+          <a href={lookupUrl} target="_blank" rel="noreferrer" className="font-medium text-[#8b5e3c] underline underline-offset-2">
+            {lookupLabel}
+          </a>
+        ) : null}
+      </p>
+    ) : null}
   </div>
 );
 
@@ -243,11 +266,6 @@ const TrackCopyrightFields = ({ value, onChange, disabled = false, errors = {} }
     markTouched("primaryCopyrightType");
     onChange({ ...copyright, primaryCopyrightType: nextType, isOriginal: nextType === "original", isCover: nextType === "cover", isRemix: nextType === "remix" });
   };
-  const toggleSecondary = (field) => {
-    const nextValue = !copyright[field];
-    markTouched(field);
-    onChange({ ...copyright, [field]: nextValue, ...(field === "usesThirdPartyBeat" ? { usesLicensedBeat: nextValue } : {}) });
-  };
   const licenseText = Array.isArray(copyright.licenseDocumentUrls) ? copyright.licenseDocumentUrls.join("\n") : "";
   const invalidLicenseUrls = Array.isArray(copyright.licenseDocumentUrls) ? copyright.licenseDocumentUrls.filter((url) => !isHttpUrl(url)) : [];
   const handlePolicyAccept = (accepted) => {
@@ -272,16 +290,34 @@ const TrackCopyrightFields = ({ value, onChange, disabled = false, errors = {} }
           <Field label="Nhà sản xuất" value={copyright.producer} onChange={(value) => updateField("producer", value)} disabled={disabled} />
         </div>
         <div className="grid gap-4 md:grid-cols-2">
-          <Field label="ISRC (không bắt buộc)" value={copyright.isrc} onChange={(value) => updateField("isrc", value)} error={displayedErrors.isrc} disabled={disabled} />
-          <Field label="ISWC (không bắt buộc)" value={copyright.iswc} onChange={(value) => updateField("iswc", value)} error={displayedErrors.iswc} disabled={disabled} />
+          <Field
+            label="ISRC (không bắt buộc)"
+            value={copyright.isrc}
+            onChange={(value) => updateField("isrc", value.toUpperCase())}
+            error={displayedErrors.isrc}
+            disabled={disabled}
+            placeholder="VD: AA-6QZ-20-00047"
+            hint="Mã của bản ghi âm: 2 chữ - 3 ký tự - 2 số năm - 5 số."
+            lookupUrl="https://isrcsearch.ifpi.org/"
+            lookupLabel="Tra cứu trên IFPI"
+          />
+          <Field
+            label="ISWC (không bắt buộc)"
+            value={copyright.iswc}
+            onChange={(value) => updateField("iswc", value.toUpperCase())}
+            error={displayedErrors.iswc}
+            disabled={disabled}
+            placeholder="VD: T-034.524.680-1"
+            hint="Mã của tác phẩm: chữ T - 9 chữ số - 1 số kiểm tra."
+            lookupUrl="https://iswcnet.cisac.org/"
+            lookupLabel="Tra cứu trên ISWC-Net"
+          />
         </div>
         <div className="space-y-3 text-sm text-neutral-700">
           <p className="font-medium text-[#241b15]">Loại quyền sử dụng chính *</p>
           <div className="flex flex-wrap gap-4">{[["original", "Tác phẩm gốc"], ["cover", "Bản hát lại"], ["remix", "Bản phối lại"]].map(([type, label]) => <label key={type} className="inline-flex items-center gap-2"><input type="radio" name="primaryCopyrightType" checked={primary === type} onChange={() => updatePrimary(type)} disabled={disabled} className="h-4 w-4" />{label}</label>)}</div>
-          <div className="flex flex-wrap gap-4 border-t border-amber-200 pt-3"><label className="inline-flex items-center gap-2"><input type="checkbox" checked={Boolean(copyright.usesSample)} onChange={() => toggleSecondary("usesSample")} disabled={disabled} className="h-4 w-4" />Có sử dụng đoạn nhạc mẫu</label><label className="inline-flex items-center gap-2"><input type="checkbox" checked={Boolean(copyright.usesThirdPartyBeat || copyright.usesLicensedBeat)} onChange={() => toggleSecondary("usesThirdPartyBeat")} disabled={disabled} className="h-4 w-4" />Phần nhạc nền được cấp phép</label></div>
         </div>
         {primary !== "original" ? <div className="space-y-4 rounded-md border border-amber-200 bg-amber-50 p-4"><p className="text-sm font-medium text-amber-900">Thông tin tác phẩm gốc</p><div className="grid gap-4 md:grid-cols-2"><Field label="Tên tác phẩm gốc" value={copyright.originalTrackTitle} onChange={(value) => updateField("originalTrackTitle", value)} error={displayedErrors.originalTrackTitle} disabled={disabled} required /><Field label="Nghệ sĩ gốc" value={copyright.originalArtistName} onChange={(value) => updateField("originalArtistName", value)} error={displayedErrors.originalArtistName} disabled={disabled} required /></div><div className="grid gap-4 md:grid-cols-3"><Field label="Composer gốc" value={copyright.originalComposer} onChange={(value) => updateField("originalComposer", value)} disabled={disabled} /><Field label="ISRC gốc" value={copyright.originalISRC} onChange={(value) => updateField("originalISRC", value)} error={displayedErrors.originalISRC} disabled={disabled} /><Field label="ISWC gốc" value={copyright.originalISWC} onChange={(value) => updateField("originalISWC", value)} error={displayedErrors.originalISWC} disabled={disabled} /></div></div> : null}
-        {copyright.usesSample ? <div className="space-y-4 rounded-md border border-amber-200 bg-amber-50 p-4"><p className="text-sm font-medium text-amber-900">Thông tin sample</p><div className="grid gap-4 md:grid-cols-3"><Field label="Tên nguồn sample" value={copyright.sampleSourceTitle} onChange={(value) => updateField("sampleSourceTitle", value)} error={displayedErrors.sampleSourceTitle} disabled={disabled} required /><Field label="Nghệ sĩ nguồn sample" value={copyright.sampleSourceArtist} onChange={(value) => updateField("sampleSourceArtist", value)} error={displayedErrors.sampleSourceArtist} disabled={disabled} required /><Field label="ISRC nguồn sample" value={copyright.sampleSourceISRC} onChange={(value) => updateField("sampleSourceISRC", value)} error={displayedErrors.sampleSourceISRC} disabled={disabled} /></div></div> : null}
         {copyright.usesThirdPartyBeat || copyright.usesLicensedBeat ? <div className="space-y-4 rounded-md border border-sky-200 bg-sky-50 p-4"><p className="text-sm font-medium text-sky-900">Thông tin third-party beat</p><div className="grid gap-4 md:grid-cols-2"><Field label="Tên beat" value={copyright.beatTitle} onChange={(value) => updateField("beatTitle", value)} error={displayedErrors.beatTitle} disabled={disabled} required /><Field label="Nhà sản xuất beat" value={copyright.beatProducer} onChange={(value) => updateField("beatProducer", value)} error={displayedErrors.beatProducer} disabled={disabled} required /></div><div className="grid gap-4 md:grid-cols-2"><div><label className="block text-sm font-medium text-[#241b15]">Loại giấy phép *</label><select value={copyright.licenseType || ""} onChange={(event) => updateField("licenseType", event.target.value)} disabled={disabled} className={`mt-2 w-full rounded-md border px-3 py-2 text-sm ${displayedErrors.licenseType ? "border-red-500" : "border-neutral-200"}`}><option value="">Chọn loại giấy phép</option><option value="exclusive">Exclusive</option><option value="non_exclusive">Non-exclusive</option><option value="custom">Custom</option><option value="other">Other</option></select>{displayedErrors.licenseType ? <p className="mt-1 text-xs text-red-500">{displayedErrors.licenseType}</p> : null}</div><Field label="Nguồn beat (không bắt buộc)" value={copyright.beatSourceUrl} onChange={(value) => updateField("beatSourceUrl", value)} error={displayedErrors.beatSourceUrl} disabled={disabled} type="url" /></div></div> : null}
         {(primary !== "original" || copyright.usesSample || copyright.usesThirdPartyBeat || usesThirdPartyRights(copyright)) ? <div><label className="block text-sm font-medium text-[#241b15]">Liên kết tham khảo (không thay thế tệp bằng chứng)</label><textarea rows={3} value={licenseText} maxLength={ARTIST_INPUT_LIMITS.copyrightLicenseUrls} onChange={(event) => updateField("licenseDocumentUrls", event.target.value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean))} disabled={disabled} placeholder="https://..." className={`mt-2 w-full rounded-md border px-3 py-2 text-sm ${invalidLicenseUrls.length ? "border-amber-300" : "border-neutral-200"}`} />{invalidLicenseUrls.length ? <p className="mt-1 text-xs text-amber-700">Mỗi dòng phải là URL http hoặc https.</p> : <p className="mt-1 text-xs text-neutral-500">URL chỉ để đối chiếu; tài liệu phải được tải lên ở mục bên dưới.</p>}</div> : null}
         <div><label className="block text-sm font-medium text-[#241b15]">Ghi chú bản quyền</label><textarea rows={2} value={copyright.copyrightNotes || copyright.copyrightNote || ""} onChange={(event) => onChange({ ...copyright, copyrightNote: event.target.value, copyrightNotes: event.target.value })} maxLength={ARTIST_INPUT_LIMITS.copyrightNote} disabled={disabled} className="mt-2 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm" /></div>

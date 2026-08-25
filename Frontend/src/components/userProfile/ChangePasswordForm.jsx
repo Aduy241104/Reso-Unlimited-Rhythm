@@ -3,6 +3,12 @@ import { KeyRound, Loader2, LockKeyhole, Save, ShieldAlert, X } from "lucide-rea
 import { changeCurrentUserPassword } from "../../services/userProfileService";
 import { USER_INPUT_LIMITS } from "../../constants/userInputLimits";
 import { getApiErrorMessage } from "../../utils/apiError";
+import {
+  getVietnamesePasswordMessage,
+  hasPasswordWhitespace,
+  PASSWORD_WHITESPACE_MESSAGES,
+  removePasswordWhitespace,
+} from "../../utils/passwordFeedback";
 
 const inputClassName =
   "w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none transition-all duration-300 placeholder:text-gray-500 focus:border-white/30 focus:bg-black/45 focus:shadow-[0_0_0_4px_rgba(255,255,255,0.08)]";
@@ -56,7 +62,7 @@ const getFieldErrorsFromApi = (error) => {
 
     return {
       ...nextErrors,
-      [fieldName]: detail?.message || "Giá trị không hợp lệ.",
+      [fieldName]: getVietnamesePasswordMessage(detail?.message, { fieldName }),
     };
   }, {});
 };
@@ -81,10 +87,20 @@ const FormField = ({ children, errorMessage, icon, label }) => {
 const ChangePasswordForm = ({ onCancel, onSaved }) => {
   const [formValues, setFormValues] = useState(createFormState);
   const [fieldErrors, setFieldErrors] = useState({});
+  const [whitespaceWarnings, setWhitespaceWarnings] = useState({});
   const [apiError, setApiError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  const updateField = (fieldName, value) => {
+  const updateField = (fieldName, rawValue) => {
+    const containsWhitespace = hasPasswordWhitespace(rawValue);
+    const value = removePasswordWhitespace(rawValue);
+
+    setWhitespaceWarnings((current) => ({
+      ...current,
+      [fieldName]: containsWhitespace
+        ? PASSWORD_WHITESPACE_MESSAGES[fieldName]
+        : "",
+    }));
     setFormValues((current) => ({
       ...current,
       [fieldName]: value,
@@ -150,14 +166,23 @@ const ChangePasswordForm = ({ onCancel, onSaved }) => {
       const response = await changeCurrentUserPassword(formValues);
       setFormValues(createFormState());
       setFieldErrors({});
-      onSaved(response?.message || "Đổi mật khẩu thành công.");
+      setWhitespaceWarnings({});
+      onSaved(
+        getVietnamesePasswordMessage(response?.message, {
+          fieldName: "currentPassword",
+          fallbackMessage: "Đổi mật khẩu thành công.",
+        })
+      );
     } catch (error) {
       const nextFieldErrors = getFieldErrorsFromApi(error);
 
       setFieldErrors(nextFieldErrors);
       setApiError(
         Object.keys(nextFieldErrors).length === 0
-          ? getApiErrorMessage(error, "Không thể đổi mật khẩu.")
+          ? getVietnamesePasswordMessage(
+              getApiErrorMessage(error, "Không thể đổi mật khẩu."),
+              { fallbackMessage: "Không thể đổi mật khẩu." }
+            )
           : ""
       );
     } finally {
@@ -199,7 +224,9 @@ const ChangePasswordForm = ({ onCancel, onSaved }) => {
         <FormField
           label="Mật khẩu hiện tại"
           icon={LockKeyhole}
-          errorMessage={fieldErrors.currentPassword}
+          errorMessage={
+            whitespaceWarnings.currentPassword || fieldErrors.currentPassword
+          }
         >
           <input
             type="password"
@@ -216,7 +243,7 @@ const ChangePasswordForm = ({ onCancel, onSaved }) => {
         <FormField
           label="Mật khẩu mới"
           icon={KeyRound}
-          errorMessage={fieldErrors.newPassword}
+          errorMessage={whitespaceWarnings.newPassword || fieldErrors.newPassword}
         >
           <input
             type="password"
@@ -233,7 +260,9 @@ const ChangePasswordForm = ({ onCancel, onSaved }) => {
         <FormField
           label="Xác nhận mật khẩu"
           icon={ShieldAlert}
-          errorMessage={fieldErrors.confirmPassword}
+          errorMessage={
+            whitespaceWarnings.confirmPassword || fieldErrors.confirmPassword
+          }
         >
           <input
             type="password"

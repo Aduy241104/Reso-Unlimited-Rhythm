@@ -155,7 +155,7 @@ export const assertTrackEditableByArtist = (track) => {
         throw new AppError("Không tìm thấy bài hát.", StatusCodes.NOT_FOUND);
     }
 
-    if (track.activeStatus === "blocked") {
+    if (track.activeStatus === "blocked" && track.approvalStatus !== "rejected") {
         throw new AppError(
             "Không thể chỉnh sửa bài hát đang bị khóa.",
             StatusCodes.BAD_REQUEST

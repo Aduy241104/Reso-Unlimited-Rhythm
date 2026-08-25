@@ -235,8 +235,11 @@ const ArtistAlbumDetailPage = () => {
       setAlbum(updatedAlbum);
       setRemoveConfirm(null);
       showArtistSuccess("Đã gỡ bài hát khỏi album.");
-    } catch {
-      showArtistError("Không thể gỡ bài hát khỏi album.");
+    } catch (error) {
+      showArtistError(
+        error?.response?.data?.message ||
+          "Không thể gỡ bài hát khỏi album."
+      );
     } finally {
       setIsRemovingTrack(false);
     }
@@ -253,8 +256,11 @@ const ArtistAlbumDetailPage = () => {
       }));
       setPublishConfirmOpen(false);
       showArtistSuccess("Album đã được phát hành thành công.");
-    } catch {
-      showArtistError("Không thể phát hành album vào lúc này.");
+    } catch (error) {
+      showArtistError(
+        error?.response?.data?.message ||
+          "Không thể phát hành album vào lúc này."
+      );
     } finally {
       setIsPublishingAlbum(false);
     }

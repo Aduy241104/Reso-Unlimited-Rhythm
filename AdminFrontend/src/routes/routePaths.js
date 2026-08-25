@@ -9,8 +9,6 @@ export const routePaths = {
   podcastDetail: (podcastId = ":id") => `/podcasts/${podcastId}`,
   systemAlbums: "/system-albums",
   trackModeration: "/system-tracks/moderation",
-  trackAppeals: "/track-appeals",
-  trackAppealDetail: (appealId = ":appealId") => `/track-appeals/${appealId}`,
   artistRequests: "/artist-requests",
   artistRequestDetail: (requestId = ":requestId") => `/artist-requests/${requestId}`,
   trackDetail: (trackId = ":id") => `/system-tracks/${trackId}`,
