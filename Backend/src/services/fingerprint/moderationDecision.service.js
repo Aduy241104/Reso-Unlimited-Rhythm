@@ -1,7 +1,7 @@
 import {
     normalizeCopyrightDeclaration,
     validateCopyrightForSubmit,
-} from "../Track/copyright.validation.service.js";
+} from "../tracks/copyright.validation.service.js";
 
 export const MODERATION_DECISIONS = Object.freeze({
     AUTO_CLEAR: "auto_clear",

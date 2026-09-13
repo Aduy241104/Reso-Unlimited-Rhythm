@@ -1,7 +1,7 @@
 import {
     normalizeISWC,
     validateCopyrightForSubmit,
-} from "../../src/services/Track/copyright.validation.service.js";
+} from "../../src/services/tracks/copyright.validation.service.js";
 import Track from "../../src/models/Track.js";
 
 const validOriginal = () => ({

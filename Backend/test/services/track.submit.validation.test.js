@@ -1,7 +1,7 @@
 import {
     assertTrackEditableByArtist,
     getTrackSubmissionData,
-} from "../../src/services/Track/track.submit.validation.js";
+} from "../../src/services/tracks/track.submit.validation.js";
 
 describe("track submission snapshot", () => {
     test("fills missing pending copyright fields from the current track", () => {

@@ -53,7 +53,7 @@ const loadArtistTrackService = async () => {
         runAcoustIdVerification: mockRunAcoustIdVerification,
     }));
 
-    return import("../../src/services/Track/artist/artist.track.service.js");
+    return import("../../src/services/tracks/artist/artist.track.service.js");
 };
 
 describe("artist draft audio update", () => {

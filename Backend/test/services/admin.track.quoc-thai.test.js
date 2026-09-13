@@ -38,7 +38,7 @@ const loadService = async () => {
     jest.unstable_mockModule("../../src/services/fingerprint/fingerprintSimilarity.service.js", () => ({
         compareFingerprints: jest.fn(),
     }));
-    jest.unstable_mockModule("../../src/services/track/moderationReview.service.js", () => ({
+    jest.unstable_mockModule("../../src/services/tracks/moderationReview.service.js", () => ({
         assertReviewCanApprove: mockAssertReviewCanApprove,
     }));
     jest.unstable_mockModule("../../src/services/external/musicbrainz.service.js", () => ({
@@ -50,11 +50,11 @@ const loadService = async () => {
     jest.unstable_mockModule("../../src/services/audit/auditLog.service.js", () => ({
         recordAuditEvent: mockRecordAuditEvent,
     }));
-    jest.unstable_mockModule("../../src/services/track/track.rejection.js", () => ({
+    jest.unstable_mockModule("../../src/services/tracks/track.rejection.js", () => ({
         hashTrackMutableData: jest.fn(() => "hash"),
     }));
 
-    return (await import("../../src/services/track/admin/admin.track.service.js")).default;
+    return (await import("../../src/services/tracks/admin/admin.track.service.js")).default;
 };
 
 const queryWith = (value) => {

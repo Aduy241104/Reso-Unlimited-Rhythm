@@ -2,7 +2,7 @@ import "dotenv/config";
 import mongoose from "mongoose";
 import connectMongoose from "../src/config/db.js";
 import Track from "../src/models/Track.js";
-import { normalizeTrackTitle } from "../src/services/Track/track.title.normalizer.js";
+import { normalizeTrackTitle } from "../src/services/tracks/track.title.normalizer.js";
 
 const apply = process.argv.includes("--apply");
 const LEGACY_INDEX = "artist_artistId_1_title_1_versionTitle_1";

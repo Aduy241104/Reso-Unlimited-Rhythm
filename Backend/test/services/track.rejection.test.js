@@ -2,9 +2,9 @@ import {
     getCopyrightChangeFlags,
     getMeaningfulChangedFields,
     hashTrackMutableData,
-} from "../../src/services/track/track.rejection.js";
-import { sanitizeArtistCopyright } from "../../src/services/track/track.draft.validation.js";
-import { assertRejectedTrackHasMeaningfulChanges } from "../../src/services/Track/artist/artist.track.service.js";
+} from "../../src/services/tracks/track.rejection.js";
+import { sanitizeArtistCopyright } from "../../src/services/tracks/track.draft.validation.js";
+import { assertRejectedTrackHasMeaningfulChanges } from "../../src/services/tracks/artist/artist.track.service.js";
 
 const baseTrack = {
     title: "Original title",

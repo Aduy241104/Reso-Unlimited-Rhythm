@@ -1,4 +1,4 @@
-import adminTrackService from "../services/Track/admin/admin.track.service.js";
+import adminTrackService from "../services/tracks/admin/admin.track.service.js";
 import adminTrackValidation from "../middlewares/Admin/admin.track.validation.js";
 import formatResponse from "../utils/formatResponse.js";
 import { AppError } from "../utils/AppError.js";
@@ -8,7 +8,7 @@ import Artist from "../models/Artist.js";
 import Interaction from "../models/Interaction.js";
 import Notification from "../models/Notification.js";
 import fingerprintAdminService from "../services/fingerprint/fingerprintAdmin.service.js";
-import moderationReviewService from "../services/Track/moderationReview.service.js";
+import moderationReviewService from "../services/tracks/moderationReview.service.js";
 
 const listTracksForAdmin = async (req, res, next) => {
     try {

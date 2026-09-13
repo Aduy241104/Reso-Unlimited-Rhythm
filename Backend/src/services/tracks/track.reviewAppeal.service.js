@@ -13,7 +13,7 @@ import {
     MAX_EVIDENCE_SIZE,
     isHttpUrl,
     validateEvidenceUploadFile,
-} from "../Track/copyright.validation.service.js";
+} from "./copyright.validation.service.js";
 import { uploadEvidenceBuffer } from "../cloudinaryService.js";
 import {
     getCurrentTrackRejectionState,

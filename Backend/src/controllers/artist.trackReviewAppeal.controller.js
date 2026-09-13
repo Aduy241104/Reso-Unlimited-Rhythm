@@ -1,4 +1,4 @@
-import trackReviewAppealService from "../services/Track/track.reviewAppeal.service.js";
+import trackReviewAppealService from "../services/tracks/track.reviewAppeal.service.js";
 import formatResponse from "../utils/formatResponse.js";
 
 const createAppeal = async (req, res, next) => {

@@ -1,6 +1,6 @@
 import multer from "multer";
 import { AppError } from "../../utils/AppError.js";
-import { validateEvidenceUploadFile, MAX_EVIDENCE_DOCUMENTS, MAX_EVIDENCE_SIZE } from "../../services/Track/copyright.validation.service.js";
+import { validateEvidenceUploadFile, MAX_EVIDENCE_DOCUMENTS, MAX_EVIDENCE_SIZE } from "../../services/tracks/copyright.validation.service.js";
 
 const upload = multer({
     storage: multer.memoryStorage(),

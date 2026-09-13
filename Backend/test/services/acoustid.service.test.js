@@ -8,7 +8,7 @@ import {
 import {
     assertAcoustIdApprovalAllowed,
     isInternalFingerprintApprovalBlocked,
-} from "../../src/services/track/moderationReview.service.js";
+} from "../../src/services/tracks/moderationReview.service.js";
 
 const recordingPayload = ({
     score = 0.96,

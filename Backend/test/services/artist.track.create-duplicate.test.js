@@ -63,7 +63,7 @@ const loadArtistTrackService = async () => {
         runAcoustIdVerification: jest.fn(),
     }));
 
-    return import("../../src/services/Track/artist/artist.track.service.js");
+    return import("../../src/services/tracks/artist/artist.track.service.js");
 };
 
 describe("artist track create duplicate preflight", () => {

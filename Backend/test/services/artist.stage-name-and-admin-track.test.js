@@ -8,7 +8,7 @@ import { globalErrorHandler } from "../../src/middlewares/error.middleware.js";
 import {
     assertTrackNotDeleted,
     getAdminTrackDeletionFilter,
-} from "../../src/services/track/admin/admin.track.service.js";
+} from "../../src/services/tracks/admin/admin.track.service.js";
 
 describe("artist stage-name normalization", () => {
     test.each([

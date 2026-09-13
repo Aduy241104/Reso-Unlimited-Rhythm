@@ -8,11 +8,11 @@ import Artist from "../models/Artist.js";
 import {
   assertTrackTitleVersionAvailable,
   normalizeTrackVersionTitle,
-} from "../services/Track/track.duplicate.validation.js";
+} from "../services/tracks/track.duplicate.validation.js";
 import {
   resolveArtistIdForCreate,
   validateDraftTitle,
-} from "../services/Track/track.draft.validation.js";
+} from "../services/tracks/track.draft.validation.js";
 
 const assertUploadTrackTitleVersionAvailable = async (req) => {
   const rawTitle = req.body?.title;

@@ -5,7 +5,7 @@ import {
     hashReviewSnapshotValue,
     hasCompletedAudioReview,
     hasReviewedStaticLyrics,
-} from "../../src/services/track/moderationReview.service.js";
+} from "../../src/services/tracks/moderationReview.service.js";
 
 describe("moderation review snapshot hashing", () => {
     test("caps the configured listening threshold at the review target duration", () => {
