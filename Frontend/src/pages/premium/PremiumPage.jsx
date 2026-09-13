@@ -185,7 +185,7 @@ const PlanDetailModal = ({ isOpen, plan, onClose, onPurchase }) => {
             </p>
             <h2
               id="plan-detail-title"
-              className="mt-3 text-[1.9rem] font-semibold tracking-tight"
+              className="mt-3 text-[1.55rem] font-semibold tracking-tight [overflow-wrap:anywhere] sm:text-[1.9rem]"
             >
               {plan.name || "Gói Premium"}
             </h2>
@@ -223,7 +223,7 @@ const PlanDetailModal = ({ isOpen, plan, onClose, onPurchase }) => {
         </div>
 
         <div className="mt-6 rounded-[24px] bg-white/[0.03] p-5">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
             <h3 className="text-base font-semibold">Quyền lợi bao gồm</h3>
             <span className="rounded-full border border-white/10 px-3 py-1 text-[11px] font-medium text-white/60">
               {features.length} quyền lợi
@@ -255,18 +255,18 @@ const PlanDetailModal = ({ isOpen, plan, onClose, onPurchase }) => {
           )}
         </div>
 
-        <div className="mt-7 flex flex-wrap justify-end gap-3">
+        <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/14 px-5 text-sm font-semibold text-white transition hover:bg-white/8"
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-white/14 px-5 text-sm font-semibold text-white transition hover:bg-white/8 sm:w-auto"
           >
             Đóng
           </button>
           <button
             type="button"
             onClick={onPurchase}
-            className="inline-flex min-h-11 items-center justify-center rounded-full bg-white px-5 text-sm font-semibold text-black transition hover:bg-[#ececec]"
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-white px-5 text-sm font-semibold text-black transition hover:bg-[#ececec] sm:w-auto"
           >
             Tiếp tục mua gói
           </button>
@@ -310,7 +310,7 @@ const PurchaseConfirmationModal = ({
         <div className="flex items-start justify-between gap-4">
           <h2
             id="purchase-confirmation-title"
-            className="max-w-[26rem] text-[1.7rem] font-semibold tracking-tight"
+            className="max-w-[26rem] text-[1.45rem] font-semibold tracking-tight sm:text-[1.7rem]"
           >
             Xác nhận mua gói dịch vụ
           </h2>
@@ -326,7 +326,7 @@ const PurchaseConfirmationModal = ({
           </button>
         </div>
 
-        <div className="mt-7 flex items-start justify-between gap-4">
+        <div className="mt-7 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-[1.05rem] font-semibold">
               Gói đăng ký {plan.name || "Premium"}
@@ -335,7 +335,7 @@ const PurchaseConfirmationModal = ({
               Thanh toán một lần, kích hoạt ngay sau khi giao dịch hoàn tất.
             </p>
           </div>
-          <p className="shrink-0 text-[1.05rem] font-semibold">
+          <p className="shrink-0 text-[1.05rem] font-semibold sm:text-right">
             {formatPrice(plan.price)}
           </p>
         </div>
@@ -376,17 +376,17 @@ const PurchaseConfirmationModal = ({
             </div>
           </div>
 
-          <div className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] px-4 text-xs font-semibold text-white/82">
+          <div className="inline-flex min-h-10 w-full items-center justify-center rounded-full border border-white/12 bg-white/[0.04] px-4 text-center text-xs font-semibold text-white/82 sm:w-auto">
             Cổng thanh toán trực tuyến
           </div>
         </div>
 
-        <div className="mt-8 flex flex-wrap justify-end gap-3">
+        <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <button
             type="button"
             onClick={onClose}
             disabled={isProcessing}
-            className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/14 px-5 text-sm font-semibold text-white transition hover:bg-white/8 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-white/14 px-5 text-sm font-semibold text-white transition hover:bg-white/8 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
             Hủy
           </button>
@@ -395,7 +395,7 @@ const PurchaseConfirmationModal = ({
             onClick={onConfirm}
             disabled={isProcessing}
             className={[
-              "inline-flex min-h-11 items-center justify-center rounded-full px-5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60",
+              "inline-flex min-h-11 w-full items-center justify-center rounded-full px-5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto",
               isProcessing ? "bg-[#111111] text-white" : "bg-white text-black hover:bg-[#ececec]",
             ].join(" ")}
           >
@@ -697,7 +697,7 @@ const PremiumPage = () => {
                 Hiện chưa có gói Premium khả dụng.
               </div>
             ) : (
-              <div className="mx-auto grid w-fit justify-center gap-4 lg:grid-cols-2 xl:grid-cols-3">
+              <div className="mx-auto grid w-full max-w-[1180px] grid-cols-1 justify-items-center gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {orderedPlans.map((plan) => {
                   const planId = plan?._id || plan?.id || "";
                   const features = PREMIUM_FEATURES;
@@ -712,7 +712,7 @@ const PremiumPage = () => {
                     >
                       <div className="flex min-h-[220px] flex-col">
                         <div className="flex min-h-[60px] items-start justify-between gap-4">
-                        <h2 className="text-[23px] font-semibold leading-tight tracking-tight">
+                        <h2 className="min-w-0 text-[23px] font-semibold leading-tight tracking-tight [overflow-wrap:anywhere]">
                           {plan?.name || "Premium"}
                         </h2>
 
@@ -728,9 +728,9 @@ const PremiumPage = () => {
                         </div>
                       </div>
 
-                      <div className="mt-7 flex items-end gap-2.5">
+                      <div className="mt-7 flex flex-wrap items-end gap-2.5">
                         <span className="pb-1 text-[14px] leading-none text-white/65">₫</span>
-                        <span className="text-[38px] font-semibold leading-[0.9] tracking-[-0.04em]">
+                        <span className="text-[38px] font-semibold leading-[0.9] tracking-normal">
                           {(Number(plan?.price) || 0).toLocaleString("vi-VN")}
                         </span>
                         <span className="max-w-[8.5rem] pb-1 text-[12px] font-medium leading-5 text-white/86">

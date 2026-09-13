@@ -185,12 +185,20 @@ const UserPlaylistPage = () => {
   }, [currentPage, loadPlaylists]);
 
   const pageNumbers = useMemo(
-    () =>
-      Array.from(
-        { length: Math.max(1, pagination.totalPages || 1) },
-        (_, index) => index + 1
-      ),
-    [pagination.totalPages]
+    () => {
+      const totalPages = Math.max(1, pagination.totalPages || 1);
+      const visiblePageCount = Math.min(totalPages, 5);
+      const firstPageNumber = Math.max(
+        1,
+        Math.min(currentPage - 2, totalPages - visiblePageCount + 1)
+      );
+
+      return Array.from(
+        { length: visiblePageCount },
+        (_, index) => firstPageNumber + index
+      );
+    },
+    [currentPage, pagination.totalPages]
   );
 
   const handleChangePage = (nextPage) => {
@@ -215,7 +223,7 @@ const UserPlaylistPage = () => {
   return (
     <section className="space-y-8 bg-black px-1 py-2 sm:space-y-10">
       <div className="space-y-2">
-        <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
+        <h1 className="text-3xl font-bold tracking-tight text-white sm:text-5xl">
           Playlist Công Khai
         </h1>
       </div>
@@ -229,7 +237,7 @@ const UserPlaylistPage = () => {
       ) : (
         <div className="space-y-6">
           <section
-            className="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5"
+            className="grid grid-cols-2 gap-x-3 gap-y-5 sm:gap-6 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5"
             aria-label="Playlist Công khai"
           >
             {playlists.map((playlist, index) => (

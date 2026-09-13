@@ -16,9 +16,9 @@ const featuredCardClassNameByRank = {
 };
 
 const featuredAvatarClassNameByRank = {
-  1: "h-24 w-24 ring-black/10 sm:h-48 sm:w-48 dark:ring-white/12",
-  2: "h-16 w-16 ring-black/10 sm:h-32 sm:w-32 dark:ring-white/12",
-  3: "h-16 w-16 ring-black/10 sm:h-32 sm:w-32 dark:ring-white/12",
+  1: "h-20 w-20 ring-black/10 min-[420px]:h-24 min-[420px]:w-24 sm:h-48 sm:w-48 dark:ring-white/12",
+  2: "h-14 w-14 ring-black/10 min-[420px]:h-16 min-[420px]:w-16 sm:h-32 sm:w-32 dark:ring-white/12",
+  3: "h-14 w-14 ring-black/10 min-[420px]:h-16 min-[420px]:w-16 sm:h-32 sm:w-32 dark:ring-white/12",
 };
 
 const featuredRankBadgeClassNameByRank = {

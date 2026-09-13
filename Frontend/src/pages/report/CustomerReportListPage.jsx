@@ -242,7 +242,7 @@ const CustomerReportListPage = () => {
                             {reports.map((report) => (
                                 <div
                                     key={report._id}
-                                    className="flex flex-col gap-4 p-5 transition hover:bg-white/[0.02] sm:flex-row sm:items-start sm:justify-between"
+                                    className="flex flex-col gap-4 p-4 transition hover:bg-white/[0.02] sm:flex-row sm:items-start sm:justify-between sm:p-5"
                                 >
                                     <div className="min-w-0 flex-1">
                                         <div className="flex flex-wrap items-center gap-2">
@@ -254,7 +254,7 @@ const CustomerReportListPage = () => {
                                         </p>
                                         <p className="mt-1 text-sm text-white/65">
                                             {TARGET_TYPE_CONFIG[report.targetType]?.label || "Nội dung"}:{" "}
-                                            <span className="font-medium text-white/88">{getReportTargetTitle(report)}</span>
+                                            <span className="break-words font-medium text-white/88">{getReportTargetTitle(report)}</span>
                                         </p>
                                         {report.description && (
                                             <p className="mt-1 line-clamp-2 text-xs text-white/45">
@@ -277,10 +277,10 @@ const CustomerReportListPage = () => {
                                         )}
                                     </div>
 
-                                    <div className="flex shrink-0 items-center gap-2">
+                                    <div className="flex w-full shrink-0 items-center gap-2 sm:w-auto">
                                         <button
                                             onClick={() => handleViewDetail(report._id)}
-                                            className="inline-flex items-center gap-1.5 rounded-2xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-xs font-medium text-white/75 transition hover:border-white/20 hover:bg-white/[0.07] hover:text-white"
+                                            className="inline-flex w-full items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-xs font-medium text-white/75 transition hover:border-white/20 hover:bg-white/[0.07] hover:text-white sm:w-auto"
                                         >
                                             <Eye className="h-3.5 w-3.5" aria-hidden />
                                             Chi tiết
@@ -293,22 +293,22 @@ const CustomerReportListPage = () => {
 
                     {/* Pagination */}
                     {!loading && !errorMessage && reports.length > 0 && meta.totalPages > 1 && (
-                        <div className="flex items-center justify-between border-t border-white/[0.06] px-5 py-4">
+                        <div className="flex flex-col gap-3 border-t border-white/[0.06] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                             <p className="text-xs text-white/45">
                                 Trang {meta.page} / {meta.totalPages} — {meta.total} báo cáo
                             </p>
-                            <div className="flex items-center gap-2">
+                            <div className="flex w-full items-center gap-2 sm:w-auto">
                                 <button
                                     onClick={() => handlePageChange(meta.page - 1)}
                                     disabled={meta.page <= 1}
-                                    className="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-xs font-medium text-white/75 transition hover:border-white/20 hover:bg-white/[0.07] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                                    className="inline-flex min-h-[36px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-xs font-medium text-white/75 transition hover:border-white/20 hover:bg-white/[0.07] hover:text-white disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none"
                                 >
                                     ← Trước
                                 </button>
                                 <button
                                     onClick={() => handlePageChange(meta.page + 1)}
                                     disabled={meta.page >= meta.totalPages}
-                                    className="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-xs font-medium text-white/75 transition hover:border-white/20 hover:bg-white/[0.07] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                                    className="inline-flex min-h-[36px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-xs font-medium text-white/75 transition hover:border-white/20 hover:bg-white/[0.07] hover:text-white disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none"
                                 >
                                     Sau →
                                 </button>

@@ -25,7 +25,6 @@ const CopyrightFingerprintBlocklistSchema = new Schema(
         status: { type: String, enum: ["active", "released"], default: "active", index: true },
         retainedAt: { type: Date, default: Date.now },
         releasedAt: { type: Date, default: null },
-        releasedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
         metadata: { type: Schema.Types.Mixed, default: null },
     },
     { timestamps: true }

@@ -79,7 +79,7 @@ const ProfileField = ({ icon, label, value }) => {
         </div>
 
         <ChevronRight
-          className="mt-1 h-5 w-5 shrink-0 text-white/20 transition group-hover:translate-x-1 group-hover:text-white/65"
+          className="mt-1 hidden h-5 w-5 shrink-0 text-white/20 transition group-hover:translate-x-1 group-hover:text-white/65 sm:block"
           aria-hidden
         />
       </div>
@@ -88,10 +88,10 @@ const ProfileField = ({ icon, label, value }) => {
 };
 
 const secondaryButtonClassName =
-  "inline-flex items-center justify-center gap-2 rounded-2xl border border-white/12 bg-white/[0.04] px-5 py-3 text-sm font-medium text-white transition duration-300 hover:border-white/20 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white/12 bg-white/[0.04] px-5 py-3 text-sm font-medium text-white transition duration-300 hover:border-white/20 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto";
 
 const primaryButtonClassName =
-  "inline-flex items-center justify-center gap-2 rounded-2xl border border-white bg-white px-5 py-3 text-sm font-semibold text-black shadow-[0_18px_38px_rgba(255,255,255,0.08)] transition duration-300 hover:bg-transparent hover:text-white disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white bg-white px-5 py-3 text-sm font-semibold text-black shadow-[0_18px_38px_rgba(255,255,255,0.08)] transition duration-300 hover:bg-transparent hover:text-white disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto";
 
 const Notice = ({ children }) => {
   return (
@@ -253,7 +253,7 @@ const UserProfileInfo = ({ fullName, email, gender, dateOfBirth }) => {
   const securityLabel = isGoogleAccount ? "Xác thực qua Google" : "Bảo mật nội bộ";
 
   return (
-    <div className="overflow-hidden rounded-[30px] border border-white/10 bg-[linear-gradient(155deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03)_26%,rgba(8,8,8,0.96)_100%)] p-6 shadow-[0_28px_80px_rgba(0,0,0,0.34)] sm:p-8">
+    <div className="overflow-hidden rounded-[24px] border border-white/10 bg-[linear-gradient(155deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03)_26%,rgba(8,8,8,0.96)_100%)] p-4 shadow-[0_28px_80px_rgba(0,0,0,0.34)] sm:rounded-[30px] sm:p-8">
       <div className="flex flex-col gap-5 border-b border-white/10 pb-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-white/70">
@@ -261,7 +261,7 @@ const UserProfileInfo = ({ fullName, email, gender, dateOfBirth }) => {
             Hồ sơ đã xác thực
           </div>
 
-          <h2 className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-[2.5rem]">
+          <h2 className="mt-4 text-2xl font-semibold tracking-tight text-white sm:text-[2.5rem]">
             Chi tiết hồ sơ
           </h2>
 

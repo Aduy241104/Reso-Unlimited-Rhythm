@@ -18,7 +18,7 @@ const ArtistCard = ({ artist, onClick, subtitle = "Ngh\u1ec7 s\u0129" }) => {
     <button
       type="button"
       onClick={ onClick }
-      className="group flex w-full flex-col items-center rounded-[28px] bg-transparent px-4 py-5 text-center transition duration-200 hover:bg-[#181818] hover:-translate-y-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50group flex w-full flex-col items-center rounded-[28px] bg-[#181818] px-4 py-5 text-center transition duration-200 hover:bg-[#232323] hover:-translate-y-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#121212]"
+      className="group flex w-full flex-col items-center rounded-[22px] bg-[#181818] px-2 py-4 text-center transition duration-200 hover:-translate-y-1 hover:bg-[#232323] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#121212] sm:rounded-[28px] sm:px-4 sm:py-5"
     >
       { avatar ? (
         <img
@@ -28,12 +28,12 @@ const ArtistCard = ({ artist, onClick, subtitle = "Ngh\u1ec7 s\u0129" }) => {
           loading="lazy"
         />
       ) : (
-        <div className="flex aspect-square w-full max-w-[220px] items-center justify-center rounded-full bg-[linear-gradient(145deg,#2d2d2d_0%,#3f3f3f_100%)] text-6xl font-semibold text-white shadow-[0_18px_40px_rgba(0,0,0,0.5)]">
+        <div className="flex aspect-square w-full max-w-[220px] items-center justify-center rounded-full bg-[linear-gradient(145deg,#2d2d2d_0%,#3f3f3f_100%)] text-4xl font-semibold text-white shadow-[0_18px_40px_rgba(0,0,0,0.5)] sm:text-6xl">
           { getArtistInitial(artistName) }
         </div>
       ) }
 
-      <div className="mt-5 space-y-1">
+      <div className="mt-3 space-y-1 sm:mt-5">
         <h2 className="line-clamp-2 text-lg font-bold leading-6 text-white">
           { artistName }
         </h2>

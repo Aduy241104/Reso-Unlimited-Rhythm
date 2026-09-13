@@ -29,22 +29,22 @@ const AlbumCard = ({ album }) => {
     : 0;
 
   return (
-    <article className="flex items-center gap-5 rounded-2xl px-5 py-4 transition hover:bg-[#232323]">
+    <article className="flex items-center gap-3 rounded-2xl px-3 py-3 transition hover:bg-[#232323] sm:gap-5 sm:px-5 sm:py-4">
       {coverImage ? (
         <img
           src={coverImage}
           alt={title}
-          className="h-24 w-24 shrink-0 rounded-xl object-cover"
+          className="h-16 w-16 shrink-0 rounded-xl object-cover sm:h-24 sm:w-24"
           loading="lazy"
         />
       ) : (
-        <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-xl bg-[linear-gradient(145deg,#2e2e2e_0%,#4a4a4a_100%)] text-3xl font-bold text-white">
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-[linear-gradient(145deg,#2e2e2e_0%,#4a4a4a_100%)] text-2xl font-bold text-white sm:h-24 sm:w-24 sm:text-3xl">
           {getAlbumInitial(title)}
         </div>
       )}
 
       <div className="min-w-0">
-        <h3 className="truncate text-xl font-bold text-white">
+        <h3 className="truncate text-base font-bold text-white sm:text-xl">
           {title}
         </h3>
 

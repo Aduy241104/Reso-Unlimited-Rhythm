@@ -118,7 +118,7 @@ const GenreListPage = () => {
   return (
     <section className="space-y-8 bg-black px-1 py-2 sm:space-y-10">
       <div className="space-y-2">
-        <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
+        <h1 className="text-3xl font-bold tracking-tight text-white sm:text-5xl">
           Duyệt tìm tất cả
         </h1>
       </div>

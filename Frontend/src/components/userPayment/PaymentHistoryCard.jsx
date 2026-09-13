@@ -141,11 +141,11 @@ const PaymentHistoryCard = ({ payment, isExpanded, onToggle }) => {
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center justify-between gap-4 p-5 text-left transition hover:bg-[#181818] sm:px-6 sm:py-5"
+        className="flex w-full items-center justify-between gap-3 p-4 text-left transition hover:bg-[#181818] sm:gap-4 sm:px-6 sm:py-5"
         aria-expanded={isExpanded}
       >
         <div className="min-w-0 flex-1">
-          <p className="text-2xl font-black tracking-tight text-white sm:text-3xl">
+          <p className="text-xl font-black tracking-tight text-white min-[420px]:text-2xl sm:text-3xl">
             {payment.displayDate}
           </p>
           <p className="mt-2 text-base font-medium text-white/72 sm:text-lg">
@@ -171,7 +171,7 @@ const PaymentHistoryCard = ({ payment, isExpanded, onToggle }) => {
                 Số hóa đơn
               </p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span className="truncate text-sm font-medium text-white/88">
+                <span className="min-w-0 max-w-full truncate text-sm font-medium text-white/88">
                   {invoiceValue || "Chưa có thông tin"}
                 </span>
                 <button
@@ -190,7 +190,7 @@ const PaymentHistoryCard = ({ payment, isExpanded, onToggle }) => {
               <div className="grid gap-4 sm:hidden">
                 <div>
                   <p className="text-sm text-white/45">Mặt hàng</p>
-                  <p className="mt-1 text-base font-bold text-white">{payment.planName}</p>
+                  <p className="mt-1 break-words text-base font-bold text-white">{payment.planName}</p>
                 </div>
 
                 <div>

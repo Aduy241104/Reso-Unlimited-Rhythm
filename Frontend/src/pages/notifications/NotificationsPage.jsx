@@ -504,7 +504,7 @@ const NotificationsPage = () => {
                     if (event.key === "Enter") handleNotificationClick(notification);
                 }}
                 className={[
-                    "group relative flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 transition",
+                    "group relative flex w-full cursor-pointer items-start gap-2 rounded-xl px-3 py-2.5 transition sm:items-center sm:gap-3",
                     notification.isRead ? "hover:bg-[#282828]" : "bg-[#1db954]/[0.06] hover:bg-[#282828]",
                 ].join(" ")}
             >
@@ -526,7 +526,7 @@ const NotificationsPage = () => {
                     </div>
                 </div>
 
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex shrink-0 items-center gap-1 sm:gap-2">
                     {!notification.isRead && (
                         <span className="h-2.5 w-2.5 rounded-full bg-[#1db954] shadow-[0_0_10px_rgba(29,185,84,0.7)]" />
                     )}
@@ -658,10 +658,10 @@ const NotificationsPage = () => {
 
                         if (detailTarget.type === "report") {
                             return (
-                                <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/85 p-4 backdrop-blur-md">
-                                    <div className="max-h-[90vh] w-full max-w-xl overflow-hidden rounded-3xl border border-red-500/30 bg-[#141414] text-white shadow-2xl shadow-black">
+                                <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/85 p-3 backdrop-blur-md sm:p-4">
+                                    <div className="max-h-[calc(100dvh-1.5rem)] w-full max-w-xl overflow-hidden rounded-3xl border border-red-500/30 bg-[#141414] text-white shadow-2xl shadow-black sm:max-h-[90vh]">
                                         {/* Header Banner */}
-                                        <div className="relative flex h-28 items-center gap-4 bg-gradient-to-r from-red-950/90 via-amber-950/60 to-[#181818] px-6">
+                                        <div className="relative flex min-h-28 items-center gap-3 bg-gradient-to-r from-red-950/90 via-amber-950/60 to-[#181818] px-4 py-4 sm:h-28 sm:gap-4 sm:px-6 sm:py-0">
                                             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-500/20 text-red-400 border border-red-500/30 shadow-lg">
                                                 <ShieldAlert className="h-6 w-6" />
                                             </div>
@@ -684,15 +684,15 @@ const NotificationsPage = () => {
                                         </div>
 
                                         {/* Body */}
-                                        <div className="spotify-notification-scroll max-h-[calc(90vh-112px)] overflow-y-auto p-6 space-y-4">
+                                        <div className="spotify-notification-scroll max-h-[calc(100dvh-8.5rem)] space-y-4 overflow-y-auto p-4 sm:max-h-[calc(90vh-112px)] sm:p-6">
                                             {/* Target item info */}
                                             {detailTarget.targetName && (
-                                                <div className="rounded-2xl bg-white/[0.05] p-4 border border-white/10 flex items-center justify-between">
+                                                <div className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-white/[0.05] p-4 sm:flex-row sm:items-center sm:justify-between">
                                                     <div>
                                                         <p className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">
                                                             Đối tượng bị báo cáo ({getTargetTypeLabel(detailTarget.targetType)})
                                                         </p>
-                                                        <p className="text-base font-bold text-white mt-0.5">
+                                                        <p className="mt-0.5 break-words text-base font-bold text-white">
                                                             {detailTarget.targetName}
                                                         </p>
                                                     </div>
@@ -708,17 +708,17 @@ const NotificationsPage = () => {
                                                     <ShieldAlert className="h-4 w-4" />
                                                     Nguyên nhân & Ghi chú từ Quản trị viên
                                                 </p>
-                                                <p className="whitespace-pre-wrap text-sm leading-relaxed text-neutral-200">
+                                                <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-neutral-200">
                                                     {content}
                                                 </p>
                                             </div>
 
                                             {/* Footer Buttons */}
-                                            <div className="mt-6 flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+                                            <div className="mt-6 flex flex-col-reverse gap-3 border-t border-white/10 pt-3 sm:flex-row sm:items-center sm:justify-end">
                                                 <button
                                                     type="button"
                                                     onClick={closeDetail}
-                                                    className="rounded-full bg-white/10 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-white/20"
+                                                    className="w-full rounded-full bg-white/10 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-white/20 sm:w-auto"
                                                 >
                                                     Đóng
                                                 </button>
@@ -726,7 +726,7 @@ const NotificationsPage = () => {
                                                     <button
                                                         type="button"
                                                         onClick={(event) => handleOpenTarget(event, detailTarget)}
-                                                        className="rounded-full bg-white px-6 py-2.5 text-sm font-bold text-black transition hover:scale-[1.02] hover:bg-neutral-200"
+                                                        className="w-full rounded-full bg-white px-6 py-2.5 text-sm font-bold text-black transition hover:scale-[1.02] hover:bg-neutral-200 sm:w-auto"
                                                     >
                                                         Xem nội dung
                                                     </button>
@@ -739,8 +739,8 @@ const NotificationsPage = () => {
                         }
 
                         return (
-                            <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-                                <div className="max-h-[90vh] w-full max-w-xl overflow-hidden rounded-3xl border border-white/10 bg-[#181818] text-white shadow-2xl shadow-black/80">
+                            <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm sm:p-4">
+                                <div className="max-h-[calc(100dvh-1.5rem)] w-full max-w-xl overflow-hidden rounded-3xl border border-white/10 bg-[#181818] text-white shadow-2xl shadow-black/80 sm:max-h-[90vh]">
                                     <div className="relative flex h-40 items-center justify-center bg-[#202020]">
                                         {detailTarget.thumbnail ? (
                                             <img
@@ -769,14 +769,14 @@ const NotificationsPage = () => {
                                         </button>
                                     </div>
 
-                                    <div className="spotify-notification-scroll max-h-[calc(90vh-160px)] overflow-y-auto p-6">
+                                    <div className="spotify-notification-scroll max-h-[calc(100dvh-11.5rem)] overflow-y-auto p-4 sm:max-h-[calc(90vh-160px)] sm:p-6">
                                         <div className="flex items-center gap-2 text-xs font-bold text-neutral-400">
                                             <span>{typeMeta.label}</span>
                                             <span>•</span>
                                             <span>{getRelativeTime(detailTarget.createdAt)}</span>
                                         </div>
 
-                                        <h3 className="mt-3 text-2xl font-black leading-8 text-white">
+                                        <h3 className="mt-3 break-words text-xl font-black leading-7 text-white sm:text-2xl sm:leading-8">
                                             {detailTarget.title || "Thông báo"}
                                         </h3>
 
@@ -791,7 +791,7 @@ const NotificationsPage = () => {
                                                 Nội dung
                                             </p>
 
-                                            <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-neutral-200">
+                                            <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-neutral-200">
                                                 {content}
                                             </p>
                                         </div>
@@ -813,11 +813,11 @@ const NotificationsPage = () => {
                                             ))}
                                         </div>
 
-                                        <div className="mt-7 flex flex-wrap justify-end gap-3">
+                                        <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
                                             <button
                                                 type="button"
                                                 onClick={closeDetail}
-                                                className="rounded-full px-5 py-2 text-sm font-bold text-neutral-300 transition hover:bg-white/10 hover:text-white"
+                                                className="w-full rounded-full px-5 py-2 text-sm font-bold text-neutral-300 transition hover:bg-white/10 hover:text-white sm:w-auto"
                                             >
                                                 Đóng
                                             </button>
@@ -826,7 +826,7 @@ const NotificationsPage = () => {
                                                 <button
                                                     type="button"
                                                     onClick={(event) => handleOpenTarget(event, detailTarget)}
-                                                    className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2 text-sm font-bold text-black transition hover:scale-[1.03] hover:bg-neutral-200"
+                                                    className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-2 text-sm font-bold text-black transition hover:scale-[1.03] hover:bg-neutral-200 sm:w-auto"
                                                 >
                                                     {detailTarget.targetType === "track" && (
                                                         <Play className="h-4 w-4 fill-current" />
@@ -848,18 +848,18 @@ const NotificationsPage = () => {
             {deleteTarget &&
                 createPortal(
                     <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/75 p-4">
-                        <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#181818] p-6 text-white shadow-2xl">
+                        <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#181818] p-5 text-white shadow-2xl sm:p-6">
                             <h3 className="text-lg font-bold">Xóa thông báo?</h3>
 
                             <p className="mt-2 text-sm leading-5 text-neutral-400">
                                 Thông báo này sẽ được ẩn khỏi danh sách của bạn.
                             </p>
 
-                            <div className="mt-6 flex justify-end gap-2">
+                            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                                 <button
                                     type="button"
                                     onClick={() => setDeleteTarget(null)}
-                                    className="rounded-full px-4 py-2 text-sm font-bold text-neutral-300 transition hover:bg-white/10 hover:text-white"
+                                    className="w-full rounded-full px-4 py-2 text-sm font-bold text-neutral-300 transition hover:bg-white/10 hover:text-white sm:w-auto"
                                 >
                                     Hủy
                                 </button>
@@ -867,7 +867,7 @@ const NotificationsPage = () => {
                                 <button
                                     type="button"
                                     onClick={handleDelete}
-                                    className="rounded-full bg-white px-4 py-2 text-sm font-bold text-black transition hover:scale-[1.03] hover:bg-neutral-200"
+                                    className="w-full rounded-full bg-white px-4 py-2 text-sm font-bold text-black transition hover:scale-[1.03] hover:bg-neutral-200 sm:w-auto"
                                 >
                                     Xóa
                                 </button>

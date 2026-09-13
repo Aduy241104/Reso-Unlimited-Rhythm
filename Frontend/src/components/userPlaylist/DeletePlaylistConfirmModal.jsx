@@ -99,11 +99,11 @@ const DeletePlaylistConfirmModal = ({
   const hasExtraAction =
     extraActionLabel && typeof onExtraAction === "function";
   const titleClassName = isCompact
-    ? "text-2xl font-bold tracking-tight sm:text-[1.8rem]"
-    : "text-3xl font-bold tracking-tight sm:text-[2.1rem]";
+    ? "text-xl font-bold tracking-tight sm:text-[1.8rem]"
+    : "text-2xl font-bold tracking-tight sm:text-[2.1rem]";
   const descriptionClassName = isDarkVariant
     ? "mt-3 max-w-[26rem] text-sm leading-6 text-white/72 sm:mt-4 sm:text-base"
-    : "mt-4 max-w-[26rem] text-lg leading-8 text-black/86";
+    : "mt-4 max-w-[26rem] text-sm leading-6 text-black/86 sm:text-lg sm:leading-8";
   const panelClassName = [
     "w-full shadow-[0_30px_90px_rgba(0,0,0,0.45)] transition-all duration-300",
     isCompact
@@ -122,7 +122,7 @@ const DeletePlaylistConfirmModal = ({
   ].join(" ");
   const cancelButtonClassName = [
     "inline-flex min-w-0 flex-1 items-center justify-center rounded-full px-4 py-3 font-semibold transition disabled:cursor-not-allowed disabled:opacity-50",
-    isCompact ? "text-base" : "text-2xl",
+    isCompact ? "text-base" : "text-base sm:text-2xl",
     isDarkVariant
       ? "border border-white/12 bg-transparent text-white hover:bg-white/8"
       : "border border-black/10 bg-white text-black hover:bg-black/5",
@@ -131,7 +131,7 @@ const DeletePlaylistConfirmModal = ({
   const resolveActionButtonClassName = (tone) =>
     [
       "inline-flex items-center justify-center rounded-full px-5 py-3 font-semibold transition disabled:cursor-not-allowed disabled:opacity-60",
-      isCompact ? "text-sm sm:text-base" : "text-xl sm:text-2xl",
+      isCompact ? "text-sm sm:text-base" : "text-base sm:text-2xl",
       tone === "primary"
         ? "border border-transparent bg-white text-black hover:bg-white/90"
         : tone === "neutral"
@@ -143,12 +143,12 @@ const DeletePlaylistConfirmModal = ({
 
   const confirmButtonClassName = [
     resolveActionButtonClassName(confirmTone),
-    "min-w-0 flex-1",
+    "min-w-0 flex-1 w-full sm:w-auto",
   ].join(" ");
 
   const extraActionButtonClassName = [
     resolveActionButtonClassName(extraActionTone),
-    hasExtraAction && isCompact ? "w-full" : "min-w-[124px]",
+    hasExtraAction && isCompact ? "w-full" : "w-full sm:min-w-[124px] sm:w-auto",
   ].join(" ");
 
   return createPortal(
@@ -216,11 +216,11 @@ const DeletePlaylistConfirmModal = ({
             </button>
           ) : null}
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <button
               type="button"
               onClick={onClose}
-              className={cancelButtonClassName}
+              className={`${cancelButtonClassName} w-full sm:w-auto`}
               disabled={isDeleting}
             >
               {cancelLabel}

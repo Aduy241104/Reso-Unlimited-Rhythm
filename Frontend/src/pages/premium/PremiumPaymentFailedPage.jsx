@@ -24,7 +24,7 @@ const PremiumPaymentFailedPage = () => {
   const reason = normalizeFailureReason(searchParams.get("reason"));
 
   return (
-    <main className="mx-auto max-w-3xl py-8">
+    <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6">
       <section
         className={[
           "rounded-2xl border p-6 sm:p-8",
@@ -53,22 +53,22 @@ const PremiumPaymentFailedPage = () => {
           </p>
           {invoiceNumber ? (
             <p>
-              Mã đơn: <span className="font-semibold">{invoiceNumber}</span>
+              Mã đơn: <span className="break-all font-semibold">{invoiceNumber}</span>
             </p>
           ) : null}
         </div>
 
-        <div className="mt-6 flex flex-wrap gap-3">
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <Link
             to={routePaths.premium}
-            className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#f5b66f] px-4 text-sm font-semibold text-black transition hover:bg-[#f8c886]"
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[#f5b66f] px-4 text-sm font-semibold text-black transition hover:bg-[#f8c886] sm:w-auto"
           >
             Quay lại Premium
           </Link>
           <Link
             to={routePaths.home}
             className={[
-              "inline-flex min-h-11 items-center justify-center rounded-xl border px-4 text-sm font-semibold transition",
+              "inline-flex min-h-11 w-full items-center justify-center rounded-xl border px-4 text-sm font-semibold transition sm:w-auto",
               isDark
                 ? "border-white/10 bg-[#151515] text-[#f7f1ea] hover:bg-[#1b1b1b]"
                 : "border-[#e5e7eb] bg-white text-[#111111] hover:bg-[#f9fafb]",

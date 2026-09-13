@@ -239,7 +239,7 @@ const PlaylistDetailPage = () => {
                 <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/82">
                   System playlist
                 </p>
-                <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:mt-3 sm:text-5xl lg:text-6xl">
+                <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white [overflow-wrap:anywhere] sm:mt-3 sm:text-5xl lg:text-6xl">
                   { playlist?.title ?? "" }
                 </h1>
                 { playlist?.description ? (

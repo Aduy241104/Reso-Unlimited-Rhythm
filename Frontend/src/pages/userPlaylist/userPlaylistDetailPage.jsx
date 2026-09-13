@@ -761,7 +761,7 @@ const UserPlaylistDetailPage = () => {
                 <button
                   type="button"
                   onClick={handleOpenEditModal}
-                  className="mt-2 text-left text-2xl font-semibold tracking-tight text-white transition hover:text-white/80 sm:mt-3 sm:text-5xl lg:text-6xl"
+                  className="mt-2 w-full text-left text-2xl font-semibold tracking-tight text-white transition hover:text-white/80 [overflow-wrap:anywhere] sm:mt-3 sm:text-5xl lg:text-6xl"
                 >
                   {playlistTitle}
                 </button>
@@ -823,7 +823,7 @@ const UserPlaylistDetailPage = () => {
               {isActionMenuOpen ? (
                 <div
                   className="
-                    absolute left-0 top-full z-20 mt-2 min-w-[230px] overflow-hidden rounded-2xl
+                    absolute right-0 top-full z-20 mt-2 w-[min(230px,calc(100vw-2rem))] overflow-hidden rounded-2xl sm:left-0 sm:right-auto sm:w-[230px]
                     border border-white/10 bg-[#2f2f2f] py-2 shadow-[0_20px_45px_rgba(0,0,0,0.4)]
                   "
                   role="menu"
@@ -905,7 +905,7 @@ const UserPlaylistDetailPage = () => {
                           isRemovingFromCurrentPlaylist={isRemovingTrack}
                         />
                       ),
-                      className: "flex items-center justify-end",
+                      className: "hidden items-center justify-end sm:flex",
                     },
                   ]}
                 />
@@ -971,7 +971,7 @@ const UserPlaylistDetailPage = () => {
               ) : (
                 <div className="h-10 w-10 shrink-0 rounded-[10px] bg-[#e5e7eb]" />
               )}
-              <p className="truncate text-[1.05rem] font-medium text-[#111111]">
+              <p className="min-w-0 truncate text-sm font-medium text-[#111111] sm:text-[1.05rem]">
                 {trackActionFeedback.message}
               </p>
             </div>

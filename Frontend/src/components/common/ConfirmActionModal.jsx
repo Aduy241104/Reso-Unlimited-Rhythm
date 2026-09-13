@@ -23,12 +23,12 @@ const ConfirmActionModal = ({
       <div className="relative w-full max-w-md rounded-3xl border border-neutral-200 bg-white p-6 shadow-2xl">
         <h3 className="text-lg font-semibold text-[#241b15]">{title}</h3>
         <p className="mt-2 text-sm leading-6 text-neutral-600">{message}</p>
-        <div className="mt-6 flex justify-end gap-3">
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <button
             type="button"
             onClick={onCancel}
             disabled={isLoading}
-            className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-neutral-200 bg-white px-5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-50"
+            className="inline-flex min-h-[44px] w-full items-center justify-center rounded-2xl border border-neutral-200 bg-white px-5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-50 sm:w-auto"
           >
             {cancelText}
           </button>
@@ -36,7 +36,7 @@ const ConfirmActionModal = ({
             type="button"
             onClick={onConfirm}
             disabled={isLoading}
-            className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-2xl bg-[#8b5e3c] px-5 text-sm font-semibold text-white transition hover:bg-[#6d4a2f] disabled:opacity-50"
+            className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl bg-[#8b5e3c] px-5 text-sm font-semibold text-white transition hover:bg-[#6d4a2f] disabled:opacity-50 sm:w-auto"
           >
             {isLoading ? (
               <>

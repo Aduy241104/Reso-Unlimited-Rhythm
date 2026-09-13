@@ -104,21 +104,21 @@ const ConfirmModal = ({ isOpen, onConfirm, onCancel, isLoading, title, message }
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCancel} />
-            <div className="relative w-full max-w-md rounded-3xl border border-white/10 bg-[#1a1a22] p-6 shadow-2xl">
+            <div className="relative w-full max-w-md rounded-3xl border border-white/10 bg-[#1a1a22] p-5 shadow-2xl sm:p-6">
                 <h3 className="text-lg font-semibold text-white">{title}</h3>
                 <p className="mt-2 text-sm text-white/65">{message}</p>
-                <div className="mt-6 flex justify-end gap-3">
+                <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                     <button
                         onClick={onCancel}
                         disabled={isLoading}
-                        className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-5 text-sm font-medium text-white/80 transition hover:border-white/20 hover:bg-white/[0.08] disabled:opacity-50"
+                        className="inline-flex min-h-[44px] w-full items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-5 text-sm font-medium text-white/80 transition hover:border-white/20 hover:bg-white/[0.08] disabled:opacity-50 sm:w-auto"
                     >
                         Hủy
                     </button>
                     <button
                         onClick={onConfirm}
                         disabled={isLoading}
-                        className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-2xl bg-rose-500 px-5 text-sm font-semibold text-white transition hover:bg-rose-600 disabled:opacity-50"
+                        className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl bg-rose-500 px-5 text-sm font-semibold text-white transition hover:bg-rose-600 disabled:opacity-50 sm:w-auto"
                     >
                         {isLoading ? (
                             <>
@@ -245,7 +245,7 @@ const MyArtistRegistrationRequestsPage = () => {
                     {!isArtist && (
                         <button
                             onClick={() => navigate(routePaths.artistRegistrationRequest)}
-                            className="inline-flex items-center gap-2 rounded-2xl bg-[#f5b66f] px-5 py-2.5 text-sm font-semibold text-[#15181d] transition hover:bg-[#f7c789]"
+                            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#f5b66f] px-5 py-2.5 text-sm font-semibold text-[#15181d] transition hover:bg-[#f7c789] sm:w-auto"
                         >
                             <Plus className="h-4 w-4" aria-hidden />
                             Đăng kí mới
@@ -321,11 +321,11 @@ const MyArtistRegistrationRequestsPage = () => {
                             {requests.map((request) => (
                                 <div
                                     key={request._id}
-                                    className="flex flex-col gap-4 p-5 transition hover:bg-white/[0.02] sm:flex-row sm:items-center sm:justify-between"
+                                    className="flex flex-col gap-4 p-4 transition hover:bg-white/[0.02] sm:flex-row sm:items-center sm:justify-between sm:p-5"
                                 >
                                     <div className="min-w-0 flex-1">
                                         <div className="flex flex-wrap items-center gap-2">
-                                            <h3 className="text-base font-semibold text-white truncate max-w-[200px]">
+                                            <h3 className="max-w-full truncate text-base font-semibold text-white sm:max-w-[200px]">
                                                 {request.stageName || "Không có tên"}
                                             </h3>
                                             <StatusBadge status={request.status} />
@@ -346,10 +346,10 @@ const MyArtistRegistrationRequestsPage = () => {
                                         )}
                                     </div>
 
-                                    <div className="flex shrink-0 items-center gap-2">
+                                    <div className="flex w-full shrink-0 items-center gap-2 sm:w-auto">
                                         <button
                                             onClick={() => handleViewDetail(request._id)}
-                                            className="inline-flex items-center gap-1.5 rounded-2xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-xs font-medium text-white/75 transition hover:border-white/20 hover:bg-white/[0.07] hover:text-white"
+                                            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-xs font-medium text-white/75 transition hover:border-white/20 hover:bg-white/[0.07] hover:text-white sm:flex-none"
                                         >
                                             <Eye className="h-3.5 w-3.5" aria-hidden />
                                             Chi tiết
@@ -357,7 +357,7 @@ const MyArtistRegistrationRequestsPage = () => {
                                         {request.status === "pending" && (
                                             <button
                                                 onClick={() => handleCancelClick(request)}
-                                                className="inline-flex items-center gap-1.5 rounded-2xl border border-rose-300/20 bg-rose-500/10 px-3.5 py-2 text-xs font-medium text-rose-400 transition hover:bg-rose-500/20"
+                                                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-2xl border border-rose-300/20 bg-rose-500/10 px-3.5 py-2 text-xs font-medium text-rose-400 transition hover:bg-rose-500/20 sm:flex-none"
                                             >
                                                 Hủy
                                             </button>
@@ -370,22 +370,22 @@ const MyArtistRegistrationRequestsPage = () => {
 
                     {/* Pagination */}
                     {!loading && !errorMessage && totalPages > 1 && (
-                        <div className="flex items-center justify-between border-t border-white/[0.06] p-4">
+                        <div className="flex flex-col gap-3 border-t border-white/[0.06] p-4 sm:flex-row sm:items-center sm:justify-between">
                             <p className="text-xs text-white/45">
                                 Trang {currentPage} / {totalPages} — {meta.total} kết quả
                             </p>
-                            <div className="flex items-center gap-2">
+                            <div className="flex w-full items-center gap-2 sm:w-auto">
                                 <button
                                     onClick={() => handlePageChange(currentPage - 1)}
                                     disabled={currentPage <= 1}
-                                    className="inline-flex min-h-[36px] items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-3.5 text-xs font-medium text-white/75 transition hover:border-white/20 hover:bg-white/[0.07] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+                                    className="inline-flex min-h-[36px] flex-1 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-3.5 text-xs font-medium text-white/75 transition hover:border-white/20 hover:bg-white/[0.07] hover:text-white disabled:cursor-not-allowed disabled:opacity-30 sm:flex-none"
                                 >
                                     ← Trước
                                 </button>
                                 <button
                                     onClick={() => handlePageChange(currentPage + 1)}
                                     disabled={currentPage >= totalPages}
-                                    className="inline-flex min-h-[36px] items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-3.5 text-xs font-medium text-white/75 transition hover:border-white/20 hover:bg-white/[0.07] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+                                    className="inline-flex min-h-[36px] flex-1 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-3.5 text-xs font-medium text-white/75 transition hover:border-white/20 hover:bg-white/[0.07] hover:text-white disabled:cursor-not-allowed disabled:opacity-30 sm:flex-none"
                                 >
                                     Sau →
                                 </button>

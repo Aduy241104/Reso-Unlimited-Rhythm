@@ -158,7 +158,7 @@ const LyricsFullscreenPage = () => {
               <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.24em] text-white/45">
                 Đang nghe
               </p>
-              <h1 className="text-4xl font-bold leading-tight tracking-[-0.035em] xl:text-5xl">
+              <h1 className="text-3xl font-bold leading-tight tracking-normal [overflow-wrap:anywhere] sm:text-4xl xl:text-5xl">
                 {trackTitle}
               </h1>
               <p className="mt-2 text-lg font-medium text-white/60">{trackArtistName}</p>
@@ -189,7 +189,7 @@ const LyricsFullscreenPage = () => {
             <span className="w-10">{formatTrackDuration(Math.floor(duration || 0))}</span>
           </div>
 
-          <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center">
+          <div className="mt-3 grid grid-cols-[auto] items-center justify-center sm:grid-cols-[1fr_auto_1fr] sm:justify-stretch">
             <div className="min-w-0">
               <p className="hidden truncate text-sm font-bold sm:block lg:hidden">{trackTitle}</p>
               <p className="hidden truncate text-xs text-white/50 sm:block lg:hidden">{trackArtistName}</p>
@@ -209,7 +209,7 @@ const LyricsFullscreenPage = () => {
                 type="button"
                 onClick={togglePlayPause}
                 disabled={queue.length === 0}
-                className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-white text-black shadow-xl transition hover:scale-105 disabled:opacity-40"
+                className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-white text-black shadow-xl transition hover:scale-105 disabled:opacity-40 sm:h-14 sm:w-14"
                 aria-label={isPlaying ? "Tạm dừng" : "Phát nhạc"}
               >
                 {isBuffering ? (

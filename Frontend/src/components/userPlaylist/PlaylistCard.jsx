@@ -38,13 +38,13 @@ const PlaylistCard = ({ playlist }) => {
           loading="lazy"
         />
       ) : (
-        <div className="flex aspect-square w-full items-center justify-center rounded-xl bg-[linear-gradient(145deg,#242424_0%,#383838_100%)] text-5xl font-semibold text-white">
+        <div className="flex aspect-square w-full items-center justify-center rounded-xl bg-[linear-gradient(145deg,#242424_0%,#383838_100%)] text-4xl font-semibold text-white sm:text-5xl">
           {playlisttitle.charAt(0).toUpperCase()}
         </div>
       ) }
 
-      <div className="space-y-1 px-1 pb-1 pt-4">
-        <h2 className="line-clamp-2 text-lg font-semibold text-white">
+      <div className="space-y-1 px-1 pb-1 pt-3 sm:pt-4">
+        <h2 className="line-clamp-2 text-base font-semibold text-white sm:text-lg">
           { playlisttitle }
         </h2>
 

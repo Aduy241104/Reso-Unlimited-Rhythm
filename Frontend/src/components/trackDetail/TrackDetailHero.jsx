@@ -66,7 +66,7 @@ const TrackDetailHero = ({
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/72">
               { eyebrow }
             </p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-5xl lg:text-7xl">
+            <h1 className="mt-3 text-2xl font-semibold tracking-tight text-white [overflow-wrap:anywhere] min-[420px]:text-3xl sm:text-5xl lg:text-7xl">
               { title }
             </h1>
 
@@ -74,7 +74,7 @@ const TrackDetailHero = ({
               { artistHref ? (
                 <Link
                   to={ artistHref }
-                  className="group flex items-center gap-3 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                  className="group flex min-w-0 items-center gap-3 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
                   aria-label={ `Xem trang cá nhân của ${artistName}` }
                 >
                   <img
@@ -82,25 +82,25 @@ const TrackDetailHero = ({
                     alt=""
                     className="h-9 w-9 rounded-full border border-white/15 object-cover transition group-hover:border-white/40"
                   />
-                  <span className="font-medium text-white group-hover:underline">
+                  <span className="min-w-0 break-words font-medium text-white group-hover:underline">
                     { artistName }
                   </span>
                 </Link>
               ) : (
-                <div className="flex items-center gap-3">
+                <div className="flex min-w-0 items-center gap-3">
                   <img
                     src={ artistAvatar }
                     alt={ artistName }
                     className="h-9 w-9 rounded-full border border-white/15 object-cover"
                   />
-                  <span className="font-medium text-white">{ artistName }</span>
+                  <span className="min-w-0 break-words font-medium text-white">{ artistName }</span>
                 </div>
               ) }
               { albumTitle ? (
                 <>
                   <HeroMetaSeparator />
                   { albumHref ? (
-                    <Link to={ albumHref } className="font-medium text-white/88 transition hover:text-white hover:underline">
+                    <Link to={ albumHref } className="min-w-0 break-words font-medium text-white/88 transition hover:text-white hover:underline">
                       { albumTitle }
                     </Link>
                   ) : (

@@ -154,7 +154,7 @@ const SyncedLyrics = ({
 
               <span
                 className={[
-                  "block font-bold tracking-[-0.025em]",
+                  "block break-words font-bold tracking-normal",
                   "transition-[font-size,line-height,color] duration-300",
                   isActive
                     ? isFullscreen

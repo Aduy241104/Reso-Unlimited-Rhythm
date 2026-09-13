@@ -14,10 +14,10 @@ const inputClassName =
   "w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none transition-all duration-300 placeholder:text-gray-500 focus:border-white/30 focus:bg-black/45 focus:shadow-[0_0_0_4px_rgba(255,255,255,0.08)]";
 
 const secondaryButtonClassName =
-  "inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-gray-200 transition-all duration-300 hover:scale-[1.01] hover:border-white/20 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-gray-200 transition-all duration-300 hover:scale-[1.01] hover:border-white/20 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto";
 
 const primaryButtonClassName =
-  "inline-flex items-center justify-center gap-2 rounded-xl border border-white bg-white px-5 py-3 text-sm font-semibold text-black shadow-[0_18px_40px_rgba(255,255,255,0.08)] transition-all duration-300 hover:scale-[1.02] hover:bg-transparent hover:text-white disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white bg-white px-5 py-3 text-sm font-semibold text-black shadow-[0_18px_40px_rgba(255,255,255,0.08)] transition-all duration-300 hover:scale-[1.02] hover:bg-transparent hover:text-white disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto";
 
 const PASSWORD_SPECIAL_CHARACTER_PATTERN = /[!@#$%^&*(),.?":{}|<>]/;
 const PASSWORD_NUMBER_PATTERN = /\d/;
@@ -200,7 +200,7 @@ const ChangePasswordForm = ({ onCancel, onSaved }) => {
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/65">
             Đổi mật khẩu
           </p>
-          <h3 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+          <h3 className="mt-2 text-xl font-semibold tracking-tight text-white sm:text-2xl">
             Cập nhật mật khẩu tài khoản
           </h3>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-400">

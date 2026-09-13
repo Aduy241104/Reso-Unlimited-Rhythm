@@ -85,8 +85,8 @@ const TrackChartSection = ({
               className={ [
                 "shrink-0 snap-start",
                 isArtistSection
-                  ? "h-[16.75rem] w-[15rem] min-w-[15rem] sm:h-[18.5rem] sm:w-[17.5rem] sm:min-w-[17.5rem] lg:h-[20rem] lg:w-[19rem] lg:min-w-[19rem]"
-                  : "h-[12.75rem] w-[8.5rem] min-w-[8.5rem] sm:h-[15.25rem] sm:w-[10.75rem] sm:min-w-[10.75rem] lg:h-auto lg:w-auto lg:min-w-0",
+                  ? "h-[16.75rem] w-[13.5rem] min-w-[13.5rem] min-[420px]:w-[15rem] min-[420px]:min-w-[15rem] sm:h-[18.5rem] sm:w-[17.5rem] sm:min-w-[17.5rem] lg:h-[20rem] lg:w-[19rem] lg:min-w-[19rem]"
+                  : "h-[12.75rem] w-[8rem] min-w-[8rem] min-[420px]:w-[8.5rem] min-[420px]:min-w-[8.5rem] sm:h-[15.25rem] sm:w-[10.75rem] sm:min-w-[10.75rem] lg:h-auto lg:w-auto lg:min-w-0",
               ].join(" ") }
             >
               <TrackChartCard

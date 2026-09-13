@@ -87,7 +87,7 @@ const SOCIAL_PLATFORM_FIELDS = [
 ];
 
 const sectionCardClassName =
-  "rounded-[20px] border border-white/10 bg-white/[0.03] p-5 sm:p-6";
+  "rounded-[20px] border border-white/10 bg-white/[0.03] p-4 sm:p-6";
 
 const MAX_PORTFOLIO_LINKS = 4;
 const MIN_ARTIST_AGE = 16;
@@ -205,7 +205,7 @@ const getTodayDateValue = () => {
 };
 
 const FieldLabel = ({ children, required = false, countText }) => (
-  <div className="mb-2 flex items-center justify-between">
+  <div className="mb-2 flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between">
     <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-white/60">
       {children}
       {required ? <span className="ml-1 text-rose-300">*</span> : null}
@@ -321,7 +321,7 @@ const UploadField = ({
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       <FieldLabel required={required}>{title}</FieldLabel>
       <input
         ref={inputRef}
@@ -357,7 +357,7 @@ const UploadField = ({
           </p>
           <p className="mt-0.5 text-xs text-slate-500">PNG, JPG hoặc WEBP</p>
         </div>
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-200 bg-amber-50 text-amber-800">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-200 bg-amber-50 text-amber-800">
           <span className="text-xs font-bold">↑</span>
         </div>
       </button>
@@ -369,7 +369,7 @@ const UploadField = ({
             alt="Xem trước ảnh đã chọn"
             className="h-44 w-full rounded-lg object-cover sm:h-52"
           />
-          <div className="mt-2 flex items-center justify-between px-1">
+          <div className="mt-2 flex flex-col gap-1 px-1 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-[11px] font-semibold text-emerald-700 flex items-center gap-1">
               ✓ Ảnh đã chọn
             </span>
@@ -589,7 +589,7 @@ const TermsModal = ({ isOpen, termKey, onClose, onAccept }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby={`terms-title-${termKey}`}
@@ -599,8 +599,8 @@ const TermsModal = ({ isOpen, termKey, onClose, onAccept }) => {
         }
       }}
     >
-      <div className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-[24px] border border-white/10 bg-[#16161d] shadow-[0_30px_80px_rgba(0,0,0,0.6)]">
-        <div className="flex items-start justify-between gap-3 border-b border-white/8 px-6 py-4">
+      <div className="relative flex max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl flex-col overflow-hidden rounded-[24px] border border-white/10 bg-[#16161d] shadow-[0_30px_80px_rgba(0,0,0,0.6)] sm:max-h-[90vh]">
+        <div className="flex items-start justify-between gap-3 border-b border-white/8 px-4 py-4 sm:px-6">
           <div className="flex items-start gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#f5b66f]/20 bg-[#f5b66f]/10 text-[#f5b66f]">
               <FileText className="h-5 w-5" aria-hidden />
@@ -639,7 +639,7 @@ const TermsModal = ({ isOpen, termKey, onClose, onAccept }) => {
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="flex-1 overflow-y-auto px-6 py-5"
+          className="flex-1 overflow-y-auto px-4 py-5 sm:px-6"
         >
           <p className="mb-5 rounded-xl border border-[#f5b66f]/15 bg-[#f5b66f]/5 px-4 py-3 text-sm leading-relaxed text-white/70">
             {content.intro}
@@ -654,17 +654,17 @@ const TermsModal = ({ isOpen, termKey, onClose, onAccept }) => {
               </section>
             ))}
           </div>
-          <div className="mt-6 flex items-center justify-center gap-2 rounded-xl border border-emerald-400/20 bg-emerald-400/8 px-4 py-3 text-xs font-bold text-emerald-400">
+          <div className="mt-6 flex items-start justify-center gap-2 rounded-xl border border-emerald-400/20 bg-emerald-400/8 px-4 py-3 text-xs font-bold text-emerald-400 sm:items-center">
             <CheckCircle2 className="h-4 w-4" aria-hidden />
             Bạn đã đọc đến cuối điều khoản.
           </div>
         </div>
 
-        <div className="flex flex-col-reverse gap-2 border-t border-white/8 bg-white/[0.02] px-6 py-4 sm:flex-row sm:items-center sm:justify-end">
+        <div className="flex flex-col-reverse gap-2 border-t border-white/8 bg-white/[0.02] px-4 py-4 sm:flex-row sm:items-center sm:justify-end sm:px-6">
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-5 text-sm font-semibold text-white/75 transition hover:bg-white/[0.07]"
+            className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-5 text-sm font-semibold text-white/75 transition hover:bg-white/[0.07] sm:w-auto"
           >
             Đóng
           </button>
@@ -675,7 +675,7 @@ const TermsModal = ({ isOpen, termKey, onClose, onAccept }) => {
               onAccept(termKey);
               onClose();
             }}
-            className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-[#f5b66f] px-5 text-sm font-semibold text-[#15181d] transition hover:bg-[#f7c789] disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[#f5b66f] px-5 text-sm font-semibold text-[#15181d] transition hover:bg-[#f7c789] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
             <CheckCircle2 className="h-4 w-4" aria-hidden />
             Đã đọc và đồng ý
@@ -862,14 +862,14 @@ const StatusView = ({ status, navigate, homeRoute, listRoute }) => {
   const config = STATUS_VIEW_CONFIG[status] ?? STATUS_VIEW_CONFIG.pending;
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-[#0d0f14] px-4 py-16">
-      <section className="relative w-full max-w-xl overflow-hidden rounded-[32px] border bg-[linear-gradient(160deg,rgba(20,20,26,0.98),rgba(10,10,14,0.98))] p-8 shadow-[0_30px_80px_rgba(0,0,0,0.5)] backdrop-blur-xl sm:p-10">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-[#0d0f14] px-3 py-8 sm:px-4 sm:py-16">
+      <section className="relative w-full max-w-xl overflow-hidden rounded-[24px] border bg-[linear-gradient(160deg,rgba(20,20,26,0.98),rgba(10,10,14,0.98))] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.5)] backdrop-blur-xl sm:rounded-[32px] sm:p-10">
         {/* Glows */}
         <div className={`pointer-events-none absolute -left-16 -top-16 h-56 w-56 rounded-full opacity-30 blur-3xl ${config.glowPrimary}`} />
         <div className={`pointer-events-none absolute -bottom-16 -right-16 h-56 w-56 rounded-full opacity-20 blur-3xl ${config.glowSecondary}`} />
 
         {/* Header */}
-        <div className={`relative mb-8 rounded-2xl border p-8 text-center ${config.heroBorder} ${config.heroBackground}`}>
+        <div className={`relative mb-8 rounded-2xl border p-5 text-center sm:p-8 ${config.heroBorder} ${config.heroBackground}`}>
           <div className={`mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border-2 ${config.iconWrapper}`}>
             <config.icon className={`h-7 w-7 ${config.iconClassName}`} />
           </div>
@@ -887,10 +887,10 @@ const StatusView = ({ status, navigate, homeRoute, listRoute }) => {
 
 
         <div className="overflow-hidden rounded-[24px] border border-white/8 bg-white/[0.03] backdrop-blur-sm">
-          <div className="border-b border-white/8 px-6 py-4">
+          <div className="border-b border-white/8 px-4 py-4 sm:px-6">
             <p className="text-xs font-semibold uppercase tracking-widest text-white/40">Tiến trình</p>
           </div>
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             <div className="space-y-0">
               {config.timeline.map((step, index) => (
                 <StatusTimelineStep
@@ -908,18 +908,18 @@ const StatusView = ({ status, navigate, homeRoute, listRoute }) => {
             Theo dõi trạng thái yêu cầu trong mục{" "}
             <span className="font-medium text-white/70">Yêu cầu của tôi</span>.
           </p>
-          <div className="flex gap-2">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             <button
               type="button"
               onClick={() => navigate(homeRoute, { replace: true })}
-              className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-5 text-sm font-medium text-white/75 transition hover:border-white/20 hover:bg-white/[0.07]"
+              className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-5 text-sm font-medium text-white/75 transition hover:border-white/20 hover:bg-white/[0.07] sm:w-auto"
             >
               Trang chủ
             </button>
             <button
               type="button"
               onClick={() => navigate(listRoute, { replace: true })}
-              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-[#f5b66f] px-5 text-sm font-semibold text-[#15181d] transition hover:bg-[#f7c789]"
+              className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[#f5b66f] px-5 text-sm font-semibold text-[#15181d] transition hover:bg-[#f7c789] sm:w-auto"
             >
               <FileCheck2 className="h-4 w-4" />
               Xem yêu cầu
@@ -1807,7 +1807,7 @@ const ArtistRegistrationRequestPage = () => {
           </button>
         </div>
 
-        <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-6 sm:p-8 shadow-[0_24px_80px_rgba(0,0,0,0.36)]">
+        <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.36)] sm:rounded-[28px] sm:p-8">
           <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1.5">
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#f5b66f]">
@@ -1821,7 +1821,7 @@ const ArtistRegistrationRequestPage = () => {
               </p>
             </div>
 
-            <div className="inline-flex items-center gap-2.5 rounded-xl border border-amber-400/20 bg-amber-400/8 px-3.5 py-2 text-xs font-semibold text-amber-300 shrink-0">
+            <div className="inline-flex shrink-0 items-center gap-2.5 self-start rounded-xl border border-amber-400/20 bg-amber-400/8 px-3.5 py-2 text-xs font-semibold text-amber-300 sm:self-auto">
               <span className="h-2 w-2 rounded-full bg-amber-400" />
               Chưa gửi hồ sơ
             </div>
@@ -2004,7 +2004,7 @@ const ArtistRegistrationRequestPage = () => {
                   icon={Music4}
                 >
                   <div>
-                    <div className="mb-3 flex items-center justify-between gap-3">
+                    <div className="mb-3 flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                       <FieldLabel>Thể loại âm nhạc</FieldLabel>
                       <span className="text-xs text-white/45">
                         {selectedGenreText}

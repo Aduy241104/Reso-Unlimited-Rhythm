@@ -76,7 +76,7 @@ const TopArtistsPage = ({ period = "daily" }) => {
   }, [config]);
 
   return (
-    <section className="min-w-0 p-5 sm:p-7 lg:p-10">
+    <section className="min-w-0 p-3 sm:p-7 lg:p-10">
       <DailyTopArtistsSection
         title={ config.title }
         description={ config.description }

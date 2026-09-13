@@ -24,7 +24,6 @@ const CopyrightRegistrySchema = new Schema(
             isrc: { type: String, default: "", trim: true, index: true },
         },
         musicalWork: {
-            workId: { type: String, default: "", trim: true },
             iswc: { type: String, default: "", trim: true, index: true },
             composer: { type: String, default: "", trim: true },
             lyricist: { type: String, default: "", trim: true },

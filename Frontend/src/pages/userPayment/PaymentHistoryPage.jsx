@@ -396,7 +396,7 @@ const PaymentHistoryPage = () => {
         </button>
 
         <div className="mt-5">
-          <h1 className="text-4xl font-black tracking-tight text-white sm:text-5xl lg:text-6xl">
+          <h1 className="text-3xl font-black tracking-tight text-white sm:text-5xl lg:text-6xl">
             {"L\u1ecbch s\u1eed thanh to\u00e1n"}
           </h1>
         </div>

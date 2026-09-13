@@ -37,7 +37,7 @@ const ContentCardSection = ({
           { items.map((item) => (
             <div
               key={ item.id }
-              className="h-[12.75rem] w-[8.5rem] min-w-[8.5rem] shrink-0 snap-start sm:h-[15.25rem] sm:w-[10.75rem] sm:min-w-[10.75rem] lg:h-[17rem] lg:w-[12.5rem] lg:min-w-[12.5rem]"
+              className="h-[12.75rem] w-[8rem] min-w-[8rem] shrink-0 snap-start min-[420px]:w-[8.5rem] min-[420px]:min-w-[8.5rem] sm:h-[15.25rem] sm:w-[10.75rem] sm:min-w-[10.75rem] lg:h-[17rem] lg:w-[12.5rem] lg:min-w-[12.5rem]"
             >
               <ContentCard
                 image={ item.image }

@@ -49,10 +49,10 @@ const GenreCard = ({ genre }) => {
   return (
     <article
       onClick={ handleOpenGenre }
-      className="relative h-[174px] cursor-pointer overflow-hidden rounded-xl p-5 transition-transform duration-300 hover:scale-[1.02]"
+      className="relative h-[150px] cursor-pointer overflow-hidden rounded-xl p-4 transition-transform duration-300 hover:scale-[1.02] sm:h-[174px] sm:p-5"
       style={{ backgroundColor: getGenreCardColor(genre) }}
     >
-      <h2 className="max-w-[70%] text-[1.65rem] font-bold leading-tight text-white">
+      <h2 className="max-w-[72%] break-words text-[1.35rem] font-bold leading-tight text-white sm:text-[1.65rem]">
         { genreName }
       </h2>
 
@@ -60,7 +60,7 @@ const GenreCard = ({ genre }) => {
         <img
           src={ genreImage }
           alt={ genreName }
-          className="absolute bottom-0 right-0 h-[110px] w-[110px] translate-x-4 translate-y-3 rotate-[23deg] object-cover shadow-2xl"
+          className="absolute bottom-0 right-0 h-[96px] w-[96px] translate-x-4 translate-y-3 rotate-[23deg] object-cover shadow-2xl sm:h-[110px] sm:w-[110px]"
           loading="lazy"
         />
       ) : null }

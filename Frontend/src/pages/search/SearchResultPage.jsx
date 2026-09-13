@@ -179,7 +179,7 @@ const SearchSection = ({
   onViewAll,
 }) => (
   <section className="space-y-4 sm:space-y-5">
-    <div className="flex items-center justify-between gap-4">
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
       <h2 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
         {title}
       </h2>
@@ -205,7 +205,7 @@ const PaginationControls = ({ pagination, loading, onPageChange }) => {
   }
 
   return (
-    <div className="flex items-center justify-center gap-4 pt-2 text-sm text-[#a7a7a7]">
+    <div className="flex flex-wrap items-center justify-center gap-2 pt-2 text-sm text-[#a7a7a7] sm:gap-4">
       <button
         type="button"
         disabled={loading || pagination.page <= 1}
@@ -309,7 +309,7 @@ const CardRail = ({ items, type, onPlay }) => (
     {items.map((item, index) => (
       <div
         key={`${type}-${getItemId(item) || index}`}
-        className="h-[13.5rem] w-[9.25rem] min-w-[9.25rem] shrink-0 sm:h-[16rem] sm:w-[11rem] sm:min-w-[11rem] lg:h-[17rem] lg:w-[12rem] lg:min-w-[12rem]"
+        className="h-[13.5rem] w-[8.25rem] min-w-[8.25rem] shrink-0 min-[420px]:w-[9.25rem] min-[420px]:min-w-[9.25rem] sm:h-[16rem] sm:w-[11rem] sm:min-w-[11rem] lg:h-[17rem] lg:w-[12rem] lg:min-w-[12rem]"
       >
         <SearchContentCard item={item} type={type} onPlay={onPlay} />
       </div>
@@ -322,7 +322,7 @@ const TypedCardRail = ({ items, onPlay }) => (
     {items.map(({ item, type }, index) => (
       <div
         key={`${type}-${getItemId(item) || index}`}
-        className="h-[13.5rem] w-[9.25rem] min-w-[9.25rem] shrink-0 sm:h-[16rem] sm:w-[11rem] sm:min-w-[11rem] lg:h-[17rem] lg:w-[12rem] lg:min-w-[12rem]"
+        className="h-[13.5rem] w-[8.25rem] min-w-[8.25rem] shrink-0 min-[420px]:w-[9.25rem] min-[420px]:min-w-[9.25rem] sm:h-[16rem] sm:w-[11rem] sm:min-w-[11rem] lg:h-[17rem] lg:w-[12rem] lg:min-w-[12rem]"
       >
         <SearchContentCard
           item={item}
@@ -341,7 +341,7 @@ const ArtistRail = ({ artists, onSelect }) => (
     {artists.map((artist, index) => (
       <div
         key={`artist-${getItemId(artist) || index}`}
-        className="w-[10.5rem] min-w-[10.5rem] shrink-0 sm:w-[12.5rem] sm:min-w-[12.5rem]"
+        className="w-[9rem] min-w-[9rem] shrink-0 min-[420px]:w-[10.5rem] min-[420px]:min-w-[10.5rem] sm:w-[12.5rem] sm:min-w-[12.5rem]"
       >
         <ArtistCard
           artist={{

@@ -215,7 +215,7 @@ const CustomerCreateReportPage = () => {
   if (isSubmitted) {
     return (
       <main className="min-h-full bg-[#0e0e12] px-4 py-10 text-white sm:px-6 lg:px-8">
-        <section className="mx-auto max-w-2xl rounded-[28px] border border-emerald-400/20 bg-[linear-gradient(145deg,rgba(16,185,129,0.10),rgba(255,255,255,0.03))] p-8 text-center shadow-[0_24px_80px_rgba(0,0,0,0.36)]">
+        <section className="mx-auto max-w-2xl rounded-[24px] border border-emerald-400/20 bg-[linear-gradient(145deg,rgba(16,185,129,0.10),rgba(255,255,255,0.03))] p-5 text-center shadow-[0_24px_80px_rgba(0,0,0,0.36)] sm:rounded-[28px] sm:p-8">
           <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-400/15 text-emerald-300">
             <CheckCircle className="h-7 w-7" aria-hidden />
           </div>
@@ -230,14 +230,14 @@ const CustomerCreateReportPage = () => {
             <button
               type="button"
               onClick={() => navigate(routePaths.home)}
-              className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-5 text-sm font-medium text-white/80 transition hover:bg-white/[0.07]"
+              className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-5 text-sm font-medium text-white/80 transition hover:bg-white/[0.07] sm:w-auto"
             >
               Về trang chủ
             </button>
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#f5b66f] px-5 text-sm font-semibold text-[#15181d] transition hover:bg-[#f7c789]"
+              className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-[#f5b66f] px-5 text-sm font-semibold text-[#15181d] transition hover:bg-[#f7c789] sm:w-auto"
             >
               Quay lại nội dung
             </button>
@@ -250,7 +250,7 @@ const CustomerCreateReportPage = () => {
   return (
     <main className="min-h-full bg-[#0e0e12] px-4 py-10 text-white sm:px-6 lg:px-8">
       <section className="mx-auto max-w-3xl space-y-6">
-        <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.36)] sm:p-8">
+        <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.36)] sm:rounded-[28px] sm:p-8">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#f5b66f]">
             Trung tâm báo cáo
           </p>
@@ -266,7 +266,7 @@ const CustomerCreateReportPage = () => {
         <form
           onSubmit={handleSubmit}
           noValidate
-          className="rounded-[28px] border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.36)] sm:p-8"
+          className="rounded-[24px] border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.36)] sm:rounded-[28px] sm:p-8"
         >
           {errors.targetId ? (
             <div className="mb-5 flex items-start gap-3 rounded-xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-200">
@@ -335,14 +335,14 @@ const CustomerCreateReportPage = () => {
 
           <div className="mt-5">
             <FieldLabel>Ảnh minh chứng</FieldLabel>
-            <label className="flex min-h-[58px] cursor-pointer items-center justify-between gap-3 rounded-xl border border-dashed border-white/15 bg-white/[0.03] px-4 py-3 transition hover:border-[#f5b66f]/40 hover:bg-white/[0.05]">
+            <label className="flex min-h-[58px] cursor-pointer items-start justify-between gap-3 rounded-xl border border-dashed border-white/15 bg-white/[0.03] px-4 py-3 transition hover:border-[#f5b66f]/40 hover:bg-white/[0.05] sm:items-center">
               <div className="min-w-0">
                 <p className="text-sm font-medium text-white/85">
                   Tải lên tối đa {MAX_REPORT_IMAGES} ảnh minh chứng
                 </p>
                 <p className="mt-1 text-xs text-white/45">PNG, JPG hoặc WEBP</p>
               </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f5b66f]/12 text-[#f5b66f]">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#f5b66f]/12 text-[#f5b66f]">
                 <ImagePlus className="h-5 w-5" aria-hidden />
               </div>
               <input
@@ -364,7 +364,7 @@ const CustomerCreateReportPage = () => {
                     key={`${name}-${index}`}
                     className="flex items-center justify-between rounded-xl border border-white/8 bg-white/[0.03] px-4 py-2 text-sm text-white/70"
                   >
-                    <span className="truncate">{name}</span>
+                    <span className="min-w-0 truncate">{name}</span>
                     <button
                       type="button"
                       onClick={() => handleRemoveImage(index)}
@@ -389,7 +389,7 @@ const CustomerCreateReportPage = () => {
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="inline-flex min-h-[46px] items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-5 text-sm font-medium text-white/80 transition hover:bg-white/[0.07]"
+              className="inline-flex min-h-[46px] w-full items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-5 text-sm font-medium text-white/80 transition hover:bg-white/[0.07] sm:w-auto"
             >
               Hủy
             </button>
@@ -397,7 +397,7 @@ const CustomerCreateReportPage = () => {
               type="submit"
               disabled={isSubmitting}
               className={[
-                "inline-flex min-h-[46px] items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-70",
+                "inline-flex min-h-[46px] w-full items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto",
                 isSubmitting
                   ? "bg-[#111111] text-white"
                   : "bg-[#f5b66f] text-[#15181d] hover:bg-[#f7c789]",

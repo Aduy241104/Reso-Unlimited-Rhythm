@@ -26,7 +26,7 @@ import { filterPlayableTracks } from "../../utils/trackStatus";
 import { getTrackDisplayTitle } from "../../utils/trackTitle";
 
 const pageShellClassName =
-  "min-h-screen bg-[#020202] px-4 py-8 text-white sm:px-6 lg:px-8";
+  "min-h-screen bg-[#020202] px-3 py-6 text-white sm:px-6 sm:py-8 lg:px-8";
 
 const lightGrayBorderClassName = "border border-[#d1d5db]/25";
 const lightGraySoftBorderClassName = "border border-[#d1d5db]/20";
@@ -112,7 +112,7 @@ const buildChartDateLabel = (item) => {
 };
 
 const StatCard = ({ icon, label, value, hint }) => (
-  <div className={`rounded-[22px] ${lightGraySoftBorderClassName} bg-white/[0.03] px-5 py-4`}>
+  <div className={`rounded-[22px] ${lightGraySoftBorderClassName} bg-white/[0.03] px-4 py-4 sm:px-5`}>
     <div className="flex items-center gap-3">
       <div className={`flex h-11 w-11 items-center justify-center rounded-full ${lightGraySoftBorderClassName} bg-white/[0.04] text-white/88`}>
         {createElement(icon, { className: "h-5 w-5" })}
@@ -304,14 +304,14 @@ const PremiumRequiredState = () => (
       <div className="relative w-full overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(145deg,rgba(24,22,18,0.98),rgba(10,10,10,0.98)_48%,rgba(8,8,8,1))] shadow-[0_30px_100px_rgba(0,0,0,0.52)]">
         <div className="pointer-events-none absolute -left-20 -top-24 h-72 w-72 rounded-full bg-[#f1c27d]/10 blur-3xl" />
 
-        <div className="relative grid gap-10 p-6 sm:p-9 lg:grid-cols-[1.02fr_0.98fr] lg:items-center lg:p-12">
+        <div className="relative grid gap-8 p-4 sm:gap-10 sm:p-9 lg:grid-cols-[1.02fr_0.98fr] lg:items-center lg:p-12">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-[#f1c27d]/20 bg-[#f1c27d]/[0.08] px-3.5 py-2 text-xs font-semibold text-[#f4cf95]">
               <Crown className="h-4 w-4" />
               Dành cho thành viên Premium
             </div>
 
-            <h1 className="mt-6 max-w-xl text-[2.25rem] font-semibold leading-[1.08] tracking-[-0.035em] text-white sm:text-[3.25rem]">
+            <h1 className="mt-6 max-w-xl text-[1.9rem] font-semibold leading-[1.12] tracking-normal text-white sm:text-[3.25rem] sm:leading-[1.08]">
               Khám phá câu chuyện âm nhạc của bạn
             </h1>
             <p className="mt-5 max-w-xl text-sm leading-7 text-white/58 sm:text-base">
@@ -431,7 +431,7 @@ const UserInsightSection = ({ activity }) => {
   const topTracks = filterPlayableTracks(activity?.topTracks || []);
 
   return (
-    <section className={`${panelClassName} overflow-hidden p-6 sm:p-7 lg:p-8`}>
+    <section className={`${panelClassName} overflow-hidden p-4 sm:p-7 lg:p-8`}>
       <div className={`flex flex-col gap-4 border-b ${lightGrayDividerClassName} pb-6 lg:flex-row lg:items-end lg:justify-between`}>
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-white/35">
@@ -446,7 +446,7 @@ const UserInsightSection = ({ activity }) => {
           </p>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[420px]">
+        <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[360px]">
           <InsightBadge
             icon={Music2}
             label="Top bài hát"
@@ -463,7 +463,7 @@ const UserInsightSection = ({ activity }) => {
       </div>
 
       <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
-        <section className={`rounded-[16px] ${lightGraySoftBorderClassName} bg-[#050505] p-5`}>
+        <section className={`rounded-[16px] ${lightGraySoftBorderClassName} bg-[#050505] p-4 sm:p-5`}>
           <div>
             <p className="text-xs uppercase tracking-[0.24em] text-white/35">
               Top thể loại
@@ -512,7 +512,7 @@ const UserInsightSection = ({ activity }) => {
           )}
         </section>
 
-        <section className={`rounded-[16px] ${lightGraySoftBorderClassName} bg-[#050505] p-5`}>
+        <section className={`rounded-[16px] ${lightGraySoftBorderClassName} bg-[#050505] p-4 sm:p-5`}>
           <div>
             <p className="text-xs uppercase tracking-[0.24em] text-white/35">
               Top bài hát
@@ -533,7 +533,7 @@ const UserInsightSection = ({ activity }) => {
                   key={track.id || `${track.title}-${index}`}
                   className={`flex flex-col gap-4 rounded-[20px] ${lightGraySoftBorderClassName} bg-white/[0.03] p-4 md:flex-row md:items-center md:justify-between`}
                 >
-                  <div className="flex min-w-0 items-center gap-4">
+                  <div className="flex min-w-0 items-center gap-3 sm:gap-4">
                     <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${lightGraySoftBorderClassName} bg-white/[0.04] text-sm font-semibold text-white/88`}>
                       {index + 1}
                     </div>
@@ -554,7 +554,7 @@ const UserInsightSection = ({ activity }) => {
                       <p className="truncate text-base font-semibold text-white">
                         {getTrackDisplayTitle(track, track.title)}
                       </p>
-                      <p className="mt-1 text-sm text-white/48">
+                      <p className="mt-1 line-clamp-2 break-words text-sm text-white/48">
                         {track.genres.length > 0
                           ? track.genres.map((genre) => genre.name).join(" • ")
                           : "Chưa gắn thể loại"}
@@ -754,13 +754,13 @@ const UserRecentListeningPage = () => {
   return (
     <main className={pageShellClassName}>
       <section className="mx-auto w-full max-w-7xl space-y-6">
-        <section className={`${panelClassName} overflow-hidden p-6 sm:p-7 lg:p-8`}>
+        <section className={`${panelClassName} overflow-hidden p-4 sm:p-7 lg:p-8`}>
           <div className={`flex flex-col gap-4 border-b ${lightGrayDividerClassName} pb-6 lg:flex-row lg:items-end lg:justify-between`}>
             <div>
               <p className="text-xs uppercase tracking-[0.3em] text-white/35">
                 Hoạt động nghe gần đây
               </p>
-              <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-[3rem] sm:leading-[1.05]">
+              <h1 className="mt-3 text-2xl font-semibold tracking-tight text-white sm:text-[3rem] sm:leading-[1.05]">
                 Thống kê lượt nghe 7 ngày
               </h1>
               <p className="mt-4 max-w-3xl text-sm leading-7 text-white/55 sm:text-base">

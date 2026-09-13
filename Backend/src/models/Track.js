@@ -43,7 +43,7 @@ const copyrightEvidenceDocumentSchema = new Schema(
         // so existing evidence documents can still be read safely.
         url: { type: String, default: "" },
         publicId: { type: String, default: "" },
-        sha256: { type: String, default: "", trim: true, index: true },
+        sha256: { type: String, default: "", trim: true },
         hash: { type: String, default: "", trim: true },
         uploadedAt: { type: Date, default: Date.now },
         uploadStatus: {
@@ -51,9 +51,6 @@ const copyrightEvidenceDocumentSchema = new Schema(
             enum: ["uploaded", "replaced", "deleted", "failed"],
             default: "uploaded",
         },
-        viewedAt: { type: Date, default: null },
-        viewedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
-        viewedSessionId: { type: Schema.Types.ObjectId, default: null },
     },
     { _id: false }
 );
@@ -223,7 +220,6 @@ const TrackSchema = new Schema(
                 type: String,
                 enum: ["unknown", "pending", "processing", "passed", "flagged", "failed"],
                 default: "unknown",
-                index: true,
             },
             audioHash: { type: String, default: "", trim: true },
             audioVersion: { type: Number, min: 1, default: 1 },
@@ -237,7 +233,7 @@ const TrackSchema = new Schema(
             completedAt: { type: Date, default: null },
         },
         // Version counters are used to prevent approving a stale review session.
-        submissionVersion: { type: Number, min: 1, default: 1, index: true },
+        submissionVersion: { type: Number, min: 1, default: 1 },
         audioVersion: { type: Number, min: 1, default: 1 },
         copyrightVersion: { type: Number, min: 1, default: 1 },
         evidenceVersion: { type: Number, min: 1, default: 1 },
@@ -267,7 +263,7 @@ const TrackSchema = new Schema(
                 reasonCodes: { type: [String], default: [] },
                 riskLevel: { type: String, enum: ["none", "low", "medium", "high"], default: "none" },
                 summary: { type: String, default: "", trim: true, maxlength: 2000 },
-                evaluatedAt: { type: Date, default: null, index: true },
+                evaluatedAt: { type: Date, default: null },
                 audioVersion: { type: Number, min: 1, default: 1 },
                 submissionVersion: { type: Number, min: 1, default: 1 },
                 copyrightVersion: { type: Number, min: 1, default: 1 },
@@ -288,7 +284,7 @@ const TrackSchema = new Schema(
                 ]
             }],
             lastRejection: {
-                rejectionId: { type: String, default: "", index: true },
+                rejectionId: { type: String, default: "" },
                 rejectedAt: { type: Date, default: null },
                 rejectedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
                 submissionVersion: { type: Number, min: 1, default: 1 },

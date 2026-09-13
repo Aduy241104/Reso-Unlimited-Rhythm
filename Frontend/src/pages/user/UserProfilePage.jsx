@@ -153,10 +153,10 @@ const getSubscriptionStatusMeta = (status) => {
   );
 };
 
-const pageShellClassName = "bg-black px-4 py-6 text-white sm:px-6 lg:px-8";
+const pageShellClassName = "bg-black px-3 py-6 text-white sm:px-6 lg:px-8";
 
 const sectionPanelClassName =
-  "rounded-[32px] border border-white/10 bg-[#111111] p-6 shadow-[0_20px_48px_rgba(0,0,0,0.24)] sm:p-8";
+  "rounded-[24px] border border-white/10 bg-[#111111] p-4 shadow-[0_20px_48px_rgba(0,0,0,0.24)] sm:rounded-[32px] sm:p-8";
 
 const LoadingCard = () => {
   return (
@@ -621,7 +621,7 @@ const UserProfilePage = () => {
                 />
               </div>
             ) : (
-              <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.08),rgba(0,0,0,0.3)_35%,rgba(8,8,8,0.9))] p-6 sm:p-7">
+              <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.08),rgba(0,0,0,0.3)_35%,rgba(8,8,8,0.9))] p-4 sm:rounded-[28px] sm:p-7">
                 <p className="text-base font-medium text-white sm:text-lg">
                   Bạn chưa đăng kí gói Premium
                 </p>
@@ -631,7 +631,7 @@ const UserProfilePage = () => {
                 </p>
                 <Link
                   to={routePaths.premium}
-                  className="mt-5 inline-flex items-center justify-center rounded-2xl border border-white bg-white px-5 py-3 text-sm font-semibold text-black transition duration-300 hover:bg-transparent hover:text-white"
+                  className="mt-5 inline-flex w-full items-center justify-center rounded-2xl border border-white bg-white px-5 py-3 text-sm font-semibold text-black transition duration-300 hover:bg-transparent hover:text-white sm:w-auto"
                 >
                   Đăng kí Premium
                 </Link>

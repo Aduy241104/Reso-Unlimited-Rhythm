@@ -231,7 +231,7 @@ const RecommendationMixDetailPage = () => {
                 <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/82">
                   D\u00e0nh cho {userDisplayName}
                 </p>
-                <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:mt-3 sm:text-5xl lg:text-6xl">
+                <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white [overflow-wrap:anywhere] sm:mt-3 sm:text-5xl lg:text-6xl">
                   {mix?.title ?? ""}
                 </h1>
                 <p className="mt-3 max-w-3xl text-sm leading-6 text-white/88 sm:mt-4 sm:text-base">

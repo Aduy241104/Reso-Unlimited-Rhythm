@@ -58,7 +58,7 @@ const PodcastListPage = () => {
   const podcastItems = mapPodcastsToContentCards(podcasts);
 
   return (
-    <section className="min-w-0 space-y-6 p-5 text-[#f7f1ea] sm:space-y-8 lg:p-6">
+    <section className="min-w-0 space-y-6 p-3 text-[#f7f1ea] sm:space-y-8 sm:p-5 lg:p-6">
       <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
         <div className="space-y-1.5">
           <p className="text-[10px] font-normal uppercase tracking-[0.2em] text-[#a1a1aa]">
@@ -107,7 +107,7 @@ const PodcastListPage = () => {
           Chưa có Podcast phù hợp.
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-7 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
           {podcastItems.map((item) => (
             <ContentCard
               key={item.id}
@@ -127,7 +127,7 @@ const PodcastListPage = () => {
       )}
 
       {pagination?.totalPages > 1 ? (
-        <div className="flex items-center justify-center gap-4 text-sm text-[#a1a1aa]">
+        <div className="flex flex-wrap items-center justify-center gap-2 text-sm text-[#a1a1aa] sm:gap-4">
           <button
             type="button"
             disabled={page <= 1}

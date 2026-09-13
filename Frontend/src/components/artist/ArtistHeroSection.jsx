@@ -48,7 +48,7 @@ const ArtistHeroSection = ({
               ) : null }
 
               <div className="mt-3 flex flex-wrap items-center gap-3">
-                <h1 className="font-title text-5xl font-black leading-none tracking-[-0.05em] text-white sm:text-7xl lg:text-[5.6rem]">
+                <h1 className="font-title text-4xl font-black leading-tight tracking-normal text-white [overflow-wrap:anywhere] sm:text-6xl lg:text-[5.2rem]">
                   { profile.name }
                 </h1>
               </div>
@@ -65,7 +65,7 @@ const ArtistHeroSection = ({
                   onClick={ onToggleFollow }
                   disabled={ isFollowLoading }
                   className="
-                    rounded-full border border-white/25 px-6 py-3 text-sm font-semibold uppercase tracking-[0.14em]
+                    rounded-full border border-white/25 px-6 py-3 text-sm font-semibold uppercase tracking-[0.14em] max-[420px]:w-full max-[420px]:justify-center
                     text-white transition duration-300 hover:scale-[1.02] hover:border-white/40 hover:bg-white/[0.08]
                     disabled:cursor-not-allowed disabled:opacity-70
                   "
@@ -82,7 +82,7 @@ const ArtistHeroSection = ({
                   type="button"
                   onClick={ onReport }
                   className="
-                    rounded-full border border-white/25 px-6 py-3 text-sm font-semibold uppercase tracking-[0.14em]
+                    rounded-full border border-white/25 px-6 py-3 text-sm font-semibold uppercase tracking-[0.14em] max-[420px]:w-full max-[420px]:justify-center
                     text-white transition duration-300 hover:scale-[1.02] hover:border-white/40 hover:bg-white/[0.08]
                   "
                 >

@@ -78,7 +78,7 @@ const LyricsPage = () => {
                     <Radio className={`h-3.5 w-3.5 ${isPlaying ? "animate-pulse" : ""}`} />
                     {isPlaying ? "Đang phát" : "Đang tạm dừng"}
                   </div>
-                  <h1 className="truncate text-xl font-bold tracking-[-0.03em] text-white sm:text-2xl lg:whitespace-normal lg:text-4xl">
+                  <h1 className="truncate text-xl font-bold tracking-normal text-white sm:text-2xl lg:whitespace-normal lg:text-4xl">
                     {trackTitle}
                   </h1>
                   <p className="mt-2 truncate text-sm font-medium text-white/65 sm:text-base lg:whitespace-normal">

@@ -167,13 +167,22 @@ const GenreDetailPage = () => {
       : "";
   const visibleTracks = filterPlayableTracks(tracks);
   const totalPages = Math.max(1, pagination?.totalPages || 1);
-  const pageNumbers = Array.from({ length: totalPages }, (_, index) => index + 1);
+  const visiblePageCount = Math.min(totalPages, 5);
+  const currentPageNumber = pagination?.page || page;
+  const firstPageNumber = Math.max(
+    1,
+    Math.min(currentPageNumber - 2, totalPages - visiblePageCount + 1)
+  );
+  const pageNumbers = Array.from(
+    { length: visiblePageCount },
+    (_, index) => firstPageNumber + index
+  );
   const basePaginationButtonClassName = "flex h-[42px] w-[42px] items-center justify-center rounded-md border font-semibold transition-all";
 
   return (
     <section className="space-y-8 bg-black px-1 py-2 sm:space-y-10">
       <section
-        className="relative overflow-hidden rounded-[28px] bg-[linear-gradient(135deg,#1d4ed8_0%,#1e3a8a_52%,#07121f_100%)] px-5 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12"
+        className="relative overflow-hidden rounded-[22px] bg-[linear-gradient(135deg,#1d4ed8_0%,#1e3a8a_52%,#07121f_100%)] px-4 py-6 sm:rounded-[28px] sm:px-8 sm:py-10 lg:px-10 lg:py-12"
       >
         {genreImage ? (
           <>
@@ -186,11 +195,11 @@ const GenreDetailPage = () => {
           </>
         ) : null}
 
-        <div className="relative z-10 flex min-h-[220px] flex-col justify-end gap-3">
+        <div className="relative z-10 flex min-h-[180px] flex-col justify-end gap-3 sm:min-h-[220px]">
           <span className="text-xs font-semibold uppercase tracking-[0.28em] text-white/72">
             Thể loại
           </span>
-          <h1 className="max-w-4xl text-4xl font-black tracking-tight text-white sm:text-5xl lg:text-7xl">
+          <h1 className="max-w-4xl text-3xl font-black tracking-tight text-white [overflow-wrap:anywhere] sm:text-5xl lg:text-7xl">
             {genreName}
           </h1>
           <p className="text-sm text-white/72 sm:text-base">
@@ -239,7 +248,7 @@ const GenreDetailPage = () => {
               ))}
             </section>
 
-            <div className="mt-10 flex items-center justify-center gap-2">
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-2">
               <button
                 type="button"
                 onClick={() => setPage((currentPage) => Math.max(currentPage - 1, 1))}

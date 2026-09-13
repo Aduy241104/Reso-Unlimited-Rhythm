@@ -136,7 +136,7 @@ const SectionCard = ({ title, icon: Icon, children, subtitle }) => (
 const InfoRow = ({ label, value, className = "" }) => (
     <div className={`rounded-2xl bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.018))] p-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] ${className}`}>
         <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/36">{label}</p>
-        <p className="mt-2 text-sm leading-6 text-white/84">{value || <span className="text-white/28">—</span>}</p>
+        <p className="mt-2 break-words text-sm leading-6 text-white/84">{value || <span className="text-white/28">—</span>}</p>
     </div>
 );
 
@@ -312,16 +312,16 @@ const CustomerReportDetailPage = () => {
                                     </h3>
                                 </div>
                                 <div className="space-y-3">
-                                    <div className="flex items-center justify-between">
+                                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                                         <span className="text-sm text-white/60">Hình thức xử lý</span>
-                                        <span className={`text-sm font-semibold ${report.status === "resolved" ? "text-emerald-200" : "text-rose-200"}`}>
+                                        <span className={`text-sm font-semibold ${report.status === "resolved" ? "text-emerald-200" : "text-rose-200"} sm:text-right`}>
                                             {getResolutionLabel(report.resolution)}
                                         </span>
                                     </div>
                                     {report.resolutionNote && (
                                         <div className="pt-2 border-t border-white/10">
                                             <span className="text-sm text-white/60">Ghi chú từ quản trị viên</span>
-                                            <p className="mt-1 text-sm text-white/90 whitespace-pre-wrap">
+                                            <p className="mt-1 whitespace-pre-wrap break-words text-sm text-white/90">
                                                 {report.resolutionNote}
                                             </p>
                                         </div>

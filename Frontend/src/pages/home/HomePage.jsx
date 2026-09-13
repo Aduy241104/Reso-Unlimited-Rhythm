@@ -79,14 +79,14 @@ const HomePage = () => {
     return (
       <LoadingState
         message="Đang tải trang chủ..."
-        className="min-h-[60vh] p-5"
+        className="min-h-[60vh] p-3 sm:p-5"
         spinnerClassName="h-8 w-8"
       />
     );
   }
 
   return (
-    <section className="min-w-0 space-y-6 p-5 sm:space-y-8 lg:space-y-10">
+    <section className="min-w-0 space-y-6 p-3 sm:space-y-8 sm:p-5 lg:space-y-10">
       {albumsError ? (
         <div
           className="
