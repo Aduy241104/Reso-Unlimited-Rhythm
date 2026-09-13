@@ -14,7 +14,8 @@ const allowedOrigins = [
     "http://192.168.1.20:8081",
     "exp://192.168.1.20:8081",
     "https://tsw6wlqc-5174.asse.devtunnels.ms",
-    "https://tsw6wlqc-5173.asse.devtunnels.ms"
+    "https://tsw6wlqc-5173.asse.devtunnels.ms",
+    "https://reso-unlimited-rhythm.vercel.app"
 ];
 
 export const corsOptions = {
