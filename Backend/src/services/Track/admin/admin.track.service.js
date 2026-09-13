@@ -15,7 +15,7 @@ import { AppError } from "../../../utils/AppError.js";
 import { scheduleTrackAudioFingerprint } from "../../fingerprint/audioFingerprint.job.js";
 import { activeFingerprintScopeFilter } from "../../fingerprint/fingerprint.lifecycle.service.js";
 import { compareFingerprints } from "../../fingerprint/fingerprintSimilarity.service.js";
-import { assertReviewCanApprove } from "../../track/moderationReview.service.js";
+import { assertReviewCanApprove } from "../moderationReview.service.js";
 import { getMusicBrainzResultForTrack } from "../../external/musicbrainz.service.js";
 import { getAcoustIdResultForTrack } from "../../external/acoustid.service.js";
 import { recordAuditEvent } from "../../audit/auditLog.service.js";
@@ -27,7 +27,7 @@ import {
     resolveTrackReleasedAt,
     resolveTrackReleaseStatus,
 } from "../../../utils/trackRelease.js";
-import { hashTrackMutableData } from "../../track/track.rejection.js";
+import { hashTrackMutableData } from "../track.rejection.js";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;

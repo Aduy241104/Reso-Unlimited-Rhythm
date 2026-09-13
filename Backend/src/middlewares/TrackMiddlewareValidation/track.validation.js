@@ -10,7 +10,7 @@ import {
     MAX_TAGS,
     TITLE_MAX_LENGTH,
     TITLE_MIN_LENGTH,
-} from "../../services/track/track.draft.validation.js";
+} from "../../services/Track/track.draft.validation.js";
 
 const optionalHttpUrl = Joi.string()
     .trim()

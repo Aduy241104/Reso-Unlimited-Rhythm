@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { normalizeTrackTitle } from "../services/track/track.title.normalizer.js";
+import { normalizeTrackTitle } from "../services/Track/track.title.normalizer.js";
 
 const { Schema, model } = mongoose;
 

@@ -22,7 +22,7 @@ import {
     isSameTitleAudioDuplicate,
     MODERATION_DECISIONS,
 } from "./moderationDecision.service.js";
-import { hashTrackMutableData } from "../track/track.rejection.js";
+import { hashTrackMutableData } from "../Track/track.rejection.js";
 
 const isEnabled = () => process.env.FINGERPRINT_AUTO_MODERATION !== "false";
 const isValidTrackId = (trackId) => mongoose.Types.ObjectId.isValid(trackId);

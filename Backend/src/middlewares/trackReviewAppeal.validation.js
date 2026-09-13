@@ -1,5 +1,5 @@
 import Joi from "joi";
-import { COPYRIGHT_EVIDENCE_TYPES, MAX_EVIDENCE_DOCUMENTS, MAX_EVIDENCE_SIZE } from "../services/track/copyright.validation.service.js";
+import { COPYRIGHT_EVIDENCE_TYPES, MAX_EVIDENCE_DOCUMENTS, MAX_EVIDENCE_SIZE } from "../services/Track/copyright.validation.service.js";
 
 const objectIdPattern = /^[0-9a-fA-F]{24}$/;
 
