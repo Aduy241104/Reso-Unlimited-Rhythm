@@ -1,32 +1,24 @@
 import cors from "cors";
 
-const allowedOrigins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://localhost:5173",
-    "http://localhost:5174",  // AdminFrontend khi chạy cùng lúc với Frontend
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1:5174",
-    "http://127.0.0.1:5500",
-    "http://localhost:3001",
+const normalizeOrigin = (origin = "") => origin.trim().replace(/\/+$/, "");
 
-
-    "http://192.168.1.20:8081",
-    "exp://192.168.1.20:8081",
-    "https://tsw6wlqc-5174.asse.devtunnels.ms",
-    "https://tsw6wlqc-5173.asse.devtunnels.ms",
-    "https://reso-unlimited-rhythm.vercel.app"
-];
+const getAllowedOrigins = () =>
+    (process.env.CORS_ORIGINS || process.env.FRONTEND_URL || "")
+        .split(",")
+        .map(normalizeOrigin)
+        .filter(Boolean);
 
 export const corsOptions = {
     origin: (origin, callback) => {
-        // Cho phép request từ Postman hoặc server-side không có origin
         if (!origin) return callback(null, true);
 
-        if (allowedOrigins.includes(origin)) {
-            callback(null, true); // Cho phép origin
+        const allowedOrigins = getAllowedOrigins();
+        const requestOrigin = normalizeOrigin(origin);
+
+        if (allowedOrigins.includes(requestOrigin)) {
+            callback(null, true);
         } else {
-            callback(new Error("Not allowed by CORS")); // Chặn origin
+            callback(new Error("Not allowed by CORS"));
         }
     },
 
@@ -39,7 +31,7 @@ export const corsOptions = {
     ],
 
     credentials: true,
-    maxAge: 86400 // Cache preflight response 1 ngày
+    maxAge: 86400
 };
 
 export default corsOptions;
