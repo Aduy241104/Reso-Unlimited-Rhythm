@@ -328,13 +328,13 @@ describe("authenticationService.login", () => {
                 email: "member@example.com",
                 username: "member",
                 avatar: null,
+                authProvider: "local",
+                canChangePassword: true,
                 role: "listener",
                 activeStatus: "active",
                 profile: {
                     fullName: "Test Member",
-                },
-                settings: {
-                    language: "en",
+                    dateOfBirth: null,
                 },
                 subscription: null,
                 createdAt: new Date("2026-05-01T00:00:00.000Z"),

@@ -9,7 +9,8 @@
     "postinstall": "node scripts/setupChromaprint.js",
     "start": "node src/server.js",
     "dev": "nodemon --inspect src/server.js",
-    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand"
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand",
+    "test:login": "npm test -- --runTestsByPath test/services/authService.test.js --testNamePattern=\"^(authentication login validation|authenticationService\\.login|authenticationController\\.login)\""
   },
   "license": "ISC",
   "dependencies": {
